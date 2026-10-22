@@ -259,3 +259,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [One name for the current map](current-map-display-name-v1.html): Default off; bundle treatment. navigate_to_target's "Current map:" line uses the Location line's name.
 - [Window escape route](window-escape-route-v1.html): Default off; bundle treatment. When no route lies inside the 15x15 local map, navigate_to plans over the whole current map for the rest of that call.
 - [Map-cycle recovery briefing](map-cycle-recovery-v1.html): an unresolved map-cycle episode briefs once and resets the cycle count instead of stopping the run.
+- [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.

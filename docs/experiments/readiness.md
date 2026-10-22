@@ -383,3 +383,9 @@ Pending, not queued. Correctness repair: native proof and regression coverage be
 | Switch | Activation milestone | Verdict | Evidence |
 | --- | --- | --- | --- |
 | `map-cycle-recovery-v1` | `PLAYER_NAME_CONFIRMED` (earliest bound; exposure needs an unresolved navigation-recovery-v1 map cycle) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent turns `navigation-recovery-v1` ON (needed). Evidence: gym-loop run 7c9f, map_cycle warning #2840 (3:56:16 PM New York) and stop #3415 (3:59:18 PM) on PETALBURG CITY; the recorded window replays to the same stop OFF and to the briefing ON. No measured benefit claimed. |
+
+## random-starter-v1 (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `random-starter-v1` | `PLAYER_NAME_CONFIRMED` (exposure is the starter bag) | NOT A TREATMENT: never queued | Data-collection switch (the operator 2026-10-22: long-play data on Treecko and Mudkip). Default off everywhere; used only by the one-arm fixed run `random-starter-2h`. |

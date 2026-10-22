@@ -8,10 +8,11 @@ import {evolutionTool} from "./evolution-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 import {randomUUID} from "node:crypto";
 import {planStride,requestedStep,type PrefixRules} from "./navigation.js";
+import {RANDOM_STARTER_LIMITS,atStarterBag,starterPickNote,starterStep,type RandomStarter,type StarterStep} from "./random-starter.js";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+export interface ToolSwitches { readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -228,6 +229,7 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
+      if(switches.randomStarter!==undefined&&!picking&&check===undefined&&atStarterBag(before))return pickStarter(toolCallId,switches.randomStarter,before,signal,_update);
       let limitedMovement=false;
       if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
         if(switches.rejectedMovementPrefix!==undefined)return walkPrefix(toolCallId,params.buttons,before,switches.rejectedMovementPrefix,signal,_update);
@@ -295,6 +297,35 @@ export function pressTool(
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${limitedMovement?`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:params.buttons,submitted:buttons,dropped:params.buttons.slice(1)})}\n`:""}${!limitedMovement&&buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
       shown.record(content.state, before);
       return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...content.content], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
+  };
+  // random-starter-v1: the run's pick replaces the model's press at the starter bag; one button per press, each read back.
+  let picking=false,starter:RandomStarter|null=null;
+  const pickStarter=async(toolCallId:string,pick:()=>RandomStarter,before:GameStateSnapshot|undefined,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>=>{
+    const target=starter??=pick();
+    let current=before,presses=0,confirmed=false,waitingSince:number|null=null,detail:string|null=null,picked=false;
+    picking=true;
+    try {
+      while(current!==undefined){
+        const step:StarterStep=confirmed&&!atStarterBag(current)?{kind:"done"}:starterStep(current,target);
+        if(step.kind==="done"){picked=true;break;}
+        if(step.kind==="stop"){detail=step.detail;break;}
+        if(step.kind==="press"){
+          if(presses>=RANDOM_STARTER_LIMITS.presses){detail=`no starter after ${String(presses)} presses`;break;}
+          presses+=1;waitingSince=null;
+          confirmed=current.active_ui?.phase==="starter_confirmation"&&step.button==="A";
+          current=(await execute(toolCallId,{buttons:[step.button]},signal,update)).details.state;
+          continue;
+        }
+        waitingSince??=clock.now();
+        if(clock.now()-waitingSince>=RANDOM_STARTER_LIMITS.waitMs){detail=`the starter bag stayed in ${current.active_ui?.phase??"transition"} for ${String(RANDOM_STARTER_LIMITS.waitMs/1000)} s`;break;}
+        await clock.sleep(RANDOM_STARTER_LIMITS.pollMs);
+        current=parseGameState(await getJson(`${gameServerUrl}/pokebench/state`,fetchFn,15_000,signal));
+      }
+    } finally {picking=false;}
+    if(current===undefined&&!picked)detail??="the game state is unavailable";
+    const result=await observation(gameServerUrl,fetchFn,signal,starterPickNote(target,picked?"picked":"stopped",detail));
+    shown.record(result.state,before);
+    return {content:result.content,details:{state:result.state}};
   };
   // rejected-movement-prefix-v1: the longest prefix of a guarded walking batch, one checked ordinary press per direction,
   // each re-validated by navigate_to's rules on the state read just before it and verified on the state after it.

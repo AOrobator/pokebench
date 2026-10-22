@@ -435,7 +435,7 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-68)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-44)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -472,6 +472,7 @@ describe("registry and event",()=>{
   delete arm["menu-item-guidance-v1"];
   delete arm["factual-healing-guidance-v1"];
   delete arm["rejected-movement-prefix-v1"];
+  delete arm["map-cycle-recovery-v1"];
   delete arm["poison-readout-v1"];
   delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];

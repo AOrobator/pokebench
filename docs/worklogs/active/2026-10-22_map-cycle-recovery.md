@@ -28,12 +28,17 @@ feature-switch, agent-observability, feature-explainer, feature-worklog, experim
 **M1 — Map-cycle recovery switch**
 - [x] Tests (7c9f recorded window ON/OFF, direct unit tests, second-cycle stop, story-progress re-arm, stall-briefing window reset, pinned-pi delivery, registry/preset/experiment/bundle): `packages/agent/src/map-cycle-recovery.test.ts` (fixture `test-support/map-cycle-recovery-7c9f.json.gz`) and one pinned-pi test in `harness.test.ts`. RED run: 14 failing / 3 passing (the passing ones are OFF parity on the recorded window, the wording guard and the stall refusal, which hold before and after).
 - [x] COMMIT RED
-- [ ] Implement + registry/presets/defaults/wiring + registry-tail test updates
-- [ ] Wiring deletion goes red, restored
-- [ ] Explainer + FEATURE_EXPLAINERS + pending experiment + readiness row + bundle recipes
-- [ ] Gates: just lint, just build, just coverage
-- [ ] COMMIT GREEN
+- [x] Implement + registry/presets/defaults/wiring (features.ts, play-preset.ts, next-run.ts, legacy-features.ts, loop/types.ts, loop/coordinator.ts, loop-detection.ts, harness.ts attachLoopGuard, stall-briefing.ts, play-wiring.ts type). Registry-tail updates: 74 test files' SWITCHABLE_FEATURES / switchable FEATURES / normalizeFeatures / presetFeatures negative indexes shifted by one; 16 incumbent filter lists exclude the new id; guard count 61 -> 62; heal-first, story-battle-heal-gate, birch-intro-pages, open-goal-prompt (viewer) and rejected-movement-prefix-bundle (viewer) arm exclusions; withoutFrontierTreatments turns it off.
+- [x] Wiring deletion goes red, restored: removing the attachLoopGuard argument gave 4 failed / 81 passed (7c9f ON, second-cycle, stall rig, pinned pi); restored 85 passed. Removing the stall-briefing pair reset gave 1 failed / 17 passed; restored 18 passed.
+- [x] Explainer docs/explainers/map-cycle-recovery-v1.html (themed, pages-check clean) + README + FEATURE_EXPLAINERS + panels/server tests; pending experiment experiments/map-cycle-recovery-v1.json + readiness row; six recipes (bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, gym-rustboro-torchic) base false + appended to bundle switches; glm53-flash-4h skipped (its bundle lacks navigation-recovery-v1); viewer map-cycle-recovery-bundle.test.ts.
+- [x] Gates: just lint 0; just build 0; just coverage 0 — agent 4761 tests (97.3 stmts / 93.3 branches / 97.8 funcs / 99.2 lines), viewer 1798 (95.47 / 91.45 / 94.45 / 97.97), Python 4008 passed (lines 97.41 / branches 93.48 / functions 100).
+- [x] COMMIT GREEN
 
 ## Session Log
 
+- 2026-10-22 ~4:25 PM New York: 7c9f read (read-only). Briefing replay matches the expected text exactly; OFF replay reproduces the recorded stop notice (message, evidence [2838,3414], calls 67).
+
 ## Surprises
+
+- 7c9f's episode could not have recovered by its own rule within 12 calls: every walkable exit of PETALBURG CITY led to a map already visited since the last story progress (ROXANNE_FIRST_INTERACTION is measurement-only, so the window starts at TOMMY defeated, turn 19).
+- The 7c9f states carry no location_display, so map names come from the readout's own exit_sections.current label recorded while on each map.

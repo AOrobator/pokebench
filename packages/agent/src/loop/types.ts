@@ -145,6 +145,8 @@ export interface LoopCoordinatorOptions extends LoopRuleFeatures {
   readonly menuRefusals?: boolean;
   readonly navigationRecovery?: boolean;
   readonly navigationRecoveryTargets?: boolean;
+  // map-cycle-recovery-v1: the first unresolved map-cycle episode per story-progress window briefs instead of stopping.
+  readonly mapCycleRecovery?: boolean;
   readonly policy?: LoopPolicy;
   readonly mode?: LoopMode;
   readonly supervisor?: (kind: LoopKind, calls: number) => string;

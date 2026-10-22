@@ -118,7 +118,7 @@ describe("NavigationRecovery map-cycle briefing",()=>{
  });
  it("ON lists visits, untaken exits with targets and names only visited maps",()=>{
   const r=direct(true,true);
-  const reach={warps:[{x:2,y:3,reach:"foot" as const},{x:4,y:4,reach:"none" as const},{x:9,y:9,reach:"foot" as const}],connections:[{direction:"WEST" as const,destination:[0,19] as [number,number],offset:0,reach:"foot" as const},{direction:"EAST" as const,destination:[0,17] as [number,number],offset:0,reach:"foot" as const}],foot:latestField().exit_reach?.foot??[]};
+  const reach={warps:[{x:2,y:3,reach:"foot" as const},{x:4,y:4,reach:"none" as const},{x:9,y:9,reach:"foot" as const}],connections:[{direction:"WEST" as const,destination:[0,19] as [number,number],offset:0,reach:"foot" as const},{direction:"EAST" as const,destination:[0,17] as [number,number],offset:0,reach:"foot" as const}],foot:latestField().exit_reach?.foot??{width:1,height:1,rows:["8"]}};
   const targets=[{kind:"warp",x:2,y:3,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[8,2,0] as [number,number,number],name:"Warp to map 8/2"}];
   const town=at([0,0],{exit_reach:reach,interaction_targets:targets,exit_sections:{current:"TOWN (map 0/0) — west terrain section [1,1]",warps:[],connections:[]},position:{x:5,y:6}});
   r.recovery.state(town);r.recovery.state(at([0,17],{exit_sections:{current:"ROUTE 102 (map 0/17) — east terrain section [2,2]",warps:[],connections:[]}}));r.recovery.state(town);

@@ -39,10 +39,12 @@ export class StallBriefing {
  private droughts=0;
  private last:State|null=null;
  private dwell:Dwell|null=null;
+ // map-cycle-recovery-v1: the guard's map-cycle window this briefing last counted map pairs in.
+ private cycleWindow=0;
  constructor(
   private readonly features:FeatureSet,
   private readonly active:()=>number,
-  private readonly detector:Pick<LoopDetector,"stall">,
+  private readonly detector:Pick<LoopDetector,"stall">&Partial<Pick<LoopDetector,"mapCycleWindow">>,
   private readonly text:(stall:Stall,calls:number)=>string,
   // story-character-stall-gate-v1: holds a due map_cycle or milestone_drought briefing.
   private readonly gate:Pick<StoryCharacterGate,"holds"|"held">|null=null,
@@ -121,6 +123,8 @@ export class StallBriefing {
  private check(seq:number):void {
   // positive-supervisor-v1: map back-and-forth and milestone-drought briefings are retired; interface dwell stays.
   const retired=this.features["positive-supervisor-v1"];
+  // map-cycle-recovery-v1: a recovery briefing replaced a stop, so map-pair counting starts again from here.
+  if(this.features["map-cycle-recovery-v1"]){const window=this.detector.mapCycleWindow?.()??0;if(window!==this.cycleWindow){this.cycleWindow=window;this.pairs.clear();}}
   const cycleHold=this.progressCycles?.hold()??null;
   if(cycleHold!==null){
    if(this.pairs.size>0)this.suppressed?.(`Map-cycle history retired (progress-aware-cycles-v1): ${cycleHold.reason}.`,[cycleHold.evidence[0]??seq,seq]);

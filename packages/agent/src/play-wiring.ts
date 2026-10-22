@@ -90,7 +90,7 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
 // same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
-export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate"|"recordLoopGuard">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate"|"recordLoopGuard">,detector:Pick<LoopDetector,"stall">&Partial<Pick<LoopDetector,"mapCycleWindow">>,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
  if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
  if(!features["stall-briefing-v1"])return null;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);

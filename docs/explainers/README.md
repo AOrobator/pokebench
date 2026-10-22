@@ -254,3 +254,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 ## [static-npc-template-approach-v1](static-npc-template-approach-v1.html)
 Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.
 - [Coherent battle observation](coherent-battle-observation-v1.html): bounded safe battle capture; default OFF.
+- [Map-cycle recovery briefing](map-cycle-recovery-v1.html): an unresolved map-cycle episode briefs once and resets the cycle count instead of stopping the run.

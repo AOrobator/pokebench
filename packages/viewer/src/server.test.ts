@@ -1449,3 +1449,12 @@ it("serves the coherent battle observation explainer byte for byte, mapped from 
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Coherent battle observation");
 });
+
+it("serves the map-cycle recovery explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="map-cycle-recovery-v1",source=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ writeFileSync(join(docs,`${id}.html`),source);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(source)).toBe(true);
+});

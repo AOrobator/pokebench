@@ -250,7 +250,8 @@
    "menu-item-guidance-v1": false,
    "factual-healing-guidance-v1": false,
    "static-npc-template-approach-v1": false,
-   "rejected-movement-prefix-v1": false
+   "rejected-movement-prefix-v1": false,
+   "map-cycle-recovery-v1": false
   }
  },
  "switches": [
@@ -300,7 +301,8 @@
   "menu-item-guidance-v1",
   "factual-healing-guidance-v1",
   "static-npc-template-approach-v1",
-  "rejected-movement-prefix-v1"
+  "rejected-movement-prefix-v1",
+  "map-cycle-recovery-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -137,12 +137,13 @@ export class LoopCoordinator {
       menuRefusals = false,
       navigationRecovery = false,
       navigationRecoveryTargets = false,
+      mapCycleRecovery = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
     this.progressCycles=options.progressAwareCycles===true?new ProgressAwareCycles():null;
     this.notify = notify;
-    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode,navigationRecoveryTargets):null;
+    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode,navigationRecoveryTargets,mapCycleRecovery):null;
     this.policy = policy;
     this.mode = mode;
     this.interactions = interactions;
@@ -509,6 +510,9 @@ export class LoopCoordinator {
   }
 
   cycleHold():ReturnType<ProgressAwareCycles["hold"]> {return this.progressCycles?.hold()??null;}
+
+  // map-cycle-recovery-v1: the map-cycle window generation stall-briefing-v1 restarts its map-pair counts on.
+  mapCycleWindow():number {return this.navigationRecovery?.mapCycleWindow()??0;}
 
   private retireCycles(seq:number,reason:string):void {
     if(this.episode?.kind==="cycle"||reason.includes("milestone")&&this.episode?.kind==="trigger_script"){

@@ -89,3 +89,8 @@ Conflicts only in the registry and its tail-index tests: took main's side, re-ap
 - GPT lane, isolated Codex CLI gpt-5.6-sol xhigh: VERDICT: LGTM (follow-ups: receipt across transport errors, a prefix slope test).
 - Grok: Cursor "out of usage" again. Lane blocked; asked the operator whether to land without it or wait.
 - Fallback reviewer (fresh read-only Claude Sonnet subagent, standing in for Grok): VERDICT: LGTM, verified packet SHA; follow-ups only. The operator 2026-10-22: "land without grok" (standing rule since 10/21: Claude + GPT + a fallback reviewer is approval while Cursor is out).
+
+## M2 — Bundle activation (the operator 2026-10-22 2:38 PM: "yes" to ON in the bundle arm, control unchanged)
+
+Six current bundle recipes (bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h) get rejected-movement-prefix-v1 false in base and appended to the bundle switches, as the potion-guidance enable did. All six already turn navigation-tool-use-guard-v1 on in the bundle arm.
+- [x] RED: packages/viewer/src/rejected-movement-prefix-bundle.test.ts, 6 failing / 0 passing

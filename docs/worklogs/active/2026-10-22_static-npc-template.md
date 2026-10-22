@@ -27,3 +27,4 @@ Added independent reader/source-guard and production read_state/state_json/rende
 
 ## Review boundary
 Bounded current-map facts preserve PB model agency: model chooses exact local ID; no route/story/person inference, interaction, evolution or move choice. Unknown/moving/hidden/native-loaded objects do not receive fallback. New metadata remains explicitly default/control OFF and bundle ON. No timeline marks or external publication. Parent performs frozen multi-model review, full-stack gates and landing coordination; this packet does not claim those stages.
+- GREEN commit b6465a569. Follow-up formats only the newly inserted readout blocks to the repository Ruff formatter; no byte-output change. Targeted20 Python tests remain green. Agent-owned headless screenshots were also inspected at375card/1280explainer/1440explainer, with readable wrapping and diagram labels. Parent has the commit range for cumulative integration/review.

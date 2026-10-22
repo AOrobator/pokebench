@@ -10,4 +10,5 @@ The r10 save's last heal point is Petalburg, so a run that loses to Roxanne befo
 
 ## Milestones
 - [x] Definition written; definitionProblems [] and controlBaseProblems []; stubbed dry-run rehearsal on all four lane/arm pairs with the bundle recipe: rc 0, start 430f7564, 49 bundle switches.
-- [ ] Gates, review, land, swap the loop, dropdown and frontier graph check
+- [x] Gates: lint rc 0, coverage rc 0, verify-vendor OK. Review packet e98de169: Claude (fresh subagent) LGTM, GPT gpt-5.6-sol LGTM, Astra gpt-6-astra LGTM. Rebased onto main twice with the packet byte-identical; viewer 1792 tests pass on the rebased tree. Landed fast-forward.
+- [ ] swap the loop, dropdown and frontier graph check

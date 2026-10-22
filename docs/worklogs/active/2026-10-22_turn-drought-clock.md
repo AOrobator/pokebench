@@ -55,6 +55,7 @@ Claude LGTM; GPT BLOCKING; fallback BLOCKING. Accepted findings:
 - [x] R1 GREEN: stall-briefing.ts restart() leaves the progress-causing result uncounted (skip when a state arrived since the last result); progressed() credits level-ups only to identified members and heals only to the same fully readable, identified party; loop-supervisor.ts droughtFacts drops the hint line; FEATURES copy and explainer say so (pages-theme re-run, pages-check clean). One existing ON test changed with the rule: the battle-hold test now needs 30 actions after the one whose state ended the battle. stall-parity.ts lost a type-only `as FeatureSet` cast for lint after the golden was generated (no runtime effect).
 - [x] R1 wiring deletion: `turnClock()` forced to false gave 18 failed / 5 passed in turn-drought-clock.test.ts; restored 23 passed. The parity test stays green either way (it is the OFF proof).
 - [x] R1 gates: `just lint` 0; `just build` 0; `just coverage` 0: agent 4763 tests (97.30 stmts / 93.37 branches / 97.79 funcs / 99.20 lines), viewer 1784 (95.47 / 91.44 / 94.44 / 97.97), Python 3975 passed (lines 97.40 / branches 93.46 / functions 100, floor 90); `just verify-vendor` OK
+- [x] R1 commits: RED e41854629, GREEN 924b109c7; pending experiment source.commit repinned to 924b109c7ec315479c1478febb5e2b69712cf9ce; `just test` 0 (agent 4763, viewer 1784, Python 3975); experiments-check: no definition problems (exits 1 only on the pre-existing starter-decision-salience runs ledger lines)
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive

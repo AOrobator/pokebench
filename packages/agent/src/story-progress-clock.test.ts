@@ -1,7 +1,7 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
-const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"turn-drought-clock-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
@@ -167,8 +167,8 @@ describe("story-progress-clock-v1 switch",()=>{
   expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-73)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-73)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-74)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-74)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");

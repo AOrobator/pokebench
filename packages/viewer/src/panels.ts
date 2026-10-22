@@ -576,6 +576,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "coherent-healing-feedback-v1":"coherent-healing-feedback-v1.html",
  "explorer-family-guidance-v1":"explorer-family-guidance-v1.html",
  "rejected-movement-prefix-v1":"rejected-movement-prefix-v1.html",
+ "turn-drought-clock-v1":"turn-drought-clock-v1.html",
  "away-note-buildings-v1":"away-note-buildings-v1.html",
  "current-map-display-name-v1":"current-map-display-name-v1.html",
  "window-escape-route-v1":"window-escape-route-v1.html",

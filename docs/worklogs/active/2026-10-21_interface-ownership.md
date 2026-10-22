@@ -213,6 +213,8 @@ Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. The ro
 
 - [x] RED: GPT round-2 #2 — recorder test `learn_move is recorded like the other game tools` (learn-move.test.ts) fails: learn_move tool_result has no `state_seq`. GPT round-2 #1 — `test_on_after_the_battle_an_absent_battler_is_named_from_the_party_or_omitted` (test_post_battle_readout.py) fails: ON ended block shows `You TORCHIC · absent`.
   - choose_evolution has the same recorder gap, but evolution-decision-v1 is already ON in both arms of the live fixed experiments; adding it would change recorded events of a merged switch's ON runs. Recorded as follow-up, not fixed here.
+  - COMMIT: `test(review): RED learn_move tool_result pairs its state; ended absent battler named from the party` (119e85316)
+- [x] GREEN: recorder.ts adds `learn_move` to the state-linked tool_result names (the tool exists only with move-learn-tool-v1 ON, so OFF runs record identically); battle_details.py ended block (post-battle-readout-v1 ON only) names an absent player battler from its matched party member, and omits it when no party member matches. OFF golden post_battle_off.json unchanged; OFF assertion in the new test pins `You TORCHIC · absent`. Guard-deletion: the RED commit is the tree without either guard; both new tests fail there (state_seq undefined; COMBUSKEN line missing). Targeted: learn-move/battle-action/recorder 96/96, test_post_battle_readout 8/8.
 
 ## Boy Scout Log
 

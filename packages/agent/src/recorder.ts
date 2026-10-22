@@ -294,7 +294,7 @@ export class RunRecorder {
     let stateSeq:number|undefined;
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
-    if ((name === "observe" || name === "press" || name === "navigate_to" || (this.semanticV2 && (name === "navigate_to_target" || name === "explore_map")) || name === "act" || name === "battle_action") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+    if ((name === "observe" || name === "press" || name === "navigate_to" || (this.semanticV2 && (name === "navigate_to_target" || name === "explore_map")) || name === "act" || name === "battle_action" || name === "learn_move") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
       try { stateSeq=this.recordState(parseGameState(result.details.state)).seq; }
       catch (error) { this.telemetryError("state", error); }
     }

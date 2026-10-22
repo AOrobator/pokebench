@@ -621,7 +621,12 @@ def battle_details_lines(
         lines.append(line)
     party = {m.identity: m for m in details.party or () if m.identity is not None}
     for actor in players:
-        if ended and not actor.absent:
+        if ended and actor.absent:
+            gone = party.get(actor.identity)
+            if gone is not None:
+                lines.append(f"You {gone.name} · absent (fainted or switched out)")
+            continue
+        if ended:
             member = party.get(actor.identity)
             lines.extend(
                 _ended_lines(member)

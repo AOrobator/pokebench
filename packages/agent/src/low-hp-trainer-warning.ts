@@ -696,11 +696,12 @@ function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,reco
   if(weak.length===0){previous=null;return result;}
   const places=await arm.table();
   const story=features["low-hp-trainer-warning-v2"]?storyBattleWarning(state):null;
+  const rival=features["low-hp-trainer-warning-v2"]?null:lowHpTrainerWarning(state);
   const trainers=features["heal-before-trainers-v1"]?healBeforeTrainers(state,{entered:new Set(),places,skip:null,v2:features["heal-before-trainers-v2"]}):null;
   const heal=await arm.heal?.nearest(state)??null;
   const gym=features["gym-heal-warning-v1"]&&places!==null?gymHealWarning(state,places,heal):null;
-  if(story===null&&trainers===null&&gym===null)return result;
-  const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
+  if(story===null&&rival===null&&trainers===null&&gym===null)return result;
+  const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,rival?.rival,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
   if(previous===key)return result;
   const risk=weakList(weak);
   const context=story!==null?`${story.opponent}'s trainer battle cannot be run from.`:NO_RUNNING;
@@ -711,6 +712,8 @@ function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,reco
   if(story!==null){
    if(recorder.storyBattleWarning===undefined)throw new Error("coherent-healing-feedback-v1 needs story_battle_warning recording");
    recorder.storyBattleWarning(tool.name,story,text);
+  }else if(rival!==null){
+   recorder.lowHpTrainerWarning(tool.name,rival,text);
   }else if(trainers!==null){
    if(recorder.healBeforeTrainersWarning===undefined)throw new Error("coherent-healing-feedback-v1 needs heal_before_trainers_warning recording");
    recorder.healBeforeTrainersWarning(tool.name,{...trainers,heal,items},text);

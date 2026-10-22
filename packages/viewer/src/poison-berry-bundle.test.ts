@@ -10,7 +10,7 @@ describe("poison and berry bundle activation", () => {
   for (const name of RECIPES) {
     it(`${name} enables both only in the normalized bundle arm`, () => {
       const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
-      expect(definition.switches.slice(definition.switches.includes("navigation-recovery-v1")?-4:-3,definition.switches.includes("navigation-recovery-v1")?-2:-1)).toEqual(IDS);
+      expect(definition.switches.slice(definition.switches.indexOf(IDS[0]),definition.switches.indexOf(IDS[0])+2)).toEqual(IDS);
       expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
       for (const phase of definition.phases) {
         const control = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")));

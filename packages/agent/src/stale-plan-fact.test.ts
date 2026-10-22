@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // stale-plan-fact-v1: run 2026-10-21T13-33-54_qwen36-gpu0_ea04 sent byte-identical thinking for 15 turns (md5 bf66221a,
 // seq 20494-20844) while the results cycled through four different move-learning prompts. The readouts below are the
 // Screen-to-question lines of its results at seq 20504 (Delete a move), 20529 (Stop learning) and 20554 (page).
@@ -74,8 +75,8 @@ describe("stale-plan-fact-v1",()=>{
  it("is a default-off agent-only guard, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-17)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-10)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

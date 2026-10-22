@@ -247,7 +247,7 @@ def test_off_golden_is_todays_readout() -> None:
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-18] == SWITCH
+    assert SERVER_FEATURES[-19] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

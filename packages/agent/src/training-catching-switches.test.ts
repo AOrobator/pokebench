@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import { describe, expect, it } from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
 const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
@@ -13,10 +14,10 @@ const NEEDS=["ram-state-v1","ram-state-v1","battle-text-auto-advance-v1",null,"h
 
 describe("training and catching switches (the operator 2026-10-21: \"both sets\")",()=>{
  it("are appended in order to every registry list as default-off observations",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-41,-34)).toEqual([...TRAINING_CATCHING_IDS]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-41,-34).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-43,-36)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-43,-36).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
   expect(SERVER_FEATURES.slice(-10,-8)).toEqual([...SERVER]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-38,-31)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-31,-24)).toEqual([...TRAINING_CATCHING_IDS]);
   TRAINING_CATCHING_IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

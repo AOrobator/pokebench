@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 // story-goal-player-name-v1: run 2026-10-21T01-16-23_glm53-mac_e9ee kept the default name BRENDAN, so MOM's
 // "He lives right next door" (dialogue_auto_advance seq 1628) had two candidates and the Story goal fell back to the TV line.
@@ -113,9 +114,9 @@ describe("production factory",()=>{
 
 describe("registry",()=>{
  it("the four GLM-run switches are appended last, in order, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-30,-26)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-30,-26).map(f=>f.id)).toEqual([...NEW]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-27,-23)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-32,-28)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-32,-28).map(f=>f.id)).toEqual([...NEW]);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-20,-16)).toEqual([...NEW]);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STORY GOAL: PLAYER NAME"});
   expect(featureInfo("cut-off-reply-feedback-v1")).toMatchObject({group:"guard",needs:null});

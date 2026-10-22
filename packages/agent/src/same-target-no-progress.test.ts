@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // same-target-no-progress-v1 (the operator approved the guard 2026-10-20). Run 2026-10-20T16-14-34_qwen36-gpu0_a8f9 from
 // turn 1282 (tool_call seq 41089) called navigate_to (29,16) on RUSTURF TUNNEL 39 times; every call ended on one of
 // six tiles next to (4,9), a third of them in a wild battle, and no loop guard fired.
@@ -303,11 +304,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-62)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-62)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-64)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-64)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-57)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(CURRENT_ON),null).at(-50)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

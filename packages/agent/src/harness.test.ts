@@ -649,7 +649,7 @@ describe("piLoop on the pinned pi-agent-core loop", () => {
     );
     expect(await play(TASK, g, loop)).toBe("budget");
     expect(retries).toEqual([{ reason: "model error: HTTP 502", attempt: 1, limit: 3 }]);
-    expect(seen[2]?.at(-1)?.role).toBe("toolResult");
+    expect(seen[2]?.at(-2)?.role).toBe("toolResult");
     expect(seen[2]?.some((m) => m.role === "assistant" && m.stopReason === "error")).toBe(false);
   });
 

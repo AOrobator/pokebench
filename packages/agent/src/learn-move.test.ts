@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // move-learn-tool-v1: learn_move on the recorded move-learning prompts of run 2026-10-21T13-33-54_qwen36-gpu0_ea04
 // (test-support/learn-move-ea04.json: COMBUSKEN learning DOUBLE KICK after evolving, seq 20456-21087, and TORCHIC
 // learning PECK in battle, seq 20100-20364). A fake game moves between those states the way pret pokeemerald 731ad5bf
@@ -308,9 +309,9 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(LEARN_MOVE_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"LEARN MOVE TOOL"});
   expect(featureInfo(LEARN_MOVE_ID).description).toContain(" Off: no learn_move tool and no prompt section.");
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(LEARN_MOVE_ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-15)?.id).toBe(LEARN_MOVE_ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(LEARN_MOVE_ID);
+  expect(SWITCHABLE_FEATURES.at(-17)).toBe(LEARN_MOVE_ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-17)?.id).toBe(LEARN_MOVE_ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(LEARN_MOVE_ID);
   expect(SERVER_FEATURES).not.toContain(LEARN_MOVE_ID);
   expect(BASE[LEARN_MOVE_ID]).toBe(false);
   expect(LEGACY_ALL_ON[LEARN_MOVE_ID]).toBe(false);

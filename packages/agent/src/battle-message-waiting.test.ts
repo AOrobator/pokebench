@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { Value } from "typebox/value";
@@ -18,8 +19,8 @@ it("registers a default-off observation switch with no dependency, recorded last
   // As built: a finishing battle keeps its text and gains the message clause (battle_details._input_text).
   expect(description).toContain('finishing (outcome won) · battle message waiting: "Got away safely!"');
   expect(description).not.toContain("finishing and recorded-playback text is unchanged");
-  expect(SWITCHABLE_FEATURES.at(-157)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-71)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-159)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-71)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // Works whatever the battle readout switches are: the control arm has battle-details-v2 off.

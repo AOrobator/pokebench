@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // gym-heal-warning-v1: one SUPERVISOR paragraph on a free-field result while a party Pokémon is below max HP, when the
 // current map is a GYM or has an exit to one (the operator 2026-10-20: "the supervisor warning for when it enters a gym without
@@ -58,9 +59,9 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"GYM HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(CITY_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-72)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true},null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true}),null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true})).toEqual([]);

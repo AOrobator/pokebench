@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // field-move-gates-v1 on the agent side: the server's field_obstacles and gated exit_reach reach every exit list through
 // exitBlock (surf-gate.ts), and navigate_to plans around closed obstacles, slides down slopes and names what cuts a goal off.
 // Fixture field-moves-a8f9-states.json.gz: control run 2026-10-20T16-14-34_qwen36-gpu0_a8f9, RUSTURF TUNNEL (24/4), state seq
@@ -82,10 +83,10 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"exit-reachability-v1",switchable:true,title:"FIELD MOVE GATES"});
   expect(featureInfo(ID).description).toContain(" Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before");
   expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
-  expect(SWITCHABLE_FEATURES.at(-59)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-59)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-61)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-61)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-18)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-52)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-45)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

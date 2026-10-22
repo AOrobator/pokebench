@@ -242,3 +242,13 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - M5C integration: exact delivered historical person/place statements, unnamed-source provenance and source-milestone retirement are preserved; no daughter→MAY inference or automatic walk-away goal action. Native ea04 retention/retirement replay and failed-delivery exclusions in child packet.
 
 - M5B integration: repeats already-delivered section exit facts only for currently foot-reachable departure warps, explicitly no guarantee of reaching the requested coordinate and no chosen route. Exact b300 Woods/Route104 section fixture verifies evidence.
+
+### Integration and operator steering
+
+- All9 initial new treatments now integrated; every active six-recipe bundle explicitly ON/control OFF. Existing fixed-point-breaker enabled only bundle; auto-talk bits stay explicit. Current-source M6 replay shows cited training warnings already covered, so no EXP exemption introduced.
+- Advisory review caught v1-only low-HP rival fallback missing under coherent treatment; restored original v1 facts/record path and added production regression, 4 tests pass.
+- Responsive document QA caught mobile source-path overflow and unreadably scaled diagrams; local wrapping/scroll containers added, 27 screenshots and9 composites rechecked. Static production-rendered cards clicked9 links; not live8790 proof.
+- Operator instructed all browser work remain background with no stolen focus. Foreground interaction stopped across agents immediately; no further foreground validation.
+- Operator added direct owned battle context correction via coordinator at12:41 EDT (verbatim yes pls). Separate P0 switch owned-battle-context-v1 forthcoming, uses d951 seq17461.
+- Parent Python qualified run:3952 pass/16 fail, no skips; remaining failures are old default-OFF/server-tail/forwarding expectations for appended B6 switch. Those expectations corrected; full rerun pending. All earlier test attempts remain diagnostic, not final gates.
+- Historical fixture repair accidentally changed one unrelated duplicate-shape .at assertion in harness.test; restored original -2/toolResult assertion immediately. No harness behavior change. Future registry compatibility uses explicit frozen treatment-OFF helper for old receipt positions, retaining separate current registry tests.

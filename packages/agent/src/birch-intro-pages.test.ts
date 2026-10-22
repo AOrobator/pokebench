@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, serverFeatureEnv, type SwitchableFeature } from "./features.js";
@@ -9,10 +10,10 @@ const ID = "birch-intro-pages-v1";
 
 describe("birch-intro-pages-v1", () => {
   it("is appended last as a default-off observation", () => {
-    expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
-    expect(FEATURES.filter(feature => feature.switchable).at(-21)?.id).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-23)).toBe(ID);
+    expect(FEATURES.filter(feature => feature.switchable).at(-23)?.id).toBe(ID);
     expect(SERVER_FEATURES.at(-6)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-21)).toBe(ID);
+    expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-14)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "observation", switchable: true, title: "BIRCH INTRO PAGES", needs: null });
     expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
     expect(featureInfo(ID).description).toContain("Off: ");
@@ -50,7 +51,7 @@ describe("birch-intro-pages-v1", () => {
     for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h"]) {
       const fixed = JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")) as { base: { features: Record<string, boolean> }; switches: string[] };
       expect(fixed.base.features[ID]).toBe(false);
-      expect(fixed.switches.at(-18)).toBe(ID);
+      expect(fixed.switches.at(-20)).toBe(ID);
       const bundle = { ...fixed.base.features, ...Object.fromEntries(fixed.switches.map((id) => [id, true])) };
       expect(bundle[ID]).toBe(true);
       if (name === "bundle-v-control") {

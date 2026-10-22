@@ -22,7 +22,7 @@ const state=parseGameState(row.state);
 const places=JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as {places:{display:string}[]};
 const BASE:FeatureSet={...featuresOf(recorded.harness_features),"harness-trust-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"no-exit-here-v1":false,"blocked-exit-fact-v1":false,"battle-move-tool-v1":false,"heal-before-trainers-v2":true,"story-battle-heal-first-v1":true,"gym-heal-warning-v1":true};
 const hp=(n:number):GameStateSnapshot=>({...state,party:state.party.map((p,i)=>i===0?{...p,hp:n,max_hp:33}:p)});
-async function replay(on:boolean,states:readonly GameStateSnapshot[]){
+async function replay(on:boolean,states:readonly GameStateSnapshot[],overrides:Partial<FeatureSet>={}){
  const root=mkdtempSync(join(tmpdir(),"coherent-heal-"));
  try{
   const log=RunLog.create(root,"replay");
@@ -30,7 +30,7 @@ async function replay(on:boolean,states:readonly GameStateSnapshot[]){
   await recorder.start(RUN_START_META);
   let index=0;
   const press:AgentTool={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"recorded state"}],details:{state:states[index++]}})};
-  const tool=playGameTools([press],{...BASE,[ID]:on},{read:()=>Promise.resolve(state),places:()=>Promise.resolve(places)},recorder).find(t=>t.name==="press");
+  const tool=playGameTools([press],{...BASE,...overrides,[ID]:on},{read:()=>Promise.resolve(state),places:()=>Promise.resolve(places)},recorder).find(t=>t.name==="press");
   if(tool===undefined)throw new Error("missing production tool");
   const texts:string[]=[];
   for(const [i] of states.entries()){const r=await tool.execute(`r${String(i)}`,{});texts.push(r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n"));}
@@ -45,6 +45,16 @@ it("production treatment removes full-heal commands for the ledger's 30/33 gym e
  expect(off.warnings.length).toBeGreaterThan(1);
  expect(on.texts).toEqual(["recorded state"]);
  expect(on.warnings).toEqual([]);
+});
+it("preserves dangerous rival HP when only the original v1 warning dependency is enabled",async()=>{
+ const context=state.world_context,object=context?.objects[0];
+ if(context==null||object===undefined||state.story==null)throw new Error("fixture needs world and story facts");
+ const rival:GameStateSnapshot={...hp(3),map_id:[0,18],story:{...state.story,rival_battle_won:false},world_context:{...context,objects:[{...object,map_id:[0,18],sprite_kind:"RIVAL_MAY_NORMAL",x:10,y:3}]}};
+ const on=await replay(true,[rival],{"low-hp-trainer-warning-v2":false,"heal-before-trainers-v1":false,"gym-heal-warning-v1":false});
+ expect(on.warnings).toHaveLength(1);
+ expect(on.warnings[0]?.type).toBe("low_hp_trainer_warning");
+ expect(on.texts[0]).toContain("below half");
+ expect(on.texts[0]).not.toContain("Heal before");
 });
 it("consolidates dangerous HP into one recorded factual warning and deduplicates unchanged observations",async()=>{
  const on=await replay(true,[hp(3),hp(3),hp(30),hp(3)]);

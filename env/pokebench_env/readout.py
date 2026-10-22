@@ -14,6 +14,7 @@ from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
 from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
+from pokebench_env.birch_pages import INTRO_PHASE, INTRO_SWITCH
 from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
@@ -34,6 +35,14 @@ from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.poison_berry_readout import (
+    BERRY,
+    POISON,
+    POISON_WARNING,
+    bag_berry_lines,
+    poisoned,
+)
+from pokebench_env.pokedex_own import dex_lines
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
@@ -47,9 +56,36 @@ from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Topology
+from pokebench_env.training_readout import exp_clause
 from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
 from pokebench_env.yes_no_answer import answer_line
+
+# post-battle-readout-v1: the battle block after the battle ends (evolution or summary screen while
+# the battle finishes), and the battle's move-learning YES/NO box as the Interface line.
+POST_BATTLE = "post-battle-readout-v1"
+POST_BATTLE_SCREENS = frozenset({"evolution", "pokemon_summary", "summary"})
+# BattleScript_AskToLearnMove yesnoboxlearnmove / yesnoboxstoplearningmove
+# (battle_text.py 0x5A / 0x5B).
+LEARN_BOXES = frozenset({"learn_move", "stop_learning_move"})
+# battle_message_waiting.py's controls for a battle YES/NO box.
+BOX_CONTROLS = "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO"
+
+
+def _learn_box_interface(state: GameState) -> str | None:
+    battle = state.battle
+    prompt = None if battle is None else battle.prompt
+    if (
+        battle is None
+        or battle.diagnostic is not None
+        or prompt is None
+        or prompt.kind not in LEARN_BOXES
+        or not prompt.ready
+        or prompt.selected not in {"YES", "NO"}
+    ):
+        return None
+    return f"Interface: {prompt.kind}; input ready; selected {prompt.selected}; {BOX_CONTROLS}"
+
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -118,6 +154,15 @@ SERVER_FEATURES = (
     "gym-door-label-v1",
     "mart-stock-readout-v1",
     "caught-dex-input-v1",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
+    "shop-interface-v1",
+    "map-wide-triggers-v1",
+    "birch-intro-pages-v1",
+    "post-battle-readout-v1",
+    "move-learn-early-comparison-v1",
+    POISON,
+    BERRY,
 )
 
 
@@ -142,7 +187,9 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
         "move-learn-comparison-v1,gym-door-label-v1,"
-        "mart-stock-readout-v1,caught-dex-input-v1",
+        "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
+        "shop-interface-v1,map-wide-triggers-v1,"
+        "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -312,6 +359,7 @@ def format_readout(
         "field_transition",
         # birch-speech-pages-v1: a Birch page is shown wherever the Birch phases are.
         *((BIRCH_PAGE,) if BIRCH_PAGES not in off else ()),
+        *((INTRO_PHASE,) if INTRO_SWITCH not in off else ()),
     }
     omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
     if omitted_ui:
@@ -329,7 +377,10 @@ def format_readout(
             f"Dialog: {dialog}",
             _menu(state, truth, "evolution-decision-v1" not in off, MOVE_QUESTION not in off),
         ]
-        if ui is not None:
+        box = _learn_box_interface(state) if POST_BATTLE not in off and state.in_battle else None
+        if box is not None:
+            lines.append(box)
+        elif ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
         # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
         answer = answer_line(state) if YES_NO_ANSWER not in off else None
@@ -414,6 +465,9 @@ def format_readout(
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,
+                    ended=POST_BATTLE not in off
+                    and battle.phase == "finishing"
+                    and state.screen in POST_BATTLE_SCREENS,
                 ),
                 *playback,
                 *execution,
@@ -475,12 +529,25 @@ def format_readout(
         )
     x, y = state.position
     named_status = STATUS_NAMES not in off
+    poison_readout = POISON not in off
     facing = "" if state.facing is None else f", facing {state.facing}"
+    next_levels = state.party_next_level or ()
     party = "; ".join(
         f"{m.species or 'UNKNOWN'} Lv{m.level} HP {m.hp}/{m.max_hp}"
+        # exp-next-level-v1: the summary screen's EXP. POINTS and NEXT LV.
+        + (
+            f" · {exp_clause(m.experience, next_levels[i])}"
+            if i < len(next_levels) and exp_clause(m.experience, next_levels[i])
+            else ""
+        )
         # status-names-v1: the status by name (poison, sleep turns, ...) instead of its bits.
         + (
-            f" · STATUS {(status_text(m.status) if named_status else None) or m.status}"
+            " · STATUS "
+            + (
+                "PSN (poisoned)"
+                if poison_readout and poisoned(m.status)
+                else str((status_text(m.status) if named_status else None) or m.status)
+            )
             if expanded and m.status
             else ""
         )
@@ -495,7 +562,7 @@ def format_readout(
         + (f" · nickname {m.nickname}" if expanded and m.nickname else "")
         + (f" · HARNESS BUG: {m.diagnostic}" if m.diagnostic else "")
         + (f" · HARNESS BUG: {m.nickname_diagnostic}" if m.nickname_diagnostic else "")
-        for m in state.party or ()
+        for i, m in enumerate(state.party or ())
     )
     location = places.get(state.map_id) if state.map_id is not None else None
     lines += [
@@ -507,6 +574,8 @@ def format_readout(
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
     owner = state.party_owner or "unknown"
     lines.append(f"Party ({owner}): {party or 'none'}")
+    if state.pokedex is not None:
+        lines.extend(dex_lines(state, state.pokedex))
     triage = (
         field_triage_line(state.party, owner)
         if TRIAGE not in off and not state.in_battle and state.battle is None
@@ -525,6 +594,20 @@ def format_readout(
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
+    if (
+        poison_readout
+        and state.screen == "overworld"
+        and not state.in_battle
+        and state.party_owner == "player"
+        and any(
+            poisoned(m.status) and (m.hp or 0) > 0 and not m.diagnostic for m in state.party or ()
+        )
+    ):
+        lines.append(POISON_WARNING)
+    if BERRY not in off:
+        lines.extend(bag_berry_lines(state.resources))
+        if state.screen == "overworld" and not state.in_battle:
+            lines.extend(state.berry_readout or ())
     # blackout-readout-v1: the first observation back on the field after CB2_WhiteOut.
     if whiteout is not None and BLACKOUT not in off:
         lines.append(whiteout_line(whiteout, state))
@@ -818,9 +901,12 @@ def _location_display(state: GameState) -> dict[str, str]:
 
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
-    full = (
+    full: dict[str, object] = (
         {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
     )
+    # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
+    if state.party_next_level is not None:
+        full = {**full, "party_next_level": list(state.party_next_level)}
     return {
         **full,
         "screen": state.screen,

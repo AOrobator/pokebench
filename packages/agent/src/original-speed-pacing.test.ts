@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
-import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
   featuresOf, playHarnessFeatures, serverFeatureEnv, type SwitchableFeature,
 } from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { parseEvent } from "./events.js";
@@ -14,13 +15,13 @@ const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-40)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-46)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-71)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-77)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-16)).toBe(ID);
+  expect(SERVER_FEATURES.at(-25)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {

@@ -23,8 +23,11 @@ export interface OwnedInterface {readonly key:string;readonly name:string;readon
 // pokeemerald naming_screen.c templates' maxChars (PLAYER_NAME_LENGTH, BOX_NAME_LENGTH, POKEMON_NAME_LENGTH, WALDA_PHRASE_LENGTH).
 const NAME_LIMIT:Readonly<Record<string,number>>={player:7,box:8,caught_mon:10,nickname:10,walda:15};
 type Screen=Pick<Extract<RunEvent,{type:"state";started:boolean}>,"started"|"screen"|"in_battle"|"active_ui"|"naming">;
-export function interfaceOf(s:Screen):OwnedInterface|null {
- if(!s.started||s.in_battle||s.screen==="battle")return null;
+// field-ownership-feedback-v1 (owned): a ready interface on a screen that is not a battle screen counts even with the
+// battle flag set, which the game keeps through a post-battle evolution.
+export function interfaceOf(s:Screen,owned=false):OwnedInterface|null {
+ if(!s.started)return null;
+ if((s.in_battle||s.screen==="battle")&&(!owned||s.screen==="battle"||s.screen.startsWith("battle_")||s.screen==="overworld"))return null;
  const ui=s.active_ui??null;
  const owner=ui?.details?.["naming_owner"];
  const who=typeof owner==="string"?owner:null;
@@ -188,7 +191,7 @@ export class SupervisorBriefing {
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]),this.features["positive-supervisor-v1"]?navigationSaid(event.text):undefined);
-   if(call.uiBefore!==null||interfaceOf(after)!==null)this.streak=null;
+   if(call.uiBefore!==null||interfaceOf(after,this.features["field-ownership-feedback-v1"])!==null)this.streak=null;
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
    if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
    if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
@@ -198,7 +201,7 @@ export class SupervisorBriefing {
   if(dialogue)this.heard.add(this.opening(after,dialogue));
  }
  private seeInterface(after:State,call:Call|undefined):void {
-  const ui=interfaceOf(after);
+  const ui=interfaceOf(after,this.features["field-ownership-feedback-v1"]);
   if(ui===null){this.screenNow=null;this.uiTried.length=0;return;}
   if(this.screenNow?.ui.key!==ui.key)this.uiTried.length=0;
   this.screenNow={state:after,ui};
@@ -406,7 +409,7 @@ export class SupervisorBriefing {
  }
  private where():string {
   const now=this.shown;
-  if(now!==null&&(now.in_battle||now.screen==="battle")){
+  if(now!==null&&(now.in_battle||now.screen==="battle")&&!(this.features["field-ownership-feedback-v1"]&&interfaceOf(now,true)!==null)){
    const tile=this.features["live-player-position-v1"]&&now.position!==null?` at ${at(now.position.x,now.position.y)}`:"";
    return `${roomOf(now,this.features)} in battle${tile}`;
   }

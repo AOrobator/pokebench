@@ -1,3 +1,4 @@
+import {loopEvidence} from "./types.js";
 import type {GameStateSnapshot} from "../game-state.js";
 import type {CompletedCall,LoopMode,LoopNotice} from "./types.js";
 
@@ -59,7 +60,7 @@ export class NavigationRecovery {
  }
  private notice(phase:"warning"|"recovered"|"stop",seq:number,calls:number):void {
   const e=this.episode;if(e===null)return;
-  const fields={kind:e.kind,message:`${e.text}\n${this.bearings()}${phase==="stop"?"\nBounded navigation recovery ended without verified recovery.":phase==="recovered"?"\nVerified navigation recovery.":""}`,calls,evidence:[...new Set([...e.evidence,seq])].slice(-2)};
+  const fields={kind:e.kind,message:`${e.text}\n${this.bearings()}${phase==="stop"?"\nBounded navigation recovery ended without verified recovery.":phase==="recovered"?"\nVerified navigation recovery.":""}`,calls,evidence:loopEvidence([...e.evidence,seq])};
   if(this.mode==="enforced")this.notify({...fields,mode:this.mode,phase});
   else this.notify({...fields,mode:this.mode,phase:phase==="warning"?"would_warn":phase==="stop"?"would_stop":"would_recover"});
  }

@@ -17,7 +17,9 @@ import {assistant,toolCall,userText} from "../test-support/pi.js";
 import {decisionContext,parseRun} from "./decision-probe.js";
 import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
 import {parseExperiment,experimentArms} from "./experiments.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const RAW_PROGRESS_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...RAW_PROGRESS_ALL_ON,"progress-aware-cycles-v1":false};
 import {SUMMARY_FACT_KEYS} from "./party-facts.js";
 import {BREAKER_NOTE,CYCLE_COPIES,CYCLE_STATE_EXCLUDED,FixedPointBreaker,cycleFields,cycleNote,cycleRuns,cycleState,fixedPointNote} from "./fixed-point-breaker.js";
 import type {GameStateSnapshot} from "./game-state.js";
@@ -600,15 +602,15 @@ describe("the cycle state is the whole recorded state minus a documented list",(
 
 describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
  it("registers a default-off guard with no dependency, appended last, with an exact OFF",()=>{
-  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-14)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-45)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
   // OFF is exactly the previous behavior: the copy says so, and the production wiring with the switch off builds the
   // same request and records the same events as with the switch absent from the preset.
   expect(featureInfo(ID).description.endsWith(" Off: duplicate-turn-collapse-v1 and fixed-point-breaker-v1 act as before: only identical turns that left the same state, and replies with no tool call, are left out of the request, and only their notes are sent.")).toBe(true);
   expect(featureInfo(ID).description).toContain("duplicate-turn-collapse-v1");
   expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>"));
-  expect(playHarnessFeatures(ALL_ON,null).at(-14)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-41)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);

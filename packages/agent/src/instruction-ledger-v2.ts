@@ -143,6 +143,7 @@ export class ConversationLedger {
  }
  block(state:GameStateSnapshot,callId:string):string|null {
   if(!this.visible(state)||state.in_battle)return null;
+  if(this.features["milestone-instruction-memory-v1"]&&this.features["observed-instructions-v1"]&&this.features["observed-field-dialogue-v1"])return null;
   // This result's own pages are delivered with it; they count here before its tool_result is recorded.
   const rooms=new Map([...this.rooms].map(([k,r])=>[k,{...r}]));
   const call=this.pending.get(callId);
@@ -168,6 +169,7 @@ export class ConversationLedger {
    else out.push(head,`- ${quote(latest)}`);
   }
   else out.push(`${LATEST}: none yet; no field dialogue shown yet.`);
+  if(this.features["milestone-instruction-memory-v1"]&&this.features["observed-instructions-v1"])return out.join("\n");
   out.push(ROOMS);
   for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard,hideTurn)}`);
   return out.join("\n");

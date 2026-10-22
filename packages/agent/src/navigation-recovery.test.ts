@@ -109,7 +109,7 @@ it("is default OFF, separately receipted and has a pending single-switch experim
  expect(playHarnessFeatures({...LEGACY_ALL_ON,[id]:true},null)).toEqual([...playHarnessFeatures(LEGACY_ALL_ON,null),id]);
  const e=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/navigation-recovery-v1.json",import.meta.url),"utf8")));
  expect(e.queuePosition).toBeUndefined();const {incumbent,candidate}=experimentArms(e);expect(candidate.features).toEqual({...incumbent.features,[id]:true});expect(incumbent.features[id]).toBe(false);
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const f=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(f.base.features[id]).toBe(false);expect(f.switches).toContain(id);
  }
@@ -160,4 +160,10 @@ it("keeps legacy observation diagnostics active during recording-only navigation
 it("labels visit history by its actual story-progress epoch",()=>{
  const r=direct();r.recovery.state(state({map_id:[99,2]}));r.recovery.progress(1,1);r.recovery.state(field);r.recovery.cycle("cycle",[1],1);
  expect(r.recovery.context()).toContain("not visited since last native story progress");expect(r.recovery.context()).not.toContain("not yet visited");
+});
+
+it("preserves both recorded windows with the newer progress-aware cycle guard enabled",()=>{
+ const features={...LEGACY_ALL_ON,"progress-aware-cycles-v1":true,"navigation-recovery-v1":true};
+ const stale=rig(true,features);stale.replay(172,191);expect(stale.governor.stopReason).toBe("stuck");
+ const cycle=rig(true,features);cycle.replay(252,261);expect(cycle.notices.filter(n=>n.kind==="map_cycle").map(n=>n.phase)).toEqual(["warning"]);expect(cycle.detector.context()).toContain("repeated map cycle remains unresolved");
 });

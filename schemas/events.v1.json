@@ -1903,6 +1903,151 @@
           },
           "maxItems": 64,
           "uniqueItems": true
+        },
+        "retention": {
+          "type": "object",
+          "required": [
+            "chapter",
+            "archive_count",
+            "kept",
+            "retired",
+            "proofs"
+          ],
+          "properties": {
+            "chapter": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "state_event",
+                    "result_event"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "state_event": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "result_event": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "archive_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "kept": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "result_event",
+                  "reason",
+                  "rule"
+                ],
+                "properties": {
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "no_chapter",
+                      "current_chapter",
+                      "unknown",
+                      "unresolved",
+                      "completed"
+                    ]
+                  },
+                  "rule": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "retired": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "result_event",
+                  "reason",
+                  "rule"
+                ],
+                "properties": {
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "no_chapter",
+                      "current_chapter",
+                      "unknown",
+                      "unresolved",
+                      "completed"
+                    ]
+                  },
+                  "rule": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "proofs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "state_event",
+                  "result_event"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "state_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -4186,6 +4331,54 @@
             "additionalProperties": false
           },
           "maxItems": 1
+        },
+        "heal_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "outward",
+              "back"
+            ],
+            "properties": {
+              "outward": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              },
+              "back": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
         },
         "sightings": {
           "type": "array",
@@ -11998,6 +12191,21 @@
             }
           },
           "additionalProperties": false
+        },
+        "party_next_level": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 6
         }
       },
       "additionalProperties": false

@@ -316,6 +316,23 @@ describe("viewer app", () => {
     expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(false);
   });
 
+  it("lights running B from delayed native receipts at execution time in replay", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, {type: "button_press", turn: 1, tool_call_id: "run", buttons: ["RIGHT"], hold_frames: 224, release_frames: 8, automatic_running: true, requested_held_buttons: ["B"]});
+    log.add(2000, {type: "native_action", turn: 1, id: 1, kind: "native_input", frame: 1, server_timestamp: (BASE_MS + 1010) / 1000, details: {buttons: ["RIGHT", "B"]}});
+    log.add(2001, {type: "native_action", turn: 1, id: 2, kind: "native_input", frame: 10, server_timestamp: (BASE_MS + 1200) / 1000, details: {buttons: []}});
+    log.add(3000, {type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: {input: 0, output: 0}, frames: {saved: 0, bytes: 0}});
+    feed(must(streams[0]), log.events);
+    app.clock?.pause();
+    for (const [offset, held] of [[1050, true], [1250, false], [1050, true]] as const) {
+      app.clock?.seek(BASE_MS + offset);
+      app.tick(0);
+      for (const button of ["RIGHT", "B"]) expect(ui("gba").querySelector(`[data-btn="${button}"]`)?.classList.contains("lit")).toBe(held);
+    }
+  });
+
   it("drives the replay from the controls and seeks backwards", async () => {
     const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
@@ -1360,6 +1377,22 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
  expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(recovered.seq)}"]`)).textContent).toContain("cycle recovered");
  expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(waiting.seq)}"]`)).textContent).toContain("open menu, prompt or message waiting for your input");
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);
+});
+
+it("mounts a heal-trip drought hold in Activity History and the inspector, never on the timeline (drought-battle-heal-hold-v1)",async()=>{
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:419,id:"c419",name:"navigate_to",args:{map_id:[0,19],x:5,y:18}});
+ // Run 4164 replayed through the fixed stallBriefing: the hold that used to end the run "crash" (three evidence ids).
+ const held=log.add(2000,{type:"loop_guard",turn:419,kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:"Not sent (drought-battle-heal-hold-v1): no new story milestone for 10 minutes of play, but the party is on its way to heal after a heal warning (#15727).",calls:0,evidence:[14510,16572]});
+ log.add(70000,{type:"run_end",turn:419,reason:"budget",furthest_milestone:null,turns:419,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(held.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(held.seq)}"]`));
+ expect(row.textContent).toContain("milestone drought diagnostic: would warn");expect(row.textContent).toContain("on its way to heal after a heal warning (#15727)");
+ expect(ui("lanes").querySelectorAll('[aria-label*="on its way to heal"]')).toHaveLength(0);expect(ui("lanes").querySelectorAll(".k-loop")).toHaveLength(0);
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "milestone_drought"');expect(ui("inspector").textContent).toContain("14510");expect(ui("inspector").textContent).toContain("16572");expect(row.classList.contains("sel")).toBe(true);
 });
 
 it('labels human comparison candidates with unverified ROM provenance',async()=>{

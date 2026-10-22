@@ -253,7 +253,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
-    case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "ledger_context":return `Instruction ledger delivered${event.retention===undefined?"":` · ${String(event.retention.kept.length)} kept · ${String(event.retention.retired.length)} archived`} · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -379,8 +379,28 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "gym-evidence-v1":"gym-evidence-v1.html",
+ "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",
+ "field-ownership-feedback-v1":"field-ownership-feedback-v1.html",
+ "move-learn-loop-fingerprint-v1":"move-learn-loop-fingerprint-v1.html",
+ "stale-plan-fact-v1":"stale-plan-fact-v1.html",
+ "post-battle-readout-v1":"post-battle-readout-v1.html",
+ "move-learn-early-comparison-v1":"move-learn-early-comparison-v1.html",
+ "move-learn-tool-v1":"move-learn-tool-v1.html",
+ "milestone-drought-suppression-v1":"milestone-drought-suppression-v1.html",
+ "story-goal-player-name-v1":"story-goal-player-name-v1.html",
+ "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
+ "trainer-sight-check-v2":"trainer-sight-check-v2.html",
+ "auto-talk-v2":"auto-talk-v2.html",
+ "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
+ "map-wide-triggers-v1":"map-wide-triggers-v1.html",
+ "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
+ "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
+ "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "rejected-movement-step-v1":"rejected-movement-step-v1.html",
+  "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
@@ -542,6 +562,17 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "effectiveness-heard-v1":"effectiveness-heard-v1.html",
  "game-said-goals-v1":"game-said-goals-v1.html",
  "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
+ "shop-interface-v1":"shop-interface-v1.html",
+ "birch-intro-pages-v1":"birch-intro-pages-v1.html",
+ "poison-readout-v1":"poison-readout-v1.html",
+ "berry-readout-v1":"berry-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

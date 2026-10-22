@@ -1,0 +1,525 @@
+{
+ "source": "runs/2026-10-21T13-33-36_qwen36-gpu1_d548/events.jsonl seq 20530 (post-battle evolution; gMain.inBattle still set); resources.berry_trees and active_ui.details.task_data trimmed",
+ "state": {
+  "v": 1,
+  "run": "2026-10-21T13-33-36_qwen36-gpu1_d548",
+  "seq": 20530,
+  "t": "2026-10-21T15:20:48.433-04:00",
+  "type": "state",
+  "turn": 557,
+  "screen": "evolution",
+  "active_ui": {
+   "phase": "evolution_decision",
+   "selected": null,
+   "ready": true,
+   "controls": "Evolution is waiting for choose_evolution: evolve or cancel. Ordinary button input is blocked.",
+   "diagnostic": null,
+   "value": null,
+   "details": {
+    "callback2": "0x0813E3A5",
+    "task_ids": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "task_functions": [
+     "0x0813E571",
+     "0x0817C511",
+     "0x0813FDED",
+     "0x0813FEE9"
+    ],
+    "pokemon_party_index": 0,
+    "pokemon_identity": "67fbaf13:d1af1215",
+    "pokemon_species": "TORCHIC",
+    "pokemon_species_id": 280,
+    "pokemon_level": 16,
+    "pokemon_is_egg": false,
+    "pokemon_language": 2,
+    "pokemon_nickname": "TORCHIC",
+    "owner_task": 0,
+    "evolution_state": 8,
+    "move_learning_state": 0,
+    "pre_species_id": 280,
+    "post_species_id": 281,
+    "pre_species": "TORCHIC",
+    "post_species": "COMBUSKEN",
+    "task_flags": 1,
+    "yes_next_state": 0,
+    "no_next_state": 0,
+    "evolution_was_stopped": false,
+    "trade_evolution": false,
+    "cancel_available": true
+   }
+  },
+  "story": {
+   "name_confirmed": true,
+   "intro_stage": 7,
+   "rival_stage": 4,
+   "birch_lab_stage": 5,
+   "petalburg_gym_stage": 2,
+   "woods_stage": 1,
+   "town_stage": 4,
+   "clock_set": true,
+   "rival_battle_won": true,
+   "pokedex_received": true,
+   "running_shoes_received": true,
+   "starter_tutorial_complete": true,
+   "rustboro_gym_complete": false,
+   "stone_badge": false,
+   "rock_tomb_received": false,
+   "rustboro_josh_defeated": true,
+   "rustboro_tommy_defeated": true,
+   "rustboro_marc_defeated": true,
+   "petalburg_woods_lyle_defeated": false,
+   "petalburg_woods_james_defeated": false,
+   "petalburg_woods_aqua_grunt_defeated": true,
+   "route116_joey_defeated": true,
+   "route116_jose_defeated": true,
+   "route116_jerry_defeated": false,
+   "route116_clark_defeated": false,
+   "route116_janice_defeated": false,
+   "route116_karen_defeated": true,
+   "route116_sarah_defeated": false,
+   "route116_dawson_defeated": false,
+   "route116_devan_defeated": false,
+   "route116_johnson_defeated": false,
+   "roxanne_defeated": false,
+   "route102_calvin_defeated": true,
+   "route102_rick_defeated": true,
+   "route102_tiana_defeated": false,
+   "route102_allen_defeated": true,
+   "route104_ivan_defeated": false,
+   "route104_billy_defeated": false,
+   "route104_haley_defeated": false,
+   "route104_winston_defeated": true,
+   "route104_cindy_defeated": true,
+   "route104_gina_mia_defeated": false,
+   "route104_darian_defeated": false
+  },
+  "naming": null,
+  "world_context": null,
+  "field_controls_locked": null,
+  "local_map": null,
+  "topology": null,
+  "navigation_grid": null,
+  "interaction_targets": null,
+  "started": true,
+  "name": "AHS",
+  "location": "ROUTE116",
+  "map_id": [
+   0,
+   31
+  ],
+  "position": {
+   "x": 37,
+   "y": 13
+  },
+  "facing": "left",
+  "in_battle": true,
+  "party_owner": "player",
+  "party_ownership": {
+   "owner": "player",
+   "source": "ordinary_player_party",
+   "original_identities": [],
+   "rental_personalities": [],
+   "diagnostic": null,
+   "raw_hex": null
+  },
+  "party": [
+   {
+    "species": "TORCHIC",
+    "level": 16,
+    "hp": 31,
+    "max_hp": 44,
+    "identity": "67fbaf13:d1af1215",
+    "species_id": 280,
+    "personality": 1744547603,
+    "ot_id": 3517911573,
+    "is_egg": false,
+    "status": 0,
+    "held_item": 0,
+    "experience": 2720,
+    "moves": [
+     {
+      "move_id": 10,
+      "pp": 35,
+      "pp_bonus": 0,
+      "name": "SCRATCH",
+      "max_pp": 35
+     },
+     {
+      "move_id": 45,
+      "pp": 40,
+      "pp_bonus": 0,
+      "name": "GROWL",
+      "max_pp": 40
+     },
+     {
+      "move_id": 116,
+      "pp": 30,
+      "pp_bonus": 0,
+      "name": "FOCUS ENERGY",
+      "max_pp": 30
+     },
+     {
+      "move_id": 52,
+      "pp": 10,
+      "pp_bonus": 0,
+      "name": "EMBER",
+      "max_pp": 25
+     }
+    ],
+    "decode_mode": "encrypted",
+    "diagnostic": null,
+    "raw_hex": null,
+    "held_item_name": null,
+    "cpu_context": null,
+    "language": 2,
+    "nickname": "TORCHIC",
+    "nickname_diagnostic": null,
+    "attack": 28,
+    "defense": 21,
+    "speed": 22,
+    "sp_attack": 27,
+    "sp_defense": 24,
+    "ability_num": 0,
+    "ability_id": 66,
+    "met_location": 16,
+    "met_location_name": "ROUTE 101",
+    "met_level": 5,
+    "met_game": 3,
+    "ball": 4,
+    "ball_name": "POK\u00e9 BALL",
+    "ot_name": "AHS",
+    "ot_gender": "male"
+   }
+  ],
+  "game_stats": {
+   "saved_game": 0,
+   "pokemon_captures": 0,
+   "evolved_pokemon": 0,
+   "used_pokecenter": 7
+  },
+  "route103_rival": {
+   "battle_active": false,
+   "defeated": true,
+   "oldale_stage": 2
+  },
+  "trainer_opponent": {
+   "trainer_id": 754,
+   "trainer_class": 37,
+   "name": "JOHNSON",
+   "defeated": false,
+   "battle_active": true
+  },
+  "resources": {
+   "bag": [
+    {
+     "slot": 0,
+     "item_id": 4,
+     "quantity": 5,
+     "pocket": "poke_balls",
+     "name": "POK\u00e9 BALL"
+    },
+    {
+     "slot": 1,
+     "item_id": 3,
+     "quantity": 1,
+     "pocket": "poke_balls",
+     "name": "GREAT BALL"
+    }
+   ],
+   "pc_items": [
+    {
+     "slot": 0,
+     "item_id": 13,
+     "quantity": 1,
+     "pocket": null,
+     "name": "POTION"
+    }
+   ],
+   "storage": {
+    "current_box": 0,
+    "occupied": []
+   },
+   "berry_trees": [
+    {
+     "tree_id": 0,
+     "berry": 0,
+     "item_id": null,
+     "stage": 0,
+     "stop_growth": false,
+     "minutes_until_next_stage": 0,
+     "yield_count": 0,
+     "regrowth_count": 0,
+     "watered": [
+      false,
+      false,
+      false,
+      false
+     ]
+    }
+   ],
+   "planted_berries": 0,
+   "diagnostics": [],
+   "script_pc": 136778837,
+   "script_mode": 1,
+   "script_status": 1,
+   "selected_tree_id": null,
+   "berry_script_owner": null,
+   "daycare": []
+  },
+  "battle": {
+   "active": true,
+   "initialized": true,
+   "phase": "finishing",
+   "ready": false,
+   "main_func": 134471497,
+   "script_pc": 137210220,
+   "battle_type": 12,
+   "turn": 3,
+   "outcome_code": 1,
+   "outcome": "won",
+   "battlers": [
+    {
+     "battler": 0,
+     "position": 0,
+     "party_slot": 0,
+     "identity": "67fbaf13:d1af1215",
+     "species_id": 280,
+     "species": "TORCHIC",
+     "level": 16,
+     "hp": 31,
+     "max_hp": 44,
+     "status1": 0,
+     "status2": 0,
+     "status3": 0,
+     "stat_stages": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6
+     ],
+     "stats": [
+      28,
+      21,
+      22,
+      27,
+      24
+     ],
+     "types": [
+      10,
+      10
+     ],
+     "ability": 66,
+     "held_item": 0,
+     "moves": [
+      {
+       "slot": 0,
+       "move_id": 10,
+       "name": "SCRATCH",
+       "pp": 35,
+       "max_pp": 35,
+       "move_type": 0,
+       "power": 40,
+       "accuracy": 100,
+       "effect": 0,
+       "target": 0
+      },
+      {
+       "slot": 1,
+       "move_id": 45,
+       "name": "GROWL",
+       "pp": 40,
+       "max_pp": 40,
+       "move_type": 0,
+       "power": 0,
+       "accuracy": 100,
+       "effect": 18,
+       "target": 8
+      },
+      {
+       "slot": 2,
+       "move_id": 116,
+       "name": "FOCUS ENERGY",
+       "pp": 30,
+       "max_pp": 30,
+       "move_type": 0,
+       "power": 0,
+       "accuracy": 0,
+       "effect": 47,
+       "target": 16
+      },
+      {
+       "slot": 3,
+       "move_id": 52,
+       "name": "EMBER",
+       "pp": 10,
+       "max_pp": 25,
+       "move_type": 10,
+       "power": 40,
+       "accuracy": 100,
+       "effect": 4,
+       "target": 0
+      }
+     ],
+     "absent": false
+    },
+    {
+     "battler": 1,
+     "position": 1,
+     "party_slot": 1,
+     "identity": "0015c688:f8e9ca31",
+     "species_id": 295,
+     "species": "LOTAD",
+     "level": 8,
+     "hp": 0,
+     "max_hp": 24,
+     "status1": 0,
+     "status2": 0,
+     "status3": 0,
+     "stat_stages": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6
+     ],
+     "stats": [
+      8,
+      9,
+      9,
+      11,
+      13
+     ],
+     "types": [
+      11,
+      12
+     ],
+     "ability": 0,
+     "held_item": 0,
+     "moves": [
+      {
+       "slot": 0,
+       "move_id": 310,
+       "name": "ASTONISH",
+       "pp": 14,
+       "max_pp": 15,
+       "move_type": 7,
+       "power": 30,
+       "accuracy": 100,
+       "effect": 150,
+       "target": 0
+      },
+      {
+       "slot": 1,
+       "move_id": 45,
+       "name": "GROWL",
+       "pp": 40,
+       "max_pp": 40,
+       "move_type": 0,
+       "power": 0,
+       "accuracy": 100,
+       "effect": 18,
+       "target": 8
+      },
+      {
+       "slot": 2,
+       "move_id": 71,
+       "name": "ABSORB",
+       "pp": 20,
+       "max_pp": 20,
+       "move_type": 12,
+       "power": 20,
+       "accuracy": 100,
+       "effect": 3,
+       "target": 0
+      },
+      {
+       "slot": 3,
+       "move_id": 0,
+       "name": null,
+       "pp": 0,
+       "max_pp": 0,
+       "move_type": null,
+       "power": null,
+       "accuracy": null,
+       "effect": null,
+       "target": null
+      }
+     ],
+     "absent": false
+    }
+   ],
+   "player_inputs": [
+    {
+     "battler": 0,
+     "controller": 134575365,
+     "phase": "controller_busy",
+     "ready": false,
+     "action_cursor": null,
+     "move_cursor": null,
+     "target_cursor": null,
+     "selected": null,
+     "selected_move_id": null,
+     "displayed_pp": null,
+     "displayed_max_pp": null,
+     "communication": 5
+    }
+   ],
+   "controller_exec_flags": 0,
+   "signals": [],
+   "current_execution": null,
+   "non_pokemon_battlers": [],
+   "playback": null,
+   "diagnostic": null,
+   "raw_hex": null,
+   "message": {
+    "state": "idle",
+    "render_state": null,
+    "text": null,
+    "cursor": null,
+    "identity": null,
+    "diagnostic": null,
+    "page": null
+   },
+   "prompt": null,
+   "text_phase": "screen",
+   "levelup_box": null
+  },
+  "running": {
+   "permitted": false,
+   "controllable": false,
+   "reason": "battle",
+   "shoes": null,
+   "allow_running": null,
+   "avatar_flags": null,
+   "metatile": null,
+   "elevation": null,
+   "map_type": null,
+   "callback1": 134455025,
+   "callback2": 135521189,
+   "diagnostic": null,
+   "raw_hex": null
+  },
+  "blackout_active": false,
+  "money": 2350,
+  "badges": [],
+  "play_time_s": 6144,
+  "raw_ram": {
+   "v": 1,
+   "sequence": 8865,
+   "frame": 384412,
+   "sha256": "6c1b5649332bd84e9a0bedbe955602a9253ffb158d37ddb88a4a4098d8fe5090",
+   "path": "raw-ram/00008865.json.gz"
+  }
+ }
+}

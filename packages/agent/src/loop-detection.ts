@@ -48,6 +48,8 @@ export class LoopDetector extends LoopCoordinator {
     ineffectiveNavigation = false,
     sameTargetNoProgress = false,
     menuRefusals = false,
+    progressAwareCycles = false,
+    moveLearnLoops = false,
     navigationRecovery = false,
     navigationRecoveryTargets = false,
   ) {
@@ -69,6 +71,8 @@ export class LoopDetector extends LoopCoordinator {
       ineffectiveNavigation,
       sameTargetNoProgress,
       menuRefusals,
+      progressAwareCycles,
+      moveLearnLoops,
       navigationRecovery,
       navigationRecoveryTargets,
     });

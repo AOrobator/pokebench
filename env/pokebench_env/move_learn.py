@@ -19,8 +19,13 @@ Three switches share this reader (pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba
   moves the Pokémon knows and the new move with type, kind, power, accuracy and PP from
   gBattleMoves, and the game's own move description (gMoveDescriptionPointers, the text the
   summary screen shows).
+- move-learn-early-comparison-v1: the same comparison, with no question line, before and while
+  the game asks: the evolution and trade scenes at MVSTATE_INTRO_MSG_1..MVSTATE_PRINT_YES_NO
+  (0-3, the same numbers in both scenes), and in battle on the pages sText_TryToLearnMove1/2
+  ("{mon} is trying to learn {move}." / "But, {mon} can't learn more than four moves.").
 """
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -36,6 +41,7 @@ from pokebench_env.ui_state import ActiveUi
 SETTLE_SWITCH = "move-learn-settle-v1"
 QUESTION_SWITCH = "move-learn-question-v1"
 COMPARISON_SWITCH = "move-learn-comparison-v1"
+EARLY_SWITCH = "move-learn-early-comparison-v1"
 
 EVOLUTION_TASK = 0x0813E571  # Task_EvolutionScene (menu_pokemon_lifecycle.py owner literal)
 TRADE_EVOLUTION_TASK = 0x0813F1B9  # Task_TradeEvolutionScene
@@ -51,6 +57,10 @@ SETTLE_BOUND_FRAMES = 600
 DELETE_PAIRS = frozenset({(5, 10), (5, 9)})
 STOP_PAIRS = frozenset({(11, 0), (10, 0)})
 BATTLE_QUESTIONS = {"learn_move": "delete", "stop_learning_move": "stop"}
+# MVSTATE_INTRO_MSG_1..MVSTATE_PRINT_YES_NO: the pages and the questions still printing.
+EARLY_STATES = frozenset({0, 1, 2, 3})
+TRY_TO_LEARN = re.compile(r"(.+) is trying to learn (.+)\.")
+CANT_LEARN = re.compile(r"But, (.+) can't learn more than four moves\.")
 
 MOVE_TO_LEARN = 0x020244E2  # gMoveToLearn (menu_pokemon_lifecycle.py ROM receipt)
 MOVE_DESCRIPTIONS = 0x0861C524  # gMoveDescriptionPointers[move - 1], US ROM f3ae0881
@@ -165,6 +175,9 @@ def read_move_learning(
     ui: ActiveUi | None,
     prompt: BattlePrompt | None,
     party: tuple[PartyMon, ...] | None,
+    *,
+    early: bool = False,
+    page: str | None = None,
 ) -> MoveLearning | None:
     """The open move-learning choice, or None when no such choice is on screen."""
     if party is None:
@@ -185,7 +198,42 @@ def read_move_learning(
         if not isinstance(slot, int) or not isinstance(new_move, int) or not new_move:
             raise ValueError("summary forget-move screen lacks its party slot or new move")
         return _learner(read, party, slot, "summary", None, new_move)
-    return None
+    if not early:
+        return None
+    if ui is not None and ui.phase == "evolution_move_learning":
+        if details.get("move_learning_state") not in EARLY_STATES:
+            return None
+        slot, new_move = details.get("pokemon_party_index"), details.get("new_move_id")
+        if not isinstance(slot, int) or not isinstance(new_move, int):
+            raise ValueError("evolution move learning lacks its party slot or new move")
+        return _learner(read, party, slot, "evolution", None, new_move)
+    return _battle_page(read, party, page)
+
+
+def _battle_page(
+    read: ReadMemory, party: tuple[PartyMon, ...], page: str | None
+) -> MoveLearning | None:
+    """move-learn-early-comparison-v1: a battle page before "Delete a move to make room for X?".
+
+    Memory is read only for one of the two pages. The learner's slot is checked against the
+    name the page shows before the move is read, and on the first page the move's name is
+    checked before anything else about it.
+    """
+    trying = None if page is None else TRY_TO_LEARN.fullmatch(page)
+    cant = None if page is None else CANT_LEARN.fullmatch(page)
+    match = trying or cant
+    if match is None:
+        return None
+    slot = exact(read, _battle_struct(read) + EXP_GETTER, 1)[0]
+    mon = party[slot] if slot < len(party) else None
+    if mon is None or (mon.nickname or mon.species) != match.group(1):
+        return None
+    new_move = int.from_bytes(exact(read, MOVE_TO_LEARN, 2), "little")
+    if trying is not None and (
+        not 1 <= new_move <= MOVE_COUNT or _name(read, new_move) != trying.group(2)
+    ):
+        return None
+    return _learner(read, party, slot, "battle", None, new_move)
 
 
 def _battle_struct(read: ReadMemory) -> int:

@@ -148,7 +148,9 @@ const HumanSample = event("human_sample", {
 
 const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
-const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+const MemoryCompletion = Type.Object({name:Type.String(),state_event:NonNegativeInt,result_event:NonNegativeInt},closed);
+const MemoryDecision = Type.Object({result_event:NonNegativeInt,reason:Type.Enum(["no_chapter","current_chapter","unknown","unresolved","completed"]),rule:Type.Union([Type.String(),Type.Null()])},closed);
+const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true}),retention:Type.Optional(Type.Object({chapter:Type.Union([MemoryCompletion,Type.Null()]),archive_count:NonNegativeInt,kept:Type.Array(MemoryDecision),retired:Type.Array(MemoryDecision),proofs:Type.Array(MemoryCompletion)},closed))});
 // disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
 const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 
@@ -308,6 +310,7 @@ const StoryBattleHealGateEvent = event("story_battle_heal_gate", {
   outcome: Type.Enum(["refused", "confirmed", "clear", "unavailable"] as const),
   reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   reached: Type.Array(Type.Object({ ...GateOpponentFields, via: Type.Enum(["talk", "approach"] as const), tile: SightPoint }, closed), { maxItems: 1 }),
+  heal_routes: Type.Optional(Type.Array(Type.Object({outward: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2}), back: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2})}, closed), {maxItems:64})),
   sightings: TrainerSightCheckEvent.properties.sightings,
   hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
   heal: Type.Array(Type.Object({ kind: Type.Enum(["pokemon_center", "home"] as const), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt, shown: Type.Boolean() }, closed), { maxItems: 64 }),
@@ -709,6 +712,9 @@ export const StateBodySchema = Type.Object(
       home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       mom_heals: Type.Boolean(),
     },closed)),
+    // exp-next-level-v1: the POKéMON summary screen's NEXT LV. per party slot (null when a slot cannot show one).
+    // Present only with the switch.
+    party_next_level: Type.Optional(Type.Array(Type.Union([NonNegativeInt,Type.Null()]),{maxItems:6})),
   },
   closed,
 );
@@ -720,6 +726,9 @@ const State = event("state", StateBodySchema.properties);
 export const BattleTextEntrySchema=Type.Object({id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),text:Type.String({minLength:1}),waited_for_input:Type.Boolean()},closed);
 export const BattleTextJournalSchema=Type.Object({frame:NonNegativeInt,first_id:Type.Integer({minimum:1}),last_id:NonNegativeInt,errors:NonNegativeInt,last_error:Type.Union([Type.String(),Type.Null()]),entries:Type.Array(BattleTextEntrySchema,{maxItems:512})},closed);
 export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","levelup_box","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
+// move-learn-tool-v1: the state on the first emulated frame the move-learning flow waits for input (a YES/NO box,
+// a page, the summary's forget-a-move list) or leaves it, with the battle learner read on that frame.
+export const LearnWaitSchema=Type.Object({reason:Type.Enum(["box","page","forget","other","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema,battle_learner:Type.Union([Type.Object({party_slot:Type.Integer({minimum:0,maximum:5}),new_move:Type.String({minLength:1})},closed),Type.Null()])},closed);
 
 // Read-only historical compatibility: old vendor-derived state stays identifiable
 // by its mode field and is never promoted to the authoritative RAM readout.

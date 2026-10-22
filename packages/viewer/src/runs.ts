@@ -2,6 +2,7 @@ import { readVisualPlan, visualEvidenceSignature } from "./frontier-visual.js";
 import { readNativeRecording } from "./frontier-recording.js";
 import { qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
+import { setImmediate as yieldImmediate } from "node:timers/promises";
 import { createReadStream, closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -393,38 +394,65 @@ export function readStart(runsRoot: string, runId: string): RunEvent & { type: "
 
 // A compact, atomic view of the recorded present: the run header plus the newest
 // complete turns. The forward event stream remains authoritative after catch-up.
-export function readRecentEvents(
+function* recentEventSteps(
   runsRoot: string,
   runId: string,
   maxTurns = RECENT_EVENT_TURNS,
   maxBytes = RECENT_EVENT_BYTES,
   cursor?: { offset: number },
-): RunEvent[] {
+): Generator<void, RunEvent[]> {
   if (!Number.isSafeInteger(maxTurns) || maxTurns <= 0) throw new RunsError("recent turn limit must be a positive integer");
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RunsError("recent byte limit must be a positive integer");
   const path = eventsPath(runsRoot, runId);
   const start = readStart(runsRoot, runId);
   if (start.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${start.run}`);
 
-  const size = sizeOf(path);
-  const offset = Math.max(0, size - maxBytes);
-  let bytes = readBytes(path, offset, maxBytes);
-  if (cursor !== undefined) cursor.offset = bytes.lastIndexOf(0x0a) < 0 ? 0 : offset + bytes.lastIndexOf(0x0a) + 1;
-  if (offset > 0 && readBytes(path, offset - 1, 1)[0] !== 0x0a) {
-    const boundary = bytes.indexOf(0x0a);
-    bytes = boundary < 0 ? Buffer.alloc(0) : bytes.subarray(boundary + 1);
-  }
-  const completeEnd = bytes.lastIndexOf(0x0a);
-  if (completeEnd < 0) return [start];
-
   const tail: RunEvent[] = [];
-  for (const [index, text] of bytes.subarray(0, completeEnd).toString("utf8").split("\n").entries()) {
-    if (text.trim() === "") continue;
-    const parsed = parseLine(text, index + 1);
-    if (!parsed.ok) throw new RunsError(`run ${runId} recent event ${String(parsed.line)}: ${parsed.problem}`);
-    if (parsed.event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${parsed.event.run}`);
-    if (parsed.event.type !== "run_start") tail.push(parsed.event);
-  }
+  const fd = openSync(path, "r");
+  let offset: number;
+  if (cursor !== undefined) cursor.offset = 0;
+  try {
+    const size = fstatSync(fd).size;
+    offset = Math.max(0, size - maxBytes);
+    let discardPrefix = false;
+    if (offset > 0) {
+      const previous = Buffer.alloc(1);
+      discardPrefix = readSync(fd, previous, 0, 1, offset - 1) !== 1 || previous[0] !== 0x0a;
+    }
+    let position = offset, lineNo = 0;
+    let pieces: Buffer[] = [];
+    // One opened descriptor and a frozen end: appends/replacements cannot leak
+    // into this snapshot. Long lines are joined once, only at their newline.
+    while (position < size) {
+      const bytes = Buffer.alloc(Math.min(CHUNK, size - position));
+      const length = readSync(fd, bytes, 0, bytes.length, position);
+      if (length === 0) break;
+      const chunk = bytes.subarray(0, length);
+      let start = 0;
+      for (let end = chunk.indexOf(0x0a); end >= 0; end = chunk.indexOf(0x0a, start)) {
+        if (cursor !== undefined) cursor.offset = position + end + 1;
+        if (discardPrefix) discardPrefix = false;
+        else {
+          lineNo += 1;
+          const last = chunk.subarray(start, end);
+          const text = (pieces.length === 0 ? last : Buffer.concat([...pieces, last])).toString("utf8");
+          if (text.trim() !== "") {
+            const parsed = parseLine(text, lineNo);
+            if (!parsed.ok) throw new RunsError(`run ${runId} recent event ${String(parsed.line)}: ${parsed.problem}`);
+            if (parsed.event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${parsed.event.run}`);
+            if (parsed.event.type !== "run_start") tail.push(parsed.event);
+          }
+        }
+        pieces = []; start = end + 1;
+        yield;
+      }
+      if (!discardPrefix && start < length) pieces.push(chunk.subarray(start));
+      position += length;
+      // Even a very long or incomplete line cannot turn a snapshot read into
+      // an uninterruptible whole-file allocation on the HTTP event loop.
+      yield;
+    }
+  } finally { closeSync(fd); }
 
   const turns = [...new Set(tail.map((event) => event.turn))];
   const cutTurn = offset > 0 && turns.length <= maxTurns && !tail.some(event => event.turn === turns[0] && event.type === "turn_start");
@@ -433,18 +461,45 @@ export function readRecentEvents(
   return [start, ...tail.filter((event) => selected.has(event.turn) || event.type === "run_end" || event.type === "operator_control")];
 }
 
+// Both callers consume the same snapshot and strict validation. HTTP uses small
+// cooperative slices so an 8 MB recent history cannot starve live frame sockets.
+export function readRecentEvents(runsRoot: string, runId: string, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cursor?: { offset: number }): RunEvent[] {
+  const steps = recentEventSteps(runsRoot, runId, maxTurns, maxBytes, cursor);
+  for (;;) { const step = steps.next(); if (step.done) return step.value; }
+}
+
+export const RECENT_SLICE_LINES = 16;
+export async function readRecentEventsAsync(runsRoot: string, runId: string, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cursor?: { offset: number }, sliceLines = RECENT_SLICE_LINES, cancelled: () => boolean = () => false): Promise<RunEvent[]> {
+  if (!Number.isSafeInteger(sliceLines) || sliceLines <= 0) throw new RunsError("recent slice limit must be a positive integer");
+  const steps = recentEventSteps(runsRoot, runId, maxTurns, maxBytes, cursor);
+  let lines = 0, started = performance.now();
+  try {
+    for (;;) {
+      if (cancelled()) return [];
+      const step = steps.next();
+      if (step.done) return step.value;
+      lines += 1;
+      if (lines >= sliceLines || performance.now() - started >= 4) {
+        await yieldImmediate(); lines = 0; started = performance.now();
+      }
+    }
+  } finally { steps.return([]); }
+}
+
 // Operator requests are sparse but their acknowledgements can predate the recent
 // turns (notably an extension). When this run has received controls, recover only
 // that metadata asynchronously, without validating/replaying its gameplay prefix.
 // The sidecar's existence is owned by appendControl; absence means no viewer requests.
-export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES): Promise<RunEvent[]> {
-  const recent = readRecentEvents(runsRoot, runId, maxTurns, maxBytes, cursor);
+export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cancelled: () => boolean = () => false): Promise<RunEvent[]> {
+  const recent = await readRecentEventsAsync(runsRoot, runId, maxTurns, maxBytes, cursor, RECENT_SLICE_LINES, cancelled);
+  if (cancelled()) return [];
   if (cursor.offset === 0 || !existsSync(join(runDir(runsRoot, runId), "control.jsonl"))) return recent;
   const input = createReadStream(eventsPath(runsRoot, runId), { encoding: "utf8", end: cursor.offset - 1 });
   const lines = createInterface({ input, crlfDelay: Infinity });
   const controls: RunEvent[] = [];
   try {
     for await (const line of lines) {
+      if (cancelled()) return [];
       if (!/"type"\s*:\s*"operator_control"/.test(line)) continue;
       const parsed = parseLine(line, 0);
       if (!parsed.ok) throw new RunsError(`run ${runId} control metadata: ${parsed.problem}`);

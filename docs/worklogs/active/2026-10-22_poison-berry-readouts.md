@@ -17,7 +17,7 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (clean); US Emerald f3
 - [x] GREEN implementation and exact OFF tests
 - [x] Production wiring removed/restored, regression goes RED: berry factory argument and poison readout gate each deleted independently, intended test failed, both restored; 9 focused tests pass.
 - [x] Archived native RAM replay, no active session inputs: raw 6781 / frame 1048077, SHA256 402c48b9...7940; state seq 26833 / result 26834, committed provenance and paired PNG. 10523-character OFF text byte-identical to unchanged main; all four combinations retain identical state JSON; 10 berry descriptions match exact ROM.
-- [x] Build and full coverage: agent 4438 tests (99.23% lines / 93.30% branches / 97.98% functions), viewer 1669 tests before two explicit link tests (97.95% lines / 91.33% branches / 94.35% functions), Python 3898 tests (97.39% lines / 93.41% branches / 100% functions). Final lint/link tests pending.
+- [x] Build and full coverage: agent 4438 tests (99.23% lines / 93.30% branches / 97.98% functions), viewer 1669 tests before two explicit link tests (97.95% lines / 91.33% branches / 94.35% functions), Python 3898 tests (97.39% lines / 93.41% branches / 100% functions). Final lint and explicit card/route tests pass.
 - [x] Explainers and pending experiment/readiness entries: separate independent switches default OFF; experiments unqueued and unapproved, RUSTBORO_CITY primary milestone. No measured benefit claim.
 - [ ] Independent cloud review; report gate status accurately
 
@@ -61,7 +61,7 @@ User outcome: two independent switches for poison and berry readouts, grounded i
 ## Browser proof
 - Direct server factory on scratch runs only, with no game queue or experiment autorunner. New port allocated automatically after 8795 was occupied; the existing listener was left alone.
 - Harness Config search → poison card → READ EXPLAINER → correct heading/text; same path for berry card. Historical settings remain NOT RECORDED. Each tracked document served byte for byte in server tests.
-- Both explainers opened and screenshots inspected at actual 610px browser width. Browser viewport override did not change existing tabs (DOM still reported width 610), so screenshots named for requested 1280/1440/375 widths do NOT prove those widths. Responsive-width proof remains unverified; viewport override reset. No existing viewer restart.
+- Both explainers opened and screenshots inspected at actual 610px browser width. Browser viewport override did not change existing tabs (DOM still reported width 610), so screenshots named for requested 1280/1440/375 widths do NOT prove those widths. That initial override attempt did not establish responsive widths; override reset. Later DOM-verified iframe proofs below resolve the gap. No existing viewer restart.
 
 ## Gate notes
 - experiments-check reads existing shared ledgers and reports malformed starter-decision-salience trials.jsonl rows 1–150; no ledger was edited. New definitions parse and flip only their own switch. This is not queue/launch approval.
@@ -77,7 +77,7 @@ Frozen base a637f683c024f60e00455f68961ddec369602e6a, head 5095262feceb2d0e25cfd
 - Independent GPT (gpt-6-astra, poison_berry_review): VERDICT: BLOCKING. Native ObjectEvent.offScreen (+1 bit 0x40) was not excluded. Reproducer flips that bit on a loaded ripe tree and production read_state→format_readout still reveals it.
 - Adjudication: off-screen visibility is an in-contract defect, single-reviewer blocker with deterministic reproduction; the frozen scope explicitly says visible trees. Accepted minimal mask fix and regression. Not changing the contract to describe off-screen trees. No production domain/owner expansion.
 - Optional duplicate test assignment and adjacent field comment cleaned in the same batch. BAG-none hardening and existing resource-table all-or-nothing validation deferred: neither asserts absence or creates a regression.
-- Test-quality dimensions 1–9 remain as above, with dimension 2/7 gap caught by the missing offScreen operand. New regression goes RED on the frozen implementation, log /tmp/poison-berry-offscreen-red.log; will repeat full Python checks after fix.
+- Test-quality dimensions 1–9 remain as above, with dimension 2/7 gap caught by the missing offScreen operand. New helper-level offScreen regression goes RED on the frozen implementation, log /tmp/poison-berry-offscreen-red.log; will repeat full Python checks after fix.
 - Grok primary CLI returned ActionRequiredError: out of usage, increase limits or switch to Auto. Retrying the listed Grok fast harness; no local model substitution and no self-merge without required cloud lanes.
 - Responsive proof resolved without changing product code: self-authored same-origin QA iframe viewports, html.clientWidth verified at 1280, 1440 and 375, native screenshot clips saved/opened for both pages. Screenshots: main runs/mockups/poison-berry-readouts/{poison,berry}-{1280,1440,375}-frame.png. Earlier screenshots without -frame retain the failed override attempt and are not proof of width.
 
@@ -88,4 +88,18 @@ Frozen base a637f683c024f60e00455f68961ddec369602e6a, head 5095262feceb2d0e25cfd
 
 - Round-2 full coverage passed: agent 4438, viewer 1671, Python 3898 tests; coverage unchanged at the prior passing floors. Native archive, four switch combinations and original OFF digest all pass with the offScreen mask.
 
-- Correction GREEN commit `2bd5ce8b9`; both pending definitions repinned to it. Corrected packet retains original frozen scope and all PB1–PB13 scores with zero FAIL; accepted blocker now covered by the exact offScreen test. Responsive QA repeated after diagram change at all three verified widths.
+- Correction GREEN commit `2bd5ce8b9`; both pending definitions repinned to it. Corrected packet retains original frozen scope and all PB1–PB13 scores with zero FAIL; accepted blocker now covered by the exact offScreen helper test and separate production-seam receipts. Responsive QA repeated after diagram change at all three verified widths.
+
+## Review round 2 synthesis and completion receipt
+Frozen head `9243dcb9829cf1b98337675748d35108279029e3`, base `a637f683c024f60e00455f68961ddec369602e6a`, diff SHA256 `00d1630c5b2202de001764bf0e43a39d99f4a28d7e1efc20d7687267ffa8ec57`.
+- Claude CLI: VERDICT: LGTM, zero stderr; confirmed corrected visibility, native fixture, descriptors, exact OFF path, flags, source and tests.
+- Original independent GPT reviewer, gpt-6-astra (`/root/poison_berry_review`): VERDICT: LGTM; independently checked production read_state→format_readout with visible/invisible/offScreen/combined flags; 9 Python and 5 TypeScript tests passed.
+- Prepared Grok fallback, fresh gpt-6.1-sol (`/root/poison_berry_fallback_sol`): VERDICT: LGTM; packet digest verified; 9 Python tests independently passed. Reduced vendor diversity explicitly reported.
+- Prepared Grok fallback, fresh gpt-6-astra (`/root/poison_berry_fallback_astra`): VERDICT: LGTM; 9 Python and 5 TypeScript tests passed; independently reproduced production visible/invisible/offScreen behavior.
+- Evidence wording correction: committed offScreen regression is in the visibility helper matrix. Production integration is separately checked by the existing factory test, both Astra reviewers and a root-run four-case receipt at runs/poison-berry-proof/offscreen-production-seam.txt. Do not describe the helper assertion itself as the production-seam check.
+- Accepted blocker closed with 0x60 mask and exact offScreen regression. No further in-contract, security, principles or evidence blockers. Optional BAG-none reporting and coarse resource-table failures remain out-of-scope follow-ups. No production-path growth from review; only the original visibility operand, adjacent comment/test cleanup, and explainer diagram legibility changed.
+- PB1–PB13 remain PASS/N/A with zero FAIL; all nine test-quality checks re-evaluated. No flakes suppressed, gates weakened, global mutations, or growing-fixture work introduced.
+- Final gates: 4438 agent + 1671 viewer + 3898 Python = 10007 tests. Coverage: agent lines99.23/branches93.30/functions97.98%; viewer97.95/91.33/94.35%; Python97.39/93.41/100%. Lint, build and pristine vendor checks pass. Native OFF digest, four independent combinations, exact ten ROM berry descriptions, cards/allowlisted serving and responsive iframe screenshots verified.
+- Isolated scratch viewer stopped after browser proof. Main viewer and all original game processes/run files were left alone. Main remains `a637f683c`; branch implementation is committed. No measured cohort, approval, queue position or main merge.
+- Remaining landing blocker: both Grok cloud options unavailable due account usage. CLAUDE.md line83 explicitly requires operator decision before self-merge with a missing cloud lane. Prepared fallback reviews do not waive it. Ask operator to accept Claude + independent Sol/Astra reviews for this frozen packet before joining the landing board.
+- Global experiments-check still reports existing malformed starter-decision-salience trial rows. New entries independently parse, share an explicit incumbent and flip one switch each; no shared ledger touched.

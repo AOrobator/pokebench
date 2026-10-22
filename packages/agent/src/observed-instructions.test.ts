@@ -2,7 +2,8 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON,SWITCHABLE_FEATURES,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
 import {IN_GAME} from "../test-support/events.js";
@@ -12,9 +13,9 @@ const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:"instruc
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 const page=(text:string,speaker:string|null="DAD",source:"name_prefix"|"faced_sprite"|null="name_prefix"):Page=>({text,speaker,speaker_source:source,map:"PETALBURG CITY GYM",map_id:[8,1],state_seq:1,position:null});
 const norman=[page("DAD: Now…"),page("Head for RUSTBORO CITY beyond this\ntown."),page("There, you should challenge\nthe GYM LEADER, ROXANNE."),page("We'll battle one day, PLAYER.")];
-function harness(enabled=true){
+function harness(enabled=true,allField=false){
  const subscribers:((e:RunEvent)=>void)[]=[],recorded:{text:string;evidence:number[]}[]=[];
- const features={...off,"observed-instructions-v1":enabled} as FeatureSet;
+ const features={...off,"observed-instructions-v1":enabled,"observed-field-dialogue-v1":allField} as FeatureSet;
  const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{recorded.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
  return {wiring,recorded,send:(e:RunEvent)=>{for(const fn of subscribers)fn(e);}};
 }
@@ -104,4 +105,50 @@ it("does not select a recognized faced sprite or an unrecognized printed name",a
   const h=harness();deliver(h,2,[p]);
   expect(await h.wiring.transformContext([])).toEqual([]);expect(h.recorded).toEqual([]);
  }
+});
+
+
+it("retains the actual delivered unnamed upstairs episode through the production context chain",async()=>{
+ const fixture=JSON.parse(readFileSync(new URL("./fixtures/rival-upstairs-9f27.json",import.meta.url),"utf8")) as {events:unknown[]};
+ const h=harness(true,true);for(const e of fixture.events)h.send(checkEvent(e));
+ const messages=await h.wiring.transformContext([]),text=h.recorded.at(-1)?.text??"";
+ expect(messages.at(-1)?.content).toBe(text);
+ expect(text).toContain('text: "Our daughter is upstairs, I think."');
+ expect(text).toContain('speaker: "WOMAN_4"');expect(text).toContain('speaker_source: "faced_sprite"');
+ expect(text).toContain("delivered_result: 1129");
+ expect(text).not.toContain("speaker: \"MAY\"");
+ expect(text).not.toContain("completed: true");
+});
+it("field dialogue selection keeps unknown speakers without inventing identity and retains unique episodes",async()=>{
+ const h=harness(true,true);deliver(h,2,[page("A direction without a name",null,null)]);deliver(h,10,[page("Another line","WOMAN_4","faced_sprite")]);
+ deliver(h,20,[page("A direction without a name",null,null)]);
+ await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
+ expect(text).toContain("speaker: null");expect(text).toContain("Another line");
+ expect(text.match(/text: "A direction without a name"/g)).toHaveLength(1);
+});
+it("field dialogue switch OFF preserves the previous story-only selection exactly",async()=>{
+ const h=harness(true,false);deliver(h,2,[page("Our daughter is upstairs, I think.","WOMAN_4","faced_sprite")]);
+ expect(await h.wiring.transformContext([])).toEqual([]);
+});
+it("field dialogue extension excludes failed delivery and battle-only calls",async()=>{
+ const h=harness(true,true);deliver(h,2,[page("not delivered",null,null)],true);deliver(h,10,[{...page("battle",null,null),battle_turn:1}]);deliver(h,20,[]);
+ expect(await h.wiring.transformContext([])).toEqual([]);
+});
+
+it("registers two independent default-OFF repairs with separate pending experiments and bundle-only enablement",()=>{
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
+  const legacy=Object.fromEntries(Object.entries(off).filter(([key])=>key!==id));
+  expect(normalizeFeatures(legacy as typeof off)[id]).toBe(false);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
+  expect(playHarnessFeatures({...off,[id]:true},null)).toContain(id);
+  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features[id]).toBe(false);expect(bundle.switches).toContain(id);
+ }
+});
+
+it("retains unnamed guidance after newer conversations and an empty context, with all source pages intact",async()=>{
+ const h=harness(true,true);const upstairs=[page("We have a daughter about the same age as you.","WOMAN_4","faced_sprite"),page("Our daughter is upstairs, I think.","WOMAN_4","faced_sprite")];
+ deliver(h,2,upstairs);deliver(h,10,norman);await h.wiring.transformContext([]);await h.wiring.transformContext([]);
+ const text=h.recorded.at(-1)?.text??"";for(const p of upstairs)expect(text).toContain(`text: ${JSON.stringify(p.text)}`);
+ expect(text).toContain("dialogue_events: [2]");expect(text).toContain("delivered_result: 4");expect(text).toContain("Current observations override old text");
 });

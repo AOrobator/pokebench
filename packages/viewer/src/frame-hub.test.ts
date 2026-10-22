@@ -3,6 +3,8 @@ import { EventEmitter } from "node:events";
 import WebSocket from "ws";
 import { BoundedFrameSender, SharedFrameHub, type FrameSink } from "./frame-hub.js";
 
+import { FrameDiagnostics } from "./frame-diagnostics.js";
+
 class SlowSink implements FrameSink {
   readyState: number = WebSocket.OPEN;
   bufferedAmount = 0;
@@ -136,4 +138,33 @@ describe("shared frame hub defensive lifecycle", () => {
     hub.stop();
     expect(client.terminated).toBe(1);
   });
+});
+
+it("measures real sender offers, overwrites, queue time and completion latency", () => {
+  const sink = new SlowSink(), stats = new FrameDiagnostics();
+  let now = 0;
+  const sender = new BoundedFrameSender(sink,stats,() => now);
+  sender.offer(Buffer.from("current"));
+  now = 4; sender.offer(Buffer.from("queued"));
+  now = 6; sender.offer(Buffer.from("latest"));
+  now = 10; sink.callbacks.shift()?.();
+  now = 13; sink.callbacks.shift()?.();
+  expect(stats.snapshot()).toMatchObject({offered:3,replaced:1,sent:2,sendErrors:0,queueWait:{count:2,meanMs:2,maxMs:4},send:{count:2,meanMs:6.5,maxMs:10}});
+  sender.dispose();
+});
+it("counts real buffered checks and both send failure paths", () => {
+  vi.useFakeTimers();
+  const sink = new SlowSink(), stats = new FrameDiagnostics();
+  sink.bufferedAmount = 1;
+  const sender = new BoundedFrameSender(sink,stats);
+  sender.offer(Buffer.from("frame"));
+  vi.advanceTimersByTime(5);
+  expect(stats.bufferedChecks).toBe(2);
+  sink.bufferedAmount = 0; vi.advanceTimersByTime(5);
+  sink.callbacks.shift()?.(new Error("failed"));
+  expect(stats.snapshot()).toMatchObject({sent:0,sendErrors:1,send:{count:1}});
+  const throwing = new SlowSink(); throwing.throws = true;
+  const second = new BoundedFrameSender(throwing,stats);
+  second.offer(Buffer.from("frame"));
+  expect(stats.sendErrors).toBe(2);
 });

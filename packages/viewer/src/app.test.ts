@@ -316,6 +316,23 @@ describe("viewer app", () => {
     expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(false);
   });
 
+  it("lights running B from delayed native receipts at execution time in replay", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, {type: "button_press", turn: 1, tool_call_id: "run", buttons: ["RIGHT"], hold_frames: 224, release_frames: 8, automatic_running: true, requested_held_buttons: ["B"]});
+    log.add(2000, {type: "native_action", turn: 1, id: 1, kind: "native_input", frame: 1, server_timestamp: (BASE_MS + 1010) / 1000, details: {buttons: ["RIGHT", "B"]}});
+    log.add(2001, {type: "native_action", turn: 1, id: 2, kind: "native_input", frame: 10, server_timestamp: (BASE_MS + 1200) / 1000, details: {buttons: []}});
+    log.add(3000, {type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: {input: 0, output: 0}, frames: {saved: 0, bytes: 0}});
+    feed(must(streams[0]), log.events);
+    app.clock?.pause();
+    for (const [offset, held] of [[1050, true], [1250, false], [1050, true]] as const) {
+      app.clock?.seek(BASE_MS + offset);
+      app.tick(0);
+      for (const button of ["RIGHT", "B"]) expect(ui("gba").querySelector(`[data-btn="${button}"]`)?.classList.contains("lit")).toBe(held);
+    }
+  });
+
   it("drives the replay from the controls and seeks backwards", async () => {
     const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
@@ -1362,6 +1379,22 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);
 });
 
+it("mounts a heal-trip drought hold in Activity History and the inspector, never on the timeline (drought-battle-heal-hold-v1)",async()=>{
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:419,id:"c419",name:"navigate_to",args:{map_id:[0,19],x:5,y:18}});
+ // Run 4164 replayed through the fixed stallBriefing: the hold that used to end the run "crash" (three evidence ids).
+ const held=log.add(2000,{type:"loop_guard",turn:419,kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:"Not sent (drought-battle-heal-hold-v1): no new story milestone for 10 minutes of play, but the party is on its way to heal after a heal warning (#15727).",calls:0,evidence:[14510,16572]});
+ log.add(70000,{type:"run_end",turn:419,reason:"budget",furthest_milestone:null,turns:419,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(held.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(held.seq)}"]`));
+ expect(row.textContent).toContain("milestone drought diagnostic: would warn");expect(row.textContent).toContain("on its way to heal after a heal warning (#15727)");
+ expect(ui("lanes").querySelectorAll('[aria-label*="on its way to heal"]')).toHaveLength(0);expect(ui("lanes").querySelectorAll(".k-loop")).toHaveLength(0);
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "milestone_drought"');expect(ui("inspector").textContent).toContain("14510");expect(ui("inspector").textContent).toContain("16572");expect(row.classList.contains("sel")).toBe(true);
+});
+
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
@@ -1933,5 +1966,82 @@ describe("BAG page", () => {
     expect([...ui("bag").querySelectorAll(".bg-lab")].map((l) => l.textContent)).toEqual(["POTION", "POKé BALL", "GREAT BALL"]);
     expect(ui("bag").querySelector("img")).toBeNull();
     expect(ui("bag").querySelectorAll(".bg-noicon")).toHaveLength(3);
+  });
+});
+
+describe("POKéMON PARTY page", () => {
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+  const RATES = Array.from({ length: 101 }, (_, n) => (n <= 1 ? n : n ** 3));
+  const DATA = {
+    version: 1,
+    types: "normal fight flying poison ground rock bug ghost steel mystery fire water grass electric psychic ice dragon dark".split(" "),
+    species: { "280": { types: [10, 10], gender: 31, growth: 0, abilities: [66, 0], dex: 4 }, "288": { types: [0, 0], gender: 127, growth: 0, abilities: [53, 0], dex: 12 } },
+    moves: { "10": { type: 0, power: 40, accuracy: 100, pp: 35, description: "Scratches the foe with\nsharp claws." } },
+    abilities: { "66": { name: "BLAZE", description: "Ups FIRE moves in a pinch." }, "53": { name: "PICKUP", description: "May pick up items." } },
+    natures: "HARDY LONELY BRAVE ADAMANT NAUGHTY BOLD DOCILE RELAXED IMPISH LAX TIMID HASTY SERIOUS JOLLY NAIVE MODEST MILD QUIET BASHFUL RASH CALM GENTLE SASSY CAREFUL QUIRKY".split(" "),
+    experience: [RATES, RATES, RATES, RATES, RATES, RATES],
+  };
+  const MOVES = [{ move_id: 10, name: "SCRATCH", pp: 30, max_pp: 35, pp_bonus: 0 }];
+  const TORCHIC = { species: "TORCHIC", nickname: "TORCHIC", level: 5, hp: 18, max_hp: 20, species_id: 280, personality: 11, ot_id: 1, moves: MOVES };
+  const ZIGZAGOON = { species: "ZIGZAGOON", nickname: "ZIGZAGOON", level: 3, hp: 12, max_hp: 14, species_id: 288, personality: 200, ot_id: 1, moves: MOVES };
+  const ART = { "/sprites/party/data.json": DATA, "/sprites/party/font/small.json": { widths: [], cmap: {} }, "/sprites/party/font/normal.json": { widths: [], cmap: {} } };
+
+  function partyRun(hp = 12): RunEvent[] {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, state({ party: [TORCHIC, { ...ZIGZAGOON, hp }] }));
+    return log.events;
+  }
+
+  it("draws the game's party screen and keeps the chosen slot, tab and move across updates", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/party/data.json");
+    app.render();
+    const party = ui("party");
+    expect(party.querySelector(".pv")).not.toBeNull();
+    expect(party.querySelector('[data-pv-slot="0"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(party.querySelector<HTMLElement>('[data-pv-slot="1"]')).click();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).click();
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")?.textContent).toContain("sharp claws.");
+    // A live update redraws the page without losing the cursor, the page or the open move.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).focus();
+    stream.send("ev", { ...must(partyRun(3)[1]), run: must(RUNS[0]).id, seq: 9, turn: 2 });
+    app.render();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    expect(ui("party").querySelector(".pv-mdet")).not.toBeNull();
+    expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvMove).toBe("0");
+    // A second click closes the move; arrow keys walk the tabs and keep focus on the chosen one.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")).toBeNull();
+    const tab = must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]'));
+    tab.focus();
+    tab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="0"]')?.getAttribute("aria-selected")).toBe("true");
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvTab).toBe("0");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="0"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    ui("party").querySelector(".pv-list")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("shows the plain list when the party art was never built", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
+    feed(must(streams[0]), partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    app.render();
+    expect(fetched).toContain("/sprites/party/data.json");
+    expect(ui("party").querySelector(".pv")).toBeNull();
+    expect(ui("party").textContent).toContain("ZIGZAGOON");
   });
 });

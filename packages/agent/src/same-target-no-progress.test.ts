@@ -8,7 +8,9 @@ import {describe,expect,it} from "vitest";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {recorded} from "../test-support/battle-facts.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import { ALL_ON as PENDING_BASE_CURRENT_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const RAW_PROGRESS_PENDING_BASE_CURRENT_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_CURRENT_ON={...RAW_PROGRESS_PENDING_BASE_CURRENT_ON,"progress-aware-cycles-v1":false};
 const CURRENT_ON={...PENDING_BASE_CURRENT_ON,"pending-field-dialogue-v1":false};
 import type {GameStateSnapshot} from "./game-state.js";
 import {readFileSync} from "node:fs";
@@ -301,11 +303,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-19)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-54)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-54)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-18)).toBe(ID);
+  expect(playHarnessFeatures(CURRENT_ON,null).at(-49)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
@@ -329,7 +331,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   for(const file of ["live.ts","decision-probe.ts"]){
    const source=readFileSync(new URL(`./${file}`,import.meta.url),"utf8");
    const call=source.slice(source.indexOf("attachLoopGuard("));
-   expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"]`),file).toBe(true);
+   expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"],features`),file).toBe(true);
   }
  });
  it("records a held warning as a schema-valid diagnostic loop_guard event through the production recorder path",()=>{

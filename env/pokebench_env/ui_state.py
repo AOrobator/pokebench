@@ -361,9 +361,11 @@ def read_active_ui(
     truth: bool = False,
     evolution_decision: bool = False,
     birch_pages: bool = False,
+    birch_intro_pages: bool = False,
     transition_coherence: bool = True,
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
+    caught_dex: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -396,6 +398,12 @@ def read_active_ui(
     )
     from pokebench_env.menus_misc import HOF_CALLBACKS, read_misc_menu
 
+    if caught_dex:
+        from pokebench_env.caught_dex import read_caught_dex_ui
+
+        caught = read_caught_dex_ui(read)
+        if caught is not None:
+            return caught
     if screen.callback1 == 0 and screen.callback2 == 0:
         from pokebench_env.boot import read_boot_ui
 
@@ -677,6 +685,25 @@ def read_active_ui(
             if ready
             else "Transition or text printing; selection input is not active",
         )
+    if birch_intro_pages and not owners:
+        from pokebench_env.birch_pages import (
+            INTRO_NOT_READY,
+            INTRO_PAGE_TASKS,
+            INTRO_PHASE,
+            read_birch_page,
+        )
+
+        intro = [fn for fn in functions if fn in INTRO_PAGE_TASKS]
+        if len(intro) == 1:
+            task = next(
+                tasks[i : i + 0x28]
+                for i in range(0, len(tasks), 0x28)
+                if tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == intro[0]
+            )
+            page = read_birch_page(read, task, tasks=INTRO_PAGE_TASKS, phase=INTRO_PHASE)
+            if page is not None:
+                return page
+            return ActiveUi(INTRO_PHASE, None, False, INTRO_NOT_READY)
     if screen.kind != "unknown" and not owners:
         return None
     if transition_coherence and not owners and screen.callback2 in HANDOFF_CALLBACKS:

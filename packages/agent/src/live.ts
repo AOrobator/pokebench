@@ -19,6 +19,7 @@ import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } fr
 import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
+import { cutOffReplyNotice } from "./cut-off-reply.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
@@ -173,7 +174,7 @@ async function smoke(): Promise<void> {
       systemPrompt: SYSTEM_PROMPT,
       tools,
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "roxanne-first-interaction-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1"],
       budgets: { max_wall_ms: LOOP_TIMEOUT_MS },
       piVersion: piVersion(),
     },
@@ -265,6 +266,7 @@ async function playAgent(): Promise<void> {
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
       const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
+      const cutOff = cutOffReplyNotice(features,maxTokens);
       const governor = new Governor({
         limits,
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
@@ -281,6 +283,7 @@ async function playAgent(): Promise<void> {
         pausedMs: () => control?.pausedMs() ?? 0,
         wallLimit: () => control?.wallLimit(limits.maxWallMs) ?? limits.maxWallMs,
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
+        ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
       });
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       let startedAt = elapsed();
@@ -297,7 +300,7 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, linkExclusive:linkSync,remove:unlinkSync,rename: renameSync },startMeta);
       if(capture!==null){recorder.subscribe(event=>{capture.observe(event);});lifecycle.beforeRunEnd(async()=>{await capture.close().catch((error:unknown)=>{recorder.checkpointFailure(error);console.error(`checkpoint capture failed: ${String(error)}`);});});}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"]);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"],features);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
@@ -377,7 +380,7 @@ async function probe(verify = false): Promise<void> {
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
       systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
-      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1"],
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "roxanne-first-interaction-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1"],
       budgets: {}, piVersion: piVersion(),
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);

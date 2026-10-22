@@ -38,6 +38,7 @@ from pokebench_env.frame_pacing import VENDOR_BASE_FPS, GameLoopServer, install_
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
+from pokebench_env.learn_move_wait import LearnWait, install_learn_wait
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.memory_reader import (
     Core,
@@ -122,14 +123,19 @@ def encode_png_base64(screenshot: object) -> str | None:
 
 
 def _both(
-    first: Callable[[], None], wait: BattleWait | None, *, resume: bool = False
+    first: Callable[[], None],
+    wait: BattleWait | None,
+    *,
+    resume: bool = False,
+    learn: LearnWait | None = None,
 ) -> Callable[[], None]:
-    """Park or resume the fade settle and the battle wait together."""
+    """Park or resume the fade settle, the battle wait and the move-learning wait together."""
 
     def call() -> None:
         first()
-        if wait is not None:
-            (wait.resume if resume else wait.park)()
+        for held in (wait, learn):
+            if held is not None:
+                (held.resume if resume else held.park)()
 
     return call
 
@@ -321,6 +327,7 @@ def run(
         install_battle_text(*battle_text)
     settle = None
     battle_wait = None
+    learn_wait = None
     whiteout = None
     if observation is not None and frames is not None and human is None:
         off = features_off_from_env(os.environ)
@@ -339,8 +346,12 @@ def run(
             observation[2],
             levelup_box=LEVELUP_BOX not in off,
             turn_action_script=CAUGHT_NICKNAME not in off,
+            caught_dex="caught-dex-input-v1" not in off,
         )
         install_battle_wait(frames, battle_wait)
+        # move-learn-tool-v1: learn_move's per-frame wait; inert unless that tool asks.
+        learn_wait = LearnWait(observation[2])
+        install_learn_wait(frames, learn_wait)
     if actions is not None:
         install_action_history(
             *actions,
@@ -369,8 +380,10 @@ def run(
     if pause is not None:
         install_pause(
             *pause,
-            on_park=None if settle is None else _both(settle.park, battle_wait),
-            on_resume=None if settle is None else _both(settle.resume, battle_wait, resume=True),
+            on_park=None if settle is None else _both(settle.park, battle_wait, learn=learn_wait),
+            on_resume=None
+            if settle is None
+            else _both(settle.resume, battle_wait, resume=True, learn=learn_wait),
         )
     if agent_checkpoint is not None:
         install_checkpoint(*agent_checkpoint)
@@ -386,6 +399,7 @@ def run(
             raw_rom=raw_rom,
             settle=settle,
             battle_wait=battle_wait,
+            learn_wait=learn_wait,
             whiteout=whiteout,
         )
     if human is not None:

@@ -158,7 +158,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
   const nativeProgress = (name:string) => name.startsWith("ROUTE_102_TRAINER_") || name.startsWith("ROUTE_104_TRAINER_") || ["ROXANNE_DEFEATED","FIRST_POKEMON_CAUGHT","FIRST_POKECENTER_HEAL","FIRST_EVOLUTION"].includes(name);
   const remainingNative = (name:string) => name.startsWith("PETALBURG_WOODS_TRAINER_") || name.startsWith("ROUTE_116_TRAINER_") || ["ROUTE_115", "ROUTE_116", "RUSTURF_TUNNEL"].includes(name);
-  const supported = (name: string) => name === "BIRCH_RESCUE_REQUESTED" ? view.start?.harness_features.includes("birch-rescue-requested-v1") === true || reached.has(name) : name === "RIVAL_HOUSE_EXITED" ? view.start?.harness_features.includes("rival-house-exit-v1") === true || reached.has(name) : name === "ROUTE_101_AFTER_HANDOFF" ? view.start?.harness_features.includes("route-101-after-handoff-v1") === true || reached.has(name) : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? view.start?.harness_features.includes("bedroom-exit-v1") === true || reached.has(name) : ROUTE103_RIVAL_SPLITS.has(name) ? view.start?.harness_features.includes("route103-rival-splits-v1") === true || reached.has(name) : remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
+  const supported = (name: string) => name === "ROXANNE_FIRST_INTERACTION" ? view.start?.harness_features.includes("roxanne-first-interaction-v1") === true || reached.has(name) : name === "BIRCH_RESCUE_REQUESTED" ? view.start?.harness_features.includes("birch-rescue-requested-v1") === true || reached.has(name) : name === "RIVAL_HOUSE_EXITED" ? view.start?.harness_features.includes("rival-house-exit-v1") === true || reached.has(name) : name === "ROUTE_101_AFTER_HANDOFF" ? view.start?.harness_features.includes("route-101-after-handoff-v1") === true || reached.has(name) : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? view.start?.harness_features.includes("bedroom-exit-v1") === true || reached.has(name) : ROUTE103_RIVAL_SPLITS.has(name) ? view.start?.harness_features.includes("route103-rival-splits-v1") === true || reached.has(name) : remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
   const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
   const next = [...names].find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
@@ -173,11 +173,11 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const current = view.milestones.find((m) => m.name === name);
     const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
     const time = present.has(name) ? "already<br>present" : !supported(name) ? "not<br>recorded" : at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
-    const note = current?.derived === true ? ` title="Recovered from recorded game state · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
+    const note = current?.derived === true ? ` title="Recovered from ${current.screenshotEvidence === undefined ? "recorded game state" : "reviewed screenshots"} · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
     return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
   const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
-  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
+  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game evidence; first observation time is an upper bound.</p>`;
   return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
@@ -253,7 +253,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
-    case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "ledger_context":return `Instruction ledger delivered${event.retention===undefined?"":` · ${String(event.retention.kept.length)} kept · ${String(event.retention.retired.length)} archived`} · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -379,7 +379,28 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "gym-evidence-v1":"gym-evidence-v1.html",
+ "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",
+ "field-ownership-feedback-v1":"field-ownership-feedback-v1.html",
+ "move-learn-loop-fingerprint-v1":"move-learn-loop-fingerprint-v1.html",
+ "stale-plan-fact-v1":"stale-plan-fact-v1.html",
+ "post-battle-readout-v1":"post-battle-readout-v1.html",
+ "move-learn-early-comparison-v1":"move-learn-early-comparison-v1.html",
+ "move-learn-tool-v1":"move-learn-tool-v1.html",
+ "milestone-drought-suppression-v1":"milestone-drought-suppression-v1.html",
+ "story-goal-player-name-v1":"story-goal-player-name-v1.html",
+ "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
+ "trainer-sight-check-v2":"trainer-sight-check-v2.html",
+ "auto-talk-v2":"auto-talk-v2.html",
+ "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
+ "map-wide-triggers-v1":"map-wide-triggers-v1.html",
+ "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
+ "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
+ "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
+ "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "rejected-movement-step-v1":"rejected-movement-step-v1.html",
+  "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
@@ -516,6 +537,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
   "navigation-refusal-reasons-v3": "navigation-refusal-reasons-v3.html",
  "respawn-readout-v1":"respawn-readout-v1.html",
  "trainer-sight-check-v1":"trainer-sight-check-v1.html",
+ "caught-dex-input-v1":"caught-dex-input-v1.html",
  "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
  "party-item-confirmation-v1":"party-item-confirmation-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
@@ -531,6 +553,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
  "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
  "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
+ "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
+ "gym-door-label-v1":"gym-door-label-v1.html",
  "move-learn-settle-v1":"move-learn-settle-v1.html",
  "move-learn-question-v1":"move-learn-question-v1.html",
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",
@@ -538,6 +562,18 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "game-said-goals-v1":"game-said-goals-v1.html",
  "menu-item-guidance-v1":"menu-item-guidance-v1.html",
  "factual-healing-guidance-v1":"factual-healing-guidance-v1.html",
+ "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
+ "shop-interface-v1":"shop-interface-v1.html",
+ "birch-intro-pages-v1":"birch-intro-pages-v1.html",
+ "poison-readout-v1":"poison-readout-v1.html",
+ "berry-readout-v1":"berry-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

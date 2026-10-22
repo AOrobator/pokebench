@@ -32,6 +32,7 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
 3. **Defaults**: set `DEFAULT_NEXT_RUN` in `packages/viewer/src/next-run.ts`. New treatments start OFF until they win an experiment.
 4. **Server side**: if the game server applies the switch, add it to `SERVER_FEATURES` in both `features.ts` and `env/pokebench_env/readout.py`, and to the Python default-off list if it starts OFF.
 5. **Wiring**: thread the switch from `FeatureSet` to the behavior through the production factory (for example `withNavigation`, `playTools`, `playSystemPrompt`). Do not read env vars or globals.
+   - A change that adds, renames, removes or re-gates a model tool also updates the system prompt in the same change: follow `.claude/skills/tool-prompt-sync/SKILL.md`.
 6. **Tests**:
    - OFF reproduces the previous behavior exactly: same plan, same prompt, same tools and same readout bytes.
    - ON produces the new behavior.

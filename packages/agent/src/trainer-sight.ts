@@ -76,12 +76,17 @@ export function trainerLine(s:SightSeen,steps:number):string {
 }
 
 export const SIGHT_STATUS="not walked: a trainer you have not beaten can see the planned route";
-export function sightText(seen:readonly SightSeen[],origin:Point,goal:Point,steps:number,state:GameStateSnapshot):string {
+// trainer-sight-check-v2: navigate_to_target's routes are checked too; the text names the tool the model called.
+export type SightTool="navigate_to"|"navigate_to_target";
+export const TARGET_CONFIRM_DESCRIPTION="Only after navigate_to_target said a trainer you have not beaten can see a tile of its route: true walks the route anyway.";
+export const TARGET_SIGHT_TOOL_SENTENCE="Before it walks, it checks the route it plans against the sight of every trainer on this map you have not beaten, except one you asked to talk to; when one can see a tile of the route it does not walk and names the trainer and the tile. Call it again with confirm_trainer_sight: true to walk that route anyway.";
+export function sightText(seen:readonly SightSeen[],origin:Point,goal:Point,steps:number,state:GameStateSnapshot,tool:SightTool="navigate_to"):string {
  const lead=seen.length===1?"a trainer you have not beaten can see":"trainers you have not beaten can see";
+ const again=tool==="navigate_to"?"call navigate_to again with the same x, y and map_id":"call navigate_to_target again with the same map_id and target";
  return [
-  `Trainer sight: the route navigate_to planned from ${at(origin)} to ${at(goal)} (${String(steps)} step${steps===1?"":"s"}) passes tiles ${lead}. A trainer who sees you walks up to you and starts a battle. ${NO_RUNNING}`,
+  `Trainer sight: the route ${tool} planned from ${at(origin)} to ${at(goal)} (${String(steps)} step${steps===1?"":"s"}) passes tiles ${lead}. A trainer who sees you walks up to you and starts a battle. ${NO_RUNNING}`,
   ...seen.map(s=>trainerLine(s,steps)),
   partyText(state),
-  `To walk this route anyway, call navigate_to again with the same x, y and map_id and ${CONFIRM_ARG}: true.`,
+  `To walk this route anyway, ${again} and ${CONFIRM_ARG}: true.`,
  ].join("\n");
 }

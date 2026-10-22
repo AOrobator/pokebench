@@ -1,4 +1,5 @@
 import WebSocket, { type RawData } from "ws";
+import { FrameDiagnostics, type SourceFrame } from "./frame-diagnostics.js";
 
 const RETRY_BUFFER_MS = 5;
 
@@ -15,11 +16,14 @@ export class BoundedFrameSender {
   private latest: Buffer | null = null;
   private retry: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  private offeredAt = 0;
 
-  constructor(private readonly client: FrameSink) {}
+  constructor(private readonly client: FrameSink, private readonly stats?: FrameDiagnostics, private readonly now: () => number = () => performance.now()) {}
 
   offer(frame: Buffer): void {
     if (this.disposed) return;
+    if (this.stats !== undefined) { this.stats.offered += 1; if (this.latest !== null) this.stats.replaced += 1; }
+    this.offeredAt = this.now();
     this.latest = frame;
     this.flush();
   }
@@ -38,6 +42,7 @@ export class BoundedFrameSender {
       return;
     }
     if (this.client.bufferedAmount > 0) {
+      if (this.stats !== undefined) this.stats.bufferedChecks += 1;
       if (this.retry === null) {
         this.retry = setTimeout(() => {
           this.retry = null;
@@ -49,17 +54,23 @@ export class BoundedFrameSender {
     const frame = this.latest;
     this.latest = null;
     this.sending = true;
+    const started = this.now();
+    this.stats?.queueWait.add(started - this.offeredAt);
     try {
       this.client.send(frame, { binary: true }, (error) => {
         this.sending = false;
+        this.stats?.send.add(this.now() - started);
         if (error != null) {
+          if (this.stats !== undefined) this.stats.sendErrors += 1;
           this.dispose();
           this.client.terminate();
           return;
         }
+        if (this.stats !== undefined) this.stats.sent += 1;
         this.flush();
       });
     } catch {
+      if (this.stats !== undefined) this.stats.sendErrors += 1;
       this.sending = false;
       this.dispose();
       this.client.terminate();
@@ -72,7 +83,7 @@ export interface FrameHubOptions {
   readonly gamePort: number;
   readonly host: string;
   readonly maxPayload: number;
-  readonly decode: (raw: RawData) => Buffer;
+  readonly decode: (raw: RawData) => Buffer | (SourceFrame & { readonly png: Buffer });
   readonly onEmpty: (hub: SharedFrameHub) => void;
 }
 
@@ -80,6 +91,7 @@ export interface FrameHubOptions {
 export class SharedFrameHub {
   readonly runId: string;
   readonly gamePort: number;
+  readonly diagnostics = new FrameDiagnostics();
   private readonly clients = new Map<WebSocket, BoundedFrameSender>();
   private upstream: WebSocket | null = null;
   private latest: Buffer | null = null;
@@ -95,7 +107,7 @@ export class SharedFrameHub {
       client.close(1012, "game frame source changed");
       return;
     }
-    const sender = new BoundedFrameSender(client);
+    const sender = new BoundedFrameSender(client, this.diagnostics);
     this.clients.set(client, sender);
     const remove = (): void => { this.remove(client); };
     client.once("close", remove);
@@ -143,10 +155,15 @@ export class SharedFrameHub {
     candidate.on("message", (raw) => {
       if (candidate !== this.upstream || this.stopped) return;
       try {
-        const frame = this.options.decode(raw);
+        const started = performance.now();
+        const decoded = this.options.decode(raw);
+        this.diagnostics.decode.add(performance.now() - started);
+        const frame = Buffer.isBuffer(decoded) ? decoded : decoded.png;
+        this.diagnostics.receive(Buffer.isBuffer(decoded) ? {} : decoded, started, Date.now());
         this.latest = frame;
         for (const sender of this.clients.values()) sender.offer(frame);
       } catch {
+        this.diagnostics.invalidFrames += 1;
         this.fail(1003, "invalid upstream frame");
       }
     });

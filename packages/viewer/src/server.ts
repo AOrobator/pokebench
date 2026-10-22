@@ -1,3 +1,6 @@
+import { setImmediate as yieldImmediate } from "node:timers/promises";
+import { monitorEventLoopDelay } from "node:perf_hooks";
+import { Timing } from "./frame-diagnostics.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
@@ -20,7 +23,7 @@ import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { frontierSplits } from "./frontier.js";
-import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -35,7 +38,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
+export const BROWSER_MODULES = ["visual-split-view", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -44,6 +47,8 @@ const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
 const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
 // The BAG page item icons `just bag-art` builds from the ROM into runs/sprites/bag-v1 (never into git).
 const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png)$/;
+// The POKéMON PARTY page art and tables `just party-art` builds from the ROM into runs/sprites/party-v1 (never into git).
+const PARTY_SPRITE_PATH = /^(manifest\.json|data\.json|front\/(?:[1-9][0-9]?|[1-3][0-9]{2}|40[0-9]|41[01])\.png|parts\/(?:types|status|hp-tag|exp-empty|exp-full|marks|ball-big|ball-small|balls)\.png|font\/(?:small|normal)\.(?:png|json))$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 const FRAME_MAX_BYTES = 1024 * 1024;
@@ -139,7 +144,7 @@ export interface ViewerOptions {
 const MAX_BODY = 64 * 1024;
 export const STREAM_CHUNK_BYTES = 1024 * 1024;
 // Lines parsed per step, so a chunk of many tiny lines cannot hold the event loop either.
-const STREAM_STEP_LINES = 2000;
+const STREAM_STEP_LINES = 16;
 const HumanAcceptedSchema=Type.Object({accepted:Type.Literal(true)},{additionalProperties:false});
 const HumanClaimSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"})},{additionalProperties:false});
 const HumanInputSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"}),seq:Type.Integer({minimum:1}),release:Type.Optional(Type.Boolean()),buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT","L","R"]),{maxItems:10,uniqueItems:true})},{additionalProperties:false});
@@ -268,6 +273,36 @@ function sendJson(res: ServerResponse, status: number, value: unknown): void {
   send(res, status, "application/json; charset=utf-8", JSON.stringify(value));
 }
 
+// Serialize one bounded slice per event-loop turn. Individual events remain
+// indivisible; a large history never becomes one uninterruptible stringify.
+function* eventArrayChunks(events: Iterable<RunEvent>, chunkBytes: number): Generator<string> {
+  let chunk = "[", first = true, started = performance.now();
+  for (const event of events) {
+    chunk += `${first ? "" : ","}${JSON.stringify(event)}`;
+    first = false;
+    if (chunk.length >= chunkBytes || performance.now() - started >= 4) {
+      yield chunk; chunk = ""; started = performance.now();
+    }
+  }
+  yield `${chunk}]`;
+}
+
+async function sendEventArray(res: ServerResponse, events: readonly RunEvent[], chunkBytes = 64 * 1024): Promise<void> {
+  const isClosed = (): boolean => res.destroyed;
+  if (isClosed()) return;
+  res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "application/json; charset=utf-8" });
+  for (const chunk of eventArrayChunks(events, chunkBytes)) {
+    if (isClosed()) return;
+    if (!res.write(chunk)) await new Promise<void>(resolve => {
+      if (isClosed()) { resolve(); return; }
+      const ready = (): void => { res.off("drain", ready); res.off("close", ready); resolve(); };
+      res.once("drain", ready); res.once("close", ready);
+    });
+    await yieldImmediate();
+  }
+  if (!isClosed()) res.end();
+}
+
 function sendFile(res: ServerResponse, path: string, type: string, spriteRequest?: IncomingMessage): void {
   let body: Buffer;
   try {
@@ -311,9 +346,22 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
   const location = (line: number): number | string => offset === 0 ? line : `${String(line)} within tail starting at byte ${String(offset)}`;
-  if (head !== undefined) pending.push(message("head", head.map(recovered)));
+  function* headChunks(): Generator<string> {
+    if (head === undefined) return;
+    yield "event: head\ndata: ";
+    function* recoveredEvents(): Generator<RunEvent> { for (const event of head ?? []) yield recovered(event); }
+    yield* eventArrayChunks(recoveredEvents(), Math.min(chunkBytes, 64 * 1024));
+    yield "\n\n";
+  }
+  const initial = headChunks();
+  let initialDone = head === undefined;
   // Parses the next bounded piece of the log into the queue; true when there was nothing new.
   const fill = (): boolean => {
+    if (!initialDone) {
+      const chunk = initial.next();
+      if (!chunk.done) { pending.push(chunk.value); return false; }
+      initialDone = true;
+    }
     const { results, lines } = reader.next(STREAM_STEP_LINES);
     for (const result of results) {
       if (result.ok) {
@@ -490,6 +538,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
     return;
   }
+  if (head === "sprites" && second === "party" && PARTY_SPRITE_PATH.test(parts.slice(2).join("/"))) {
+    const path = parts.slice(2).join("/");
+    sendFile(res, join(options.runsRoot, "sprites", "party-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
+    return;
+  }
   if (head === "sprites" && second === "bag" && BAG_SPRITE_PATH.test(parts.slice(2).join("/"))) {
     const path = parts.slice(2).join("/");
     sendFile(res, join(options.runsRoot, "sprites", "bag-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
@@ -503,6 +556,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (parts.length === 2 && head === "fonts" && second !== undefined && FONT_NAME.test(second)) {
     sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
+  }
+  if(parts.length===2 && head==="app" && second==="roxanne-interaction.js") {
+    sendFile(res,join(options.appDir,"../../agent/dist/roxanne-interaction.js"),"text/javascript; charset=utf-8");return;
   }
   if(parts.length===2 && head==="app" && second==="agent-spectator.js") {
     sendFile(res,join(options.appDir,"../../agent/dist/spectator.js"),"text/javascript; charset=utf-8");return;
@@ -526,7 +582,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
-    if (parts.length === 4 && leaf === "head") { sendJson(res, 200, readRecentEvents(options.runsRoot, id)); return; }
+    if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed), options.streamChunkBytes); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
@@ -536,7 +592,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       const cursor = { offset: 0 };
       let head: RunEvent[] | undefined;
       if (new URL(req.url ?? "/", "http://viewer.invalid").searchParams.has("head")) {
-        try { head = await readHeadEvents(options.runsRoot, id, cursor); }
+        try { head = await readHeadEvents(options.runsRoot, id, cursor, undefined, undefined, () => res.destroyed); }
         catch { cursor.offset = 0; } // The diagnostic stream still reports malformed/skewed lines.
       }
       if (res.destroyed) return;
@@ -655,14 +711,31 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const autorunTicker = autorun === undefined ? null : setInterval(() => { autorun.tick().catch(() => undefined); }, AUTORUN_TICK_MS);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
+  const loopDelay = monitorEventLoopDelay({ resolution: 10 });
+  loopDelay.enable();
+  const dispatchTimings = new Map<string, Timing>();
+  const frameHubs = new Map<string, SharedFrameHub>();
   const server = createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/api/frame-metrics" && origins.has(req.headers.host ?? "")) {
+      sendJson(res, 200, { version: 1, eventLoop: { meanMs: loopDelay.count === 0 ? 0 : loopDelay.mean / 1e6, p99Ms: loopDelay.percentile(99) / 1e6, maxMs: loopDelay.max / 1e6 },
+        dispatch: Object.fromEntries([...dispatchTimings].map(([key, timing]) => [key, timing.snapshot()])),
+        runs: [...frameHubs.values()].map(hub => ({ run: hub.runId, port: hub.gamePort, ...hub.diagnostics.snapshot() })) });
+      return;
+    }
+    const started = performance.now();
     route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
+    // Classification must not escape the async route's malformed-URL boundary.
+    let parts: string[] | null;
+    try { parts = segments(req.url ?? "/"); } catch { parts = null; }
+    const key = parts?.[0] === "api" ? parts[1] === "runs" ? `runs/${parts.length === 2 ? "list" : parts[3] === "head" ? "head" : parts[3] === "events" ? "events" : "other"}` : parts[1] === "cards" ? "cards" : "other-api" : "static";
+    let timing = dispatchTimings.get(key);
+    if (timing === undefined) { timing = new Timing(); dispatchTimings.set(key, timing); }
+    timing.add(performance.now() - started);
   });
   const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
-  const frameHubs = new Map<string, SharedFrameHub>();
   server.on("upgrade", (req, socket, head) => {
     const reject = (status: number, message: string): void => {
       socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
@@ -690,11 +763,12 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
           maxPayload: FRAME_MAX_BYTES,
           decode: (raw) => {
             const encoded = Array.isArray(raw) ? Buffer.concat(raw) : Buffer.from(raw as ArrayBuffer);
-            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
+            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown; frame_count?: unknown; timestamp?: unknown };
             if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
             const png = Buffer.from(payload.frame_data, "base64");
             if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
-            return png;
+            return { png, ...(typeof payload.frame_count === "number" && Number.isSafeInteger(payload.frame_count) && payload.frame_count >= 0 ? { frame: payload.frame_count } : {}),
+              ...(typeof payload.timestamp === "number" && Number.isFinite(payload.timestamp) ? { timestamp: payload.timestamp } : {}) };
           },
           onEmpty: (closed) => { if (frameHubs.get(runId) === closed) frameHubs.delete(runId); },
         });
@@ -706,7 +780,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const queue = options.queue;
   const ticker = queue === undefined ? null : setInterval(() => { queue.tick().catch(() => undefined); }, 1_000);
   await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
+    server.once("error", error => { loopDelay.disable(); reject(error); });
     server.listen(options.port, HOST, resolve);
   });
   const address = server.address() as AddressInfo;
@@ -724,6 +798,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         if (ticker !== null) clearInterval(ticker);
         if (autorunTicker !== null) clearInterval(autorunTicker);
         autorun?.stop();
+        loopDelay.disable();
         for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
         frameHubs.clear();
         for (const client of frameSockets.clients) client.terminate();

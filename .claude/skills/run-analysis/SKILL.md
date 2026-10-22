@@ -117,7 +117,8 @@ Never put backticks or `$(...)` inside an unquoted heredoc or a double-quoted sh
 
 10. **Outputs.**
    - **HTML report** at `runs/reports/run-analysis/<YYYY-MM-DD>_<slug>/index.html` in the main checkout (`~/dev/pokebench/runs/reports/...`). `just pages` serves the main checkout's `runs/reports/` under `/reports/`, so a worktree copy is not served.
-     - Follow the CLAUDE.md "Explainers" rules: zero network requests, inline CSS and SVG, system fonts.
+     - Follow the CLAUDE.md "Explainers" rules: zero network requests, inline CSS and SVG, system fonts in the page's own CSS.
+     - Pokémon themed: run `just pages-theme <file>` after every write of the page (generators included), so it wears the Emerald PokéNav theme (`docs/design/emerald-pages.css`). Use `main`, `h1`–`h4`, `.card`, `.kpi`, `table` and `details`; no solid side-stripe accents.
      - Diagrams, all inline SVG: a milestone-vs-minutes frontier chart of the top runs (new-game starts solid; every top-N `CLOCK_SET` resume dashed from Clock set and labelled, as in step 2), a stall bar chart of the longest segments, and a switch timeline across rounds per arm.
      - **Population reliability:** a prominent milestone-success section with the full-population census, every required milestone's S/F/U/N and rates, a matched success-rate-over-time chart, harness-version breakdown and reproducible denominator receipts (step 6). Clearly separate the frozen snapshot from later live updates.
      - Sections: snapshot and run table, frontier, **agent frontier** (its own section: which run it is and whether it moved; its full configuration: model, pin, arm, preset, sampling and every switch that is on; its segment table; what went well and what did not, with turn evidence), wins, what went wrong, harness bugs confirmed in RAM, thinking traces (well and badly, with examples), mistakes (common and costly, the costliest by summed minutes first), arm comparison by era, why control won (each such round), switch changes and per-switch attribution, hypotheses, existing switches to add and bundle switches that hurt, mitigation history of the costliest recurring failure, promotion recommendation (promote all, some or hold, and why), PokeBench review (each persona's verdict, the agreed helping or hurting verdict, the top-N confidence answer, disagreements), what the evidence cannot show.
@@ -177,7 +178,7 @@ Folded in so far:
 - N per arm per round stated; nothing called significant.
 - Promotion recommendation given (all, some or hold), with the switches named and what would change it; nothing promoted.
 - PokeBench review ran with four parallel personas on one packet, and answered helping or hurting and top-N confidence.
-- Report passes `just pages-check`, returns 200 from 8791, was screenshotted and inspected at 1280, 1440 and 375 with details closed and open, and is linked once.
+- Report has the Emerald theme (`just pages-theme`), passes `just pages-check`, returns 200 from 8791, was screenshotted and inspected at 1280, 1440 and 375 with details closed and open, and is linked once.
 - No runs launched, nothing edited outside the report, the review packet and scratch, no `chat-thread` calls from this skill or its subagents, no backticks or `$(...)` inside unquoted heredocs or double-quoted strings in any shell-written brief or report.
 
 ## Loop guard effectiveness

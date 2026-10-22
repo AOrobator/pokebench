@@ -222,6 +222,16 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | `move-learn-comparison-v1` | `PETALBURG_WOODS` (the first replace-a-move prompt comes around PETALBURG WOODS and RUSTBORO CITY) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts (every press result captured mid-print, the YES/NO box never shown; B answered NO to both questions), the same loop on PECK in battle at turns 755-769, and EMBER used on ROXANNE's GEODUDE at turns 715-716 after "It's not very effective…". |
 | `effectiveness-heard-v1` | `STARTER_CHOSEN` (the first battle message after a player's move follows the starter) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts (every press result captured mid-print, the YES/NO box never shown; B answered NO to both questions), the same loop on PECK in battle at turns 755-769, and EMBER used on ROXANNE's GEODUDE at turns 715-716 after "It's not very effective…". |
 | `game-said-goals-v1` | `RUSTBORO_CITY_GYM` (an open gym battle needs a loss at the first gym the runs reach) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts (every press result captured mid-print, the YES/NO box never shown; B answered NO to both questions), the same loop on PECK in battle at turns 755-769, and EMBER used on ROXANNE's GEODUDE at turns 715-716 after "It's not very effective…". |
+| `mart-stock-readout-v1` | `OLDALE_TOWN` (the first POKéMON MART on the route; RUSTBORO CITY MART is where the runs held ¥4,286–6,960 before ROXANNE) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: none of 11 runs that reached ROXANNE (Oct 19–21) bought anything before her; run 2026-10-21T06-28-18_qwen36-gpu0_1331 opened the RUSTBORO CITY MART buy list at turns 680–690 and saw no prices or descriptions. |
+| `shop-interface-v1` | `OLDALE_TOWN` (the first POKéMON MART on the route) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: run 2026-10-21T06-28-18_qwen36-gpu0_1331's RUSTBORO CITY MART visit (turns 680-690) read a wrong item id on row 0, a coverage error on every later row and on the after-purchase page. |
+| `birch-intro-pages-v1` | `NEW_GAME_CREATED` (PROF. BIRCH's speech before the name is chosen) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm on, registry default off. Evidence: probe `2026-10-21T13-33-00_cursor-agent-grok-4.7_probe` pressed B through the welcome and main-speech pages; every press result stayed `unavailable/transitioning (world position unavailable)` while Dialog stayed the whole `gStringVar4` buffer. Not a measured cohort. |
+| `exp-next-level-v1` | `STARTER_CHOSEN` (the party has EXP. Points from the starter on) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; 97a0 challenged her 22 EXP. Points short of Lv16 and four more runs were within 400. |
+| `pokedex-own-v1` | `STARTER_CHOSEN` (the line waits for the POKéDEX) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; 36 wild WATER or GRASS foes across 10 runs and no ball thrown at them. |
+| `exp-earned-ledger-v1` | `STARTER_CHOSEN` (the first EXP. Points page follows the first battle won) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; trainers paid 34-220 EXP. Points per page and wild POKéMON 15-59 (run fd95). |
+| `leader-attempt-ledger-v1` | `RUSTBORO_CITY_GYM` (the first gym leader the runs reach) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; 6 of 9 rematches started at exactly the EXP. Points of the loss before. |
+| `seen-trainers-ledger-v1` | `RUSTBORO_CITY_GYM` (needs heal-before-trainers-v2, on in the bundle arm) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; after losing, the 4 control runs never fought TOMMY or MARC. |
+| `party-coverage-v1` | `STARTER_CHOSEN` (the first battle after the starter) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; every move TORCHIC had was resisted by GEODUDE and nothing showed the party's gaps. |
+| `said-type-matches-v1` | `RUSTBORO_CITY_GYM` (the gym guide's line is the first type line on the route) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only. Evidence: Rustboro strategy report 2026-10-21 (runs/reports/rustboro-strategy/): 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15; the GYM GUIDE's WATER/GRASS line never reached the wild battles that followed. |
 
 ## exit-labels-v3
 Pending, not queued. Activation PLAYER_NAME_CONFIRMED; readiness computed from qualifying recorded runs. Future bundle only; no measured runs launched.
@@ -241,6 +251,71 @@ PENDING and unqueued. Boot readiness remains unproven: no matching four-run fres
 
 
 | pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |
+
+## menu-refusal-recovery-v1 (2026-10-21)
+
+Pending only; no queue position or approval. Activation: OLDALE_TOWN, the earliest native milestone for shop access. Recorded shop-loop fixture qualifies the mechanism but does not establish model recovery benefit or milestone readiness across 3 of the last 4 matching runs. Before queueing, refresh readiness against the reviewed source pin and design a shop checkpoint study. Navigation recovery is excluded.
+
+Production readinessOf refresh: NOT READY, recent basis, 0/4 reached OLDALE_TOWN (minimum 3/4). Considered think-fast boot runs 2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e and 15-51-18_think-fast_17a0. The current GPU cook runs use a different recorded model identifier/start and do not qualify for this standalone entry's lane. Saved receipt: runs/menu-refusal-recovery/readiness.json. Pending only; no queue/approval/launch.
+
+- `gym-door-label-v1`: pending only. First activation PETALBURG_CITY. Native retained-state label check complete; no experiment queued or approved. Diagnostic design and readiness evaluation required before queueing.
+
+## caught-dex-input-v1 (2026-10-21)
+
+Pending, not queued. Correctness tier: c6c2 event 12066 / native archive 5393 proves
+an A/B-owned registration page is incorrectly read as busy. Activation milestone
+STARTER_CHOSEN is only a conservative lower bound; milestone reach alone does not
+prove catches, so no catch-specific readiness or performance claim is made. No
+measured cohort is needed to establish this decoder repair, and none is authorized.
+
+## progress-aware-cycles-v1 (2026-10-21)
+
+Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.
+
+## 2026-10-21 rejected movement and upstairs instruction
+
+- `rejected-movement-step-v1`: activation `PLAYER_NAME_CONFIRMED`; `observed-field-dialogue-v1`: activation `FIRST_TRUCK_EXIT`. Deterministic correctness verified; both entries remain explicitly blocked/pending for reviewed landing pin and cohort design, with no queue position or approval. Bundle treatment enablement is configuration, not benefit evidence.
+- Readiness reader found 3/4 activation reach for historical `think-fast` fallback runs: 2026-10-15T13-36-02_think-fast_2f46, 2026-10-15T14-21-06_think-fast_6684, 2026-10-15T15-06-08_think-fast_dc0e, 2026-10-15T15-51-18_think-fast_17a0. This is not current Qwen-lane or qualified-checkpoint readiness; re-evaluate model lane/start during design.
+- Candidate definitions validate with isolated empty ledgers. Canonical `experiments-check` independently reports existing starter-decision-salience ledger schema errors (150 lines); original ledgers were not modified.
+
+## GLM-run harness bug switches (2026-10-21)
+
+`story-goal-player-name-v1`, `cut-off-reply-feedback-v1`, `trainer-sight-check-v2`, `auto-talk-v2`, `map-wide-triggers-v1` and `drought-battle-heal-hold-v1` are pending, unqueued and unapproved. Activation milestones: MOM_RIVAL_INSTRUCTION, NEW_GAME_CREATED, ROUTE_102, ROUTE_102, PLAYER_HOUSE_EXITED_AFTER_CLOCK and STARTER_CHOSEN. Boot runs reach the earlier ones reliably; ROUTE_102 is reached by most 2-hour MAIN_MENU runs (GLM 3 of 4, Qwen3.6 overnight pairs 6 of 6), so a Route 102 checkpoint start would measure the two Route 102 switches more cheaply. `just experiments-check` reports no problem for these entries (its 150 starter-decision-salience ledger problems are pre-existing on main). Per memory "long runs only", bundle-only bug fixes are measured by long cook runs; no gameplay-benefit claim.
+
+## gym-evidence-v1 (2026-10-21)
+
+Pending, unqueued and unapproved. WALLY_TUTORIAL_COMPLETE is the conservative activation lower bound: Dad names the Gym immediately afterwards. Gym false-completion exposure requires a qualified post-trainer/pre-heal checkpoint; milestone reach alone is insufficient. Deterministic recorded-data proof is not gameplay-benefit evidence. Source will name the reviewed code checkpoint; repin before any future measured use.
+
+Gym-evidence readiness receipt: 0/4 WALLY_TUTORIAL_COMPLETE in recent think-fast fallback runs (2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e, 15-51-18_think-fast_17a0); no candidate schema/unknown-switch problems. These historical boot runs are not the current Qwen checkpoint lane. Keep pending. The global checker reports 150 pre-existing starter-decision-salience trial-ledger errors; originals unchanged.
+
+## trigger-navigation-boundary-v1
+
+Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source pins synchronized implementation commit f742d0c8 (script-free route preference and bundle activation). Rival-house 1fe0 state1308 is additionally replayed through production factories. No independent trials launched; next bundle inclusion is configuration, not measured benefit.
+
+- `milestone-instruction-memory-v1`: pending only, blocked on reviewed landing pin and checkpoint cohort design. Activates at first delivered field dialogue (FIRST_TRUCK_EXIT readiness proxy); verified native scene completion gates retirement. Six historical prefix replays test retention, not gameplay benefit. No queue position or approval.
+
+## Interface ownership and move-learn tool switches (2026-10-21)
+
+| Switch | Activation milestone | Readiness | Notes |
+|---|---|---|---|
+| `tool-prompt-docs-v1` | `NEW_GAME_CREATED` (prompt sections from the first turn; the first decision they bear on is the first evolution, TORCHIC at Lv16) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; proposed for both arms. Evidence: control d548 froze at the evolution decision after turn 555 (seq 20434) for 100+ turns; its system prompt never named choose_evolution. |
+| `field-ownership-feedback-v1` | `PLAYER_NAME_CONFIRMED` (navigate_to_target is usable from the truck; any menu or non-overworld screen can own input) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; proposed for both arms. Evidence: d548 called navigate_to_target on object 21 for 85 turns at the evolution decision; every refusal said only "target is not listed in the current verified state" (seq 20511, 20531). |
+| `move-learn-loop-fingerprint-v1` | `PETALBURG_WOODS` (the first replace-a-move prompt comes around PETALBURG WOODS and RUSTBORO CITY) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm. Evidence: bundle ea04 looped 15 turns (547–561, 3:21–3:23 PM ET) on "Delete a move to make room for DOUBLE KICK?" with no loop-guard count; replay warns at result seq 20676. |
+| `stale-plan-fact-v1` | `NEW_GAME_CREATED` (any result with an Interface line) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm. Evidence: ea04 thinking byte-identical for 15 turns (md5 bf66221a, seq 20494–20844) while the prompts changed. |
+| `post-battle-readout-v1` | `PETALBURG_WOODS` (first post-battle evolution or in-battle learn-move box) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm; game server; needs battle-details-v2. Evidence: ea04 seq 20991 (stale "You TORCHIC", "1 SCRATCH") and seq 20256 ("battle_resolving; input not ready" with the box open). |
+| `move-learn-early-comparison-v1` | `PETALBURG_WOODS` (first evolution or battle move-learning page) | PENDING until `just experiments` runs after landing | Registered 2026-10-22, pending and not queued; game server; needs move-learn-comparison-v1. Evidence: d951 turn 430, seq 16473 (learn_move forget "none" for DOUBLE KICK from the "is trying to learn" page, no move data shown). |
+| `move-learn-tool-v1` | `PETALBURG_WOODS` (acts only at a move-learning prompt) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm. Evidence: ea04 forgot SCRATCH with a blind A on the forget list (seq 20950/20981) after the 15-turn B loop. |
+
+`just experiments-check` reports no problem for these six entries (its 150 starter-decision-salience ledger problems are pre-existing). `just experiments` in the worktree stops on the same pre-existing problems, so the readiness reasons are read after landing on main. The incumbent is the bundle arm of bundle-v-control-2h with the six switches off. Per memory "long runs only", these bug fixes are measured by long cook runs; no gameplay-benefit claim. `source.commit` is the branch HEAD at registration and is updated to the landing merge.
+
+| `poison-readout-v1` | `ROUTE_101` | Pending; exposure-specific poison checkpoint not yet qualified. No queue position. |
+| `berry-readout-v1` | `ROUTE_102` | Pending; exposure-specific ripe-tree checkpoint not yet qualified. No queue position. |
+
+## Milestone drought suppression (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `milestone-drought-suppression-v1` | `NEW_GAME_CREATED` | READY (recent fallback: 4/4) | Recent think-fast ended registry runs 2f46, 6684, dc0e and 17a0 (Oct 15) reached activation; no exact-current-incumbent cohort. Pending, unqueued, unapproved. The five-minute timer can fire before name confirmation. Primary outcome: TEAM_AQUA_WOODS_EVENT_COMPLETE. No measured benefit claimed. |
 
 ## 2026-10-21: potion menu and factual healing guidance
 

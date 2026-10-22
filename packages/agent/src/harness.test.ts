@@ -988,3 +988,71 @@ describe("context-token-budget-v1 on the pinned pi loop", () => {
     expect(trims).toEqual([expect.objectContaining({ basis: "overflow", turns: 3, kept: 1, limit: 3000 })]);
   });
 });
+
+for(const recover of [false,true])it(`delivers shop refusal feedback through pinned pi and ${recover?"retires on B":"stops boundedly with the supervisor enabled"}`,async()=>{
+ const {RunRecorder}=await import("./recorder.js");
+ const {RunLog}=await import("./run-log.js");
+ const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");
+ const {checkEvent}=await import("./events.js");
+ const {parseGameState}=await import("./game-state.js");
+ const {battleActionTool}=await import("./battle-action.js");
+ const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/menu-refusal-loop.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
+ const recorded=fixture.events.map(checkEvent);
+ const body=(event:unknown)=>parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
+ const shop=body(recorded.find(e=>e.type==="state"&&e.turn===262));
+ const closed=body(recorded.findLast(e=>e.type==="state"&&e.turn===288));
+ let state=shop,presses=0;
+ const root=mkdtempSync(join(tmpdir(),"pokebench-menu-refusal-pi-"));
+ try{
+  const log=RunLog.create(root,"2026-10-21T00-00-00_menu-refusal-delivery");
+  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+  await recorder.start(RUN_START_META,false);
+  const controller=new AbortController();
+  const g=new Governor({limits:{maxTurns:recover?3:20,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
+  const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,()=>"SUPERVISOR: generic briefing",false,false,false,false,false,false,false,false,false,false,false,false,{"menu-refusal-recovery-v1":true});
+  const observe=()=>Promise.resolve({content:[{type:"text" as const,text:"Recorded game state"}],details:{state}});
+  const battle=battleActionTool({read:()=>Promise.resolve(state),observe,press:()=>{throw Error("No native input permitted from battle_action in this menu");}});
+  const press:AgentTool={name:"press",label:"press",description:"press B",parameters:Type.Object({}),execute:(id)=>{presses++;recorder.buttonPress(id,["B"],PRESS_TIMING,state);state=closed;return observe();}};
+  const replies=Array.from({length:recover?3:10},(_,i)=>{
+   const message=reply([recover&&i===2?"press":"battle_action"]);
+   return {...message,content:message.content.map(part=>part.type==="toolCall"?{...part,arguments:part.name==="battle_action"?{action:"run"}:{}}:part)};
+  });
+  const seen:Message[][]=[];
+  const loop=piLoop({systemPrompt:"play",tools:[battle,press],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
+  expect(await play(TASK,g,loop)).toBe(recover?"budget":"stuck");
+  const delivered=seen[2]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
+  expect(delivered).toContain("No battle is active. Shop menu open; selected BUY. B quits this menu.");
+  expect(delivered).not.toContain("generic briefing");
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
+  expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(recover?["warning","recovered"]:["warning","stop"]);
+  expect(seen).toHaveLength(recover?3:8);expect(presses).toBe(recover?1:0);
+  expect(events.filter(e=>e.type==="button_press").map(e=>e.buttons)).toEqual(recover?[["B"]]:[]);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+it("progress-aware cycles retire a milestone-turn note before the next real pi decision, preserving unrelated guards",async()=>{
+ const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-progress-pi-"));
+ try{
+  for(const on of [false,true]){
+   const log=RunLog.create(root,on?"on":"off");
+   let advanced=false;
+   const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([]),observe:()=>advanced?[{name:"ROUTE_103" as const,kind:"navigation" as const,origin:"observed" as const,serverTimestamp:0}]:[]},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+   await recorder.start(RUN_START_META,false);
+   const {g}=governor({maxTurns:2});
+   const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,false,false,false,{"menu-refusal-recovery-v1":false,"progress-aware-cycles-v1":on});
+   const stale="SUPERVISOR: do not try the healing trip again";
+   const tool:AgentTool={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>{
+    detector.stall("map_cycle",()=>stale,[1]);
+    advanced=true;
+    return Promise.resolve({content:[{type:"text" as const,text:"game advanced"}],details:{state:IN_GAME}});
+   }};
+   const seen:Message[][]=[];const controller=new AbortController();
+   const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel([reply(),reply()],seen)});
+   await play(TASK,g,loop);
+   expect(JSON.stringify(seen[1]).includes(stale)).toBe(!on);
+  }
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

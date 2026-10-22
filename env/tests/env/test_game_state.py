@@ -21,6 +21,14 @@ from pokebench_env.route103_rival import Route103Rival
 from pokebench_env.running import read_running_permission
 from pokebench_env.story import INITIAL_TRAINER_FLAGS, StoryState
 
+# A fixture member with an all-zero tail and misc block and no ROM tables behind it: stats 0,
+# ability slot 0 of a zeroed species row, met data 0 with no map-section name, no OT language.
+ZERO_FACTS = dict(
+    attack=0, defense=0, speed=0, sp_attack=0, sp_defense=0, ability_num=0, ability_id=0,
+    met_location=0, met_location_name=None, met_level=0, met_game=0, ball=0, ball_name=None,
+    ot_name=None, ot_gender="male",
+)  # fmt: skip
+
 SB1, SB2 = 0x02025A18, 0x02024A6C
 OVERWORLD = (0x08085E05, 0x08085E5D)
 NAMING = (0x0, 0x080E4F59)
@@ -164,6 +172,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
                 0,
                 (PokemonMove(0, 0, 0, None, 0),) * 4,
                 "encrypted",
+                **ZERO_FACTS,
             ),
         ),
         money=3000,
@@ -205,6 +214,7 @@ def test_every_substructure_order_decrypts(personality: int) -> None:
             0,
             (PokemonMove(0, 0, 0, None, 0),) * 4,
             "encrypted",
+            **ZERO_FACTS,
         ),
     )
 

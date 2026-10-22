@@ -1048,3 +1048,109 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .wb-date-range [data-wb=date-problem] { color: #ad3838; }
 [data-frontier-coverage] { overflow-wrap: anywhere; }
 [data-frontier-coverage] summary { cursor: pointer; }
+
+/* POKéMON PARTY page (runs/mockups/party-menu/variant-d3.html): Emerald's party slots and summary
+   parts from runs/sprites/party-v1 (`just party-art`). Lengths are game pixels (--u). */
+.pv { container-type: inline-size; }
+.pv-scr { --u: 2px; border: calc(var(--u) * 2) solid #4a4139; border-radius: calc(var(--u) * 4); overflow: hidden; background: #006a62; image-rendering: pixelated; }
+.pv-scr * { image-rendering: pixelated; }
+.pv-scr button { font: inherit; color: inherit; margin: 0; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.pv-scr button:focus-visible { outline: 2px solid #183060; outline-offset: 1px; }
+.pv .gtx { display: inline-block; vertical-align: top; font: 400 calc(var(--u) * 7)/calc(var(--u) * 14) Inter, system-ui, sans-serif; white-space: pre; }
+.pv .gtx[data-painted] { font-size: 0; line-height: 0; }
+.pv canvas.gt { display: block; image-rendering: pixelated; }
+.pv-hdr { display: flex; height: calc(var(--u) * 16); background: #ffe6ff; box-shadow: inset 0 calc(var(--u) * -1) 0 #bd8bcd; }
+.pv-hl { display: flex; align-items: center; padding: 0 calc(var(--u) * 6) 0 calc(var(--u) * 3); background: #bd6ad5; box-shadow: inset 0 calc(var(--u) * -1) 0 #9420ac; color: #fff; }
+.pv-cap { width: calc(var(--u) * 6); background: #bd6ad5; border-radius: 0 calc(var(--u) * 8) calc(var(--u) * 8) 0; box-shadow: inset 0 calc(var(--u) * -1) 0 #9420ac; }
+.pv-hr { flex: 1; }
+.pv-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: calc(var(--u) * 3); padding: calc(var(--u) * 4); background: repeating-linear-gradient(to bottom, #ced67b 0 var(--u), #b5b55a var(--u) calc(var(--u) * 2)); }
+/* Party box palettes (graphics/party_menu/bg.png rows), picked as LoadPartyBoxPalette does. */
+.pv-box { --b1: #4a4a62; --b7: #83c5de; --b8: #297bb4; --hi: #83c5de; --fill: #3994de; --sh: #297bb4; position: relative; color: #fff; box-shadow: inset 0 0 0 var(--u) var(--b1), inset calc(var(--u) * 2) calc(var(--u) * 2) 0 0 var(--b7), inset calc(var(--u) * -2) calc(var(--u) * -2) 0 0 var(--b8); background: linear-gradient(to bottom, var(--hi) 0 calc(var(--u) * 3), var(--fill) calc(var(--u) * 3)); }
+.pv-box.sel { --b1: #ff7331; --b7: #ff7331; --b8: #ff7331; --hi: #aceeff; --fill: #7bd5ee; --sh: #4aaccd; }
+.pv-box.faint { --b7: #d5a420; --b8: #a44a00; --hi: #d5a420; --fill: #c56a10; --sh: #a44a00; }
+.pv-box.faint.sel { --b1: #ff7331; --b7: #ff7331; --b8: #ff7331; --hi: #ffd5de; --fill: #ffbd94; --sh: #eea483; }
+.pv-empty { min-height: calc(var(--u) * 24); background: transparent; box-shadow: inset 0 0 0 var(--u) #4a4a62, inset calc(var(--u) * 2) calc(var(--u) * 2) 0 0 #e6ee8b, inset calc(var(--u) * -2) calc(var(--u) * -2) 0 0 #625a00; }
+.pv-scr .pv-slot { display: grid; grid-template-columns: auto auto minmax(calc(var(--u) * 56), max-content) minmax(calc(var(--u) * 70), 1fr); align-items: center; column-gap: calc(var(--u) * 3); width: 100%; min-height: calc(var(--u) * 24); padding: calc(var(--u) * 3) calc(var(--u) * 12) calc(var(--u) * 3) calc(var(--u) * 9); }
+.pv-open { display: grid; padding: calc(var(--u) * 2); border-radius: calc(var(--u) * 2); }
+.pv-scr .pv-open > .pv-slot { box-shadow: none; background: none; }
+.pv-ball { display: block; width: calc(var(--u) * 16); height: calc(var(--u) * 16); background: url(/sprites/party/parts/ball-small.png) 0 0 / 100% 200%; }
+.pv-ball.open { background-position: 0 100%; }
+.pv-icon { display: block; width: calc(var(--u) * 32); height: calc(var(--u) * 32); margin: calc(var(--u) * -8) calc(var(--u) * -4) calc(var(--u) * -4); background-size: 100% 200%; background-position: 0 0; animation: pv-bob .5s steps(1) infinite; }
+.pv-icon.sel { animation: pv-bob .25s steps(1) infinite, pv-hop .5s steps(1) infinite; }
+.pv-icon.none { animation: none; }
+@keyframes pv-bob { 0% { background-position: 0 0; } 50% { background-position: 0 100%; } }
+@keyframes pv-hop { 0% { transform: translateY(0); } 50% { transform: translateY(calc(var(--u) * -2)); } }
+.pv-who { display: flex; flex-direction: column; min-width: 0; }
+.pv-lv { display: flex; align-items: center; gap: calc(var(--u) * 3); min-height: calc(var(--u) * 14); }
+.pv-hpw { display: grid; justify-items: stretch; margin-left: calc(var(--u) * 8); }
+.pv-hpn { justify-self: end; }
+.pv-status { display: inline-block; width: calc(var(--u) * 32); height: calc(var(--u) * 8); background: url(/sprites/party/parts/status.png) 0 calc(var(--u) * -8 * var(--row)) / calc(var(--u) * 32) calc(var(--u) * 64); }
+.pv-hp { position: relative; display: block; height: calc(var(--u) * 7); min-width: calc(var(--u) * 66); }
+/* The game's bar end (sSlotTilemap_Wide) is rounded: the frame and track drop their right corner pixels and four gray pixels soften the steps. */
+.pv-hp .frame { position: absolute; left: calc(var(--u) * 14); right: 0; top: 0; height: calc(var(--u) * 7); background: #525252; clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%); }
+.pv-hp .frame::after { content: ""; position: absolute; right: var(--u); top: 0; width: var(--u); height: var(--u); background: #737373; box-shadow: var(--u) var(--u) #737373, var(--u) calc(var(--u) * 5) #737373, 0 calc(var(--u) * 6) #737373; }
+.pv-hp .track { position: absolute; left: calc(var(--u) * 15); right: var(--u); top: var(--u); height: calc(var(--u) * 5); background: #737373; clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%); }
+.pv-hp .fill { position: absolute; left: 0; top: 0; height: 100%; }
+.pv-hp .fill.g { background: linear-gradient(#5ad583 0 var(--u), #73ffac var(--u)); }
+.pv-hp .fill.y { background: linear-gradient(#cdac08 0 var(--u), #ffe639 var(--u)); }
+.pv-hp .fill.r { background: linear-gradient(#c53900 0 var(--u), #ff7331 var(--u)); }
+/* The tag art is 16x9: rows 0-1 are empty and column 14 is the bar's left border, so show rows 2-8 and columns 0-14 over the frame's first column. */
+.pv-hp .tag { position: absolute; left: 0; top: 0; width: calc(var(--u) * 15); height: calc(var(--u) * 7); background: url(/sprites/party/parts/hp-tag.png) 0 calc(var(--u) * -2) / calc(var(--u) * 16) calc(var(--u) * 9); }
+.pv-openb { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: calc(var(--u) * 4); background: #006a62; margin: var(--u) calc(var(--u) * 2) calc(var(--u) * 2); padding: calc(var(--u) * 4); border-radius: calc(var(--u) * 3); }
+.pv-card { display: grid; grid-template-columns: auto; gap: calc(var(--u) * 3); align-content: start; background: #9cdea4; box-shadow: inset 0 0 0 var(--u) #62b48b; border-radius: calc(var(--u) * 3); padding: calc(var(--u) * 4); }
+.pv-pic { position: relative; width: calc(var(--u) * 72); height: calc(var(--u) * 84); }
+.pv-pic::before { content: ""; position: absolute; left: 0; top: calc(var(--u) * 14); width: calc(var(--u) * 72); height: calc(var(--u) * 70); border-radius: calc(var(--u) * 3); background: repeating-linear-gradient(#dee6f6 0 var(--u), #d5d5bd var(--u) calc(var(--u) * 2)); }
+.pv-dex { position: absolute; left: 0; top: 0; }
+.pv-marks { position: absolute; right: 0; top: calc(var(--u) * 5); width: calc(var(--u) * 32); height: calc(var(--u) * 8); background: url(/sprites/party/parts/marks.png) 0 0 / 100% 100%; }
+.pv-front { position: absolute; left: calc(var(--u) * 4); top: calc(var(--u) * 17); width: calc(var(--u) * 64); height: calc(var(--u) * 64); background-size: 100% 100%; }
+.pv-name { display: flex; flex-direction: column; gap: var(--u); min-width: 0; }
+.pv-prow { display: flex; align-items: center; gap: calc(var(--u) * 4); }
+.pv-pball { display: block; width: calc(var(--u) * 16); height: calc(var(--u) * 16); background: url(/sprites/party/parts/balls.png) 0 calc(var(--u) * -16 * var(--row)) / calc(var(--u) * 16) calc(var(--u) * 192); }
+.pv-bars { display: grid; gap: 0; }
+.pv-exp { position: relative; display: block; width: min(100%, calc(var(--u) * 126)); aspect-ratio: 84 / 7; justify-self: end; background: url(/sprites/party/parts/exp-empty.png) 0 0 / 100% 100%; }
+.pv-exp .full { position: absolute; left: 0; top: 0; height: 100%; overflow: hidden; background: url(/sprites/party/parts/exp-full.png) 0 0 / var(--whole) 100% no-repeat; }
+.pv-expw { display: grid; padding: var(--u) var(--u) 0; }
+/* Summary page colors: PROFILE as POKéMON INFO, STATS as POKéMON SKILLS, MOVES as BATTLE MOVES. */
+.t-info { --fr: #318b73; --rb: #629cde; --q1: #109473; --q2: #20948b; --q3: #3994a4; --q4: #4a94bd; --pn: #9cdea4; --rw: #f6ffff; --ln: #62b48b; }
+.t-skills { --fr: #735ad5; --rb: #eede18; --q1: #8b73ac; --q2: #a48b83; --q3: #bda462; --q4: #d5bd39; --pn: #cdde7b; --rw: #f6ffee; --ln: #acac94; }
+.t-moves { --fr: #5200ff; --rb: #de18ee; --q1: #6a00f6; --q2: #8308f6; --q3: #a408ee; --q4: #bd10ee; --pn: #acdede; --rw: #f6fff6; --ln: #8b94e6; }
+.pv-sec { display: grid; gap: calc(var(--u) * 3); align-content: start; background: var(--fr); border-radius: calc(var(--u) * 3); padding: calc(var(--u) * 3) calc(var(--u) * 4) calc(var(--u) * 5); min-width: 0; }
+.pv-ribs { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 2); }
+.pv-scr .pv-rib { display: inline-flex; align-items: center; height: calc(var(--u) * 12); padding: 0 calc(var(--u) * 16) 0 calc(var(--u) * 12); opacity: .5; background: linear-gradient(90deg, var(--q1) 0 calc(var(--u) * 2), var(--q2) calc(var(--u) * 2) calc(var(--u) * 4), var(--q3) calc(var(--u) * 4) calc(var(--u) * 6), var(--q4) calc(var(--u) * 6) calc(var(--u) * 8), var(--rb) calc(var(--u) * 8) calc(100% - var(--u) * 8), var(--q4) calc(100% - var(--u) * 8) calc(100% - var(--u) * 6), var(--q3) calc(100% - var(--u) * 6) calc(100% - var(--u) * 4), var(--q2) calc(100% - var(--u) * 4) calc(100% - var(--u) * 2), var(--q1) calc(100% - var(--u) * 2)); }
+.pv-scr .pv-rib.on { opacity: 1; }
+.pv-body { display: grid; gap: calc(var(--u) * 2); }
+.pv-kv { display: grid; grid-template-columns: auto minmax(0, 1fr); box-shadow: 0 0 0 var(--u) var(--ln); border-radius: calc(var(--u) * 2); overflow: hidden; margin: var(--u); }
+.pv-kv .k { display: flex; align-items: center; background: var(--pn); padding: var(--u) calc(var(--u) * 6); }
+.pv-kv .v { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: calc(var(--u) * 4); background: var(--rw); padding: var(--u) calc(var(--u) * 6); min-width: 0; }
+.pv-kv .sp { flex: 1; }
+.pv-band { background: var(--pn); box-shadow: 0 0 0 var(--u) var(--ln); border-radius: calc(var(--u) * 2) calc(var(--u) * 2) 0 0; padding: var(--u) calc(var(--u) * 6); margin: var(--u) var(--u) 0; }
+.pv-rowv { display: flex; flex-wrap: wrap; background: var(--rw); box-shadow: 0 0 0 var(--u) var(--ln); border-radius: 0 0 calc(var(--u) * 2) calc(var(--u) * 2); padding: calc(var(--u) * 2) calc(var(--u) * 6); margin: 0 var(--u) var(--u); }
+.pv-memo, .pv-desc { display: grid; border-radius: calc(var(--u) * 2); margin: var(--u); }
+.pv-memo > span { display: flex; flex-wrap: wrap; }
+.pv-desc { display: grid; padding: calc(var(--u) * 3) calc(var(--u) * 6); }
+.pv-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--u) * 90), 1fr)); gap: calc(var(--u) * 2); }
+.pv-stats { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); box-shadow: 0 0 0 var(--u) var(--ln); border-radius: calc(var(--u) * 2); overflow: hidden; margin: var(--u); }
+.pv-stats .k { background: var(--pn); padding: var(--u) calc(var(--u) * 4); display: flex; align-items: center; }
+.pv-stats .v { background: var(--rw); padding: var(--u) calc(var(--u) * 6); display: flex; align-items: center; justify-content: flex-end; }
+.pv-type { display: inline-block; flex: none; width: calc(var(--u) * 32); height: calc(var(--u) * 16); background: url(/sprites/party/parts/types.png) 0 calc(var(--u) * -16 * var(--row)) / calc(var(--u) * 32) calc(var(--u) * 288); }
+.pv-type.none { background: none; }
+.pv-moves { display: grid; gap: calc(var(--u) * 2); }
+.pv-scr .pv-mv { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: calc(var(--u) * 4); background: var(--pn); box-shadow: 0 0 0 var(--u) var(--ln); border-radius: calc(var(--u) * 2); padding: var(--u) var(--u) var(--u) calc(var(--u) * 2); margin: var(--u); }
+.pv-mv .mn { min-width: 0; overflow: hidden; }
+.pv-mv .pp { background: var(--rw); border-radius: calc(var(--u) * 2); padding: 0 calc(var(--u) * 4); }
+.pv-scr .pv-mv.on { box-shadow: 0 0 0 calc(var(--u) * 2) #ff5231; }
+.pv-mdet { display: grid; gap: calc(var(--u) * 2); padding: var(--u) 0 calc(var(--u) * 2) calc(var(--u) * 8); }
+@media (prefers-reduced-motion: reduce) { .pv-icon, .pv-icon.sel { animation: none; } }
+@container (max-width: 600px) {
+  .pv-scr { --u: 1.5px; }
+  .pv-scr .pv-slot { grid-template-columns: auto auto minmax(0, 1fr) minmax(calc(var(--u) * 48), 1fr); padding: calc(var(--u) * 3) calc(var(--u) * 8) calc(var(--u) * 3) calc(var(--u) * 6); }
+  .pv-hp { min-width: calc(var(--u) * 48); }
+  .pv-hpw { margin-left: calc(var(--u) * 4); }
+  .pv-scr .pv-rib { padding: 0 calc(var(--u) * 9) 0 calc(var(--u) * 9); }
+  .pv-scr .pv-mv { gap: calc(var(--u) * 2); }
+  .pv-mv .pp { padding: 0 calc(var(--u) * 2); }
+  .pv-sec { padding: calc(var(--u) * 3) calc(var(--u) * 2) calc(var(--u) * 4); }
+  .pv-openb { grid-template-columns: minmax(0, 1fr); }
+  .pv-card { grid-template-columns: auto minmax(0, 1fr); }
+  .pv-bars { grid-column: 1 / -1; }
+}

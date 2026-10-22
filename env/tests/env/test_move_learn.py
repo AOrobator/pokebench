@@ -32,6 +32,7 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.menus import PALETTE_FADE
 from pokebench_env.move_learn import (
     COMPARISON_SWITCH,
+    EARLY_SWITCH,
     QUESTION_SWITCH,
     SETTLE_BOUND_FRAMES,
     SETTLE_SWITCH,
@@ -383,7 +384,8 @@ def test_both_switches_on_put_the_question_before_the_moves() -> None:
 
 @pytest.mark.parametrize("name", PRINTING)
 def test_no_comparison_while_the_scene_prints(name: str) -> None:
-    assert "Moves (the game's move data" not in render(state(name), frozenset())
+    off = frozenset({EARLY_SWITCH})
+    assert "Moves (the game's move data" not in render(state(name, off), off)
 
 
 # --- OFF parity, typed state and failures -------------------------------------------------
@@ -429,7 +431,7 @@ def test_reader_needs_the_party() -> None:
 
 
 def test_switches_are_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-3:] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
+    assert SERVER_FEATURES[-15:-12] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
     assert SWITCHES <= features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SETTLE_SWITCH}) == {SETTLE_SWITCH}
 
@@ -548,3 +550,44 @@ def test_a_warp_during_a_move_learning_wait_takes_the_warp_bound(
     _, settled = cast(tuple[str, Settled], result["r"])
     assert settled.reason == "warp"
     assert settled.frames == 5
+
+
+@pytest.mark.parametrize("name", ["battle-delete-box", "battle-stop-box"])
+def test_question_switch_menu_line_matches_the_native_battle_choice(name: str) -> None:
+    recorded = state(name)
+    assert recorded.battle is not None and recorded.battle.prompt is not None
+    prompt = recorded.battle.prompt
+    for selected in ("YES", "NO"):
+        snapshot = replace(
+            recorded, battle=replace(recorded.battle, prompt=replace(prompt, selected=selected))
+        )
+        expected = f"Menu: {prompt.kind}; selected {selected}"
+        assert expected in render(snapshot, SWITCHES - {QUESTION_SWITCH}).splitlines()
+        assert expected not in render(snapshot, SWITCHES).splitlines()
+    for invalid in (
+        replace(prompt, ready=False),
+        replace(prompt, selected=None),
+        replace(prompt, kind="yes_no"),
+    ):
+        snapshot = replace(recorded, battle=replace(recorded.battle, prompt=invalid))
+        on = render(snapshot, SWITCHES - {QUESTION_SWITCH}).splitlines()[2]
+        off = render(snapshot, SWITCHES).splitlines()[2]
+        assert on == off, (on, off)
+
+
+@pytest.mark.parametrize("variant", ["no_battle", "no_prompt", "diagnostic", "not_prompt"])
+def test_question_menu_retains_fallback_without_a_verified_owner(variant: str) -> None:
+    recorded = state("battle-delete-box")
+    battle = recorded.battle
+    assert battle is not None
+    if variant == "no_battle":
+        snapshot = replace(recorded, battle=None)
+    elif variant == "no_prompt":
+        snapshot = replace(recorded, battle=replace(battle, prompt=None))
+    elif variant == "diagnostic":
+        snapshot = replace(recorded, battle=replace(battle, diagnostic="unreadable battle"))
+    else:
+        snapshot = replace(recorded, battle=replace(battle, text_phase="idle"))
+    on = render(snapshot, SWITCHES - {QUESTION_SWITCH}).splitlines()[2]
+    off = render(snapshot, SWITCHES).splitlines()[2]
+    assert on == off, (on, off)

@@ -1,6 +1,6 @@
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, request, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, request, IncomingMessage, ServerResponse, type Server } from "node:http";
+import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -454,6 +454,25 @@ describe("viewer server", () => {
     expect(received).toBe(frames.length);
   });
 
+  it("reports source loss and stage timings without changing binary PNG bytes", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    const payloads = [10, 13].map(frame_count => ({ frame_data: PNG.toString("base64"), frame_count, timestamp: Date.now() / 1000 }));
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(payloads));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    const frames: Buffer[] = [];
+    await new Promise<void>((resolve, reject) => {
+      socket.on("error", reject);
+      socket.on("message", data => { frames.push(Buffer.from(data as Buffer)); if (frames.length === 2) resolve(); });
+    });
+    expect(frames).toEqual([PNG, PNG]);
+    const reply = await get(viewer, "/api/frame-metrics");
+    expect(reply.status).toBe(200);
+    expect(JSON.parse(reply.body.toString())).toMatchObject({ version: 1, runs: [{ run: "live", received: 2, offered: 2, sent: 2, send: { count: 2 }, queueWait: { count: 2 }, missingSourceFrames: 2, sourceFrame: 13, decode: { count: 2 }, upstreamGap: { count: 1 } }] });
+    expect((await get(viewer, "/api/frame-metrics", {host:"evil.example"})).status).toBe(403);
+  });
+
   it("falls back to the pinned vendor frame route for already-running game servers", async () => {
     const { runsRoot, viewer } = await fixture();
     const live = new Log(); live.add(0, START);
@@ -800,6 +819,18 @@ it("serves only the allowlisted bag item icons from runs/sprites/bag-v1",async()
  for(const path of ["/sprites/bag/items/4.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
  for(const path of ["/sprites/bag/items/notes.txt","/sprites/bag/items/0.png","/sprites/bag/items/1000.png","/sprites/bag/items/5.png","/sprites/bag/pockets/pc.png","/sprites/bag/pockets/tm_hm.png","/sprites/bag/../manifest.json","/sprites/bag/items/..%2f..%2fmanifest.json","/sprites/bag","/sprites/bag/manifest.json/x"])expect((await get(viewer,path)).status,path).toBe(404);
  expect(BROWSER_MODULES).toContain("bag");
+});
+
+it("serves only the allowlisted party art from runs/sprites/party-v1",async()=>{
+ const {runsRoot,viewer}=await fixture();const art=join(runsRoot,"sprites","party-v1");
+ for(const dir of ["front","parts","font"])mkdirSync(join(art,dir),{recursive:true});
+ for(const name of ["font/small.png","font/normal.png","font/small.json","font/normal.json","font/big.png"])writeFileSync(join(art,name),name.endsWith(".json")?"{}":PNG);
+ writeFileSync(join(art,"manifest.json"),'{"version":1}');writeFileSync(join(art,"data.json"),'{"species":{}}');
+ for(const name of ["front/280.png","front/411.png","parts/types.png","parts/status.png","parts/hp-tag.png","parts/exp-empty.png","parts/exp-full.png","parts/marks.png","parts/ball-big.png","parts/ball-small.png","parts/balls.png","parts/notes.png"])writeFileSync(join(art,name),PNG);
+ writeFileSync(join(art,"front","notes.txt"),"no");
+ for(const [path,type] of [["/sprites/party/manifest.json","application/json"],["/sprites/party/data.json","application/json"],["/sprites/party/font/small.json","application/json"],["/sprites/party/font/normal.json","application/json"],["/sprites/party/font/small.png","image/png"],["/sprites/party/font/normal.png","image/png"]] as const){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toContain(type);}
+ for(const path of ["/sprites/party/front/280.png","/sprites/party/front/411.png","/sprites/party/parts/types.png","/sprites/party/parts/status.png","/sprites/party/parts/hp-tag.png","/sprites/party/parts/exp-empty.png","/sprites/party/parts/exp-full.png","/sprites/party/parts/marks.png","/sprites/party/parts/ball-big.png","/sprites/party/parts/ball-small.png","/sprites/party/parts/balls.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
+ for(const path of ["/sprites/party/front/notes.txt","/sprites/party/front/0.png","/sprites/party/front/412.png","/sprites/party/front/1000.png","/sprites/party/front/281.png","/sprites/party/parts/notes.png","/sprites/party/../manifest.json","/sprites/party/front/..%2f..%2fdata.json","/sprites/party","/sprites/party/data.json/x","/sprites/party/parts/types.png/x","/sprites/party/parts/summary-ball.png","/sprites/party/font/big.png","/sprites/party/font/small.txt"])expect((await get(viewer,path)).status,path).toBe(404);
 });
 
 it("serves the tracked story destinations explainer byte for byte through the allowlist",async()=>{
@@ -1156,6 +1187,44 @@ it("serves the story progress clock explainer byte for byte, mapped from its car
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Story progress clock");
 });
 
+it("serves the mart stock readout explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="mart-stock-readout-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Mart stock readout");
+});
+
+it("serves the shop interface explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="shop-interface-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Shop interface");
+});
+
+it("serves the training and catching explainers byte for byte, mapped from their cards",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"];
+ const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,bytes] of tracked)writeFileSync(join(docs,`${id}.html`),bytes);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ for(const [id,bytes] of tracked){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.body.equals(bytes)).toBe(true);
+ }
+});
+
 it("serves the YES/NO answer readout explainer byte for byte, mapped from its card",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const id="yes-no-answer-readout-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
@@ -1200,6 +1269,98 @@ it("serves the exploratory waypoint explainer byte for byte",async()=>{
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked menu refusal recovery explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/menu-refusal-recovery-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"menu-refusal-recovery-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/menu-refusal-recovery-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+it("serves the tracked Gym door label explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/gym-door-label-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"gym-door-label-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/gym-door-label-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked caught Pokédex input explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/caught-dex-input-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"caught-dex-input-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/caught-dex-input-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked GLM-run harness bug explainers byte for byte",async()=>{
+ const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1","milestone-drought-suppression-v1"];
+ const root=mkdtempSync(join(tmpdir(),"pokebench-glm-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const [id,body] of tracked){
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(body)).toBe(true);
+ }
+});
+
+it("serves the tracked interface-ownership explainers byte for byte",async()=>{
+ const ids=["tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1","move-learn-early-comparison-v1"];
+ const root=mkdtempSync(join(tmpdir(),"pokebench-interface-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const [id,body] of tracked){
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(body)).toBe(true);
+ }
+});
+
+it("serves the tracked progress-aware cycles explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/progress-aware-cycles-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"progress-aware-cycles-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/progress-aware-cycles-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it.each(["gym-evidence-v1","rejected-movement-step-v1","observed-field-dialogue-v1"])("serves repair explainer %s byte for byte",async id=>{
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-repair-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("keeps malformed URL failures inside the request boundary and continues serving", async () => {
+  const {viewer} = await fixture();
+  const req = new IncomingMessage(new Socket());
+  req.method = "GET"; req.url = "//["; req.headers.host = `${HOST}:${String(viewer.port)}`;
+  const res = new ServerResponse(req);
+  expect(() => viewer.server.emit("request",req,res)).not.toThrow();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(res.statusCode).toBe(500);
+  expect((await get(viewer,"/api/frame-metrics")).status).toBe(200);
+});
+
+it("serves the tracked script boundary explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/trigger-navigation-boundary-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-trigger-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"trigger-navigation-boundary-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});
+ try{const reply=await get(viewer,"/explainers/trigger-navigation-boundary-v1.html");expect(reply.status).toBe(200);expect(reply.body).toEqual(tracked);}finally{await viewer.close();rmSync(root,{recursive:true,force:true});}
+});
+
+it("serves both poison and berry explainers byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const files=["poison-readout-v1.html","berry-readout-v1.html"];
+ for(const file of files)writeFileSync(join(docs,file),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url))));
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const file of files){const tracked=readFileSync(join(docs,file)),reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);}
 });
 
 it("serves the menu and factual healing explainers byte for byte",async()=>{

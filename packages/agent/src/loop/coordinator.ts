@@ -1,9 +1,11 @@
+import {ProgressAwareCycles} from "../progress-aware-cycles.js";
 import {NavigationFailure} from "../navigation-failure.js";
 import type { RunEvent } from "../events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "../milestones.js";
 import type { GameStateSnapshot } from "../game-state.js";
 import {
   LOOP_POLICY,
+  loopEvidence,
   type CompletedCall,
   type LoopKind,
   type LoopCoordinatorOptions,
@@ -16,7 +18,7 @@ import {
   type NavigationLoopKind,
   type StallKind,
 } from "./types.js";
-import { semanticState } from "./fingerprints.js";
+import { semanticState, menuRefusalState } from "./fingerprints.js";
 import { SameTargetNoProgress, type SameTargetWarning } from "./same-target.js";
 import { CallTracker } from "./call-tracker.js";
 import { BASIC_MESSAGES, BasicRules } from "./rules/basic.js";
@@ -77,6 +79,7 @@ export class LoopCoordinator {
   private readonly closedDialogue: boolean;
   private readonly triggerScriptLoops: boolean;
   private readonly battleRefusals: boolean;
+  private readonly menuRefusals:boolean;
   private readonly ineffectiveNavigation:boolean;
   private readonly navigationFailures=new NavigationFailure();
   private readonly sameTarget: SameTargetNoProgress | null;
@@ -99,17 +102,19 @@ export class LoopCoordinator {
     revisit: boolean;
     menu: boolean;
     refusalAnchor: string | null;
+    menuRefusal:boolean;
     navigationFailure:boolean;
     // same-target-no-progress-v1: the warned target; such an episode closes only on that guard's resets.
     sameTarget: string | null;
   } | null = null;
-  private stallNote: { text: string; exposed: boolean } | null = null;
+  private stallNote: { text: string; exposed: boolean; kind:StallKind } | null = null;
   private run: string | null = null;
   private eventSeq = -1;
   private nativeState: GameStateSnapshot | undefined;
   private readonly nativeValues = new Map<string, boolean | null>();
   private readonly achieved = new Set<string>();
   private readonly callTracker = new CallTracker();
+  private readonly progressCycles:ProgressAwareCycles|null;
 
   constructor(notify: (notice: LoopNotice) => void, options: LoopCoordinatorOptions = {}) {
     const {
@@ -127,9 +132,11 @@ export class LoopCoordinator {
       closedDialogue = false,
       triggerScriptLoops = false,
       battleRefusals = false,
+      menuRefusals = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
+    this.progressCycles=options.progressAwareCycles===true?new ProgressAwareCycles():null;
     this.notify = notify;
     this.policy = policy;
     this.mode = mode;
@@ -143,9 +150,10 @@ export class LoopCoordinator {
     this.closedDialogue = closedDialogue;
     this.triggerScriptLoops = triggerScriptLoops;
     this.battleRefusals = battleRefusals;
+    this.menuRefusals = menuRefusals;
     this.ineffectiveNavigation=ineffectiveNavigation;
     this.sameTarget = sameTargetNoProgress ? new SameTargetNoProgress(supervisor !== undefined && mode === "enforced") : null;
-    this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
+    this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions, options.moveLearnLoops === true);
     this.interfaces = new InterfaceRules(policy.ineffective, clockViews, closedDialogue, menuLoop);
     this.field = new FieldRules(policy, interactions, transitions, pushback, ineffectiveLoops, triggerScriptLoops);
     this.rules = buildLoopRules({
@@ -167,6 +175,11 @@ export class LoopCoordinator {
     if (event.run !== this.run || event.seq <= this.eventSeq) return;
     this.eventSeq = event.seq;
     this.turn = event.turn;
+    this.progressCycles?.observe(event);
+    if(event.type==="milestone"&&this.progressCycles?.hold()?.reason==="milestone"){
+      this.retireCycles(event.seq,"newly observed milestone");
+      this.basic.resetCycles();this.field.resetNativeProgress(this.callTracker.pending());this.field.milestone();
+    }
     if (event.type === "turn_start" && this.episode !== null)
       this.episode.exposed = true;
     if (this.transitions && event.type === "milestone" && event.origin !== "present_at_start" && event.name !== "GAME_RUNNING" && !MEASUREMENT_ONLY_MILESTONES.has(event.name))
@@ -211,7 +224,7 @@ export class LoopCoordinator {
         this.field.button(event.buttons, tracked.pending, tracked.started);
       }
     } else if (event.type === "tool_result") {
-      this.complete(this.callTracker.finish(event,this.battleRefusals));
+      this.complete(this.callTracker.finish(event,this.battleRefusals || this.menuRefusals));
     }
   }
 
@@ -240,9 +253,9 @@ export class LoopCoordinator {
     if (same?.cleared === true && this.episode?.sameTarget != null) this.recover(seq, false);
     const failure=this.ineffectiveNavigation?this.navigationFailures.observe({...call,seq}):null;
     if(failure?.active===false&&this.episode?.navigationFailure===true)this.recover(seq,true);
-    const refusal = this.basic.refusal(call,this.battleRefusals);
+    const refusal = this.basic.refusal(call,this.battleRefusals,this.menuRefusals);
     if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
-      const snapshot = refusal.native ?? semanticState(call.state,this.interactions);
+      const snapshot = this.episode.menuRefusal ? menuRefusalState(call.state) : refusal.native ?? semanticState(call.state,this.interactions);
       if (snapshot !== null && snapshot !== this.episode.refusalAnchor) this.recover(seq,true);
     }
     this.field.error(call);
@@ -342,6 +355,18 @@ export class LoopCoordinator {
           : id === "battle-menu" ? "interface-closed" : "novel-state",
       });
     }
+    const cycleHold=this.progressCycles?.hold()??null;
+    if(cycleHold!==null){
+      for(const [id,candidate] of candidates)if(candidate.kind==="cycle"||(cycleHold.reason==="milestone"&&candidate.kind==="trigger_script")){
+        candidates.delete(id);
+        this.notify({kind:candidate.kind,message:`Not sent (progress-aware-cycles-v1): ${cycleHold.reason}; cycle evidence retired.`,calls:this.completed,evidence:loopEvidence([...cycleHold.evidence,seq]),mode:"diagnostic",phase:"would_warn"});
+      }
+      this.retireCycles(seq,cycleHold.reason==="milestone"?"newly observed milestone":"gate-directed healing trip");
+      this.basic.resetCycles();
+      if(cycleHold.reason==="milestone")this.field.resetNativeProgress(this.callTracker.pending());
+      else this.field.resetCycles();
+      this.field.milestone();
+    }
     const selected = firstLoopHit(this.rules, call, { seq, policy: this.policy, candidates });
     const hit = selected?.hit.kind ?? null;
     if (same?.warning != null && (this.episode === null || this.episode.sameTarget !== null)) {
@@ -350,14 +375,14 @@ export class LoopCoordinator {
     }
     // One episode at a time: with another loop episode open the note is not sent, but the record keeps it.
     if (same?.warning != null)
-      this.notify({ kind: "same_target_no_progress", message: `Not sent (another loop episode is open): ${same.warning.text}`, calls: this.completed, evidence: [...same.warning.evidence], mode: "diagnostic", phase: "would_warn" });
+      this.notify({ kind: "same_target_no_progress", message: `Not sent (another loop episode is open): ${same.warning.text}`, calls: this.completed, evidence: loopEvidence(same.warning.evidence), mode: "diagnostic", phase: "would_warn" });
     if (
       this.episode?.exposed &&
       this.episode.kind !== "same_target_no_progress" &&
       this.episode.recovery >= this.episode.window &&
       !this.episode.threshold
     ) {
-      if (this.supervisor !== undefined && this.mode === "enforced") {
+      if (this.supervisor !== undefined && this.mode === "enforced" && !this.episode.menuRefusal) {
         this.episode.briefing = this.supervisor(this.episode.kind, this.completed);
         this.episode.recovery = 0;
         this.notice("supervisor", seq);
@@ -374,7 +399,7 @@ export class LoopCoordinator {
         kind: hit,
         // Trigger execution is observed after the other checks. The legacy detector
         // always attached that evidence/message when it coincided with an earlier hit.
-        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
+        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}${refusal.menu ? ` No battle is active. Shop menu open; selected ${call.state?.active_ui?.selected ?? "unknown"}. B quits this menu.` : ""}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
         exposed: false,
         recovery: 0,
         threshold: false,
@@ -387,12 +412,13 @@ export class LoopCoordinator {
         revisit: selected.rule.id === "revisit",
         menu: selected.rule.id === "battle-menu",
         refusalAnchor: refusal.status === null ? null : refusal.native,
+        menuRefusal:refusal.menu,
         navigationFailure:failure?.active===true,
         sameTarget: null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
-      if (this.supervisor !== undefined && this.mode === "enforced") {
+      if (this.supervisor !== undefined && this.mode === "enforced" && !this.episode.menuRefusal) {
         this.episode.briefing = this.supervisor(hit, this.completed);
         this.notice("supervisor", seq);
       }
@@ -404,8 +430,8 @@ export class LoopCoordinator {
   stall(kind: StallKind, text: (calls: number) => string, evidence: readonly number[]): boolean {
     if (this.stopped || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
     const message = text(this.completed);
-    this.stallNote = { text: message, exposed: false };
-    this.notify({ kind, message, calls: this.completed, evidence: evidence.filter((value, index, all) => all.indexOf(value) === index), mode: "enforced", phase: "supervisor" });
+    this.stallNote = { text: message, exposed: false,kind };
+    this.notify({ kind, message, calls: this.completed, evidence: loopEvidence(evidence), mode: "enforced", phase: "supervisor" });
     return true;
   }
 
@@ -446,7 +472,8 @@ export class LoopCoordinator {
     this.episode = {
       kind: "same_target_no_progress", message: warning.text, exposed: false, recovery: 0, threshold: false, evidence,
       window: this.policy.recovery, briefing: supervised ? warning.text : null, pushback: false, revisit: false, menu: false,
-      refusalAnchor: null, navigationFailure: false, sameTarget: warning.key,
+      refusalAnchor: null,
+      menuRefusal:false, navigationFailure: false, sameTarget: warning.key,
     };
     this.notice("warning", seq);
     if (supervised) this.notice("supervisor", seq);
@@ -463,7 +490,19 @@ export class LoopCoordinator {
       : base;
   }
 
+  cycleHold():ReturnType<ProgressAwareCycles["hold"]> {return this.progressCycles?.hold()??null;}
+
+  private retireCycles(seq:number,reason:string):void {
+    if(this.episode?.kind==="cycle"||reason.includes("milestone")&&this.episode?.kind==="trigger_script"){
+      this.episode.message=`Cycle feedback retired: ${reason}.`;
+      this.episode.briefing=null;
+      this.recover(seq,false);
+    }
+    if(this.stallNote?.kind==="map_cycle"||reason.includes("milestone")&&this.stallNote?.kind==="milestone_drought")this.stallNote=null;
+  }
+
   private recover(seq: number, novel: boolean): void {
+    if(this.progressCycles!==null&&novel&&(this.episode?.kind==="cycle"||this.episode?.kind==="trigger_script")){this.episode.message="Cycle feedback retired: newly observed game progress.";this.episode.briefing=null;}
     if (this.episode !== null) this.notice("recovered", seq);
     this.episode = null;
     if (novel) {
@@ -477,9 +516,10 @@ export class LoopCoordinator {
       kind: episode.kind,
       message: this.noticeMessage(phase, episode),
       calls: this.completed,
-      evidence: [...episode.evidence, seq].filter(
-        (value, index, all) => all.indexOf(value) === index,
-      ).slice(-2),
+      // Episode notices keep their last two ids, as before; loopEvidence's first-and-last rule is for the others.
+      evidence: loopEvidence(
+        [...episode.evidence, seq].filter((value, index, all) => all.indexOf(value) === index).slice(-2),
+      ),
     };
     if (this.mode === "diagnostic")
       this.notify({

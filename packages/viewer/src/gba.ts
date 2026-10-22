@@ -1,15 +1,36 @@
-import type { Button, Press } from "./model.js";
+import type { Button, Press, RunView } from "./model.js";
 
 // The GBA runs at ~59.73 frames per second.
 export const FRAME_MS = 1000 / 59.7275;
 
-export function litButtons(presses: readonly Press[], nowMs: number): Set<Button> {
+const BUTTONS: readonly Button[] = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT", "L", "R"];
+
+export function litButtons(presses: readonly Press[], nowMs: number, nativeActions: readonly RunView["nativeActions"][number][] = []): Set<Button> {
   const lit = new Set<Button>();
-  for (const press of presses) {
+  const native = nativeActions.filter(action => action.kind === "native_input");
+  let cursor = 0;
+  for (const [index, press] of presses.entries()) {
+    const nextSeq = presses[index + 1]?.seq ?? Infinity;
+    while (cursor < native.length && (native[cursor]?.seq ?? Infinity) <= press.seq) cursor++;
+    const first = cursor;
+    while (cursor < native.length && (native[cursor]?.seq ?? Infinity) < nextSeq) cursor++;
+    if (press.endMs === undefined && cursor > first) {
+      for (let i = first; i + 1 < cursor; i++) {
+        const input = native[i];
+        const next = native[i + 1];
+        if (input === undefined || next === undefined || nowMs < input.server_timestamp * 1000 || nowMs >= next.server_timestamp * 1000) continue;
+        const raw = input.details["buttons"];
+        if (Array.isArray(raw)) for (const button of BUTTONS) if (raw.includes(button)) lit.add(button);
+      }
+      continue;
+    }
     const step = (press.hold + press.release) * FRAME_MS;
     press.buttons.forEach((button, i) => {
       const start = press.ms + i * step;
-      if (nowMs >= start && nowMs < start + press.hold * FRAME_MS) lit.add(button);
+      if (nowMs >= start && nowMs < start + press.hold * FRAME_MS) {
+        lit.add(button);
+        if (press.automaticRunning === true && ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) lit.add("B");
+      }
     });
   }
   return lit;

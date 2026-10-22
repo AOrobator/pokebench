@@ -163,10 +163,10 @@ Copy `overview-template.html` to `docs/experiments/<experiment-id>.html` and add
 
 Checks before you report it:
 - `grep -n '{{' docs/experiments/<id>.html` prints nothing.
-- Render the page in a headless browser and look at the screenshot. Check that no text clips or overlaps and that both color schemes render.
+- Render the page in a headless browser and look at the screenshot. Check that no text clips or overlaps and that the Emerald theme renders.
 - Every number on the page matches the `power.py` output or a recorded cohort.
 
-Run `just pages-check docs/experiments/<id>.html`, then report the page as `http://127.0.0.1:8791/experiments/<id>.html` (served by `just pages`), as `CLAUDE.md` requires for HTML deliverables. Never send it as a cloud copy (`SendUserFile`, `/mnt/project-files`).
+Run `just pages-theme docs/experiments/<id>.html` and `just pages-check docs/experiments/<id>.html`, then report the page as `http://127.0.0.1:8791/experiments/<id>.html` (served by `just pages`), as `CLAUDE.md` requires for HTML deliverables. Never send it as a cloud copy (`SendUserFile`, `/mnt/project-files`).
 
 ## 10. Get the design reviewed
 

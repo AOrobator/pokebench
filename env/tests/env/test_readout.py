@@ -21,6 +21,21 @@ MON_UNKNOWN = dict.fromkeys(
         "raw_hex",
         "held_item_name",
         "cpu_context",
+        "attack",
+        "defense",
+        "speed",
+        "sp_attack",
+        "sp_defense",
+        "ability_num",
+        "ability_id",
+        "met_location",
+        "met_location_name",
+        "met_level",
+        "met_game",
+        "ball",
+        "ball_name",
+        "ot_name",
+        "ot_gender",
     )
 )
 

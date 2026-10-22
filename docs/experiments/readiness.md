@@ -342,3 +342,7 @@ Pending, unqueued and unapproved. Activation ROUTE_102; primary STONE_BADGE. Tem
 ## boundary-crossing-facts-v1 (2026-10-22)
 
 Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.
+
+## 2026-10-22 delivered-place-evidence-v1
+
+Pending only; no queued/approved runs. Earliest activation PLAYER_BEDROOM is an upper bound on availability of field dialogue, not exposure readiness. Native ea04 replay confirms upstairs quote and audited RIVAL_MET retirement. Frozen checkpoint and primary study remain unprepared; source pin must be refreshed after reviewed landing.

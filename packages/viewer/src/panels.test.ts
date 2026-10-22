@@ -1615,3 +1615,12 @@ it("links current boundary facts to its tracked explainer",()=>{
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector('[data-feature="boundary-crossing-facts-v1"] a')?.getAttribute("href")).toBe("/explainers/boundary-crossing-facts-v1.html");
 });
+
+
+it("links delivered person and place evidence to its tracked explainer",()=>{
+ const log=new Log();log.add(0,START);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const id="delivered-place-evidence-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});

@@ -8,7 +8,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
-import {STORY_HEADER,StoryDestinations,PlacesBodySchema,reachedText,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
+import {STORY_HEADER,StoryDestinations,placeEvidenceSource,PlacesBodySchema,reachedText,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
 import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
@@ -41,6 +41,8 @@ export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLi
  if(goal.done===true)return staleGoalLine(goal.line,goal.doneReason);
  if(goal.reached!==undefined)return reachedText(goal.line,goal.reached);
  const {line,resolved}=goal;
+ const source=placeEvidenceSource(line);
+ if(source!==null)return `Historical named place evidence: ${source} ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
  if(state!==undefined)return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>r.target===null?`${r.quote}${r.text}`:`${r.quote} = ${mapLabel(r.target.display,r.target.map_id)}. ${localGoalAccess(state,r.target,places,semantic,sections)}`).join(" ")}`;
  return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
 }
@@ -218,13 +220,13 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
  private readonly story:StoryDestinations;
  private readonly walk:WalkAway;
- constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true);}
+ constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true);}
  observe(event:RunEvent):void {this.story.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
@@ -234,7 +236,7 @@ export class HarnessTrust {
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true);
   const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true,this.options.exitSections===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
-  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true||goal?.reached!==undefined?null:goal,places,own):null;
+  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true||goal?.reached!==undefined||goal?.line.deliveredPlace!==undefined?null:goal,places,own):null;
   return {header,away};
  }
 }

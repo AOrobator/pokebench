@@ -8,6 +8,8 @@ for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "
   const {definition} = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
   expect(controlBaseProblems(definition,readFileSync(new URL(`../../../${definition.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
   for(const phase of definition.phases) {
+   expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")))["delivered-place-evidence-v1"]).toBe(false);
+   expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")))["delivered-place-evidence-v1"]).toBe(true);
    expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")))["battle-move-learn-input-v1"]).toBe(false);
    expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")))["battle-move-learn-input-v1"]).toBe(true);
   }

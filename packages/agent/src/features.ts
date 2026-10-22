@@ -232,6 +232,7 @@ export const SWITCHABLE_FEATURES = [
   "leader-loss-comparison-v1",
   "npc-approach-feedback-v1",
   "boundary-crossing-facts-v1",
+  "delivered-place-evidence-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -578,6 +579,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("leader-loss-comparison-v1", "observation", "LAST LEADER LOSS COMPARISON", null, "Default off; bundle only. Compares recorded party membership, levels, EXP and moves at the last observed leader loss against now; missing evidence stays unknown. No action is selected or refused. Off: the previous training feedback is unchanged."),
   on("npc-approach-feedback-v1", "observation", "QUALIFIED TRAINER TEMPLATE APPROACH", null, "Default off; bundle only. A requested unloaded trainer with hide-filtered current-map template data can be approached using checked navigation, then returns without facing or pressing A. Presence and position stay unverified. Non-trainer templates remain unsupported. Off: unloaded targets retain their previous refusal."),
   on("boundary-crossing-facts-v1", "guidance", "CURRENT BOUNDARY FACTS", "connection-edge-tiles-v1", "Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit. Off: unchanged already-here result without a crossing fact."),
+  on("delivered-place-evidence-v1", "guidance", "DELIVERED PERSON AND PLACE EVIDENCE", "observed-instructions-v1", "Default off. Preserves exact delivered spatial dialogue with source map, turn, event and unknown speaker attribution in a compact historical evidence block. Explicit named-person and named-place statements from an unnamed speaker can use the existing map resolver, qualified as historical rather than a current presence or action instruction. Existing audited milestone retirement applies to the compact evidence. Off: existing instruction memory and named-speaker-only destination eligibility."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -864,6 +866,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("leader-loss-comparison-v1"),
     ...when("npc-approach-feedback-v1"),
     ...when("boundary-crossing-facts-v1"),
+    ...when("delivered-place-evidence-v1"),
   ];
 }
 
@@ -875,4 +878,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
  return (["explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["delivered-place-evidence-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

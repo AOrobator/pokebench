@@ -239,7 +239,8 @@
    "rejected-movement-stride-v1": false,
    "leader-loss-comparison-v1": false,
    "npc-approach-feedback-v1": false,
-   "boundary-crossing-facts-v1": false
+   "boundary-crossing-facts-v1": false,
+   "delivered-place-evidence-v1": false
   }
  },
  "switches": [
@@ -348,7 +349,8 @@
   "rejected-movement-stride-v1",
   "leader-loss-comparison-v1",
   "npc-approach-feedback-v1",
-  "boundary-crossing-facts-v1"
+  "boundary-crossing-facts-v1",
+  "delivered-place-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

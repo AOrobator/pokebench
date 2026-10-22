@@ -238,3 +238,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 
 - Fixed duplicate append-position conflicts in metadata and two browser-test closure conflicts introduced by cherry-pick union. Historical registry/order/default-OFF fixture expectations updated for appended treatments; no weakened production assertions. Initial combined agent pass4504/fail65, later4531/fail38; failures triaged as registry tails, raw ALL_ON fixture drift and explicit baseline updates. Full gate not yet passed.
 - First parent Python invocation used repository root and omitted dotenv ROM environment; 515 skips and fixture failures are an invalid environment attempt, not an implementation verdict. Repeating through just commands with isolated venv/native binding and initialized exact vendor pin. No GPU/emulator inputs executed.
+
+- M5C integration: exact delivered historical person/place statements, unnamed-source provenance and source-milestone retirement are preserved; no daughter→MAY inference or automatic walk-away goal action. Native ea04 retention/retirement replay and failed-delivery exclusions in child packet.

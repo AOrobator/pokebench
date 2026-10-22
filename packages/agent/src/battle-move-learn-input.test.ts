@@ -5,12 +5,12 @@ import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 const ID = "battle-move-learn-input-v1";
 describe(ID, () => {
  it("appends the server-owned input correction without changing omitted presets", () => {
-  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBeGreaterThan(SWITCHABLE_FEATURES.indexOf("factual-healing-guidance-v1"));
   expect(featureInfo(ID).group).toBe("observation");
   const off = {...ALL_ON, [ID]: false};
   expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null)).toContain(ID);
   expect(playHarnessFeatures(off, null)).not.toContain(ID);
   const {[ID]: omitted, ...historical} = ALL_ON;
   expect(omitted).toBe(true);

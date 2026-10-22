@@ -243,3 +243,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [npc-approach-feedback-v1](npc-approach-feedback-v1.html) — approach a qualified trainer template without interaction.
 
 - [CURRENT BOUNDARY FACTS](boundary-crossing-facts-v1.html): Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit.
+
+- [delivered-place-evidence-v1](delivered-place-evidence-v1.html): exact historical spatial dialogue and qualified named places.

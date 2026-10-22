@@ -7,3 +7,5 @@ Coordinator request 2026-10-22 (after 8790 twice ended up as a child of the Code
 - Test: `env/tests/tooling/test_viewer_restart.py` runs the real script in its own session against a fake `node` viewer, kills the caller's whole process group, and asserts the viewer still listens, is in another session, and has ppid 1.
 
 ## Progress
+- RED 9fe799560: fails on main's script (viewer shares the caller's session).
+- GREEN: viewer-restart.sh launches node in a new session and checks ppid 1; tooling tests pass.

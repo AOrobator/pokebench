@@ -13,14 +13,19 @@ for pid in $(lsof -tiTCP:"$port" -sTCP:LISTEN || true); do kill -TERM "$pid" 2>/
 for _ in $(seq 20); do lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null || break; sleep 0.5; done
 if lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null; then echo "the old viewer still holds $port" >&2; exit 1; fi
 
-nohup node --env-file="$envfile" "$cli" --port "$port" --runs "$runs" >"$log" 2>&1 &
-child=$!
+# Start the viewer in its own session, parented to launchd, so it outlives whoever ran this
+# (a Codex exec tears down its whole session when the command returns).
+child="$(python3 -c 'import subprocess, sys
+log = open(sys.argv[1], "wb")
+print(subprocess.Popen(sys.argv[2:], stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True).pid)' \
+    "$log" node --env-file="$envfile" "$cli" --port "$port" --runs "$runs")"
 up=""
 for _ in $(seq 40); do
     if [[ "$(lsof -tiTCP:"$port" -sTCP:LISTEN || true)" == "$child" ]] && curl -fs "http://127.0.0.1:$port/api/experiments" >/dev/null; then up=yes; break; fi
     sleep 0.5
 done
 if [[ -z "$up" ]]; then echo "viewer did not answer on $port; see $log" >&2; exit 1; fi
+if [[ "$(ps -o ppid= -p "$child" | tr -d ' ')" != 1 ]]; then echo "viewer $child is still tied to this shell" >&2; exit 1; fi
 
 lost=""
 for pid in $before; do kill -0 "$pid" 2>/dev/null || lost="$lost $pid"; done

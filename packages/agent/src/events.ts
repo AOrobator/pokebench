@@ -258,9 +258,9 @@ const LoopBreaker = Type.Union([
   event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Literal("short_cycle"), period: Type.Integer({ minimum: 2, maximum: 4 }) }),
 ]);
 
-// fixed-point-breaker-v1 stage 3: the harness walked to the nearest untalked person (or sign) and pressed A.
+// fixed-point-breaker-v1 stage 3 (auto-talk-v3: after a quiet stretch on one map): the harness walked to the nearest untalked person (or sign) and pressed A.
 const AutoTalk = event("auto_talk", {
-  trigger: Type.Enum(["fixed_point", "no_tool_call"] as const), repeats: Type.Integer({ minimum: 1 }),
+  trigger: Type.Enum(["fixed_point", "no_tool_call", "quiet_map"] as const), repeats: Type.Integer({ minimum: 1 }),
   outcome: Type.Enum(["talked", "unreachable", "none", "not_free"] as const),
   target: Type.Union([Type.Object({
     kind: Type.Enum(["story_character", "person", "sign"] as const), name: Type.String({ minLength: 1 }),

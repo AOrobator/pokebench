@@ -323,3 +323,7 @@ Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: RO
 ## 2026-10-21: potion menu and factual healing guidance
 
 `menu-item-guidance-v1` and `factual-healing-guidance-v1` are pending, default OFF and unapproved. Native manual probes qualify interface mechanics only. No readiness promotion is claimed: a current 3-of-4 qualifying model reach receipt has not been established for these source pins. Both activate no later than STARTER_CHOSEN; no measured cohort launched.
+
+## 2026-10-22: early talk
+
+`auto-talk-field-only-v1`, `auto-talk-v3` and `untalked-people-header-v1` are pending, default OFF and unapproved (worklog `docs/worklogs/active/2026-10-22_early-talk.md`). Activations: ROUTE_101 (field-only, first wild battles) and BIRCH_STARTER_HANDOFF_COMPLETE (v3 and the header, where the find-MAY search starts); primary: ROUTE_103. Recent bundle and control runs reach the starter handoff routinely, but no 3-of-4 readiness receipt is claimed for these pins. Unit and factory tests verify mechanics only; no measured runs launched.

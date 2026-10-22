@@ -37,16 +37,16 @@ No subprocesses, paths or network changes. Harness-chosen walks reuse navigate_t
 
 **M1 — auto-talk-field-only-v1**
 - [x] RED tests (auto-talk-field-only.test.ts: 4 fail, 2 OFF baselines pass)
-- [ ] GREEN + registry/presets/defaults
+- [x] GREEN + registry/presets/defaults
 **M2 — auto-talk-v3**
 - [x] RED tests (auto-talk-v3.test.ts)
-- [ ] GREEN + wiring
+- [x] GREEN + wiring
 **M3 — untalked-people-header-v1**
 - [x] RED tests (untalked-people-header.test.ts)
-- [ ] GREEN + wiring
+- [x] GREEN + wiring
 **M4 — explainers, pending experiments, readiness rows**
-- [ ] Explainers (Emerald theme), FEATURE_EXPLAINERS, experiments/*.json, readiness.md
-- [ ] Gates: just test, just lint, just build, just coverage (90)
+- [x] Explainers (Emerald theme, pages-check clean), FEATURE_EXPLAINERS, experiments/*.json, readiness.md
+- [x] Gates: just test, just lint, just build, just coverage (90)
 **M5 — review and land**
 - [ ] Claude, Grok, GPT lanes LGTM on the frozen packet
 - [ ] land-join, ff-only merge, just viewer-main, evidence commit, land-done
@@ -56,9 +56,14 @@ No subprocesses, paths or network changes. Harness-chosen walks reuse navigate_t
 Unit and factory tests; a recorded-state replay of auto-talk on a battle state; explainer pages served at 127.0.0.1:8791 and listed in viewer Reports (headless checks only, per the operator's no-focus rule).
 
 ## Session Log
+- GREEN gates (2026-10-22): vitest agent 4542 passed, viewer 1694 passed (two timing flakes, serial-comparison hung-child and live-human, passed on rerun); pytest 3959 passed, 1 failed (test_view production main, needs the mGBA binding absent from this worktree's venv; Python unchanged). Coverage: agent lines 99.22 / branches 93.37 / functions 97.97; viewer 97.96 / 91.43 / 94.43; Python 97.30 / 93.35 / 99.76 (floor 90). Lint: tsc + eslint clean both packages, ruff clean, mypy clean with the main venv. Build OK.
+- Delete-once checks: removing untalkedPeople from play-wiring turned the factory test red; removing the field-only battle return and the v3 breaker bypass in auto-talk.ts turned their tests red; all restored.
+- COMMIT: `test(agent): RED auto-talk field-only, auto-talk-v3 and untalked-people header` (8d5c4a16f)
 - 2026-10-22 RED: 18 failing, 5 passing (OFF baselines) across the three new test files. One RED commit for all three switches.
 
 ## Surprises
+- Appending three switches moves every positional registry assertion (.at(-N), .slice(-N)); 70+ test files updated mechanically, LEGACY_ALL_ON gets the three ids OFF, and incumbent-key filters exclude them.
+- This worktree's env/.venv has no mGBA binding (just build-mgba is once per clone): mypy's mgba._pylib import and tests/env/test_view.py's production-server start fail here. No Python changed on this branch; mypy passes with the main checkout's venv.
 
 ## Multi-Model Review Log
 

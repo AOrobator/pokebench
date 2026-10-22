@@ -6,7 +6,8 @@ import {Type} from "typebox";
 import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON,SERVER_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
+import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {playGameTools} from "./play-wiring.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {TRUST_HEADER,withHarnessTrust} from "./harness-trust.js";
@@ -92,5 +93,17 @@ describe("untalked-people-header-v1",()=>{
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
+ });
+ it("the production factory honors the switch",async()=>{
+  const OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
+  const factory=async(features:FeatureSet):Promise<string>=>{
+   const recorder={subscribe:()=>undefined,storyGoalAway:()=>undefined,destinationCitation:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1})} as unknown as Parameters<typeof playGameTools>[3];
+   const observe:AgentTool={name:"observe",label:"o",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROOM"}],details:{state:room()}})};
+   const tools=playGameTools([observe],features,{read:()=>Promise.resolve(room()),places:()=>Promise.resolve({places:[]})},recorder);
+   const r=await tools.find(t=>t.name==="observe")?.execute("o",{});
+   return r?.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("|")??"";
+  };
+  expect(await factory({...OFF,"harness-trust-v1":true,[ID]:true})).toContain(`${UNTALKED_HEADER} object 4, sprite WOMAN_4, at (2,1), not talked to this run; object 2, sprite BOY_1, at (5,5), not talked to this run.`);
+  expect(await factory({...OFF,"harness-trust-v1":true})).not.toContain(UNTALKED_HEADER);
  });
 });

@@ -84,3 +84,21 @@ it("preserves full-HP damaging-PP and fainted-party risks without stacking heal 
  expect(party.texts[0]).toContain("WURMPLE has fainted");
  for(const result of [pp,party])expect(result.texts[0]).not.toMatch(/Heal to full|heal before talking|Heal before you battle/);
 });
+it("qualifies exact ea04 healing observations while preserving their missing context",async()=>{
+ const actual=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/frontier-ea04-healing.json.gz",import.meta.url))).toString("utf8")) as {rows:{episode:string;state:unknown;original_warning:{seq:number}}[]};
+ for(const row of actual.rows){
+  const observed=parseGameState(row.state);
+  const on=await replay(true,[observed]);
+  if(row.episode!=="E4"){
+   expect(on.warnings,row.episode).toEqual([]);
+   expect(on.texts,row.episode).toEqual(["recorded state"]);
+   // Final recorder snapshots omit richer trainer/heal facts used by the historical warning.
+   // Retain that gap; a replay must not fabricate them from a nearby locked state.
+   if(row.episode==="E12")expect(observed.heal_before_trainers).toBeUndefined();
+  }else{
+   expect(on.warnings,row.episode).toHaveLength(1);
+   expect(on.texts[0],row.episode).toContain("3/21");
+   expect(on.texts[0]).not.toMatch(/Heal to full|heal before talking|Heal before you battle/);
+  }
+ }
+});

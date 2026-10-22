@@ -4,7 +4,7 @@
 
 Status: APPROVED FOR IMPLEMENTATION — 2026-10-22. All new treatments go in the bundle, control/default OFF. No experiments or probes may launch.
 
-The operator requested a worklog covering switch changes and improvements, prioritized by the mistakes they address, and asked to see the plan before implementation. Creating this document is authorized; source, tests, presets, experiment definitions, runtime settings and gameplay remain unchanged.
+The operator approved implementation on October 22, including parallel subagents, default/control-OFF treatments and future bundle ON. Ten treatments are integrated and the final generic stationary-NPC approach packet is in progress. No experiment or probe is authorized to launch. Branch implementation, reviewed landing, viewer delivery, later-run activation and measured benefit remain separate stages.
 
 The October 22 holistic Frontier report records 16 episodes in run `2026-10-21T13-33-54_qwen36-gpu0_ea04`. Several interventions already existed in that run; others have landed since. We need to distinguish missing capability, incomplete feedback, harmful intervention and ordinary gameplay cost before adding more switches.
 
@@ -74,7 +74,7 @@ M3 and M5 each contain independently switched subchanges and must be split into 
 | E15, 21680–22036 | Safe unloaded-leader approach and current observable facts. Gym-evidence completion status does not detect imagined boulders. No scripted puzzle solution. | M3/M5 |
 | E16, 22670–26278 | Trigger boundary candidate; use post-badge state for correctness proof. Keep this post-cap window separate from two-hour outcome claims. | M2 |
 
-### Configuration candidates, not applied changes
+### Original configuration candidates and chosen implementation
 
 - Retain existing trigger boundary, move-learning comparison/tool/fingerprint, field ownership and tool-prompt documentation in candidates where dependencies are satisfied.
 - Prepare `rejected-movement-step-v1=OFF` with navigation-tool-use-guard unchanged. This means zero-input rejection, not unrestricted full batches. The checked-stride treatment is a separate comparison.
@@ -85,6 +85,31 @@ M3 and M5 each contain independently switched subchanges and must be split into 
 - Retain milestone-drought-suppression as an explicit candidate setting already present in the bundle. Measure the tradeoff: ea04 pivoted after a drought briefing. Do not delete stall-briefing or assume map-cycle warnings are suppressed too.
 - Do not blindly switch off drought-battle-heal-hold: the schema crash has been fixed and drought suppression changes its effective context. Audit overlap and attribution first.
 - Keep caught-dex-input available; any baseline repair gets a new explicit baseline revision and both arms are requalified. Never silently rewrite historical control identity.
+
+### Current episode dispositions
+
+
+All “ON” below describes the future candidate bundle; all new switches are default/control OFF. None has measured benefit or later-run activation proof.
+
+| Episode | Retain / turn ON | Turn OFF / supersede | Scope or remaining gap |
+|---|---|---|---|
+| E1 | existing trigger-navigation-boundary; new rejected-movement-stride | old one-step/rejection superseded only when new stride handles a request | Trigger entry remains its separate bounded step; no story continuation. Exact historical native fixture proof not located. |
+| E2 | field-ownership-feedback, tool-prompt-docs, delivered-place-evidence, explorer-family-guidance; conditional stale-plan-fact | explorer v2 section replaced through new treatment, original bits not blindly swapped | Does not detect every invented nickname belief or infer a named daughter identity. |
+| E3 | navigate-already-here, boundary-crossing-facts, delivered-place-evidence, explorer-family-guidance | none required beyond treatment precedence | Current verified crossing fact only; no hidden route. |
+| E4 | grass-cost and semantic navigation, coherent healing, npc-approach feedback for qualified trainers; existing occupied-person neighbour checks | story-battle-heal-gate stays OFF | 3/21 danger preserved; automatic RUN deferred. Generic stationary non-trainer approach is being completed under its own switch; automatic activation remains prohibited. |
+| E5 | coherent factual healing and historical place evidence where actual exposure qualifies | no proven single switch to turn OFF | Wrong-turn/heal causality not established; no claimed fixed detour. |
+| E6 | trigger boundary, checked requested stride, boundary/place facts, explorer-family | one-step fallback superseded under new stride | Existing live trigger expiry retained; model still selects crossing/route. |
+| E7 | coherent healing, field ownership/no-battle feedback | overlapping heal advice bypassed under coherent policy; standalone gym-warning-OFF remains optional | Native invalid battle calls retain current Interface facts, not new mandatory advice. |
+| E8 | trigger boundary and checked requested stride | old cut-to-one-step fallback superseded when treatment applies | Requested prefix only, stops before relevant hazards. |
+| E9 | existing exit reachability/reachable-story guidance + reachable-section-alternatives | none | Shows currently reachable departure alternatives and existing section facts; does not prove/choose a path through Woods. |
+| E10 | existing factual navigation/trigger behavior | no dedicated change | Ordinary battle cost not established as mistake; segment faster than human. |
+| E11 | coherent-healing-feedback | minor damage no longer triggers combined heal directives; old warning bits kept explicit | 30/33 production case covered, no arbitrary 80% threshold. |
+| E12 | battle-effective-damage/coverage, coherent low-HP feedback, leader-loss comparison when actual prior leader-loss context exists | do not disable useful low-HP facts | 14/35 heal justified; delivered effectiveness/outcome pages supplied, no damage predictor. |
+| E13 | leader-attempt/party-coverage/seen-trainers retained; leader-loss comparison + qualified trainer template approach | mandatory rematch gate deferred | Factual changes/unchanged/unknown; no selected strategy/training requirement. |
+| E14 | learn_move/comparison/early comparison/fingerprint/stale-plan retained; battle-move-learn-input + owned-battle-context; existing evolution result correction | stale battle-context interpretation superseded only for verified non-battle owner | Native B6/d951 and 83d7 reparsing qualify correctness separately from gameplay benefit; no forced evolution or move selection. |
+| E15 | qualified leader trainer approach, existing gym evidence, delivered historical facts | no puzzle solver or rematch gate | Completion status does not disprove imaginary boulders; generic stationary non-trainer approach is in progress separately. |
+| E16 | existing trigger boundary plus safe requested strides where relevant | old unproductive one-step fallback superseded under treatment | Preserve post-cap status; do not fold 29.5 minutes into an additive two-hour speedup. |
+
 
 ## Invariants
 
@@ -180,7 +205,7 @@ Implementation delivery: source and test receipts, independent reviews, exact me
 ## Session Log
 
 - 2026-10-22: The operator requested this plan before implementation. Created isolated branch `codex/frontier-mistake-plan` at source pin above; read-only evidence refresh plus this worklog/pointer only. Canonical main and its unrelated worklog pointer are unchanged. No source/tests/presets/experiments edited and no gameplay/service actions taken.
-- 2026-10-22: Cross-checked the ledger with registry contracts and current evolution-result/navigation-recovery worklogs. Existing battle-preparation readouts were already ON in ea04; they cannot be proposed as newly enabled cures. Scope remains awaiting approval.
+- 2026-10-22: Cross-checked the ledger with registry contracts and current evolution-result/navigation-recovery worklogs. Existing battle-preparation readouts were already ON in ea04; they cannot be proposed as newly enabled cures. This is the historical planning state; implementation was explicitly authorized later on October 22.
 
 ## Surprises
 
@@ -191,7 +216,7 @@ Implementation delivery: source and test receipts, independent reviews, exact me
 
 ## Multi-Model Review Log
 
-No implementation review performed; no implementation exists in this worklog lane. Use the required repository review contract after approved RED/GREEN packets.
+Implementation exists on the owned integration branch. Child self-reviews and local tests do not replace the frozen Claude/Grok/GPT cloud review. No final review verdict is claimed until the packet identity and actual lane receipts are recorded below.
 
 ## Boy Scout Log
 
@@ -274,3 +299,7 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Additional M1 native qualification: 83d7 state35031 raw archive00013848 reparsed by current production read_state/result_message_waiting and pure EvolutionGate. Verified ready evolution_result and A passes gate; zero emulator inputs applied. Receipt `/tmp/frontier-83d7-native-reparse.json` includes original archive SHA/frame/ROM identity. This verifies already-landed B1 correction rather than introducing a duplicate fix.
 - Additional M4 production matrix: full-HP lead with all damaging PP exhausted and a separate fainted teammate each retain exactly one factual warning without full-heal directives. Focused suite5/5 passes (`/tmp/frontier-m4-additional-matrix.log`); TypeScript pass. Fixtures are explicit native-shaped variants, not historical episode reenactments.
 - Synced main e441abb1d human-play URL correction before final packet; no review packet has yet been sealed. Ten-treatment full lint now passes (`/tmp/frontier-lint7.log`) and `just verify-vendor` passes (`/tmp/frontier-vendor-final.log`). Final gates will follow remaining packet integration.
+
+- Exact ea04 healing source audit retained `/tmp/frontier-ea04-healing-warning-audit.json`: E4 warning5871 at3/21; E7 warning11114 (before ledger window start) at23/29; E11 warnings15000/15001/15002 at30/33; E12 warning15803 at14/35. New12KB provenance fixture preserves exact final result-state observations5873/11115/15003/15804 and original warning records plus source events SHA.
+- Native-window test attempts1–3 failed because the first extraction used pre-warning states (some transitional/locked), then because final recorded states omit richer heal/trainer facts. Corrected extraction uses the exact post-warning/pre-tool_result state and preserves the missing facts rather than filling from adjacent snapshots. Six production tests now pass (`/tmp/frontier-m4-native-windows4.log`), TypeScript passes. E4 danger survives; E7/E11 minor damage yields no new warning; E12 context remains unknown in that sparse final snapshot. Separate qualified14/35 production case proves warning retention when context is available. This is no claim that all historical context was durably recorded.
+- Catalogue correction integrated as e064f7f41: actual owned-context metadata, normalized future fixedpoint proof and current collapse+note semantics. Historical fixedpoint note-OFF instruction retained and its contradictory trial design explicitly blocked; no historical switch semantics or effective experiment arms changed.

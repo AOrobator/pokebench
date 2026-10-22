@@ -1083,3 +1083,39 @@ for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"sta
   expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(cycle?12:14);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi instead of stopping, then stops on a second cycle",async()=>{
+ const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");const {parseGameState}=await import("./game-state.js");
+ const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/navigation-recovery-loop.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
+ const event=fixture.events.map(checkEvent).find(e=>e.type==="state"&&e.seq===6857);
+ const state=parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-map-cycle-recovery-pi-"));
+ try{
+  const log=RunLog.create(root,"2026-10-22T00-00-00_map-cycle-recovery");
+  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+  await recorder.start({...RUN_START_META,harness_features:[...RUN_START_META.harness_features,"navigation-recovery-v1","map-cycle-recovery-v1"]},false);const controller=new AbortController();
+  const g=new Governor({limits:{maxTurns:60,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
+  const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,()=>"generic supervisor",false,false,false,false,false,false,false,false,false,false,false,false,{"navigation-recovery-v1":true,"map-cycle-recovery-v1":true});
+  let calls=0;
+  const tool:AgentTool={name:"navigate_to_target",label:"navigate",description:"Recorded navigation result on the current map",parameters:Type.Object({map_id:Type.Array(Type.Number())}),execute:()=>{
+   if(++calls===20)detector.stall("map_cycle",()=>"Second recorded map cycle",[2]);
+   return Promise.resolve({content:[{type:"text",text:"Current map: OLDALE TOWN (map 0/10)."}],details:{state}});
+  }};
+  recorder.recordState(state);
+  detector.stall("map_cycle",()=>"Recorded repeated map crossings",[1]);
+  const replies=Array.from({length:60},()=>{const m=reply(["navigate_to_target"]);return {...m,content:m.content.map(p=>p.type==="toolCall"?{...p,arguments:{map_id:[0,10]}}:p)};});
+  const seen:Message[][]=[];const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
+  expect(await play(TASK,g,loop)).toBe("stuck");
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
+  const guards=events.filter(e=>e.type==="loop_guard");
+  expect(guards.map(e=>e.phase)).toEqual(["warning","supervisor","warning","stop"]);
+  const briefing=guards[1]?.message??"";
+  expect(briefing).toMatch(/^NAVIGATION RECOVERY BRIEFING: /);
+  const user=(i:number)=>seen[i]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n")??"";
+  // Calls 1-12 carry the episode note; call 13 carries the briefing bytes the event records; call 14 neither.
+  expect(user(11)).toContain("NAVIGATION RECOVERY: ");expect(user(12)).toContain(briefing);expect(user(12)).not.toContain("NAVIGATION RECOVERY: The repeated");
+  expect(user(13)).not.toContain("NAVIGATION RECOVERY");
+  expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(32);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

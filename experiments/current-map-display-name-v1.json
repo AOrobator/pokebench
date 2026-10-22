@@ -3,8 +3,8 @@
  "id": "current-map-display-name-v1",
  "title": "One name for the current map",
  "changedFeature": "current-map-display-name-v1",
- "hypothesis": "Naming the current map in navigate_to_target's refusal as the Location line does (PROF. BIRCH'S HOUSE 2F, not LITTLEROOT TOWN MAYS HOUSE 2F) removes the belief that map 1/3 is two houses and shortens the search for MAY.",
- "activationMilestone": "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+ "hypothesis": "Naming maps as the Location line does (PROF. BIRCH'S HOUSE 2F, not LITTLEROOT TOWN MAYS HOUSE 2F) in navigate_to_target's Current map line and in the OBSERVED INSTRUCTION MEMORY map column removes the belief that map 1/3 is two houses and shortens the search for MAY.",
+ "activationMilestone": "PLAYER_HOUSE_ENTERED",
  "primaryMilestone": "RIVAL_MET",
  "source": {
   "checkout": "main",
@@ -276,6 +276,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending only: no queue position, approval or measured launch. Incumbent keeps semantic-current-map-feedback-v1 and displayed-place-names-v1 ON, so the only difference is the name in the Current map line. Evidence: 47c3 tool result 4776 and the thinking at seq 4773 (frontier report H7). Cohort design and checkpoint qualification remain separate.",
+ "notes": "Pending only: no queue position, approval or measured launch. Incumbent keeps semantic-current-map-feedback-v1, displayed-place-names-v1 and observed-instructions-v1 ON, so the candidate differs in two places: the map name in navigate_to_target's Current map line and the map column of the OBSERVED INSTRUCTION MEMORY block. The memory block can differ from the first remembered page inside the player's house, so activation is PLAYER_HOUSE_ENTERED. Evidence: 47c3 tool result 4776 and its memory block at seq 4777 (five LITTLEROOT TOWN MAYS HOUSE 2F pages; frontier report H7). Cohort design and checkpoint qualification remain separate.",
  "blocked": "Pending correctness candidate: reviewed landing pin and cohort design required before queueing."
 }

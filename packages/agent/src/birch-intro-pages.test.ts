@@ -9,10 +9,10 @@ const ID = "birch-intro-pages-v1";
 
 describe("birch-intro-pages-v1", () => {
   it("is appended last as a default-off observation", () => {
-    expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
-    expect(FEATURES.filter(feature => feature.switchable).at(-7)?.id).toBe(ID);
-    expect(SERVER_FEATURES.at(-2)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-7)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-9)).toBe(ID);
+    expect(FEATURES.filter(feature => feature.switchable).at(-9)?.id).toBe(ID);
+    expect(SERVER_FEATURES.at(-4)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-9)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "observation", switchable: true, title: "BIRCH INTRO PAGES", needs: null });
     expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
     expect(featureInfo(ID).description).toContain("Off: ");

@@ -35,6 +35,13 @@ from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.poison_berry_readout import (
+    BERRY,
+    POISON,
+    POISON_WARNING,
+    bag_berry_lines,
+    poisoned,
+)
 from pokebench_env.pokedex_own import dex_lines
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
@@ -153,6 +160,8 @@ SERVER_FEATURES = (
     "map-wide-triggers-v1",
     "birch-intro-pages-v1",
     "post-battle-readout-v1",
+    POISON,
+    BERRY,
 )
 
 
@@ -179,7 +188,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "move-learn-comparison-v1,gym-door-label-v1,"
         "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
         "shop-interface-v1,map-wide-triggers-v1,"
-        "birch-intro-pages-v1,post-battle-readout-v1",
+        "birch-intro-pages-v1,post-battle-readout-v1,poison-readout-v1,berry-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -519,6 +528,7 @@ def format_readout(
         )
     x, y = state.position
     named_status = STATUS_NAMES not in off
+    poison_readout = POISON not in off
     facing = "" if state.facing is None else f", facing {state.facing}"
     next_levels = state.party_next_level or ()
     party = "; ".join(
@@ -531,7 +541,12 @@ def format_readout(
         )
         # status-names-v1: the status by name (poison, sleep turns, ...) instead of its bits.
         + (
-            f" · STATUS {(status_text(m.status) if named_status else None) or m.status}"
+            " · STATUS "
+            + (
+                "PSN (poisoned)"
+                if poison_readout and poisoned(m.status)
+                else str((status_text(m.status) if named_status else None) or m.status)
+            )
             if expanded and m.status
             else ""
         )
@@ -578,6 +593,20 @@ def format_readout(
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
+    if (
+        poison_readout
+        and state.screen == "overworld"
+        and not state.in_battle
+        and state.party_owner == "player"
+        and any(
+            poisoned(m.status) and (m.hp or 0) > 0 and not m.diagnostic for m in state.party or ()
+        )
+    ):
+        lines.append(POISON_WARNING)
+    if BERRY not in off:
+        lines.extend(bag_berry_lines(state.resources))
+        if state.screen == "overworld" and not state.in_battle:
+            lines.extend(state.berry_readout or ())
     # blackout-readout-v1: the first observation back on the field after CB2_WhiteOut.
     if whiteout is not None and BLACKOUT not in off:
         lines.append(whiteout_line(whiteout, state))

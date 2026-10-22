@@ -221,3 +221,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Stale plan fact](stale-plan-fact-v1.html) — default OFF, bundle arm: when the thinking repeats word for word but the game shows a different Interface line or question, the result ends with one line saying so.
 - [Post-battle readout](post-battle-readout-v1.html) — default OFF, bundle arm, game server: after a battle on the evolution or summary screen the battle block says ended and takes the POKéMON and its moves from the party; in battle a ready learn-move box is the Interface line.
 - [Learn move tool](move-learn-tool-v1.html) — default OFF, bundle arm: learn_move(forget: a known move or "none") answers the move-learning prompts one checked press at a time and verifies the party's moves.
+
+- [Poison readout](poison-readout-v1.html) — readable poison and game-owned walking warning.
+- [Berry readout](berry-readout-v1.html) — visible ripe/growing trees and owned berry descriptions.

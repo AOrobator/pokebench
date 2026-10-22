@@ -1566,3 +1566,12 @@ it("shows milestone retention and its complete audit receipt in history and raw 
  expect(eventText(event,view(log))).toContain("1 kept · 1 archived");expect(inspector(event)).toContain("clock-request");
  expect(FEATURE_EXPLAINERS["milestone-instruction-memory-v1"]).toBe("milestone-instruction-memory-v1.html");
 });
+
+it("links each independent poison and berry card to its tracked explainer",()=>{
+ const log=new Log();log.add(0,START);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ for(const id of ["poison-readout-v1","berry-readout-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+ }
+});

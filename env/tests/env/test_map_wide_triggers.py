@@ -82,5 +82,5 @@ def test_production_reader_and_rerender_follow_the_switch() -> None:
 
 
 def test_server_switch_is_registered_and_off_by_default() -> None:
-    assert SERVER_FEATURES[-3] == SWITCH
+    assert SERVER_FEATURES[-5] == SWITCH
     assert SWITCH in features_off_from_env({})

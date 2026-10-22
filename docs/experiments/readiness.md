@@ -306,3 +306,6 @@ Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x40
 | `move-learn-tool-v1` | `PETALBURG_WOODS` (acts only at a move-learning prompt) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle arm. Evidence: ea04 forgot SCRATCH with a blind A on the forget list (seq 20950/20981) after the 15-turn B loop. |
 
 `just experiments-check` reports no problem for these six entries (its 150 starter-decision-salience ledger problems are pre-existing). `just experiments` in the worktree stops on the same pre-existing problems, so the readiness reasons are read after landing on main. The incumbent is the bundle arm of bundle-v-control-2h with the six switches off. Per memory "long runs only", these bug fixes are measured by long cook runs; no gameplay-benefit claim. `source.commit` is the branch HEAD at registration and is updated to the landing merge.
+
+| `poison-readout-v1` | `ROUTE_101` | Pending; exposure-specific poison checkpoint not yet qualified. No queue position. |
+| `berry-readout-v1` | `ROUTE_102` | Pending; exposure-specific ripe-tree checkpoint not yet qualified. No queue position. |

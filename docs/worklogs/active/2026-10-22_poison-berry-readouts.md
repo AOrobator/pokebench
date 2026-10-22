@@ -13,13 +13,58 @@ One milestone: two independent default-OFF readouts, registry/preset/server wiri
 pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (clean); US Emerald f3ae088181bf583e55daf962a92bb46f4f1d07b7. field_poison.c / field_control_avatar.c, party_menu.c GetAilmentFromStatus; data/maps/PetalburgCity_Mart/scripts.inc; data/scripts/berry_tree.inc; event_object_movement.c SetBerryTreeGraphics; resource reader's verified object +0x1D and tree table.
 
 ## Checks
-- [ ] RED test commit
-- [ ] GREEN implementation and exact OFF tests
-- [ ] Production wiring removed/restored, regression goes RED
-- [ ] Archived native RAM replay, no active session inputs
-- [ ] Build, lint, tests and coverage >=90%
-- [ ] Explainers and pending experiment/readiness entries
+- [x] RED test commit `f6a10ef9b` (missing production module)
+- [x] GREEN implementation and exact OFF tests
+- [x] Production wiring removed/restored, regression goes RED: berry factory argument and poison readout gate each deleted independently, intended test failed, both restored; 9 focused tests pass.
+- [x] Archived native RAM replay, no active session inputs: raw 6781 / frame 1048077, SHA256 402c48b9...7940; state seq 26833 / result 26834, committed provenance and paired PNG. 10523-character OFF text byte-identical to unchanged main; all four combinations retain identical state JSON; 10 berry descriptions match exact ROM.
+- [x] Build and full coverage: agent 4438 tests (99.23% lines / 93.30% branches / 97.98% functions), viewer 1669 tests before two explicit link tests (97.95% lines / 91.33% branches / 94.35% functions), Python 3898 tests (97.39% lines / 93.41% branches / 100% functions). Final lint/link tests pending.
+- [x] Explainers and pending experiment/readiness entries: separate independent switches default OFF; experiments unqueued and unapproved, RUSTBORO_CITY primary milestone. No measured benefit claim.
 - [ ] Independent cloud review; report gate status accurately
 
 ## Session log
 - Isolated worktree created from main; no current-run changes.
+
+- Shared setup: worktree dependency install, existing native mGBA binding copied into isolated venv. Vendor root pinned bbab97ad; recursive initialization hit pre-existing missing pokered URL, required Emerald maps are present. No vendor source changed. First full Python check lacked POKEBENCH_ROM; corrected to the user's existing ROM path, all 3898 pass. Registry suffix/count and frozen historical-off fixtures updated for appended switches; no skips or lowered gates.
+- Production scope: poison_berry_readout.py, game_state.py, rerender.py, readout.py plus existing registry/preset/viewer explainer mapping. No tools, prompt, navigation, action, benchmark control or timeline changes.
+
+## Frozen review boundary
+User outcome: two independent switches for poison and berry readouts, grounded in game-visible facts, current run untouched. Only text observations change. Native RAM decoding reuses the existing resource tree state and verified loaded-object tree id. No new tools, routes, harvesting/healing actions, memory writes, saved-state reloads, gameplay launches, timeline surfaces or controls. Registry/preset defaults, static explainers and their existing card links, pending definitions and historical registry expectations are in scope. Runtime owners are the existing coherent game-state reader and readout formatter. Review suggestions adding other gameplay or infrastructure are out of scope.
+
+## Principles adherence (PB1–PB13)
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | HP/status/growth come from coherent native state; no model claim used as game evidence. |
+| PB2 | N/A | No gameplay run launched, stopped or regraded. |
+| PB3 | PASS | Correctness proof only; no gameplay-benefit claim. Both experiments remain pending. |
+| PB4 | PASS | Two declared independent default-OFF switches, server metadata, exact OFF replay, no game writes. |
+| PB5 | PASS | Each pending definition flips exactly one switch; all other registry flags explicit. |
+| PB6 | N/A | No context retention, compaction or long-run scheduling changes. Added lines are bounded by 16 loaded objects and BAG capacity. |
+| PB7 | PASS | Source events/RAM/paired image preserved; no rewritten historical observations. Offline replay is labelled offline. |
+| PB8 | N/A | No retry, loop, model-error, stop or action boundary changed. |
+| PB9 | PASS | User explicitly approved this bounded implementation; no additional autonomous action. |
+| PB10 | PASS | No skips, exclusions, threshold reduction or hook bypass. Historical suffix assertions updated for append-only registry. |
+| PB11 | PASS | Exact US ROM and clean source revision verified; native replay and ten ROM item descriptions checked. Vendor verified pristine. |
+| PB12 | PASS | ROM read only via existing ~/.roms path and resolver; no ROM copied or tracked. |
+| PB13 | PASS | RED committed; GREEN, gates, adversarial deletion, native replay and browser card checks recorded. Review/landing claims stay gated. |
+
+## Test-quality checks
+1. Production rerender.read_state → game_state → formatter exercised with raw RAM and exact observation text; TS serverFeatureEnv independently tested.
+2. Berry factory operand and poison formatter operand deleted separately: each intended assertion failed; both restored, focused tests GREEN.
+3. No process-global mutations in new tests; immutable fixtures and per-test memory.
+4. New tests use explicit switch IDs and exact sets/output; no shared identity selection.
+5. No concurrency behavior changed; no flake suppression.
+6. No sleeps, retries, skips or serial test configuration added.
+7. Assertions inspect actual text, exact fixture SHA and exact independently toggled states.
+8. Native fixture work bounded: one archive read, four configurations, ten ROM item descriptions. Synthetic reader bounded to sixteen native object slots. No growing aggregate or repeated filesystem transaction loop.
+9. No production-cap saturation tests; tiny object/party/BAG fixtures cover refusal/visibility paths.
+
+## Browser proof
+- Direct server factory on scratch runs only, with no game queue or experiment autorunner. New port allocated automatically after 8795 was occupied; the existing listener was left alone.
+- Harness Config search → poison card → READ EXPLAINER → correct heading/text; same path for berry card. Historical settings remain NOT RECORDED. Each tracked document served byte for byte in server tests.
+- Both explainers opened and screenshots inspected at actual 610px browser width. Browser viewport override did not change existing tabs (DOM still reported width 610), so screenshots named for requested 1280/1440/375 widths do NOT prove those widths. Responsive-width proof remains unverified; viewport override reset. No existing viewer restart.
+
+## Gate notes
+- experiments-check reads existing shared ledgers and reports malformed starter-decision-salience trials.jsonl rows 1–150; no ledger was edited. New definitions parse and flip only their own switch. This is not queue/launch approval.
+- Final lint caught accidental duplicated test_game_state.py code from a registry-edit script. Restored that unrelated file byte for byte from HEAD; no production behavior was affected. Re-running lint and Python coverage after correction.
+
+- Final lint passes (both TypeScript packages, ruff check/format, mypy 114 source files). Viewer coverage rerun after explicit card/route tests: 1671 tests, same coverage floors passed. Build passes; pages-check clean; both local page URLs return 200.

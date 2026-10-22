@@ -13,10 +13,10 @@ One implementation milestone, RED → GREEN → review. Isolated worktree; no ga
 - Existing loop_guard events, Activity History and raw inspector; no timeline additions.
 
 ## Proof
-- [ ] RED: pinned fixtures from both recorded failure windows, OFF invariance, production delivery and backtracking tests.
-- [ ] GREEN: behavior, registry, bundle, explainer and pending experiment.
-- [ ] Gates: tests, build, lint, coverage >=90%; deletion/restoration delivery proof.
-- [ ] Review frozen packet and browser proof. No measured performance claim.
+- [x] RED: pinned fixtures from both recorded failure windows, OFF invariance, production delivery and backtracking tests.
+- [x] GREEN: behavior, registry, bundle, explainer and pending experiment.
+- [x] Gates: tests, build, lint, coverage >=90%; deletion/restoration delivery proof.
+- [x] Review frozen packet and browser proof. No measured performance claim.
 
 RED receipt: production factory regression fixture has three expected treatment failures; legacy OFF assertion passes. Source fixture retains original events and source file digest. Worktree dependency install used offline lockfile.
 
@@ -54,3 +54,23 @@ The operator explicitly requested code review and landing on main. Integrated ma
 Prior frozen round 2 at 3055fc27: Claude, Grok and fresh GPT all LGTM; 8576 tests, build/lint/coverage passed. Current integration is a new packet and does not reuse those approvals. Current agent suite passes 4486 tests. Full current-main integration gates execute under runs/navigation-recovery/landing-*.log. The unchanged serial-comparison child-stdout test failed twice during intermediate full-suite integration and then passed after later test edits; no watchdog/retry/serialization change made, and the relay was notified of its 100ms startup sensitivity. No experiment approval, gameplay launch, main mutation or canonical viewer restart yet.
 
 Pending experiment source pin updated to integrated implementation a68aaca4c. It stays unqueued and unapproved. New review will inspect the cumulative delta against 7eda84361, including integration tests and theme, and may land only through the shared board.
+
+## Final integration review and landing receipt — 2026-10-22
+
+Reviewed packet: BASE 7eda84361e99f0fe4ef0877d87411f17abc1d8a2 → HEAD 8aec5f6a5cc69efa91d301e699949f51e651e8f6, binary diff SHA256 913898df09f5435de53f4e43a305e39bc4990218a7720f214777e7f8df7eb1a0. Clean tree verified before/after review. Scope stayed within the navigation recovery owner and required supporting surfaces. Principles PB1–PB13 all PASS. All nine test-quality checks examined, including performed wiring/context/capability deletion and restoration evidence, isolated fixture identities, bounded replay/I/O and absence of retries/skips/serialization changes.
+
+| Lane | Result |
+|---|---|
+| Claude CLI | VERDICT: LGTM, exit0, empty stderr; read-only, no independent tests claimed |
+| Fresh GPT navigation_landing_review | VERDICT: LGTM; independent90 tests passed |
+| Grok4.7high and legacy Cursor4.5high | UNAVAILABLE: both exit1, provider out-of-usage; no verdict |
+| Fresh Astra availability fallback | VERDICT: LGTM; independent110 tests passed |
+| Fresh Sol availability fallback | VERDICT: LGTM; independent90 tests passed |
+
+Reduced vendor diversity is explicit. Operator exception: Codex coordinator thread 00000000-0000-4000-8000-f5efe0494f81 relayed the operator's verbatim blanket approval on2026-10-22, citing Claude human message [private message reference] at10:47EDT: “land without grok.” The relay explicitly authorized Claude+GPT+distinct fallback LGTM for branches blocked by Cursor usage and retained landing-board and single-restart requirements. No old3055 approval reused for this packet.
+
+No blocking findings in integration review. Hypothetical scripted-warp qualification, post-stop recovery bookkeeping and legacy episode-supersession closure stay non-blocking followups; no new domains added. Recorded replay remains a correctness check, never a gameplay-benefit claim.
+
+Current gates:4486 agent+1682 viewer+3960 Python=10128 passed, zero skips; build/lint/vendor pass. Coverage: agent97.38 statements/93.30 branches/97.99 functions/99.21 lines; viewer95.46/91.42/94.43/97.96; Python97.39 lines/93.41 branches/100 functions. All >=90. Native archive and unchanged-source provenance receipts from implementation retained. Current build8aec replay verified both windows, raw JSON, feature-card→explainer click, no console warnings/errors; 375/1280/1440 themed screenshots inspected.
+
+Landing board verified this exact chat 00000000-0000-4000-8000-b7666b45adbe number1. Canonical main clean7eda84361 fast-forwarded to reviewed8aec5f6a5. Required post-merge `just build` and `just test` on main PASS:10128 tests, zero skips. Main and copied review/gate receipts are under runs/navigation-recovery-landing-2026-10-22/. This is the permitted one evidence-only worklog commit. A single coordinated `just viewer-main` restart and live served-build/browser verification follow this commit, with final receipts in that directory. No experiment approval or measured gameplay launch.

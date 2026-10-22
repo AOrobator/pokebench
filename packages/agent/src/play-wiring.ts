@@ -190,7 +190,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
   if(anchor!==null&&anchor!==observedAt)retained=null;
   signal?.throwIfAborted();
   const current=await state.read(signal);
-  if(!battleEngaged(current))return base(retained===null?messages:[...messages,retained]);
+  if(!battleEngaged(current,features["owned-battle-context-v1"]))return base(retained===null?messages:[...messages,retained]);
   const result=await observe.execute(`battle-ready-${String(++sequence)}`,{},signal);
   const image=result.content.find(c=>c.type==="image");
   const details:unknown=result.details;

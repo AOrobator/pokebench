@@ -252,3 +252,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Operator added direct owned battle context correction via coordinator at12:41 EDT (verbatim yes pls). Separate P0 switch owned-battle-context-v1 forthcoming, uses d951 seq17461.
 - Parent Python qualified run:3952 pass/16 fail, no skips; remaining failures are old default-OFF/server-tail/forwarding expectations for appended B6 switch. Those expectations corrected; full rerun pending. All earlier test attempts remain diagnostic, not final gates.
 - Historical fixture repair accidentally changed one unrelated duplicate-shape .at assertion in harness.test; restored original -2/toolResult assertion immediately. No harness behavior change. Future registry compatibility uses explicit frozen treatment-OFF helper for old receipt positions, retaining separate current registry tests.
+
+- P0 owned-battle-context integration: separate RED/GREEN packet imported; shared predicate handles verified evolution and move-learning ownership rather than stale in_battle. Native d951 archive and model-delivery regressions retained; integration/full review pending.

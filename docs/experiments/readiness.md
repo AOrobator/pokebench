@@ -349,3 +349,5 @@ Pending only; no queued/approved runs. Earliest activation PLAYER_BEDROOM is an 
 ## reachable-section-alternatives-v1 (2026-10-22)
 
 Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.
+## owned-battle-context-v1
+Pending only. STARTER_CHOSEN is an early eligibility bound; owned evolution/move-forget exposure must be proven separately. Native d951 replay is correctness evidence, not gameplay benefit. No approval or launch.

@@ -5,7 +5,7 @@ import {parseExperiment} from "@pokebench/agent/experiments";
 import {armPreset,parseFixedDefinition} from "./fixed-design.js";
 import {FEATURE_EXPLAINERS} from "./panels.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
-const ids=["leader-loss-comparison-v1","npc-approach-feedback-v1"] as const;
+const ids=["leader-loss-comparison-v1","npc-approach-feedback-v1","owned-battle-context-v1"] as const;
 describe("Frontier M3 switch integration",()=>{
  for(const file of ["bundle-v-control-2h","bundle-v-control","bundle-cook-1h"])it(`${file} has both treatments ON in normalized bundle and OFF in control`,()=>{
   const {definition}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));

@@ -136,7 +136,8 @@ def test_the_question_while_it_prints_lists_the_moves_without_the_question(name:
 
 
 @pytest.mark.parametrize(
-    "name", ("evo-delete-box", "evo-stop-box", "battle-delete-box", "battle-stop-box", "summary-forget")
+    "name",
+    ("evo-delete-box", "evo-stop-box", "battle-delete-box", "battle-stop-box", "summary-forget"),
 )
 def test_the_boxes_and_the_forget_list_are_unchanged(name: str) -> None:
     assert old_state(name).move_learning == old_state(name, EARLY).move_learning
@@ -194,7 +195,9 @@ def test_other_battle_pages_read_no_memory(page: str | None) -> None:
 )
 def test_a_page_for_another_learner_or_move_reads_nothing(page: str) -> None:
     party = early_state("battle-page1").party
-    assert read_move_learning(early("battle-page1"), None, None, party, early=True, page=page) is None
+    assert (
+        read_move_learning(early("battle-page1"), None, None, party, early=True, page=page) is None
+    )
 
 
 def test_without_early_the_pages_read_nothing() -> None:
@@ -219,7 +222,9 @@ def test_off_is_the_readout_without_the_block(name: str) -> None:
     assert text == render(replace(early_state(name), move_learning=None), EARLY)
 
 
-@pytest.mark.parametrize("name", ("evo-intro3-printing", "evo-intro3-waiting", "evo-delete-printing"))
+@pytest.mark.parametrize(
+    "name", ("evo-intro3-printing", "evo-intro3-waiting", "evo-delete-printing")
+)
 def test_off_keeps_the_recorded_pages_without_a_reader(name: str) -> None:
     assert old_state(name, EARLY).move_learning is None
 
@@ -262,3 +267,12 @@ def test_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[-1] == EARLY_SWITCH
     assert EARLY_SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
+
+
+def test_a_page_without_its_party_slot_or_move_raises() -> None:
+    recorded = early_state("evo-page1")
+    ui = recorded.active_ui
+    assert ui is not None and ui.details is not None
+    broken = replace(ui, details={**ui.details, "new_move_id": None})
+    with pytest.raises(ValueError, match="lacks its party slot or new move"):
+        read_move_learning(early("evo-page1"), broken, None, recorded.party, early=True)

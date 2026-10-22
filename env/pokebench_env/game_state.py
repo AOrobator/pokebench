@@ -280,9 +280,12 @@ def _move_learning(
     ui: ActiveUi | None,
     battle: BattleState | None,
     party: tuple[PartyMon, ...],
+    early: bool,
 ) -> tuple[MoveLearning | None, str | None]:
+    page = None if battle is None or battle.message is None else battle.message.page
+    prompt = None if battle is None else battle.prompt
     try:
-        return read_move_learning(read, ui, None if battle is None else battle.prompt, party), None
+        return read_move_learning(read, ui, prompt, party, early=early, page=page), None
     except (ValueError, IndexError) as error:
         return None, f"harness bug: move learning: {error}"
 
@@ -357,6 +360,7 @@ def read_game_state(
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
+    move_learning_early_enabled: bool = False,
     mart_stock_enabled: bool = False,
     shop_interface_enabled: bool = False,
     exp_next_enabled: bool = False,
@@ -550,7 +554,9 @@ def read_game_state(
         build_exit_reach(flood, found) if exit_reach_enabled and flood is not None else None
     )
     learning, learning_diagnostic = (
-        _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
+        _move_learning(read, native_ui, battle, party, move_learning_early_enabled)
+        if move_learning_enabled
+        else (None, None)
     )
     stock, stock_diagnostic = _mart_stock(read, save1) if mart_stock_enabled else (None, None)
     state = GameState(

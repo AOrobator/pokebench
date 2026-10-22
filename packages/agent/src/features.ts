@@ -218,6 +218,7 @@ export const SWITCHABLE_FEATURES = [
   "stale-plan-fact-v1",
   "post-battle-readout-v1",
   "move-learn-tool-v1",
+  "move-learn-early-comparison-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -549,6 +550,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("stale-plan-fact-v1", "guard", "STALE PLAN FACT", null, "Default off (the operator 2026-10-21). Run 2026-10-21T13-33-54_qwen36-gpu0_ea04 sent byte-identical thinking for 15 turns (seq 20494-20844) while its results cycled through four different move-learning prompts; duplicate-turn collapse keys on the result state, which changed each step. With this switch on, when a reply's thinking is byte for byte the previous reply's and the game tool result it gets shows a different Interface line or game question than the result that thinking was first written after, the result ends with one line: \"Your reasoning repeats turn N word for word; the game now shows: <the result's Interface line>.\", followed by the game's question as the readout quotes it (The game asks: \"...\") when there is one. It states only what the readout shows and recommends nothing. Off: results are unchanged."),
   on("post-battle-readout-v1", "observation", "POST-BATTLE READOUT", "battle-details-v2", "Default off (the operator 2026-10-21). In run 2026-10-21T13-33-54_qwen36-gpu0_ea04 the battle block on the evolution screen still read \"You TORCHIC\" and \"Your moves ... 1 SCRATCH\" from the battle's own copy after the evolution and after DOUBLE KICK replaced SCRATCH (seq 20991), and in battle the Interface line said \"battle_resolving; input not ready\" while the game's learn-move YES/NO box was open and waiting (seq 20256). With this switch on: on the evolution or POKéMON summary screen, while the battle is finishing, the battle details line says \"ended (outcome won)\", the Actions line is left out, and the You line and Your moves come from the party (the POKéMON as it is now); in battle, when the learn_move or stop_learning_move YES/NO box is ready, the Interface line names that box as ready with its highlighted answer and controls. Applied by the game server. Needs battle-details-v2. Off: the battle block and the Interface line read as before."),
   on("move-learn-tool-v1", "guidance", "LEARN MOVE TOOL", null, "Default off (the operator 2026-10-21). Run 2026-10-21T13-33-54_qwen36-gpu0_ea04 pressed B for 15 turns round \"Delete a move to make room for DOUBLE KICK?\", \"Stop learning DOUBLE KICK?\" and the two pages before them, then forgot SCRATCH with a blind A on the summary screen's first slot while its reasoning said it was still at the YES/NO box (seq 20950/20981). With this switch on the model also has learn_move(forget: one of the four moves the POKéMON knows, or \"none\"), with a system-prompt section. It acts only while a move-learning prompt for the move being learned is open (the evolution or battle \"Delete a move to make room for …?\" and \"Stop learning …?\" boxes, the \"… is trying to learn …\" and \"… can't learn more than four moves\" pages, or the summary screen's list of moves to forget). With a move it answers NO to \"Stop learning …?\", advances those pages, answers YES to deleting a move, moves the summary highlight one step at a time, checking the highlighted move after each press, and presses A; with none it answers NO to deleting and YES to stopping. Waits are the game server's move-learning wait, held until the first emulated frame the flow needs input (GET /pokebench/move-learn/wait). It checks the party's moves afterwards and reports the pages the game printed; it refuses without pressing when no such prompt is open or the move is not one of the four, and stops when the screen changes unexpectedly. Ordinary press still works on these prompts. Neither choice is recommended. Off: no learn_move tool and no prompt section."),
+  on("move-learn-early-comparison-v1", "observation", "MOVE-LEARN EARLY COMPARISON", "move-learn-comparison-v1", "Default off (the operator 2026-10-22). Run 2026-10-22T00-22-02_qwen36-gpu0_d951 answered learn_move forget \"none\" for DOUBLE KICK at turn 430 from the evolution scene's page \"COMBUSKEN is trying to learn DOUBLE KICK.\" (event seq 16473): move-learn-comparison-v1 lists the moves only at the YES/NO box and the summary screen's forget-a-move list, so that readout named the new move only in the Menu state line, with no type, power or description. With this switch on, the same block (the POKéMON's types, its four moves and the new move, each with type, kind, power, accuracy, PP and the summary screen's description, from the game's move data) also follows the Interface line before and while the game asks: in the evolution and trade scenes from \"… is trying to learn …\" until the YES/NO box takes input, and in battle on the pages \"<POKéMON> is trying to learn <move>.\" and \"But, <POKéMON> can't learn more than four moves.\" when they name the POKéMON learning the move. No question line is added on those pages. Applied by the game server. Needs move-learn-comparison-v1. Off: the block appears only at the YES/NO box and the forget-a-move list, as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -617,6 +619,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "map-wide-triggers-v1",
   "birch-intro-pages-v1",
   "post-battle-readout-v1",
+  "move-learn-early-comparison-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -816,6 +819,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("stale-plan-fact-v1"),
     ...when("post-battle-readout-v1"),
     ...when("move-learn-tool-v1"),
+    ...when("move-learn-early-comparison-v1"),
   ];
 }
 

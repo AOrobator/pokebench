@@ -133,7 +133,9 @@ export class StallBriefing {
    if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
     // A heal the warning asked for, done (full HP), is a step forward: the drought clock starts again from it.
     // positive-supervisor-v1 retires drought briefings, so nothing is held and its retired schedule stays as it was.
-    if(!event.in_battle&&!this.features["positive-supervisor-v1"])this.restart(event.seq);
+    // turn-drought-clock-v1: only progressed() credits a heal (the same identified, readable party at full HP), and it has
+    // already restarted the clock above; a trip that ends any other way (another POKéMON, an unknown one) releases a held nudge.
+    if(!event.in_battle&&!this.features["positive-supervisor-v1"]){if(this.turnClock())this.heldLevel=0;else this.restart(event.seq);}
     this.healTrip=null;
    }
    this.settleHold(event.seq);

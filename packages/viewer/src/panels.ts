@@ -570,6 +570,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "said-type-matches-v1":"said-type-matches-v1.html",
  "shop-interface-v1":"shop-interface-v1.html",
  "birch-intro-pages-v1":"birch-intro-pages-v1.html",
+ "poison-readout-v1":"poison-readout-v1.html",
+ "berry-readout-v1":"berry-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

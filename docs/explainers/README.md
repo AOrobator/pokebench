@@ -223,4 +223,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Move-learn early comparison](move-learn-early-comparison-v1.html) — default OFF, game server, needs move-learn-comparison-v1: the move comparison block also shows on the pages before and while the game asks "Delete a move to make room for …?" (evolution and trade steps 0–3, and the two battle pages), with no question line.
 - [Learn move tool](move-learn-tool-v1.html) — default OFF, bundle arm: learn_move(forget: a known move or "none") answers the move-learning prompts one checked press at a time and verifies the party's moves.
 
+- [Poison readout](poison-readout-v1.html) — readable poison and game-owned walking warning.
+- [Berry readout](berry-readout-v1.html) — visible ripe/growing trees and owned berry descriptions.
+
 - [milestone-drought-suppression-v1](milestone-drought-suppression-v1.html): milestone-drought timers stay diagnostic; no model intervention.

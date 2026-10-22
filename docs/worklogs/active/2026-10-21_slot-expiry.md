@@ -1,5 +1,7 @@
 # Landing slot expiry
 
+Superseded 2026-10-22 by `2026-10-22_slot-hard-cap.md`: the idle clock, land-touch and branch-head activity below were replaced by a fixed 30-minute slot.
+
 Operator 2026-10-21 4:42 PM EDT (the operator): "cursor is out of tokens, either land his work or boot him. the slot should expire. shit or get off the pot". The Cursor entry held #1 for over an hour while idle; it was booted by hand. This adds expiry so an idle #1 holder is moved back automatically.
 
 Scope: dev tooling (`pokebench_env.agent_mail` board, just recipes, skills). Stacked on claude/codex-coordinator.

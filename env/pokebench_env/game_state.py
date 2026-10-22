@@ -35,6 +35,7 @@ from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.poison_berry_readout import visible_berry_lines
 from pokebench_env.pokedex_own import Pokedex, read_pokedex, wild_foes
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
@@ -177,6 +178,8 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
+    # berry-readout-v1: visible loaded trees; text only, None when off.
+    berry_readout: tuple[str, ...] | None = None
     # mart-stock-readout-v1: the open buy list of a normal shop; text only.
     mart_stock: MartStock | None = None
     mart_stock_diagnostic: str | None = None
@@ -365,6 +368,7 @@ def read_game_state(
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
+    berry_readout_enabled: bool = False,
     mart_stock_enabled: bool = False,
     shop_interface_enabled: bool = False,
     exp_next_enabled: bool = False,
@@ -631,6 +635,9 @@ def read_game_state(
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
         world_context=context,
+        berry_readout=visible_berry_lines(read, resources, map_id, (x, y))
+        if berry_readout_enabled and screen.kind == "overworld" and not in_battle
+        else None,
         story_characters=read_story_characters(
             read,
             save1,

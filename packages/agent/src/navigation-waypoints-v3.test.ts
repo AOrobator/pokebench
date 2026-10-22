@@ -79,7 +79,7 @@ describe("waypoint history lifetime and bounds",()=>{
   const h=harness(true);await h.call();h.set({...B,position:{x:15,y:18}});expect(await h.call()).toContain("arrived at requested coordinate");h.set(B);expect(await h.call()).toContain("(15,23) on the east edge");
  });
  it("appends metadata and keeps omitted/flag defaults OFF",()=>{
-  const id="navigation-refusal-reasons-v3";expect(SWITCHABLE_FEATURES.at(-41)).toBe(id);expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(id);expect(flagFeatures(flags)[id]).toBe(false);
+  const id="navigation-refusal-reasons-v3";expect(SWITCHABLE_FEATURES.at(-43)).toBe(id);expect(playHarnessFeatures(ALL_ON,null).at(-39)).toBe(id);expect(flagFeatures(flags)[id]).toBe(false);
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:10,maxWallMs:1000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:1000},features:flagFeatures(flags)});expect(presetFeatures(preset)[id]).toBe(false);
  });
 });
@@ -93,7 +93,7 @@ import {parseExperiment,experimentArms} from "./experiments.js";
 it("registers an unqueued experiment with one effective flag difference",()=>{
  const e=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/navigation-refusal-reasons-v3.json",import.meta.url),"utf8")));
  expect(e.queuePosition).toBeUndefined();expect(e.activationMilestone).toBe("PLAYER_NAME_CONFIRMED");
- const {incumbent,candidate}=experimentArms(e);expect(SWITCHABLE_FEATURES.filter(id=>id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["navigation-refusal-reasons-v3"]);
+ const {incumbent,candidate}=experimentArms(e);expect(SWITCHABLE_FEATURES.filter(id=>id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["navigation-refusal-reasons-v3"]);
 });
 
 import {mkdtempSync,rmSync} from "node:fs";

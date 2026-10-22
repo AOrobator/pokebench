@@ -30,10 +30,6 @@ def default_slot_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("POKEBENCH_SLOT_TIMEOUT_MINUTES")
 
 
-def never(branch: str) -> str | None:
-    return None
-
-
 class Runs:
     def __init__(self, code: int = 0) -> None:
         self.calls: list[list[str]] = []
@@ -349,7 +345,7 @@ def test_rejoining_refreshes_who_and_the_codex_session(tmp_path: Path) -> None:
     r = room(tmp_path)
     am.board_join(r, who="codex", branch="codex/a", codex_thread=None, now=T)
     assert am.board_join(r, who="codex: A", branch="codex/a", codex_thread="A", now=T) == 1
-    assert am.read_board(r) == [am.BoardEntry("codex: A", "codex/a", "A", T)]
+    assert am.read_board(r) == [am.BoardEntry("codex: A", "codex/a", "A", T, top_since=T)]
 
 
 def test_an_interrupted_listener_leaves_letters_pending(tmp_path: Path) -> None:
@@ -1078,93 +1074,58 @@ def board_of(r: am.Mailroom, *branches: str) -> None:
 LATE = T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES + 1)
 
 
-def test_the_clock_starts_when_someone_waits(tmp_path: Path) -> None:
+def test_the_clock_starts_when_the_slot_is_taken(tmp_path: Path) -> None:
     r = room(tmp_path)
     board_of(r, "a")
-    assert am.read_board(r)[0].top_since is None
-    joined = T + timedelta(hours=2)
-    am.board_join(r, who="b", branch="b", codex_thread=None, now=joined)
+    assert am.read_board(r)[0].top_since == T
+    am.board_join(r, who="b", branch="b", codex_thread=None, now=T + timedelta(hours=2))
     entries = am.read_board(r)
-    assert entries[0].top_since == joined
+    assert entries[0].top_since == T
     assert entries[1].top_since is None
-    later = joined + timedelta(minutes=5)
+    later = T + timedelta(hours=3)
     am.board_done(r, branch="a", now=later, run=Runs())
-    assert am.read_board(r)[0].top_since is None
-    am.board_join(r, who="c", branch="c", codex_thread=None, now=later)
     assert am.read_board(r)[0].top_since == later
 
 
-def test_an_idle_holder_is_moved_back_and_told_why(
+def test_the_holder_is_moved_back_at_the_limit_and_told_why(
     tmp_path: Path, default_slot_timeout: None
 ) -> None:
     r = room(tmp_path)
     board_of(r, "a", "b", "c")
-    notices = am.expire_idle_holder(r, now=LATE, run=Runs(), branch_head=never)
+    notices = am.expire_holder(r, now=LATE, run=Runs())
     assert [e.branch for e in am.read_board(r)] == ["b", "c", "a"]
     assert [(n.entry.branch, n.position) for n in notices][:3] == [("b", 1), ("c", 2), ("a", 3)]
-    assert "expired" in notices[-1].text
+    assert "expired" in notices[-1].text and "the limit is 30" in notices[-1].text
     letters = am.collect(r.addressed("a"))
     assert any("expired" in x.text for x in letters)
     assert am.read_board(r)[0].top_since == LATE
     assert am.read_board(r)[2].top_since is None
 
 
-def test_a_new_head_counts_as_activity_when_seen_not_by_its_date(
+def test_the_slot_holds_until_the_limit(tmp_path: Path, default_slot_timeout: None) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b")
+    just_before = T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES) - timedelta(seconds=1)
+    assert am.expire_holder(r, now=just_before, run=Runs()) == []
+    assert [e.branch for e in am.read_board(r)] == ["a", "b"]
+
+
+def test_a_holder_alone_past_the_limit_expires_once_someone_waits(
     tmp_path: Path, default_slot_timeout: None
 ) -> None:
     r = room(tmp_path)
-    board_of(r, "a", "b")
-    heads = {"a": "old"}
-    early = T + timedelta(minutes=1)
-    assert am.expire_idle_holder(r, now=early, run=Runs(), branch_head=heads.get) == []
-    assert am.read_board(r)[0].top_since == T
-    assert am.read_board(r)[0].top_head == "old"
-    heads["a"] = "new"
-    seen = T + timedelta(minutes=30)
-    assert am.expire_idle_holder(r, now=seen, run=Runs(), branch_head=heads.get) == []
-    assert am.read_board(r)[0].top_since == seen
-    assert am.expire_idle_holder(r, now=LATE, run=Runs(), branch_head=heads.get) == []
-    gone = seen + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES)
-    assert am.expire_idle_holder(r, now=gone, run=Runs(), branch_head=heads.get) != []
-    assert [e.branch for e in am.read_board(r)] == ["b", "a"]
-    assert am.read_board(r)[1].top_head is None
-
-
-def test_a_head_first_seen_late_is_a_baseline_not_activity(
-    tmp_path: Path, default_slot_timeout: None
-) -> None:
-    r = room(tmp_path)
-    board_of(r, "a", "b")
-    assert am.expire_idle_holder(r, now=LATE, run=Runs(), branch_head={"a": "x"}.get) != []
+    board_of(r, "a")
+    late = T + timedelta(hours=1)
+    assert am.expire_holder(r, now=late, run=Runs()) == []
+    am.board_join(r, who="b", branch="b", codex_thread=None, now=late)
+    assert am.next_deadline(r, now=late) == T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES)
+    assert am.expire_holder(r, now=late, run=Runs()) != []
     assert [e.branch for e in am.read_board(r)] == ["b", "a"]
 
 
-def test_a_touch_keeps_the_slot(tmp_path: Path, default_slot_timeout: None) -> None:
+def test_an_empty_board_never_expires(tmp_path: Path, default_slot_timeout: None) -> None:
     r = room(tmp_path)
-    board_of(r, "a", "b")
-    assert am.land_touch(r, branch="a", now=LATE) is True
-    later = LATE + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES - 1)
-    assert am.expire_idle_holder(r, now=later, run=Runs(), branch_head=never) == []
-    assert am.land_touch(r, branch="b", now=LATE) is False
-    with pytest.raises(ValueError, match="not on the landing board"):
-        am.land_touch(r, branch="zz", now=LATE)
-
-
-def test_a_touch_alone_on_the_board_does_not_bank_time(tmp_path: Path) -> None:
-    r = room(tmp_path)
-    board_of(r, "a")
-    assert am.land_touch(r, branch="a", now=T) is True
-    assert am.read_board(r)[0].top_since is None
-
-
-def test_a_lone_holder_or_an_empty_board_never_expires(
-    tmp_path: Path, default_slot_timeout: None
-) -> None:
-    r = room(tmp_path)
-    late = T + timedelta(hours=5)
-    assert am.expire_idle_holder(r, now=late, run=Runs(), branch_head=never) == []
-    board_of(r, "a")
-    assert am.expire_idle_holder(r, now=late, run=Runs(), branch_head=never) == []
+    assert am.expire_holder(r, now=LATE, run=Runs()) == []
     assert am.next_deadline(r, now=T) is None
 
 
@@ -1178,74 +1139,44 @@ def test_the_timeout_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "7")
     assert am.slot_timeout() == timedelta(minutes=7)
     monkeypatch.delenv("POKEBENCH_SLOT_TIMEOUT_MINUTES")
-    assert am.slot_timeout() == timedelta(minutes=am.SLOT_TIMEOUT_MINUTES)
+    assert am.slot_timeout() == timedelta(minutes=30)
 
 
-def test_branch_head_reads_git(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
-    subprocess.run(
-        [
-            "git",
-            "-C",
-            str(repo),
-            "-c",
-            "user.name=t",
-            "-c",
-            "user.email=t@t",
-            "commit",
-            "-q",
-            "--allow-empty",
-            "-m",
-            "x",
-        ],
-        check=True,
-    )
-    sha = subprocess.run(
-        ["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-    ).stdout.strip()
-    reader = am.git_branch_heads(repo)
-    assert reader("main") == sha
-    assert reader("nope") is None
-
-
-def test_board_commands_expire_an_idle_holder_first(
+def test_board_commands_expire_the_holder_first(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
     monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "0")
-    monkeypatch.setattr(am, "git_branch_heads", lambda repo: never)
     r = am.Mailroom(tmp_path / "mail")
     board_of(r, "a", "b")
     assert am.main(["land-board"], run=Runs()) == 0
-    out = capsys.readouterr().out
-    assert "1. LANDING  b" in out
-    monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "1000000")
-    assert am.main(["land-touch", "--branch", "b"], run=Runs()) == 0
-    assert "still landing" in capsys.readouterr().out
-    assert am.main(["land-touch", "--branch", "a"], run=Runs()) == 0
-    assert "not number 1" in capsys.readouterr().out
+    assert "1. LANDING  b" in capsys.readouterr().out
 
 
 def test_a_failed_expiry_notice_fails_join_done_and_move(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
-    monkeypatch.setattr(am, "git_branch_heads", lambda repo: never)
     r = am.Mailroom(tmp_path / "mail")
 
-    def idle_codex_holder() -> None:
+    def codex_holder() -> None:
         r.board.unlink(missing_ok=True)
         am.board_join(r, who="codex x", branch="codex/x", codex_thread="X", now=T)
         board_of(r, "b", "c")
 
     monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "0")
-    idle_codex_holder()
+    codex_holder()
     assert am.main(["land-join", "--who", "d", "--branch", "d"], run=Runs(code=7)) == 7
-    idle_codex_holder()
+    codex_holder()
     assert am.main(["land-done", "--branch", "c"], run=Runs(code=7)) == 7
-    idle_codex_holder()
+    codex_holder()
     assert am.main(["land-move", "--branch", "c", "--before", "b"], run=Runs(code=7)) == 7
+    capsys.readouterr()
+
+
+def test_land_touch_is_gone(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        am.main(["land-touch", "--branch", "a"], run=Runs())
     capsys.readouterr()
 
 
@@ -1262,10 +1193,10 @@ def test_the_keeper_checks_each_minute_and_expires_on_time(
         clock[0] = clock[0] + timedelta(seconds=seconds)
 
     minutes = int(am.SLOT_TIMEOUT_MINUTES * 60 // am.KEEPER_IDLE_SECONDS)
-    am.keep(r, run=Runs(), branch_head=never, now=lambda: clock[0], sleep=sleep, rounds=minutes)
+    am.keep(r, run=Runs(), now=lambda: clock[0], sleep=sleep, rounds=minutes)
     assert slept == pytest.approx([am.KEEPER_IDLE_SECONDS] * minutes)
     assert [e.branch for e in am.read_board(r)] == ["a", "b"]
-    am.keep(r, run=Runs(), branch_head=never, now=lambda: clock[0], sleep=sleep, rounds=1)
+    am.keep(r, run=Runs(), now=lambda: clock[0], sleep=sleep, rounds=1)
     assert [e.branch for e in am.read_board(r)] == ["b", "a"]
 
 
@@ -1276,45 +1207,39 @@ def test_the_keeper_wakes_at_a_deadline_sooner_than_a_minute(
     board_of(r, "a", "b")
     slept: list[float] = []
     near = T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES, seconds=-10)
-    am.keep(r, run=Runs(), branch_head=never, now=lambda: near, sleep=slept.append, rounds=1)
+    am.keep(r, run=Runs(), now=lambda: near, sleep=slept.append, rounds=1)
     assert slept == pytest.approx([10.0])
 
 
 def test_the_keeper_naps_when_nothing_can_expire(tmp_path: Path) -> None:
     slept: list[float] = []
-    am.keep(
-        room(tmp_path),
-        run=Runs(),
-        branch_head=never,
-        now=lambda: T,
-        sleep=slept.append,
-        rounds=1,
-    )
+    am.keep(room(tmp_path), run=Runs(), now=lambda: T, sleep=slept.append, rounds=1)
     assert slept == [am.KEEPER_IDLE_SECONDS]
 
 
-def test_a_bad_top_stamp_or_head_is_reported(tmp_path: Path) -> None:
+def test_a_bad_top_stamp_is_reported_and_an_old_head_field_is_ignored(tmp_path: Path) -> None:
     r = room(tmp_path)
     r.root.mkdir(parents=True)
-    for field in ('"top_since": 5', '"top_head": 5'):
-        r.board.write_text(
-            '[{"who": "a", "branch": "b", "codex_thread": null, '
-            f'"queued_at": "2026-10-21T14:27:00+00:00", {field}}}]'
-        )
-        with pytest.raises(ValueError, match="unreadable landing board"):
-            am.read_board(r)
+    r.board.write_text(
+        '[{"who": "a", "branch": "b", "codex_thread": null, '
+        '"queued_at": "2026-10-21T14:27:00+00:00", "top_since": 5}]'
+    )
+    with pytest.raises(ValueError, match="unreadable landing board"):
+        am.read_board(r)
+    r.board.write_text(
+        '[{"who": "a", "branch": "b", "codex_thread": null, '
+        '"queued_at": "2026-10-21T14:27:00+00:00", "top_since": null, "top_head": "abc"}]'
+    )
+    assert am.read_board(r)[0].branch == "b"
 
 
-def test_an_idle_codex_holder_is_told_through_codex(
-    tmp_path: Path, default_slot_timeout: None
-) -> None:
+def test_a_codex_holder_is_told_through_codex(tmp_path: Path, default_slot_timeout: None) -> None:
     r = room(tmp_path)
     am.board_join(r, who="codex x", branch="codex/x", codex_thread="X", now=T)
     board_of(r, "b")
     runs = Runs()
-    am.expire_idle_holder(r, now=LATE, run=runs, branch_head=never)
-    texts = [call[-1] for call in runs.calls]
-    assert any("expired" in text for text in texts)
+    am.expire_holder(r, now=LATE, run=runs)
+    assert any("expired" in call[-1] for call in runs.calls)
 
 
 def test_the_keeper_expires_at_once_when_the_deadline_has_passed(
@@ -1324,7 +1249,7 @@ def test_the_keeper_expires_at_once_when_the_deadline_has_passed(
     board_of(r, "a", "b")
     slept: list[float] = []
     late = T + timedelta(hours=2)
-    am.keep(r, run=Runs(), branch_head=never, now=lambda: late, sleep=slept.append, rounds=1)
+    am.keep(r, run=Runs(), now=lambda: late, sleep=slept.append, rounds=1)
     assert [e.branch for e in am.read_board(r)] == ["b", "a"]
     assert slept == pytest.approx([am.KEEPER_IDLE_SECONDS])
 
@@ -1352,13 +1277,9 @@ def test_a_board_from_before_expiry_starts_the_clock_instead_of_expiring(
     )
     late = T + timedelta(hours=3)
     assert am.next_deadline(r, now=late) == late
-    heads = {"a": "h"}
-    assert am.expire_idle_holder(r, now=late, run=Runs(), branch_head=heads.get) == []
+    assert am.expire_holder(r, now=late, run=Runs()) == []
     assert [e.branch for e in am.read_board(r)] == ["a", "b"]
     assert am.read_board(r)[0].top_since == late
-    assert am.read_board(r)[0].top_head == "h"
-    later = late + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES - 1)
-    assert am.expire_idle_holder(r, now=later, run=Runs(), branch_head=heads.get) == []
 
 
 def test_a_failed_expiry_notice_is_reported_by_board_and_keeper(
@@ -1367,17 +1288,28 @@ def test_a_failed_expiry_notice_is_reported_by_board_and_keeper(
     r = room(tmp_path)
     am.board_join(r, who="codex x", branch="codex/x", codex_thread="X", now=T)
     am.board_join(r, who="codex y", branch="codex/y", codex_thread="Y", now=T)
-    notices = am.expire_idle_holder(r, now=LATE, run=Runs(code=7), branch_head=never)
+    notices = am.expire_holder(r, now=LATE, run=Runs(code=7))
     assert notices[-1].exit_code == 7 and "expired" in notices[-1].text
     assert am.report(notices) == 7
     capsys.readouterr()
     am.keep(
         r,
         run=Runs(code=7),
-        branch_head=never,
         now=lambda: LATE + timedelta(hours=2),
         sleep=lambda seconds: None,
         rounds=1,
     )
     printed = capsys.readouterr().out
     assert "failed (codex queue exit 7)" in printed and "expired" in printed
+
+
+def test_joining_as_the_first_waiter_expires_an_overdue_lone_holder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "0")
+    r = am.Mailroom(tmp_path / "mail")
+    board_of(r, "a")
+    assert am.main(["land-join", "--who", "b", "--branch", "b"], run=Runs()) == 0
+    assert "You are landing now" in capsys.readouterr().out
+    assert [e.branch for e in am.read_board(r)] == ["b", "a"]

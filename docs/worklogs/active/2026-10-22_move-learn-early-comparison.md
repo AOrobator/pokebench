@@ -34,12 +34,12 @@ OFF: today's readout bytes.
 | PB5 Change one thing | PASS | One switch; OFF reproduces today's readout and state JSON (test_off_is_the_readout_without_the_block, test_the_boxes_and_the_forget_list_are_unchanged, test_state_json_is_unchanged). |
 | PB6 Long runs fail where short can't | PASS | Found in a 70-minute bundle run; adds at most 7 lines on move-learning pages only. No truncation of model context. |
 | PB7 No event log, didn't happen | PASS | Readout lines reach the model through the recorded tool results; fixtures are byte-for-byte raw-RAM archives with sha256 provenance. |
-| PB8 Misbehavior loud, bounded | PASS | A failed read on a page is a visible HARNESS BUG line (test_a_failed_read_on_a_page_is_a_visible_harness_bug); non-learning battle pages read no memory (test_other_battle_pages_read_no_memory). |
+| PB8 Misbehavior loud, bounded | PASS | Harness read failures stay loud and bounded: a failed read on a matching page is a visible HARNESS BUG line (test_a_failed_read_on_a_page_is_a_visible_harness_bug); non-learning battle pages read no memory, a page naming another learner reads only the learner slot, another move only its name, and evolution pages never take the battle path (counting-reader tests, test_an_evolution_page_never_takes_the_battle_path). Model tool-call validation is unchanged. |
 | PB9 Rock-solid-or-ask | PASS | Scope (pages only, no question line, no tool change) is the proposal the operator approved ("yes", 1:44 AM ET). Step set 0–3 grounded in pret evolution_scene.c MVSTATE_* and T_MVSTATE_*. |
 | PB10 No carve-outs | PASS | No skips, excludes or threshold changes; existing tests changed only for registry positions and the one ON-behavior expectation (no comparison while printing now asserts with the switch off). |
 | PB11 Verify pinned dependency | N/A | No dependency or vendor change. |
 | PB12 macOS privacy prompts | N/A | ROM read only through POKEBENCH_ROM in tests, as before. |
-| PB13 Close the loop | PASS | RED commit 6c014bc7b; GREEN, gates, review and landing recorded below. |
+| PB13 Close the loop | PASS (in progress) | RED 6c014bc7b, GREEN 37225c00e, review-round-1 fix ae1b0b9c3 and pin 0d5359cf9 recorded with gates; review round 2, landing and the live viewer check are still open and recorded below when done. |
 - Bundle membership: The operator 2026-10-22 1:49 AM ET, "This fix should go in the bundle." Added to the bundle arm (switches list, base off) of bundle-v-control-2h, bundle-v-control, bundle-cook-1h, whole-map-cook-1h and whole-map-pair-2h, the five fixed bundles that carry move-learn-tool-v1. Control arm stays off.
 - M2 GREEN: reader (move_learn.py EARLY_STATES 0-3, battle pages by regex then learner check), game_state/rerender wiring (needs move-learn-comparison-v1), registration in features.ts, play-preset, next-run, legacy set, SERVER_FEATURES (TS + Python, default off). Registry-position test updates across ~40 agent tests and 13 env tests. Wiring deleted once (rerender move_learning_early_enabled=False): 9 new tests red; restored.
 - M3: explainer docs/explainers/move-learn-early-comparison-v1.html (pages-theme, pages-check clean), README, FEATURE_EXPLAINERS mapping + panels/server tests; experiments/move-learn-early-comparison-v1.json pending (incumbent = d951 recorded bundle arm with this off); readiness row.
@@ -57,3 +57,5 @@ OFF: today's readout bytes.
 - Fix verified RED-first: reverting move_learn.py fails 3 new tests; reverting the screen gate fails the evolution test.
 - Repinned experiments/move-learn-early-comparison-v1.json source.commit to ae1b0b9c36c9ecd0835caad321fd98925112c0fb.
 - Repin commit follows the fix commit.
+- Round-1 Grok stand-in (`gpt-6-astra` xhigh) finished on packet 37225c00e: `VERDICT: BLOCKING`, the same ownership-before-read finding as GPT #1 (already fixed in ae1b0b9c3); PB8/PB13 wording tightened.
+- Gates on 0d5359cf9 + this worklog edit: just coverage pass (agent 4432, viewer 1669; Python lines 97.38% branches 93.40% functions 100%), just lint pass, verify-vendor OK.

@@ -260,3 +260,11 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Agent prior9 candidate reached4597 pass/3 fail before final P0 registry append; viewer1724 pass/3 fixture-shape failures; Python3968 pass/1 expected default-OFF membership mismatch. All remaining failures corrected or being rerun; no final gate claim yet.
 
 - Synced reviewed source prerequisite main fbfea5d71 (future potion/factual-healing bundle activation). Conflict resolution preserves all ten new treatment bits and main potion activation. Static baseline comparison tests explicitly exclude only additions after their historical pins. Latest diagnostic agent4606 pass/2 metadata-tail failures; correcting those before full frozen gates.
+
+### Final qualification before frozen review
+
+- `just test` now passes4611 agent +1733 viewer +3969 Python =10313 tests, no skips (`/tmp/frontier-test6.log`). Full ten-feature generated-arm/pending comparison tests additionally16 pass.
+- New integration regression found and corrected an unreachable duplicate stateOnlyProblems return from append conflict: all three historical/prompt treatments must be rejected in state-only mode. RED1 fail/2 pass then GREEN7 combined pass. No production tests or thresholds weakened.
+- All pending entries share an explicit complete future-bundle feature vector with their own treatment OFF; single-bit candidate parses and validates. All entries blocked/unqueued/unapproved; registration numeric fields remain explicitly inherited placeholders pending operator-approved budget/start/cap/power design.
+- Main focus-preservation policy61c26ca0c is a pending documentation sync. Agent-owned headless proof for the tenth owned-battle-context page now passes with unchanged desktop front application before/after. No live8790 change yet.
+- M3 trainer-template support is proven; the approved generic non-trainer static-template scope is still open and will be finished in a separate packet before closing the worklog.

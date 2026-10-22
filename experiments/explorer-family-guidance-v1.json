@@ -89,7 +89,7 @@
       "field-control-lock": true,
       "field-dialogue-phase-v1": true,
       "field-move-gates-v1": true,
-      "fixed-point-breaker-v1": false,
+      "fixed-point-breaker-v1": true,
       "fresh-retry-v1": false,
       "full-map-navigation-v1": true,
       "game-evidence-priority-v1": true,
@@ -242,7 +242,17 @@
       "milestone-drought-suppression-v1": true,
       "navigation-recovery-v1": true,
       "coherent-healing-feedback-v1": true,
-      "explorer-family-guidance-v1": false
+      "explorer-family-guidance-v1": false,
+      "battle-move-learn-input-v1": true,
+      "rejected-movement-stride-v1": true,
+      "leader-loss-comparison-v1": true,
+      "npc-approach-feedback-v1": true,
+      "boundary-crossing-facts-v1": true,
+      "delivered-place-evidence-v1": true,
+      "reachable-section-alternatives-v1": true,
+      "owned-battle-context-v1": true,
+      "menu-item-guidance-v1": true,
+      "factual-healing-guidance-v1": true
     }
   },
   "trialsPerArm": 8,
@@ -258,6 +268,6 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Correctness evidence: recorded b300 state and ea04 HP variants, not measured benefit. Plan checkpoint-first diagnostics after operator budget/start approval. Eight per arm is a screen only; no confirmation N or GPU budget inferred. Source repin required after reviewed integration.",
-  "blocked": "Pending only: candidate not landed; no qualified pre-activation checkpoint or matching frozen incumbent readiness audit yet. No launches authorized."
+  "notes": "Correctness evidence: recorded b300 state and ea04 HP variants, not measured benefit. Plan checkpoint-first diagnostics after operator budget/start approval. Eight per arm is a screen only; no confirmation N or GPU budget inferred. Source repin required after reviewed integration. Integration: full shared future-bundle feature vector with only changedFeature OFF. Registration limits/budget/criteria are inherited placeholders, not an operator-approved evaluation design; re-freeze them from evidence before removing blocked. No measured or diagnostic launch authorized.",
+  "blocked": "Pending design only: no approved budget, qualified start/load/readiness or final comparison cap/power. Do not queue or launch. Re-pin source before approval."
 }

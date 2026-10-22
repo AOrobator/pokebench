@@ -4,6 +4,7 @@ import {BASE_MS,Log,START} from "../test-support/events.js";
 import {RunView} from "./model.js";
 import {eventText,inspector} from "./panels.js";
 import {lanesSvg} from "./timeline.js";
+import {parseReadinessDoc} from "./experiment-store.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import {parseExperiment} from "@pokebench/agent/experiments";
 
@@ -19,6 +20,7 @@ it("keeps suppressed droughts visible as diagnostics, without timeline marks or 
 it("registers an unqueued one-switch experiment and enables only the current bundle arms",()=>{
  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
  const e=parseExperiment(read(`experiments/${ID}.json`));
+ expect(parseReadinessDoc(readFileSync(new URL("../../../docs/experiments/readiness.md",import.meta.url),"utf8")).get(ID)).toMatchObject({verdict:"READY (recent fallback: 4/4)",evidence:expect.stringContaining("Pending, unqueued, unapproved")});
  expect(e.changedFeature).toBe(ID);expect(e.queuePosition).toBeUndefined();
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"]){
   const f=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};

@@ -307,4 +307,8 @@ Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x40
 
 `just experiments-check` reports no problem for these six entries (its 150 starter-decision-salience ledger problems are pre-existing). `just experiments` in the worktree stops on the same pre-existing problems, so the readiness reasons are read after landing on main. The incumbent is the bundle arm of bundle-v-control-2h with the six switches off. Per memory "long runs only", these bug fixes are measured by long cook runs; no gameplay-benefit claim. `source.commit` is the branch HEAD at registration and is updated to the landing merge.
 
-| `milestone-drought-suppression-v1` | `NEW_GAME_CREATED` | Ready by recent-lane fallback: 4/4 think-fast ended registry runs (2f46, 6684, dc0e, 17a0; Oct 15) reached activation; no exact-current-incumbent cohort. Pending, unqueued, unapproved. Activation is new-game creation because the five-minute timer can fire before name confirmation; the Aqua Woods event is the primary outcome. No measured benefit claimed. |
+## Milestone drought suppression (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `milestone-drought-suppression-v1` | `NEW_GAME_CREATED` | READY (recent fallback: 4/4) | Recent think-fast ended registry runs 2f46, 6684, dc0e and 17a0 (Oct 15) reached activation; no exact-current-incumbent cohort. Pending, unqueued, unapproved. The five-minute timer can fire before name confirmation. Primary outcome: TEAM_AQUA_WOODS_EVENT_COMPLETE. No measured benefit claimed. |

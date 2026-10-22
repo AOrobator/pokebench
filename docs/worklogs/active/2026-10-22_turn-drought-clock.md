@@ -76,4 +76,4 @@ Merge commit (not a re-cut, so the reviewed diff stays recognizable). 46 conflic
 - [x] Sync gates at f4a95ad7f: `just lint` 0; `just build` 0; `just coverage` 0: agent 4779 tests (97.30 / 93.37 / 97.79 / 99.20), viewer 1792 (95.47 / 91.45 / 94.45 / 97.97), Python 4008 passed (lines 97.41 / branches 93.48 / functions 100, floor 90); `just test` 0 (agent 4779, viewer 1792, Python 4008); `just verify-vendor` OK; experiments-check: no definition problems (only the pre-existing starter-decision-salience runs ledger lines). One pre-merge viewer run failed panels.test.ts "renders every mapped explainer's body" once; it passed on two isolated reruns and in both full gate runs (load flake, test unchanged).
 - [x] Sync wiring deletion: `turnClock()` forced false gave 23 failed / 5 passed in turn-drought-clock.test.ts; restored, turn-drought-clock + parity 37 passed.
 - Experiment source.commit stays a1dc18710 (the implementation commit did not change).
-
+- Main then moved to 04b7d34cb (one docs-only worklog commit on another worklog); merged in as a clean docs-only merge so the branch contains current main. No code change, so the gates above stand for the tree.

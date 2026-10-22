@@ -1594,3 +1594,50 @@ it("links menu and factual healing guidance to the tracked explainers",()=>{
   expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
  }
 });
+
+
+it("links the battle move-learning owner card to its tracked explainer",()=>{
+ const log=new Log();log.add(0,START);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const id="battle-move-learn-input-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});
+
+it("links checked requested strides to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["rejected-movement-stride-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="rejected-movement-stride-v1"] a')?.getAttribute("href")).toBe("/explainers/rejected-movement-stride-v1.html");
+});
+
+it("links current boundary facts to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["boundary-crossing-facts-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="boundary-crossing-facts-v1"] a')?.getAttribute("href")).toBe("/explainers/boundary-crossing-facts-v1.html");
+});
+
+
+it("links delivered person and place evidence to its tracked explainer",()=>{
+ const log=new Log();log.add(0,START);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const id="delivered-place-evidence-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});
+
+it("links section alternatives to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["reachable-section-alternatives-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="reachable-section-alternatives-v1"] a')?.getAttribute("href")).toBe("/explainers/reachable-section-alternatives-v1.html");
+});
+
+it("links the rejected movement prefix switch to its tracked explainer",()=>{
+ const id="rejected-movement-prefix-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
+});

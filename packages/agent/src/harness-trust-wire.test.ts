@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // harness-trust-v1 and cited-destination-v1: registry, presets, system prompt, the production playGameTools factory,
 // the recorder's events, and one run through the pinned pi loop that delivers the header, the walk-away note and the
@@ -46,12 +47,12 @@ const must=<T>(value:T|undefined):T=>{if(value===undefined)throw new Error("miss
 
 describe("registry and presets",()=>{
  it("both switches are registered last, in order, with copy that says what OFF does",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-117,-113)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
+  expect(SWITCHABLE_FEATURES.slice(-132,-128)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
   expect(featureInfo(TRUST)).toMatchObject({switchable:true,group:"guidance",needs:"dialogue-auto-advance-v1",title:"HARNESS TRUST"});
   expect(featureInfo(CITED)).toMatchObject({switchable:true,group:"guidance",needs:"bounded-navigation-v1",title:"CITED DESTINATION"});
   for(const id of [TRUST,CITED])expect(featureInfo(id).description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id===TRUST||f.id===CITED)).toHaveLength(2);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-36,-34)).toEqual([TRUST,CITED]);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-36,-34)).toEqual([TRUST,CITED]);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[TRUST]:false,[CITED]:false},null)).not.toContain(TRUST);
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false,"bounded-navigation-v1":false})).toEqual(expect.arrayContaining([`${TRUST} needs dialogue-auto-advance-v1`,`${CITED} needs bounded-navigation-v1`]));
   expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toEqual(expect.arrayContaining([`state-only-decisions-v1 requires ${TRUST} OFF`,`state-only-decisions-v1 requires ${CITED} OFF`]));

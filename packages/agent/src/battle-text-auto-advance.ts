@@ -1,3 +1,4 @@
+import {nonBattleOwner} from "./battle-context.js";
 // battle-text-auto-advance-v1: inside a battle the harness advances the battle message window with B,
 // one waiting page at a time, until the battle needs a decision or ends. Waits are held by the game
 // server until the first emulated frame the battle needs input (env/pokebench_env/battle_text.py).
@@ -25,7 +26,8 @@ export const BATTLE_BUSY_BOUNDS=3;
 const BATTLE_START_SCREENS:ReadonlySet<string>=new Set(["battle_transition","field_battle_transition"]);
 
 // The battle is running its own text or animation (or about to start), with no decision open.
-export function battleEngaged(s:GameStateSnapshot):boolean {
+export function battleEngaged(s:GameStateSnapshot,owned=false):boolean {
+ if(owned&&nonBattleOwner(s)!==null)return false;
  if(!s.in_battle)return BATTLE_START_SCREENS.has(s.screen)||s.active_ui?.phase==="battle_transition";
  const phase=s.battle?.text_phase;
  return phase==="busy"||phase==="message_waiting"||(phase==null&&s.battle?.phase==="initializing");
@@ -69,7 +71,9 @@ export function levelUpPage(b:Battle|null|undefined):string|null {
 }
 
 type Decision={kind:"press";levelUp?:string}|{kind:"wait"}|{kind:"over"}|{kind:"stop";stop:AdvanceStop;detail:string};
-export function classifyBattle(s:GameStateSnapshot,levelupBox=false):Decision {
+export function classifyBattle(s:GameStateSnapshot,levelupBox=false,owned=false):Decision {
+ const owner=owned?nonBattleOwner(s):null;
+ if(owner!==null)return {kind:"stop",stop:"menu",detail:`${owner} owns the current screen; battle text is not advanced`};
  // The game server holds a wait until CB2_Overworld with no fade, so any other screen here is the way back.
  if(!s.in_battle)return s.screen==="overworld"?{kind:"over"}:{kind:"wait"};
  const b=s.battle;
@@ -133,6 +137,7 @@ export interface BattleRun {
  readonly addPages:(entries:readonly BattleTextEntry[],s:GameStateSnapshot)=>void;
  // levelup-box-v1: press through the level-up stats box and list its pages.
  readonly levelupBox?:boolean;
+ readonly ownedBattleContext?:boolean;
  readonly addLevelUp?:(text:string,s:GameStateSnapshot)=>void;
 }
 
@@ -142,7 +147,7 @@ export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal
  const done=async(stop:AdvanceStop,detail:string,over=false):Promise<BattleOutcome>=>{run.addPages(await run.journal.collect(run.known,signal),s);return {state:s,over,stop,detail,presses,extras};};
  const failed=(error:unknown):Promise<BattleOutcome>=>{if(signal?.aborted===true)throw error;return done("error",`battle text auto-advance stopped: ${error instanceof Error?error.message:String(error)}`);};
  for(;;){
-  const decision=classifyBattle(s,run.levelupBox===true);
+  const decision=classifyBattle(s,run.levelupBox===true,run.ownedBattleContext===true);
   if(decision.kind==="over")return done("field_free","the battle ended",true);
   if(decision.kind==="stop")return done(decision.stop,decision.detail);
   if(run.clock.now()-run.began>=run.limits.callMs)return done("time_cap",`AUTO-ADVANCE CAP: stopped after ${String(run.limits.callMs/1000)} s of automatic advancing; the battle is still running`);

@@ -18,6 +18,8 @@ export class StoryCharacterGate {
  private readonly states=new Map<number,State>();
  private readonly faced=new Map<number,string>();
  private readonly talked=new Set<string>();
+ // Every object talked to this run; never cleared (auto-talk-v3 ranks people talked to before the latest milestone).
+ private readonly ever=new Set<string>();
  private readonly spoke=new Set<string>();
  private readonly pending=new Map<string,{readonly key:string|null;readonly speakers:readonly string[]}>();
  private here:Here|null=null;
@@ -55,12 +57,12 @@ export class StoryCharacterGate {
    return;
   }
   if(event.type==="auto_talk"){
-   if(event.outcome==="talked"&&event.target!==null){if(event.target.key!==null)this.talked.add(event.target.key);if(event.target.character!==null)this.spoke.add(event.target.character);}
+   if(event.outcome==="talked"&&event.target!==null){if(event.target.key!==null){this.talked.add(event.target.key);this.ever.add(event.target.key);}if(event.target.character!==null)this.spoke.add(event.target.character);}
    return;
   }
   if(event.type!=="tool_result")return;
   const talk=this.pending.get(event.id);this.pending.delete(event.id);
-  if(talk!==undefined&&!event.is_error){if(talk.key!==null)this.talked.add(talk.key);for(const name of talk.speakers)this.spoke.add(name);}
+  if(talk!==undefined&&!event.is_error){if(talk.key!==null){this.talked.add(talk.key);this.ever.add(talk.key);}for(const name of talk.speakers)this.spoke.add(name);}
   if(event.is_error||!GAME_TOOLS.has(event.name))return;
   const state=event.state_seq===undefined?undefined:this.states.get(event.state_seq);
   if(state===undefined||state.map_id===null)return;
@@ -83,6 +85,7 @@ export class StoryCharacterGate {
  }
  // fixed-point-breaker-v1 stage 3 talks with no tool result of its own.
  talkedTo(key:string):boolean {return this.talked.has(key);}
+ talkedEver(key:string):boolean {return this.ever.has(key);}
 
  holds():Hold|null {
   const here=this.here,now=this.position;

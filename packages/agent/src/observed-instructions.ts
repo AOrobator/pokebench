@@ -67,6 +67,13 @@ export class ObservedInstructions {
   // the exact recorded YAML even when this convenience index fills.
   return [...refs].sort((a,b)=>a-b).slice(-64);
  }
+ placeEvidence():string|null {
+  const retention=this.retention();
+  const kept=new Set(retention?.kept.map(e=>e.result_event)??this.archive().map(e=>e.result_event));
+  const episodes=this.archive().filter(e=>kept.has(e.result_event)&&e.pages.some(p=>/\b(?:upstairs|downstairs|next door|lives|went|house|lab|town|city|route|woods|gym)\b/i.test(p.text)));
+  if(episodes.length===0)return null;
+  return "DELIVERED PERSON AND PLACE EVIDENCE — historical quotes, not current presence or an active objective. Unknown speakers stay unknown; relative words refer to the quoted source location. Current observations override old statements. No route or person identity is inferred. Exact whole episodes; audited native completion may retire them, unknown variants stay.\n"+quote({columns:["speaker","speaker_source","text","source_map_display","source_map_name","map_id","state_event"],episodes:episodes.map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,p.map_display??null,p.map,p.map_id,p.state_seq])}))});
+ }
  text():string|null {
   if(this.episodes.size===0)return null;
   const retention=this.retention();
@@ -92,11 +99,15 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"]);recorder.subscribe(event=>{memory.observe(event);});
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"]);
+ const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
+ recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{
-  const text=memory.text();if(text===null)return transform(messages);
-  const retention=memory.retention();
-  recorder.recordLedgerContext({text,evidence:memory.evidence(),...(retention===null?{}:{retention})});
+  const base=memory.text(),placeText=places?.placeEvidence()??null;
+  const text=base===null?placeText:placeText===null?base:`${base}\n\n${placeText}`;
+  if(text===null)return transform(messages);
+  const retention=placeText===null?memory.retention():null;
+  recorder.recordLedgerContext({text,evidence:[...new Set([...memory.evidence(),...(places?.evidence()??[])])].slice(-64),...(retention===null?{}:{retention})});
   return transform([...messages,{role:"user",content:text,timestamp:Date.now()}]);
  };
 }

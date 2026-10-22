@@ -93,6 +93,7 @@ export interface StoryLine {
  readonly lives:Lives|null;
  readonly scriptedPlaces?:readonly {readonly quote:string;readonly resolution:string}[];
  readonly birchLabStage?:number;
+ readonly deliveredPlace?:{readonly dialogue_event:number;readonly result_event:number|null;readonly state_event:number|null;readonly map:string|null;readonly map_id:MapId|null;readonly speaker:string|null;readonly speaker_source:string|null;readonly exact_text:string;readonly map_display:string|null};
 }
 
 // One place a story line names: the quoted words, how they resolve (text as the block prints it after the quote),
@@ -135,7 +136,7 @@ export class StoryDestinations {
  // unfinished-activity-v1: the maps the player entered, in order, with the turn.
  private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false){}
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
    const map=event.map_id;
@@ -149,13 +150,13 @@ export class StoryDestinations {
    return;
   }
   if(event.type==="dialogue_auto_advance"){
-   const lines=this.storyLines(event.turn,event.pages);
+   const lines=this.storyLines(event.turn,event.pages,event.seq);
    this.pending.set(event.tool_call_id,lines);
    return;
   }
   if(event.type!=="tool_result")return;
   const lines=this.pending.get(event.id);this.pending.delete(event.id);
-  if(lines!==undefined&&!event.is_error)this.lines.push(...lines);
+  if(lines!==undefined&&!event.is_error)this.lines.push(...lines.map(line=>line.deliveredPlace===undefined?line:{...line,deliveredPlace:{...line.deliveredPlace,result_event:event.seq}}));
  }
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
@@ -176,7 +177,7 @@ export class StoryDestinations {
  }
  // Every field page a story character speaks in one call, with its "lives" clause; battle text is no one's line.
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
- private storyLines(turn:number,pages:readonly Page[]):StoryLine[] {
+ private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
   // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
   // coordinate triggers show this exact guidance and physically lead the player to the Gym.
@@ -190,6 +191,8 @@ export class StoryDestinations {
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
    if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
     out.push(this.withBirchLabStage(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
+   }else if(this.deliveredPlaces&&speaker===null&&namedIn(text).length>0&&placePhrases(text,null,NAMES).length>0){
+    out.push(this.withBirchLabStage(page,{turn,speaker:"unnamed speaker",text,lives:null,deliveredPlace:{dialogue_event:dialogueEvent,result_event:null,state_event:page.state_seq,map:page.map,map_id:page.map_id,speaker:page.speaker,speaker_source:page.speaker_source,exact_text:page.text,map_display:page.map_display??null}}));
    }else if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
@@ -213,7 +216,7 @@ export class StoryDestinations {
   const lines=[...this.lines,...(this.pending.get(callId)??[])];
   for(let i=lines.length-1;i>=0;i--){
    const line=lines[i];
-   if(line===undefined)continue;
+   if(line===undefined||line.deliveredPlace?.result_event===null)continue;
    if(line.lives!==null||(line.scriptedPlaces?.length??0)>0||placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]).length>0)yield line;
   }
  }
@@ -295,6 +298,8 @@ export class StoryDestinations {
   if(goal===null)return null;
   if(stageBound&&goal.done===true)return null;
   const quote=`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`;
+  const source=placeEvidenceSource(goal.line);
+  if(source!==null)return [quote,source,...goal.resolved.map(r=>`- ${r.quote}${r.text}`),...(goal.done===true?[staleNote(goal.doneReason)]:[])].join("\n");
   if(goal.done===true)return [quote,staleNote(goal.doneReason)].join("\n");
   if(goal.reached!==undefined)return [quote,`- Reached: ${goal.reached.map(reachedPlace).join("; ")}.`].join("\n");
   return [quote,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
@@ -308,6 +313,11 @@ export class StoryDestinations {
   const end=anchor.index+anchor[0].length;
   return `${text.slice(0,end)}\n${block}${text.slice(end)}`;
  }
+}
+
+export function placeEvidenceSource(line:StoryLine):string|null {
+ const source=line.deliveredPlace;
+ return source===undefined?null:`Historical source: dialogue ${String(source.dialogue_event)}, result ${String(source.result_event)}, state ${String(source.state_event)}, turn ${String(line.turn)}, source display ${JSON.stringify(source.map_display)}, map name ${JSON.stringify(source.map)} ${JSON.stringify(source.map_id)}, speaker ${JSON.stringify(source.speaker)}, attribution ${JSON.stringify(source.speaker_source)}. Exact quote: ${JSON.stringify(source.exact_text)}. This reports what was said, not current presence or an instruction to go there.`;
 }
 
 function isBirchLab(place:Place):boolean {
@@ -406,7 +416,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

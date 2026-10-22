@@ -74,6 +74,7 @@ def read_state(
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
         in_game_naming_enabled="in-game-naming-readout-v1" not in off,
         offscreen_objects_enabled="offscreen-objects-v1" not in off,
+        static_npc_templates_enabled="static-npc-template-approach-v1" not in off,
         transition_coherence_enabled="transition-coherence-v1" not in off,
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
@@ -102,6 +103,7 @@ def read_state(
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
         move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
         berry_readout_enabled="berry-readout-v1" not in off,
+        battle_move_learn_input_enabled="battle-move-learn-input-v1" not in off,
         mart_stock_enabled=MART_STOCK not in off,
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,

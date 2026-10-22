@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // exit-reachability-v1: one walk-reachability check (the server's exit_reach) read by every exit list and navigate_to message.
 // Fixture exit-reach-states.json.gz: recorded state bodies (envelope stripped) from runs/<id>/events.jsonl, each with the
@@ -317,9 +318,9 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-117)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
-  expect(SERVER_FEATURES.at(-35)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-132)?.id).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-38)).toBe(ID);
+  expect(SERVER_FEATURES.at(-37)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });

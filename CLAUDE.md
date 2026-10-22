@@ -25,6 +25,8 @@ To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
+Browser verification must preserve the operator's desktop focus (operator decision 2026-10-22). Use an agent-owned headless browser or a documented background context. Do not activate apps/windows/tabs, use desktop mouse/keyboard input, or open screenshot files in desktop apps for routine verification. If the available tool cannot guarantee background operation, leave that check pending and report the limitation; do not take focus to satisfy a proof requirement. A request to test, land or verify is not permission to take focus. Explicit requests to show or interact with a foreground surface authorize only that operation. Follow `.claude/skills/viewer-e2e/SKILL.md` and pass this boundary to every subagent.
+
 The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add new marks, lanes, labels or colors for new kinds of events to it without the operator's explicit permission (operator decision 2026-10-16). New diagnostics go to Activity History and the raw-event inspector. Fixing how an existing mark is drawn is still fine.
 
 ## Project overrides of the global rules

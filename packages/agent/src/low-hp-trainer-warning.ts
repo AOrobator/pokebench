@@ -637,6 +637,7 @@ export function healArm(features:FeatureSet,source:PlaceSource):HealArm {
  return {table,heal:features["heal-before-trainers-v1"]?new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:table,items:features["bag-healing-items-v1"],...(v2?{v2}:{})}):null};
 }
 export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource={},shared?:HealArm):readonly AgentTool[] {
+ if(features["coherent-healing-feedback-v1"])return withCoherentHealing(tools,features,recorder,source,shared);
  if(!features["low-hp-trainer-warning-v1"])return tools;
  const rules:Rule[]=[];
  if(features["low-hp-trainer-warning-v2"]){
@@ -677,5 +678,50 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
    if(fired!==null){fired.record(tool.name);texts.push(fired.text);}
   }
   return texts.length===0?result:{...result,content:[...result.content,...texts.map(text=>({type:"text" as const,text}))]};
+ }}));
+}
+
+function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource,shared?:HealArm):readonly AgentTool[] {
+ const arm=shared??healArm(features,source);
+ let previous:string|null=null;
+ return tools.map(tool=>({...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
+  const result=await tool.execute(...args);
+  const state=stateOf(result);
+  if(state===undefined)return result;
+  await arm.heal?.shownIn(state,textOf(result));
+  await arm.heal?.observe(state);
+  if(!state.started||state.screen!=="overworld"||state.in_battle||state.field_controls_locked!==false||state.party_owner!=="player"||state.map_id===null)return result;
+  const weak=weakParty(state);
+  if(weak===null)return result;
+  if(weak.length===0){previous=null;return result;}
+  const places=await arm.table();
+  const story=features["low-hp-trainer-warning-v2"]?storyBattleWarning(state):null;
+  const rival=features["low-hp-trainer-warning-v2"]?null:lowHpTrainerWarning(state);
+  const trainers=features["heal-before-trainers-v1"]?healBeforeTrainers(state,{entered:new Set(),places,skip:null,v2:features["heal-before-trainers-v2"]}):null;
+  const heal=await arm.heal?.nearest(state)??null;
+  const gym=features["gym-heal-warning-v1"]&&places!==null?gymHealWarning(state,places,heal):null;
+  if(story===null&&rival===null&&trainers===null&&gym===null)return result;
+  const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,rival?.rival,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
+  if(previous===key)return result;
+  const risk=weakList(weak);
+  const context=story!==null?`${story.opponent}'s trainer battle cannot be run from.`:NO_RUNNING;
+  const where=heal===null?"":` ${healPlaceSentence(heal,state.map_id,arm.heal?.listedNow(heal)??false)}`;
+  const items=bagHealingItems(state,weak);
+  const bag=items.length===0?"":bagSentence(items);
+  const text=`SUPERVISOR: ${risk}. ${context} ${blackout(state.money)} HP alone does not establish whether you will win.${where}${bag}`;
+  if(story!==null){
+   if(recorder.storyBattleWarning===undefined)throw new Error("coherent-healing-feedback-v1 needs story_battle_warning recording");
+   recorder.storyBattleWarning(tool.name,story,text);
+  }else if(rival!==null){
+   recorder.lowHpTrainerWarning(tool.name,rival,text);
+  }else if(trainers!==null){
+   if(recorder.healBeforeTrainersWarning===undefined)throw new Error("coherent-healing-feedback-v1 needs heal_before_trainers_warning recording");
+   recorder.healBeforeTrainersWarning(tool.name,{...trainers,heal,items},text);
+  }else if(gym!==null){
+   if(recorder.gymHealWarning===undefined)throw new Error("coherent-healing-feedback-v1 needs gym_heal_warning recording");
+   recorder.gymHealWarning(tool.name,gym,text);
+  }
+  previous=key;
+  return {...result,content:[...result.content,{type:"text" as const,text}]};
  }}));
 }

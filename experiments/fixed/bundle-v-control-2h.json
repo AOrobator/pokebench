@@ -239,8 +239,20 @@
    "berry-readout-v1": false,
    "milestone-drought-suppression-v1": false,
    "navigation-recovery-v1": false,
+   "coherent-healing-feedback-v1": false,
+   "explorer-family-guidance-v1": false,
+   "battle-move-learn-input-v1": false,
+   "rejected-movement-stride-v1": false,
+   "leader-loss-comparison-v1": false,
+   "npc-approach-feedback-v1": false,
+   "boundary-crossing-facts-v1": false,
+   "delivered-place-evidence-v1": false,
+   "reachable-section-alternatives-v1": false,
+   "owned-battle-context-v1": false,
    "menu-item-guidance-v1": false,
-   "factual-healing-guidance-v1": false
+   "factual-healing-guidance-v1": false,
+   "static-npc-template-approach-v1": false,
+   "rejected-movement-prefix-v1": false
   }
  },
  "switches": [
@@ -278,8 +290,21 @@
   "berry-readout-v1",
   "milestone-drought-suppression-v1",
   "navigation-recovery-v1",
+  "coherent-healing-feedback-v1",
+  "explorer-family-guidance-v1",
+  "fixed-point-breaker-v1",
+  "battle-move-learn-input-v1",
+  "rejected-movement-stride-v1",
+  "leader-loss-comparison-v1",
+  "npc-approach-feedback-v1",
+  "boundary-crossing-facts-v1",
+  "delivered-place-evidence-v1",
+  "reachable-section-alternatives-v1",
+  "owned-battle-context-v1",
   "menu-item-guidance-v1",
-  "factual-healing-guidance-v1"
+  "factual-healing-guidance-v1",
+  "static-npc-template-approach-v1",
+  "rejected-movement-prefix-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -293,7 +318,6 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "fixed-point-breaker-v1",
   "positive-supervisor-v1",
   "story-battle-heal-gate-v1"
  ],

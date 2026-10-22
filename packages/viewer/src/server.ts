@@ -32,6 +32,7 @@ import { cardWorkbench, createWorkbenchLoader, workbenchSnapshot, type LoadedRun
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
+import { REPORT_SCROLL_SCRIPT } from "./reports-scroll.js";
 import { WebSocketServer } from "ws";
 import { SharedFrameHub } from "./frame-hub.js";
 
@@ -109,7 +110,7 @@ function sendReport(res: ServerResponse, path: string, type: string): void {
   let body: Buffer;
   try { body = readFileSync(path); } catch { sendJson(res, 404, { error: "not found" }); return; }
   res.writeHead(200, { ...REPORT_HEADERS, "content-type": type });
-  res.end(type.startsWith("text/html") ? body.toString("utf8").replace(/href="http:\/\/127\.0\.0\.1:8790\//g, 'target="_top" href="/') : body);
+  res.end(type.startsWith("text/html") ? body.toString("utf8").replace(/href="http:\/\/127\.0\.0\.1:8790\//g, 'target="_top" href="/') + REPORT_SCROLL_SCRIPT : body);
 }
 
 export interface ViewerOptions {

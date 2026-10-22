@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-gate-v1 (the operator 2026-10-20 8:53 PM ET: "yes i also want the gate built", "the gate could also be useful
 // for the gym"). Run 97a0 (2026-10-20T20-26-22_qwen36-gpu1_97a0): result 4541 (turn 156, state 4540) carried the story
 // battle warning "TORCHIC 5/22 … Heal to full before this battle"; at turn 157 (seq 4549) the model called
@@ -434,9 +435,9 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-51)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-66)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-44)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-44)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -446,11 +447,11 @@ describe("registry and event",()=>{
   expect(playSystemPrompt(F97,null)).toBe(playSystemPrompt({...F97,[ID]:false},null));
   expect(playTools(F97)).toEqual(playTools({...F97,[ID]:false}));
  });
- it("is in the bundle arm only of both fixed bundles, and its pending experiment's incumbent is that arm with the switch off",()=>{
+ it("stays OFF in future bundles while its historical pending incumbent remains unchanged",()=>{
   const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[]};
-   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).not.toContain(ID);
   }
   const fixed=read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>};switches:string[]};
   const arm:Record<string,boolean>={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
@@ -470,11 +471,13 @@ describe("registry and event",()=>{
   delete arm["move-learn-early-comparison-v1"];
   delete arm["menu-item-guidance-v1"];
   delete arm["factual-healing-guidance-v1"];
+  delete arm["rejected-movement-prefix-v1"];
   delete arm["poison-readout-v1"];
   delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
+  for(const id of ["static-npc-template-approach-v1","owned-battle-context-v1","coherent-healing-feedback-v1", "explorer-family-guidance-v1", "battle-move-learn-input-v1", "rejected-movement-stride-v1", "leader-loss-comparison-v1", "npc-approach-feedback-v1", "boundary-crossing-facts-v1", "delivered-place-evidence-v1", "reachable-section-alternatives-v1"])Reflect.deleteProperty(arm,id);
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
-  expect({...entry.incumbent.features,"navigation-recovery-v1":true,"milestone-drought-suppression-v1":true,"trigger-navigation-boundary-v1":true,"milestone-instruction-memory-v1":true,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);
+  expect({...entry.incumbent.features,"fixed-point-breaker-v1":true,"navigation-recovery-v1":true,"milestone-drought-suppression-v1":true,"trigger-navigation-boundary-v1":true,"milestone-instruction-memory-v1":true,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

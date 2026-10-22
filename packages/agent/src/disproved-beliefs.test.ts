@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
@@ -45,8 +46,8 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
-  expect(SWITCHABLE_FEATURES.at(-145)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-66)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-160)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-66)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
   // Entries leave on a story-flag change, which needs the story state (review round 1).

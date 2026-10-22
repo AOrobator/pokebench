@@ -933,7 +933,14 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rp-empty { color: #c9d5e6; }
 /* An opened report fills exactly the space under the header, so only the report scrolls, never the page. */
 .rp-page:has(.rp-open:not([hidden])) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-.rp-open { display: grid; grid-template-rows: auto minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
+.rp-open { display: grid; grid-template-rows: auto auto minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
+/* How far down the opened report you are: an Emerald HP bar in its yellow colours, in the gap under the header
+   (design B, runs/mockups/reports-scroll-indicator, picked by the operator 2026-10-22), with design C's percent in the date bar. */
+.rp-page:has(.rp-open:not([hidden])) .bar { box-shadow: none; }
+.rp-progress { position: relative; height: 12px; padding: 2px 0; background: #283038; }
+.rp-progress::before { content: ""; position: absolute; inset: 2px 0; background: #48586a; }
+.rp-progress i { position: relative; display: block; height: 100%; width: 0; background: linear-gradient(#f8e038 0 62%, #c8a808 62% 100%); }
+.rp-pct { color: #ffd447; min-width: 4ch; text-align: right; }
 .rp-open[hidden] { display: none; }
 .rp-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: #1e2c44; padding: 10px 14px; font: 8px 'Press Start 2P', monospace; color: #dfe8f5; }
 .rp-bar a { color: #ffd447; text-decoration: none; } .rp-bar b { flex: 1 1 auto; min-width: 0; } .rp-nav { display: flex; gap: 12px; } .rp-bar .off { color: #5a6b85; }

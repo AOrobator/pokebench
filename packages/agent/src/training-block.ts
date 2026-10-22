@@ -28,9 +28,11 @@ interface Source {readonly battle:number;readonly wild:string;readonly place:str
 interface Earned {readonly battle:number;label:string;readonly place:string;trainer:boolean;readonly turn:number;readonly amounts:string[];readonly values:number[]}
 interface LeaderFoe {readonly species:string;readonly level:number;hp:number;maxHp:number}
 interface LeaderBattle {
- readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
+ readonly effectiveness:string[];readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
  readonly foes:Map<number,LeaderFoe>;outcome:string|null;moneyAfter:number|null;done:boolean;
 }
+interface LossPages {readonly battle:LeaderBattle;readonly messages:string[];readonly effectiveness:string[]}
+interface PendingLossPages {readonly tool:string;readonly pages:LossPages[]}
 interface SeenTrainer {readonly id:number;readonly sprite:string|null;readonly x:number;readonly y:number;defeated:boolean}
 
 const oneLine=(text:string)=>text.replace(/\s*\n\s*/g," ").trim();
@@ -57,12 +59,16 @@ export class TrainingBlock {
  private readonly earned:Earned[]=[];
  private readonly leaders=new Map<string,LeaderBattle[]>();
  private leaderRunning:{readonly name:string;readonly battle:LeaderBattle}|null=null;
+ // The new loss-memory path alone waits for the recorder's matching delivery receipt.
+ private readonly leaderSources=new Map<number,LeaderBattle>();
+ private readonly pendingLossPages=new Map<string,PendingLossPages>();
  private readonly names=new Map<number,string>();
  private readonly maps=new Map<string,Map<number,SeenTrainer>>();
  constructor(private readonly features:FeatureSet){}
 
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){this.state(event);return;}
+  if(this.features["leader-loss-comparison-v1"])this.lossDelivery(event);
   if(event.type!=="dialogue_auto_advance"||!this.features["exp-earned-ledger-v1"])return;
   for(const page of event.pages){
    if(page.battle_message_id===undefined||page.state_seq===null)continue;
@@ -84,6 +90,41 @@ export class TrainingBlock {
   }
  }
 
+ // Recording precedes the final observation, which may reject. Pending pages stay bound to
+ // their source battle even when that battle completes before its successful result arrives.
+ private lossDelivery(event:RunEvent):void {
+  if(event.type==="dialogue_auto_advance"){
+   const previous=this.pendingLossPages.get(event.tool_call_id);
+   const pages=new Map<LeaderBattle,LossPages>((previous?.tool===event.tool?previous.pages:[]).map(p=>[p.battle,p]));
+   for(const page of event.pages){
+    if(page.battle_message_id===undefined||page.state_seq===null)continue;
+    const battle=this.leaderSources.get(page.state_seq);if(battle===undefined)continue;
+    const text=oneLine(page.text),entry=pages.get(battle)??{battle,messages:[],effectiveness:[]};
+    pages.set(battle,entry);
+    if(text!==""&&entry.messages.at(-1)!==text)entry.messages.push(text);
+    entry.messages.splice(0,Math.max(0,entry.messages.length-4));
+    if(/not very effective|super effective|doesn.t affect/i.test(text)&&!entry.effectiveness.includes(text))entry.effectiveness.push(text);
+    entry.effectiveness.splice(0,Math.max(0,entry.effectiveness.length-4));
+   }
+   if(pages.size>0){
+    this.pendingLossPages.set(event.tool_call_id,{tool:event.tool,pages:[...pages.values()]});
+    if(this.pendingLossPages.size>STATE_MEMORY){const first=this.pendingLossPages.keys().next().value;if(first!==undefined)this.pendingLossPages.delete(first);}
+   }
+   return;
+  }
+  if(event.type!=="tool_result")return;
+  const pending=this.pendingLossPages.get(event.id);
+  if(pending===undefined||pending.tool!==event.name)return;
+  this.pendingLossPages.delete(event.id);
+  if(event.is_error)return;
+  for(const entry of pending.pages){
+   for(const text of entry.messages)if(entry.battle.messages.at(-1)!==text)entry.battle.messages.push(text);
+   for(const text of entry.effectiveness)if(!entry.battle.effectiveness.includes(text))entry.battle.effectiveness.push(text);
+   entry.battle.messages.splice(0,Math.max(0,entry.battle.messages.length-4));
+   entry.battle.effectiveness.splice(0,Math.max(0,entry.battle.effectiveness.length-4));
+  }
+ }
+
  private state(s:State):void {
   const battling=inBattle(s);
   if(battling&&!this.wasInBattle)this.battleCount+=1;
@@ -96,7 +137,16 @@ export class TrainingBlock {
    this.sources.set(s.seq,this.source(s));
    if(this.sources.size>STATE_MEMORY){const first=this.sources.keys().next().value;if(first!==undefined)this.sources.delete(first);}
   }
-  if(this.features["leader-attempt-ledger-v1"])this.leader(s,battling);
+  const previousLeader=this.leaderRunning;
+  if(this.features["leader-attempt-ledger-v1"]||this.features["leader-loss-comparison-v1"])this.leader(s,battling);
+  if(this.features["leader-loss-comparison-v1"]){
+   // The completion state can own the last journal pages collected on the way back to the field.
+   const source=this.leaderRunning?.battle??(field(s)?previousLeader?.battle:undefined);
+   if(source!==undefined){
+    this.leaderSources.set(s.seq,source);
+    if(this.leaderSources.size>STATE_MEMORY){const first=this.leaderSources.keys().next().value;if(first!==undefined)this.leaderSources.delete(first);}
+   }
+  }
   if(this.features["seen-trainers-ledger-v1"]&&field(s)&&s.location!==null)this.seen(s,s.location);
  }
 
@@ -110,7 +160,7 @@ export class TrainingBlock {
   if(battling&&leaderActive(s)){
    const name=s.trainer_opponent?.name??"GYM LEADER";
    if(this.leaderRunning===null){
-    const battle:LeaderBattle={turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
+    const battle:LeaderBattle={effectiveness:[],messages:[],startParty:structuredClone(s.party),turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
     this.leaderRunning={name,battle};
     this.leaders.set(name,[...(this.leaders.get(name)??[]),battle]);
    }
@@ -176,6 +226,36 @@ export class TrainingBlock {
   });
  }
 
+ private lossPart(s:Snapshot):string[] {
+  if(!this.features["leader-loss-comparison-v1"])return [];
+  const current=leaderActive(s)?s.trainer_opponent?.name??null:null;
+  if(current===null&&!(field(s)&&s.location?.endsWith(" GYM")===true))return [];
+  return [...this.leaders].filter(([name])=>current===null||name===current).flatMap(([name,battles])=>{
+   const loss=battles.findLast(b=>b.done&&b.outcome==="lost");if(loss===undefined)return [];
+   const before=loss.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
+   const unique=(p:Party)=>p.length>0&&p.every(m=>m.identity!=null)&&new Set(p.map(m=>m.identity)).size===p.length;
+   const complete=unique(before)&&unique(now);
+   const byIdentity=new Map(now.map(m=>[m.identity,m]));
+   const membership=complete?(before.length===now.length&&before.every(m=>byIdentity.has(m.identity))?"unchanged":"changed"):"unknown";
+   const aligned=before.flatMap(m=>{const member=byIdentity.get(m.identity);return member===undefined?[]:[member];});
+   const comparable=membership==="unchanged"&&before.every((m,i)=>m.species===aligned[i]?.species);
+   const compare=(values:(party:Party)=>readonly unknown[]|null):string=>{
+    if(!comparable)return "unknown";const a=values(before),b=values(aligned);
+    return a===null||b===null?"unknown":JSON.stringify(a)===JSON.stringify(b)?"unchanged":"changed";
+   };
+   const levels=compare(p=>p.some(m=>m.level==null)?null:p.map(m=>m.level));
+   const exp=compare(p=>p.some(m=>m.experience==null)?null:p.map(m=>m.experience));
+   const moves=compare(p=>p.some(m=>m.moves==null)?null:p.map(m=>m.moves?.map(move=>move.move_id)));
+   const moveText=(p:Party)=>p.map(m=>`${m.species??"unknown"}: ${m.moves==null?"unknown":m.moves.map(move=>move.name??`move ${String(move.move_id)}`).join(", ")}`).join("; ")||"unknown";
+   return [`- Last observed loss to GYM LEADER ${name} (turn ${String(loss.turn)}): party membership: ${membership}; levels: ${levels}; EXP: ${exp}; moves: ${moves}.`,
+    `  At battle start: ${partyExp(before)}. Now: ${partyExp(now)||"unknown"}.`,
+    `  Moves at battle start: ${moveText(before)}. Now: ${moveText(now)}.`,
+    `  Opponents last observed: ${[...loss.foes.values()].map(f=>`${f.species} Lv${String(f.level)} HP ${String(f.hp)}/${String(f.maxHp)}`).join(", ")||"unknown"}. Damage attribution: unknown.`,
+    `  Effectiveness pages delivered: ${loss.effectiveness.length===0?"unknown":loss.effectiveness.join(" | ")}`,
+    `  Last battle pages delivered (up to 4; game words): ${loss.messages.length===0?"unknown":loss.messages.join(" | ")}`];
+  });
+ }
+
  private seenPart():string[] {
   if(!this.features["seen-trainers-ledger-v1"])return [];
   const lines=[...this.maps.entries()].flatMap(([location,trainers])=>{
@@ -195,15 +275,15 @@ export class TrainingBlock {
   let parts:string[];
   if(field(s)){
    const party=this.partyPart(s);
-   parts=[...(party===null?[]:[party]),...this.earnedPart(),...this.leaderPart(s),...this.seenPart()];
+   parts=[...(party===null?[]:[party]),...this.earnedPart(),...this.leaderPart(s),...this.lossPart(s),...this.seenPart()];
   }else if(battleDecision(s)&&leaderActive(s)){
-   parts=this.leaderPart(s);
+   parts=[...this.leaderPart(s),...this.lossPart(s)];
   }else return null;
   return parts.length===0?null:[TRAINING_HEADER,...parts].join("\n");
  }
 }
 
-const TRAINING_SWITCHES=["exp-next-level-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1"] as const;
+const TRAINING_SWITCHES=["leader-loss-comparison-v1","exp-next-level-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1"] as const;
 
 export function withTrainingBlock(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void):void}):AgentTool[] {
  if(!TRAINING_SWITCHES.some(id=>features[id]))return [...tools];

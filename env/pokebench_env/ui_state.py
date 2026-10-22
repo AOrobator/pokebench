@@ -366,6 +366,7 @@ def read_active_ui(
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
     caught_dex: bool = False,
+    battle_move_learn_input: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -590,6 +591,23 @@ def read_active_ui(
             current_battle_only=transition_coherence,
             tutorial_owner_enabled=tutorial_owner_enabled,
         )
+        if battle_move_learn_input:
+            # Cmd_yesnoboxlearnmove / Cmd_yesnoboxstoplearningmove own cursor input
+            # at learnMoveState == 1; battle action controllers do not own this box.
+            prompt = battle.prompt
+            if (
+                battle.diagnostic is None
+                and prompt is not None
+                and prompt.ready
+                and prompt.kind in {"learn_move", "stop_learning_move"}
+            ):
+                return ActiveUi(
+                    "battle_yes_no",
+                    prompt.selected,
+                    True,
+                    "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO",
+                    details={"prompt_kind": prompt.kind},
+                )
         inputs = battle.player_inputs or ()
         selected = (
             "; ".join(

@@ -6,6 +6,7 @@ import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION,SEMANTIC_NAVIGATE_DESCRIPTION} from "./navigate-first.js";
 import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
+import {reachableSectionAlternatives} from "./reachable-section-alternatives.js";
 import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
@@ -641,6 +642,8 @@ export interface NavigationPorts {
  readonly deterministicWarps?:boolean;
  // navigate-already-here-v1: a goal on the player's own tile, before any press, says so.
  readonly alreadyHere?:boolean;
+ readonly boundaryCrossingFacts?:boolean;
+ readonly sectionAlternatives?:boolean;
  // trainer-sight-check-v1: the model's own call checks its first planned route against unbeaten trainers' sight.
  readonly trainerSight?:TrainerSightPorts|undefined;
  // story-battle-heal-gate-v1: the model's own call is not started when its first planned route would start a trainer
@@ -685,6 +688,36 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
   if(!safe(p))break;tiles.push(p);
  }
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation};
+}
+// rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
+export interface PrefixRules {readonly ledges:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
+export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean}|{readonly ok:false;readonly reason:string};
+// rejected-movement-prefix-v1: one direction of a model's walking batch is valid when navigate_to's own planner would take
+// exactly that press to its landing tile (a ledge hop or slope slide included) and the landing is not a coordinate script
+// whose condition matches now. A refusal names the observable reason.
+export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:PrefixRules):RequestedStep {
+ const state=rules.fieldMoveGates?gatedState(raw):raw,geometry=localGeometry(state),from=state.position;
+ if(geometry===null||from===null||!ready(state))return {ok:false,reason:"the field is not free to walk"};
+ const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return {ok:false,reason:`${direction} is not a direction`};
+ const next={x:from.x+delta[1],y:from.y+delta[2]},tile=geometry.tile(next),occupied=(p:Point):boolean=>geometry.objects.some(o=>samePoint(o,p));
+ if(tile===undefined)return {ok:false,reason:`${at(next)} is outside the known map`};
+ if(occupied(next))return {ok:false,reason:`${at(next)} has a person or object on it`};
+ const triggers=matchingTriggers(state);
+ const options:NavigationOptions={mode:"local",ledges:rules.ledges,oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
+ const landing=routeTiles(state,[direction],options)?.at(-1);
+ const path=landing===undefined?null:planNavigation(state,landing,options);
+ if(landing!==undefined&&path?.length===1&&path[0]===direction){
+  const arrived=walked(state,[direction],options)?.elevation??geometry.elevation;
+  if(triggerAt(triggers,landing,arrived)!==undefined)return {ok:false,reason:`${at(landing)} is a script tile whose condition matches now; stepping on it runs a script, so press ${direction} on its own to step on it on purpose`};
+  return {ok:true,landing,warp:geometry.warps.some(w=>samePoint(w,landing))};
+ }
+ const arrow=LEDGES.get(tile.behavior);
+ if(arrow!==undefined)return {ok:false,reason:arrow===direction?`the ledge at ${at(next)} has no free landing tile`:`${at(next)} is a ledge; it can be hopped only going ${arrow}`};
+ if(WATER.has(tile.behavior))return {ok:false,reason:`${at(next)} is water`};
+ if(tile.collision!==0)return {ok:false,reason:`${at(next)} is a wall or other solid tile`};
+ if(rules.oneWay&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(from),direction)))return {ok:false,reason:`a one-way edge blocks moving ${direction} from ${at(from)} to ${at(next)}`};
+ if((rules.elevation==="legacy"?LEGACY_RULE:GAME_RULE).mismatch(geometry.elevation,tile.elevation))return {ok:false,reason:`${at(next)} is at another height than where you stand`};
+ return {ok:false,reason:`navigate_to's rules do not walk ${direction} onto ${at(next)}`};
 }
 // trainer-sight-check-v1: asks the game server which planned tiles an unbeaten trainer can see and records the check.
 // Returns the refusal text, or null to walk (clear, confirmed, or a check the server could not make).
@@ -764,6 +797,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
     status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice):null)??(truth?triggerReason(state,goal,options):null)??(mode==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":mode==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
+    if(ports.sectionAlternatives===true){const alternatives=reachableSectionAlternatives(state,goal);if(alternatives!==null)status+=`; ${alternatives}`;}
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;
@@ -785,7 +819,13 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      break;
     }
     // navigate-already-here-v1: the model's own call, no press yet, on the requested tile; semantic travel keeps the status it checks.
-    status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
+    status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";
+    if(ports.boundaryCrossingFacts===true&&state.active_ui==null&&state.world_context?.dialogue==null&&state.world_context?.message==null&&state.world_context?.field_activity==null&&commands===0&&stop===undefined&&checkedOptions.exactTarget!==true&&state.position!==null&&samePoint(state.position,goal)){
+      const reach=exitBlock({surf:true,reach:true,gates:true},state);
+      const live=state.topology?.connections.filter(c=>c.edges?.some(e=>samePoint(e,goal))&&state.exit_reach?.connections.some(r=>r.direction===c.direction&&r.offset===c.offset&&r.destination[0]===c.destination[0]&&r.destination[1]===c.destination[1]&&r.reach==="foot"))??[];
+      if(live.length===1&&reach.foot(goal.x,goal.y)===true&&state.topology!=null&&!matchingTriggers(state).some(t=>samePoint(t,goal)))status+=edgeNote({...state.topology,connections:live},goal,c=>reach.connection(c))??"";
+    }
+    break;
    }
    // trainer-sight-check-v1: the model's own call, once, on the route it first plans.
    if((sight!==undefined||healGate!==undefined)&&stop===undefined&&!sightChecked){
@@ -880,5 +920,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

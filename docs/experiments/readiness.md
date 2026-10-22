@@ -323,3 +323,43 @@ Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: RO
 ## 2026-10-21: potion menu and factual healing guidance
 
 `menu-item-guidance-v1` and `factual-healing-guidance-v1` are pending, default OFF and unapproved. Native manual probes qualify interface mechanics only. No readiness promotion is claimed: a current 3-of-4 qualifying model reach receipt has not been established for these source pins. Both activate no later than STARTER_CHOSEN; no measured cohort launched.
+
+| coherent-healing-feedback-v1 | STARTER_CHOSEN | BLOCKED pending qualification | 2026-10-22: implementation only; matching boot readiness and pre-activation checkpoint/load evidence not established. No trial launched. |
+
+| explorer-family-guidance-v1 | PLAYER_NAME_CONFIRMED | BLOCKED pending qualification | 2026-10-22: new prompt treatment, source/start and matching-incumbent readiness not qualified; no launches. |
+## 2026-10-22 battle-move-learn-input-v1
+
+Pending, unqueued. Native 97a0/d548 reparsing proves interface correctness; a reproducible move-learning checkpoint and exposure-qualified cohort are not prepared. No measured benefit or launch. STARTER_CHOSEN is an earliest activation bound, not sufficient exposure. Source preparation pin must be replaced after landing.
+## rejected-movement-stride-v1 (2026-10-22)
+
+Pending, unapproved, unqueued. Activation: PLAYER_NAME_CONFIRMED, subject to native milestone schema. Readiness not assessed against qualifying current runs in this isolated checkout; reviewed source repin and operator-approved checkpoint/design required. Synthetic execution tests do not establish benefit.
+## leader-loss-comparison-v1
+Pending; no trials approved or launched. Historical fixture exercises a loss; checkpoint load proof and qualifying model readiness remain unestablished.
+
+## npc-approach-feedback-v1
+Pending, unqueued and unapproved. Activation ROUTE_102; primary STONE_BADGE. Template exposure and checkpoint provenance require evaluation design. No measured runs.
+
+## boundary-crossing-facts-v1 (2026-10-22)
+
+Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.
+
+## 2026-10-22 delivered-place-evidence-v1
+
+Pending only; no queued/approved runs. Earliest activation PLAYER_BEDROOM is an upper bound on availability of field dialogue, not exposure readiness. Native ea04 replay confirms upstairs quote and audited RIVAL_MET retirement. Frozen checkpoint and primary study remain unprepared; source pin must be refreshed after reviewed landing.
+## reachable-section-alternatives-v1 (2026-10-22)
+
+Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.
+## owned-battle-context-v1
+Pending only. STARTER_CHOSEN is an early eligibility bound; owned evolution/move-forget exposure must be proven separately. Native d951 replay is correctness evidence, not gameplay benefit. No approval or launch.
+
+## static-npc-template-approach-v1
+Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.
+## 2026-10-22: early talk
+
+`auto-talk-field-only-v1`, `auto-talk-v3` and `untalked-people-header-v1` are pending, default OFF and unapproved (worklog `docs/worklogs/active/2026-10-22_early-talk.md`). Activations: ROUTE_101 (field-only, first wild battles) and BIRCH_STARTER_HANDOFF_COMPLETE (v3 and the header, where the find-MAY search starts); primary: ROUTE_103. Recent bundle and control runs reach the starter handoff routinely, but no 3-of-4 readiness receipt is claimed for these pins. Unit and factory tests verify mechanics only; no measured runs launched.
+
+## rejected-movement-prefix-v1 (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `rejected-movement-prefix-v1` | `PLAYER_NAME_CONFIRMED` (the guard can intercept a walking batch from the truck on) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `navigation-tool-use-guard-v1` and `rejected-movement-step-v1` ON. Evidence: 1fe0 seq 8033/8041, 108 one-tile cuts, 53 under Route 101's south ledges. No measured benefit claimed. |

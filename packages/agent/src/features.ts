@@ -225,6 +225,21 @@ export const SWITCHABLE_FEATURES = [
   "navigation-recovery-v1",
   "menu-item-guidance-v1",
   "factual-healing-guidance-v1",
+  "coherent-healing-feedback-v1",
+  "explorer-family-guidance-v1",
+  "battle-move-learn-input-v1",
+  "rejected-movement-stride-v1",
+  "leader-loss-comparison-v1",
+  "npc-approach-feedback-v1",
+  "boundary-crossing-facts-v1",
+  "delivered-place-evidence-v1",
+  "reachable-section-alternatives-v1",
+  "owned-battle-context-v1",
+  "static-npc-template-approach-v1",
+  "auto-talk-field-only-v1",
+  "auto-talk-v3",
+  "untalked-people-header-v1",
+  "rejected-movement-prefix-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -563,6 +578,25 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("navigation-recovery-v1", "guard", "BOUNDED NAVIGATION RECOVERY", null, "Default off; bundle only. Two no-input navigation requests for a stale map identity warn with the qualified current map. Existing map-cycle warnings remain active across revisits. Twelve calls after delivery without verified recovery stop the run. All navigation remains available, including backtracking; no route or story objective is chosen. Off: navigation feedback and map-cycle recovery retain their previous behavior."),
   on("menu-item-guidance-v1", "guidance", "MENU ITEM GUIDANCE", null, "Default off. Gives state-owned menu controls, vertical choices and the difference between using medicine and giving a held item. Waits for input readiness and never selects for the model. Off: existing menu observations and prompt are unchanged."),
   on("factual-healing-guidance-v1", "guard", "FACTUAL HEALING GUIDANCE", null, "Default off. Replaces blanket full-HP directives with HP, battle constraints and healing options, and bypasses the full-HP encounter gate. Trainer-sight confirmation is preserved. No battle safety prediction. Off: original heal-first lines, full-HP advice and encounter gate are unchanged."),
+
+
+
+
+  on("coherent-healing-feedback-v1", "guard", "COHERENT HEALING FEEDBACK", "low-hp-trainer-warning-v1", "Default off; bundle only. Replaces overlapping story, trainer, gym and heal-first messages with one factual warning when the existing verified weakness criteria hold: lead below half HP, a fainted party member, or no damaging PP. Minor damage keeps the ordinary party readout without a heal directive. Unchanged risk profiles are deduplicated. Known healing places and applicable BAG medicine are options; no route, threshold prediction or action is chosen. Off: the existing independent healing wrappers and their text are unchanged."),
+  on("explorer-family-guidance-v1", "guidance", "FAMILY AND REPEAT CONVERSATIONS", null, "Default off; bundle only. Selects the existing explorer-guidance-v1 family, neighbours and repeat-conversation prompt section in place of explorer-guidance-v2. Names no character, place or story step and chooses no action. The original explorer switches retain their values and precedence when this treatment is off. Off: the previous explorer-guidance-v2/v1 prompt selection is unchanged."),
+  on("battle-move-learn-input-v1", "observation", "BATTLE MOVE-LEARNING INPUT", null, "Default off. A ready native learn-move or stop-learning YES/NO battle script owns the Interface line and its current YES/NO cursor. No input or move selection is automated. Off: the previous battle controller Interface line, including battle_resolving during these questions."),
+  on("rejected-movement-stride-v1", "guard", "CHECKED REQUESTED MOVEMENT", "safe-navigation-strides-v1", "Default off; bundle treatment. When navigation-tool-use-guard-v1 intercepts a direction batch, replaces rejection or the one-step fallback with one native checked straight prefix of the requested directions (at most eight). Stops before bends, hazards, objects, triggers, warps, unknown geometry or elevation changes; returns a terminal receipt and discards remaining directions. No route is chosen. Off: existing rejection or rejected-movement-step-v1 behavior exactly."),
+  on("leader-loss-comparison-v1", "observation", "LAST LEADER LOSS COMPARISON", null, "Default off; bundle only. Compares recorded party membership, levels, EXP and moves at the last observed leader loss against now; missing evidence stays unknown. No action is selected or refused. Off: the previous training feedback is unchanged."),
+  on("npc-approach-feedback-v1", "observation", "QUALIFIED TRAINER TEMPLATE APPROACH", null, "Default off; bundle only. A requested unloaded trainer with hide-filtered current-map template data can be approached using checked navigation, then returns without facing or pressing A. Presence and position stay unverified. Non-trainer templates remain unsupported. Off: unloaded targets retain their previous refusal."),
+  on("boundary-crossing-facts-v1", "guidance", "CURRENT BOUNDARY FACTS", "connection-edge-tiles-v1", "Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit. Off: unchanged already-here result without a crossing fact."),
+  on("delivered-place-evidence-v1", "guidance", "DELIVERED PERSON AND PLACE EVIDENCE", "observed-instructions-v1", "Default off. Preserves exact delivered spatial dialogue with source map, turn, event and unknown speaker attribution in a compact historical evidence block. Explicit named-person and named-place statements from an unnamed speaker can use the existing map resolver, qualified as historical rather than a current presence or action instruction. Existing audited milestone retirement applies to the compact evidence. Off: existing instruction memory and named-speaker-only destination eligibility."),
+  on("reachable-section-alternatives-v1", "guidance", "REACHABLE SECTION ALTERNATIVES", "exit-labels-v3", "Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent. Off: previous unreachable navigation result without departure section alternatives."),
+  on("owned-battle-context-v1", "observation", "OWNED BATTLE CONTEXT", null, "Default off; bundle only. Explicit evolution and move-forget screen ownership overrides a lingering in-battle bit in battle text settlement/readiness and drought battle holds. Does not choose a move or evolution input. Off: previous battle detection, settling and hold reasons are unchanged."),
+  on("static-npc-template-approach-v1", "observation", "STATIC NPC TEMPLATE APPROACH", null, "Default off; bundle only. Lists qualified current-map unloaded scripted stationary object templates with clear hide flags. The model can request a static_object local ID: checked navigation approaches a neighbouring tile at matching elevation and returns without facing or pressing A. Static idle movement never proves current presence or prevents script relocation. Off: state, readout, target arguments and approach behavior are unchanged."),
+  on("auto-talk-field-only-v1", "guard", "AUTO-TALK ON THE FIELD ONLY", "auto-talk-v1", "Bundle arm only, default off (the operator 2026-10-22: \"firing auto talk during a battle is a bug that needs to be fixed\"). Since 10/20 auto-talk fired 318 times while the field was not free (evolution 157, battle 67, field yes/no 65, shop 22), each recorded as a not_free auto_talk event, and once sent a SUPERVISOR note into a battle. With this switch on, auto-talk does nothing while a battle owns the game (the battle screen, or the battle flag with no non-battle interface ready): no walk, no press, no auto_talk event and no message. On any other screen that is not the free field it records no not_free no-op; field-ownership-feedback-v1, when on, still sends its one note per interface (an evolution decision, a yes/no box, a shop) and records it. The loop is not used up, so auto-talk can act once the field is free and the loop still holds. A walk that a wild battle interrupts is still recorded as before. Needs auto-talk-v1. Off: auto-talk records not_free on every request while the field is not free, and field-ownership-feedback-v1 names the battle input like any other interface."),
+  on("auto-talk-v3", "guard", "AUTO-TALK AFTER A QUIET STRETCH", "auto-talk-v1", "Bundle arm only, default off (the operator 2026-10-22). The 10/22 frontier report: every run that heard MAY's mother (\"MAY went out to ROUTE 103\") found MAY within 3-8 min, the others took 11.5-68.6 min, and auto-talk-v1 only acts on a loop (8 identical turns or 3 replies with no tool call). With this switch on, auto-talk's trigger is a quiet stretch instead: after 10 of the model's turns on the free field of one map with no story milestone (counted from entering the map, the latest story milestone, or the harness's last talk; turns in a battle, a menu or dialogue are not counted), the harness walks to one target not talked to since the latest story milestone, faces it and presses A, exactly as auto-talk-v1 does. Targets: story characters the readout's own Story characters line places on this map, then people talked to earlier in the run, then people never talked to (never item balls, and never a trainer the game still lists as unbeaten), then signs; nearest first. The model then gets \"SUPERVISOR: Your last 10 turns on this map brought no story milestone, so the harness walked you to <name> at (x,y) and pressed A. It has not chosen where to go next; this is what they said.\" with the A press's whole result and screenshot. It names no place or goal. It acts only on the free field and records nothing elsewhere; the fixed-point breaker is not needed. Each walk is an auto_talk event with trigger quiet_map (Activity History, raw inspector; no timeline mark). Needs auto-talk-v1. Off: auto-talk-v1's loop trigger, as before."),
+  on("untalked-people-header-v1", "observation", "PEOPLE NOT TALKED TO", "harness-trust-v1", "Bundle arm only, default off (the operator 2026-10-22). In 47c3 the readout listed MAY's mother (object 4, sprite WOMAN_4) as last talked to \"5 story milestones since\" as one line among about 60, and the run left her room. With this switch on, the \"Read from game memory, always true:\" header of harness-trust-v1 ends with \"People on this map you have not talked to since your last story milestone: \" and each such object the game has loaded on this map (item balls excepted), in the order the people ledger lists them, as \"object 4, sprite WOMAN_4, at (2,4), last talked to on turn 64\" or \"..., not talked to this run\"; a story character that character-presence-v1 places on the object's tile is named (\"object 2, PROF. BIRCH (sprite PROF_BIRCH), at (6,4)\"). With nobody left it says \"none\". Talked to is the people ledger's rule, plus the harness's own auto-talks; a story milestone is one the game observed, not a measurement-only one. Shown only on the overworld outside a battle. No instruction, place or goal. Needs harness-trust-v1. Off: the header is byte for byte today's."),
+  on("rejected-movement-prefix-v1", "guard", "REJECTED MOVEMENT PREFIX", "navigation-tool-use-guard-v1", "Default off; bundle treatment (the operator 2026-10-22: run 1fe0 lost about 31 min press-walking UP into Route 101's south ledges after rejected-movement-step-v1 cut 108 eight-press batches to one tile). When the navigation tool-use guard intercepts a free-field direction-only batch, walks the longest valid prefix of the requested directions, one ordinary press each without automatic running, bends and grass included. Each direction is checked on the state read just before its press by navigate_to's own rules (ledges only hopped in their arrow direction, one-way edges, floor, elevation, slopes and closed obstacles as switched) and must not land on a person, object or coordinate script whose condition matches now; the landing is verified after the press. Stops at the first refused step, an interruption, a map change or a warp entered, and returns requested, submitted and dropped directions with the stop reason. Takes precedence over rejected-movement-step-v1. No route is chosen. Off: the original rejection or rejected-movement-step-v1 exactly."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -634,6 +668,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "move-learn-early-comparison-v1",
   "poison-readout-v1",
   "berry-readout-v1",
+  "battle-move-learn-input-v1",
+  "static-npc-template-approach-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -840,6 +876,25 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-recovery-v1"),
     ...when("menu-item-guidance-v1"),
     ...when("factual-healing-guidance-v1"),
+
+
+
+
+    ...when("coherent-healing-feedback-v1"),
+    ...when("explorer-family-guidance-v1"),
+    ...when("battle-move-learn-input-v1"),
+    ...when("rejected-movement-stride-v1"),
+    ...when("leader-loss-comparison-v1"),
+    ...when("npc-approach-feedback-v1"),
+    ...when("boundary-crossing-facts-v1"),
+    ...when("delivered-place-evidence-v1"),
+    ...when("reachable-section-alternatives-v1"),
+    ...when("owned-battle-context-v1"),
+    ...when("static-npc-template-approach-v1"),
+    ...when("auto-talk-field-only-v1"),
+    ...when("auto-talk-v3"),
+    ...when("untalked-people-header-v1"),
+    ...when("rejected-movement-prefix-v1"),
   ];
 }
 
@@ -850,5 +905,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

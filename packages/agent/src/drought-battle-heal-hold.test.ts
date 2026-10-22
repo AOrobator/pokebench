@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // drought-battle-heal-hold-v1: GLM runs got "the game is not moving forward" drought briefings mid-battle
 // (2026-10-21T01-16-23_glm53-mac_e9ee seq 8331, 10741, 11218) and on heal trips a heal warning had asked for
 // (2026-10-21T07-17-35_glm53-mac_acfa seq 4962, 5790, 6035, 7262).
@@ -213,9 +214,9 @@ describe("loopEvidence",()=>{
 
 describe("registry",()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-33)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-33)?.id).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-15)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");

@@ -159,7 +159,7 @@ def test_state_json_unchanged_off_the_buy_screen(name: str) -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-7] == SWITCH == "shop-interface-v1"
+    assert SERVER_FEATURES[-9] == SWITCH == "shop-interface-v1"
     assert SWITCH in features_off_from_env({})
 
 

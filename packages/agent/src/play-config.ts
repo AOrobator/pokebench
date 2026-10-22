@@ -1,6 +1,7 @@
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
+import { NPC_TEMPLATE_APPROACH_SENTENCE, STATIC_NPC_APPROACH_SENTENCE } from "./semantic-navigation.js";
 import { LEARN_MOVE_SECTION } from "./learn-move.js";
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
@@ -232,12 +233,14 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("battle") && features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
   if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${features["whiteout-healed-v1"] ? TRAINER_HEAL_SECTION.replace(BLACKOUT_FAR, `${BLACKOUT_FAR}${WHITEOUT_HEALED}`) : TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
-  const explorer = features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
+  const explorer = features["explorer-family-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
   if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? SEMANTIC_TALK_IS_CHEAP : EXPLORER_TALK_IS_CHEAP}` : ""}`;
   if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${semantic2 ? SEMANTIC_UNTAKEN_EXITS_SECTION : UNTAKEN_EXITS_SECTION}`;
   if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
   if (navigateFirst && semantic2) prompt = `${navigateFirstToolList(prompt, true)}\n\n${features["full-map-navigation-v1"] ? SEMANTIC_MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? SEMANTIC_MOVING_AROUND_VISITED : SEMANTIC_MOVING_AROUND_LOCAL}`;
   else if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? MOVING_AROUND_VISITED : MOVING_AROUND_LOCAL}`;
+  if (show("overworld") && semanticNavigation(features) && features["static-npc-template-approach-v1"]) prompt += `\n\n${STATIC_NPC_APPROACH_SENTENCE}`;
+  if (show("overworld") && semanticNavigation(features) && features["npc-approach-feedback-v1"]) prompt += `\n\n${NPC_TEMPLATE_APPROACH_SENTENCE}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
@@ -256,6 +259,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
+  if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
   return prompt;
 }
 
@@ -273,7 +277,7 @@ export function objectiveSwitches(features: FeatureSet): Required<ObjectiveSwitc
 }
 
 export function toolSwitches(features: FeatureSet): ToolSwitches {
-  return { ...(features["rejected-movement-step-v1"]?{rejectedMovementStep:true}:{}), ...(features["navigation-tool-use-guard-v1"]?{navigationToolUseGuard:true}:{}), ...(features["evolution-decision-v1"]?{evolutionDecision:true}:{}), safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"], transitions: features["transition-press-result-v1"], warpArrival: features["warp-arrival-settle-v1"], blockedBatch: features["blocked-batch-result-v1"], liveMap: features["live-map-v1"], ledges: features["ledge-hops-v1"], edgeWalls: features["one-way-tiles-v1"], counters: features["counter-talk-v1"], topology: features["world-destinations-v1"], pushback: features["pushback-press-result-v1"] };
+  return { ...(features["rejected-movement-stride-v1"]?{rejectedMovementStride:true}:{}), ...(features["rejected-movement-prefix-v1"]?{rejectedMovementPrefix:{ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game" as const:"legacy" as const,fieldMoveGates:features["field-move-gates-v1"]}}:{}), ...(features["rejected-movement-step-v1"]?{rejectedMovementStep:true}:{}), ...(features["navigation-tool-use-guard-v1"]?{navigationToolUseGuard:true}:{}), ...(features["evolution-decision-v1"]?{evolutionDecision:true}:{}), safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"], transitions: features["transition-press-result-v1"], warpArrival: features["warp-arrival-settle-v1"], blockedBatch: features["blocked-batch-result-v1"], liveMap: features["live-map-v1"], ledges: features["ledge-hops-v1"], edgeWalls: features["one-way-tiles-v1"], counters: features["counter-talk-v1"], topology: features["world-destinations-v1"], pushback: features["pushback-press-result-v1"] };
 }
 
 export function playTools(features: FeatureSet): string[] {

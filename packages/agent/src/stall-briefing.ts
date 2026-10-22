@@ -1,3 +1,4 @@
+import {battleOnScreen} from "./battle-context.js";
 import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
@@ -59,7 +60,7 @@ export class StallBriefing {
  private hold():"battle"|"trainer"|"heal"|null {
   if(!this.features["drought-battle-heal-hold-v1"])return null;
   const s=this.last;
-  if(s?.in_battle===true)return "battle";
+  if(s!==null&&battleOnScreen(s,this.features["owned-battle-context-v1"]))return "battle";
   // An unbeaten trainer's sight script holds the field before the battle starts (trainer_opponent is set, not defeated).
   if(s?.field_controls_locked===true&&s.trainer_opponent?.defeated===false&&!s.trainer_opponent.battle_active)return "trainer";
   return this.healTrip!==null?"heal":null;

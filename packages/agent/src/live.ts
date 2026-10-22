@@ -15,7 +15,7 @@ import {experimentFromEnv} from "./play-experiment.js";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
-import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } from "./human.js";
+import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint, humanPlayUrl, viewerRunUrl } from "./human.js";
 import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
@@ -366,7 +366,7 @@ async function probe(verify = false): Promise<void> {
     ? { kind: "boot" as const }
     : { kind: "save_state" as const, path: saved, sha1: createHash("sha1").update(readFileSync(saved)).digest("hex") };
   const runId = newRunId(new Date(), "probe", () => randomBytes(2).toString("hex"));
-  console.log(`probe: ${runId} — http://127.0.0.1:8791/#run=${runId}`);
+  console.log(`probe: ${runId} — ${viewerRunUrl(runId)}`);
   const lines = createInterface({ input: process.stdin });
   async function* commands(): AsyncGenerator<ProbeCommand> {
     for await (const line of lines) {
@@ -411,7 +411,7 @@ async function playHuman(): Promise<void> {
     const plan = {...basePlan,romSha1:romSha1(),harnessFeatures:[...basePlan.harnessFeatures,...(process.env["POKEBENCH_HUMAN_VALIDATION"]==="true"?["probe"]:[])]};
     const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token,POKEBENCH_ACTIVE_UI:"1",POKEBENCH_FEATURES_OFF:"named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1"});
     await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});if(process.env["POKEBENCH_HUMAN_START_PAUSED"]==="true")writeFileSync(join(dir,"control.jsonl"),controlLine(1,"pause",new Date().toISOString())+"\n",{flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
-      console.log(`Human play: http://127.0.0.1:8791/play#run=${runId}`);
+      console.log(`Human play: ${humanPlayUrl(runId)}`);
       const reason=await driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);
       await saveHumanCheckpoint(url,token,runDir);
       return reason;

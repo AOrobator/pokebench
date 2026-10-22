@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // field-ownership-feedback-v1: run 2026-10-21T13-33-36_qwen36-gpu1_d548 called navigate_to_target on object 21 for
 // 85 turns at an evolution decision (seq 20511, 20531: "target is not listed in the current verified state", no
 // Screen or Interface line). The game keeps gMain.inBattle set through a post-battle evolution (TryEvolvePokemon runs
@@ -146,8 +147,8 @@ describe("field-ownership-feedback-v1 registration",()=>{
  it("is a default-off agent-only guard, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-27)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-12)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

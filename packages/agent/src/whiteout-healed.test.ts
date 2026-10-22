@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // whiteout-healed-v1: pokeemerald DoWhiteOut (src/overworld.c) halves the money, then HealPlayerParty(), then
 // warps to the last heal location. Run 2026-10-20T16-14-34_qwen36-gpu1_c6c2 lost to MAY at turn 256 (result
@@ -144,13 +145,13 @@ describe("whiteout-healed-v1 through playGameTools",()=>{
 
 describe("whiteout-healed-v1 registry",()=>{
  it("is the last switch: a default-off agent-side observation switch with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-58)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-73)).toBe(ID);
   expect(FEATURES.filter(f=>f.id===ID)).toHaveLength(1);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"WHITEOUT HEALED"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Whiting out restored your whole party: TORCHIC 20/20 HP.");
   expect(featureInfo(ID).description).toContain(", with your whole party healed");
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual([]);

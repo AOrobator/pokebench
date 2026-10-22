@@ -1,3 +1,4 @@
+import {battleOnScreen,nonBattleOwner} from "./battle-context.js";
 // dialogue-auto-advance-v1: once a press or navigate_to engages a field message,
 // the harness advances it with B until the next decision point, drops the rest
 // of the model's batch, and hands the model every page shown, whole.
@@ -240,19 +241,22 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
 
 // battle-text-auto-advance-v1: one call may cross field dialogue, a battle and the field again (Birch's
 // rescue, a trainer's challenge, a blackout). The shared caps cover the whole call.
-interface BattleCall {readonly journal:BattleJournal;readonly source:BattleTextSource;readonly known:{last:number};readonly levelupBox:boolean}
+interface BattleCall {readonly journal:BattleJournal;readonly source:BattleTextSource;readonly known:{last:number};readonly levelupBox:boolean;readonly ownedBattleContext:boolean}
 async function drive(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,battle:BattleCall|null,signal?:AbortSignal):Promise<Outcome> {
  if(battle===null)return advance(start,pages,press,ports,signal);
+ const engaged=(s:GameStateSnapshot)=>battleEngaged(s,battle.ownedBattleContext);
  const began=ports.clock.now();
  let s=start,presses=0,battlePresses:number|undefined;
  const extras:TextContent[]=[];
  for(;;){
-  if(battleEngaged(s)||s.in_battle){
-   const b=await advanceBattle(s,{source:battle.source,journal:battle.journal,known:battle.known,clock:ports.clock,limits:AUTO_ADVANCE_LIMITS,began,used:presses,press,stateOf,extraText,addPages:(entries,at)=>{pages.addBattle(entries,at);},levelupBox:battle.levelupBox,addLevelUp:(text,at)=>{pages.addLevelUp(text,at);}},signal);
+  const owner=battle.ownedBattleContext?nonBattleOwner(s):null;
+  if(owner!==null)return {state:s,stop:"menu",detail:`${owner} owns the current screen; battle text is not advanced`,presses,extras,...(battlePresses===undefined?{}:{battlePresses})};
+  if(engaged(s)||battleOnScreen(s,battle.ownedBattleContext)){
+   const b=await advanceBattle(s,{source:battle.source,journal:battle.journal,known:battle.known,clock:ports.clock,limits:AUTO_ADVANCE_LIMITS,began,used:presses,press,stateOf,extraText,addPages:(entries,at)=>{pages.addBattle(entries,at);},levelupBox:battle.levelupBox,ownedBattleContext:battle.ownedBattleContext,addLevelUp:(text,at)=>{pages.addLevelUp(text,at);}},signal);
    presses+=b.presses;battlePresses=(battlePresses??0)+b.presses;extras.push(...b.extras);s=b.state;
    if(!b.over)return {state:s,stop:b.stop,detail:b.detail,presses,extras,battlePresses,note:battle.journal.note()};
   }
-  const f=await advance(s,pages,press,ports,signal,{began,used:presses,stopAt:battleEngaged});
+  const f=await advance(s,pages,press,ports,signal,{began,used:presses,stopAt:engaged});
   presses+=f.presses;extras.push(...f.extras);s=f.state;
   if(f.stop==="battle")continue;
   // Straight from the battle to a free field: no conversation closed.
@@ -364,13 +368,14 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const truth=features["navigation-truth-v1"];
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
  const ready=features["battle-decision-ready-v1"];
+ const isBattleEngaged=(s:GameStateSnapshot)=>battleEngaged(s,features["owned-battle-context-v1"]);
  const pendingField=features["pending-field-dialogue-v1"];
  const autoPress=(id:string,carry:BlackoutCarry)=>(signal?:AbortSignal)=>((ready||pendingField)?full.gate(signal):Promise.resolve()).then(()=>press.execute(id,{buttons:["B"]},signal).then(result=>{carry.remember(stateOf(result));return result;}));
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
  const source=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
  const battleSource=ready&&source!==null?{...source,battleWait:async(signal?:AbortSignal)=>{await full.gate(signal);return source.battleWait(signal);}}:source;
  const known={last:0};
- const openBattle=async(signal?:AbortSignal,includeExisting=false):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal,includeExisting),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
+ const openBattle=async(signal?:AbortSignal,includeExisting=false):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal,includeExisting),source:battleSource,known,levelupBox:features["levelup-box-v1"],ownedBattleContext:features["owned-battle-context-v1"]};
  const finish=async(id:string,tool:"press"|"navigate_to"|"battle_action"|"observe"|"navigate_to_target"|"explore_map",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,carry:BlackoutCarry,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
   // pushback-press-result-v1: inputs the game ignored under the message's lock count as dropped, not sent.
   const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:sent.slice(0,sent.length-ignored.length),dropped:[...ignored,...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
@@ -401,7 +406,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   else{
    let result:Result|undefined;
    let previous=before;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now)||(battle!==null&&battleEngaged(now)))break;}
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now)||(battle!==null&&isBattleEngaged(now)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
@@ -409,7 +414,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   if(before!==undefined)open=null;
   const after=stateOf(last);
   // Battle text the harness owns: the battle runs its own text or animation, or is about to start.
-  const engaged=dialogueEngaged(after)||inDialogue||appeared||(battle!==null&&battleEngaged(after));
+  const engaged=dialogueEngaged(after)||inDialogue||appeared||(battle!==null&&isBattleEngaged(after));
   if(!engaged&&before!==undefined)open=pages.openAt(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
@@ -461,7 +466,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   if((ready||pendingField)&&tool===observe)return {...tool,description:`${tool.description}${ready?" Pending ordinary battle text advances to the next decision; all messages are listed.":""}${pendingField?" Pending ordinary field dialogue also advances to the next decision; all pages are listed.":""}`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const seen=await tool.execute(id,params,signal,update);
    const state=stateOf(seen);
-   return ((ready&&battleEngaged(state))||(pendingField&&dialogueEngaged(state)))?(await settle(id,state,signal)).result:seen;
+   return ((ready&&isBattleEngaged(state))||(pendingField&&dialogueEngaged(state)))?(await settle(id,state,signal)).result:seen;
   }};
   if(tool===press)return wrappedPress;
   // battle-move-tool-v1: a battle_action result hands the turn's battle text over the way navigate_to's does.
@@ -470,7 +475,10 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const semanticWalk=semanticV2&&(tool.name==="navigate_to_target"||tool.name==="explore_map");
   if(tool.name!=="navigate_to"&&!battleAction&&!semanticWalk)return tool;
   const name=battleAction?"battle_action":semanticWalk?tool.name as "navigate_to_target"|"explore_map":"navigate_to";
-  return {...tool,description:battleAction?`${tool.description}${pendingField?" Pending ordinary field dialogue advances first; the queued action is not executed, so choose again from the returned state.":""}${ready?" Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed.":""}${battleSource===null?"":" If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed."}`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  return {...tool,description:battleAction?`${tool.description}${pendingField?" Pending ordinary field dialogue advances first; the queued action is not executed, so choose again from the returned state.":""}${ready?" Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed.":""}${battleSource===null?"":" If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed."}`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.${features["static-npc-template-approach-v1"]&&tool.name==="navigate_to_target"?" Static template requests return immediately without automatic field or battle text advancement.":""}`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+   // A static template request is approach-only even if movement reveals dialogue,
+   // a battle or a loaded NPC. Preserve that boundary for the model's next choice.
+   if(features["static-npc-template-approach-v1"]&&tool.name==="navigate_to_target"&&typeof params==="object"&&params!==null&&"target"in params&&typeof params.target==="object"&&params.target!==null&&"kind"in params.target&&params.target.kind==="static_object")return tool.execute(id,params,signal,update);
    const began=full.clock.now();
    const carry=new BlackoutCarry();
    let preflight:readonly TextContent[]|null=null;
@@ -482,7 +490,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
      const settled=await settle(id,before,signal,"battle_action");
      return {content:[{type:"text",text:"Battle action: requested action not executed; inspect the decision reached after advancing field dialogue."},...settled.result.content],details:{state:settled.state,battle_action:{refused:true}}};
     }
-    if(ready&&battleEngaged(before)){
+    if(ready&&isBattleEngaged(before)){
      const settled=await settle(id,before,signal,"battle_action");preflight=settled.summary;carry.remember(settled.state);
      const inputs=settled.state.battle?.player_inputs?.filter(i=>i.ready)??[];
      if(settled.stop!=="battle_input"||!settled.state.in_battle||settled.state.battle?.text_phase!=="input"||inputs.length!==1||!inputs.every(i=>i.phase==="action"||i.phase==="move"))return {
@@ -495,7 +503,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const acted=await tool.execute(id,params,signal,update);
    const result=preflight===null?acted:{...acted,content:[...acted.content,...preflight],details:{...Object(acted.details) as object,state:carry.preserve(stateOf(acted))}};
    const state=carry.remember(stateOf(result));
-   if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
+   if(!dialogueEngaged(state)&&!(battle!==null&&isBattleEngaged(state)))return result;
    // battle-move-tool-v1: "nothing pressed" stays true for the whole call (review round 1 note).
    if(battleAction&&refusedAction(result.details))return result;
    const pages=new Pages(record,open,present,truth);

@@ -33,6 +33,7 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/offscreen-objects-sh02.j
 ROM_START = 0x08000000
 # Server switches registered after cook run #2 were off for it.
 RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    "static-npc-template-approach-v1",
     "connection-edge-tiles-v1",
     "in-game-naming-readout-v1",
     "readout-truth-v1",

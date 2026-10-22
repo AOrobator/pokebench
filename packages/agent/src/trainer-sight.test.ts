@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // trainer-sight-check-v1: navigate_to checks its first planned route against unbeaten trainers' sight before it walks.
 // b300 (2026-10-20T13-54-28_qwen36-gpu0_b300) turn 501, seq 15231: navigate_to to (5,2) on map 11/3 from (5,15). The
 // game server's reply is env/pokebench_env/trainer_sight.py on that run's raw RAM (archive 6600, seq 15233).
@@ -210,12 +211,12 @@ describe("game server client",()=>{
 
 describe("registry, prompt and event",()=>{
  it("is a default-off guidance switch that needs bounded-navigation-v1, last in the registry",()=>{
-  expect(SWITCHABLE_FEATURES.at(-61)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-76)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const omitted=Object.fromEntries(Object.entries(FEATURES).filter(([id])=>id!==ID));
   expect(normalizeFeatures(omitted as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  expect(playHarnessFeatures(FEATURES,null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(FEATURES),null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...FEATURES,[ID]:false},null)).not.toContain(ID);
  });
  it("adds its system-prompt sentence only with the switch and navigate_to",()=>{

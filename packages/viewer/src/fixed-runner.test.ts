@@ -61,8 +61,8 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   }
   expect(def.offInBoth).toContain("positive-supervisor-v1");expect(armFeatureBits(def,"control")["positive-supervisor-v1"]).toBe(false);expect(armFeatureBits(def,"bundle")["positive-supervisor-v1"]).toBe(false);
   // Operator decision 2026-10-20: the duplicate-turn collapse in both arms, the breaker's note in neither.
-  for(const arm of ["control","bundle"] as const){expect(armFeatureBits(def,arm)["duplicate-turn-collapse-v1"]).toBe(true);expect(armFeatureBits(def,arm)["fixed-point-breaker-v1"]).toBe(false);}
-  expect(def.onInBoth).toContain("duplicate-turn-collapse-v1");expect(def.offInBoth).toContain("fixed-point-breaker-v1");
+  for(const arm of ["control","bundle"] as const){expect(armFeatureBits(def,arm)["duplicate-turn-collapse-v1"]).toBe(true);expect(armFeatureBits(def,arm)["fixed-point-breaker-v1"]).toBe(arm==="bundle");}
+  expect(def.onInBoth).toContain("duplicate-turn-collapse-v1");expect(def.switches).toContain("fixed-point-breaker-v1");
   // Operator decision 2026-10-20 10:43 PM ET: the heal-first line in both arms.
   for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["story-battle-heal-first-v1"]).toBe(true);
   expect(def.offInBoth).toContain("semantic-navigation-v1");
@@ -923,4 +923,27 @@ it("the active two-hour cook includes approved gym evidence and milestone memory
    expect(DEFAULT_NEXT_RUN.features[id],`default:${id}`).toBe(false);
   }
  }
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts checked requested strides in %s normalized bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
+ expect(def.switches).toContain("rejected-movement-stride-v1");
+ for(const arm of ["control","bundle"] as const){
+  const preset=armPreset(def,phase.id,arm);
+  expect(preset.features["rejected-movement-stride-v1"]).toBe(arm==="bundle");
+  if(arm==="bundle")expect(preset.features["safe-navigation-strides-v1"]).toBe(true);
+ }
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts boundary facts in %s normalized bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["boundary-crossing-facts-v1"]).toBe(arm==="bundle");
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts section alternatives in %s normalized bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["reachable-section-alternatives-v1"]).toBe(arm==="bundle");
 });

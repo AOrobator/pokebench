@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
@@ -166,13 +167,13 @@ describe("story-progress-clock-v1 switch",()=>{
   expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-54)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-54)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-69)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-47)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-47)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID));
   expect(normalizeFeatures(older as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

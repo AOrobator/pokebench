@@ -43,6 +43,7 @@ from pokebench_env.resources import Resources, read_resources
 from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
+from pokebench_env.static_npc_templates import StaticNpcTemplates, read_static_npc_templates
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.surf_gate import (
     ConnectionKey,
@@ -156,6 +157,7 @@ class GameState:
     displayed_places: tuple[tuple[int, int, str], ...] = ()
     # offscreen-objects-v1: this map's objects outside the readout's window; None when off.
     offscreen_objects: tuple[MapObject, ...] | None = None
+    static_npc_templates: StaticNpcTemplates | None = None
     # readout-truth-v1: the active interface was read (active-ui-ownership-v1 on); text only.
     active_ui_read: bool = False
     # readout-truth-v1: sMenu's window is drawn (even with an invalid cursor); None when off.
@@ -343,6 +345,7 @@ def read_game_state(
     connection_edges_enabled: bool = False,
     in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
+    static_npc_templates_enabled: bool = False,
     transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
     # map-wide-triggers-v1: every coordinate trigger on the map in the state;
@@ -369,6 +372,7 @@ def read_game_state(
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
     berry_readout_enabled: bool = False,
+    battle_move_learn_input_enabled: bool = False,
     mart_stock_enabled: bool = False,
     shop_interface_enabled: bool = False,
     exp_next_enabled: bool = False,
@@ -399,6 +403,7 @@ def read_game_state(
         read,
         screen,
         caught_dex=caught_dex_enabled,
+        battle_move_learn_input=battle_move_learn_input_enabled,
         truth=readout_truth_enabled,
         party_item_confirmation=party_item_confirmation_enabled,
         evolution_decision=evolution_decision_enabled,
@@ -647,6 +652,9 @@ def read_game_state(
             live_wins=readout_truth_enabled,
         )
         if story_characters_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        static_npc_templates=read_static_npc_templates(read, save1, map_id)
+        if static_npc_templates_enabled and screen.kind == "overworld" and not in_battle
         else None,
         offscreen_objects=read_offscreen_objects(read, save1, map_id, (x, y))
         if offscreen_objects_enabled and screen.kind == "overworld" and not in_battle

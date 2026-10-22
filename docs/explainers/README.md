@@ -206,6 +206,9 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Cut-off reply feedback](cut-off-reply-feedback-v1.html) — default OFF, bundle arm only: after a reply that stopped at max_tokens with no tool call, the next message says so and asks for one tool call (naming the walking tools), instead of the plain NUDGE; a due text-only supervisor note still wins.
 - [Trainer sight: target walks](trainer-sight-check-v2.html) — default OFF, bundle arm only: navigate_to_target routes get trainer-sight-check-v1's check (first walk of the call; the talk target's own sight left out) and a confirm_trainer_sight argument.
 - [Auto-talk: skip beaten trainers](auto-talk-v2.html) — default OFF, bundle arm only: trainers the readout shows as defeated are not auto-talk targets.
+- [Auto-talk on the field only](auto-talk-field-only-v1.html) — default OFF, bundle arm only: auto-talk does nothing in a battle and records no not_free no-ops.
+- [Auto-talk after a quiet stretch](auto-talk-v3.html) — default OFF, bundle arm only: auto-talk acts after 10 quiet free-field turns on one map instead of on a loop.
+- [People not talked to](untalked-people-header-v1.html) — default OFF, bundle arm only: the trust header lists people on this map not talked to since the last story milestone.
 - [Map-wide triggers](map-wide-triggers-v1.html) — default OFF, bundle arm only, game server: the state lists every coordinate trigger on the map so a Littleroot stride stops at (10,10) before the (10,9) trigger; the readout text keeps the 7-tile list.
 - [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
 
@@ -232,3 +235,21 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Menu item guidance](menu-item-guidance-v1.html)
 - [Factual healing guidance](factual-healing-guidance-v1.html)
+
+- [Coherent healing feedback](coherent-healing-feedback-v1.html): one factual warning for verified weakness; no full-heal command for minor damage.
+
+- [Family and repeat conversations](explorer-family-guidance-v1.html): an independently switched replacement of the generic explorer section.
+- [battle-move-learn-input-v1](battle-move-learn-input-v1.html): native ready battle move-learning YES/NO ownership.
+- [Checked requested movement](rejected-movement-stride-v1.html): one bounded native stride from a model-selected direction prefix.
+- [leader-loss-comparison-v1](leader-loss-comparison-v1.html) — compact observed last-loss comparison.
+
+- [npc-approach-feedback-v1](npc-approach-feedback-v1.html) — approach a qualified trainer template without interaction.
+
+- [CURRENT BOUNDARY FACTS](boundary-crossing-facts-v1.html): Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit.
+
+- [delivered-place-evidence-v1](delivered-place-evidence-v1.html): exact historical spatial dialogue and qualified named places.
+- [REACHABLE SECTION ALTERNATIVES](reachable-section-alternatives-v1.html): Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent.
+- [owned-battle-context-v1](owned-battle-context-v1.html) — explicit evolution/move-forget ownership wins over lingering battle bit.
+
+## [static-npc-template-approach-v1](static-npc-template-approach-v1.html)
+Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.

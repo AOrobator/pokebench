@@ -16,3 +16,8 @@ the Torchic data. The operator's message is the launch approval for that one run
 
 Gates and review recorded below.
 - COMMIT: `feat(agent): random-starter-v1 ...` (c240a6bcf120dd1e15a322629ee620679acdf891); pending entry pinned to it in the next commit
+
+### Review round 1 (packet 24a360c33..25474ecf3, sha256 32797df9…): Claude lane auth expired (no verdict), GPT BLOCKING, fallback BLOCKING
+- [x] fix: dialogue auto-advance dropped the pick receipt and could send the rest of the model's batch after the pick; the press result now carries starterPick and the wrapper returns it as is (RED: 2 batch cases fail without the wrapper line)
+- [x] fix: checked presses (objective-tracking-v1 path) bypassed the pick; interception no longer requires an unchecked press (the check still runs first)
+- [x] fix: RNG test was stochastic; pickRandomStarter takes an injectable draw, tested with 0 and 1

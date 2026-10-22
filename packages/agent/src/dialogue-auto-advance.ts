@@ -16,6 +16,7 @@ import {MESSAGE_WAITING,elevationsMatch} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,ignoredSteps,pressResult,pushbackPressResult,scriptMove} from "./press-result.js";
 import {BattleJournal,advanceBattle,battleEngaged,battlePage,levelUpListedPage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
+import {isStarterPick} from "./random-starter.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 
@@ -406,7 +407,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   else{
    let result:Result|undefined;
    let previous=before;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now)||(battle!==null&&isBattleEngaged(now)))break;}
+   for(const button of plan){result=await run([button],sent.length===0);if(isStarterPick(result))return result as AgentToolResult<{state:GameStateSnapshot|undefined}>;sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now)||(battle!==null&&isBattleEngaged(now)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }

@@ -193,7 +193,7 @@ export interface PressHooks {
 export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
 export interface CheckedPressOptions { readonly automaticRunning?: boolean; readonly stride?:StrideCorridor }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
- readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>;
+ readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -216,7 +216,7 @@ export function pressTool(
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
   shown: ShownStates = new ShownStates(),
 ): CheckedPressTool {
-  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>=>{
+  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
       let before: GameStateSnapshot | undefined;
@@ -229,7 +229,7 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
-      if(switches.randomStarter!==undefined&&!picking&&check===undefined&&atStarterBag(before))return pickStarter(toolCallId,switches.randomStarter,before,signal,_update);
+      if(switches.randomStarter!==undefined&&!picking&&atStarterBag(before))return pickStarter(toolCallId,switches.randomStarter,before,signal,_update);
       let limitedMovement=false;
       if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
         if(switches.rejectedMovementPrefix!==undefined)return walkPrefix(toolCallId,params.buttons,before,switches.rejectedMovementPrefix,signal,_update);
@@ -300,7 +300,7 @@ export function pressTool(
   };
   // random-starter-v1: the run's pick replaces the model's press at the starter bag; one button per press, each read back.
   let picking=false,starter:RandomStarter|null=null;
-  const pickStarter=async(toolCallId:string,pick:()=>RandomStarter,before:GameStateSnapshot|undefined,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>=>{
+  const pickStarter=async(toolCallId:string,pick:()=>RandomStarter,before:GameStateSnapshot|undefined,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
     const target=starter??=pick();
     let current=before,presses=0,confirmed=false,waitingSince:number|null=null,detail:string|null=null,picked=false;
     picking=true;
@@ -325,13 +325,13 @@ export function pressTool(
     if(current===undefined&&!picked)detail??="the game state is unavailable";
     const result=await observation(gameServerUrl,fetchFn,signal,starterPickNote(target,picked?"picked":"stopped",detail));
     shown.record(result.state,before);
-    return {content:result.content,details:{state:result.state}};
+    return {content:result.content,details:{state:result.state,starterPick:true}};
   };
   // rejected-movement-prefix-v1: the longest prefix of a guarded walking batch, one checked ordinary press per direction,
   // each re-validated by navigate_to's rules on the state read just before it and verified on the state after it.
-  const walkPrefix=async(toolCallId:string,buttons:readonly Button[],before:GameStateSnapshot,rules:PrefixRules,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>=>{
+  const walkPrefix=async(toolCallId:string,buttons:readonly Button[],before:GameStateSnapshot,rules:PrefixRules,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
     const requested=buttons.flatMap(b=>b==="UP"||b==="DOWN"||b==="LEFT"||b==="RIGHT"?[b]:[]),submitted:Button[]=[];
-    let expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>|undefined,stop:string|null=null;
+    let expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
     for(const [i,direction] of requested.entries()){
       const planned:{step:RequestedStepOk|null;refusal:string}={step:null,refusal:"walking was interrupted"};
       try {

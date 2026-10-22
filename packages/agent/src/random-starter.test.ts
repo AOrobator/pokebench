@@ -5,7 +5,8 @@ import {normalizeFeatures} from "./play-preset.js";
 import {toolSwitches} from "./play-config.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {gameTools,type PressHooks} from "./game-tools.js";
-import {RANDOM_STARTER_LIMITS,atStarterBag,pickRandomStarter,starterStep,type RandomStarter} from "./random-starter.js";
+import {RANDOM_STARTER_LIMITS,atStarterBag,isStarterPick,pickRandomStarter,starterStep,type RandomStarter} from "./random-starter.js";
+import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const ID="random-starter-v1";
@@ -78,9 +79,15 @@ describe(ID,()=>{
   expect(toolSwitches(off).randomStarter).toBeUndefined();
   expect(toolSwitches(on).randomStarter).toBe(pickRandomStarter);
  });
- it("picks only TREECKO or MUDKIP, both reachable",()=>{
-  const seen=new Set(Array.from({length:200},()=>pickRandomStarter()));
-  expect([...seen].sort()).toEqual(["MUDKIP","TREECKO"]);
+ it("draws 0 or 1 from two choices: 0 is TREECKO, 1 is MUDKIP",()=>{
+  const draw=vi.fn((n:number)=>n-2);
+  expect(pickRandomStarter(draw)).toBe("TREECKO");
+  expect(draw).toHaveBeenCalledWith(2);
+  expect(pickRandomStarter(()=>1)).toBe("MUDKIP");
+  expect(["TREECKO","MUDKIP"]).toContain(pickRandomStarter());
+  expect(isStarterPick({details:{state:null,starterPick:true}})).toBe(true);
+  expect(isStarterPick({details:{state:null}})).toBe(false);
+  expect(isStarterPick({details:null})).toBe(false);
  });
  it("reads the recorded starter bag as open with no starter",()=>{
   expect(atStarterBag(bag)).toBe(true);
@@ -140,5 +147,34 @@ describe(ID,()=>{
   const g=game({phase:"closed"});const {tool}=press(g,on);
   await tool.execute("call-1",{buttons:["A"]});
   expect(g.pressed).toEqual(["A"]);
+ });
+ it("ON: a checked press (objective tracking) runs its check, then the pick",async()=>{
+  const g=game();const {tool}=press(g,on,"MUDKIP");
+  const check=vi.fn();
+  const r=await tool.executeChecked("call-1",{buttons:["A"]},check);
+  expect(check).toHaveBeenCalledTimes(1);
+  expect(g.pressed).toEqual(["RIGHT","A","A"]);
+  expect(r.details.starterPick).toBe(true);
+ });
+ describe("through dialogue auto-advance (on in the run's arm)",()=>{
+  const wired=(g:ReturnType<typeof game>,pick:RandomStarter)=>{
+   const advances:unknown[]=[];
+   const recorder:AutoAdvanceRecorder={recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:b=>{advances.push(b);return {seq:2,turn:1};},subscribe:()=>undefined};
+   const features={...on,"dialogue-auto-advance-v1":true};
+   const base=gameTools("http://test",hooks(),g.fetchFn,{...toolSwitches(features),randomStarter:()=>pick},fakeClock());
+   const state={read:async()=>parseGameState(await (await g.fetchFn("http://test/pokebench/state")).json())};
+   const tools=withDialogueAutoAdvance(base,features,{state,recorder,clock:fakeClock()});
+   const tool=tools.find(t=>t.name==="press");
+   if(tool===undefined)throw new Error("missing press");
+   return {tool,advances};
+  };
+  it.each([[["A"]],[["A","A"]],[["RIGHT","A","B"]]])("keeps the pick receipt and sends none of the batch %j",async buttons=>{
+   const g=game();const {tool,advances}=wired(g,"TREECKO");
+   const r=await tool.execute("call-1",{buttons});
+   expect(g.pressed).toEqual(["LEFT","A","A"]);
+   expect(text(r)).toContain("Starter pick: the harness chose TREECKO at random");
+   expect(text(r)).not.toContain("pressed A");
+   expect(advances).toEqual([]);
+  });
  });
 });

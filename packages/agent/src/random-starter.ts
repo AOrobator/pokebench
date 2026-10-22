@@ -11,7 +11,9 @@ export type RandomStarter=(typeof RANDOM_STARTERS)[number];
 const ORDER=["TREECKO","TORCHIC","MUDKIP"] as const;
 export const RANDOM_STARTER_LIMITS={presses:12,waitMs:10_000,pollMs:100} as const;
 
-export function pickRandomStarter():RandomStarter {return RANDOM_STARTERS[randomInt(2)]??"TREECKO";}
+export function pickRandomStarter(draw:(n:number)=>number=randomInt):RandomStarter {return RANDOM_STARTERS[draw(RANDOM_STARTERS.length)]??"TREECKO";}
+// A press result that is the harness pick: wrappers return it as is, with none of the rest of the model's batch.
+export function isStarterPick(result:{readonly details:unknown}):boolean {const d=result.details;return typeof d==="object"&&d!==null&&"starterPick" in d&&d.starterPick===true;}
 
 // The bag is open and no starter has been received yet.
 export function atStarterBag(s:GameStateSnapshot|undefined):boolean {

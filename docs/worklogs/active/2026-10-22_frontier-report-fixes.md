@@ -46,8 +46,8 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 - [x] Explainers (3, themed, pages-check clean, headless desktop/phone screenshots), FEATURE_EXPLAINERS, Reports copies under runs/reports/run-analysis/2026-10-22_<id>/
 - [x] Bundle arm on in bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h (frontier-report-fixes-bundle.test.ts); 4 older recipe tests given the three ids
 - [x] Gates: lint 0, build 0, coverage 0 — agent 4763 tests (97.3 stmts / 93.32 branches / 97.79 funcs / 99.2 lines), viewer 1787 (95.48 / 91.45 / 94.44 / 97.97), Python 3978 passed, 96% total
-- [ ] Review: Claude, GPT, fallback
-- [ ] Land via board, viewer restart, live check
+- [x] Review: Claude LGTM rounds 1-2, fallback LGTM rounds 1-2, GPT BLOCKING round 2 on experiment metadata (fixed in daa4ca9e5); The operator 4:55 PM New York: "just land ur changes" (no round 3)
+- [x] Landed: board slot 4:56 PM, `git merge --ff-only` → main daa4ca9e5; `pnpm -r build` then `just test` on main 0 (agent 4820, viewer 1794, Python 4011); `just viewer-main` → 8790 at daa4ca9e5, PPID 1 (launchd), 1 live gameplay process kept; explainers 200 on 8790 /explainers/, on 8791 and on Tailscale Reports (?open=2026-10-22_<id>)
 
 ## Session Log
 

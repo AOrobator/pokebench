@@ -101,6 +101,7 @@ def read_state(
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
         move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
+        berry_readout_enabled="berry-readout-v1" not in off,
         mart_stock_enabled=MART_STOCK not in off,
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,

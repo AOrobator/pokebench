@@ -59,3 +59,10 @@ Claude LGTM; GPT BLOCKING; fallback BLOCKING. Accepted findings:
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive
+
+### Round 2 (packet 58c2292b9..07c7edfbf; coordinator merged main 58c2292b9 as 07c7edfbf)
+
+Claude LGTM; GPT one real bug: with turn-drought-clock-v1 and drought-battle-heal-hold-v1 both ON (the bundle), the heal-hold completion in `StallBriefing.observe` restarted the clock on any `fullParty(event)` after a heal warning, without the same-party/readable rule, so swapping a hurt POKéMON for a different full-HP one (or a full party with an unknown identity) after a heal warning held a due nudge back for 30 more actions. Also: PB13 in the principles self-review was corrected to say landing and the live proof are still pending.
+
+- [x] R2 RED (production rig, both switches ON): different POKéMON at full HP after the warning still gets the action-30 nudge; a swap after the nudge was held releases it on that action; the same party healed restarts the clock; a full party with unknown identity still gets the nudge; unreadable HP keeps the trip's hold (held note at action 30, no restart). 3 failing / 25 passing.
+- [ ] R2 GREEN

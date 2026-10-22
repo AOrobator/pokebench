@@ -253,3 +253,59 @@ describe(`${ID} ON`,()=>{
   expect(g.held[0]?.slice(0,2)).toEqual(["milestone_drought",1]);
  });
 });
+
+// Round 2 (GPT): with drought-battle-heal-hold-v1 also on (both are on in the bundle), the heal trip a heal warning
+// opens ends at any full party; with the turn clock on, only the same identified, readable party reaching full HP
+// is progress, and a trip that ends without one leaves the due nudge due.
+describe(`${ID} ON with drought-battle-heal-hold-v1`,()=>{
+ const BOTH={...BASE,[ID]:true,"drought-battle-heal-hold-v1":true};
+ const HEAL_LINE={type:"heal_first_line",tool:"battle_action",tool_call_id:"w1",kind:"rival",opponent:"MAY",map_id:[0,18],party:[{species:"TORCHIC",hp:12,max_hp:21}],heard:null,exit:null,text:"TORCHIC has 12/21 HP. MAY's battle cannot be run from, so heal before talking to her."};
+ const B=(hp:number)=>({species:"MUDKIP",identity:"0000beef:00005678",level:9,hp,max_hp:20});
+ it("a different POKéMON at full HP after the heal warning is not a heal: the action-30 nudge is still sent",()=>{
+  const r=rig(BOTH);
+  r.acts(25,{party:[MON(12)]});
+  r.emit(HEAL_LINE);
+  r.act({party:[B(20)]});
+  r.acts(3,{party:[B(20)]});
+  expect(r.droughts()).toEqual([]);
+  r.act({party:[B(20)]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("a swap that ends the heal trip after the nudge was held releases it on that action",()=>{
+  const r=rig(BOTH);
+  r.acts(20,{party:[MON(12)]});
+  r.emit(HEAL_LINE);
+  r.acts(12,{party:[MON(12)]});
+  expect(r.droughts()).toEqual([]);
+  expect(r.notes.map(n=>n.message)).toEqual(["Not sent (drought-battle-heal-hold-v1): no new story milestone, level-up, trainer win or full heal in the last 30 actions, but the party is on its way to heal after a heal warning (#41)."]);
+  r.act({party:[B(20)]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("the same party healed after the warning restarts the clock",()=>{
+  const r=rig(BOTH);
+  r.acts(25,{party:[MON(12)]});
+  r.emit(HEAL_LINE);
+  r.act({party:[MON(21)]});
+  r.acts(29,{party:[MON(21)]});
+  expect(r.droughts()).toEqual([]);
+  r.act({party:[MON(21)]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("a full party with an unknown identity is not a heal: the action-30 nudge is still sent",()=>{
+  const r=rig(BOTH);
+  r.acts(25,{party:[MON(12)]});
+  r.emit(HEAL_LINE);
+  r.acts(4,{party:[{...MON(21),identity:null}]});
+  expect(r.droughts()).toEqual([]);
+  r.act({party:[{...MON(21),identity:null}]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("unreadable HP is not a heal: the due nudge is held for the open heal trip, not restarted",()=>{
+  const r=rig(BOTH);
+  r.acts(25,{party:[MON(12)]});
+  r.emit(HEAL_LINE);
+  r.acts(5,{party:[{...MON(21),hp:null}]});
+  expect(r.droughts()).toEqual([]);
+  expect(r.notes.map(n=>n.message)).toEqual(["Not sent (drought-battle-heal-hold-v1): no new story milestone, level-up, trainer win or full heal in the last 30 actions, but the party is on its way to heal after a heal warning (#51)."]);
+ });
+});

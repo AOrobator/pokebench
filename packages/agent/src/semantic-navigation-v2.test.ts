@@ -25,8 +25,8 @@ const LOCAL:FeatureSet={...ON,"full-map-navigation-v1":false,"visited-terrain-na
 
 describe("registry, presets and dependencies",()=>{
  it("is appended last, default off, a guidance switch that needs bounded navigation, applied by the game server too",()=>{
-  expect(SWITCHABLE_FEATURES.at(-80)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-80)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-83)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-83)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-61)).toBe(ID);
   expect(SERVER_FEATURES.at(-26)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});

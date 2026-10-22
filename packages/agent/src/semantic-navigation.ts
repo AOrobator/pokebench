@@ -295,7 +295,8 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
       if(still.x!==template.x||still.y!==template.y)return "template changed during approach";
       return null;
      };
-     const result=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id,...(request.confirm_trainer_sight===undefined?{}:{confirm_trainer_sight:request.confirm_trainer_sight})},stop,signal);
+     // Approaching a template is not a request to talk: no trainer is exempt from the existing sight check.
+     const result=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id,...(request.confirm_trainer_sight===undefined?{}:{confirm_trainer_sight:request.confirm_trainer_sight})},stop,signal,sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:null}}:{});
      return withStatus(result,`${qualification}; ${navigationStatus(result)??"returned from checked navigation"}`,selected,request.target,false);
     }
    }

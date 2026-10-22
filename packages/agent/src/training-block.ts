@@ -31,6 +31,8 @@ interface LeaderBattle {
  readonly effectiveness:string[];readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
  readonly foes:Map<number,LeaderFoe>;outcome:string|null;moneyAfter:number|null;done:boolean;
 }
+interface LossPages {readonly battle:LeaderBattle;readonly messages:string[];readonly effectiveness:string[]}
+interface PendingLossPages {readonly tool:string;readonly pages:LossPages[]}
 interface SeenTrainer {readonly id:number;readonly sprite:string|null;readonly x:number;readonly y:number;defeated:boolean}
 
 const oneLine=(text:string)=>text.replace(/\s*\n\s*/g," ").trim();
@@ -57,21 +59,16 @@ export class TrainingBlock {
  private readonly earned:Earned[]=[];
  private readonly leaders=new Map<string,LeaderBattle[]>();
  private leaderRunning:{readonly name:string;readonly battle:LeaderBattle}|null=null;
+ // The new loss-memory path alone waits for the recorder's matching delivery receipt.
+ private readonly leaderSources=new Map<number,LeaderBattle>();
+ private readonly pendingLossPages=new Map<string,PendingLossPages>();
  private readonly names=new Map<number,string>();
  private readonly maps=new Map<string,Map<number,SeenTrainer>>();
  constructor(private readonly features:FeatureSet){}
 
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){this.state(event);return;}
-  if(event.type==="dialogue_auto_advance"&&this.features["leader-loss-comparison-v1"]&&this.leaderRunning!==null){
-   for(const page of event.pages)if(page.battle_message_id!==undefined){
-    const text=oneLine(page.text);
-    if(/not very effective|super effective|doesn.t affect/i.test(text)&&!this.leaderRunning.battle.effectiveness.includes(text))this.leaderRunning.battle.effectiveness.push(text);
-    this.leaderRunning.battle.effectiveness.splice(0,Math.max(0,this.leaderRunning.battle.effectiveness.length-4));
-    if(text!==""&&this.leaderRunning.battle.messages.at(-1)!==text)this.leaderRunning.battle.messages.push(text);
-   }
-   this.leaderRunning.battle.messages.splice(0,Math.max(0,this.leaderRunning.battle.messages.length-4));
-  }
+  if(this.features["leader-loss-comparison-v1"])this.lossDelivery(event);
   if(event.type!=="dialogue_auto_advance"||!this.features["exp-earned-ledger-v1"])return;
   for(const page of event.pages){
    if(page.battle_message_id===undefined||page.state_seq===null)continue;
@@ -93,6 +90,41 @@ export class TrainingBlock {
   }
  }
 
+ // Recording precedes the final observation, which may reject. Pending pages stay bound to
+ // their source battle even when that battle completes before its successful result arrives.
+ private lossDelivery(event:RunEvent):void {
+  if(event.type==="dialogue_auto_advance"){
+   const previous=this.pendingLossPages.get(event.tool_call_id);
+   const pages=new Map<LeaderBattle,LossPages>((previous?.tool===event.tool?previous.pages:[]).map(p=>[p.battle,p]));
+   for(const page of event.pages){
+    if(page.battle_message_id===undefined||page.state_seq===null)continue;
+    const battle=this.leaderSources.get(page.state_seq);if(battle===undefined)continue;
+    const text=oneLine(page.text),entry=pages.get(battle)??{battle,messages:[],effectiveness:[]};
+    pages.set(battle,entry);
+    if(text!==""&&entry.messages.at(-1)!==text)entry.messages.push(text);
+    entry.messages.splice(0,Math.max(0,entry.messages.length-4));
+    if(/not very effective|super effective|doesn.t affect/i.test(text)&&!entry.effectiveness.includes(text))entry.effectiveness.push(text);
+    entry.effectiveness.splice(0,Math.max(0,entry.effectiveness.length-4));
+   }
+   if(pages.size>0){
+    this.pendingLossPages.set(event.tool_call_id,{tool:event.tool,pages:[...pages.values()]});
+    if(this.pendingLossPages.size>STATE_MEMORY){const first=this.pendingLossPages.keys().next().value;if(first!==undefined)this.pendingLossPages.delete(first);}
+   }
+   return;
+  }
+  if(event.type!=="tool_result")return;
+  const pending=this.pendingLossPages.get(event.id);
+  if(pending===undefined||pending.tool!==event.name)return;
+  this.pendingLossPages.delete(event.id);
+  if(event.is_error)return;
+  for(const entry of pending.pages){
+   for(const text of entry.messages)if(entry.battle.messages.at(-1)!==text)entry.battle.messages.push(text);
+   for(const text of entry.effectiveness)if(!entry.battle.effectiveness.includes(text))entry.battle.effectiveness.push(text);
+   entry.battle.messages.splice(0,Math.max(0,entry.battle.messages.length-4));
+   entry.battle.effectiveness.splice(0,Math.max(0,entry.battle.effectiveness.length-4));
+  }
+ }
+
  private state(s:State):void {
   const battling=inBattle(s);
   if(battling&&!this.wasInBattle)this.battleCount+=1;
@@ -105,7 +137,16 @@ export class TrainingBlock {
    this.sources.set(s.seq,this.source(s));
    if(this.sources.size>STATE_MEMORY){const first=this.sources.keys().next().value;if(first!==undefined)this.sources.delete(first);}
   }
+  const previousLeader=this.leaderRunning;
   if(this.features["leader-attempt-ledger-v1"]||this.features["leader-loss-comparison-v1"])this.leader(s,battling);
+  if(this.features["leader-loss-comparison-v1"]){
+   // The completion state can own the last journal pages collected on the way back to the field.
+   const source=this.leaderRunning?.battle??(field(s)?previousLeader?.battle:undefined);
+   if(source!==undefined){
+    this.leaderSources.set(s.seq,source);
+    if(this.leaderSources.size>STATE_MEMORY){const first=this.leaderSources.keys().next().value;if(first!==undefined)this.leaderSources.delete(first);}
+   }
+  }
   if(this.features["seen-trainers-ledger-v1"]&&field(s)&&s.location!==null)this.seen(s,s.location);
  }
 
@@ -192,14 +233,17 @@ export class TrainingBlock {
   return [...this.leaders].filter(([name])=>current===null||name===current).flatMap(([name,battles])=>{
    const loss=battles.findLast(b=>b.done&&b.outcome==="lost");if(loss===undefined)return [];
    const before=loss.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
-   const complete=before.length>0&&now.length>0&&[...before,...now].every(m=>m.identity!=null);
-   const membership=complete?(before.map(m=>m.identity).join("|")===now.map(m=>m.identity).join("|")?"unchanged":"changed"):"unknown";
-   const comparable=complete&&before.length>0&&now.length===before.length&&before.every((m,i)=>m.species===now[i]?.species&&m.identity===now[i].identity);
+   const unique=(p:Party)=>p.length>0&&p.every(m=>m.identity!=null)&&new Set(p.map(m=>m.identity)).size===p.length;
+   const complete=unique(before)&&unique(now);
+   const byIdentity=new Map(now.map(m=>[m.identity,m]));
+   const membership=complete?(before.length===now.length&&before.every(m=>byIdentity.has(m.identity))?"unchanged":"changed"):"unknown";
+   const aligned=before.flatMap(m=>{const member=byIdentity.get(m.identity);return member===undefined?[]:[member];});
+   const comparable=membership==="unchanged"&&before.every((m,i)=>m.species===aligned[i]?.species);
    const compare=(values:(party:Party)=>readonly unknown[]|null):string=>{
-    if(!comparable)return "unknown";const a=values(before),b=values(now);
+    if(!comparable)return "unknown";const a=values(before),b=values(aligned);
     return a===null||b===null?"unknown":JSON.stringify(a)===JSON.stringify(b)?"unchanged":"changed";
    };
-   const levels=compare(p=>p.map(m=>m.level));
+   const levels=compare(p=>p.some(m=>m.level==null)?null:p.map(m=>m.level));
    const exp=compare(p=>p.some(m=>m.experience==null)?null:p.map(m=>m.experience));
    const moves=compare(p=>p.some(m=>m.moves==null)?null:p.map(m=>m.moves?.map(move=>move.move_id)));
    const moveText=(p:Party)=>p.map(m=>`${m.species??"unknown"}: ${m.moves==null?"unknown":m.moves.map(move=>move.name??`move ${String(move.move_id)}`).join(", ")}`).join("; ")||"unknown";

@@ -1,0 +1,12 @@
+{
+  "source": "/Users/user/dev/pokebench/runs/2026-10-21T04-27-11_qwen36-gpu1_fd95/events.jsonl",
+  "source_sha256": "18f7f75805ad39848380e92a7345af35328f50db444a294abf2d575c4a8d21dc",
+  "selection": "Full exact source dialogue_auto_advance rows for original slim fixture seqs (restores tool_call_id omitted there), plus matching tool_result metadata with only frames and text omitted. Merge by seq, replacing original slim dialogue rows. No successful receipt synthesized. Also preserves full source states 21811 and 21841 for coherent production dialogue-wrapper replay (the original fixture removed required state details).",
+  "dialogue_rows": 183,
+  "receipt_rows": 176,
+  "fixture_sha256": "deb0e6f88d0f83a16d42e82b9c769eea354be28ac3b967b44c0361998b400e22",
+  "full_state_seqs": [
+    21811,
+    21841
+  ]
+}

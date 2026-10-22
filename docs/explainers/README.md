@@ -206,6 +206,9 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Cut-off reply feedback](cut-off-reply-feedback-v1.html) — default OFF, bundle arm only: after a reply that stopped at max_tokens with no tool call, the next message says so and asks for one tool call (naming the walking tools), instead of the plain NUDGE; a due text-only supervisor note still wins.
 - [Trainer sight: target walks](trainer-sight-check-v2.html) — default OFF, bundle arm only: navigate_to_target routes get trainer-sight-check-v1's check (first walk of the call; the talk target's own sight left out) and a confirm_trainer_sight argument.
 - [Auto-talk: skip beaten trainers](auto-talk-v2.html) — default OFF, bundle arm only: trainers the readout shows as defeated are not auto-talk targets.
+- [Auto-talk on the field only](auto-talk-field-only-v1.html) — default OFF, bundle arm only: auto-talk does nothing in a battle and records no not_free no-ops.
+- [Auto-talk after a quiet stretch](auto-talk-v3.html) — default OFF, bundle arm only: auto-talk acts after 10 quiet free-field turns on one map instead of on a loop.
+- [People not talked to](untalked-people-header-v1.html) — default OFF, bundle arm only: the trust header lists people on this map not talked to since the last story milestone.
 - [Map-wide triggers](map-wide-triggers-v1.html) — default OFF, bundle arm only, game server: the state lists every coordinate trigger on the map so a Littleroot stride stops at (10,10) before the (10,9) trigger; the readout text keeps the 7-tile list.
 - [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
 

@@ -4870,7 +4870,8 @@
         "trigger": {
           "enum": [
             "fixed_point",
-            "no_tool_call"
+            "no_tool_call",
+            "quiet_map"
           ]
         },
         "repeats": {

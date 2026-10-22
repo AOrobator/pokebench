@@ -1,3 +1,4 @@
+import { IN_GAME } from "../test-support/events.js";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
@@ -7,12 +8,18 @@ import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, type FeatureSet } from "./featur
 const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false,"leader-loss-comparison-v1":false};
 import type { GameStateSnapshot } from "./game-state.js";
 import { playGameTools } from "./play-wiring.js";
+import { withDialogueAutoAdvance, type AutoAdvanceRecorder } from "./dialogue-auto-advance.js";
+import { pressTool } from "./game-tools.js";
 import { TRAINING_HEADER, TrainingBlock } from "./training-block.js";
 
 // Run 2026-10-21T04-27-11_qwen36-gpu1_fd95 (bundle arm), whole run, state events slimmed to the fields the folds
 // read, every dialogue_auto_advance and milestone event: three ROXANNE losses (turns 501, 538, 591), JOSH, TOMMY
 // and MARC beaten in between, and every "… gained … EXP. Points!" page the model was shown.
-const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/training-fd95.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
+const SLIM_EVENTS=gunzipSync(readFileSync(new URL("./fixtures/training-fd95.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
+// The original slim fixture omitted call IDs and results. Restore exact source dialogue rows and
+// matching receipt metadata, selected and hashed in training-fd95-delivery.provenance.json.
+const DELIVERY=gunzipSync(readFileSync(new URL("./fixtures/training-fd95-delivery.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
+const EVENTS=[...new Map([...SLIM_EVENTS,...DELIVERY].map(e=>[e.seq,e])).values()].sort((a,b)=>a.seq-b.seq);
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 const states=EVENTS.filter((e):e is State=>e.type==="state"&&"started" in e);
 const at=(seq:number):GameStateSnapshot=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s;};
@@ -182,5 +189,129 @@ describe("leader-loss-comparison-v1",()=>{
  });
  it("OFF keeps the prior leader ledger byte identical",()=>{
   expect(fed(only({"leader-attempt-ledger-v1":true})).block(at(GYM_FIELD))).toBe([TRAINING_HEADER,...LEADER].join("\n"));
+ });
+});
+
+
+describe("leader loss source delivery and party alignment",()=>{
+ const features=only({"leader-loss-comparison-v1":true});
+ const source=EVENTS.find((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.seq===21842&&e.type==="dialogue_auto_advance");
+ if(source===undefined)throw new Error("native source page");
+ const page=source;
+ const firstPage=page.pages[0];if(firstPage===undefined)throw new Error("native first page");
+ const receipt=EVENTS.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.id===page.tool_call_id);
+ if(receipt===undefined||receipt.is_error)throw new Error("native successful receipt");
+ const delivered=receipt;
+ const battle=at(21811);
+ const text=(block:TrainingBlock)=>block.block(at(GYM_FIELD))??"";
+ const loss=(block:TrainingBlock)=>{
+  block.observe({...battle,battle:{...battle.battle,outcome:"lost"}} as RunEvent);
+  block.observe(at(GYM_FIELD) as State);
+ };
+ function pending():TrainingBlock {
+  const b=new TrainingBlock(features);b.observe(battle as State);
+  // Exact referenced state associates these pages with the battle, including after completion.
+  b.observe(at(page.pages[0]?.state_seq??0) as State);b.observe(page);return b;
+ }
+ it("waits for matching successful result; pending, unrelated, wrong-tool and failed calls stay unknown",()=>{
+  for(const result of [null,{...delivered,id:"unrelated"},{...delivered,name:"observe"},{...delivered,is_error:true}]){
+   const b=pending();if(result!==null)b.observe(result);loss(b);
+   expect(text(b)).toContain("Effectiveness pages delivered: unknown");
+   expect(text(b)).toContain("Last battle pages delivered (up to 4; game words): unknown");
+  }
+  const b=pending();b.observe(delivered);loss(b);
+  expect(text(b)).toContain("Effectiveness pages delivered: It's not very effective");
+  expect(text(b)).toContain("TORCHIC used EMBER!");
+ });
+ it("retains multiple recorded page batches belonging to the same successful tool call",()=>{
+  const b=pending();
+  b.observe({...page,pages:[{...firstPage,text:"A later battle page."}]});b.observe(delivered);loss(b);
+  expect(text(b)).toContain("Effectiveness pages delivered: It's not very effective");
+  expect(text(b)).toContain("Last battle pages delivered (up to 4; game words): It's not very effective… | Foe GEODUDE used DEFENSE CURL! | Foe GEODUDE's DEFENSE rose! | A later battle page.");
+ });
+ it("a failed call is retired and an unrelated later success cannot revive its pages",()=>{
+  const b=pending();b.observe({...delivered,is_error:true});b.observe(delivered);loss(b);
+  expect(text(b)).toContain("Effectiveness pages delivered: unknown");
+ });
+ it("a successful call without a known source battle remains unknown",()=>{
+  const b=new TrainingBlock(features);b.observe(battle as State);
+  b.observe({...page,pages:page.pages.map(p=>({...p,state_seq:999999}))});b.observe(delivered);loss(b);
+  expect(text(b)).toContain("Effectiveness pages delivered: unknown");
+ });
+ it("bounds one pending call's page lists before successful delivery",()=>{
+  const b=new TrainingBlock(features);b.observe(battle as State);
+  b.observe({...page,pages:Array.from({length:6},(_,i)=>({...firstPage,state_seq:21811,text:`It's super effective! ${String(i)}`}))});
+  loss(b);expect(text(b)).toContain("Effectiveness pages delivered: unknown");
+  b.observe(delivered);
+  expect(text(b)).toContain("Effectiveness pages delivered: It's super effective! 2 | It's super effective! 3 | It's super effective! 4 | It's super effective! 5");
+  expect(text(b)).not.toContain("It's super effective! 0");
+ });
+ it("binds late successful delivery to the original battle after field completion, not a new battle",()=>{
+  const b=pending();loss(b);
+  b.observe({...battle,trainer_opponent:{...battle.trainer_opponent,name:"BRAWLY"}} as RunEvent);
+  b.observe(delivered);
+  expect(text(b)).toContain("Effectiveness pages delivered: It's not very effective");
+ });
+ it("can associate source pages recorded after field completion through their original state",()=>{
+  const b=new TrainingBlock(features);b.observe(battle as State);b.observe(at(page.pages[0]?.state_seq??0) as State);
+  loss(b);b.observe(page);b.observe(delivered);
+  expect(text(b)).toContain("Effectiveness pages delivered: It's not very effective");
+ });
+ it("retains at most four successful game pages and effectiveness pages",()=>{
+  const b=new TrainingBlock(features);b.observe(battle as State);
+  for(let i=0;i<6;i++){
+   b.observe({...page,tool_call_id:`bound-${String(i)}`,pages:[{...firstPage,state_seq:21811,text:`It's super effective! ${String(i)}`} ]});
+   b.observe({...delivered,id:`bound-${String(i)}`});
+  }
+  loss(b);
+  const lines=text(b).split("\n");
+  expect(lines.find(l=>l.includes("Effectiveness pages delivered:"))).toBe("  Effectiveness pages delivered: It's super effective! 2 | It's super effective! 3 | It's super effective! 4 | It's super effective! 5");
+  expect(lines.find(l=>l.includes("Last battle pages delivered"))).toBe("  Last battle pages delivered (up to 4; game words): It's super effective! 2 | It's super effective! 3 | It's super effective! 4 | It's super effective! 5");
+ });
+ it("production dialogue finish records pages but a rejecting final observation never delivers them",async()=>{
+  const b=new TrainingBlock(features);b.observe(battle as State);let seq=30000;let recorded:RunEvent|undefined;
+  const emit=(body:Record<string,unknown>)=>{const e={v:1,run:"failure-injection",seq:++seq,t:page.t,turn:page.turn,...body} as RunEvent;b.observe(e);return e;};
+  const recorder:AutoAdvanceRecorder={subscribe:()=>undefined,recordState:s=>emit({type:"state",...s}),recordDialogueAutoAdvance:body=>{recorded=emit({type:"dialogue_auto_advance",...body});return recorded;}};
+  const nativeState=Object.fromEntries(Object.entries(battle).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key)));
+  const busy={...IN_GAME,...nativeState,battle:{...battle.battle,text_phase:"busy"}} as GameStateSnapshot;
+  const ready={...IN_GAME,...nativeState,battle:{...battle.battle,text_phase:"input"}} as GameStateSnapshot;
+  const observe:AgentTool={name:"observe",label:"Observe",description:"",parameters:{},execute:()=>Promise.reject(new Error("final observation failed"))};
+  const press=pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},()=>Promise.reject(new Error("no inputs expected")));
+  const action:AgentTool={name:"battle_action",label:"Battle",description:"",parameters:{},execute:()=>Promise.resolve({content:[],details:{state:busy}})};
+  let journal=0;
+  const tools=withDialogueAutoAdvance([observe,press,action],{...features,"dialogue-auto-advance-v1":true,"battle-text-auto-advance-v1":true,"battle-decision-ready-v1":false,"pending-field-dialogue-v1":false},{recorder,state:{read:()=>Promise.resolve(busy),battleWait:()=>Promise.resolve({reason:"input",frames:1,state:ready}),battleMessages:()=>Promise.resolve({frame:1,first_id:1,last_id:journal++===0?0:1,errors:0,last_error:null,entries:journal===1?[]:[{id:1,frame:1,recorded_ms:0,battle:1,battle_turn:1,text:"It's not very effective…",waited_for_input:true}]})}});
+  const wrapped=tools.find(t=>t.name==="battle_action");if(wrapped===undefined)throw new Error("battle tool");
+  await expect(wrapped.execute("fault",{})).rejects.toThrow("final observation failed");
+  expect(recorded?.type).toBe("dialogue_auto_advance");
+  expect(recorded!==undefined&&"pages"in recorded?recorded.pages.map(p=>p.text):[]).toEqual(["It's not very effective…"]);
+  b.observe({...delivered,id:"fault",name:"battle_action",is_error:true});loss(b);
+  expect(text(b)).toContain("Effectiveness pages delivered: unknown");
+ });
+ it("same stable members compare unchanged despite party reordering",()=>{
+  const s=at(GYM_FIELD);const b=fed(features);
+  expect(b.block({...s,party:[...s.party].reverse()})).toContain("party membership: unchanged; levels: unchanged; EXP: unchanged; moves: unchanged");
+ });
+ it("missing source or current levels remain unknown after stable-member reordering",()=>{
+  const s=at(GYM_FIELD);
+  for(const [missingSource,missingCurrent] of [[false,true],[true,false],[true,true]]){
+   const b=new TrainingBlock(features);
+   for(const event of EVENTS)if(event.seq<=GYM_FIELD){
+    // Preserve actual identity and event ordering; inject an unreadable level only into
+    // the second attempt's battle-start snapshot, or only into the current snapshot, and then into both.
+    b.observe(missingSource&&event.type==="state"&&"started"in event&&event.turn===538?{...event,party:event.party.map((m,i)=>i===0?{...m,level:null}:m)}:event);
+   }
+   const party=[...s.party].reverse().map((m,i)=>missingCurrent&&i===1?{...m,level:null}:m);
+   expect(b.block({...s,party})).toContain("party membership: unchanged; levels: unknown; EXP: unchanged; moves: unchanged");
+  }
+ });
+ it("aligns changed per-member facts after reordering",()=>{
+  const s=at(GYM_FIELD),b=fed(features);
+  const party=[...s.party].reverse().map((m,i)=>i===1?{...m,level:(m.level??0)+1,experience:(m.experience??0)+1,moves:m.moves?.map((move,j)=>j===0?{...move,move_id:999}:move)??null}:m);
+  expect(b.block({...s,party})).toContain("party membership: unchanged; levels: changed; EXP: changed; moves: changed");
+ });
+ it("missing or duplicate stable identities keep membership and comparisons unknown",()=>{
+  const s=at(GYM_FIELD),b=fed(features);
+  for(const party of [s.party.map(m=>({...m,identity:null})),s.party.map(m=>({...m,identity:s.party[0]?.identity??null}))])
+   expect(b.block({...s,party})).toContain("party membership: unknown; levels: unknown; EXP: unknown; moves: unknown");
  });
 });

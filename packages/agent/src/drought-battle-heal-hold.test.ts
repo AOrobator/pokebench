@@ -214,8 +214,8 @@ describe("loopEvidence",()=>{
 
 describe("registry",()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-29)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-29)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-32)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-15)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true});

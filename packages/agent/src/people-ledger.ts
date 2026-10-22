@@ -9,11 +9,14 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {COUNTER} from "./tile-rules.js";
 import {semanticWalk} from "./semantic-targets.js";
+import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 
 type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
 export interface MapObject {readonly key:string;readonly local_id:number;readonly sprite:string|null;readonly x:number;readonly y:number;readonly elevation:number}
 interface Talk {readonly turn:number;readonly seq:number}
 
+// untalked-people-header-v1: the line harness-trust-v1's header ends with.
+export const UNTALKED_HEADER="People on this map you have not talked to since your last story milestone:";
 export const PEOPLE_HEADER="People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):";
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const PRESENCE=/^Story characters here \(from this map's own object list\): (.+?)\. Not on this map: (.+?)\. Sprite kinds such as /m;
@@ -94,16 +97,28 @@ export class PeopleLedger {
  private readonly talks=new Map<string,Talk>();
  private readonly pending=new Map<string,{readonly key:string;readonly talk:Talk}>();
  private readonly story:number[]=[];
+ // The latest story milestone the game observed, as the stall gate counts them (untalked-people-header-v1).
+ private chapter=-1;
+ // untalked-people-header-v1 also counts a harness auto-talk, which has no tool result of its own (the stall gate's rule).
+ constructor(private readonly countAutoTalk=false){}
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
-  if(event.type==="milestone"){if(event.kind==="story")this.story.push(event.seq);return;}
+  if(event.type==="milestone"){
+   if(event.kind==="story")this.story.push(event.seq);
+   if(event.kind==="story"&&event.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.chapter=event.seq;
+   return;
+  }
   if(event.type==="dialogue_auto_advance"){
    // battle-text-auto-advance-v1 battle pages are no one's conversation; the first field page is.
    const first=event.pages.find(page=>page.battle_message_id===undefined);
    const key=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
    const pressed=event.tool==="press"&&event.sent.at(-1)==="A";
    if(key!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key,talk:{turn:event.turn,seq:event.seq}});
+   return;
+  }
+  if(event.type==="auto_talk"){
+   if(this.countAutoTalk&&event.outcome==="talked"&&event.target?.key!=null)this.talks.set(event.target.key,{turn:event.turn,seq:event.seq});
    return;
   }
   if(event.type!=="tool_result")return;
@@ -132,6 +147,21 @@ export class PeopleLedger {
   const out=lines.length===0?[`${PEOPLE_HEADER} none`]:[PEOPLE_HEADER,...lines];
   if(characters!==null)out.push(`Story characters here: ${characters.here.length===0?"none":characters.here.join(", ")}. Not on this map: ${characters.absent}.`);
   return out.join("\n");
+ }
+ // untalked-people-header-v1: everyone on this map (item balls excepted) not talked to since the latest story milestone,
+ // or null outside a started overworld readout with live objects.
+ untalkedLine(state:GameStateSnapshot,readout:string,callId:string):string|null {
+  const objects=mapObjects(state);
+  if(!state.started||state.screen!=="overworld"||state.in_battle||objects===null)return null;
+  const placed=presence(readout)?.placed;
+  const items=objects.flatMap(o=>{
+   if(/ITEM_BALL/.test(o.sprite??""))return [];
+   const talk=this.last(o.key,callId);
+   if(talk!==undefined&&talk.seq>this.chapter)return [];
+   const sprite=o.sprite??"unknown",name=placed?.get(`${String(o.x)},${String(o.y)}`);
+   return [`object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}), ${talk===undefined?"not talked to this run":`last talked to on turn ${String(talk.turn)}`}`];
+  });
+  return `${UNTALKED_HEADER} ${items.length===0?"none":items.join("; ")}.`;
  }
  // The readout with the block inserted after its Position line (or Location line when position is off).
  annotate(text:string,state:GameStateSnapshot,callId:string):string {

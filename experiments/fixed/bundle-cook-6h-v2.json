@@ -158,10 +158,7 @@
    "safe-navigation-strides-v1": false,
    "evolution-decision-v1": false,
    "observed-instructions-v1": false,
-   "context-token-budget-v1": true,
-   "leader-loss-comparison-v1": false,
-   "npc-approach-feedback-v1": false,
-   "owned-battle-context-v1": false
+   "context-token-budget-v1": true
   }
  },
  "switches": [
@@ -202,10 +199,7 @@
   "text-only-supervisor-v2",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
-  "observed-instructions-v1",
-  "leader-loss-comparison-v1",
-  "npc-approach-feedback-v1",
-  "owned-battle-context-v1"
+  "observed-instructions-v1"
  ],
  "offInBoth": [
   "visited-terrain-navigation-v1",

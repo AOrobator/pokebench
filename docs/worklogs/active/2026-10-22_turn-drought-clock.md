@@ -77,3 +77,10 @@ Merge commit (not a re-cut, so the reviewed diff stays recognizable). 46 conflic
 - [x] Sync wiring deletion: `turnClock()` forced false gave 23 failed / 5 passed in turn-drought-clock.test.ts; restored, turn-drought-clock + parity 37 passed.
 - Experiment source.commit stays a1dc18710 (the implementation commit did not change).
 - Main then moved to 04b7d34cb (one docs-only worklog commit on another worklog); merged in as a clean docs-only merge so the branch contains current main. No code change, so the gates above stand for the tree.
+
+## Landing (2026-10-22)
+- Operator: "land it now" (4:14 PM EDT), after round 2 (Claude LGTM; GPT's heal-hold same-party bug fixed in a1dc18710; PB13 note corrected). No third review round, by operator decision.
+- LANDED ~4:40 PM EDT: main fast-forwarded 04b7d34cb → eff2f8da6 (landing slot #1). Main `just build` ok; `just test` 4779 agent / 1792 viewer / 4008 Python pass.
+- Recipes on main: turn-drought-clock-v1 is in the bundle arm (`switches`) of bundle-v-control-2h and bundle-v-control, and false in base (control).
+- Viewer: `just viewer-main` → 8790 pid 21171 (ppid 1) serves eff2f8da6, 513 runs, 5 live, no problems; explainer page 200.
+- Pending: the first post-landing bundle run_start showing turn-drought-clock-v1 true.

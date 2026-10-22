@@ -232,3 +232,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Menu item guidance](menu-item-guidance-v1.html)
 - [Factual healing guidance](factual-healing-guidance-v1.html)
+- [Rejected movement prefix](rejected-movement-prefix-v1.html): a guarded walking batch walks as far as navigate_to's rules allow, then says why it stopped.

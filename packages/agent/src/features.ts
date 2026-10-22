@@ -225,6 +225,7 @@ export const SWITCHABLE_FEATURES = [
   "navigation-recovery-v1",
   "menu-item-guidance-v1",
   "factual-healing-guidance-v1",
+  "rejected-movement-prefix-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -563,6 +564,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("navigation-recovery-v1", "guard", "BOUNDED NAVIGATION RECOVERY", null, "Default off; bundle only. Two no-input navigation requests for a stale map identity warn with the qualified current map. Existing map-cycle warnings remain active across revisits. Twelve calls after delivery without verified recovery stop the run. All navigation remains available, including backtracking; no route or story objective is chosen. Off: navigation feedback and map-cycle recovery retain their previous behavior."),
   on("menu-item-guidance-v1", "guidance", "MENU ITEM GUIDANCE", null, "Default off. Gives state-owned menu controls, vertical choices and the difference between using medicine and giving a held item. Waits for input readiness and never selects for the model. Off: existing menu observations and prompt are unchanged."),
   on("factual-healing-guidance-v1", "guard", "FACTUAL HEALING GUIDANCE", null, "Default off. Replaces blanket full-HP directives with HP, battle constraints and healing options, and bypasses the full-HP encounter gate. Trainer-sight confirmation is preserved. No battle safety prediction. Off: original heal-first lines, full-HP advice and encounter gate are unchanged."),
+  on("rejected-movement-prefix-v1", "guard", "REJECTED MOVEMENT PREFIX", "navigation-tool-use-guard-v1", "Default off; bundle treatment (the operator 2026-10-22: run 1fe0 lost about 31 min press-walking UP into Route 101's south ledges after rejected-movement-step-v1 cut 108 eight-press batches to one tile). When the navigation tool-use guard intercepts a free-field direction-only batch, walks the longest valid prefix of the requested directions, one ordinary press each without automatic running, bends and grass included. Each direction is checked on the state read just before its press by navigate_to's own rules (ledges only hopped in their arrow direction, one-way edges, floor, elevation, slopes and closed obstacles as switched) and must not land on a person, object or coordinate script whose condition matches now; the landing is verified after the press. Stops at the first refused step, an interruption, a map change or a warp entered, and returns requested, submitted and dropped directions with the stop reason. Takes precedence over rejected-movement-step-v1. No route is chosen. Off: the original rejection or rejected-movement-step-v1 exactly."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -840,6 +842,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-recovery-v1"),
     ...when("menu-item-guidance-v1"),
     ...when("factual-healing-guidance-v1"),
+    ...when("rejected-movement-prefix-v1"),
   ];
 }
 

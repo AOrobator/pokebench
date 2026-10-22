@@ -6,6 +6,8 @@ import {pressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {requestedStep,type PrefixRules} from "./navigation.js";
 import {flagFeatures} from "./play-preset.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
+import {SWITCHABLE_FEATURES,featureInfo} from "./features.js";
 import {toolSwitches} from "./play-config.js";
 import {LEDGES,type Direction} from "./tile-rules.js";
 
@@ -21,6 +23,7 @@ function grid(overrides:readonly Tile[]=[],objects:readonly {x:number;y:number}[
 }
 const base:GameStateSnapshot={...IN_GAME,story:NAME_CONFIRMED.story,started:true,screen:"overworld",map_id:[0,16],location:"ROUTE101",position:{x:3,y:6},facing:"up",in_battle:false,active_ui:null,field_controls_locked:false,world_context:null,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:1,callback2:2,diagnostic:null,raw_hex:null},navigation_grid:grid()};
 const field=(extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>parseGameState({...base,...extra});
+const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAPAAAACgCAIAAAC9uXYyAAACYklEQVR4nO3OAQnAMAADsNqYjwm4f1U3USiMQAQk537wjMwHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFP07k6LPv/wpiQAAAABJRU5ErkJggg==","base64");
 const urlOf=(input:Parameters<typeof fetch>[0])=>typeof input==="string"?input:input instanceof URL?input.href:input.url;
 const clock={now:()=>0,sleep:()=>Promise.resolve()};
 const text=(result:{content:readonly {type:string;text?:string}[]})=>result.content.flatMap(c=>c.type==="text"?[c.text??""]:[]).join("\n");
@@ -34,27 +37,28 @@ function game(start:GameStateSnapshot,after:(n:number,state:GameStateSnapshot)=>
   if(init?.method==="POST"){
    const body=JSON.parse(typeof init.body==="string"?init.body:"null") as {buttons:Direction[]};posts.push(body);
    for(const d of body.buttons){
+    if(!(d in DELTA))continue;
     const p=state.position,g=state.navigation_grid;if(p===null||g==null)break;
     const [dx,dy]=DELTA[d],next=g.tiles.find(t=>t.x===p.x+dx&&t.y===p.y+dy);
     const landing=next===undefined?null:LEDGES.get(next.behavior)===d?{x:next.x+dx,y:next.y+dy}:next.collision===0&&!g.objects.some(o=>o.x===next.x&&o.y===next.y)?{x:next.x,y:next.y}:null;
-    state={...state,facing:d.toLowerCase() as GameStateSnapshot["facing"],...(landing===null?{}:{position:landing})};
+    state={...state,facing:d.toLowerCase(),...(landing===null?{}:{position:landing})};
    }
    state=after(++presses,state);
   }
-  const body=url.endsWith("/pokebench/state")?state:url.endsWith("/observation")?{state,state_text:"field",screenshot_base64:""}:url.endsWith("/queue_status")?{queue_empty:true}:{status:"success"};
+  const body=url.endsWith("/pokebench/state")?state:url.endsWith("/observation")?{state,state_text:"field",screenshot_base64:png.toString("base64")}:url.endsWith("/queue_status")?{queue_empty:true}:{status:"success"};
   return Promise.resolve(new Response(JSON.stringify(body)));
  });
  return {fetchFn,posts,state:()=>state};
 }
-const features=(extra:Record<string,boolean>={})=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-prefix-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"walkable-floor-v1":true,"elevation-transitions-v1":true,...extra});
+const features=(extra:Record<string,boolean>={})=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-prefix-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"walkable-floor-v1":true,"elevation-transitions-v1":true,"field-move-gates-v1":true,...extra});
 const press=(g:ReturnType<typeof game>,h=hooks(),f=features())=>pressTool("http://game",h,g.fetchFn,clock,toolSwitches(f));
 const receipt=(requested:readonly Direction[],submitted:readonly Direction[])=>JSON.stringify({requested,submitted,dropped:requested.slice(submitted.length)});
 
 describe("requestedStep",()=>{
  it("walks plain floor, grass and a ledge in its arrow direction",()=>{
-  expect(requestedStep(field(),"UP",RULES)).toEqual({ok:true,landing:{x:3,y:5}});
-  expect(requestedStep(field({navigation_grid:grid([tile(3,5,0,0x02)])}),"UP",RULES)).toEqual({ok:true,landing:{x:3,y:5}});
-  expect(requestedStep(field({navigation_grid:grid([tile(3,7,1,0x3b,0)])}),"DOWN",RULES)).toEqual({ok:true,landing:{x:3,y:8}});
+  expect(requestedStep(field(),"UP",RULES)).toEqual({ok:true,landing:{x:3,y:5},warp:false});
+  expect(requestedStep(field({navigation_grid:grid([tile(3,5,0,0x02)])}),"UP",RULES)).toEqual({ok:true,landing:{x:3,y:5},warp:false});
+  expect(requestedStep(field({navigation_grid:grid([tile(3,7,1,0x3b,0)])}),"DOWN",RULES)).toEqual({ok:true,landing:{x:3,y:8},warp:false});
  });
  it("names why a step is refused, in observable terms",()=>{
   const reason=(state:GameStateSnapshot,d:Direction)=>{const r=requestedStep(state,d,RULES);return r.ok?null:r.reason;};
@@ -65,7 +69,7 @@ describe("requestedStep",()=>{
   expect(reason(field({position:{x:3,y:0}}),"UP")).toBe("(3,-1) is outside the known map");
   expect(reason(field({navigation_grid:grid([tile(3,5,0,0,4)])}),"UP")).toBe("(3,5) is at another height than where you stand");
   expect(reason(field({navigation_grid:grid([tile(3,5,0,0x33)])}),"UP")).toBe("a one-way edge blocks moving UP from (3,6) to (3,5)");
-  expect(reason(field({world_context:{objects:[],triggers:[{x:3,y:5,elevation:3,variable:0x4050,required_value:0,current_value:0,condition_met:true,script:0}],dialogue:null,message:null} as unknown as GameStateSnapshot["world_context"]}),"UP")).toBe("(3,5) is a script tile whose condition matches now; stepping on it runs a script, so press UP on its own to step on it on purpose");
+  expect(reason(field({world_context:{objects:[],triggers:[{x:3,y:5,elevation:3,variable:0x4050,required_value:0,current_value:0,condition_met:true,script_pointer:136000000}],dialogue:null}}),"UP")).toBe("(3,5) is a script tile whose condition matches now; stepping on it runs a script, so press UP on its own to step on it on purpose");
  });
  it("follows the configured rules: without ledge hops a ledge is solid",()=>{
   const r=requestedStep(field({navigation_grid:grid([tile(3,7,1,0x3b,0)])}),"DOWN",{...RULES,ledges:false});
@@ -81,7 +85,7 @@ describe("rejected-movement-prefix-v1 at the press boundary",()=>{
   expect(g.state().position).toEqual({x:5,y:4});
   expect(text(result)).toContain(receipt(["UP","UP","RIGHT","RIGHT"],["UP","UP","RIGHT","RIGHT"]));
   expect(text(result)).not.toContain("Stopped");
-  expect(h.beforePress.mock.calls.map(c=>c[1])).toEqual([["UP"],["UP"],["RIGHT"],["RIGHT"]]);
+  expect(h.beforePress.mock.calls.map((c:unknown[])=>c[1])).toEqual([["UP"],["UP"],["RIGHT"],["RIGHT"]]);
  });
  it("stops before a ledge the model walks into against its arrow, and says why",async()=>{
   const g=game(field({navigation_grid:grid([tile(3,3,1,0x3b,0)])}));
@@ -155,6 +159,22 @@ describe("rejected-movement-prefix-v1 at the press boundary",()=>{
  });
 });
 
+describe("registry and pending experiment",()=>{
+ it("is the last switch: a default-off guard that needs the navigation tool-use guard, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.at(-1)).toBe("rejected-movement-prefix-v1");
+  expect(featureInfo("rejected-movement-prefix-v1")).toMatchObject({group:"guard",needs:"navigation-tool-use-guard-v1"});
+  expect(featureInfo("rejected-movement-prefix-v1").description).toContain(" Off: ");
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["rejected-movement-prefix-v1"]).toBe(false);
+ });
+ it("is pending with one switch flipped over an incumbent that keeps the guard and the one-step cut",()=>{
+  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/rejected-movement-prefix-v1.json",import.meta.url),"utf8")) as unknown);
+  expect(entry.queuePosition).toBeUndefined();expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(SWITCHABLE_FEATURES.filter(k=>incumbent.features[k]!==candidate.features[k])).toEqual(["rejected-movement-prefix-v1"]);
+  expect(incumbent.features["navigation-tool-use-guard-v1"]&&incumbent.features["rejected-movement-step-v1"]).toBe(true);
+ });
+});
+
 describe("production wiring",()=>{
  it("maps the switch and the navigation rules it walks by",()=>{
   expect(toolSwitches(features()).rejectedMovementPrefix).toEqual(RULES);
@@ -176,9 +196,10 @@ describe("recorded run 1fe0 (Route 101 ledges)",()=>{
   expect(r.landed).toHaveLength(5);expect(r.landed.at(-1)).toEqual({x:10,y:14});
   expect(r.reason).toBe("(10,13) is a ledge; it can be hopped only going DOWN");
  });
- it("hops the ledge going DOWN at seq 9355 and walks all eight",()=>{
+ it("hops the ledge going DOWN at seq 9355, up to the edge of that one recorded window (live, each step re-reads it)",()=>{
   const c=cases[1];if(c===undefined)throw new Error("fixture");
-  expect(walk(parseGameState(c.state),c.buttons).landed).toHaveLength(8);
+  const r=walk(parseGameState(c.state),c.buttons);
+  expect(r.landed.slice(-2)).toEqual([{x:8,y:12},{x:8,y:14}]);expect(r.reason).toBe("(8,15) is outside the known map");
  });
  it("sends nothing at the ledge foot (seq 8189) and says why",()=>{
   const c=cases[2];if(c===undefined)throw new Error("fixture");

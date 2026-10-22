@@ -75,9 +75,17 @@ class Config:
     stop_override: Path | None = None
     pause_override: Path | None = None
     viewer_stamp: Path = Path("/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json")
+    # Another definition on the same fresh main whose arms every trial takes (`--feature-recipe`).
+    feature_recipe: str | None = None
+    # Shared by every controller on this Mac: launcher builds, fixed trees and viewer restarts.
+    prepare_lock: Path = Path("/private/tmp/pokebench-latest-main-prepare.lock")
 
     def __post_init__(self) -> None:
-        for name in (self.experiment, self.phase):
+        for name in (
+            self.experiment,
+            self.phase,
+            *([self.feature_recipe] if self.feature_recipe else []),
+        ):
             if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,95}", name) is None:
                 raise ValueError("invalid experiment or phase identifier")
         if (
@@ -305,14 +313,14 @@ import {readFileSync,existsSync,mkdtempSync,rmSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-const root=process.cwd(),[commit,id,phase,wall]=process.argv.slice(1);
+const root=process.cwd(),[commit,id,phase,wall,recipe]=process.argv.slice(1);
 const def=JSON.parse(readFileSync(root+'/experiments/fixed/'+id+'.json','utf8'));
 const scratch=mkdtempSync(join(tmpdir(),'pokebench-latest-main-rehearsal-'));
 let tested=0;
 try {
  for(const lane of def.lanes)for(const arm of ['control','bundle']) {
   const result=await main(['dry-run',id,'--phase',phase,'--wall-ms',wall,
-   '--arm',arm,'--lane',lane.id],{
+   '--arm',arm,'--lane',lane.id,...(recipe?['--feature-recipe',recipe]:[])],{
    root,runsRoot:scratch,out:()=>{},err:console.error,head:()=>commit,
    now:()=>new Date(),user:'rehearsal',rom:process.env.POKEBENCH_ROM,
    sha1File:path=>existsSync(path)?createHash('sha1').update(readFileSync(path)).digest('hex'):null,
@@ -343,6 +351,7 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
                     self.c.experiment,
                     self.c.phase,
                     str(self.c.wall_ms),
+                    *([self.c.feature_recipe] if self.c.feature_recipe else []),
                 ],
                 tree,
             )
@@ -356,7 +365,8 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
     def trial(self, lane: Lane, arm: str) -> bool:
         if self.observe_stop() or self.c.pause.exists() or self.busy(lane):
             return False
-        with self.preparation:
+        with self.preparation, self.c.prepare_lock.open("a") as shared:
+            fcntl.flock(shared, fcntl.LOCK_EX)
             pin = self.head()
             current = next((item for item in self.lanes(pin) if item.id == lane.id), None)
             if current is None or (current.port, current.model_url) != (lane.port, lane.model_url):
@@ -400,6 +410,7 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
                     arm,
                     "--lane",
                     lane.id,
+                    *(["--feature-recipe", self.c.feature_recipe] if self.c.feature_recipe else []),
                 ],
                 tree,
                 self.c.archive / f"latest-main-{lane.id}.log",
@@ -477,6 +488,10 @@ def main() -> None:
             os.environ.get("POKEBENCH_VIEWER_WORKTREE", "/private/tmp/pokebench-viewer")
         )
         / "packages/viewer/dist/build-stamp.json",
+        feature_recipe=os.environ.get("FEATURE_RECIPE") or None,
+        prepare_lock=Path(
+            os.environ.get("PREPARE_LOCK", "/private/tmp/pokebench-latest-main-prepare.lock")
+        ),
     )
     archive.mkdir(parents=True, exist_ok=True)
     config.launchers.mkdir(parents=True, exist_ok=True)

@@ -13,6 +13,7 @@ from test_evolution_decision import native
 from test_human import request
 from test_view import get
 
+from pokebench_env.action_history import install_action_history
 from pokebench_env.battle_text import BATTLE_TEXT, PRINTERS, TEXT_FLAGS, read_battle_message
 from pokebench_env.evolution_decision import EvolutionGate
 from pokebench_env.game_state import MapNames
@@ -60,13 +61,14 @@ def test_result_pages_reach_native_emulator_and_switch_off_stays_unchanged(monke
         applied = []
 
         class Emulator:
-            def run_frame_with_buttons(self, buttons):
+            def run_frame_with_buttons(self, buttons, applied=applied):
                 applied.append(buttons)
 
         class Shot(BaseModel):
             screenshot_base64: str = "cG5n"
 
         api = FastAPI()
+        journal = install_action_history(api, Emulator, m.read, evolution_decision=enabled)
         run(
             [],
             uvicorn=SimpleNamespace(run=lambda *a, **k: None),
@@ -80,10 +82,16 @@ def test_result_pages_reach_native_emulator_and_switch_off_stays_unchanged(monke
                 request(api, "/pokebench/evolution", {"token": token, "decision": "evolve"})[0]
                 == 200
             )
+        journal.advance(m.read)
         m.cells.update(result_memory(state).cells)
         Emulator().run_frame_with_buttons(["B"])
         Emulator().run_frame_with_buttons(["B"])
         assert applied == ([["A"], []] if enabled else [["B"], ["B"]])
+        entries = journal.snapshot(0)["entries"]
+        native_inputs = [
+            entry["details"]["buttons"] for entry in entries if entry["kind"] == "native_input"
+        ]
+        assert native_inputs == ([["A"], []] if enabled else [["B"]])
         observed = read_state(m.read, MapNames({}), active_ui=True, off=off)
         shown = render(observed, off)
         if enabled:
@@ -92,6 +100,11 @@ def test_result_pages_reach_native_emulator_and_switch_off_stays_unchanged(monke
             assert observed.active_ui.controls == CONTROLS
             assert "Interface: evolution_result; input ready; value " in shown
             assert CONTROLS in shown
+            payload = json.loads(get(api, "/pokebench/state")[2])
+            assert payload["active_ui"]["phase"] == "evolution_result"
+            assert payload["active_ui"]["controls"] == CONTROLS
+            menu_events = [entry for entry in entries if entry["kind"] == "menu_changed"]
+            assert menu_events[-1]["details"]["phase"] == "evolution_result"
         else:
             assert observed.active_ui.phase == "evolution" and observed.active_ui.ready is False
             assert "Hold B to stop an eligible evolution" in shown

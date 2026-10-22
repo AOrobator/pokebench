@@ -20,7 +20,7 @@ const row=recorded.results.find(r=>r.seq===14882);
 if(row===undefined)throw new Error("missing recorded gym entry");
 const state=parseGameState(row.state);
 const places=JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as {places:{display:string}[]};
-const BASE:FeatureSet={...featuresOf(recorded.harness_features),"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"no-exit-here-v1":false,"blocked-exit-fact-v1":false,"battle-move-tool-v1":false,"heal-before-trainers-v2":true,"story-battle-heal-first-v1":true,"gym-heal-warning-v1":true};
+const BASE:FeatureSet={...featuresOf(recorded.harness_features),"harness-trust-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"no-exit-here-v1":false,"blocked-exit-fact-v1":false,"battle-move-tool-v1":false,"heal-before-trainers-v2":true,"story-battle-heal-first-v1":true,"gym-heal-warning-v1":true};
 const hp=(n:number):GameStateSnapshot=>({...state,party:state.party.map((p,i)=>i===0?{...p,hp:n,max_hp:33}:p)});
 async function replay(on:boolean,states:readonly GameStateSnapshot[]){
  const root=mkdtempSync(join(tmpdir(),"coherent-heal-"));

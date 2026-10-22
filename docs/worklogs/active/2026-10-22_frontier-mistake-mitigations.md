@@ -207,3 +207,10 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 
 - `coherent-healing-feedback-v1` will supersede overlapping warnings only when ON; OFF preserves existing wrappers. No new 80% threshold: reuse existing verified weakParty criteria (lead below half, fainted member, or verified no damaging PP). Minor damage retains the ordinary party readout with no heal command. One factual warning per unchanged risk/map/party profile; known healing places remain options. Disable the independent repeated heal-first wrapper only under this treatment.
 - Production factory regressions on recorded b300 gym entry with ledger HP variants: all 3 tests fail as intended; receipt `/tmp/frontier-m4-red.log`. Source reference pokeemerald `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, clean read-only checkout. No game inputs executed.
+
+### M4 GREEN candidate (integration gates/review pending)
+
+- Coherent warning uses existing weakness criteria; minor damage returns unchanged ordinary readout, one danger warning at most, unchanged profile suppressed, unreadable/foreign party not guessed. Legacy heal-first bypassed only under the new switch. Existing typed warning event stores exact delivered text.
+- Production regressions: 3 pass (`/tmp/frontier-m4-green3.log`); wiring deletion: all 3 fail (`/tmp/frontier-m4-delete-wiring-01.log`), restore 3 pass (`/tmp/frontier-m4-restore-wiring-01.log`). Initial GREEN test harness expected bare text while unrelated harness-trust correctly added a header; isolated unrelated wrapper in fixture before final proof.
+- Agent tsc/build pass. Six normalized generated bundle/control preset tests pass (`/tmp/frontier-m4-bundles.log`); default/control OFF, bundle ON. Explainer themed and pages-check clean. Pending experiment explicitly blocked/unapproved; full gates, browser and review remain open for integrated packet.
+- Commit sequence: planning 45a8891b9; M4 RED 601ab609d; GREEN commit follows. Parallel implementation is per operator authorization; integration and review prioritize M1 then M2/M3/M4.

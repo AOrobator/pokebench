@@ -232,3 +232,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Menu item guidance](menu-item-guidance-v1.html)
 - [Factual healing guidance](factual-healing-guidance-v1.html)
+
+- [Coherent healing feedback](coherent-healing-feedback-v1.html): one factual warning for verified weakness; no full-heal command for minor damage.

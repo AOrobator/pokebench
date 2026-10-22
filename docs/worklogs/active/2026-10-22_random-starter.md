@@ -21,3 +21,4 @@ Gates and review recorded below.
 - [x] fix: dialogue auto-advance dropped the pick receipt and could send the rest of the model's batch after the pick; the press result now carries starterPick and the wrapper returns it as is (RED: 2 batch cases fail without the wrapper line)
 - [x] fix: checked presses (objective-tracking-v1 path) bypassed the pick; interception no longer requires an unchecked press (the check still runs first)
 - [x] fix: RNG test was stochastic; pickRandomStarter takes an injectable draw, tested with 0 and 1
+- Review round 2 (packet 24a360c33..9c634fdad, sha256 f2fe6c37…): GPT BLOCKING only on the pending entry's stale source pin; repinned to 9c634fdad

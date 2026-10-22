@@ -25,7 +25,12 @@ The probe sends one number to `parent` with target `*`; it carries no report con
 - [x] Implement (GREEN)
 - [x] Gates: `just test` (agent 4507, viewer 1697, pytest 3961 passed), `just lint`, `just build`, `just coverage` (viewer 95.47 lines / 91.43 branches / 94.44 functions; one unrelated experiment-cli timeout on the first run, clean rerun), `just verify-vendor` OK
 - [x] Headless desktop and phone proof on a candidate viewer (8796, copied reports): 0% at top, 42% after scrolling the report, 100% at the bottom by wheel, outer page never scrolls, no console errors. Shots: runs/mockups/reports-scroll-indicator/built/. The phone header hides the POKE BENCH logo on main too (pre-existing).
-- [ ] Review: Claude and GPT lanes (Grok not needed, per coordinator brief)
-- [ ] Land, viewer-main, live check
+- [x] Review: Claude and GPT lanes (Grok not needed, per coordinator brief): round 1 LGTM from both
+- [x] Land, viewer-main, live check: `git merge --ff-only 540cb4e02` (main a0c3d6138 → 540cb4e02, landing board #1 at 1:38 PM), `just test` on main green (agent 4507, viewer 1697, pytest 3961), `just viewer-main` → viewer at 540cb4e02 with 4 live runs kept; live headless on 8790 desktop 1280 and phone 375: 0% / 42% / 100%, no console errors, shots in runs/mockups/reports-scroll-indicator/live/; Tailscale /reports?open= returns 200 and serves the probe
 
 ## Multi-Model Review Log
+
+- Round 1, packet runs/reviews/reports-scroll-indicator/r1.diff, base a0c3d6138, head 540cb4e02, SHA-256 20b3ddf62eb7e79194c99116c5953fbd6cda4335bf9de3b9a47b2ecf69e07785. Principles: zero FAIL.
+  - Claude CLI (~/.claude-review, plan mode): VERDICT: LGTM. Non-blocking: post() runs after constructing ResizeObserver (all targets have it); test listeners accumulate across mounts (inert). Rebut: no defect.
+  - GPT: Cursor gpt-5.6-sol-xhigh out of usage; isolated Codex default gpt-6.1-sol rejected for ChatGPT accounts; isolated Codex gpt-5.6-sol: VERDICT: LGTM. Non-blocking: PNG fetched twice in a test. Rebut: constant cost.
+  - Grok: not run (coordinator brief: not needed).

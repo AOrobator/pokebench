@@ -78,3 +78,7 @@ Principles self-review: 0 FAIL (runs/reviews/rejected-movement-prefix/principles
   2. OFF parity asserted only POSTs and a substring. The test now deep-compares the whole result, every request and every hook call against the press tool with no prefix rules, for the rejection and the one-step cut, plus exact-text goldens. Mutation (prefix branch forced on) turns it red; restored green.
   Follow-up (not this branch): receipt lost if a state read throws mid-walk (also noted by Claude).
 - Grok (cursor-grok-4.5-high): retried, still "You're out of usage". Lane blocked.
+
+### Sync with main 1990105e8 (auto-talk-field-only-v1, auto-talk-v3, untalked-people-header-v1 landed)
+
+Conflicts only in the registry and its tail-index tests: took main's side, re-appended rejected-movement-prefix-v1 after untalked-people-header-v1, regenerated the experiment's incumbent feature keys, and re-shifted registry tail indexes (guard count 58 -> 59). Gates on the merged tip: just test 0 (agent 4571, viewer 1703, Python 3961); just lint 0; coverage agent 97.38/93.34/97.98/99.21, viewer 95.47/91.43/94.44/97.97 (one experiment-cli git test timed out at 5 s under load average 20 on the first full run; passes alone in 1.7 s and on the rerun), Python 97.39/93.41/100.

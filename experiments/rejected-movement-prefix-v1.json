@@ -243,6 +243,9 @@
    "navigation-recovery-v1": false,
    "menu-item-guidance-v1": false,
    "factual-healing-guidance-v1": false,
+   "auto-talk-field-only-v1": false,
+   "auto-talk-v3": false,
+   "untalked-people-header-v1": false,
    "rejected-movement-prefix-v1": false
   }
  },

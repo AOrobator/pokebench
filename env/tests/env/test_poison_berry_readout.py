@@ -19,7 +19,6 @@ def test_poison_is_independent_of_status_names_and_off_is_exact():
     state = poisoned()
     off = frozenset({POISON, BERRY, "status-names-v1"})
     before_state = state_json(state)
-    before_state = state_json(state)
     before = format_readout(state, off)
     assert "STATUS 8" in before and "poisoned" not in before
     on = format_readout(state, off - {POISON})
@@ -115,7 +114,7 @@ def test_tree_visibility_identity_and_unavailable_data_are_not_guessed():
     assert "ready to pick" in visible_berry_lines(m.read, resources, (0, 9), (7, 9))[0]
     assert visible_berry_lines(m.read, resources, (0, 8), (7, 9)) == ()
     assert visible_berry_lines(m.read, resources, (0, 9), (30, 30)) == ()
-    for offset, value in [(0, 0), (1, 0x20), (2, 1), (5, 9)]:
+    for offset, value in [(0, 0), (1, 0x20), (1, 0x40), (2, 1), (5, 9)]:
         hidden = berry_memory()
         hidden.put(OBJECT_EVENTS + 0x24 + offset, bytes([value]))
         assert visible_berry_lines(hidden.read, resources, (0, 9), (7, 9)) == ()

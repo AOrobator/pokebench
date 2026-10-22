@@ -70,3 +70,13 @@ User outcome: two independent switches for poison and berry readouts, grounded i
 - Final lint passes (both TypeScript packages, ruff check/format, mypy 114 source files). Viewer coverage rerun after explicit card/route tests: 1671 tests, same coverage floors passed. Build passes; pages-check clean; both local page URLs return 200.
 
 - GREEN commit: `ca12beec0`. Pending definitions use the schema-required main checkout and pin the verified implementation commit (main must contain it before any launch); they remain unqueued/unapproved and will need the landing pin if merged. Final corrected Python coverage: 3898 passed, 97.39% lines / 93.41% branches / 100% functions.
+
+## Review round 1 synthesis
+Frozen base a637f683c024f60e00455f68961ddec369602e6a, head 5095262feceb2d0e25cfdf1275db6ac286f1cbdb; diff SHA256 a66f5f9e23620a41771f4565ce5549843e5a642aaf52e5f1d44d958166847919.
+- Claude CLI: VERDICT: LGTM. Source/status/wiring/OFF checks confirmed. Noted off-screen semantics as optional, a duplicated test assignment and a misplaced field comment.
+- Independent GPT (gpt-6-astra, poison_berry_review): VERDICT: BLOCKING. Native ObjectEvent.offScreen (+1 bit 0x40) was not excluded. Reproducer flips that bit on a loaded ripe tree and production read_state→format_readout still reveals it.
+- Adjudication: off-screen visibility is an in-contract defect, single-reviewer blocker with deterministic reproduction; the frozen scope explicitly says visible trees. Accepted minimal mask fix and regression. Not changing the contract to describe off-screen trees. No production domain/owner expansion.
+- Optional duplicate test assignment and adjacent field comment cleaned in the same batch. BAG-none hardening and existing resource-table all-or-nothing validation deferred: neither asserts absence or creates a regression.
+- Test-quality dimensions 1–9 remain as above, with dimension 2/7 gap caught by the missing offScreen operand. New regression goes RED on the frozen implementation, log /tmp/poison-berry-offscreen-red.log; will repeat full Python checks after fix.
+- Grok primary CLI returned ActionRequiredError: out of usage, increase limits or switch to Auto. Retrying the listed Grok fast harness; no local model substitution and no self-merge without required cloud lanes.
+- Responsive proof resolved without changing product code: self-authored same-origin QA iframe viewports, html.clientWidth verified at 1280, 1440 and 375, native screenshot clips saved/opened for both pages. Screenshots: main runs/mockups/poison-berry-readouts/{poison,berry}-{1280,1440,375}-frame.png. Earlier screenshots without -frame retain the failed override attempt and are not proof of width.

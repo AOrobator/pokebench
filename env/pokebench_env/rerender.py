@@ -59,7 +59,8 @@ def read_state(
         maps,
         active_ui_enabled=active_ui,
         message_phase_enabled="field-dialogue-phase-v1" not in off,
-        full_map_enabled="full-map-navigation-v1" not in off,
+        # window-escape-route-v1 sends map_grid for navigate_to; the readout keeps its local map.
+        full_map_enabled=not {"full-map-navigation-v1", "window-escape-route-v1"} <= off,
         story_characters_enabled="character-presence-v1" not in off,
         # battle-triage-guidance-v1 acts on battle-details-v2's RUN verdict, so either reads it.
         battle_details_enabled=not {

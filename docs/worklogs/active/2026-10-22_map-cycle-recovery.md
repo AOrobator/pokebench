@@ -43,3 +43,5 @@ feature-switch, agent-observability, feature-explainer, feature-worklog, experim
 
 - 7c9f's episode could not have recovered by its own rule within 12 calls: every walkable exit of PETALBURG CITY led to a map already visited since the last story progress (ROXANNE_FIRST_INTERACTION is measurement-only, so the window starts at TOMMY defeated, turn 19).
 - The 7c9f states carry no location_display, so map names come from the readout's own exit_sections.current label recorded while on each map.
+
+- 2026-10-22 evening: merged main (frontier report fixes, turn-drought-clock-v1, healed gym definition); registry-tail tests re-shifted; switch also on in the bundle arm of gym-rustboro-torchic-healed. Gates: lint 0; agent 4843 (97.32/93.41/97.81/99.21), viewer 1804 (95.47/91.45/94.45/97.97), Python 4011 (96%). The operator 4:55 PM New York: "just land ur changes" — landed without the multi-model review loop on that instruction.

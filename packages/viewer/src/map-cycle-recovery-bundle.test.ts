@@ -6,7 +6,7 @@ import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-de
 
 const ID = "map-cycle-recovery-v1";
 // Current recipes whose bundle arm runs navigation-recovery-v1, the switch this one needs (glm53-flash-4h does not).
-const RECIPES = ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic"];
+const RECIPES = ["gym-rustboro-torchic-healed", "bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic"];
 
 // the operator 2026-10-22 ("yes recovery over stopping the run"): on in the bundle arm only; the control arm keeps it off.
 describe("map-cycle recovery bundle activation", () => {

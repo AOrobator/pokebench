@@ -16,6 +16,10 @@ export const STALL_DROUGHT_MS=5*60_000;
 // Evidence (runs 2026-10-13..16, 133 runs, 23 naming episodes): every naming episode that ended normally took at
 // most 25 calls (player names: median 7; nicknames 3 and 19); stuck ones took 48, 79, 97 and 153 calls.
 export const INTERFACE_DWELL_CALLS=30;
+// turn-drought-clock-v1: model actions (tool results) with no progress before each drought briefing, then again every as many more.
+// Evidence (8 recent 2h runs, measured 2026-10-22): Qwen made 25-30 actions per 5 minutes of play, GLM 5-8, so the
+// 5-minute wall clock briefed GLM every 5-8 actions; 30 actions is about Qwen's 5 minutes on any model.
+export const STALL_DROUGHT_ACTIONS=30;
 
 // drought-battle-heal-hold-v1: a heal trip a heal warning asked for holds drought briefings for at most this many tool results.
 export const HEAL_HOLD_CALLS=48;
@@ -37,6 +41,17 @@ export class StallBriefing {
  private progressAt=0;
  private progressSeq:number|null=null;
  private droughts=0;
+ // turn-drought-clock-v1: tool results since the clock last restarted, and the seq that restarted it.
+ private actions=0;
+ private clockSeq:number|null=null;
+ // turn-drought-clock-v1: each party member's last level the game showed, trainers seen not defeated, and whether
+ // the party was last seen below full HP.
+ private readonly levels=new Map<string,number>();
+ private readonly unbeaten=new Set<number>();
+ private hurt:string|null=null;
+ // turn-drought-clock-v1: a state was seen since the last tool result, so the next result is that state's action.
+ private stateSinceResult=false;
+ private skip=false;
  private last:State|null=null;
  private dwell:Dwell|null=null;
  // map-cycle-recovery-v1: the guard's map-cycle window this briefing last counted map pairs in.
@@ -68,33 +83,64 @@ export class StallBriefing {
   return this.healTrip!==null?"heal":null;
  }
  // When a battle or heal trip ends, the drought clock starts again from here.
- private settleHold():void {
+ private settleHold(seq:number):void {
   const now=this.hold();
   // Only a hold that kept a due drought briefing back restarts the clock; a short battle before one was due changes nothing.
-  if(this.holding!==null&&now===null&&this.heldLevel>0){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
+  if(this.holding!==null&&now===null&&this.heldLevel>0)this.restart(seq);
   this.holding=now;
+ }
+ // turn-drought-clock-v1: the result of the action that made the progress is not counted (stateSinceResult).
+ private restart(seq:number):void {this.progressAt=this.active();this.actions=0;this.skip=this.stateSinceResult;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
+ // turn-drought-clock-v1 counts actions; positive-supervisor-v1 keeps its retired wall-clock schedule.
+ private turnClock():boolean {return this.features["turn-drought-clock-v1"]&&!this.features["positive-supervisor-v1"];}
+ // turn-drought-clock-v1: progress the game shows besides a story milestone: a party member's level going up (same
+ // POKéMON, a higher level), a trainer battle won (a trainer shown not defeated, then defeated: pokeemerald sets the
+ // trainer flag only on a win) and the same party reaching full HP after being below full. Only identified POKéMON
+ // count; a party with any member the readout cannot identify or whose HP it cannot read changes nothing.
+ private progressed(s:State):boolean {
+  let up=false;
+  for(const p of s.party){
+   if(p.is_egg===true||p.identity==null||p.level==null||p.level<1)continue;
+   const before=this.levels.get(p.identity);
+   if(before!==undefined&&p.level>before)up=true;
+   this.levels.set(p.identity,p.level);
+  }
+  const o=s.trainer_opponent;
+  const won=o!=null&&(o.defeated?this.unbeaten.delete(o.trainer_id):(this.unbeaten.add(o.trainer_id),false));
+  const members=s.party.filter(p=>p.is_egg!==true);
+  const known=members.flatMap(p=>p.identity==null||p.hp==null||p.max_hp==null||p.max_hp<=0?[]:[{identity:p.identity,full:p.hp===p.max_hp}]);
+  if(known.length===0||known.length<members.length)return up||won;
+  const party=known.map(p=>p.identity).sort().join("\n"),full=known.every(p=>p.full);
+  // A heal is the same members, below full before and all full now (a whiteout heals them too; a member put in the PC does not).
+  const healed=full&&this.hurt===party;
+  this.hurt=full?null:party;
+  return up||won||healed;
  }
 
  observe(event:RunEvent):void {
   this.progressCycles?.observe(event);
-  if(this.features["drought-battle-heal-hold-v1"]&&(HEAL_WARNINGS.has(event.type)||event.type==="story_battle_heal_gate"&&event.outcome==="refused")){this.healTrip??={seq:event.seq,calls:0};this.settleHold();return;}
+  if(this.features["drought-battle-heal-hold-v1"]&&(HEAL_WARNINGS.has(event.type)||event.type==="story_battle_heal_gate"&&event.outcome==="refused")){this.healTrip??={seq:event.seq,calls:0};this.settleHold(event.seq);return;}
   if(event.type==="milestone"){
    if(event.name==="ROXANNE_FIRST_INTERACTION")return;
    if(event.origin==="present_at_start"||event.name==="GAME_RUNNING")return;
    // story-progress-clock-v1: a measurement-only story step (the rival battle starting, the send-off) is new progress here too.
    if(MEASUREMENT_ONLY_MILESTONES.has(event.name)&&!this.features["story-progress-clock-v1"]&&!this.features["progress-aware-cycles-v1"])return;
-   this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.heldLevel=0;this.pairs.clear();this.dwell=null;
+   this.restart(event.seq);this.progressSeq=event.seq;this.pairs.clear();this.dwell=null;
    return;
   }
   if(event.type==="state"&&"started"in event){
+   this.stateSinceResult=true;
    this.last=event;
+   if(event.started&&this.turnClock()&&this.progressed(event))this.restart(event.seq);
    if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
     // A heal the warning asked for, done (full HP), is a step forward: the drought clock starts again from it.
     // positive-supervisor-v1 retires drought briefings, so nothing is held and its retired schedule stays as it was.
-    if(!event.in_battle&&!this.features["positive-supervisor-v1"]){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
+    // turn-drought-clock-v1: only progressed() credits a heal (the same identified, readable party at full HP), and it has
+    // already restarted the clock above; a trip that ends any other way (another POKéMON, an unknown one) releases a held nudge.
+    if(!event.in_battle&&!this.features["positive-supervisor-v1"]){if(this.turnClock())this.heldLevel=0;else this.restart(event.seq);}
     this.healTrip=null;
    }
-   this.settleHold();
+   this.settleHold(event.seq);
    if(!event.started||event.location===null||event.map_id===null)return;
    const key=roomKey(event),name=roomOf(event,this.features);
    if(this.room!==null&&this.room.key!==key){
@@ -107,7 +153,9 @@ export class StallBriefing {
    return;
   }
   if(event.type==="tool_result"){
-   if(this.healTrip!==null&&++this.healTrip.calls>=HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold();}
+   if(this.skip)this.skip=false;else this.actions++;
+   this.stateSinceResult=false;
+   if(this.healTrip!==null&&++this.healTrip.calls>=HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold(event.seq);}
    // Calls made inside an owned interface (it was open before and after them) count as dwelling there,
    // however its text churns; the call that opened it does not.
    if(event.state_seq!==undefined&&this.last?.seq===event.state_seq){
@@ -149,9 +197,12 @@ export class StallBriefing {
    if(this.detector.stall("interface_dwell",calls=>this.text(stall,calls),[dwell.firstSeq,seq]))dwell.briefed=Math.floor(dwell.calls/INTERFACE_DWELL_CALLS);
    return;
   }
-  const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
+  // turn-drought-clock-v1: the level counts actions, and the briefing is sent even with milestone-drought-suppression-v1.
+  const turns=this.turnClock();
+  const level=turns?Math.floor(this.actions/STALL_DROUGHT_ACTIONS):Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
   if(level<=this.droughts)return;
-  if(retired||this.features["milestone-drought-suppression-v1"]){
+  const from=turns?this.clockSeq:this.progressSeq;
+  if(retired||!turns&&this.features["milestone-drought-suppression-v1"]){
    this.retiredNote?.("milestone_drought",`No new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play.`,[this.progressSeq??seq,seq]);
    this.droughts=level;return;
   }
@@ -160,13 +211,14 @@ export class StallBriefing {
    if(level>this.heldLevel){
     this.heldLevel=level;
     const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
-    this.heldDrought?.(`Not sent (drought-battle-heal-hold-v1): no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play, but ${why}.`,[this.progressSeq??seq,seq]);
+    const what=turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
+    this.heldDrought?.(`Not sent (drought-battle-heal-hold-v1): ${what}, but ${why}.`,[from??seq,seq]);
    }
    return;
   }
   const hold=this.gate?.holds()??null;
-  if(hold!==null){this.gate?.held("milestone_drought",level,String(this.progressSeq??-1),hold);return;}
-  const stall:Stall={kind:"milestone_drought",minutes:level*STALL_DROUGHT_MS/60_000};
-  if(this.detector.stall("milestone_drought",calls=>this.text(stall,calls),[this.progressSeq??seq,seq]))this.droughts=level;
+  if(hold!==null){this.gate?.held("milestone_drought",level,String(from??-1),hold);return;}
+  const stall:Stall=turns?{kind:"action_drought",actions:level*STALL_DROUGHT_ACTIONS}:{kind:"milestone_drought",minutes:level*STALL_DROUGHT_MS/60_000};
+  if(this.detector.stall("milestone_drought",calls=>this.text(stall,calls),[from??seq,seq]))this.droughts=level;
  }
 }

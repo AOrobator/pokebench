@@ -134,6 +134,7 @@ def all_off(frame: dict[str, Any]) -> frozenset[str]:
         | LATER
         | TRAINING
         | {"poison-readout-v1", "berry-readout-v1", "static-npc-template-approach-v1"}
+        | {"window-escape-route-v1"}
     )
 
 
@@ -168,7 +169,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-36:-31] == (
+    assert SERVER_FEATURES[-37:-32] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,

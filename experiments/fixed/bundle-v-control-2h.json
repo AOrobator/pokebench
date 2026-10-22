@@ -253,6 +253,10 @@
    "factual-healing-guidance-v1": false,
    "static-npc-template-approach-v1": false,
    "rejected-movement-prefix-v1": false,
+   "turn-drought-clock-v1": false,
+   "away-note-buildings-v1": false,
+   "current-map-display-name-v1": false,
+   "window-escape-route-v1": false,
    "map-cycle-recovery-v1": false
   }
  },
@@ -306,6 +310,10 @@
   "factual-healing-guidance-v1",
   "static-npc-template-approach-v1",
   "rejected-movement-prefix-v1",
+  "turn-drought-clock-v1",
+  "away-note-buildings-v1",
+  "current-map-display-name-v1",
+  "window-escape-route-v1",
   "map-cycle-recovery-v1"
  ],
  "offInBoth": [

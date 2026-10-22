@@ -17,7 +17,7 @@ Run 2026-10-22T00-22-02_qwen36-gpu0_d951: choose_evolution evolve turn 425; lear
 ## Milestone
 - [x] RED regression commit
 - [x] GREEN minimal repair and explainer update
-- [ ] Gate deletion/restoration; test, lint, build, coverage, vendor
+- [x] Gate deletion/restoration; test, lint, build, coverage, vendor
 - [ ] Frozen Claude, Grok and independent GPT reviews; synthesis
 - [ ] Landing board, ff-only main, main tests and viewer build/live receipt
 
@@ -37,3 +37,8 @@ Run 2026-10-22T00-22-02_qwen36-gpu0_d951: choose_evolution evolve turn 425; lear
 - Full gates after isolated install: just build passed; just test agent 4432, viewer 1669, pytest 3952 passed (/tmp/evolution-result-test-final.log). Earlier Python setup failure was missing mGBA in the new venv; linked only the existing native binding, then the entire suite passed. Native archive fixture and production seam tests passed under the full gate.
 - Lint passed on the local-dependency setup (/tmp/evolution-result-lint-local.log); final lint on the frozen candidate running. First coverage attempt failed the unchanged serial-comparison real-child 100ms timeout with empty child stdout while lint was active (/tmp/evolution-result-coverage-final.log). No timeout, test, coverage threshold, or implementation outside scope changed. Retrying the gate after lint finishes; not claiming the failed attempt passed.
 - Updated existing explainer checked with pages-theme/pages-check and 200 preview URL. Opened actual 1280x900, 1440x900 and 375x812 full-page screenshots; new section is readable with no horizontal page overflow; there are no new expand/collapse controls.
+
+- Final lint passed (agent/viewer tsc+eslint, ruff check/format and mypy). Agent coverage passes at ordinary concurrency after competing workload subsided: lines 99.23%, branches 93.29%, functions 97.98%. Initial isolated coverage diagnostic ran 44 tests green but correctly failed whole-stack coverage thresholds because it selected one file; not counted as a coverage pass. A manually split Python coverage attempt omitted the ROM environment and failed native fixtures; discarded as an environment setup receipt, /tmp/evolution-result-python-coverage.log. The complete just coverage (dotenv environment, unchanged thresholds) is the required final receipt /tmp/evolution-result-coverage-clean-load.log.
+
+- Complete final just coverage passed with ordinary settings: agent 4432 tests, lines 99.23% / branches 93.29% / functions 97.98%; viewer 1669 tests, 97.95% / 91.34% / 94.35%; Python 3952 tests, 97.39% / 93.41% / 100%. Receipt /tmp/evolution-result-coverage-clean-load.log. All ≥90. Final lint/build and vendor checks pass. No gameplay run launched.
+- Frozen review scope and PB1–PB13 self-review (zero FAIL), all nine test-quality checks: /tmp/evolution-result-review/{boundary,principles}.md. One production file, no model tools/switch defaults changed. Normal cloud roster required for self-merge; reduced-diversity fallback cannot substitute for landing approval.

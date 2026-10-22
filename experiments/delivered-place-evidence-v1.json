@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_BATTLE_WON",
   "source": {
     "checkout": "main",
-    "commit": "4967a3ca955bb8696c9ed44725805c7696af9c78"
+    "commit": "93f46ce6a70197e2901c78ec7a0bde0b3cfc9ded"
   },
   "incumbent": {
     "version": 2,
@@ -269,6 +269,6 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending only; no queue position, approval or launch. Native recorded dialogue replay is correctness evidence, not benefit. Requires source-qualified dialogue exposure and checkpoint choice before any study. New default/control OFF, bundle ON. Source is preparation base; repin to reviewed landing SHA. Integration: full shared future-bundle feature vector with only changedFeature OFF. Registration limits/budget/criteria are inherited placeholders, not an operator-approved evaluation design; re-freeze them from evidence before removing blocked. No measured or diagnostic launch authorized. Registration numeric fields and milestone targets are preparation placeholders, not an operator-approved study; freeze exposure-specific start, primary, cap, budget and power before unblocking.",
+  "notes": "Pending only; no queue position, approval or launch. Native recorded dialogue replay is correctness evidence, not benefit. Requires source-qualified dialogue exposure and checkpoint choice before any study. New default/control OFF, bundle ON. Source is preparation base; repin to reviewed landing SHA. Integration: full shared future-bundle feature vector with only changedFeature OFF. Registration limits/budget/criteria are inherited placeholders, not an operator-approved evaluation design; re-freeze them from evidence before removing blocked. No measured or diagnostic launch authorized. Registration numeric fields and milestone targets are preparation placeholders, not an operator-approved study; freeze exposure-specific start, primary, cap, budget and power before unblocking. Complete implementation source pin 93f46ce6a70197e2901c78ec7a0bde0b3cfc9ded; final review/landing receipts are separate and the design remains blocked.",
   "blocked": "Pending design only: no approved budget, qualified start/load/readiness or final comparison cap/power. Do not queue or launch. Re-pin source before approval."
 }

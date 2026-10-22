@@ -8,7 +8,7 @@
   "primaryMilestone": "STONE_BADGE",
   "source": {
     "checkout": "main",
-    "commit": "5bd517393293610200954977bb0ed643257edfb5"
+    "commit": "93f46ce6a70197e2901c78ec7a0bde0b3cfc9ded"
   },
   "incumbent": {
     "version": 2,
@@ -269,6 +269,6 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending in-progress implementation only. Dedicated static_object intent guarantees no facing/A/auto-talk even if object loads before the call. Activation is first eligible house map; actual exposure requires a qualifying unloaded stationary scripted template. Parent integrates full shared future-bundle vector with only changedFeature OFF and re-pins source. Limits/budget/criteria inherited placeholders; no approved budget/start/load/power and no launch. Registration numeric fields and milestone targets are preparation placeholders, not an operator-approved study; freeze exposure-specific start, primary, cap, budget and power before unblocking.",
+  "notes": "Pending in-progress implementation only. Dedicated static_object intent guarantees no facing/A/auto-talk even if object loads before the call. Activation is first eligible house map; actual exposure requires a qualifying unloaded stationary scripted template. Parent integrates full shared future-bundle vector with only changedFeature OFF and re-pins source. Limits/budget/criteria inherited placeholders; no approved budget/start/load/power and no launch. Registration numeric fields and milestone targets are preparation placeholders, not an operator-approved study; freeze exposure-specific start, primary, cap, budget and power before unblocking. Complete implementation source pin 93f46ce6a70197e2901c78ec7a0bde0b3cfc9ded; final review/landing receipts are separate and the design remains blocked.",
   "blocked": "Pending design only: no approved budget, qualified start/load/readiness or final comparison cap/power. Do not queue or launch. Re-pin source before approval."
 }

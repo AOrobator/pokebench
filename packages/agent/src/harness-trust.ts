@@ -116,6 +116,26 @@ function adjacent(from:MapId,to:MapId,places:readonly Place[]):boolean {
  return p!==undefined&&(p.warps.some(w=>same(w.to,to))||p.connections.some(c=>EDGE_SIDES.has(c.direction)&&same(c.to,to)));
 }
 
+// away-note-buildings-v1: a map with no edge connection whose doors, followed through other maps without one, lead out only
+// to the place (a house's 1F and 2F for its town, a gym for its city). A door to a map the table lacks is not provably the place's.
+export function buildingOf(here:MapId,place:MapId,places:readonly Place[]):boolean {
+ const key=(id:MapId)=>`${String(id[0])}/${String(id[1])}`;
+ const byId=new Map(places.map(p=>[key(p.map_id),p]));
+ const outdoor=(p:Place)=>p.connections.some(c=>EDGE_SIDES.has(c.direction));
+ const start=byId.get(key(here));
+ if(start===undefined||outdoor(start)||same(here,place))return false;
+ const seen=new Set([key(here)]);const queue=[start];let out=false;
+ for(let p=queue.shift();p!==undefined;p=queue.shift()){
+  for(const w of p.warps){
+   if(same(w.to,place)){out=true;continue;}
+   const next=byId.get(key(w.to));
+   if(next===undefined||outdoor(next))return false;
+   if(!seen.has(key(w.to))){seen.add(key(w.to));queue.push(next);}
+  }
+ }
+ return out;
+}
+
 interface WayIn {readonly label:string;readonly distance:number}
 // The ways off this map that lead into a target, or (when none does) one map-table step closer to one, each with
 // its straight-line tile distance from the player.
@@ -157,7 +177,7 @@ interface Sample {readonly key:string;readonly map:MapId;readonly name:string;re
 
 // Counts the player's own moves farther from the goal's place; two in a row (no closer move between) fire once.
 export class WalkAway {
- constructor(private readonly reachable=false){}
+ constructor(private readonly reachable=false,private readonly buildings=false){}
  private last:Sample|null=null;
  private away:AwayStep[]=[];
  // own: the result is the player's own move: a press or navigate_to that ended with field controls free. Movement seen
@@ -168,7 +188,7 @@ export class WalkAway {
   if(goal===null||targets.length===0){this.reset(null);return null;}
   const key=`${String(goal.line.turn)}\u0000${goal.line.speaker}\u0000${goal.line.text}`;
   const here=state.map_id;
-  if(targets.some(t=>same(t.map_id,here))){this.reset(null);return null;}
+  if(targets.some(t=>same(t.map_id,here)||(this.buildings&&buildingOf(here,t.map_id,places)))){this.reset(null);return null;}
   const sample:Sample={key,map:here,name:state.location_display??state.location??"this map",pos:state.position,ways:waysHere(state,targets,places,this.reachable),maps:mapSteps(here,targets.map(t=>t.map_id),places)};
   const prev=this.last;this.last=sample;
   if(prev?.key!==key){this.away=[];return null;}
@@ -221,7 +241,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -229,7 +249,7 @@ export class HarnessTrust {
  private readonly walk:WalkAway;
  // untalked-people-header-v1: who on this map has not been talked to since the latest story milestone.
  private readonly people:PeopleLedger|null;
- constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
+ constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true,options.buildings===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
  observe(event:RunEvent):void {this.story.observe(event);this.people?.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;

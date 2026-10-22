@@ -255,3 +255,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.
 - [Coherent battle observation](coherent-battle-observation-v1.html): bounded safe battle capture; default OFF.
 - [Turn drought clock](turn-drought-clock-v1.html): default OFF, bundle arm: the milestone-drought briefing counts 30 actions with no story milestone, level-up, trainer win or full heal, and states only those facts.
+- [Away note in town buildings](away-note-buildings-v1.html): Default off; bundle treatment. The SUPERVISOR walk-away note stops counting moves inside a building of the place the Story goal names.
+- [One name for the current map](current-map-display-name-v1.html): Default off; bundle treatment. navigate_to_target's "Current map:" line uses the Location line's name.
+- [Window escape route](window-escape-route-v1.html): Default off; bundle treatment. When no route lies inside the 15x15 local map, navigate_to plans over the whole current map for the rest of that call.

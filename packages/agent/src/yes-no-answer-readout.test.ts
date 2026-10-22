@@ -7,9 +7,9 @@ import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
 const ID="yes-no-answer-readout-v1";
 it("appends a default-OFF observation server switch and transports explicit ON/OFF",()=>{
- expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-70)?.id).toBe(ID);
- expect(SERVER_FEATURES.at(-21)).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-73)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-73)?.id).toBe(ID);
+ expect(SERVER_FEATURES.at(-22)).toBe(ID);
  expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"YES/NO ANSWER READOUT"});
  expect(featureInfo(ID).description).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
  expect(featureInfo(ID).description).toContain(" Off: ");

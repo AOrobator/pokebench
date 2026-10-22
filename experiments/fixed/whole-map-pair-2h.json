@@ -250,7 +250,10 @@
    "menu-item-guidance-v1": false,
    "factual-healing-guidance-v1": false,
    "static-npc-template-approach-v1": false,
-   "rejected-movement-prefix-v1": false
+   "rejected-movement-prefix-v1": false,
+   "away-note-buildings-v1": false,
+   "current-map-display-name-v1": false,
+   "window-escape-route-v1": false
   }
  },
  "switches": [
@@ -300,7 +303,10 @@
   "menu-item-guidance-v1",
   "factual-healing-guidance-v1",
   "static-npc-template-approach-v1",
-  "rejected-movement-prefix-v1"
+  "rejected-movement-prefix-v1",
+  "away-note-buildings-v1",
+  "current-map-display-name-v1",
+  "window-escape-route-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

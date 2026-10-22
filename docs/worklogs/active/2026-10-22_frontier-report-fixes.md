@@ -42,8 +42,9 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 - Tests after GREEN: agent 4749 passed (serial-comparison hung-child timing test flaked once under load, passed alone), viewer 1780 passed, Python new + rerender 15 passed
 
 **M4 — Explainers, recipes, experiments, gates, review, landing**
-- [ ] Explainers (3), FEATURE_EXPLAINERS, pending experiments, readiness entries
-- [ ] Bundle arm on in current recipes
+- [x] Pending experiments (experiments/<id>.json, unqueued, source commit ab94f79cd until the landing SHA) and readiness entries
+- [ ] Explainers (3), FEATURE_EXPLAINERS
+- [x] Bundle arm on in bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h (frontier-report-fixes-bundle.test.ts); 4 older recipe tests given the three ids
 - [ ] Gates: lint, build, coverage
 - [ ] Review: Claude, GPT, fallback
 - [ ] Land via board, viewer restart, live check

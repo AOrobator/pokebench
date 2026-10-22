@@ -363,3 +363,11 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 | Switch | Activation milestone | Verdict | Evidence |
 | --- | --- | --- | --- |
 | `rejected-movement-prefix-v1` | `PLAYER_NAME_CONFIRMED` (the guard can intercept a walking batch from the truck on) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `navigation-tool-use-guard-v1` and `rejected-movement-step-v1` ON. Evidence: 1fe0 seq 8033/8041, 108 one-tile cuts, 53 under Route 101's south ledges. No measured benefit claimed. |
+
+## Frontier report fixes (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `away-note-buildings-v1` | `PLAYER_HOUSE_ENTERED` (MOM's "Well, this is LITTLEROOT TOWN." is heard inside the house) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `harness-trust-v1` ON. Evidence: story_goal_away inside the player's house in bundle runs 6bc3 (seq 1053), 13bf, 4844, e0e6, f3b2, 2e93; inside RUSTBORO CITY GYM in control runs da1c (seq 14882), 4e9c, 83d7, 4f6f, 927e, d548. No measured benefit claimed. |
+| `current-map-display-name-v1` | `PLAYER_HOUSE_EXITED_AFTER_CLOCK` (navigate_to_target refusals start once the player can walk Littleroot) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `semantic-current-map-feedback-v1` and `displayed-place-names-v1` ON. Evidence: 47c3 tool result 4776 (frontier report H7). No measured benefit claimed. |
+| `window-escape-route-v1` | `ROUTE_101` (the ledge pocket at (7,7)) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment, inert with `full-map-navigation-v1` ON. Incumbent keeps `bounded-navigation-v1` ON and whole-map navigation OFF. Evidence: GLM f3b2 tool results 3217 and 7624; 28 of 41 GLM max_tokens replies at that pocket (frontier report H8). No measured benefit claimed. |

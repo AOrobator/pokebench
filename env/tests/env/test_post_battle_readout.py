@@ -213,7 +213,8 @@ def test_on_after_the_battle_an_absent_battler_is_named_from_the_party_or_omitte
     text = readout(state, ON)
     assert "You COMBUSKEN · absent (fainted or switched out)" in text
     assert "You TORCHIC" not in text
-    unmatched = replace(state, battle_details=replace(DETAILS, party=(replace(EVOLVED, identity="x"),)))
+    stranger = (replace(EVOLVED, identity="x"),)
+    unmatched = replace(state, battle_details=replace(DETAILS, party=stranger))
     text = readout(unmatched, ON)
     assert "ended (outcome won)" in text
     assert "You TORCHIC" not in text

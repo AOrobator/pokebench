@@ -15,13 +15,13 @@ const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-73)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-79)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-80)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-86)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-25)).toBe(ID);
+  expect(SERVER_FEATURES.at(-26)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {

@@ -5,7 +5,7 @@ import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 const ID = "battle-move-learn-input-v1";
 describe(ID, () => {
  it("appends the server-owned input correction without changing omitted presets", () => {
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
   expect(featureInfo(ID).group).toBe("observation");
   const off = {...ALL_ON, [ID]: false};
   expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

@@ -233,3 +233,8 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - M3B integration: qualified unloaded trainer-template approaches preserve hide filtering/current-state checks and never press A or claim live presence. Safe template facts currently cover trainers, including the leader; non-trainer templates remain unavailable and are not guessed.
 
 - M5A integration: current-boundary crossing facts added only for unique delivered edge + current foot reachability and no matching trigger; zero inputs. Existing blocked-exit feedback already retires changed live trigger conditions, so no duplicate stale-barrier treatment added.
+
+### Integration qualification in progress
+
+- Fixed duplicate append-position conflicts in metadata and two browser-test closure conflicts introduced by cherry-pick union. Historical registry/order/default-OFF fixture expectations updated for appended treatments; no weakened production assertions. Initial combined agent pass4504/fail65, later4531/fail38; failures triaged as registry tails, raw ALL_ON fixture drift and explicit baseline updates. Full gate not yet passed.
+- First parent Python invocation used repository root and omitted dotenv ROM environment; 515 skips and fixture failures are an invalid environment attempt, not an implementation verdict. Repeating through just commands with isolated venv/native binding and initialized exact vendor pin. No GPU/emulator inputs executed.

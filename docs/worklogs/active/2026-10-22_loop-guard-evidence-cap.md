@@ -75,3 +75,4 @@ agent exception "emulator or game server crash"; the emulator was fine.
 
 - Mounted app test in `packages/viewer/src/app.test.ts`: schema-parsed heal-trip loop_guard through the real stream, hidden before its replay time, Activity History row with label and message, no timeline mark, click selects the row and the inspector shows kind and both evidence ids.
 - Guard deletion `guard-3-mounted-timeline-filter`: removing the viewer's held-drought timeline filter fails it (a mark appears); restored → passes.
+- Gates on 7c3fb556b: `just lint` clean; `just coverage` agent 4425 (97.39 / 93.29 / 97.98), viewer 1669 (95.45 / 91.33 / 94.35), Python 3889 passed. Two earlier coverage runs timed out once in `experiment-cli.test.ts` "pins the agent and env sources" (5 s limit, machine load 36–39); it passes alone (11/11) and in the third full run. Unrelated to this diff.

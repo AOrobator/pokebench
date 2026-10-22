@@ -71,7 +71,7 @@ describe("current-map-display-name-v1 in the observed instruction memory (47c3 s
  ];
  const delivered=async(features:FeatureSet):Promise<string>=>{
   const subs:((e:RunEvent)=>void)[]=[];let sent="";
-  const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:()=>({seq:1,turn:1})} as never,(m:AgentMessage[])=>Promise.resolve(m));
+  const transform=observedInstructions(features,{subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordLedgerContext:()=>({seq:1,turn:1})} as never,(m:AgentMessage[])=>Promise.resolve(m));
   for(const e of events)for(const s of subs)s(e);
   const out=await transform([]);
   const last=out.at(-1);if(last!==undefined&&"content" in last&&typeof last.content==="string")sent=last.content;

@@ -941,3 +941,9 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
  const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
  for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["boundary-crossing-facts-v1"]).toBe(arm==="bundle");
 });
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts section alternatives in %s normalized bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["reachable-section-alternatives-v1"]).toBe(arm==="bundle");
+});

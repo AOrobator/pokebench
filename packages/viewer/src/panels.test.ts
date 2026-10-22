@@ -1624,3 +1624,9 @@ it("links delivered person and place evidence to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
 });
+
+it("links section alternatives to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["reachable-section-alternatives-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="reachable-section-alternatives-v1"] a')?.getAttribute("href")).toBe("/explainers/reachable-section-alternatives-v1.html");
+});

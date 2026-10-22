@@ -240,3 +240,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - First parent Python invocation used repository root and omitted dotenv ROM environment; 515 skips and fixture failures are an invalid environment attempt, not an implementation verdict. Repeating through just commands with isolated venv/native binding and initialized exact vendor pin. No GPU/emulator inputs executed.
 
 - M5C integration: exact delivered historical person/place statements, unnamed-source provenance and source-milestone retirement are preserved; no daughter→MAY inference or automatic walk-away goal action. Native ea04 retention/retirement replay and failed-delivery exclusions in child packet.
+
+- M5B integration: repeats already-delivered section exit facts only for currently foot-reachable departure warps, explicitly no guarantee of reaching the requested coordinate and no chosen route. Exact b300 Woods/Route104 section fixture verifies evidence.

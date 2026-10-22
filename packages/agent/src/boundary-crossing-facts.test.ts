@@ -19,12 +19,13 @@ it("production already-here result states the current verified edge direction an
  expect(text(await run(true))).toContain("press UP to walk off the map NORTH to OLDALE TOWN (map 0/10)");
 });
 it("OFF exactly preserves incumbent result",async()=>{expect(await run(false)).toEqual(await run(undefined));expect(text(await run(false))).not.toContain("press UP");});
-it.each(["blocked","unknown reach","unknown edge","not edge","trigger"])("withholds a crossing instruction with %s",async which=>{
+it.each(["blocked","unknown reach","unknown edge","not edge","trigger","dialogue"])("withholds a crossing instruction with %s",async which=>{
  let s:GameStateSnapshot=state;
  if(which==="blocked")s={...state,exit_reach:{...reach,connections:[{direction:"NORTH",offset:0,destination:[0,10],reach:"none"}]}};
  if(which==="unknown reach"){const {exit_reach:_reach,...without}=state;expect(_reach).toBeDefined();s=without;}
  if(which==="unknown edge")s={...state,topology:{...topology,connections:[{direction:"NORTH",offset:0,destination:[0,10],destination_name:"OLDALE TOWN"}]}};
  if(which==="not edge")s={...state,topology:{...topology,connections:[{...connection,edges:[{x:1,y:0}]}]}};
  if(which==="trigger")s={...state,world_context:{objects:[],dialogue:null,triggers:[{x:0,y:0,elevation:3,variable:0x4000,required_value:1,current_value:1,condition_met:true,script_pointer:1}]}};
+ if(which==="dialogue")s={...state,world_context:{objects:[],triggers:[],dialogue:"Wait!"}};
  expect(text(await run(true,s))).not.toContain("press UP");
 });

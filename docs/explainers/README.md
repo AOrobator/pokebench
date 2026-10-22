@@ -245,3 +245,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [CURRENT BOUNDARY FACTS](boundary-crossing-facts-v1.html): Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit.
 
 - [delivered-place-evidence-v1](delivered-place-evidence-v1.html): exact historical spatial dialogue and qualified named places.
+- [REACHABLE SECTION ALTERNATIVES](reachable-section-alternatives-v1.html): Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent.

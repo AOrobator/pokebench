@@ -233,6 +233,7 @@ export const SWITCHABLE_FEATURES = [
   "npc-approach-feedback-v1",
   "boundary-crossing-facts-v1",
   "delivered-place-evidence-v1",
+  "reachable-section-alternatives-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -580,6 +581,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("npc-approach-feedback-v1", "observation", "QUALIFIED TRAINER TEMPLATE APPROACH", null, "Default off; bundle only. A requested unloaded trainer with hide-filtered current-map template data can be approached using checked navigation, then returns without facing or pressing A. Presence and position stay unverified. Non-trainer templates remain unsupported. Off: unloaded targets retain their previous refusal."),
   on("boundary-crossing-facts-v1", "guidance", "CURRENT BOUNDARY FACTS", "connection-edge-tiles-v1", "Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit. Off: unchanged already-here result without a crossing fact."),
   on("delivered-place-evidence-v1", "guidance", "DELIVERED PERSON AND PLACE EVIDENCE", "observed-instructions-v1", "Default off. Preserves exact delivered spatial dialogue with source map, turn, event and unknown speaker attribution in a compact historical evidence block. Explicit named-person and named-place statements from an unnamed speaker can use the existing map resolver, qualified as historical rather than a current presence or action instruction. Existing audited milestone retirement applies to the compact evidence. Off: existing instruction memory and named-speaker-only destination eligibility."),
+  on("reachable-section-alternatives-v1", "guidance", "REACHABLE SECTION ALTERNATIVES", "exit-labels-v3", "Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent. Off: previous unreachable navigation result without departure section alternatives."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -867,6 +869,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("npc-approach-feedback-v1"),
     ...when("boundary-crossing-facts-v1"),
     ...when("delivered-place-evidence-v1"),
+    ...when("reachable-section-alternatives-v1"),
   ];
 }
 

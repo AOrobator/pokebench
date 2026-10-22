@@ -160,6 +160,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "move_learning_enabled": False,
         "move_learning_early_enabled": False,
         "mart_stock_enabled": False,
+        "berry_readout_enabled": False,
         "shop_interface_enabled": False,
         "exp_next_enabled": False,
         "pokedex_enabled": False,

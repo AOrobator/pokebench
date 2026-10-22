@@ -1576,6 +1576,13 @@ it("links each independent poison and berry card to its tracked explainer",()=>{
  }
 });
 
+it("links the recorded navigation recovery guard to its explainer without changing feature status",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["navigation-recovery-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector('[data-feature="navigation-recovery-v1"]');
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-recovery-v1.html");expect(card?.textContent).toContain("ON");
+});
+
 it("links menu and factual healing guidance to the tracked explainers",()=>{
  for(const id of ["menu-item-guidance-v1","factual-healing-guidance-v1"]){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

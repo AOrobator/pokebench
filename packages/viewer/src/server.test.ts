@@ -1363,6 +1363,16 @@ it("serves both poison and berry explainers byte for byte",async()=>{
  for(const file of files){const tracked=readFileSync(join(docs,file)),reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);}
 });
 
+
+it("serves the tracked navigation recovery recovery explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/navigation-recovery-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"navigation-recovery-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/navigation-recovery-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
 it("serves the menu and factual healing explainers byte for byte",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const ids=["menu-item-guidance-v1","factual-healing-guidance-v1"];

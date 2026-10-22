@@ -317,6 +317,9 @@ Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x40
 | --- | --- | --- | --- |
 | `milestone-drought-suppression-v1` | `NEW_GAME_CREATED` | READY (recent fallback: 4/4) | Recent think-fast ended registry runs 2f46, 6684, dc0e and 17a0 (Oct 15) reached activation; no exact-current-incumbent cohort. Pending, unqueued, unapproved. The five-minute timer can fire before name confirmation. Primary outcome: TEAM_AQUA_WOODS_EVENT_COMPLETE. No measured benefit claimed. |
 
+## navigation-recovery-v1
+Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: ROUTE_103. Recorded-window replay verifies lifecycle and delivery, not gameplay benefit; readiness is not qualified for queueing. No measured runs launched.
+
 ## 2026-10-21: potion menu and factual healing guidance
 
 `menu-item-guidance-v1` and `factual-healing-guidance-v1` are pending, default OFF and unapproved. Native manual probes qualify interface mechanics only. No readiness promotion is claimed: a current 3-of-4 qualifying model reach receipt has not been established for these source pins. Both activate no later than STARTER_CHOSEN; no measured cohort launched.

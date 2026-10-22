@@ -228,5 +228,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [milestone-drought-suppression-v1](milestone-drought-suppression-v1.html): milestone-drought timers stay diagnostic; no model intervention.
 
+- [Bounded navigation recovery](navigation-recovery-v1.html): stale-map refusals and persistent map-cycle recovery; backtracking stays available.
+
 - [Menu item guidance](menu-item-guidance-v1.html)
 - [Factual healing guidance](factual-healing-guidance-v1.html)

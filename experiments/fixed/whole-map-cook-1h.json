@@ -230,7 +230,8 @@
    "move-learn-early-comparison-v1": false,
    "poison-readout-v1": false,
    "berry-readout-v1": false,
-   "milestone-drought-suppression-v1": false
+   "milestone-drought-suppression-v1": false,
+   "navigation-recovery-v1": false
   }
  },
  "switches": [
@@ -330,7 +331,8 @@
   "move-learn-early-comparison-v1",
   "poison-readout-v1",
   "berry-readout-v1",
-  "milestone-drought-suppression-v1"
+  "milestone-drought-suppression-v1",
+  "navigation-recovery-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

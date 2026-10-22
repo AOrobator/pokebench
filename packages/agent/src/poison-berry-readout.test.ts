@@ -7,10 +7,10 @@ import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 const IDS=["poison-readout-v1","berry-readout-v1"] as const;
 describe("independent poison and berry observations",()=>{
  it("appends both switches without moving older features",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-5,-3)).toEqual(IDS);
-  expect(FEATURES.filter(f=>f.switchable).slice(-5,-3).map(f=>f.id)).toEqual(IDS);
+  expect(SWITCHABLE_FEATURES.slice(-6,-4)).toEqual(IDS);
+  expect(FEATURES.filter(f=>f.switchable).slice(-6,-4).map(f=>f.id)).toEqual(IDS);
   expect(SERVER_FEATURES.slice(-2)).toEqual(IDS);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-5,-3)).toEqual(IDS);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-6,-4)).toEqual(IDS);
  });
  for(const id of IDS){
   it(`${id} is independently default OFF and reaches the game server`,()=>{

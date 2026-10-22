@@ -48,8 +48,8 @@ No subprocesses, paths or network changes. Harness-chosen walks reuse navigate_t
 - [x] Explainers (Emerald theme, pages-check clean), FEATURE_EXPLAINERS, experiments/*.json, readiness.md
 - [x] Gates: just test, just lint, just build, just coverage (90)
 **M5 — review and land**
-- [ ] Claude, Grok, GPT lanes LGTM on the frozen packet
-- [ ] land-join, ff-only merge, just viewer-main, evidence commit, land-done
+- [x] Claude, GPT and fallback (Grok stand-in) LGTM on the frozen packet
+- [x] land-join, ff-only merge 352b81f45, evidence commit, land-done, just viewer-main
 
 ## Closing the Loop
 
@@ -67,6 +67,9 @@ Unit and factory tests; a recorded-state replay of auto-talk on a battle state; 
 - This worktree's env/.venv has no mGBA binding (just build-mgba is once per clone): mypy's mgba._pylib import and tests/env/test_view.py's production-server start fail here. No Python changed on this branch; mypy passes with the main checkout's venv.
 
 ## Multi-Model Review Log
+- Round 4 (ad3deabe…0736): Claude LGTM, fallback LGTM; GPT BLOCKING because main gained 1e1bc7a7e between sync and seal (packet reverted another worklog). Took the landing slot, re-synced.
+- Round 5 (packet 1fc2226e…7da3a, 1e1bc7a7e..352b81f45): Claude CLI LGTM, Codex GPT (gpt-5.6-sol) LGTM, fallback Sonnet reviewer LGTM (Grok lane: Cursor out of usage; The operator "land without grok", 2026-10-22 10:47 AM ET).
+- LANDED: git merge --ff-only 352b81f45 on local main (2026-10-22, NY time ~1:55 PM). just test on main: vitest agent 4546, viewer 1701, pytest 3961 passed.
 - Round 3 (packet f9405bab…34e2, a0c3d6138..1081f2056): Claude CLI LGTM (follow-ups: v3 walks still cite "the fixed-point breaker's auto-talk" in navigate's because argument; unused acted under v3 — deferred, model-invisible). Fallback (Sonnet) LGTM. Codex GPT (gpt-5.6-sol) BLOCKING: the three pending experiments pinned source.commit 23a7c304b, before the header fix. Triage: Fix. Pinned all three to 1081f2056.
 - Round 2 (packet 696547ca…770f6, a0c3d6138..f08ade79b): Claude CLI LGTM (follow-ups: worklog Architecture/INV-2 text stale, now updated). Fallback reviewer (Sonnet subagent, standing in for Grok per the operator "land without grok", 2026-10-22 10:47 AM ET) LGTM, with a non-blocking note that the header may not count harness auto-talks. Checked against recorded runs: auto-talk presses record dialogue_auto_advance but no tool_result (34 vs 0 in runs/2026-10-2*), so the header's ledger never committed them. Triage: Fix. PeopleLedger(countAutoTalk) counts auto_talk talked events for the header only (people-ledger-v1 unchanged); RED test added, delete-once proven. Codex CLI GPT lane errored (default model gpt-6.1-sol unsupported on the ChatGPT account); rerun pinned to -m gpt-5.6-sol on the round-3 packet.
 - Round 1 (packet 0531dfa1…f0dab, a0c3d6138..9f99dd7c4; principles 10 PASS / 3 N/A / 0 FAIL):

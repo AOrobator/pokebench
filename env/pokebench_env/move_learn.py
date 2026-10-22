@@ -215,21 +215,25 @@ def _battle_page(
 ) -> MoveLearning | None:
     """move-learn-early-comparison-v1: a battle page before "Delete a move to make room for X?".
 
-    Memory is read only for one of the two pages, and the learner is shown only when the page
-    names it (and, on the first page, the move it is learning).
+    Memory is read only for one of the two pages. The learner's slot is checked against the
+    name the page shows before the move is read, and on the first page the move's name is
+    checked before anything else about it.
     """
     trying = None if page is None else TRY_TO_LEARN.fullmatch(page)
     cant = None if page is None else CANT_LEARN.fullmatch(page)
-    if trying is None and cant is None:
+    match = trying or cant
+    if match is None:
         return None
     slot = exact(read, _battle_struct(read) + EXP_GETTER, 1)[0]
+    mon = party[slot] if slot < len(party) else None
+    if mon is None or (mon.nickname or mon.species) != match.group(1):
+        return None
     new_move = int.from_bytes(exact(read, MOVE_TO_LEARN, 2), "little")
-    learning = _learner(read, party, slot, "battle", None, new_move)
-    if trying is not None:
-        named = (trying.group(1), trying.group(2)) == (learning.pokemon, learning.new.facts.name)
-    else:
-        named = cant is not None and cant.group(1) == learning.pokemon
-    return learning if named else None
+    if trying is not None and (
+        not 1 <= new_move <= MOVE_COUNT or _name(read, new_move) != trying.group(2)
+    ):
+        return None
+    return _learner(read, party, slot, "battle", None, new_move)
 
 
 def _battle_struct(read: ReadMemory) -> int:

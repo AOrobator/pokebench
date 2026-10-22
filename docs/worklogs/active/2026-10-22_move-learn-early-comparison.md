@@ -44,3 +44,14 @@ OFF: today's readout bytes.
 - M2 GREEN: reader (move_learn.py EARLY_STATES 0-3, battle pages by regex then learner check), game_state/rerender wiring (needs move-learn-comparison-v1), registration in features.ts, play-preset, next-run, legacy set, SERVER_FEATURES (TS + Python, default off). Registry-position test updates across ~40 agent tests and 13 env tests. Wiring deleted once (rerender move_learning_early_enabled=False): 9 new tests red; restored.
 - M3: explainer docs/explainers/move-learn-early-comparison-v1.html (pages-theme, pages-check clean), README, FEATURE_EXPLAINERS mapping + panels/server tests; experiments/move-learn-early-comparison-v1.json pending (incumbent = d951 recorded bundle arm with this off); readiness row.
 - Gates: just coverage pass (agent 4432, viewer 1669 tests; Python lines 97.38% branches 93.38% functions 100%), just lint pass, just verify-vendor OK. New env tests 53 pass.
+
+## Review round 1 (packet a637f683c..37225c00e, diff sha256 184d0e37…696f)
+
+- **Claude** (Claude CLI, `CLAUDE_CONFIG_DIR=~/.claude-review`, plan mode): `VERDICT: LGTM`. Hardening notes: evolution-decision-v1 OFF reads gMoveToLearn from the old address (pre-existing for move-learn-comparison-v1); `_with_state` typed `object` (fixed: now `ActiveUi`, ignores removed).
+- **GPT** (isolated Codex CLI `gpt-5.6-sol` xhigh): `VERDICT: BLOCKING`, four findings. Triage:
+  1. Battle page for another learner read the move before checking ownership; a cleared gMoveToLearn could surface a HARNESS BUG. Accepted, fixed: slot and party name first, then the move name on page 1, then the learner; counting-reader tests.
+  2. With evolution-decision-v1 OFF, an evolution page fell through to the battle path and surfaced a gBattleStruct HARNESS BUG the switch introduced. Accepted, fixed: only a battle screen's message pages take the battle path; test that the evolution page with evolution-decision-v1 OFF renders the same with the switch on or off. Not accepted: making the comparison require evolution-decision-v1 (pre-existing address issue, every arm has it on, a dependency change needs the operator).
+  3. source.commit pinned the RED commit. Accepted: repinned to the fix commit, notes corrected.
+  4. panels.test loop cost O(K×F). Rebutted: one id added to an existing loop pattern; no shared-gate change in scope.
+- **Grok stand-in** (isolated Codex CLI `gpt-6-astra` xhigh, the operator "yes" 2026-10-22 2:14 AM ET): round 1 still running when round 2 was sealed; superseded.
+- Fix verified RED-first: reverting move_learn.py fails 3 new tests; reverting the screen gate fails the evolution test.

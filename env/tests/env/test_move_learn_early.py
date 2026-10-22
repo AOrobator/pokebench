@@ -26,12 +26,14 @@ from pokebench_env.game_state import GameState
 from pokebench_env.move_learn import (
     COMPARISON_SWITCH,
     EARLY_SWITCH,
+    MOVE_TO_LEARN,
     QUESTION_SWITCH,
     read_move_learning,
 )
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
+from pokebench_env.ui_state import ActiveUi
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PROVENANCE = json.loads((FIXTURES / "move-learn-early.provenance.json").read_text())
@@ -144,7 +146,7 @@ def test_the_boxes_and_the_forget_list_are_unchanged(name: str) -> None:
     assert render(old_state(name), frozenset()) == render(old_state(name, EARLY), EARLY)
 
 
-def _with_state(ui_state: GameState, mvstate: int, *, trade: bool = False) -> object:
+def _with_state(ui_state: GameState, mvstate: int, *, trade: bool = False) -> ActiveUi:
     ui = ui_state.active_ui
     assert ui is not None and ui.details is not None
     details = {**ui.details, "move_learning_state": mvstate, "trade_evolution": trade}
@@ -156,7 +158,7 @@ def _with_state(ui_state: GameState, mvstate: int, *, trade: bool = False) -> ob
 def test_every_state_before_an_answer_reads_the_learner(mvstate: int, trade: bool) -> None:
     recorded = early_state("evo-page1")
     ui = _with_state(recorded, mvstate, trade=trade)
-    learning = read_move_learning(early("evo-page1"), ui, None, recorded.party, early=True)  # type: ignore[arg-type]
+    learning = read_move_learning(early("evo-page1"), ui, None, recorded.party, early=True)
     assert learning is not None and learning.new.facts.name == "DOUBLE KICK"
 
 
@@ -164,7 +166,7 @@ def test_every_state_before_an_answer_reads_the_learner(mvstate: int, trade: boo
 def test_states_after_an_answer_read_nothing(mvstate: int) -> None:
     recorded = early_state("evo-page1")
     ui = _with_state(recorded, mvstate)
-    assert read_move_learning(early("evo-page1"), ui, None, recorded.party, early=True) is None  # type: ignore[arg-type]
+    assert read_move_learning(early("evo-page1"), ui, None, recorded.party, early=True) is None
 
 
 def _no_memory(address: int, length: int) -> bytes:
@@ -276,3 +278,50 @@ def test_a_page_without_its_party_slot_or_move_raises() -> None:
     broken = replace(ui, details={**ui.details, "new_move_id": None})
     with pytest.raises(ValueError, match="lacks its party slot or new move"):
         read_move_learning(early("evo-page1"), broken, None, recorded.party, early=True)
+
+
+def _counting(base: ReadMemory) -> tuple[ReadMemory, list[int]]:
+    seen: list[int] = []
+
+    def read(address: int, length: int) -> bytes:
+        seen.append(address)
+        return base(address, length)
+
+    return read, seen
+
+
+@pytest.mark.parametrize(
+    "page", ("WURMPLE is trying to learn PECK.", "But, WURMPLE can't learn more than four moves.")
+)
+def test_a_page_for_another_learner_reads_only_the_learner_slot(page: str) -> None:
+    party = early_state("battle-page1").party
+    read, seen = _counting(early("battle-page1"))
+    assert read_move_learning(read, None, None, party, early=True, page=page) is None
+    assert MOVE_TO_LEARN not in seen and len(seen) == 2  # gBattleStruct, expGetterMonId
+
+
+def test_a_page_for_another_move_reads_only_the_move_name() -> None:
+    party = early_state("battle-page1").party
+    read, seen = _counting(early("battle-page1"))
+    page = "TORCHIC is trying to learn EMBER."
+    assert read_move_learning(read, None, None, party, early=True, page=page) is None
+    assert len(seen) == 4  # gBattleStruct, expGetterMonId, gMoveToLearn, the move's name
+
+
+def test_a_cleared_move_to_learn_on_a_matching_first_page_reads_nothing_more() -> None:
+    base = early("battle-page1")
+
+    def cleared(address: int, length: int) -> bytes:
+        return bytes(length) if address == MOVE_TO_LEARN else base(address, length)
+
+    party = early_state("battle-page1").party
+    page = PAGES["battle-page1"]
+    assert read_move_learning(cleared, None, None, party, early=True, page=page) is None
+
+
+def test_an_evolution_page_never_takes_the_battle_path() -> None:
+    off = frozenset({"evolution-decision-v1"})
+    on = early_state("evo-page1", off)
+    without = early_state("evo-page1", off | EARLY)
+    assert on.move_learning_diagnostic == without.move_learning_diagnostic
+    assert render(on, off) == render(without, off | EARLY)

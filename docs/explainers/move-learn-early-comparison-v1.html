@@ -155,7 +155,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </svg>
 </div>
 <figcaption>Evolution and trade scenes (pret <code>src/evolution_scene.c</code> MVSTATE_INTRO_MSG_1 to MVSTATE_PRINT_YES_NO are steps 0–3, the same numbers in both scenes). After "Stop learning …?" the scene goes back through step 3, so the block shows there too. Steps 7 and later (forgetting, learned, did not learn) show nothing new.</figcaption>
-<p>In battle the block shows on the two pages <code>sText_TryToLearnMove1/2</code>, "&lt;POKéMON&gt; is trying to learn &lt;move&gt;." and "But, &lt;POKéMON&gt; can't learn more than four moves.", only when the page names the POKéMON in <code>gBattleStruct-&gt;expGetterMonId</code> (and, on the first page, the move in <code>gMoveToLearn</code>). Any other battle page reads no extra memory.</p>
+<p>In battle the block shows on the two pages <code>sText_TryToLearnMove1/2</code>, "&lt;POKéMON&gt; is trying to learn &lt;move&gt;." and "But, &lt;POKéMON&gt; can't learn more than four moves.", only when the page names the POKéMON in <code>gBattleStruct-&gt;expGetterMonId</code> (and, on the first page, the move in <code>gMoveToLearn</code>). Any other battle page reads no extra memory; a page naming another POKéMON reads only the learner's slot, and a first page naming another move reads only that move's name. Only a battle screen's pages are read this way: the evolution scene prints in the same message window, and its pages are read from the scene instead.</p>
 </section>
 
 <section class="card">

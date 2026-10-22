@@ -281,8 +281,12 @@ def _move_learning(
     battle: BattleState | None,
     party: tuple[PartyMon, ...],
     early: bool,
+    screen: str,
 ) -> tuple[MoveLearning | None, str | None]:
-    page = None if battle is None or battle.message is None else battle.message.page
+    # The evolution scene prints its pages in the battle message window too; only a battle
+    # screen's pages belong to the battle script.
+    message = None if battle is None or screen != "battle" else battle.message
+    page = None if message is None else message.page
     prompt = None if battle is None else battle.prompt
     try:
         return read_move_learning(read, ui, prompt, party, early=early, page=page), None
@@ -554,7 +558,7 @@ def read_game_state(
         build_exit_reach(flood, found) if exit_reach_enabled and flood is not None else None
     )
     learning, learning_diagnostic = (
-        _move_learning(read, native_ui, battle, party, move_learning_early_enabled)
+        _move_learning(read, native_ui, battle, party, move_learning_early_enabled, label)
         if move_learning_enabled
         else (None, None)
     )

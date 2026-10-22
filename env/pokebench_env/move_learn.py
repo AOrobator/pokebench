@@ -36,6 +36,7 @@ from pokebench_env.ui_state import ActiveUi
 SETTLE_SWITCH = "move-learn-settle-v1"
 QUESTION_SWITCH = "move-learn-question-v1"
 COMPARISON_SWITCH = "move-learn-comparison-v1"
+EARLY_SWITCH = "move-learn-early-comparison-v1"
 
 EVOLUTION_TASK = 0x0813E571  # Task_EvolutionScene (menu_pokemon_lifecycle.py owner literal)
 TRADE_EVOLUTION_TASK = 0x0813F1B9  # Task_TradeEvolutionScene
@@ -165,6 +166,9 @@ def read_move_learning(
     ui: ActiveUi | None,
     prompt: BattlePrompt | None,
     party: tuple[PartyMon, ...] | None,
+    *,
+    early: bool = False,
+    page: str | None = None,
 ) -> MoveLearning | None:
     """The open move-learning choice, or None when no such choice is on screen."""
     if party is None:

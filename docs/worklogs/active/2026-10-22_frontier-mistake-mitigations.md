@@ -214,3 +214,8 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Production regressions: 3 pass (`/tmp/frontier-m4-green3.log`); wiring deletion: all 3 fail (`/tmp/frontier-m4-delete-wiring-01.log`), restore 3 pass (`/tmp/frontier-m4-restore-wiring-01.log`). Initial GREEN test harness expected bare text while unrelated harness-trust correctly added a header; isolated unrelated wrapper in fixture before final proof.
 - Agent tsc/build pass. Six normalized generated bundle/control preset tests pass (`/tmp/frontier-m4-bundles.log`); default/control OFF, bundle ON. Explainer themed and pages-check clean. Pending experiment explicitly blocked/unapproved; full gates, browser and review remain open for integrated packet.
 - Commit sequence: planning 45a8891b9; M4 RED 601ab609d; GREEN commit follows. Parallel implementation is per operator authorization; integration and review prioritize M1 then M2/M3/M4.
+
+### M6 explorer replacement RED
+
+- New explorer-family-guidance-v1 independently selects the already-existing family/re-talk section without mutating explorer v1/v2 historical precedence. Default/control OFF, bundle ON. This makes the approved prompt replacement one effective experimental difference; fixed-point-breaker will also enter the bundle with explicit existing auto-talk bits unchanged.
+- Production prompt test fails on missing replacement (`/tmp/frontier-m6-explorer-red.log`); OFF precedence cases pass. No story names or routes added.

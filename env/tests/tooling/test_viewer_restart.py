@@ -87,3 +87,39 @@ def _group_alive(pgid: int) -> bool:
     except ProcessLookupError:
         return False
     return True
+
+
+def test_a_viewer_still_tied_to_the_caller_is_refused(tmp_path: Path) -> None:
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    node = binary / "node"
+    node.write_text(FAKE_NODE.format(python=sys.executable))
+    node.chmod(0o755)
+    # A ps reporting a parent other than launchd, as if the viewer stayed in the caller's tree.
+    ps = binary / "ps"
+    ps.write_text("#!/bin/sh\necho 4242\n")
+    ps.chmod(0o755)
+    port = _free_port()
+    env = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"]}
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(SCRIPTS / "viewer-restart.sh"),
+            str(tmp_path / "cli.js"),
+            str(port),
+            str(tmp_path / "runs"),
+            str(tmp_path / ".env"),
+            str(tmp_path / "viewer.log"),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    viewer = _listener(port)
+    try:
+        assert result.returncode == 1
+        assert "is still tied to this shell" in result.stderr
+    finally:
+        if viewer is not None:
+            os.kill(viewer, signal.SIGTERM)

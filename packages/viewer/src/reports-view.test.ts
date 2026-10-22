@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { detailHtml, listHtml, openedHtml, parseReportList, type ReportEntry } from "./reports-view.js";
+import { detailHtml, listHtml, openedHtml, parseReportList, reportScrollFraction, type ReportEntry } from "./reports-view.js";
 import { mountReports } from "./reports-main.js";
 import type { CardArt } from "./trainer-card.js";
 
@@ -58,6 +58,18 @@ describe("an opened report", () => {
     expect(openedHtml(LIST, "2026-10-20_cook-6h-v2")).toContain('<span class="off">NEWER</span>');
     expect(openedHtml(LIST, "missing")).toContain("No report");
   });
+  it("puts an HP bar for how far down the report you are under the header, and its percent in the bar", () => {
+    const html = openedHtml(LIST, "2026-10-17_top50");
+    expect(html.indexOf('<div class="rp-progress" data-rp="progress" role="progressbar" aria-label="How far down the report you are" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>')).toBe(0);
+    expect(html).toContain('<span class="rp-pct" data-rp="pct">0%</span><span class="rp-nav">');
+    expect(openedHtml(LIST, "missing")).not.toContain("rp-progress");
+  });
+  it("reads only a scroll fraction message from a report", () => {
+    expect(reportScrollFraction({ pokebenchReportScroll: 0.42 })).toBe(0.42);
+    expect(reportScrollFraction({ pokebenchReportScroll: 0 })).toBe(0); expect(reportScrollFraction({ pokebenchReportScroll: 1 })).toBe(1);
+    for (const bad of [null, 0.4, "0.4", [0.4], {}, { pokebenchReportScroll: "0.4" }, { pokebenchReportScroll: -0.1 }, { pokebenchReportScroll: 1.1 }, { pokebenchReportScroll: Number.NaN }, { other: 0.4 }])
+      expect(reportScrollFraction(bad), JSON.stringify(bad)).toBeNull();
+  });
 });
 
 describe("the reports page", () => {
@@ -101,6 +113,24 @@ describe("the reports page", () => {
     await mount("?open=2026-10-17_top50", "");
     expect(q('[data-rp="open"]').hidden).toBe(false); expect(q('[data-rp="index"]').hidden).toBe(true);
     expect(q("iframe.rp-frame").getAttribute("src")).toBe("/reports/2026-10-17_top50/index.html");
+  });
+  it("fills the HP bar and the percent from its own report's scroll messages only", async () => {
+    await mount("?open=2026-10-17_top50", "");
+    const frame = q("iframe.rp-frame") as HTMLIFrameElement, bar = q('[data-rp="progress"]'), fill = q('[data-rp="progress"] i'), pct = q('[data-rp="pct"]');
+    const send = (data: unknown, source: unknown): void => { window.dispatchEvent(new MessageEvent("message", { data, source: source as Window })); };
+    send({ pokebenchReportScroll: 0.426 }, frame.contentWindow);
+    expect(fill.style.width).toBe("42.6%"); expect(pct.textContent).toBe("43%"); expect(bar.getAttribute("aria-valuenow")).toBe("43");
+    send({ pokebenchReportScroll: 0.9 }, window);
+    send({ pokebenchReportScroll: "1" }, frame.contentWindow);
+    expect(fill.style.width).toBe("42.6%"); expect(pct.textContent).toBe("43%");
+    send({ pokebenchReportScroll: 1 }, frame.contentWindow);
+    expect(fill.style.width).toBe("100%"); expect(pct.textContent).toBe("100%");
+  });
+  it("draws the bar as an Emerald HP bar and keeps the page locked to the window", () => {
+    expect(CSS).toContain(".rp-progress i { position: relative; display: block; height: 100%; width: 0; background: linear-gradient(#f8e038 0 62%, #c8a808 62% 100%); }");
+    expect(CSS).toContain(".rp-open { display: grid; grid-template-rows: auto auto minmax(0, 1fr);");
+    expect(CSS).toContain(".rp-page:has(.rp-open:not([hidden])) { height: 100dvh;");
+    expect(CSS).not.toMatch(/::-webkit-scrollbar/);
   });
   it("works without the card art", async () => {
     await mount("", "", false);

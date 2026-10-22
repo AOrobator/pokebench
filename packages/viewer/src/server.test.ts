@@ -10,6 +10,7 @@ import { Log, START, assistant, fullRun, state } from "../test-support/events.js
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, validFramePng, type Viewer } from "./server.js";
+import { REPORT_SCROLL_SCRIPT, reportScrollProbe } from "./reports-scroll.js";
 import { createWorkbenchClient } from "./workbench-sync.js";
 import { parseWorkbench } from "./workbench-data.js";
 import WebSocket, { WebSocketServer } from "ws";
@@ -1085,7 +1086,7 @@ it("serves the reports page, the report list and each report's own files, and no
  const d=join(runsRoot,"reports","run-analysis","2026-10-17_top50");mkdirSync(join(d,"shots"),{recursive:true});writeFileSync(join(d,"index.html"),"<title>Top 50</title>");writeFileSync(join(d,"shots","a.png"),PNG);writeFileSync(join(d,"run.exe"),"x");
  const page=await get(viewer,"/reports");expect(page.status).toBe(200);expect(page.body.toString()).toContain("<title>Reports</title>");
  const list=await get(viewer,"/api/reports");expect(list.status).toBe(200);expect(JSON.parse(list.body.toString())).toEqual([{slug:"2026-10-17_top50",date:"2026-10-17",title:"Top 50",kind:"REPORT",verdict:null,frontier:null,facts:[],trainer:null}]);
- const html=await get(viewer,"/reports/2026-10-17_top50/index.html");expect(html.status).toBe(200);expect(html.type).toContain("text/html");expect(html.body.toString()).toBe("<title>Top 50</title>");
+ const html=await get(viewer,"/reports/2026-10-17_top50/index.html");expect(html.status).toBe(200);expect(html.type).toContain("text/html");expect(html.body.toString()).toBe(`<title>Top 50</title>${REPORT_SCROLL_SCRIPT}`);
  expect((await get(viewer,"/reports/2026-10-17_top50/")).status).toBe(200);
  expect((await get(viewer,"/reports/2026-10-17_top50/shots/a.png")).type).toBe("image/png");
  for(const path of ["/reports/2026-10-17_top50/run.exe","/reports/2026-10-17_top50/../../events.jsonl","/reports/2026-10-17_top50/%2e%2e/x.html","/reports/x/index.html","/reports/2026-10-17_top50/missing.html"])expect((await get(viewer,path)).status,path).toBe(404);
@@ -1093,7 +1094,9 @@ it("serves the reports page, the report list and each report's own files, and no
  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["reports-view","reports-main"]));
  writeFileSync(join(d,"live.html"),'<a href="http://127.0.0.1:8790/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
  const live=await getWithHeaders(viewer,"/reports/2026-10-17_top50/live.html");
- expect(live.body).toBe('<a target="_top" href="/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
+ expect(live.body).toBe(`<a target="_top" href="/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>${REPORT_SCROLL_SCRIPT}`);
+ expect(REPORT_SCROLL_SCRIPT).toBe(`<script>(${reportScrollProbe.toString()})(window);</script>`);
+ expect((await get(viewer,"/reports/2026-10-17_top50/shots/a.png")).body.equals(PNG)).toBe(true);
  expect(live.csp).toContain("sandbox allow-scripts");expect(live.csp).toContain("script-src 'self' 'unsafe-inline'");expect(live.csp).not.toContain("allow-same-origin");
  expect((await getWithHeaders(viewer,"/reports")).csp).toContain("script-src 'self';");
 });

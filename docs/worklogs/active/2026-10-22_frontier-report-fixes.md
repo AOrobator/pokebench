@@ -60,3 +60,5 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 - Python and TS registry-tail tests shift with each appended server switch (13 Python files, SERVER_FEATURES count 78).
 
 ## Multi-Model Review Log
+
+- Round 1 (packet f7a661f5, sha256 25720a2e…): Claude CLI LGTM (non-blocking: navigate_to_target copy); fallback subagent LGTM (same copy note, toContain loosening); GPT (Codex CLI gpt-5.6-sol) BLOCKING: (1) experiment pins at ab94f79 lacked the memory-column behavior, (2) new tests too costly (30 s timeout, whole map table, repeated preset parsing), (3) exact prefix order check loosened. All three fixed: pins to b107f7c05, small Littleroot place graph and no auto-advance in the wiring test (default timeout, split in two), bundle test parses each arm once, `.at(-4)` restored and a `slice(-3)` order check added; copy now says navigate_to_target's own tile choice is unchanged.

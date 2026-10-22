@@ -96,7 +96,8 @@ describe("registry, presets and the production factory",()=>{
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
  });
- it("withHarnessTrust passes buildings to its walk-away counter; playGameTools passes the switch",async()=>{
+ // The two wiring runs share one harness; each test builds two tool sets.
+ const wiring=()=>{
   type Details={state:GameStateSnapshot};
   let current=on(HOUSE_1F,8,7);
   const result=():Promise<AgentToolResult<Details>>=>Promise.resolve({content:[{type:"text",text:"Location: x"}],details:{state:current}});
@@ -116,9 +117,16 @@ describe("registry, presets and the production factory",()=>{
    for(const [i,s] of [on(HOUSE_1F,8,7),on(HOUSE_1F,8,5),on(HOUSE_1F,5,3)].entries()){current=s;await p.execute(`p${String(i)}`,{buttons:["UP"]});}
    return away.length;
   };
-  const trustOnly:FeatureSet={...Object.fromEntries(Object.keys(ALL_ON).map(k=>[k,false])) as FeatureSet,"harness-trust-v1":true,"dialogue-auto-advance-v1":true,"story-destinations-v1":true};
+  const trustOnly:FeatureSet={...Object.fromEntries(Object.keys(ALL_ON).map(k=>[k,false])) as FeatureSet,"harness-trust-v1":true};
+  return {run,trustOnly};
+ };
+ it("withHarnessTrust passes buildings to its walk-away counter",async()=>{
+  const {run,trustOnly}=wiring();
   expect(await run({...trustOnly,[ID]:false},false)).toBe(1);
   expect(await run({...trustOnly,[ID]:true},false)).toBe(0);
+ });
+ it("playGameTools passes the switch",async()=>{
+  const {run,trustOnly}=wiring();
   expect(await run({...trustOnly,[ID]:false},true)).toBe(1);
   expect(await run({...trustOnly,[ID]:true},true)).toBe(0);
  });

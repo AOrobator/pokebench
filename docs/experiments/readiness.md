@@ -327,3 +327,6 @@ Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: RO
 | coherent-healing-feedback-v1 | STARTER_CHOSEN | BLOCKED pending qualification | 2026-10-22: implementation only; matching boot readiness and pre-activation checkpoint/load evidence not established. No trial launched. |
 
 | explorer-family-guidance-v1 | PLAYER_NAME_CONFIRMED | BLOCKED pending qualification | 2026-10-22: new prompt treatment, source/start and matching-incumbent readiness not qualified; no launches. |
+## 2026-10-22 battle-move-learn-input-v1
+
+Pending, unqueued. Native 97a0/d548 reparsing proves interface correctness; a reproducible move-learning checkpoint and exposure-qualified cohort are not prepared. No measured benefit or launch. STARTER_CHOSEN is an earliest activation bound, not sufficient exposure. Source preparation pin must be replaced after landing.

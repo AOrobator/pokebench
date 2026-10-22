@@ -227,6 +227,7 @@ export const SWITCHABLE_FEATURES = [
   "factual-healing-guidance-v1",
   "coherent-healing-feedback-v1",
   "explorer-family-guidance-v1",
+  "battle-move-learn-input-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -567,6 +568,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("factual-healing-guidance-v1", "guard", "FACTUAL HEALING GUIDANCE", null, "Default off. Replaces blanket full-HP directives with HP, battle constraints and healing options, and bypasses the full-HP encounter gate. Trainer-sight confirmation is preserved. No battle safety prediction. Off: original heal-first lines, full-HP advice and encounter gate are unchanged."),
   on("coherent-healing-feedback-v1", "guard", "COHERENT HEALING FEEDBACK", "low-hp-trainer-warning-v1", "Default off; bundle only. Replaces overlapping story, trainer, gym and heal-first messages with one factual warning when the existing verified weakness criteria hold: lead below half HP, a fainted party member, or no damaging PP. Minor damage keeps the ordinary party readout without a heal directive. Unchanged risk profiles are deduplicated. Known healing places and applicable BAG medicine are options; no route, threshold prediction or action is chosen. Off: the existing independent healing wrappers and their text are unchanged."),
   on("explorer-family-guidance-v1", "guidance", "FAMILY AND REPEAT CONVERSATIONS", null, "Default off; bundle only. Selects the existing explorer-guidance-v1 family, neighbours and repeat-conversation prompt section in place of explorer-guidance-v2. Names no character, place or story step and chooses no action. The original explorer switches retain their values and precedence when this treatment is off. Off: the previous explorer-guidance-v2/v1 prompt selection is unchanged."),
+  on("battle-move-learn-input-v1", "observation", "BATTLE MOVE-LEARNING INPUT", null, "Default off. A ready native learn-move or stop-learning YES/NO battle script owns the Interface line and its current YES/NO cursor. No input or move selection is automated. Off: the previous battle controller Interface line, including battle_resolving during these questions."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -638,6 +640,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "move-learn-early-comparison-v1",
   "poison-readout-v1",
   "berry-readout-v1",
+  "battle-move-learn-input-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -846,6 +849,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("factual-healing-guidance-v1"),
     ...when("coherent-healing-feedback-v1"),
     ...when("explorer-family-guidance-v1"),
+    ...when("battle-move-learn-input-v1"),
   ];
 }
 

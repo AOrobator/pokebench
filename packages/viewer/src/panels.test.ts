@@ -1594,3 +1594,12 @@ it("links menu and factual healing guidance to the tracked explainers",()=>{
   expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
  }
 });
+
+
+it("links the battle move-learning owner card to its tracked explainer",()=>{
+ const log=new Log();log.add(0,START);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const id="battle-move-learn-input-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});

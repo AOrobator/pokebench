@@ -62,6 +62,7 @@ def read_action_frame(
     storage_cache: StorageDecodeCache | None = None,
     tutorial_owner_enabled: bool = False,
     evolution_decision: bool = False,
+    battle_move_learn_input: bool = False,
 ) -> ActionFrame:
     battle = read_battle_state(read, tutorial_owner_enabled=tutorial_owner_enabled)
     screen = read_screen(read)
@@ -70,6 +71,7 @@ def read_action_frame(
         screen,
         tutorial_owner_enabled=tutorial_owner_enabled,
         evolution_decision=evolution_decision,
+        battle_move_learn_input=battle_move_learn_input,
     )
     if evolution_decision:
         from pokebench_env.evolution_decision import decision_ui
@@ -177,7 +179,9 @@ class NativeActionJournal:
         *,
         tutorial_owner_enabled: bool = False,
         evolution_decision: bool = False,
+        battle_move_learn_input: bool = False,
     ) -> None:
+        self.battle_move_learn_input = battle_move_learn_input
         self.evolution_decision = evolution_decision
         self.tutorial_owner_enabled = tutorial_owner_enabled
         self.lock = threading.RLock()
@@ -620,7 +624,10 @@ class NativeActionJournal:
                 self.busy_frames = 0
                 screen = read_screen(read)
                 ui = read_active_ui(
-                    read, screen, tutorial_owner_enabled=self.tutorial_owner_enabled
+                    read,
+                    screen,
+                    tutorial_owner_enabled=self.tutorial_owner_enabled,
+                    battle_move_learn_input=self.battle_move_learn_input,
                 )
                 phase = "" if ui is None else ui.phase
                 storage = (
@@ -648,6 +655,7 @@ class NativeActionJournal:
                         storage_cache=self.storage_cache,
                         tutorial_owner_enabled=self.tutorial_owner_enabled,
                         evolution_decision=self.evolution_decision,
+                        battle_move_learn_input=self.battle_move_learn_input,
                     )
                 )
             except (ValueError, OSError, IndexError, struct.error) as error:
@@ -676,9 +684,12 @@ def install_action_history(
     *,
     tutorial_owner_enabled: bool = False,
     evolution_decision: bool = False,
+    battle_move_learn_input: bool = False,
 ) -> NativeActionJournal:
     journal = NativeActionJournal(
-        tutorial_owner_enabled=tutorial_owner_enabled, evolution_decision=evolution_decision
+        tutorial_owner_enabled=tutorial_owner_enabled,
+        evolution_decision=evolution_decision,
+        battle_move_learn_input=battle_move_learn_input,
     )
     step = emulator.run_frame_with_buttons
 

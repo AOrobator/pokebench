@@ -236,3 +236,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Coherent healing feedback](coherent-healing-feedback-v1.html): one factual warning for verified weakness; no full-heal command for minor damage.
 
 - [Family and repeat conversations](explorer-family-guidance-v1.html): an independently switched replacement of the generic explorer section.
+- [battle-move-learn-input-v1](battle-move-learn-input-v1.html): native ready battle move-learning YES/NO ownership.

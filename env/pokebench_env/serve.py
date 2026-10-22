@@ -355,6 +355,8 @@ def run(
     if actions is not None:
         install_action_history(
             *actions,
+            battle_move_learn_input="battle-move-learn-input-v1"
+            not in features_off_from_env(os.environ),
             evolution_decision=human is None and EVOLUTION not in features_off_from_env(os.environ),
             tutorial_owner_enabled="tutorial-party-owner-v1"
             not in features_off_from_env(os.environ),

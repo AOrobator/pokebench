@@ -1384,3 +1384,13 @@ it("serves the menu and factual healing explainers byte for byte",async()=>{
   expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
  }
 });
+
+
+it("serves the battle move-learning owner explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/battle-move-learn-input-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-learn-owner-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"battle-move-learn-input-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/battle-move-learn-input-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

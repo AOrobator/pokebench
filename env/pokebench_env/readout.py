@@ -163,6 +163,7 @@ SERVER_FEATURES = (
     "move-learn-early-comparison-v1",
     POISON,
     BERRY,
+    "battle-move-learn-input-v1",
 )
 
 
@@ -189,7 +190,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "move-learn-comparison-v1,gym-door-label-v1,"
         "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
         "shop-interface-v1,map-wide-triggers-v1,"
-        "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1",
+        "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1",
     )
     if raw == "":
         return frozenset()

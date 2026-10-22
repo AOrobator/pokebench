@@ -238,7 +238,8 @@
    "milestone-drought-suppression-v1": false,
    "navigation-recovery-v1": false,
    "coherent-healing-feedback-v1": false,
-   "explorer-family-guidance-v1": false
+   "explorer-family-guidance-v1": false,
+   "battle-move-learn-input-v1": false
   }
  },
  "switches": [
@@ -276,7 +277,8 @@
   "navigation-recovery-v1",
   "coherent-healing-feedback-v1",
   "explorer-family-guidance-v1",
-  "fixed-point-breaker-v1"
+  "fixed-point-breaker-v1",
+  "battle-move-learn-input-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

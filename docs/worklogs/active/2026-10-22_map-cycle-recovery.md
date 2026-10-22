@@ -32,7 +32,8 @@ feature-switch, agent-observability, feature-explainer, feature-worklog, experim
 - [x] Wiring deletion goes red, restored: removing the attachLoopGuard argument gave 4 failed / 81 passed (7c9f ON, second-cycle, stall rig, pinned pi); restored 85 passed. Removing the stall-briefing pair reset gave 1 failed / 17 passed; restored 18 passed.
 - [x] Explainer docs/explainers/map-cycle-recovery-v1.html (themed, pages-check clean) + README + FEATURE_EXPLAINERS + panels/server tests; pending experiment experiments/map-cycle-recovery-v1.json + readiness row; six recipes (bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, gym-rustboro-torchic) base false + appended to bundle switches; glm53-flash-4h skipped (its bundle lacks navigation-recovery-v1); viewer map-cycle-recovery-bundle.test.ts.
 - [x] Gates: just lint 0; just build 0; just coverage 0 — agent 4761 tests (97.3 stmts / 93.3 branches / 97.8 funcs / 99.2 lines), viewer 1798 (95.47 / 91.45 / 94.45 / 97.97), Python 4008 passed (lines 97.41 / branches 93.48 / functions 100).
-- [x] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(agent): map-cycle-recovery-v1 briefs once and resets the cycle count instead of stopping the run` (a2ce05f90)
+- [x] Pin the pending experiment's source.commit to the GREEN commit
 
 ## Session Log
 

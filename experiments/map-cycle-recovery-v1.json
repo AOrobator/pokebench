@@ -8,7 +8,7 @@
  "primaryMilestone": "STONE_BADGE",
  "source": {
   "checkout": "main",
-  "commit": "c3a399870bf13cc78cb7ec504fd74b8128d28842"
+  "commit": "a2ce05f904e7b3101ceba81d9899c0503e000777"
  },
  "incumbent": {
   "version": 2,

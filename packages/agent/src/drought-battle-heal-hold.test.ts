@@ -180,6 +180,26 @@ describe("production factory",()=>{
  });
 });
 
+describe("recorded heal-trip hold",()=>{
+ // Bundle runs 2026-10-21T18-07-08_qwen36-gpu0_4164, 19-29-00_8bb7, 19-42-05_de61, 19-57-21_e0e6 and 20-13-14_0b9a
+ // ended "crash" at a drought step during a heal trip: "invalid loop_guard event at /evidence: must not have more than 2 items".
+ it("records a heal-trip drought hold as a valid loop_guard event that names the heal warning",()=>{
+  const observers:((e:RunEvent)=>void)[]=[];const recorded:RunEvent[]=[];
+  let now=0,seq=0;
+  stallBriefing({...BASE,[ID]:true},{subscribe:fn=>{observers.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:n=>{recorded.push(checkEvent({v:1,run:"m",t:"2026-10-21T08:00:00.000-04:00",turn:seq,seq:++seq,type:"loop_guard",...n}));}},{stall:()=>true},{pausedMs:()=>0},()=>now);
+  const emit=(body:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"m",t:"2026-10-21T08:00:00.000-04:00",turn:seq,seq:++seq,...body});for(const o of observers)o(e);};
+  const step=(ms:number)=>{now+=ms;emit({type:"state",...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:1,y:1},facing:"up",field_controls_locked:false,interaction_targets:[],in_battle:false,party:[MON(17)]});emit({type:"tool_result",id:`c${String(seq)}`,name:"press",is_error:false,duration_ms:1,text:"pressed",frames:[]});};
+  emit({type:"milestone",name:"ROUTE_103",kind:"navigation",origin:"observed",server_timestamp:0});
+  step(1000);
+  emit(body(WARNINGS.heal_first_line));const warning=seq;
+  step(STALL_DROUGHT_MS);
+  const held=recorded.filter(e=>e.type==="loop_guard");
+  expect(held).toHaveLength(1);
+  expect(held[0]).toMatchObject({kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",evidence:[1,seq-1]});
+  expect(held[0]?.type==="loop_guard"&&held[0].message).toBe(`Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but the party is on its way to heal after a heal warning (#${String(warning)}).`);
+ });
+});
+
 describe("registry",()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
   expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);

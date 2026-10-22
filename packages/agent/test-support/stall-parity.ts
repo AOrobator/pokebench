@@ -18,7 +18,7 @@ export interface ParityTrace {readonly name:string;readonly features:FeatureSet;
 export interface ParityResult {readonly name:string;readonly guards:readonly Guard[];readonly held:readonly Held[];readonly contexts:readonly {readonly seq:number;readonly text:string}[]}
 
 const OFF={"turn-drought-clock-v1":false};
-const BASE:FeatureSet={...LEGACY_ALL_ON,...OFF,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false,"drought-battle-heal-hold-v1":false,"milestone-drought-suppression-v1":false} as FeatureSet;
+const BASE:FeatureSet={...LEGACY_ALL_ON,...OFF,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false,"drought-battle-heal-hold-v1":false,"milestone-drought-suppression-v1":false};
 const WARNINGS=JSON.parse(readFileSync(new URL("./drought-hold-warnings.json",import.meta.url),"utf8")) as Record<string,Record<string,unknown>>;
 
 // One synthetic run: 160 actions 15 s apart, with level-ups, a trainer battle won, heals, a heal warning,

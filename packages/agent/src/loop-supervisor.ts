@@ -545,12 +545,12 @@ export class SupervisorBriefing {
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
- // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training).
+ // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training),
+ // and no next-milestone hint (route guidance).
  private droughtFacts(actions:number,calls:number):string {
   return [`SUPERVISOR: No new story milestone, level-up, trainer win or full heal in the last ${String(actions)} actions (stall briefing, ${String(calls)} calls into the run).`,
    `- Last story progress: ${this.lastProgress()}`,
    `- Where you are: ${this.where()}`,
-   ...(this.hint===null?[]:[`- Next milestone (hint): ${this.hint.describe()}`]),
    `- Story steps the game confirms are done: ${this.done()}`].join("\n");
  }
 

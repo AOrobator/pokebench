@@ -27,8 +27,6 @@ const HEAL_WARNINGS=new Set(["heal_first_line","story_battle_warning","heal_befo
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 const fullParty=(s:State):boolean=>s.party.length>0&&s.party.every(p=>p.hp!=null&&p.max_hp!=null&&p.max_hp>0&&p.hp===p.max_hp);
-// turn-drought-clock-v1: the party members whose HP the game shows (eggs have none).
-const withHp=(s:State)=>s.party.filter(p=>p.is_egg!==true&&p.hp!=null&&p.max_hp!=null&&p.max_hp>0);
 interface Dwell {readonly key:string;readonly name:string;readonly firstSeq:number;calls:number;briefed:number}
 
 // lastSeq: the state event of this pair's own latest move (its note's evidence); consecutive: no other pair's move came between.
@@ -50,7 +48,10 @@ export class StallBriefing {
  // the party was last seen below full HP.
  private readonly levels=new Map<string,number>();
  private readonly unbeaten=new Set<number>();
- private hurt=false;
+ private hurt:string|null=null;
+ // turn-drought-clock-v1: a state was seen since the last tool result, so the next result is that state's action.
+ private stateSinceResult=false;
+ private skip=false;
  private last:State|null=null;
  private dwell:Dwell|null=null;
  constructor(
@@ -86,27 +87,31 @@ export class StallBriefing {
   if(this.holding!==null&&now===null&&this.heldLevel>0)this.restart(seq);
   this.holding=now;
  }
- private restart(seq:number):void {this.progressAt=this.active();this.actions=0;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
+ // turn-drought-clock-v1: the result of the action that made the progress is not counted (stateSinceResult).
+ private restart(seq:number):void {this.progressAt=this.active();this.actions=0;this.skip=this.stateSinceResult;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
  // turn-drought-clock-v1 counts actions; positive-supervisor-v1 keeps its retired wall-clock schedule.
  private turnClock():boolean {return this.features["turn-drought-clock-v1"]&&!this.features["positive-supervisor-v1"];}
  // turn-drought-clock-v1: progress the game shows besides a story milestone: a party member's level going up (same
  // POKéMON, a higher level), a trainer battle won (a trainer shown not defeated, then defeated: pokeemerald sets the
- // trainer flag only on a win) and the party reaching full HP after being below full.
+ // trainer flag only on a win) and the same party reaching full HP after being below full. Only identified POKéMON
+ // count; a party with any member the readout cannot identify or whose HP it cannot read changes nothing.
  private progressed(s:State):boolean {
   let up=false;
-  for(const [slot,p] of s.party.entries()){
-   if(p.is_egg===true||p.level==null||p.level<1)continue;
-   const key=p.identity??`${String(slot)}:${p.species??""}`;
-   const before=this.levels.get(key);
+  for(const p of s.party){
+   if(p.is_egg===true||p.identity==null||p.level==null||p.level<1)continue;
+   const before=this.levels.get(p.identity);
    if(before!==undefined&&p.level>before)up=true;
-   this.levels.set(key,p.level);
+   this.levels.set(p.identity,p.level);
   }
   const o=s.trainer_opponent;
   const won=o!=null&&(o.defeated?this.unbeaten.delete(o.trainer_id):(this.unbeaten.add(o.trainer_id),false));
-  const hp=withHp(s);
-  if(hp.length===0)return up||won;
-  const full=hp.every(p=>p.hp===p.max_hp),healed=this.hurt&&full;
-  this.hurt=!full;
+  const members=s.party.filter(p=>p.is_egg!==true);
+  const known=members.flatMap(p=>p.identity==null||p.hp==null||p.max_hp==null||p.max_hp<=0?[]:[{identity:p.identity,full:p.hp===p.max_hp}]);
+  if(known.length===0||known.length<members.length)return up||won;
+  const party=known.map(p=>p.identity).sort().join("\n"),full=known.every(p=>p.full);
+  // A heal is the same members, below full before and all full now (a whiteout heals them too; a member put in the PC does not).
+  const healed=full&&this.hurt===party;
+  this.hurt=full?null:party;
   return up||won||healed;
  }
 
@@ -122,6 +127,7 @@ export class StallBriefing {
    return;
   }
   if(event.type==="state"&&"started"in event){
+   this.stateSinceResult=true;
    this.last=event;
    if(event.started&&this.turnClock()&&this.progressed(event))this.restart(event.seq);
    if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
@@ -143,7 +149,8 @@ export class StallBriefing {
    return;
   }
   if(event.type==="tool_result"){
-   this.actions++;
+   if(this.skip)this.skip=false;else this.actions++;
+   this.stateSinceResult=false;
    if(this.healTrip!==null&&++this.healTrip.calls>=HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold(event.seq);}
    // Calls made inside an owned interface (it was open before and after them) count as dwelling there,
    // however its text churns; the call that opened it does not.

@@ -146,14 +146,14 @@ main hr{border:0;border-top:4px double #9fb2c8}
  <g fill="var(--reset)"><rect x="175" y="88" width="24" height="24" rx="4"/><rect x="335" y="88" width="24" height="24" rx="4"/><rect x="495" y="88" width="24" height="24" rx="4"/><rect x="655" y="88" width="24" height="24" rx="4"/></g>
  <text x="150" y="60">New story milestone</text>
  <text x="300" y="140">Level went up</text>
- <text x="300" y="156" fill="var(--muted)">same POKéMON, higher level</text>
+ <text x="300" y="156" fill="var(--muted)">same identified POKéMON, higher level</text>
  <text x="455" y="60">Trainer battle won</text>
  <text x="455" y="76" fill="var(--muted)">trainer shown not defeated → defeated</text>
  <text x="625" y="140">Full heal</text>
- <text x="625" y="156" fill="var(--muted)">party below full → every HP full</text>
+ <text x="625" y="156" fill="var(--muted)">same party: below full → all full</text>
  <text x="20" y="195" fill="var(--muted)">Blue dots: actions (tool results). Walking, failed presses and refused calls count as actions; they never restart the clock.</text>
 </svg>
-<figcaption>Green squares restart the count at zero. All four come from the state the briefing already reads: the milestone events, each party member's level and HP, and the trainer opponent's defeated flag (pokeemerald sets the trainer flag only when the player wins). A whiteout also heals the party, so it counts as a full heal. A hold by drought-battle-heal-hold-v1 that kept a due briefing back still restarts it when the battle or heal trip ends, as before.</figcaption>
+<figcaption>Green squares restart the count at zero, and the action whose result showed the progress is not counted: the next briefing needs 30 later actions with no progress. All four come from the state the briefing already reads: the milestone events, each party member's level and HP, and the trainer opponent's defeated flag (pokeemerald sets the trainer flag only when the player wins). Only identified POKéMON count: a member with no identity earns no level-up, and a party with any member whose identity or HP the readout cannot read is neither hurt nor healed. A full heal is the same set of members, below full before and all full now: a whiteout that heals the same party counts; a hurt member put in the PC does not. A hold by drought-battle-heal-hold-v1 that kept a due briefing back still restarts the clock when the battle or heal trip ends, as before.</figcaption>
 </figure>
 
 <h2>3. What the model reads</h2>
@@ -165,9 +165,8 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <p>ON, the rest of the note is facts only:</p>
 <pre>- Last story progress: &lt;the existing line: last milestone, its turn, battles, unfinished activity&gt;
 - Where you are: &lt;map and position&gt;
-- Next milestone (hint): &lt;only when next-milestone-hint-v1 is on&gt;
 - Story steps the game confirms are done: &lt;list&gt;</pre>
-<p>It never says the plan is failing, never says "stalling" and never asks for a different plan. The count grows with each briefing: 30, 60, 90 actions.</p>
+<p>It never says the plan is failing, never says "stalling" and never asks for a different plan. It carries no next-milestone hint, even with next-milestone-hint-v1 on. The count grows with each briefing: 30, 60, 90 actions.</p>
 
 <h2>4. How it meets the other drought switches</h2>
 <table>

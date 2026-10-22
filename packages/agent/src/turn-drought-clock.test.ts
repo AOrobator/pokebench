@@ -187,7 +187,7 @@ describe(`${ID} ON`,()=>{
   const text=r.droughts()[0]?.text??"";
   expect(text.split("\n")[0]).toContain(HEADLINE(30));
   expect(text).not.toContain("Next milestone");
-  expect(text.split("\n").map(l=>l.split(":")[0])).toEqual(["SUPERVISOR","- Last story progress","- Where you are","- Story steps the game confirms are done"]);
+  expect(text.split("\n").map(l=>l.split(":")[0])).toEqual(["SUPERVISOR","- Last story progress","- Latest battle against a story character","- Latest whiteout","- Where you are","- Story steps the game confirms are done"]);
  });
  it("a trainer battle won (the trainer seen undefeated, then defeated) restarts the clock",()=>{
   const r=rig(ON);
@@ -238,6 +238,8 @@ describe(`${ID} ON`,()=>{
   r.acts(3,{in_battle:true,screen:"battle"});
   expect(r.droughts()).toEqual([]);
   expect(r.notes.map(n=>n.message)).toEqual([`Not sent (drought-battle-heal-hold-v1): no new story milestone, level-up, trainer win or full heal in the last 30 actions, but a battle is on screen.`]);
+  // The action whose state ended the battle is not counted: 30 later actions.
+  r.act();
   r.acts(29);
   expect(r.droughts()).toEqual([]);
   r.act();

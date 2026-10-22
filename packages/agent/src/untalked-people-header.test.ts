@@ -70,6 +70,12 @@ describe("untalked-people-header-v1",()=>{
   h.emit(b,...talk(b,4,"t2"));
   expect(headerOf(await h.read(room({position:{x:5,y:6}}))).split("\n").at(-1)).toBe(`${UNTALKED_HEADER} none.`);
  });
+ it("ON: a harness auto-talk counts as talking, though it has no tool result of its own",async()=>{
+  const h=harness(true);
+  h.emit(milestone("PLAYER_HOUSE_EXITED",2));
+  h.emit(ev({type:"auto_talk",turn:3,trigger:"quiet_map",repeats:10,outcome:"talked",target:{kind:"person",name:"WOMAN_4",character:null,key:"1/2#4",x:2,y:1,map_id:[1,2]},walks:1,tried:1,text:"SUPERVISOR: x"}));
+  expect(headerOf(await h.read()).split("\n").at(-1)).toBe(`${UNTALKED_HEADER} object 2, sprite BOY_1, at (5,5), not talked to this run.`);
+ });
  it("ON: a measurement-only or present-at-start milestone does not count as the latest story milestone",async()=>{
   const h=harness(true);
   const a=stateEvent(room({facing:"up"}),3);

@@ -99,6 +99,8 @@ export class PeopleLedger {
  private readonly story:number[]=[];
  // The latest story milestone the game observed, as the stall gate counts them (untalked-people-header-v1).
  private chapter=-1;
+ // untalked-people-header-v1 also counts a harness auto-talk, which has no tool result of its own (the stall gate's rule).
+ constructor(private readonly countAutoTalk=false){}
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
@@ -113,6 +115,10 @@ export class PeopleLedger {
    const key=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
    const pressed=event.tool==="press"&&event.sent.at(-1)==="A";
    if(key!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key,talk:{turn:event.turn,seq:event.seq}});
+   return;
+  }
+  if(event.type==="auto_talk"){
+   if(this.countAutoTalk&&event.outcome==="talked"&&event.target?.key!=null)this.talks.set(event.target.key,{turn:event.turn,seq:event.seq});
    return;
   }
   if(event.type!=="tool_result")return;

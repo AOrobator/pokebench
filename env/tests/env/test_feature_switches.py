@@ -200,12 +200,18 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # Whole-map navigation is the one switch that adds planner geometry to the state.
     assert payloads[0]["state"].pop("map_grid")["width"] == 5
     assert "map_grid" not in payloads[1]["state"]
+    # exp-next-level-v1 adds the NEXT LV. numbers for the party.
+    assert isinstance(payloads[0]["state"].pop("party_next_level"), list)
+    assert "party_next_level" not in payloads[1]["state"]
     # surf-gated-exits-v1 adds the Surf gate (no water on this map, so nothing is across it).
     assert payloads[0]["state"].pop("surf_gate")["warps"] == []
     assert "surf_gate" not in payloads[1]["state"]
     # exit-reachability-v1 adds the exit labels and the foot area.
     assert payloads[0]["state"].pop("exit_reach")["foot"]["width"] == 5
     assert "exit_reach" not in payloads[1]["state"]
+    # field-move-gates-v1 adds the map's obstacles and the capabilities (no obstacles here).
+    assert payloads[0]["state"].pop("field_obstacles")["obstacles"] == []
+    assert "field_obstacles" not in payloads[1]["state"]
     # heal-before-trainers-v1 adds the trainers on this map and the healing places (none here).
     assert payloads[0]["state"].pop("heal_before_trainers")["trainers"] == []
     assert "heal_before_trainers" not in payloads[1]["state"]
@@ -242,6 +248,24 @@ def test_env_list_is_validated() -> None:
             "safe-navigation-strides-v1",
             "evolution-decision-v1",
             "original-speed-pacing-v1",
+            "semantic-navigation-v2",
+            "exit-labels-v2",
+            "respawn-readout-v1",
+            "caught-nickname-prompt-v1",
+            "party-item-confirmation-v1",
+            "yes-no-answer-readout-v1",
+            "field-move-gates-v1",
+            "exit-labels-v3",
+            "move-learn-settle-v1",
+            "move-learn-question-v1",
+            "move-learn-comparison-v1",
+            "gym-door-label-v1",
+            "mart-stock-readout-v1",
+            "caught-dex-input-v1",
+            "exp-next-level-v1",
+            "pokedex-own-v1",
+            "shop-interface-v1",
+            "birch-intro-pages-v1",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",
@@ -259,11 +283,17 @@ def test_env_list_is_validated() -> None:
             "surf-gated-exits-v1",
             "exit-reachability-v1",
             "heal-before-trainers-v1",
+            "heal-before-trainers-v2",
             "tutorial-party-owner-v1",
             "mid-frame-readout-v1",
             "unset-dynamic-warp-v1",
             "status-names-v1",
             "surf-gated-exits-v2",
+            "map-wide-triggers-v1",
+            "post-battle-readout-v1",
+            "move-learn-early-comparison-v1",
+            "poison-readout-v1",
+            "berry-readout-v1",
         }
     )
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
@@ -273,7 +303,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 51
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 75
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

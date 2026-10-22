@@ -1,0 +1,1094 @@
+[
+  {
+    "run": "2026-10-19T20-53-55-875Z_qwen36-gpu0_petalburg2h-r10-whole-map",
+    "logSha256": "6723b860e582f3c6593b7c199c7e64c99d60d80272619ebb493f86cd174b4829",
+    "logBytes": 305499629,
+    "state": {
+      "v": 1,
+      "run": "2026-10-19T20-53-55-875Z_qwen36-gpu0_petalburg2h-r10-whole-map",
+      "seq": 7038,
+      "t": "2026-10-19T17:22:40.838-04:00",
+      "type": "state",
+      "turn": 259,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": false,
+        "rustboro_marc_defeated": false,
+        "petalburg_woods_lyle_defeated": true,
+        "petalburg_woods_james_defeated": true,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": false,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": false,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": true,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": true,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 31,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "AAA",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 13,
+          "hp": 37,
+          "max_hp": 37,
+          "identity": "b7f7c224:c97e7432",
+          "species_id": 280,
+          "personality": 3086467620,
+          "ot_id": 3380507698,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 1453,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 35,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 25,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 6840,
+      "badges": [],
+      "play_time_s": 3655
+    }
+  },
+  {
+    "run": "2026-10-20T13-54-28_qwen36-gpu1_35df",
+    "logSha256": "3aa4478c6860ae36bfa3a363f2d0de8ade3fae5fd229d319e770e5d0363d4f01",
+    "logBytes": 452703875,
+    "state": {
+      "v": 1,
+      "run": "2026-10-20T13-54-28_qwen36-gpu1_35df",
+      "seq": 31915,
+      "t": "2026-10-20T15:47:26.952-04:00",
+      "type": "state",
+      "turn": 1010,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": false,
+        "rustboro_marc_defeated": false,
+        "petalburg_woods_lyle_defeated": true,
+        "petalburg_woods_james_defeated": true,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": false,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": false,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": true,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": false,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 26,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "MILTON",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 15,
+          "hp": 9,
+          "max_hp": 42,
+          "identity": "421f26d8:027ff8a0",
+          "species_id": 280,
+          "personality": 1109337816,
+          "ot_id": 41941152,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 2256,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 13,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 11,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 5440,
+      "badges": [],
+      "play_time_s": 6589
+    }
+  },
+  {
+    "run": "2026-10-20T14-04-18_qwen38-mac_28f3",
+    "logSha256": "dbfefdca905e101412246c944d74ba39b0edb1435c0d81e3140f16990fd8fc67",
+    "logBytes": 152065657,
+    "state": {
+      "v": 1,
+      "run": "2026-10-20T14-04-18_qwen38-mac_28f3",
+      "seq": 26392,
+      "t": "2026-10-20T17:37:32.024-04:00",
+      "type": "state",
+      "turn": 317,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": false,
+        "rustboro_marc_defeated": false,
+        "petalburg_woods_lyle_defeated": true,
+        "petalburg_woods_james_defeated": false,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": true,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": true,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": true,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": true,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 41,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "AA",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 40,
+          "max_hp": 40,
+          "identity": "5da6de70:93d8bdfe",
+          "species_id": 280,
+          "personality": 1571217008,
+          "ot_id": 2480455166,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 1754,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 35,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 25,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 5552,
+      "badges": [],
+      "play_time_s": 12598
+    }
+  },
+  {
+    "run": "2026-10-20T16-14-34_qwen36-gpu0_a8f9",
+    "logSha256": "11561a13bf9d3586800f15b05741179dc1304ed556dab3e4be0a9a41414ee8b3",
+    "logBytes": 575318356,
+    "state": {
+      "v": 1,
+      "run": "2026-10-20T16-14-34_qwen36-gpu0_a8f9",
+      "seq": 26131,
+      "t": "2026-10-20T17:49:35.561-04:00",
+      "type": "state",
+      "turn": 827,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": false,
+        "rustboro_marc_defeated": false,
+        "petalburg_woods_lyle_defeated": false,
+        "petalburg_woods_james_defeated": true,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": false,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": false,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": false,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": true,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 36,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "AARFTT",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 19,
+          "max_hp": 39,
+          "identity": "af660a6f:7eef92c0",
+          "species_id": 280,
+          "personality": 2942700143,
+          "ot_id": 2129629888,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 1918,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 34,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 22,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 6744,
+      "badges": [],
+      "play_time_s": 5469
+    }
+  },
+  {
+    "run": "2026-10-20T20-26-22_qwen36-gpu1_97a0",
+    "logSha256": "820a26931cd81fbcb4628a81d417c165ed4a111ec58b12eaf56a7e03a8641775",
+    "logBytes": 320179479,
+    "state": {
+      "v": 1,
+      "run": "2026-10-20T20-26-22_qwen36-gpu1_97a0",
+      "seq": 30101,
+      "t": "2026-10-20T22:35:59.517-04:00",
+      "type": "state",
+      "turn": 714,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": true,
+        "rustboro_marc_defeated": true,
+        "petalburg_woods_lyle_defeated": false,
+        "petalburg_woods_james_defeated": false,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": false,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": false,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": true,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": true,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 33,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "RUBY",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 15,
+          "hp": 42,
+          "max_hp": 42,
+          "identity": "97cca4c4:ae0bfea5",
+          "species_id": 280,
+          "personality": 2546771140,
+          "ot_id": 2920021669,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 2513,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 35,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 25,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 4894,
+      "badges": [],
+      "play_time_s": 7524
+    }
+  },
+  {
+    "run": "2026-10-21T00-16-44_qwen36-gpu1_2e93",
+    "logSha256": "c2c36116d5e277f75ce48a329d40d15ba08033f38e28ba0d0519f6b3c1d5ad3c",
+    "logBytes": 246354783,
+    "state": {
+      "v": 1,
+      "run": "2026-10-21T00-16-44_qwen36-gpu1_2e93",
+      "seq": 22234,
+      "t": "2026-10-21T01:54:58.287-04:00",
+      "type": "state",
+      "turn": 633,
+      "screen": "overworld",
+      "story": {
+        "name_confirmed": true,
+        "intro_stage": 7,
+        "rival_stage": 4,
+        "birch_lab_stage": 5,
+        "petalburg_gym_stage": 2,
+        "woods_stage": 1,
+        "town_stage": 4,
+        "clock_set": true,
+        "rival_battle_won": true,
+        "pokedex_received": true,
+        "running_shoes_received": true,
+        "starter_tutorial_complete": true,
+        "rustboro_gym_complete": false,
+        "stone_badge": false,
+        "rock_tomb_received": false,
+        "rustboro_josh_defeated": true,
+        "rustboro_tommy_defeated": false,
+        "rustboro_marc_defeated": false,
+        "petalburg_woods_lyle_defeated": false,
+        "petalburg_woods_james_defeated": true,
+        "petalburg_woods_aqua_grunt_defeated": true,
+        "route116_joey_defeated": false,
+        "route116_jose_defeated": false,
+        "route116_jerry_defeated": false,
+        "route116_clark_defeated": false,
+        "route116_janice_defeated": false,
+        "route116_karen_defeated": false,
+        "route116_sarah_defeated": false,
+        "route116_dawson_defeated": false,
+        "route116_devan_defeated": false,
+        "route116_johnson_defeated": false,
+        "roxanne_defeated": false,
+        "route102_calvin_defeated": true,
+        "route102_rick_defeated": true,
+        "route102_tiana_defeated": true,
+        "route102_allen_defeated": true,
+        "route104_ivan_defeated": false,
+        "route104_billy_defeated": false,
+        "route104_haley_defeated": false,
+        "route104_winston_defeated": true,
+        "route104_cindy_defeated": true,
+        "route104_gina_mia_defeated": false,
+        "route104_darian_defeated": false
+      },
+      "world_context": {
+        "objects": [
+          {
+            "local_id": 3,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 35,
+            "sprite_kind": "YOUNGSTER",
+            "x": 3,
+            "y": 9
+          },
+          {
+            "local_id": 5,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 55,
+            "sprite_kind": "HIKER",
+            "x": 1,
+            "y": 6
+          },
+          {
+            "local_id": 1,
+            "map_id": [
+              11,
+              3
+            ],
+            "graphics_id": 125,
+            "sprite_kind": "ROXANNE",
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "triggers": [],
+        "dialogue": "Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.\nI became a GYM LEADER so that I might\napply what I learned at the POKéMON\nTRAINER'S SCHOOL in battle.\nWould you kindly demonstrate how you\nbattle, and with which POKéMON?",
+        "message": {
+          "phase": "printing",
+          "cursor": 23,
+          "ready": false,
+          "identity": "d844a8bd26c8f11603725efdb92b8a00a213a583dbb6a61d2b50dea5b34e4f2e"
+        }
+      },
+      "field_controls_locked": true,
+      "started": true,
+      "name": "DARREN",
+      "location": "RUSTBORO CITY GYM",
+      "map_id": [
+        11,
+        3
+      ],
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "facing": "up",
+      "in_battle": false,
+      "party": [
+        {
+          "species": "TORCHIC",
+          "level": 13,
+          "hp": 34,
+          "max_hp": 34,
+          "identity": "326ddc31:7b350803",
+          "species_id": 280,
+          "personality": 846060593,
+          "ot_id": 2067073027,
+          "is_egg": false,
+          "status": 0,
+          "held_item": 0,
+          "experience": 1575,
+          "moves": [
+            {
+              "move_id": 10,
+              "pp": 35,
+              "pp_bonus": 0,
+              "name": "SCRATCH",
+              "max_pp": 35
+            },
+            {
+              "move_id": 45,
+              "pp": 40,
+              "pp_bonus": 0,
+              "name": "GROWL",
+              "max_pp": 40
+            },
+            {
+              "move_id": 116,
+              "pp": 30,
+              "pp_bonus": 0,
+              "name": "FOCUS ENERGY",
+              "max_pp": 30
+            },
+            {
+              "move_id": 52,
+              "pp": 25,
+              "pp_bonus": 0,
+              "name": "EMBER",
+              "max_pp": 25
+            }
+          ],
+          "decode_mode": "encrypted",
+          "diagnostic": null,
+          "raw_hex": null,
+          "held_item_name": null,
+          "cpu_context": null,
+          "language": 2,
+          "nickname": "TORCHIC",
+          "nickname_diagnostic": null
+        }
+      ],
+      "trainer_opponent": {
+        "trainer_id": 265,
+        "trainer_class": 32,
+        "name": "ROXANNE",
+        "defeated": false,
+        "battle_active": false
+      },
+      "money": 6792,
+      "badges": [],
+      "play_time_s": 5710
+    }
+  }
+]

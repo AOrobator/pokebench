@@ -176,7 +176,7 @@ describe("phone header in the viewer", () => {
     picker.dispatchEvent(new Event("change", { bubbles: true }));
     expect(ui("run-sheet").hidden).toBe(true);
     expect(head.getAttribute("aria-expanded")).toBe("false");
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
   });
 
   it("closes the sheet when a run is picked from the full list in it", async () => {
@@ -186,7 +186,7 @@ describe("phone header in the viewer", () => {
     picker.value = ENDED_ID;
     picker.dispatchEvent(new Event("change"));
     expect(ui("run-sheet").hidden).toBe(true);
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(ENDED_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(ENDED_ID)}/events?head=1`);
   });
 
   it("closes the sheet from the shade and the grab handle", async () => {

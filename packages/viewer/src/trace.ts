@@ -144,7 +144,7 @@ const chip = (button: string): string => `<span class="chipb">${ARROW[button] ??
 // One-line summaries are clipped by CSS anyway; the full text stays in the body and the inspector.
 const firstLine = (text: string): string => (text.trim().split("\n")[0] ?? "").slice(0, 300);
 const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
-const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", trigger_script:"repeated trigger script", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell", same_plan: "same plan repeated" } as const;
+const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", trigger_script:"repeated trigger script", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell", same_plan: "same plan repeated", same_target_no_progress: "same target, no progress" } as const;
 const NATIVE_ICON: Readonly<Record<string, readonly [string, string]>> = {
   native_input: ["IN", "engine"], menu_changed: ["MNU", "engine"], harness_bug: ["BUG", "error"],
   battle_signal: ["VS", "battle"], battle_started: ["VS", "battle"], battle_ended: ["VS", "battle"], battle_outcome: ["VS", "battle"],
@@ -155,7 +155,7 @@ const RUN_LABEL: Readonly<Partial<Record<RunEvent["type"], readonly [string, str
   disk_usage: ["HDD", "Disk usage"], frames_evicted: ["HDD", "Frames evicted"], run_end: ["END", "Run ended"],
   compaction: ["CMP", "Context compacted"], navigation_context: ["MEM", "Navigation memory delivered"], ledger_context: ["MEM", "Instruction ledger delivered"], belief_ledger: ["MEM", "Disproved beliefs delivered"],
   milestone_hint: ["MEM", "Milestone hint sent"], decision_input: ["SNP", "Decision snapshot"], battle_choice: ["VS", "Battle choice"],
-  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], low_hp_trainer_warning: ["SUP", "Low-HP trainer warning"], people_id_card: ["ID", "ID card shown"], loop_breaker: ["SUP", "Loop breaker"], auto_talk: ["SUP", "Auto-talk"], stall_gate: ["SUP", "Stall briefing held"], story_battle_warning: ["SUP", "Story battle warning"], story_goal_away: ["SUP", "Story goal walk-away"], destination_citation: ["NAV", "Destination citation"], heal_before_trainers_warning: ["SUP", "Heal before trainers warning"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
+  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], low_hp_trainer_warning: ["SUP", "Low-HP trainer warning"], trainer_sight_check: ["SUP", "Trainer sight check"], story_battle_heal_gate: ["SUP", "Story battle heal gate"], heal_first_line: ["SUP", "Heal first line"], people_id_card: ["ID", "ID card shown"], loop_breaker: ["SUP", "Loop breaker"], auto_talk: ["SUP", "Auto-talk"], stall_gate: ["SUP", "Stall briefing held"], unfinished_activity: ["SUP", "Unfinished activity"], story_battle_warning: ["SUP", "Story battle warning"], story_goal_away: ["SUP", "Story goal walk-away"], destination_citation: ["NAV", "Destination citation"], heal_before_trainers_warning: ["SUP", "Heal before trainers warning"], gym_heal_warning: ["SUP", "Gym heal warning"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
   button_press: ["BTN", "Press"], tool_result: ["RES", "Tool result"], wait_input: ["WAIT", "Wait"],
 };
 const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "belief_ledger", "milestone_hint", "decision_input", "compaction"]);
@@ -172,8 +172,13 @@ function categoryOf(event: RunEvent): TraceCategory {
     case "loop_breaker": return "sup";
     case "auto_talk": return "act";
     case "stall_gate": return "guard";
+    case "unfinished_activity": return "sup";
+    case "trainer_sight_check": return "sup";
+    case "story_battle_heal_gate": return "sup";
+    case "heal_first_line": return "sup";
     case "story_battle_warning": return "sup";
     case "heal_before_trainers_warning": return "sup";
+    case "gym_heal_warning": return "sup";
     case "story_goal_away": return "sup";
     case "destination_citation": return "act";
     case "milestone": return "ms";

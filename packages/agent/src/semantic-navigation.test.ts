@@ -1,7 +1,7 @@
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
-import {expect,it} from "vitest";
+import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import type {FeatureSet} from "./features.js";
 import type {CheckedPressTool} from "./game-tools.js";
@@ -562,4 +562,30 @@ it("stops when route segments cycle back to an earlier end tile instead of loopi
  expect(f.navigations).toHaveLength(3);expect(f.buttons).toEqual([]);
  const message=out.content[0];expect(message?.type==="text"?message.text:"").toContain("route returned to an earlier segment end before the selected approach");
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
+
+describe("semantic current-map feedback switch",()=>{
+ for(const on of [false,true])it(`wrong-map refusal ON=${String(on)} sends no input and preserves the selected target`,async()=>{
+  const f=fixture(undefined,{...baseFeatures(),"semantic-current-map-feedback-v1":on});
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw Error("missing semantic tool");
+  const result=await tool.execute("wrong-map",{map_id:[0,10],target:{kind:"connection",direction:"WEST"}});
+  expect(f.buttons).toEqual([]);expect(f.navigations).toEqual([]);
+  const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
+  expect(text).toContain("refused because the requested map is not current");
+  expect(result.details).toMatchObject({semantic_navigation:{target:{kind:"connection",direction:"WEST"},status:"refused because the requested map is not current",activation_attempted:false}});
+  if(on){expect(text).toContain("map 0/9");expect(text).toContain("Position: (0,0)");expect(text).toContain("No input was sent");}
+  else expect(text).toBe("Semantic navigation: refused because the requested map is not current. Selected WEST map connection.");
+ });
+});
+
+it("semantic v2 wrong-map feedback uses actual facts and explicitly unavailable values without actions",async()=>{
+ for(const unknown of [false,true]){
+  const f=fixture(undefined,{...baseFeatures(),"semantic-navigation-v1":false,"semantic-navigation-v2":true,"semantic-current-map-feedback-v1":true},undefined,{...field(),location:unknown?null:"LITTLEROOT TOWN",map_id:unknown?null:[0,9],position:unknown?null:{x:4,y:7}});
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+  const out=await tool.execute("stale",{map_id:[0,10],target:{kind:"connection",direction:"WEST"}});
+  const first=out.content[0];expect(first?.type==="text"?first.text:"").toBe(unknown?"Current map: name unavailable (map unavailable). Position: unavailable. No input was sent.":"Current map: LITTLEROOT TOWN (map 0/9). Position: (4,7). No input was sent.");
+  expect(out.details).toMatchObject({semantic_navigation:{status:"refused because the requested map is not current",activation_attempted:false}});
+  expect(f.buttons).toEqual([]);expect(f.navigations).toEqual([]);
+ }
 });

@@ -16,9 +16,9 @@ const BUTTON_LABELS: Record<Button, string> = {
   A: "A", B: "B", L: "L", R: "R", START: "START", SELECT: "SELECT",
 };
 
-function bar(cls: string, lane: number, a: number, b: number, title: string, fill = 0.6): string {
+function bar(cls: string, lane: number, a: number, b: number, title: string, fill = 0.6, minWidth = 3): string {
   const top = lane * LANE + (LANE * (1 - fill)) / 2;
-  return `<rect class="${cls}" role="img" aria-label="${esc(title)}" x="${f(a)}" y="${f(top)}" width="${f(Math.max(3, b - a))}" height="${f(LANE * fill)}"><title>${esc(title)}</title></rect>`;
+  return `<rect class="${cls}" role="img" aria-label="${esc(title)}" x="${f(a)}" y="${f(top)}" width="${f(Math.max(minWidth, b - a))}" height="${f(LANE * fill)}"><title>${esc(title)}</title></rect>`;
 }
 
 // Swimlanes over the 60 s before `nowMs` (wall clock live, the cursor in replay).
@@ -64,7 +64,43 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     const cx = Math.min(W - 8 - halfWidth, Math.max(LABEL + halfWidth, (x(start) + x(end)) / 2));
     text("press-label", cx, pressLane * LANE + LANE / 2, esc(label), true);
   };
-  for (const press of view.presses) {
+  // Native input changes are emitted after the request, in recording sequence.
+  // Their server timestamps describe execution; event timestamps describe delivery.
+  const native = view.nativeActions.filter(action => action.kind === "native_input");
+  let nativeIndex = 0;
+  for (const [pressIndex, press] of view.presses.entries()) {
+    const nextSeq = view.presses[pressIndex + 1]?.seq ?? Infinity;
+    while (nativeIndex < native.length && (native[nativeIndex]?.seq ?? Infinity) <= press.seq) nativeIndex++;
+    const inputs = [];
+    while (nativeIndex < native.length && (native[nativeIndex]?.seq ?? Infinity) < nextSeq) {
+      const input = native[nativeIndex++];
+      if (input !== undefined) inputs.push(input);
+    }
+    if (press.endMs === undefined && inputs.length > 0) {
+      let firstStart: number | undefined;
+      let lastEnd: number | undefined;
+      let labelButtons: readonly Button[] = [];
+      for (const [index, input] of inputs.entries()) {
+        const next = inputs[index + 1];
+        const raw = input.details["buttons"];
+        if (next === undefined || !Array.isArray(raw)) continue;
+        const buttons = raw.filter((button): button is Button => typeof button === "string" && Object.hasOwn(BUTTON_LABELS, button));
+        const button = buttons[0];
+        const start = input.server_timestamp * 1000;
+        const end = Math.min(next.server_timestamp * 1000, nowMs);
+        if (button === undefined || end <= start || end < t0 || start > nowMs || pressLane < 0) continue;
+        // One mark for simultaneous keys; do not paint a second key over the first.
+        parts.push(bar(`m-press b-${button}`, pressLane, x(start), x(end), `${buttons.join("+")} · native input · ${String(next.frame - input.frame)}f`, 0.5, 0.5));
+        if (button !== labelButtons[0]) {
+          if (firstStart !== undefined && lastEnd !== undefined) labelPress(labelButtons, firstStart, lastEnd);
+          firstStart = start;
+          labelButtons = [button];
+        }
+        lastEnd = end;
+      }
+      if (firstStart !== undefined && lastEnd !== undefined) labelPress(labelButtons, firstStart, lastEnd);
+      continue;
+    }
     const step = (press.hold + press.release) * FRAME_MS;
     press.buttons.forEach((button, i) => {
       const start = press.endMs === undefined ? press.ms + i * step : press.ms;

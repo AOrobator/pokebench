@@ -48,10 +48,10 @@ const texts=(out:readonly AgentMessage[]):string[]=>out.flatMap(m=>m.role==="use
 describe("registry and presets",()=>{
  it("registers a default-off guard switch, recorded after original-speed-pacing-v1, with an exact OFF",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"FIXED-POINT BREAKER"});
-  expect(featureInfo(ID).description).toContain(" Off: every turn stays in the request, the nudge and notes are unchanged, and the harness never walks or presses on its own.");
+  expect(featureInfo(ID).description).toContain(" Off: every turn stays in the request and the nudge and notes are unchanged. Stage 3 (auto-talk) is its own switch, auto-talk-v1, which acts while this switch or duplicate-turn-collapse-v1 is on.");
   expect(featureInfo(ID).description).toContain(BREAKER_NOTE);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("original-speed-pacing-v1")+1);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true,"story-character-stall-gate-v1":true},null).slice(-2)).toEqual([ID,"story-character-stall-gate-v1"]);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true,"story-character-stall-gate-v1":true},null).slice(-3,-1)).toEqual([ID,"story-character-stall-gate-v1"]);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false})).not.toContain(`${ID} needs`);
  });
@@ -161,3 +161,27 @@ describe("stage 2: the positive note with the count",()=>{
   expect(await rig(ON).send()).toHaveLength(1);
  });
 });
+
+describe("duplicate-turn-collapse-v1: stage 1 alone",()=>{
+ const COLLAPSE:FeatureSet={...NONE,"duplicate-turn-collapse-v1":true};
+ it("is a default-off guard after auto-talk-v1 with an exact OFF",()=>{
+  expect(featureInfo("duplicate-turn-collapse-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"DUPLICATE-TURN COLLAPSE"});
+  expect(featureInfo("duplicate-turn-collapse-v1").description).toContain(" Off: every turn stays in the request.");
+  expect(SWITCHABLE_FEATURES.indexOf("duplicate-turn-collapse-v1")).toBe(SWITCHABLE_FEATURES.indexOf("auto-talk-v1")+1);
+  const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="duplicate-turn-collapse-v1")) as Omit<FeatureSet,"duplicate-turn-collapse-v1">;
+  expect(normalizeFeatures(older)["duplicate-turn-collapse-v1"]).toBe(false);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["duplicate-turn-collapse-v1"]).toBe(false);
+ });
+ it("collapses identical turns and leaves out replies with no tool call, but adds no note and keeps the plain nudge",async()=>{
+  const r=rig(COLLAPSE);
+  r.turn("Walk north.",{x:10,y:6},11);
+  for(let i=0;i<6;i++)r.turn(SAME,TARGET,10);
+  let out=await r.send();
+  expect(texts(out)).toEqual(["Play.","assistant 1","Navigation: arrived. turn 1","assistant 7","Navigation: arrived. turn 7"]);
+  r.silent("I will navigate to (10,10).");
+  out=await r.send();
+  expect(texts(out).slice(-2)).toEqual(["Navigation: arrived. turn 7",NUDGE]);
+  expect(r.recorded.every(b=>b.stage===1)).toBe(true);
+ });
+});
+

@@ -181,15 +181,15 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
 describe("levelup-box-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off observation the game server applies, with OFF copy and no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-74)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-74)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-63)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-143)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-143)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-64)).toBe(ID);
   const info=featureInfo(ID);
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);
   expect(info.description).toContain(" Off: the readout says resolving (no input until the game asks) while the box waits");
-  expect(SERVER_FEATURES.at(-17)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1");
+  expect(SERVER_FEATURES.at(-41)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1");
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-effective-damage-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);
   const readout=readFileSync(new URL("../../../env/pokebench_env/readout.py",import.meta.url),"utf8");
   expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n    "transition-coherence-v1",\n    "readout-truth-v1",`);
@@ -201,5 +201,56 @@ describe("levelup-box-v1 registry, presets and server wiring",()=>{
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(normalizeFeatures({...older,[ID]:true})[ID]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
+ });
+});
+
+// fail-open-input-v1 (operator 2026-10-20: "a fail open design for boxes or ui we dont recognize and let the model
+// make choices based on whats on screen. pressing b should also be able to dismiss that"): with levelup-box-v1 OFF
+// the stats box is a hold the harness does not recognize, so the advance stops with the battle busy.
+describe("fail-open-input-v1 on the unrecognized level-up box (run 54a7)",()=>{
+ const FAIL_OPEN:FeatureSet={...OFF,"fail-open-input-v1":true};
+ it("ON: the inputs left in the batch are sent after the unrecognized hold, and the result says so",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,FAIL_OPEN);
+  const result=await press.execute("t357",{buttons:["A","A"]});
+  expect(server.posts.map(p=>`${p.button}:${p.phase}`)).toEqual(["A:input","B:waiting","B:waiting","B:waiting","A:box"]);
+  expect(advance()).toMatchObject({sent:["A","A"],dropped:[],battle_auto_presses:3,stop:"battle_busy"});
+  expect(()=>checkEvent(advance())).not.toThrow();
+  const text=textOf(result);
+  expect(text).toContain("The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: A. Decide from the screen what they did.");
+  expect(text).not.toContain("remaining input not sent");
+ });
+ it("ON with safe batches: the inputs the batch rule held back are sent, and the result does not also say they were not sent",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,{...FAIL_OPEN,"dialogue-safe-batches-v1":true});
+  const result=await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.at(-1)).toEqual({button:"B",phase:"box"});
+  expect(advance()).toMatchObject({sent:["A","B"],dropped:[]});
+  expect(textOf(result)).not.toContain("Interface safety");
+  const off=new Replay(at(5076),false);const offWired=wire(off,{...OFF,"dialogue-safe-batches-v1":true});
+  expect(textOf(await offWired.press.execute("t357",{buttons:["A","B"]}))).toContain("Interface safety: submitted 1 of 2 requested inputs");
+ });
+ it("ON: B in the batch is sent too, so it can dismiss the box",async()=>{
+  const server=new Replay(at(5076),false);const {press}=wire(server,FAIL_OPEN);
+  await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.at(-1)).toEqual({button:"B",phase:"box"});
+ });
+ it("OFF: the inputs left in the batch are dropped as before",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,OFF);
+  const result=await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.map(p=>p.button)).toEqual(["A","B","B","B"]);
+  expect(advance()).toMatchObject({sent:["A"],dropped:["B"],stop:"battle_busy"});
+  expect(textOf(result)).toContain("1 remaining input not sent: B.");
+ });
+ it("ON: a recognized stop (the battle ended) still drops the rest of the batch",async()=>{
+  const server=new Replay(at(5076),true);const {press,advance}=wire(server,{...ON,"fail-open-input-v1":true});
+  await press.execute("t357",{buttons:["A","A"]});
+  expect(advance()).toMatchObject({sent:["A"],dropped:["A"],stop:"field_free"});
+ });
+ it("is registered as an agent switch, off by default, needing nothing",()=>{
+  expect(SWITCHABLE_FEATURES).toContain("fail-open-input-v1");
+  expect(featureInfo("fail-open-input-v1")).toMatchObject({needs:null});
+  expect(featureInfo("fail-open-input-v1").description).toContain(" Off: ");
+  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])["fail-open-input-v1"]).toBe(false);
+  expect(SERVER_FEATURES).not.toContain("fail-open-input-v1");
+  expect(playHarnessFeatures({...ALL_ON,"fail-open-input-v1":true},null)).toContain("fail-open-input-v1");
  });
 });

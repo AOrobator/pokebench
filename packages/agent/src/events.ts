@@ -44,6 +44,9 @@ function event<T extends string, P extends Record<string, TSchema>>(type: T, pay
 }
 
 const closed = { additionalProperties: false } as const;
+// exit-reachability-v1's foot mask: one hex string per map row, four tiles per digit, the high bit the leftmost tile.
+const FootMask=Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed);
+const ObstacleIds=Type.Array(Type.Integer({minimum:0,maximum:4095}),{minItems:1,maxItems:4096});
 const BlackoutReceiptSchema=Type.Object({
   frame:NonNegativeInt,
   money_before:Type.Union([NonNegativeInt,Type.Null()]),
@@ -145,12 +148,26 @@ const HumanSample = event("human_sample", {
 
 const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
-const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+const MemoryCompletion = Type.Object({name:Type.String(),state_event:NonNegativeInt,result_event:NonNegativeInt},closed);
+const MemoryDecision = Type.Object({result_event:NonNegativeInt,reason:Type.Enum(["no_chapter","current_chapter","unknown","unresolved","completed"]),rule:Type.Union([Type.String(),Type.Null()])},closed);
+const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true}),retention:Type.Optional(Type.Object({chapter:Type.Union([MemoryCompletion,Type.Null()]),archive_count:NonNegativeInt,kept:Type.Array(MemoryDecision),retired:Type.Array(MemoryDecision),proofs:Type.Array(MemoryCompletion)},closed))});
 // disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
 const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 
+// semantic-navigation-v2: the game target a navigate_to_target or explore_map call selected, and whether it acted on it.
+export const SemanticReceiptSchema = Type.Object({
+  target: Type.Union([
+    Type.Object({ kind: Type.Literal("object"), local_id: NonNegativeInt }, closed),
+    Type.Object({ kind: Type.Literal("interaction"), interaction_kind: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed),
+    Type.Object({ kind: Type.Literal("warp"), x: Type.Integer(), y: Type.Integer() }, closed),
+    Type.Object({ kind: Type.Literal("connection"), direction: Type.String({ minLength: 1 }) }, closed),
+  ]),
+  activation_attempted: Type.Boolean(),
+}, closed);
+export type SemanticReceipt = Static<typeof SemanticReceiptSchema>;
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
+  semantic_navigation: Type.Optional(SemanticReceiptSchema),
   id: Type.String(),
   name: Type.String(),
   is_error: Type.Boolean(),
@@ -199,7 +216,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "trigger_script", "map_cycle", "milestone_drought", "interface_dwell", "same_plan"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "trigger_script", "map_cycle", "milestone_drought", "interface_dwell", "same_plan", "same_target_no_progress"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };
@@ -230,10 +247,16 @@ const PeopleIdCard = event("people_id_card", {
 });
 
 // fixed-point-breaker-v1: duplicate turns collapsed from a request (stage 1), or the note it ended with (stage 2).
-const LoopBreaker = event("loop_breaker", {
-  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call"] as const),
-  repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt, text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-});
+// short_cycle: short-cycle-fixed-point-v1, turns repeating a cycle of `period` (calls, state) turns.
+const LoopBreakerFields = {
+  stage: Type.Enum([1, 2] as const), repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt,
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+};
+// A short_cycle record always names its cycle's period; the other triggers have none.
+const LoopBreaker = Type.Union([
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Enum(["fixed_point", "no_tool_call"] as const) }),
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Literal("short_cycle"), period: Type.Integer({ minimum: 2, maximum: 4 }) }),
+]);
 
 // fixed-point-breaker-v1 stage 3: the harness walked to the nearest untalked person (or sign) and pressed A.
 const AutoTalk = event("auto_talk", {
@@ -254,6 +277,64 @@ const StallGate = event("stall_gate", {
   map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
 });
 
+// unfinished-activity-v1: an open trainer battle the agent lost or drew opened, updated by a later loss, or retired.
+const UnfinishedActivityEvent = event("unfinished_activity", {
+  change: Type.Enum(["opened", "updated", "retired"] as const), trainer_id: NonNegativeInt, trainer: Type.String({ minLength: 1 }),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]), text: Type.String({ minLength: 1 }),
+});
+
+// trainer-sight-check-v1: one checked navigate_to call: the route's tiles, what the game server found and the outcome.
+const SightPoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const SightFacing = Type.Enum(["DOWN", "UP", "LEFT", "RIGHT"] as const);
+const TrainerSightCheckEvent = event("trainer_sight_check", {
+  tool_call_id: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), origin: SightPoint, goal: SightPoint,
+  route_tiles: NonNegativeInt, confirmed: Type.Boolean(), outcome: Type.Enum(["clear", "refused", "confirmed", "unavailable"] as const),
+  reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  sightings: Type.Array(Type.Object({
+    local_id: NonNegativeInt, sprite_kind: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), trainer_id: NonNegativeInt,
+    x: Type.Integer(), y: Type.Integer(), facing: SightFacing, sight: NonNegativeInt, loaded: Type.Boolean(),
+    step: Type.Integer({ minimum: 1 }), tile: SightPoint, from: SightPoint, seen_facing: SightFacing,
+  }, closed), { maxItems: 64 }),
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
+// story-battle-heal-gate-v1: one checked press with A, navigate_to_target to an object or navigate_to while the gate is
+// engaged (free field, a party Pokémon below max HP, a covered unbeaten opponent on the map): what it found and the outcome.
+const GateOpponentFields = {
+  kind: Type.Enum(["rival", "gym_leader", "gym_trainer"] as const), name: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), local_id: NonNegativeInt,
+  sprite_kind: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), x: Type.Integer(), y: Type.Integer(), loaded: Type.Boolean(),
+};
+const StoryBattleHealGateEvent = event("story_battle_heal_gate", {
+  tool_call_id: Type.String({ minLength: 1 }), tool: Type.Enum(["navigate_to", "navigate_to_target", "press"] as const),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]), confirmed: Type.Boolean(),
+  outcome: Type.Enum(["refused", "confirmed", "clear", "unavailable"] as const),
+  reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  reached: Type.Array(Type.Object({ ...GateOpponentFields, via: Type.Enum(["talk", "approach"] as const), tile: SightPoint }, closed), { maxItems: 1 }),
+  heal_routes: Type.Optional(Type.Array(Type.Object({outward: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2}), back: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2})}, closed), {maxItems:64})),
+  sightings: TrainerSightCheckEvent.properties.sightings,
+  hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  heal: Type.Array(Type.Object({ kind: Type.Enum(["pokemon_center", "home"] as const), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt, shown: Type.Boolean() }, closed), { maxItems: 64 }),
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
+// story-battle-heal-first-v1: the first line a game-tool result gained, with the facts it states.
+const HealFirstPoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const HealFirstLineEvent = event("heal_first_line", {
+  tool: Type.String({ minLength: 1 }), tool_call_id: Type.String({ minLength: 1 }),
+  kind: Type.Enum(["rival", "gym_leader", "aqua_grunt"] as const), opponent: Type.String({ minLength: 1 }),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  party: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  heard: Type.Union([Type.Object({
+    turn: NonNegativeInt, speaker: Type.String({ minLength: 1 }), person: Type.Boolean(), place: Type.Union([Type.String(), Type.Null()]),
+    map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]), text: Type.String({ minLength: 1 }),
+  }, closed), Type.Null()]),
+  exit: Type.Union([Type.Object({
+    to: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+    direction: Type.Union([Type.Enum(["NORTH", "SOUTH", "EAST", "WEST"] as const), Type.Null()]), tiles: Type.Array(HealFirstPoint, { maxItems: 64 }),
+  }, closed), Type.Null()]),
+  text: Type.String({ minLength: 1 }),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -264,16 +345,37 @@ const StoryBattleWarningEvent = event("story_battle_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// gym-heal-warning-v1: the SUPERVISOR paragraph a game-tool result gained on or next to a GYM, with the facts it states.
+const GymHealWarningEvent = event("gym_heal_warning", {
+  tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  gym: Type.Object({ name: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), here: Type.Boolean(), x: Type.Union([Type.Integer(), Type.Null()]), y: Type.Union([Type.Integer(), Type.Null()]) }, closed),
+  hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  player: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  wake: Type.Union([Type.Object({ name: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: Type.Union([NonNegativeInt, Type.Null()]) }, closed), Type.Null()]),
+  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt,
+    shown: Type.Optional(Type.Object({ map_id: Type.Tuple([Type.Integer(), Type.Integer()]), map: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed)) }, closed), Type.Null()]),
+  // The heal place's exit was first listed in this very result.
+  listed_now: Type.Boolean(),
+  mom_heals: Type.Boolean(),
+  text: Type.String({ minLength: 1 }),
+});
+
 // heal-before-trainers-v1: the SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
-  trainers: Type.Array(Type.Object({ local_id: NonNegativeInt, x: Type.Integer(), y: Type.Integer(), sprite_kind: Type.Union([Type.String(), Type.Null()]) }, closed), { minItems: 1, maxItems: 64 }),
+  // heal-before-trainers-v2 adds loaded (false: the template's tile) and story (a story battle's opponent).
+  trainers: Type.Array(Type.Object({ local_id: NonNegativeInt, x: Type.Integer(), y: Type.Integer(), sprite_kind: Type.Union([Type.String(), Type.Null()]), loaded: Type.Optional(Type.Boolean()), story: Type.Optional(Type.String({ minLength: 1 })) }, closed), { minItems: 1, maxItems: 64 }),
+  // Empty only with heal-before-trainers-v2, when the paragraph names a story opponent for a party below full HP (hurt).
   weak: Type.Array(Type.Union([
     Type.Object({ kind: Type.Literal("fainted"), species: Type.String({ minLength: 1 }), max_hp: Type.Integer({ minimum: 1 }) }, closed),
     Type.Object({ kind: Type.Literal("lead_below_half"), species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed),
     Type.Object({ kind: Type.Literal("lead_no_pp"), species: Type.String({ minLength: 1 }), moves: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 4 }) }, closed),
-  ]), { minItems: 1, maxItems: 8 }),
-  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt }, closed), Type.Null()]),
+  ]), { maxItems: 8 }),
+  hurt: Type.Optional(Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 })),
+  // heal-before-trainers-v2: shown is the exit a delivered result listed for a POKéMON CENTER the player has not entered.
+  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt,
+    shown: Type.Optional(Type.Object({ map_id: Type.Tuple([Type.Integer(), Type.Integer()]), map: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed)) }, closed), Type.Null()]),
   mom_heals: Type.Boolean(),
   money: Type.Union([NonNegativeInt, Type.Null()]),
   // bag-healing-items-v1 only: the BAG items the paragraph names, with the game's description of each.
@@ -323,7 +425,7 @@ const DialoguePageSchema = Type.Object({
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
-  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe"] as const),
+  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe", "navigate_to_target", "explore_map"] as const),
   requested: Type.Array(ButtonSchema),
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),
@@ -364,6 +466,14 @@ export const PokemonSchema = Type.Object({
   decode_mode:Type.Optional(Type.Union([Type.Enum(["encrypted","plaintext"]),Type.Null()])),
   cpu_context:Type.Optional(Type.Union([Type.Object({gprs:Type.Array(NonNegativeInt,{minItems:16,maxItems:16}),cpsr:NonNegativeInt,stack_address:NonNegativeInt,stack_hex:Type.String({maxLength:256})},closed),Type.Null()])),
   diagnostic:Type.Optional(Type.Union([Type.String(),Type.Null()])),raw_hex:Type.Optional(Type.Union([Type.String({maxLength:200}),Type.Null()])),
+  // The summary screen's facts (env/pokebench_env/pokemon.py); stats exist for party slots only.
+  attack:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),defense:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),speed:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  sp_attack:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),sp_defense:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  ability_num:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:1}),Type.Null()])),ability_id:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()])),
+  met_location:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()])),met_location_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  met_level:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:100}),Type.Null()])),met_game:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:15}),Type.Null()])),
+  ball:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:12}),Type.Null()])),ball_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  ot_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),ot_gender:Type.Optional(Type.Union([Type.Enum(["male","female"] as const),Type.Null()])),
 },closed);
 const NullableInt=Type.Union([NonNegativeInt,Type.Null()]);
 const NullableString=Type.Union([Type.String(),Type.Null()]);
@@ -404,9 +514,14 @@ export const ResourcesSchema=Type.Object({
 export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:NonNegativeInt, frame:NonNegativeInt, path:Type.String({pattern:"^raw-ram/[0-9]{8,}\\.json\\.gz$"}), sha256:Type.String({pattern:"^[0-9a-f]{64}$"})},closed);
 export const StateBodySchema = Type.Object(
   {
+    exit_sections: Type.Optional(Type.Object({
+      current:Type.String(),
+      warps:Type.Array(Type.Object({x:NonNegativeInt,y:NonNegativeInt,label:Type.String(),detail:Type.String()},closed),{maxItems:64}),
+      connections:Type.Array(Type.Object({direction:Type.String(),offset:Type.Integer(),destination:Type.Tuple([NonNegativeInt,NonNegativeInt]),label:Type.String()},closed),{maxItems:16}),
+    },closed)),
     raw_ram: Type.Optional(RawRamReferenceSchema),
     // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
-    settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold"]) }, closed)),
+    settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold", "move_learning", "move_learning_bound"]) }, closed)),
     screen: Type.String(),
     active_ui: Type.Optional(Type.Union([Type.Object({
       phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),
@@ -560,21 +675,46 @@ export const StateBodySchema = Type.Object(
     // water (only across water) or none (neither), and the tiles reached on foot from the player: one hex string per map
     // row, four tiles per digit, the high bit the leftmost tile. Present only with the switch; an exit with no label is
     // unknown, and a mask without exactly height rows of ceil(width/4) digits is unknown (surf-gate.ts exitBlock).
+    // field-move-gates-v1: blocked_by names the field_obstacles ids every way to a cut-off exit passes.
     exit_reach: Type.Optional(Type.Object({
-      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:255}),
-      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:16}),
-      foot: Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed),
+      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"]),blocked_by:Type.Optional(ObstacleIds)},closed),{maxItems:255}),
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"]),blocked_by:Type.Optional(ObstacleIds)},closed),{maxItems:16}),
+      foot: FootMask,
+    },closed)),
+    // field-move-gates-v1: this map's obstacle objects (from its object templates, loaded or not) and gated terrain, whether
+    // each is open now (null: not known, so the flood keeps it open), what it needs in the readout's words, the game's
+    // text, and for a closed one the foot area touches, what lies past it. Present only with the switch.
+    field_obstacles: Type.Optional(Type.Object({
+      capabilities: Type.Record(Type.String({pattern:"^[a-z_]{1,32}$"}),Type.Union([Type.Boolean(),Type.Null()])),
+      obstacles: Type.Array(Type.Object({
+        id: Type.Integer({minimum:0,maximum:4095}),
+        gate: Type.String({minLength:1,maxLength:32}),
+        name: Type.String({minLength:1,maxLength:128}),
+        kind: Type.Enum(["object","terrain"]),
+        local_id: Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()]),
+        loaded: Type.Union([Type.Boolean(),Type.Null()]),
+        tiles: Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{minItems:1,maxItems:65536}),
+        only: Type.Union([Type.Tuple([Type.Integer({minimum:-1,maximum:1}),Type.Integer({minimum:-1,maximum:1})]),Type.Null()]),
+        open: Type.Union([Type.Boolean(),Type.Null()]),
+        needs: Type.String({minLength:1}),
+        text: Type.Union([Type.String({minLength:1}),Type.Null()]),
+        beyond: Type.Union([FootMask,Type.Null()]),
+      },closed),{maxItems:4096}),
     },closed)),
     // heal-before-trainers-v1: the trainers loaded on this map (template script starts with trainerbattle) with their
     // trainer flag, the power of each party move, SaveBlock1.lastHealLocation's map, the player's house 1F and whether
     // talking to MOM heals now. Present only with the switch, on the field.
     heal_before_trainers: Type.Optional(Type.Object({
-      trainers: Type.Array(Type.Object({local_id:NonNegativeInt,x:Type.Integer(),y:Type.Integer(),graphics_id:NonNegativeInt,sprite_kind:Type.Union([Type.String(),Type.Null()]),trainer_id:Type.Integer({minimum:1,maximum:854}),defeated:Type.Boolean()},closed),{maxItems:64}),
+      // heal-before-trainers-v2: every template of the map, loaded false for one the game has not loaded.
+      trainers: Type.Array(Type.Object({local_id:NonNegativeInt,x:Type.Integer(),y:Type.Integer(),graphics_id:NonNegativeInt,sprite_kind:Type.Union([Type.String(),Type.Null()]),trainer_id:Type.Integer({minimum:1,maximum:854}),defeated:Type.Boolean(),loaded:Type.Optional(Type.Boolean())},closed),{maxItems:64}),
       move_power: Type.Array(Type.Object({move_id:Type.Integer({minimum:1,maximum:354}),power:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:24}),
       last_heal: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       mom_heals: Type.Boolean(),
     },closed)),
+    // exp-next-level-v1: the POKéMON summary screen's NEXT LV. per party slot (null when a slot cannot show one).
+    // Present only with the switch.
+    party_next_level: Type.Optional(Type.Array(Type.Union([NonNegativeInt,Type.Null()]),{maxItems:6})),
   },
   closed,
 );
@@ -586,6 +726,9 @@ const State = event("state", StateBodySchema.properties);
 export const BattleTextEntrySchema=Type.Object({id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),text:Type.String({minLength:1}),waited_for_input:Type.Boolean()},closed);
 export const BattleTextJournalSchema=Type.Object({frame:NonNegativeInt,first_id:Type.Integer({minimum:1}),last_id:NonNegativeInt,errors:NonNegativeInt,last_error:Type.Union([Type.String(),Type.Null()]),entries:Type.Array(BattleTextEntrySchema,{maxItems:512})},closed);
 export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","levelup_box","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
+// move-learn-tool-v1: the state on the first emulated frame the move-learning flow waits for input (a YES/NO box,
+// a page, the summary's forget-a-move list) or leaves it, with the battle learner read on that frame.
+export const LearnWaitSchema=Type.Object({reason:Type.Enum(["box","page","forget","other","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema,battle_learner:Type.Union([Type.Object({party_slot:Type.Integer({minimum:0,maximum:5}),new_move:Type.String({minLength:1})},closed),Type.Null()])},closed);
 
 // Read-only historical compatibility: old vendor-derived state stays identifiable
 // by its mode field and is never promoted to the authoritative RAM readout.
@@ -664,9 +807,14 @@ export const RunEventSchema = Type.Union([
   PeopleIdCard,
   LoopBreaker,
   StallGate,
+  UnfinishedActivityEvent,
+  TrainerSightCheckEvent,
+  StoryBattleHealGateEvent,
+  HealFirstLineEvent,
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,
+  GymHealWarningEvent,
   StoryGoalAwayEvent,
   DestinationCitationEvent,
   DialogueAutoAdvance,
@@ -684,6 +832,8 @@ export type RunEvent = Static<typeof RunEventSchema>;
 type EnvelopeKey = "v" | "run" | "seq" | "t";
 export type EventBody = RunEvent extends infer E ? (E extends RunEvent ? Omit<E, EnvelopeKey> : never) : never;
 export type BodyOf<T extends RunEvent["type"]> = Omit<Extract<RunEvent, { type: T }>, EnvelopeKey>;
+// A loop_breaker body as its producers write it: one variant per trigger, so a short_cycle body carries its period.
+export type LoopBreakerBody = Extract<RunEvent, { type: "loop_breaker" }> extends infer E ? E extends unknown ? Omit<E, EnvelopeKey | "type" | "turn"> : never : never;
 
 // The union members for each event type, so a problem is reported against the event's own schema.
 const MEMBERS = new Map<string, TSchema[]>();

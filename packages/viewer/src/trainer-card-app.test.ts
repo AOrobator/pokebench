@@ -46,17 +46,18 @@ const ui = (name: string): HTMLElement => must(document.querySelector<HTMLElemen
 const card = (root: ParentNode, id: string): HTMLElement => must(root.querySelector<HTMLElement>(`.tc[data-watch="${id}"]`));
 
 function cohortRun(): RunEvent[] {
-  return fullRun().events.slice(0, 10).map((event) => (event.type === "run_start" ? { ...event, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: FLAGS, experiment: { id: EXP, arm: "bundle", trial: 2, of: 4 } } } : event));
+  return fullRun().events.slice(0, 10).map((event) => (event.type === "run_start" ? { ...event, budgets: { ...event.budgets, max_wall_ms: 3_600_000 }, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: FLAGS, experiment: { id: EXP, arm: "bundle", trial: 2, of: 4 } } } : event));
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; cardsDown?: boolean; font?: Promise<unknown> } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; pendingGlyphs?: Promise<GlyphSheet | null>; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; snapshotExtension?: number; cardsDown?: boolean; font?: Promise<unknown> } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = options.cardsDown === true;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const replayStatus = options.replayStatus ?? "ended";
   const replay = { ...wbRun(REPLAY_ID, "bundle", options.fresh === true ? 3_590_000 : 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
+  if (options.snapshotExtension !== undefined) for (const run of workbench.runs) if (run.id === LIVE_ID && run.config !== null) run.config.extendedWallMs = options.snapshotExtension;
   if (options.missingLiveCards === true) workbench.runs = [replay];
   const deps: AppDeps = {
     fetchJson: (url) => {
@@ -76,13 +77,15 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
     now: () => nowMs,
     hash: `#run=${LIVE_ID}`,
+    ...(options.pendingGlyphs !== undefined ? { loadGlyphSheet: () => options.pendingGlyphs ?? Promise.resolve(null) } : {}),
     ...(options.glyphs === true ? { loadGlyphSheet: (): Promise<GlyphSheet> => Promise.resolve({ width: 256, height: 512, data: new Uint8ClampedArray(256 * 512 * 4) }), drawGlyphs: (_canvas: HTMLCanvasElement, pixels: { width: number }): void => { drawn.push(pixels.width); } } : {}),
   };
   const app = await mountApp(document, deps);
   const stream = must(streams[0]);
   for (const event of cohortRun()) stream.send("ev", { ...event, run: LIVE_ID });
   stream.send("caught_up", {});
-  if (options.font === undefined) await app.pollCards();
+  if (options.pendingGlyphs === undefined && options.font === undefined) await app.pollCards();
+  else { await Promise.resolve(); await Promise.resolve(); }
   app.tick(0);
   return { app, streams, drawn };
 }
@@ -178,7 +181,7 @@ describe("trainer cards in the viewer", () => {
   it("clicking a card watches that run", async () => {
     const { streams } = await mount(1280);
     card(ui("run-cards"), OTHER_ID).click();
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
   });
 
@@ -270,7 +273,7 @@ describe("trainer cards in the viewer", () => {
     expect(body.querySelector(".rs-now, .rs-other")).toBeNull();
     ui("run-head").click(); expect(ui("run-sheet").hidden).toBe(false);
     card(body, OTHER_ID).click();
-    expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
   });
 
   it("without art, keeps the plain sheet and recorded splits without legacy bars", async () => {
@@ -281,6 +284,17 @@ describe("trainer cards in the viewer", () => {
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
     expect(ui("run-sheet-body").textContent).toContain("Trainer card artwork unavailable. Retrying");
+  });
+
+  it("shows bottom-sheet card backgrounds before the optional glyph sheet resolves", async () => {
+    let finish: ((value: null) => void) | undefined;
+    const pending = new Promise<null>(resolve => { finish = resolve; });
+    const { app } = await mount(375, { pendingGlyphs: pending });
+    expect(ui("run-sheet-body").querySelectorAll(".tc-art").length).toBeGreaterThan(0);
+    expect(ui("run-sheet-body").querySelector<HTMLElement>(".tc-art")?.style.backgroundImage).toContain("/sprites/card/wide-");
+    expect(ui("run-sheet-body").querySelector("[data-painted]")).toBeNull();
+    finish?.(null); await app.pollCards();
+    expect(ui("run-sheet-body").querySelectorAll(".tc-art").length).toBeGreaterThan(0);
   });
 
   it("paints the game-font text once the glyph sheet loads", async () => {
@@ -296,4 +310,36 @@ describe("trainer cards in the viewer", () => {
     expect(CSS).toContain("linear-gradient(#fff3a0, #f8c828)"); expect(CSS).toContain("#a07800");
     expect(CSS).toMatch(/prefers-reduced-motion: reduce\) \{[^}]*\.tc/);
   });
+});
+
+
+it("reconciles applied streamed extensions across cards and metadata while their snapshot lags", async () => {
+  const { app, streams } = await mount(1280);
+  const stream = must(streams[0]), before = card(ui("run-cards"), LIVE_ID);
+  const cap = (): string => before.querySelector("[data-clock]")?.textContent ?? "";
+  const ack = (seq: number, status: "pending" | "ignored" | "failed" | "applied", max: number): void => {
+    stream.send("ev", { v: 1, run: LIVE_ID, seq, t: new Date(nowMs).toISOString(), turn: 4, type: "operator_control", action: "extend_30m", status, request: seq, previous_max_wall_ms: max - 1_800_000, max_wall_ms: max }); app.tick(0);
+  };
+  expect(cap()).toContain("/1:00:00");
+  for (const [index, status] of (["pending", "ignored", "failed"] as const).entries()) { ack(100 + index, status, 5_400_000); expect(cap()).toContain("/1:00:00"); }
+  ack(103, "applied", 5_400_000);
+  expect(cap()).toContain("/1:30:00");
+  expect(ui("run-details").textContent).toContain("ORIGINAL RECORDED CONFIGURATION");
+  expect(ui("run-details").textContent).toContain('"max_wall_ms": 3600000');
+  expect(ui("run-details").textContent).toContain("CURRENT EFFECTIVE WALL LIMIT");
+  expect(ui("run-details").textContent).toContain('"max_wall_ms": 5400000');
+  await app.pollCards(); app.tick(0);
+  expect(cap()).toContain("/1:30:00");
+  ack(104, "applied", 7_200_000);
+  expect(cap()).toContain("/2:00:00");
+  expect(card(ui("run-cards"), LIVE_ID)).toBe(before);
+  expect(card(ui("run-cards"), OTHER_ID).querySelector("[data-clock]")?.textContent).toContain("/1:00:00");
+  expect(card(ui("run-sheet-body"), LIVE_ID).querySelector("[data-clock]")?.textContent).toContain("/2:00:00");
+});
+
+it("keeps a newer snapshot extension when the selected stream is still catching up", async () => {
+  const { app, streams } = await mount(1280, { snapshotExtension: 7_200_000 });
+  must(streams[0]).send("ev", { v: 1, run: LIVE_ID, seq: 100, t: new Date(nowMs).toISOString(), turn: 4, type: "operator_control", action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: 3_600_000, max_wall_ms: 5_400_000 });
+  app.tick(0);
+  expect(card(ui("run-cards"), LIVE_ID).querySelector("[data-clock]")?.textContent).toContain("/2:00:00");
 });

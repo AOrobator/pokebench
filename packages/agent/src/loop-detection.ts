@@ -46,6 +46,12 @@ export class LoopDetector extends LoopCoordinator {
     triggerScriptLoops = false,
     battleRefusals = false,
     ineffectiveNavigation = false,
+    sameTargetNoProgress = false,
+    menuRefusals = false,
+    progressAwareCycles = false,
+    moveLearnLoops = false,
+    navigationRecovery = false,
+    navigationRecoveryTargets = false,
   ) {
     super(notify, {
       policy,
@@ -63,6 +69,12 @@ export class LoopDetector extends LoopCoordinator {
       triggerScriptLoops,
       battleRefusals,
       ineffectiveNavigation,
+      sameTargetNoProgress,
+      menuRefusals,
+      progressAwareCycles,
+      moveLearnLoops,
+      navigationRecovery,
+      navigationRecoveryTargets,
     });
   }
 }

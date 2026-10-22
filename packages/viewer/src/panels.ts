@@ -158,7 +158,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
   const nativeProgress = (name:string) => name.startsWith("ROUTE_102_TRAINER_") || name.startsWith("ROUTE_104_TRAINER_") || ["ROXANNE_DEFEATED","FIRST_POKEMON_CAUGHT","FIRST_POKECENTER_HEAL","FIRST_EVOLUTION"].includes(name);
   const remainingNative = (name:string) => name.startsWith("PETALBURG_WOODS_TRAINER_") || name.startsWith("ROUTE_116_TRAINER_") || ["ROUTE_115", "ROUTE_116", "RUSTURF_TUNNEL"].includes(name);
-  const supported = (name: string) => name === "BIRCH_RESCUE_REQUESTED" ? view.start?.harness_features.includes("birch-rescue-requested-v1") === true || reached.has(name) : name === "RIVAL_HOUSE_EXITED" ? view.start?.harness_features.includes("rival-house-exit-v1") === true || reached.has(name) : name === "ROUTE_101_AFTER_HANDOFF" ? view.start?.harness_features.includes("route-101-after-handoff-v1") === true || reached.has(name) : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? view.start?.harness_features.includes("bedroom-exit-v1") === true || reached.has(name) : ROUTE103_RIVAL_SPLITS.has(name) ? view.start?.harness_features.includes("route103-rival-splits-v1") === true || reached.has(name) : remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
+  const supported = (name: string) => name === "ROXANNE_FIRST_INTERACTION" ? view.start?.harness_features.includes("roxanne-first-interaction-v1") === true || reached.has(name) : name === "BIRCH_RESCUE_REQUESTED" ? view.start?.harness_features.includes("birch-rescue-requested-v1") === true || reached.has(name) : name === "RIVAL_HOUSE_EXITED" ? view.start?.harness_features.includes("rival-house-exit-v1") === true || reached.has(name) : name === "ROUTE_101_AFTER_HANDOFF" ? view.start?.harness_features.includes("route-101-after-handoff-v1") === true || reached.has(name) : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? view.start?.harness_features.includes("bedroom-exit-v1") === true || reached.has(name) : ROUTE103_RIVAL_SPLITS.has(name) ? view.start?.harness_features.includes("route103-rival-splits-v1") === true || reached.has(name) : remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
   const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
   const next = [...names].find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
@@ -173,11 +173,11 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const current = view.milestones.find((m) => m.name === name);
     const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
     const time = present.has(name) ? "already<br>present" : !supported(name) ? "not<br>recorded" : at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
-    const note = current?.derived === true ? ` title="Recovered from recorded game state · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
+    const note = current?.derived === true ? ` title="Recovered from ${current.screenshotEvidence === undefined ? "recorded game state" : "reviewed screenshots"} · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
     return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
   const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
-  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
+  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game evidence; first observation time is an upper bound.</p>`;
   return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
@@ -235,17 +235,25 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
     case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
-    case "loop_breaker":return event.stage===1?`Loop breaker stage 1 · ${String(event.collapsed)} duplicate ${event.collapsed===1?"turn":"turns"} left out of the request (${String(event.repeats)} identical ${event.trigger==="no_tool_call"?"replies with no tool call":"turns"} in a row)`:`Loop breaker stage 2 note sent to the model (${event.trigger==="no_tool_call"?"reply with no tool call":"fixed point"}, ${String(event.repeats)} in a row) · ${esc(event.text??"")}`;
+    case "loop_breaker":{
+      const cycle=event.trigger==="short_cycle"?`a cycle of ${String(event.period)} turns (the same tool calls and game state, apart from fields that change on their own) repeated over ${String(event.repeats)} turns`:null;
+      return event.stage===1?`Loop breaker stage 1 · ${String(event.collapsed)} ${cycle===null?"duplicate":"earlier"} ${event.collapsed===1?"turn":"turns"} left out of the request${cycle===null?"":" across every cycle in it"} (${cycle===null?"":"longest: "}${cycle??`${String(event.repeats)} identical ${event.trigger==="no_tool_call"?"replies with no tool call":"turns"} in a row`})`:`Loop breaker stage 2 note sent to the model (${event.trigger==="no_tool_call"?"reply with no tool call":cycle??"fixed point"}${cycle===null?`, ${String(event.repeats)} in a row`:""}) · ${esc(event.text??"")}`;
+    }
     case "auto_talk":return `Loop breaker stage 3 auto-talk (${event.trigger==="no_tool_call"?"replies with no tool call":"fixed point"}, ${String(event.repeats)} in a row) · ${event.outcome==="talked"?"talked to":event.outcome==="unreachable"?"could not reach":event.outcome==="none"?"no one untalked on this map":"the field was not free"}${event.target===null?"":` ${esc(event.target.name)} at (${String(event.target.x)},${String(event.target.y)})`} · ${String(event.walks)} walks, ${String(event.tried)} tried${event.text===null?"":` · ${esc(event.text)}`}`;
+    case "trainer_sight_check":return `Trainer sight check (navigate_to to (${String(event.goal.x)},${String(event.goal.y)}), ${String(event.route_tiles)} route tiles${event.confirmed?", confirm_trainer_sight":""}) · ${event.outcome==="refused"?"not walked":event.outcome==="confirmed"?"walked anyway":event.outcome==="clear"?"no trainer in sight":`not checked: ${esc(event.reason??"unknown")}`}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) facing ${t.facing} sees (${String(t.tile.x)},${String(t.tile.y)}), step ${String(t.step)}`).join("; ")}`}`;
+    case "heal_first_line":return `Heal first line added to the ${esc(event.tool)} result · ${esc(event.opponent)} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${event.heard===null?"no heal line heard":`heal line heard turn ${String(event.heard.turn)}`}${event.exit===null?"":` · exit to ${esc(event.exit.to)}`} · ${esc(event.text)}`;
+    case "story_battle_heal_gate":return `Story battle heal gate (${event.tool}${event.confirmed?", confirm":""}) · ${event.outcome==="refused"?"not started":event.outcome==="confirmed"?"started anyway":event.outcome==="clear"?"no trainer battle ahead":`sight not checked: ${esc(event.reason??"unknown")}`}${event.reached.map(r=>` · ${r.kind==="rival"?`rival ${esc(r.name??"unknown")}`:r.kind==="gym_leader"?`Gym Leader ${esc(r.name??"unknown")}`:`object ${String(r.local_id)} ${esc(r.sprite_kind??"unknown")}`} at (${String(r.x)},${String(r.y)}) ${r.via==="talk"?"talked to":`approached from (${String(r.tile.x)},${String(r.tile.y)})`}`).join("")}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) sees (${String(t.tile.x)},${String(t.tile.y)})`).join("; ")}`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")}${event.text===null?"":` · ${esc(event.text)}`}`;
+    case "unfinished_activity":return `Unfinished activity ${event.change} · ${esc(event.trainer)} (trainer ${String(event.trainer_id)}) · map ${String(event.map_id[0])}/${String(event.map_id[1])} · ${esc(event.text)}`;
     case "stall_gate":return `Stall briefing held (${event.kind==="map_cycle"?"map back-and-forth":"milestone drought"}, level ${String(event.level)}) · ${esc(event.character)} ${event.reason==="untalked"?"is on this map and has not been talked to since the last story milestone":"is getting closer"} · map ${String(event.map_id[0])}/${String(event.map_id[1])}`;
     case "people_id_card":return `ID card added to the ${esc(event.tool)} result (${event.reason==="first"?"first sight":"back in view, card changed"}) · ${esc(event.key)} · ${esc(event.text)}`;
     case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
     case "heal_before_trainers_warning":return `Heal before trainers warning added to the ${esc(event.tool)} result · ${event.trainers.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)})`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
+    case "gym_heal_warning":return `Gym heal warning added to the ${esc(event.tool)} result · ${esc(event.gym.name)}${event.gym.here?"":` (exit at (${String(event.gym.x)},${String(event.gym.y)}))`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
     case "story_battle_warning":return `Story battle warning added to the ${esc(event.tool)} result · ${esc(event.opponent)}${event.x===null||event.y===null?"":` at (${String(event.x)},${String(event.y)})`} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${esc(event.text)}`;
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
-    case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "ledger_context":return `Instruction ledger delivered${event.retention===undefined?"":` · ${String(event.retention.kept.length)} kept · ${String(event.retention.retired.length)} archived`} · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -371,13 +379,35 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "gym-evidence-v1":"gym-evidence-v1.html",
+ "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",
+ "field-ownership-feedback-v1":"field-ownership-feedback-v1.html",
+ "move-learn-loop-fingerprint-v1":"move-learn-loop-fingerprint-v1.html",
+ "stale-plan-fact-v1":"stale-plan-fact-v1.html",
+ "post-battle-readout-v1":"post-battle-readout-v1.html",
+ "move-learn-early-comparison-v1":"move-learn-early-comparison-v1.html",
+ "move-learn-tool-v1":"move-learn-tool-v1.html",
+ "milestone-drought-suppression-v1":"milestone-drought-suppression-v1.html",
+ "story-goal-player-name-v1":"story-goal-player-name-v1.html",
+ "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
+ "trainer-sight-check-v2":"trainer-sight-check-v2.html",
+ "auto-talk-v2":"auto-talk-v2.html",
+ "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
+ "map-wide-triggers-v1":"map-wide-triggers-v1.html",
+ "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
+ "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
+ "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
+ "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "rejected-movement-step-v1":"rejected-movement-step-v1.html",
+  "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
  "automatic-running-v1":"automatic-running-v1.html",
  "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
  "semantic-navigation-v1":"semantic-navigation-v1.html",
+ "semantic-navigation-v2":"semantic-navigation-v2.html",
  "deterministic-exploration-v1":"deterministic-exploration-v1.html",
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",
  "just-in-time-prompt-v2":"just-in-time-prompt-v2.html",
@@ -456,6 +486,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-destinations-v1":"story-destinations-v1.html",
  "exit-reachability-v1":"exit-reachability-v1.html",
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
+ "heal-before-trainers-v2":"heal-before-trainers-v2.html",
+ "gym-heal-warning-v1":"gym-heal-warning-v1.html",
  "harness-trust-v1":"harness-trust-v1.html",
  "cited-destination-v1":"cited-destination-v1.html",
  "harness-trust-v2":"harness-trust-v1.html",
@@ -497,6 +529,52 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",
  "story-character-stall-gate-v1":"story-character-stall-gate-v1.html",
  "positive-supervisor-v1":"positive-supervisor-v1.html",
+ "auto-talk-v1":"fixed-point-breaker-v1.html",
+ "duplicate-turn-collapse-v1":"fixed-point-breaker-v1.html",
+ "unfinished-activity-v1":"unfinished-activity-v1.html",
+ "exit-labels-v2":"exit-labels-v2.html",
+ "exit-labels-v3":"exit-labels-v3.html",
+  "navigation-refusal-reasons-v3": "navigation-refusal-reasons-v3.html",
+ "respawn-readout-v1":"respawn-readout-v1.html",
+ "trainer-sight-check-v1":"trainer-sight-check-v1.html",
+ "caught-dex-input-v1":"caught-dex-input-v1.html",
+ "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
+ "party-item-confirmation-v1":"party-item-confirmation-v1.html",
+ "fail-open-input-v1":"fail-open-input-v1.html",
+ "whiteout-healed-v1":"whiteout-healed-v1.html",
+ "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",
+ "same-target-no-progress-v1":"same-target-no-progress-v1.html",
+ "story-progress-clock-v1":"story-progress-clock-v1.html",
+ "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
+ "field-move-gates-v1":"field-move-gates-v1.html",
+ "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
+ "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",
+ "story-battle-heal-gate-v1":"story-battle-heal-gate-v1.html",
+ "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
+ "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
+ "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
+ "navigation-recovery-v1":"navigation-recovery-v1.html",
+ "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
+ "gym-door-label-v1":"gym-door-label-v1.html",
+ "move-learn-settle-v1":"move-learn-settle-v1.html",
+ "move-learn-question-v1":"move-learn-question-v1.html",
+ "move-learn-comparison-v1":"move-learn-comparison-v1.html",
+ "effectiveness-heard-v1":"effectiveness-heard-v1.html",
+ "game-said-goals-v1":"game-said-goals-v1.html",
+ "menu-item-guidance-v1":"menu-item-guidance-v1.html",
+ "factual-healing-guidance-v1":"factual-healing-guidance-v1.html",
+ "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
+ "shop-interface-v1":"shop-interface-v1.html",
+ "birch-intro-pages-v1":"birch-intro-pages-v1.html",
+ "poison-readout-v1":"poison-readout-v1.html",
+ "berry-readout-v1":"berry-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

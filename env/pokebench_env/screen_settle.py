@@ -56,8 +56,17 @@ WARP_TASKS = {
 WARP_SETTLE_BOUND_FRAMES = 300
 
 SettleReason = Literal[
-    "immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold"
+    "immediate",
+    "paused",
+    "fade",
+    "warp",
+    "fade_bound",
+    "warp_bound",
+    "input_hold",
+    "move_learning",
+    "move_learning_bound",
 ]
+Motion = Literal["warp", "fade", "move_learning"]
 
 FADING_NOTE = (
     "Frame: captured while the screen was still fading (palette fade active); "
@@ -69,6 +78,11 @@ BLACK_NOTE = (
 )
 
 T = TypeVar("T")
+BOUND_REASONS: dict[Motion, SettleReason] = {
+    "fade": "fade_bound",
+    "warp": "warp_bound",
+    "move_learning": "move_learning_bound",
+}
 
 
 def palette_fade_active(read: ReadMemory) -> bool:
@@ -118,7 +132,7 @@ class _Waiter(Generic[T]):
     def __init__(self, capture: Callable[[], T]) -> None:
         self.capture = capture
         self.frames = 0
-        self.warp = False
+        self.kind: Motion = "fade"
         self.reason: SettleReason = "fade"
         self.done = threading.Event()
         self.released = False
@@ -144,6 +158,9 @@ class FrameSettle:
         self._parked = False
         # Configured before the server starts, only by an explicit input owner.
         self.capture_held: Callable[[], bool] | None = None
+        # move-learn-settle-v1: configured before the server starts when the switch is on.
+        self.move_learning: Callable[[], bool] | None = None
+        self.move_learning_bound_frames = 0
 
     def on_frame(self) -> None:
         """After each emulated frame; the vendor holds its memory lock."""
@@ -163,17 +180,19 @@ class FrameSettle:
             waiting: list[_Waiter[object]] = []
             for waiter in self._waiters:
                 waiter.frames += 1
-                waiter.warp = waiter.warp or motion == "warp"
-                bound = self.warp_bound_frames if waiter.warp else self.bound_frames
-                if motion is not None and waiter.frames < bound:
+                if waiter.kind == "fade" and motion is not None:
+                    waiter.kind = motion
+                elif waiter.kind == "move_learning" and motion == "warp":
+                    waiter.kind = motion
+                if motion is not None and waiter.frames < self._bound(waiter.kind):
                     waiting.append(waiter)
                     continue
                 if held:
                     waiter.reason = "input_hold"
                 elif motion is None:
-                    waiter.reason = "warp" if waiter.warp else "fade"
+                    waiter.reason = waiter.kind
                 else:
-                    waiter.reason = "warp_bound" if waiter.warp else "fade_bound"
+                    waiter.reason = BOUND_REASONS[waiter.kind]
                 try:
                     waiter.result = waiter.capture()
                 except Exception as error:  # noqa: BLE001 - re-raised on the caller's thread
@@ -181,10 +200,17 @@ class FrameSettle:
                 waiter.done.set()
             self._waiters = waiting
 
-    def _motion(self) -> Literal["warp", "fade"] | None:
+    def _bound(self, kind: Motion) -> int:
+        if kind == "warp":
+            return self.warp_bound_frames
+        return self.move_learning_bound_frames if kind == "move_learning" else self.bound_frames
+
+    def _motion(self) -> Motion | None:
         if self.warp and warp_animating(self.read):
             return "warp"
-        return "fade" if transitioning(self.read) else None
+        if transitioning(self.read):
+            return "fade"
+        return "move_learning" if self.move_learning is not None and self.move_learning() else None
 
     def park(self) -> None:
         """The frame loop is parking (operator pause): no frames will come."""
@@ -227,7 +253,7 @@ class FrameSettle:
                 if motion is None:
                     return capture(), Settled(0, "immediate")
                 waiter: _Waiter[T] = _Waiter(capture)
-                waiter.warp = motion == "warp"
+                waiter.kind = motion
                 self._waiters.append(waiter)  # type: ignore[arg-type]
         if on_wait is not None:
             on_wait()

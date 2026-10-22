@@ -9,16 +9,20 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
+from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_learner
+from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.screen_settle import (
     WARP_FEATURE,
     FrameSettle,
@@ -28,10 +32,16 @@ from pokebench_env.screen_settle import (
     screen_note,
     warp_animating,
 )
+from pokebench_env.trainer_sight import MAX_ROUTE_TILES, sight_report
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 ScreenshotFn = Callable[[], BaseModel | Callable[[], BaseModel]]
 RawSnapshotFn = Callable[[Reservation], RawRamSnapshot]
+
+
+class TrainerSightRequest(BaseModel):
+    map_id: tuple[int, int]
+    tiles: list[tuple[int, int]] = Field(max_length=MAX_ROUTE_TILES)
 
 
 def install_observation(
@@ -47,6 +57,7 @@ def install_observation(
     raw_archive: RawRamArchive | None = None,
     settle: FrameSettle | None = None,
     battle_wait: BattleWait | None = None,
+    learn_wait: LearnWait | None = None,
     whiteout: WhiteoutLatch | None = None,
 ) -> Callable[[], dict[str, object]]:
     if raw_snapshot is not None and raw_archive is None:
@@ -56,12 +67,21 @@ def install_observation(
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
     warp = WARP_FEATURE not in off
+    # respawn-readout-v1: the map table read once, and the centers this server saw entered.
+    links = LinkCache() if RESPAWN not in off else None
+    memory = RespawnMemory() if RESPAWN not in off else None
+
+    def decode(read: ReadMemory) -> GameState:
+        state = read_state(read, maps, active_ui=enabled, off=off, links=links)
+        if memory is not None:
+            memory.note(state)
+        return state
 
     def realize_screenshot(value: BaseModel | Callable[[], BaseModel]) -> dict[str, object]:
         return (value() if callable(value) else value).model_dump()
 
     def decode_snapshot(snapshot: RawRamSnapshot) -> tuple[GameState, dict[str, object]]:
-        state = read_state(snapshot.reader(raw_rom), maps, active_ui=enabled, off=off)
+        state = decode(snapshot.reader(raw_rom))
         return state, state_json(state)
 
     def finish_snapshot(
@@ -96,7 +116,7 @@ def install_observation(
     def serialize() -> dict[str, object]:
         """The typed state; the caller holds the memory lock."""
         receipt = None if raw_capture is None else raw_capture()
-        decoded = read_state(read_memory, maps, active_ui=enabled, off=off)
+        decoded = decode(read_memory)
         serialized = state_json(decoded)
         if receipt is not None:
             serialized["raw_ram"] = raw_reference(receipt)
@@ -122,7 +142,7 @@ def install_observation(
         receipt = None if raw_capture is None else raw_capture()
         # blackout-readout-v1: the frame this state dates from, read under the same lock.
         seen = 0 if whiteout is None else whiteout.mark()
-        state = read_state(read_memory, maps, active_ui=enabled, off=off)
+        state = decode(read_memory)
         serialized = state_json(state)
         if receipt is not None:
             serialized["raw_ram"] = raw_reference(receipt)
@@ -193,7 +213,8 @@ def install_observation(
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
-        if warp and settled is not None:
+        # move-learn-settle-v1 records its waits the way warp-arrival-settle-v1 does.
+        if (warp or MOVE_LEARN_SETTLE not in off) and settled is not None:
             serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))
         # blackout-readout-v1: taken only once this observation will be delivered, and
@@ -201,7 +222,9 @@ def install_observation(
         with whiteout.delivering if whiteout is not None else nullcontext():
             event: Whiteout | None = None if whiteout is None else whiteout.take(state, seen)
             try:
-                text = render(state, off, warp_animation=animation, whiteout=event)
+                text = render(
+                    state, off, warp_animation=animation, whiteout=event, respawn_memory=memory
+                )
                 if event is not None:
                     serialized["blackout_receipt"] = {
                         "frame": event.frame,
@@ -239,6 +262,13 @@ def install_observation(
         with memory_lock if memory_lock is not None else nullcontext():
             return {"places": [place.json() for place in directory.places(displayed=displayed)]}
 
+    # trainer-sight-check-v1 (agent side) posts navigate_to's planned route here before it walks; it
+    # changes nothing the model sees and is called only with that switch on.
+    @app.post("/pokebench/trainer-sight")
+    def trainer_sight(body: TrainerSightRequest) -> dict[str, object]:
+        with memory_lock if memory_lock is not None else nullcontext():
+            return sight_report(read_memory, body.map_id, body.tiles)
+
     if battle_wait is not None:
         wait = battle_wait
 
@@ -260,5 +290,41 @@ def install_observation(
             else:
                 captured, reason, frames = wait.wait(serialize, lock, max_frames)
             return {"reason": reason, "frames": frames, "state": captured}
+
+    if learn_wait is not None:
+        held = learn_wait
+
+        # move-learn-tool-v1: the state on the first emulated frame the move-learning flow waits
+        # for input or leaves it, with the battle learner read on that frame; bounded in frames.
+        @app.get("/pokebench/move-learn/wait")
+        def learn_wait_state(
+            max_frames: int = Query(default=LEARN_BOUND_FRAMES, ge=1, le=3600),
+        ) -> dict[str, object]:
+            lock = memory_lock if memory_lock is not None else nullcontext()
+            if raw_snapshot is not None:
+                assert raw_archive is not None
+                with raw_archive.reserve() as reservation:
+
+                    def grab() -> tuple[RawRamSnapshot, dict[str, object] | None, Exception | None]:
+                        frozen = raw_snapshot(reservation)
+                        try:
+                            return frozen, battle_learner(read_memory), None
+                        except (ValueError, IndexError) as error:
+                            return frozen, None, error
+
+                    (frozen, learner, error), reason, frames = held.wait(grab, lock, max_frames)
+                    # A learner read error is raised after the raw capture persists.
+                    receipt, _, captured, _ = finish_snapshot(reservation, frozen, error=error)
+                raw_archive.pair(receipt, captured, None)
+            else:
+                (captured, learner), reason, frames = held.wait(
+                    lambda: (serialize(), battle_learner(read_memory)), lock, max_frames
+                )
+            return {
+                "reason": reason,
+                "frames": frames,
+                "state": captured,
+                "battle_learner": learner,
+            }
 
     return observation

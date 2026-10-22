@@ -1,14 +1,17 @@
+import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {UNFINISHED_BRIEFING} from "./unfinished-activity.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import {StoryCharacterGate} from "./stall-gate.js";
-import type {RunEvent} from "./events.js";
+import type {RunEvent,SemanticReceipt} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
+import {listedArgument,semanticWalk,targetSuffix} from "./semantic-targets.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
@@ -20,8 +23,11 @@ export interface OwnedInterface {readonly key:string;readonly name:string;readon
 // pokeemerald naming_screen.c templates' maxChars (PLAYER_NAME_LENGTH, BOX_NAME_LENGTH, POKEMON_NAME_LENGTH, WALDA_PHRASE_LENGTH).
 const NAME_LIMIT:Readonly<Record<string,number>>={player:7,box:8,caught_mon:10,nickname:10,walda:15};
 type Screen=Pick<Extract<RunEvent,{type:"state";started:boolean}>,"started"|"screen"|"in_battle"|"active_ui"|"naming">;
-export function interfaceOf(s:Screen):OwnedInterface|null {
- if(!s.started||s.in_battle||s.screen==="battle")return null;
+// field-ownership-feedback-v1 (owned): a ready interface on a screen that is not a battle screen counts even with the
+// battle flag set, which the game keeps through a post-battle evolution.
+export function interfaceOf(s:Screen,owned=false):OwnedInterface|null {
+ if(!s.started)return null;
+ if((s.in_battle||s.screen==="battle")&&(!owned||s.screen==="battle"||s.screen.startsWith("battle_")||s.screen==="overworld"))return null;
  const ui=s.active_ui??null;
  const owner=ui?.details?.["naming_owner"];
  const who=typeof owner==="string"?owner:null;
@@ -50,6 +56,7 @@ const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}${e.presence===undefined?"":`, ${e.presence}`}: "${e.text.replace(/\s+/g," ")}"`;
 type Target=NonNullable<State["interaction_targets"]>[number];
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
+const argsOf=(args:unknown):Record<string,unknown>=>typeof args==="object"&&args!==null&&!Array.isArray(args)?Object.fromEntries(Object.entries(args)):{};
 const objectKey=(id:number):string=>`object:${String(id)}`;
 type Ui=NonNullable<State["active_ui"]>;
 const uiName=(ui:Ui):string=>`the ${ui.phase.replaceAll("_"," ")}`;
@@ -116,6 +123,8 @@ export class SupervisorBriefing {
  private readonly battles:BattleOutcomes|null;
  // story-character-stall-gate-v1: while it holds, no way off the map is listed, and a walk that moved nowhere tries nothing.
  private readonly gate:StoryCharacterGate|null;
+ // unfinished-activity-v1: the open items its recorded events carry, by trainer id.
+ private readonly unfinished=new Map<number,string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
   this.gate?.observe(event);
@@ -123,7 +132,12 @@ export class SupervisorBriefing {
   this.hint?.observe(event);
   this.battles?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
+  if(event.type==="unfinished_activity"){if(this.features["unfinished-activity-v1"]){if(event.change==="retired")this.unfinished.delete(event.trainer_id);else this.unfinished.set(event.trainer_id,event.text);}return;}
   if(event.type==="milestone"){
+   if(event.name==="ROXANNE_FIRST_INTERACTION")return;
+   // story-progress-clock-v1: a measurement-only step is the latest progress the briefings name, and the lists headed
+   // "since your last story progress" count from it; it is not a story step with dialogue of its own.
+   if(this.features["story-progress-clock-v1"]&&event.origin!=="present_at_start"&&MEASUREMENT_ONLY_MILESTONES.has(event.name)){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();return;}
    if(!counted(event))return;
    this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
    if(event.kind==="story"){
@@ -139,8 +153,8 @@ export class SupervisorBriefing {
    if(this.advanced.size>16)this.advanced.delete(this.advanced.keys().next().value??"");
    return;
   }
-  if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest,pressed:false,uiBefore:this.screenNow?.ui.key??null});
+  if(event.type==="tool_call"&&event.name!=="act"&&(event.name==="press"||event.name==="navigate_to"||semanticWalk(event.name,this.features))){
+   this.calls.set(event.id,{name:event.name,args:argsOf(event.args),before:this.latest,pressed:false,uiBefore:this.screenNow?.ui.key??null});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
@@ -156,22 +170,28 @@ export class SupervisorBriefing {
   if(event.state_seq===undefined||this.measured?.seq!==event.state_seq){this.flushTouches();return;}
   const after=this.measured;this.measured=null;
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
-  if(!event.is_error&&GAME_TOOLS.has(event.name)){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
+  if(!event.is_error&&(GAME_TOOLS.has(event.name)||semanticWalk(event.name,this.features))){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
   this.seeInterface(after,this.calls.get(event.id));
   this.flushTouches();
   // briefing-exits-v1: the latest result state, so a battle (which keeps the overworld snapshot stale) is placed now.
   if(this.exits!==null&&after.started&&after.map_id!==null)this.shown=after;
   // positive-supervisor-v1: a battle, a menu or another screen ends a run of field attempts.
-  if(!after.started||after.screen!=="overworld"){this.streak=null;return;}
+  if(!after.started||after.screen!=="overworld"){
+   this.streak=null;
+   // semantic-navigation-v2: a talk that starts a battle or opens a screen still acted on its target.
+   const call=this.calls.get(event.id);
+   if(call!==undefined&&(call.name==="navigate_to_target"||call.name==="explore_map")){this.calls.delete(event.id);this.semanticTried(call,event.semantic_navigation);}
+   return;
+  }
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
   const call=this.calls.get(event.id);this.calls.delete(event.id);
-  const label=call===undefined?null:this.label(call);
+  const label=call===undefined?null:this.label(call,event.semantic_navigation);
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]),this.features["positive-supervisor-v1"]?navigationSaid(event.text):undefined);
-   if(call.uiBefore!==null||interfaceOf(after)!==null)this.streak=null;
+   if(call.uiBefore!==null||interfaceOf(after,this.features["field-ownership-feedback-v1"])!==null)this.streak=null;
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
    if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
    if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
@@ -181,7 +201,7 @@ export class SupervisorBriefing {
   if(dialogue)this.heard.add(this.opening(after,dialogue));
  }
  private seeInterface(after:State,call:Call|undefined):void {
-  const ui=interfaceOf(after);
+  const ui=interfaceOf(after,this.features["field-ownership-feedback-v1"]);
   if(ui===null){this.screenNow=null;this.uiTried.length=0;return;}
   if(this.screenNow?.ui.key!==ui.key)this.uiTried.length=0;
   this.screenNow={state:after,ui};
@@ -285,7 +305,19 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
- private label(call:Call):string|null {
+ // semantic-navigation-v2: the recorded receipt names the target the call selected (explore_map's own choice
+ // too); it counts as tried only once the call acted on it, the way a faced A press does.
+ private semanticTried(call:Call,receipt:SemanticReceipt|undefined):SemanticReceipt["target"]|undefined {
+  const target=receipt?.target;
+  const key=target===undefined?null:target.kind==="object"?objectKey(target.local_id):target.kind==="connection"?null:at(target.x,target.y);
+  if(receipt?.activation_attempted===true&&call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+  return target;
+ }
+ private label(call:Call,receipt?:SemanticReceipt):string|null {
+  if(call.name==="navigate_to_target"||call.name==="explore_map"){
+   const target=this.semanticTried(call,receipt);
+   return target===undefined?call.name:`${call.name} ${JSON.stringify(target)}`;
+  }
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    if(typeof x!=="number"||typeof y!=="number")return "navigate_to (invalid target)";
@@ -358,7 +390,11 @@ export class SupervisorBriefing {
  }
  private lastProgress():string {
   const progress=this.progress===null?"none earned in this run yet":`${this.progress.name.replaceAll("_"," ").toLowerCase()} at turn ${String(this.progress.turn)} (${String(this.turn-this.progress.turn)} turns ago)`;
-  return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  const withBattles=this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  return `${withBattles}${this.unfinishedLine()}`;
+ }
+ private unfinishedLine():string {
+  return this.unfinished.size===0?"":`\n${UNFINISHED_BRIEFING}${[...this.unfinished.values()].join("; ")}`;
  }
  private characters():string {
   const s=this.latest;
@@ -373,13 +409,13 @@ export class SupervisorBriefing {
  }
  private where():string {
   const now=this.shown;
-  if(now!==null&&(now.in_battle||now.screen==="battle")){
+  if(now!==null&&(now.in_battle||now.screen==="battle")&&!(this.features["field-ownership-feedback-v1"]&&interfaceOf(now,true)!==null)){
    const tile=this.features["live-player-position-v1"]&&now.position!==null?` at ${at(now.position.x,now.position.y)}`:"";
    return `${roomOf(now,this.features)} in battle${tile}`;
   }
   const s=this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
-  return `${roomOf(s,this.features)}${position}`;
+  return `${this.features["exit-labels-v3"]?(s.exit_sections?.current??roomOf(s,this.features)):roomOf(s,this.features)}${position}`;
  }
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";
@@ -411,11 +447,13 @@ export class SupervisorBriefing {
   const s=this.latest;
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   if(s===null)return "no observation yet";
-  const open=this.open(s);
+  const open=this.open(s,true,true);
   if(open.length===0)return "none: every listed target here has been tried";
   return open.join("; ");
  }
- private open(s:State,warps=true):string[] {
+ // semantic-navigation-v2: on the current map, each item carries the target navigate_to_target takes.
+ private open(s:State,warps=true,here=false):string[] {
+  const use=(t:Target)=>here&&this.features["semantic-navigation-v2"]?targetSuffix(listedArgument(t,s.interaction_targets)):"";
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
   // surf-gated-exits-v1: a warp reachable only across water is not listed while Surf cannot be used.
@@ -427,12 +465,15 @@ export class SupervisorBriefing {
    const dead=(t:Target)=>t.kind==="coordinate_trigger"&&this.dead(s,t.x,t.y);
    const rank=(t:Target)=>t.kind==="warp"?0:dead(t)?2:1;
    return targets.filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
-    .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})`);
+    .map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
   }
-  const open=targets.filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
-  return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
+  // semantic-navigation-v2 marks a person it talked to by object id.
+  const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(this.features["semantic-navigation-v2"]&&t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
+  return open.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
  }
- private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {
+ private target(t:{readonly kind:string;readonly x:number;readonly y:number;readonly name?:string|null;readonly destination?:readonly number[]|null},state?:State):string {
+  const section=state===undefined?null:sectionWarp(state,t.x,t.y,this.features["exit-labels-v3"]&&t.kind==="warp");
+  if(section!==null)return `Warp to ${section}`;
   if(!this.features["named-interactions-v1"]||t.name==null)return t.kind;
   // briefing-exits-v1: a warp's destination as the readout named it, else the bare id as before.
   const name=this.exits!==null&&t.kind==="warp"&&t.destination!=null?this.names.get(mapKey(t.destination)):undefined;
@@ -452,7 +493,7 @@ export class SupervisorBriefing {
    // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
    const block=exitReach(this.features,s);
    const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c)):[];
-   const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
+   const items=[...exits.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(s,c,this.features["exit-labels-v3"])??(name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`)}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
   return rooms.length===0?"none":rooms.join(" | ");
@@ -508,12 +549,13 @@ export class SupervisorBriefing {
   // The newest attempt, when it repeated with the same result: the one thing not to do again, said as what to do.
   // Only consecutive field attempts with one result; an interface's presses each change what it shows.
   const repeated=ui===undefined&&this.streak!==null&&this.streak.count>1?this.streak:undefined;
-  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,false).slice(0,3);
+  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,false,true).slice(0,3);
   const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
   const lines=[
    `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
    `- Where you are: ${ui===undefined?this.where():`in the ${ui.name}; your last field position was ${this.where()}`}`,
    ...(ui===undefined?[]:[`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}`]),
+   ...(this.unfinished.size===0?[]:[this.unfinishedLine().slice(1)]),
    ...(ui?.naming===true?[`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}`]:[]),
    ...this.untalked().split("\n").filter(l=>l!==""),
    ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
@@ -526,9 +568,9 @@ export class SupervisorBriefing {
  private focused(headline:string):string {
   const ui=this.screenNow?.ui;
   const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${this.features["briefing-repeat-count-v1"]&&t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ")||"none recorded";
-  const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).slice(0,3);
+  const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,true,true).slice(0,3);
   const goal=this.goal??"none recorded";
-  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
+  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}${this.unfinishedLine()}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
  }
 
  private bearings(headline:string,stall=false):string {

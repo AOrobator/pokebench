@@ -1,6 +1,9 @@
+import type { TrainerSightCheck } from "./trainer-sight.js";
+import type { GateDecision } from "./story-battle-heal-gate.js";
+import type { HealFirstFacts } from "./heal-first.js";
 import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
-import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
+import type { GymHealFacts, HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
 import type { StoryGoalAwayFacts } from "./harness-trust.js";
 import type { DestinationCitationFacts } from "./cited-destination.js";
 import type { PressModifiers } from "./game-tools.js";
@@ -10,7 +13,8 @@ import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { TargetProof } from "./target-stop.js";
 import type { LoopNotice } from "./loop-detection.js";
-import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
+import { SemanticReceiptSchema, type BodyOf, type Button, type LoopBreakerBody, type RunEndReason, type RunEvent, type EventBody, type SemanticReceipt } from "./events.js";
+import { Value } from "typebox/value";
 import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
 import { deeperMilestone, type MilestoneSource, type SeenMilestone } from "./milestones.js";
@@ -74,6 +78,15 @@ interface ToolResultPayload {
   readonly content: readonly (TextContent | ImageContent)[];
 }
 
+// semantic-navigation-v2: the selected game target and whether it was acted on, from the tool's own details.
+function semanticReceipt(name: string, result: unknown): SemanticReceipt | null {
+  if ((name !== "navigate_to_target" && name !== "explore_map") || !isRecord(result) || !isRecord(result.details)) return null;
+  const { semantic_navigation: receipt } = result.details;
+  if (!isRecord(receipt)) return null;
+  const picked = { target: receipt.target, activation_attempted: receipt.activation_attempted };
+  return Value.Check(SemanticReceiptSchema, picked) ? picked : null;
+}
+
 function toolResultPayload(result: unknown): ToolResultPayload {
   if (!isRecord(result) || !Array.isArray(result.content)) {
     throw new RecorderError("tool result has no content list");
@@ -106,6 +119,8 @@ export class RunRecorder {
   private activityEnabled=false;
   private route103Required=false;
   private nativeActionsEnabled=false;
+  // semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt.
+  private semanticV2=false;
   private nativeActionCursor=0;
   private nativeActionFrame=0;
   private nativeActionTime=0;
@@ -182,6 +197,7 @@ export class RunRecorder {
     this.route103Required=meta.harness_features.includes("route103-rival-splits-v1");
     this.battleEnabled=meta.harness_features.includes("battle-choices-v1");
     this.nativeActionsEnabled=meta.harness_features.includes("native-action-history-v1");
+    this.semanticV2=meta.harness_features.includes("semantic-navigation-v2");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     if (captureState) await this.checkMilestones();
@@ -278,7 +294,7 @@ export class RunRecorder {
     let stateSeq:number|undefined;
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
-    if ((name === "observe" || name === "press" || name === "navigate_to" || name === "act" || name === "battle_action") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+    if ((name === "observe" || name === "press" || name === "navigate_to" || (this.semanticV2 && (name === "navigate_to_target" || name === "explore_map")) || name === "act" || name === "battle_action" || name === "learn_move") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
       try { stateSeq=this.recordState(parseGameState(result.details.state)).seq; }
       catch (error) { this.telemetryError("state", error); }
     }
@@ -297,9 +313,11 @@ export class RunRecorder {
       this.saved = { saved: this.saved.saved + 1, bytes: this.saved.bytes + Buffer.from(data, "base64").length };
       return `<frame ${ref.path}>`;
     });
+    const semantic = this.semanticV2 ? semanticReceipt(name, result) : null;
     this.append({
       type: "tool_result",
       ...(stateSeq===undefined?{}:{state_seq:stateSeq}),
+      ...(semantic===null?{}:{semantic_navigation:semantic}),
       turn: this.turn,
       id,
       name,
@@ -465,7 +483,13 @@ export class RunRecorder {
   }
   // heal-before-trainers-v1: recorded as the paragraph is added to the tool result.
   healBeforeTrainersWarning(tool: string, facts: HealBeforeTrainersFacts, text: string): void {
-    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), heal: facts.heal === null ? null : { ...facts.heal, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]] }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
+    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), ...(facts.hurt === undefined ? {} : { hurt: facts.hurt.map((h) => ({ ...h })) }), heal: facts.heal === null ? null : { kind: facts.heal.kind, town: facts.heal.town, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]], hops: facts.heal.hops, ...(facts.heal.shown === undefined ? {} : { shown: { map_id: [facts.heal.shown.map_id[0], facts.heal.shown.map_id[1]], map: facts.heal.shown.map, x: facts.heal.shown.x, y: facts.heal.shown.y } }) }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
+  }
+
+  // gym-heal-warning-v1: recorded as the paragraph is added to the tool result.
+  gymHealWarning(tool: string, facts: GymHealFacts, text: string): void {
+    const pair = (id: readonly [number, number]): [number, number] => [id[0], id[1]];
+    this.append({ type: "gym_heal_warning", turn: this.turn, tool, map_id: pair(facts.map_id), gym: { name: facts.gym.name, map_id: pair(facts.gym.map_id), here: facts.gym.here, x: facts.gym.x, y: facts.gym.y }, hurt: facts.hurt.map((h) => ({ ...h })), player: facts.player, money: facts.money, wake: facts.wake === null ? null : { name: facts.wake.name, map_id: pair(facts.wake.map_id), hops: facts.wake.hops }, heal: facts.heal === null ? null : { kind: facts.heal.kind, town: facts.heal.town, map_id: pair(facts.heal.map_id), hops: facts.heal.hops, ...(facts.heal.shown === undefined ? {} : { shown: { map_id: pair(facts.heal.shown.map_id), map: facts.heal.shown.map, x: facts.heal.shown.x, y: facts.heal.shown.y } }) }, listed_now: facts.listed_now, mom_heals: facts.mom_heals, text });
   }
 
   // harness-trust-v1: recorded as the walk-away note is added under the result's header.
@@ -483,12 +507,31 @@ export class RunRecorder {
   }
 
   // fixed-point-breaker-v1: recorded as the request is built.
-  recordLoopBreaker(body: Omit<BodyOf<"loop_breaker">, "type" | "turn">): void {
+  recordLoopBreaker(body: LoopBreakerBody): void {
     this.append({ type: "loop_breaker", turn: this.turn + 1, ...body });
   }
   // fixed-point-breaker-v1 stage 3: recorded as the request is built.
   recordAutoTalk(body: Omit<BodyOf<"auto_talk">, "type" | "turn">): void {
     this.append({ type: "auto_talk", turn: this.turn + 1, ...body, target: body.target === null ? null : { ...body.target, map_id: [body.target.map_id[0], body.target.map_id[1]] } });
+  }
+  // unfinished-activity-v1: an open item opened, updated or retired, recorded at the next game result.
+  unfinishedActivity(body: Omit<BodyOf<"unfinished_activity">, "type" | "turn">): void {
+    this.append({ type: "unfinished_activity", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });
+  }
+  // trainer-sight-check-v1: one per checked navigate_to call, before it walks or refuses.
+  trainerSightCheck(check: TrainerSightCheck): void {
+    this.append({ type: "trainer_sight_check", turn: this.turn, ...check, map_id: [check.map_id[0], check.map_id[1]], origin: { ...check.origin }, goal: { ...check.goal }, sightings: check.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })) });
+  }
+  // story-battle-heal-gate-v1: one per checked call while the gate is engaged, before it acts or refuses.
+  storyBattleHealGate(decision: GateDecision): void {
+    const {heal_routes,...body}=decision;
+    this.append({ type: "story_battle_heal_gate", turn: this.turn, ...body, ...(heal_routes===undefined?{}:{heal_routes:heal_routes.map(r=>({outward:r.outward.map(m=>[m[0],m[1]] as [number,number]),back:r.back.map(m=>[m[0],m[1]] as [number,number])}))}), map_id: [decision.map_id[0], decision.map_id[1]], reached: decision.reached.map((r) => ({ ...r, tile: { ...r.tile } })), sightings: decision.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })), hurt: decision.hurt.map((h) => ({ ...h })), heal: decision.heal.map((h) => ({ ...h, map_id: [h.map_id[0], h.map_id[1]] })) });
+  }
+  // story-battle-heal-first-v1: one per game-tool result that leads with the heal-first line.
+  healFirstLine(tool: string, toolCallId: string, facts: HealFirstFacts, text: string): void {
+    const heard = facts.heard === null ? null : { ...facts.heard, map_id: facts.heard.map_id === null ? null : [facts.heard.map_id[0], facts.heard.map_id[1]] as [number, number] };
+    const exit = facts.exit === null ? null : { ...facts.exit, map_id: [facts.exit.map_id[0], facts.exit.map_id[1]] as [number, number], tiles: facts.exit.tiles.map((t) => ({ ...t })) };
+    this.append({ type: "heal_first_line", turn: this.turn, tool, tool_call_id: toolCallId, kind: facts.kind, opponent: facts.opponent, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), heard, exit, text });
   }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {

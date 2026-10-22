@@ -136,7 +136,8 @@
                 "map_cycle",
                 "milestone_drought",
                 "interface_dwell",
-                "same_plan"
+                "same_plan",
+                "same_target_no_progress"
               ]
             },
             "message": {
@@ -217,7 +218,8 @@
                 "map_cycle",
                 "milestone_drought",
                 "interface_dwell",
-                "same_plan"
+                "same_plan",
+                "same_target_no_progress"
               ]
             },
             "message": {
@@ -303,7 +305,8 @@
                 "map_cycle",
                 "milestone_drought",
                 "interface_dwell",
-                "same_plan"
+                "same_plan",
+                "same_target_no_progress"
               ]
             },
             "message": {
@@ -1900,6 +1903,151 @@
           },
           "maxItems": 64,
           "uniqueItems": true
+        },
+        "retention": {
+          "type": "object",
+          "required": [
+            "chapter",
+            "archive_count",
+            "kept",
+            "retired",
+            "proofs"
+          ],
+          "properties": {
+            "chapter": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "state_event",
+                    "result_event"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "state_event": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "result_event": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "archive_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "kept": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "result_event",
+                  "reason",
+                  "rule"
+                ],
+                "properties": {
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "no_chapter",
+                      "current_chapter",
+                      "unknown",
+                      "unresolved",
+                      "completed"
+                    ]
+                  },
+                  "rule": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "retired": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "result_event",
+                  "reason",
+                  "rule"
+                ],
+                "properties": {
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "no_chapter",
+                      "current_chapter",
+                      "unknown",
+                      "unresolved",
+                      "completed"
+                    ]
+                  },
+                  "rule": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "proofs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "state_event",
+                  "result_event"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "state_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "result_event": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -2334,6 +2482,106 @@
         "state_seq": {
           "type": "integer",
           "minimum": 0
+        },
+        "semantic_navigation": {
+          "type": "object",
+          "required": [
+            "target",
+            "activation_attempted"
+          ],
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "local_id"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "object"
+                    },
+                    "local_id": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "interaction_kind",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "interaction"
+                    },
+                    "interaction_kind": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "warp"
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "direction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "connection"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "activation_attempted": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
         },
         "id": {
           "type": "string"
@@ -3359,78 +3607,160 @@
       "additionalProperties": false
     },
     {
-      "type": "object",
-      "required": [
-        "v",
-        "run",
-        "seq",
-        "t",
-        "turn",
-        "type",
-        "stage",
-        "trigger",
-        "repeats",
-        "collapsed",
-        "text"
-      ],
-      "properties": {
-        "v": {
-          "type": "number",
-          "const": 1
-        },
-        "run": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
-        },
-        "seq": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "t": {
-          "type": "string",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
-        },
-        "turn": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "type": {
-          "type": "string",
-          "const": "loop_breaker"
-        },
-        "stage": {
-          "enum": [
-            1,
-            2
-          ]
-        },
-        "trigger": {
-          "enum": [
-            "fixed_point",
-            "no_tool_call"
-          ]
-        },
-        "repeats": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "collapsed": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "text": {
-          "anyOf": [
-            {
-              "type": "string",
-              "minLength": 1
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "v",
+            "run",
+            "seq",
+            "t",
+            "turn",
+            "type",
+            "stage",
+            "repeats",
+            "collapsed",
+            "text",
+            "trigger"
+          ],
+          "properties": {
+            "v": {
+              "type": "number",
+              "const": 1
             },
-            {
-              "type": "null"
+            "run": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "t": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "loop_breaker"
+            },
+            "stage": {
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "repeats": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "collapsed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trigger": {
+              "enum": [
+                "fixed_point",
+                "no_tool_call"
+              ]
             }
-          ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "v",
+            "run",
+            "seq",
+            "t",
+            "turn",
+            "type",
+            "stage",
+            "repeats",
+            "collapsed",
+            "text",
+            "trigger",
+            "period"
+          ],
+          "properties": {
+            "v": {
+              "type": "number",
+              "const": 1
+            },
+            "run": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "t": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "loop_breaker"
+            },
+            "stage": {
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "repeats": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "collapsed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trigger": {
+              "type": "string",
+              "const": "short_cycle"
+            },
+            "period": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 4
+            }
+          },
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     },
     {
       "type": "object",
@@ -3504,6 +3834,993 @@
             }
           ],
           "minItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "change",
+        "trainer_id",
+        "trainer",
+        "map_id",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "unfinished_activity"
+        },
+        "change": {
+          "enum": [
+            "opened",
+            "updated",
+            "retired"
+          ]
+        },
+        "trainer_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trainer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool_call_id",
+        "map_id",
+        "origin",
+        "goal",
+        "route_tiles",
+        "confirmed",
+        "outcome",
+        "reason",
+        "sightings",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "trainer_sight_check"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "origin": {
+          "type": "object",
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "goal": {
+          "type": "object",
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "route_tiles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "clear",
+            "refused",
+            "confirmed",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sightings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "local_id",
+              "sprite_kind",
+              "trainer_id",
+              "x",
+              "y",
+              "facing",
+              "sight",
+              "loaded",
+              "step",
+              "tile",
+              "from",
+              "seen_facing"
+            ],
+            "properties": {
+              "local_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sprite_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "trainer_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              },
+              "sight": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "tile": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "from": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "seen_facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool_call_id",
+        "tool",
+        "map_id",
+        "confirmed",
+        "outcome",
+        "reason",
+        "reached",
+        "sightings",
+        "hurt",
+        "heal",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "story_battle_heal_gate"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "enum": [
+            "navigate_to",
+            "navigate_to_target",
+            "press"
+          ]
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "refused",
+            "confirmed",
+            "clear",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reached": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "name",
+              "local_id",
+              "sprite_kind",
+              "x",
+              "y",
+              "loaded",
+              "via",
+              "tile"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "rival",
+                  "gym_leader",
+                  "gym_trainer"
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sprite_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "via": {
+                "enum": [
+                  "talk",
+                  "approach"
+                ]
+              },
+              "tile": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 1
+        },
+        "heal_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "outward",
+              "back"
+            ],
+            "properties": {
+              "outward": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              },
+              "back": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "sightings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "local_id",
+              "sprite_kind",
+              "trainer_id",
+              "x",
+              "y",
+              "facing",
+              "sight",
+              "loaded",
+              "step",
+              "tile",
+              "from",
+              "seen_facing"
+            ],
+            "properties": {
+              "local_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sprite_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "trainer_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              },
+              "sight": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "tile": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "from": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "seen_facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "heal": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "town",
+              "map_id",
+              "hops",
+              "shown"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "pokemon_center",
+                  "home"
+                ]
+              },
+              "town": {
+                "type": "string",
+                "minLength": 1
+              },
+              "map_id": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "hops": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "shown": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool",
+        "tool_call_id",
+        "kind",
+        "opponent",
+        "map_id",
+        "party",
+        "heard",
+        "exit",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "heal_first_line"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "rival",
+            "gym_leader",
+            "aqua_grunt"
+          ]
+        },
+        "opponent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "party": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "heard": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "turn",
+                "speaker",
+                "person",
+                "place",
+                "map_id",
+                "text"
+              ],
+              "properties": {
+                "turn": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "speaker": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "boolean"
+                },
+                "place": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "map_id": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ],
+                      "minItems": 2
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "to",
+                "map_id",
+                "direction",
+                "tiles"
+              ],
+              "properties": {
+                "to": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "map_id": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "direction": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "NORTH",
+                        "SOUTH",
+                        "EAST",
+                        "WEST"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "tiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 64
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
@@ -3915,6 +5232,13 @@
                     "type": "null"
                   }
                 ]
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "story": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "additionalProperties": false
@@ -4007,8 +5331,35 @@
               }
             ]
           },
-          "minItems": 1,
           "maxItems": 8
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
         },
         "heal": {
           "anyOf": [
@@ -4047,6 +5398,41 @@
                 "hops": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "shown": {
+                  "type": "object",
+                  "required": [
+                    "map_id",
+                    "map",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "map_id": {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ],
+                      "minItems": 2
+                    },
+                    "map": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -4096,6 +5482,312 @@
             "additionalProperties": false
           },
           "maxItems": 186
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool",
+        "map_id",
+        "gym",
+        "hurt",
+        "player",
+        "money",
+        "wake",
+        "heal",
+        "listed_now",
+        "mom_heals",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "gym_heal_warning"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "gym": {
+          "type": "object",
+          "required": [
+            "name",
+            "map_id",
+            "here",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "map_id": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "minItems": 2
+            },
+            "here": {
+              "type": "boolean"
+            },
+            "x": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "y": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "player": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "money": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wake": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "name",
+                "map_id",
+                "hops"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "map_id": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "hops": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "town",
+                "map_id",
+                "hops"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "pokemon_center",
+                    "home"
+                  ]
+                },
+                "town": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "map_id": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "hops": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "shown": {
+                  "type": "object",
+                  "required": [
+                    "map_id",
+                    "map",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "map_id": {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ],
+                      "minItems": 2
+                    },
+                    "map": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "listed_now": {
+          "type": "boolean"
+        },
+        "mom_heals": {
+          "type": "boolean"
         },
         "text": {
           "type": "string",
@@ -4470,7 +6162,9 @@
             "press",
             "navigate_to",
             "battle_action",
-            "observe"
+            "observe",
+            "navigate_to_target",
+            "explore_map"
           ]
         },
         "requested": {
@@ -5042,6 +6736,90 @@
           "type": "string",
           "const": "state"
         },
+        "exit_sections": {
+          "type": "object",
+          "required": [
+            "current",
+            "warps",
+            "connections"
+          ],
+          "properties": {
+            "current": {
+              "type": "string"
+            },
+            "warps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "label",
+                  "detail"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 64
+            },
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "direction",
+                  "offset",
+                  "destination",
+                  "label"
+                ],
+                "properties": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "destination": {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    ],
+                    "minItems": 2
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 16
+            }
+          },
+          "additionalProperties": false
+        },
         "raw_ram": {
           "type": "object",
           "required": [
@@ -5094,7 +6872,9 @@
                 "warp",
                 "fade_bound",
                 "warp_bound",
-                "input_hold"
+                "input_hold",
+                "move_learning",
+                "move_learning_bound"
               ]
             }
           },
@@ -7255,6 +9035,176 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "attack": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "defense": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "speed": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "sp_attack": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "sp_defense": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ability_num": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ability_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 255
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "met_location": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 255
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "met_location_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "met_level": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "met_game": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 15
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ball": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 12
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ball_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ot_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ot_gender": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "male",
+                                      "female"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
                             },
                             "additionalProperties": false
@@ -7734,6 +9684,176 @@
                                       {
                                         "type": "string",
                                         "maxLength": 200
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "attack": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "defense": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "speed": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "sp_attack": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "sp_defense": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ability_num": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ability_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 255
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "met_location": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 255
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "met_location_name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "met_level": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 100
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "met_game": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 15
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ball": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 12
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ball_name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ot_name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ot_gender": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "male",
+                                          "female"
+                                        ]
                                       },
                                       {
                                         "type": "null"
@@ -9299,6 +11419,176 @@
                     "type": "null"
                   }
                 ]
+              },
+              "attack": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "defense": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speed": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sp_attack": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sp_defense": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ability_num": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ability_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_location": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_location_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_level": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_game": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ball": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ball_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_gender": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "male",
+                      "female"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
@@ -9457,6 +11747,16 @@
                       "water",
                       "none"
                     ]
+                  },
+                  "blocked_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
                   }
                 },
                 "additionalProperties": false
@@ -9508,6 +11808,16 @@
                       "water",
                       "none"
                     ]
+                  },
+                  "blocked_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
                   }
                 },
                 "additionalProperties": false
@@ -9542,6 +11852,204 @@
                 }
               },
               "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "field_obstacles": {
+          "type": "object",
+          "required": [
+            "capabilities",
+            "obstacles"
+          ],
+          "properties": {
+            "capabilities": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z_]{1,32}$": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "obstacles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "gate",
+                  "name",
+                  "kind",
+                  "local_id",
+                  "loaded",
+                  "tiles",
+                  "only",
+                  "open",
+                  "needs",
+                  "text",
+                  "beyond"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4095
+                  },
+                  "gate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "kind": {
+                    "enum": [
+                      "object",
+                      "terrain"
+                    ]
+                  },
+                  "local_id": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "loaded": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tiles": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "x",
+                        "y"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "integer"
+                        },
+                        "y": {
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 65536
+                  },
+                  "only": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer",
+                            "minimum": -1,
+                            "maximum": 1
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": -1,
+                            "maximum": 1
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "open": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "needs": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "text": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "beyond": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "width",
+                          "height",
+                          "rows"
+                        ],
+                        "properties": {
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 256
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 256
+                          },
+                          "rows": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[0-9a-f]{1,64}$"
+                            },
+                            "maxItems": 256
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 4096
             }
           },
           "additionalProperties": false
@@ -9600,6 +12108,9 @@
                     "maximum": 854
                   },
                   "defeated": {
+                    "type": "boolean"
+                  },
+                  "loaded": {
                     "type": "boolean"
                   }
                 },
@@ -9680,6 +12191,21 @@
             }
           },
           "additionalProperties": false
+        },
+        "party_next_level": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 6
         }
       },
       "additionalProperties": false
@@ -10077,6 +12603,176 @@
                   {
                     "type": "string",
                     "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attack": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "defense": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speed": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sp_attack": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sp_defense": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ability_num": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ability_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_location": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_location_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_level": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "met_game": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ball": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ball_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_gender": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "male",
+                      "female"
+                    ]
                   },
                   {
                     "type": "null"

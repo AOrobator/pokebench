@@ -66,7 +66,12 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   loop_breaker: { type: "loop_breaker", turn: 1, stage: 2, trigger: "fixed_point", repeats: 4, collapsed: 0, text: X },
   auto_talk: { type: "auto_talk", turn: 1, trigger: "fixed_point", repeats: 8, outcome: "talked", target: { kind: "person", name: X, character: null, key: "0/18#2", x: 10, y: 3, map_id: [0, 18] }, walks: 2, tried: 1, text: X },
   stall_gate: { type: "stall_gate", turn: 1, kind: "milestone_drought", level: 1, reason: "untalked", character: X, map_id: [0, 18] },
+  unfinished_activity: { type: "unfinished_activity", turn: 1, change: "opened", trainer_id: 265, trainer: "ROXANNE", map_id: [11, 3], text: X },
+  heal_first_line: { type: "heal_first_line", turn: 1, tool: X, tool_call_id: "t", kind: "rival", opponent: X, map_id: [0, 18], party: [{ species: X, hp: 5, max_hp: 22 }], heard: null, exit: null, text: X },
+  story_battle_heal_gate: { type: "story_battle_heal_gate", turn: 1, tool_call_id: "t", tool: "navigate_to_target", map_id: [0, 18], confirmed: false, outcome: "refused", reason: null, reached: [{ kind: "rival", name: X, local_id: 2, sprite_kind: X, x: 10, y: 3, loaded: true, via: "talk", tile: { x: 14, y: 10 } }], sightings: [], hurt: [{ species: X, hp: 5, max_hp: 22 }], heal: [], text: X },
+  trainer_sight_check: { type: "trainer_sight_check", turn: 1, tool_call_id: "n", map_id: [11, 3], origin: { x: 5, y: 15 }, goal: { x: 5, y: 2 }, route_tiles: 23, confirmed: false, outcome: "refused", reason: null, sightings: [{ local_id: 3, sprite_kind: "YOUNGSTER", trainer_id: 321, x: 3, y: 9, facing: "LEFT", sight: 3, loaded: true, step: 12, tile: { x: 1, y: 9 }, from: { x: 3, y: 9 }, seen_facing: "LEFT" }], text: X },
   low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
+  gym_heal_warning: { type: "gym_heal_warning", turn: 1, tool: X, map_id: [0, 3], gym: { name: X, map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: X, hp: 3, max_hp: 21 }], player: null, money: null, wake: null, heal: null, listed_now: false, mom_heals: false, text: X },
   heal_before_trainers_warning: { type: "heal_before_trainers_warning", turn: 1, tool: X, map_id: [0, 19], trainers: [{ local_id: 3, x: 31, y: 24, sprite_kind: X }], weak: [{ kind: "lead_below_half", species: X, hp: 14, max_hp: 38 }], heal: { kind: "pokemon_center", town: X, map_id: [2, 2], hops: 4 }, mom_heals: true, money: 5168, text: X },
   story_battle_warning: { type: "story_battle_warning", turn: 1, tool: X, kind: "aqua_grunt", opponent: X, x: null, y: null, map_id: [24, 11], party: [{ species: X, hp: 3, max_hp: 21 }], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   story_goal_away: { type: "story_goal_away", turn: 1, tool: X, speaker: X, line_turn: 1, quote: X, targets: [{ name: X, map_id: [1, 4] }], steps: [{ measure: "tiles", from_map: [0, 18], to_map: [0, 18], from_name: X, to_name: X, from: { x: 9, y: 13 }, to: { x: 9, y: 10 }, before: 8, after: 11, way: X }, { measure: "maps", from_map: [0, 10], to_map: [0, 18], from_name: X, to_name: X, from: { x: 1, y: 0 }, to: { x: 1, y: 21 }, before: 3, after: 4, way: null }], text: X },
@@ -475,6 +480,23 @@ describe("low-hp-trainer-warning-v2 in Activity History", () => {
   });
 });
 
+describe("gym-heal-warning-v1 in Activity History", () => {
+  it("is a SUPERVISOR step titled for the warning, naming the tool, the gym, the party, the healing place and the whole paragraph", () => {
+    const log = new Log();
+    log.add(0, START);
+    const text = "SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33.";
+    log.add(100, { type: "gym_heal_warning", turn: 491, tool: "press", map_id: [0, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: false, x: 27, y: 19 }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: "RED", money: 6284, wake: { name: "RED's HOUSE 2F", map_id: [1, 1], hops: 8 }, heal: { kind: "pokemon_center", town: "RUSTBORO CITY", map_id: [11, 5], hops: 1, shown: { map_id: [0, 3], map: "RUSTBORO CITY", x: 16, y: 38 } }, listed_now: true, mom_heals: true, text });
+    const step = must(steps(build(log.events)).find((s) => s.kind === "gym_heal_warning"));
+    expect(step.category).toBe("sup");
+    expect(step.titleHtml).toContain("Gym heal warning");
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the press result · RUSTBORO CITY GYM (exit at (27,19)) · TORCHIC 25/33 · POKéMON CENTER in RUSTBORO CITY, 1 map changes · ${text}`);
+    log.add(200, { type: "gym_heal_warning", turn: 492, tool: "navigate_to", map_id: [11, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: null, money: null, wake: null, heal: { kind: "home", town: "LITTLEROOT TOWN", map_id: [1, 0], hops: 9 }, listed_now: false, mom_heals: true, text });
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the navigate_to result · RUSTBORO CITY GYM · TORCHIC 25/33 · home in LITTLEROOT TOWN, 9 map changes · ${text}`);
+    log.add(300, { type: "gym_heal_warning", turn: 493, tool: "press", map_id: [11, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: null, money: null, wake: null, heal: null, listed_now: false, mom_heals: false, text });
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the press result · RUSTBORO CITY GYM · TORCHIC 25/33 · no healing place named · ${text}`);
+  });
+});
+
 describe("heal-before-trainers-v1 in Activity History", () => {
   it("is a SUPERVISOR step titled for the warning, naming the tool, each trainer, the healing place and the whole paragraph", () => {
     const log = new Log();
@@ -487,5 +509,26 @@ describe("heal-before-trainers-v1 in Activity History", () => {
     expect(eventText(must(log.events.at(-1)))).toBe(`Heal before trainers warning added to the press result · object 3 LASS at (31,24) · POKéMON CENTER in OLDALE TOWN, 4 map changes · ${text}`);
     log.add(200, { type: "heal_before_trainers_warning", turn: 583, tool: "navigate_to", map_id: [0, 19], trainers: [{ local_id: 9, x: 4, y: 5, sprite_kind: null }], weak: [{ kind: "fainted", species: "WURMPLE", max_hp: 15 }], heal: null, mom_heals: false, money: null, text });
     expect(eventText(must(log.events.at(-1)))).toBe(`Heal before trainers warning added to the navigate_to result · object 9 unknown at (4,5) · no healing place named · ${text}`);
+  });
+});
+
+describe("trainer-sight-check-v1 in Activity History", () => {
+  const check = { type: "trainer_sight_check", turn: 501, tool_call_id: "n", map_id: [11, 3], origin: { x: 5, y: 15 }, goal: { x: 5, y: 2 }, route_tiles: 23, confirmed: false, outcome: "refused", reason: null, sightings: [{ local_id: 3, sprite_kind: "YOUNGSTER", trainer_id: 321, x: 3, y: 9, facing: "LEFT", sight: 3, loaded: true, step: 12, tile: { x: 1, y: 9 }, from: { x: 3, y: 9 }, seen_facing: "LEFT" }, { local_id: 5, sprite_kind: null, trainer_id: 571, x: 1, y: 6, facing: "DOWN", sight: 3, loaded: false, step: 12, tile: { x: 1, y: 9 }, from: { x: 1, y: 6 }, seen_facing: "DOWN" }], text: "Trainer sight: ..." } satisfies Omit<Extract<RunEvent, { type: "trainer_sight_check" }>, "v" | "run" | "seq" | "t">;
+  it("is a SUPERVISOR step naming the walk, the outcome and each trainer that can see the route", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(100, check);
+    const step = must(steps(build(log.events)).find((s) => s.kind === "trainer_sight_check"));
+    expect(step.category).toBe("sup");
+    expect(step.titleHtml).toContain("Trainer sight check");
+    expect(eventText(must(log.events.at(-1)))).toBe("Trainer sight check (navigate_to to (5,2), 23 route tiles) · not walked · object 3 YOUNGSTER at (3,9) facing LEFT sees (1,9), step 12; object 5 unknown at (1,6) facing DOWN sees (1,9), step 12");
+    log.add(200, { ...check, confirmed: true, outcome: "confirmed", text: null });
+    expect(eventText(must(log.events.at(-1)))).toContain("23 route tiles, confirm_trainer_sight) · walked anyway · object 3");
+    log.add(300, { ...check, outcome: "clear", sightings: [], text: null });
+    expect(eventText(must(log.events.at(-1)))).toBe("Trainer sight check (navigate_to to (5,2), 23 route tiles) · no trainer in sight");
+    log.add(400, { ...check, outcome: "unavailable", reason: "map grid unreadable", sightings: [], text: null });
+    expect(eventText(must(log.events.at(-1)))).toBe("Trainer sight check (navigate_to to (5,2), 23 route tiles) · not checked: map grid unreadable");
+    log.add(500, { ...check, outcome: "unavailable", reason: null, sightings: [], text: null });
+    expect(eventText(must(log.events.at(-1)))).toBe("Trainer sight check (navigate_to to (5,2), 23 route tiles) · not checked: unknown");
   });
 });

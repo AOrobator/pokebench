@@ -35,6 +35,7 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.pokemon import PokemonCpu, decode_party_mon
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
+from tests.env.recorded import as_recorded
 
 OWNER = "tutorial-party-owner-v1"
 MID_FRAME = "mid-frame-readout-v1"
@@ -116,12 +117,24 @@ LATER = frozenset(
         "heal-before-trainers-v1",
         "battle-effective-damage-v1",
         "semantic-navigation-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
     }
 )
 
 
+# Registered after these recordings and absent from their readouts.
+TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1", "map-wide-triggers-v1"})
+
+
 def all_off(frame: dict[str, Any]) -> frozenset[str]:
-    return frozenset(frame["recorded_off"]) | NEW | LATER
+    return (
+        frozenset(frame["recorded_off"])
+        | NEW
+        | LATER
+        | TRAINING
+        | {"poison-readout-v1", "berry-readout-v1"}
+    )
 
 
 def state(name: str, on: frozenset[str] = frozenset()) -> GameState:
@@ -155,7 +168,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-9:-4] == (
+    assert SERVER_FEATURES[-33:-28] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,
@@ -173,7 +186,7 @@ def test_off_reproduces_the_golden_readout_and_state(name: str) -> None:
     # off_readout remains the immutable text rendered when the RAM was archived. Current readout
     # policy lives in a separate fixture only for frames changed by later game-known warp naming.
     assert render(name) == CURRENT_READOUTS.get(name, frame["off_readout"])
-    assert digest(state_json(state(name))) == frame["off_state_sha256"]
+    assert digest(as_recorded(state_json(state(name)))) == frame["off_state_sha256"]
 
 
 @pytest.mark.parametrize("name", [k for k, f in BY_KEY.items() if f["received"] is not None])

@@ -4,12 +4,14 @@ import type {Button} from "./events.js";
 import {isCheckedPress,type BeforePressCheck,type CheckedPressOptions} from "./game-tools.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
-import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION} from "./navigate-first.js";
+import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION,SEMANTIC_NAVIGATE_DESCRIPTION} from "./navigate-first.js";
 import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
 import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
 import {STRIDE_MAX_TILES,resultStride,type StrideCorridor} from "./stride.js";
+import {CONFIRM_ARG,CONFIRM_DESCRIPTION,SIGHT_STATUS,SIGHT_TOOL_SENTENCE,sightText,type SightOutcome,type SightSeen,type TrainerSightPorts} from "./trainer-sight.js";
+import {GATE_CONFIRM,GATE_CONFIRM_DESCRIPTION,GATE_STATUS,GATE_TOOL_SENTENCE,askSight,harnessCall,type SightAnswer,type StoryBattleHealGate} from "./story-battle-heal-gate.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
@@ -57,7 +59,22 @@ const terrainStepCost=(tile:Tile,options:NavigationOptions):number=>options.gras
 // GetCoordEventScriptAtPosition runs it on entry when its elevation is 0 or the player's;
 // TryRunCoordEventScript returns no script for TRIGGER_RUN_IMMEDIATELY (variable 0).
 export interface MatchingTrigger {readonly x:number;readonly y:number;readonly elevation:number;readonly variable:number;readonly required:number;readonly current:number|null}
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[]}
+// field-move-gates-v1 slopes: a slope tile (MB_MUDDY_SLOPE) is stepped onto only moving down, and the walker slides south to
+// the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean}
+export const SLOPE=0xd0;
+// field-move-gates-v1: the state the planners see, with every closed obstacle object (the server's field_obstacles, read
+// from the map's own object list) counted as occupied even when the game has not loaded it. Without field_obstacles it is
+// the state unchanged.
+export function gatedState(state:GameStateSnapshot):GameStateSnapshot {
+ const field=state.field_obstacles;
+ if(field==null)return state;
+ const closed=field.obstacles.filter(o=>o.kind==="object"&&o.open===false).flatMap(o=>o.tiles);
+ if(closed.length===0)return state;
+ const add=(objects:readonly {readonly x:number;readonly y:number}[]):{x:number;y:number}[]=>[...objects,...closed.filter(t=>!objects.some(o=>o.x===t.x&&o.y===t.y)).map(t=>({x:t.x,y:t.y}))];
+ const grid=state.navigation_grid,full=state.map_grid;
+ return {...state,...(grid==null?{}:{navigation_grid:{...grid,objects:add(grid.objects)}}),...(full==null?{}:{map_grid:{...full,objects:add(full.objects)}})};
+}
 export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
  return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
 }
@@ -90,6 +107,13 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
  }};
 }
 
+// field-move-gates-v1: where a step DOWN onto a slope tile ends, sliding south off the slope; null when it is not a slope step.
+function slideEnd(geometry:Geometry,next:Point,direction:Direction,options:NavigationOptions):Point|null {
+ if(options.slopes!==true||direction!=="DOWN"||geometry.tile(next)?.behavior!==SLOPE)return null;
+ let p=next;
+ while(geometry.tile(p)?.behavior===SLOPE)p={x:p.x,y:p.y+1};
+ return p;
+}
 // pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
 // A stand tile is named only when the planner itself would reach it.
 function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions,truth=false):string|null {
@@ -136,7 +160,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null,advice:WaypointAdvice|null=null):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
@@ -181,7 +205,7 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
   const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
   // exit-reachability-v1: the whole-map flood decides whether "cannot be reached" is true.
-  const cut=stands.length===0&&switches!==null?personCut(state,geometry,goal,options,switches):null;
+  const cut=stands.length===0&&switches!==null?personCut(state,geometry,goal,options,switches,advice):null;
   if(cut!==null)return `${at(goal)} is ${label}, which navigate_to cannot stand on${cut}`;
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
@@ -211,7 +235,11 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
  for(const [i,direction] of path.entries()){
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
-  if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
+  const slid=slideEnd(geometry,next,direction,options);
+  if(slid!==null){
+   const land=geometry.tile(slid);if(land===undefined)return null;
+   elevation=entered(elevation,land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
+  }else if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
    const landing={x:next.x+delta[1],y:next.y+delta[2]},land=geometry.tile(landing);if(land===undefined)return null;
    elevation=jumped(elevation,here,tile.elevation,land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
   }else{elevation=entered(elevation,tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
@@ -219,6 +247,21 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
   first??=crossed??null;
  }
  return {crossed:first,elevation,cost};
+}
+// trainer-sight-check-v1: the tiles the player stands on along a path, in order (a ledge hop lands two tiles on).
+export function routeTiles(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):Point[]|null {
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ const start=state.position;if(geometry===null||start===null)return null;
+ const tiles:Point[]=[];let p=start;
+ for(const direction of path){
+  const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
+  const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);
+  const hop=options.ledges===true&&tile!==undefined&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y);
+  const slid=slideEnd(geometry,next,direction,options);
+  if(slid!==null){for(let y=next.y;y<=slid.y;y++)tiles.push({x:next.x,y});p=slid;continue;}
+  p=hop?{x:next.x+delta[1],y:next.y+delta[2]}:next;tiles.push(p);
+ }
+ return tiles;
 }
 // navigation-truth-v1: a nearer walkable tile the planner could reach only by crossing a matching trigger.
 function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted:readonly Point[],nearest:Point|undefined,loose:(p:Point,plan:NavigationOptions)=>boolean,options:NavigationOptions):string {
@@ -245,7 +288,36 @@ function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOpti
 // reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
 // Only a goal the player could stand on: walkable, with no person, object or warp on it.
 const SIDES:Readonly<Record<Direction,string>>={UP:"north",DOWN:"south",LEFT:"west",RIGHT:"east"};
-function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+
+export const WAYPOINT_HISTORY_GOALS=16;
+export const WAYPOINT_HISTORY_ORIGINS=8;
+type EdgeChoice=[Direction,Point];
+// Local-window edges are exploration candidates, not evidence of a route beyond the window.
+// The game has no message for this limitation; only observed geometry and earlier refusal positions are named.
+export class WaypointAdvice {
+ private map:string|null=null;
+ private readonly origins=new Map<string,string[]>();
+ constructor(private readonly maxGoals=WAYPOINT_HISTORY_GOALS,private readonly maxOrigins=WAYPOINT_HISTORY_ORIGINS){}
+ observeMap(state:Pick<GameStateSnapshot,"map_id">):void {
+  const map=state.map_id===null?null:state.map_id.join("/");
+  if(map!==this.map){this.origins.clear();this.map=map;}
+ }
+ complete(goal:Point):void {this.origins.delete(key(goal));}
+ line(state:GameStateSnapshot,goal:Point,choices:readonly EdgeChoice[]):string {
+  this.observeMap(state);
+  const id=key(goal),before=this.origins.get(id)??[];
+  const current=state.position===null?[]:[key(state.position)];
+  const seen=[...before.filter(p=>!current.includes(p)),...current].slice(-this.maxOrigins);
+  this.origins.delete(id);this.origins.set(id,seen);
+  if(this.origins.size>this.maxGoals){const oldest=this.origins.keys().next().value;if(oldest!==undefined)this.origins.delete(oldest);}
+  const fresh=choices.filter(([,p])=>!seen.includes(key(p)));
+  if(choices.length===0)return "; no reachable exploratory local-map edge tile is listed; no route beyond this local map is verified";
+  if(fresh.length===0)return "; all listed local-map edge choices are previous refusal positions for this target; no untried edge is listed and no route beyond this local map is verified; inspect the map or choose another target";
+  return `; Exploratory local-map edge tiles (ordered by horizontal-plus-vertical grid distance to ${at(goal)} only; no route beyond these tiles is verified): ${fresh.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}${fresh.length<choices.length?"; previous refusal positions withheld while other edge choices remain":""}; choose an edge to explore, inspect the new map, then reassess the target`;
+ }
+}
+
+function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,advice:WaypointAdvice|null=null):string|null {
  if(options.mode!==undefined&&options.mode!=="local")return null;
  const geometry=localGeometry(state),grid=state.navigation_grid;
  if(geometry===null||grid==null||geometry.bounds===null)return null;
@@ -257,6 +329,7 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
  const listed=windowEdges(state,goal,options);
  const inside=`no route to ${at(goal)} lies inside the 15x15 local map navigate_to plans over`;
+ if(advice!==null)return `${inside}${advice.line(state,goal,listed)}`;
  return listed.length===0?`${inside}, and navigate_to can reach no tile on that local map's edge from here; choose another target`:`${inside}, so any route leaves it; reachable tiles on its edge, nearest ${at(goal)} first: ${listed.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}; walk to one, then call navigate_to ${at(goal)} again`;
 }
 // Reachable local-window edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
@@ -293,7 +366,7 @@ function flood(geometry:Geometry,start:Point):Set<string> {
 // server's foot area: none of its neighbours on it means it cannot be walked to at all; one on it means the plan, not
 // the map, is what failed: in the local window because the way leaves it (named by the nearest window-edge tile);
 // otherwise only the fact is stated, no guessed cause (pokebench-game-state skill). Null when the foot area is unknown.
-function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches):string|null {
+function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches,advice:WaypointAdvice|null=null):string|null {
  const block=exitBlock(reach,state);
  const sides=DIRECTIONS.map(([,dx,dy])=>({x:goal.x+dx,y:goal.y+dy}));
  const known=sides.map(p=>block.foot(p.x,p.y));
@@ -302,11 +375,13 @@ function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:
  const start=state.position;
  const taken=(p:Point):boolean=>geometry.objects.some(o=>o.x===p.x&&o.y===p.y)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&t.x===p.x&&t.y===p.y);
  const near=sides.filter((_,i)=>known[i]===true).sort((a,b)=>Number(taken(a))-Number(taken(b))||(start===null?0:distance(a,start)-distance(b,start)))[0];
- if(near===undefined)return ", and none of its neighbouring tiles can be reached on foot from where you stand: no walkable way on this map leads there; choose another target";
+ const why=near===undefined?block.obstacles(goal.x,goal.y):null;
+ if(near===undefined)return `, and none of its neighbouring tiles can be reached on foot from where you stand: ${why===null?"no walkable way on this map leads there":why}; choose another target`;
  if(options.mode==="visited")return `; navigate_to finds no route through terrain shown this run to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it; explore until more terrain has been shown, then choose a waypoint nearer to it`;
  if(options.mode==="full"||start===null||flood(geometry,start).has(key(near)))return `; navigate_to finds no route ${options.mode==="full"?"on this map":"on the 15x15 local map it plans over"} to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it; choose a waypoint nearer to it`;
- const edge=windowEdges(state,goal,options)[0];
+ const choices=windowEdges(state,goal,options),edge=choices[0];
  const inside=`; none of its free neighbouring tiles can be reached inside the 15x15 local map navigate_to plans over, but this map's walkable area reaches ${at(near)} next to it, so the way there leaves that local map`;
+ if(advice!==null)return `${inside}${advice.line(state,goal,choices)}`;
  return edge===undefined?`${inside}; navigate_to can reach no tile on that local map's edge from here, so choose another target`:`${inside}; walk to ${at(edge[1])} on its ${SIDES[edge[0]]} edge first, then call navigate_to ${at(goal)} again`;
 }
 // navigation-truth-v1: who now stands on the route tile a blocked step would have entered.
@@ -357,6 +432,12 @@ function warpReason(state:GameStateSnapshot,geometry:Geometry,goal:Point,options
 const hopAhead=(state:GameStateSnapshot,mode:NavigationMode,from:Point,direction:Direction,dx:number,dy:number):boolean=>{
  const tile=(mode==="full"?fullGeometry(state):localGeometry(state))?.tile({x:from.x+dx,y:from.y+dy});
  return tile!==undefined&&LEDGES.get(tile.behavior)===direction;
+};
+// field-move-gates-v1: tiles one DOWN press moves the player when it steps onto a slope (the slide included); null otherwise.
+const slideAhead=(state:GameStateSnapshot,options:NavigationOptions,from:Point,direction:Direction):number|null=>{
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ const slid=geometry===null?null:slideEnd(geometry,{x:from.x,y:from.y+1},direction,options);
+ return slid===null?null:slid.y-from.y;
 };
 
 // Binary min-heap on (estimate, insertion order). The tie-break reproduces the
@@ -414,6 +495,18 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
   for(const [direction,dx,dy] of DIRECTIONS){
    const next={x:node.p.x+dx,y:node.p.y+dy},tile=geometry.tile(next);
    if(tile===undefined||occupied.has(key(next)))continue;
+   if(options.slopes===true&&tile.behavior===SLOPE){
+    // A slope is entered only moving down, slides to the first tile below it, and is never a goal.
+    const slid=slideEnd(geometry,next,direction,options);
+    if(slid===null||tile.collision!==0||warps.has(key(next)))continue;
+    const land=geometry.tile(slid);
+    if(land===undefined||occupied.has(key(slid))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
+    if(warps.has(key(slid))&&distance(slid,goal)!==0)continue;
+    if(mismatch(node.elevation,land.elevation))continue;
+    const arrived=entered(node.elevation,land.elevation),cost=node.cost+slid.y-next.y+step(land);
+    if(distance(slid,goal)!==0&&triggerAt(options.triggers,slid,arrived)!==undefined)continue;
+    pending.push(cost+distance(slid,goal),{p:slid,here:land.elevation,elevation:arrived,cost,parent:node,direction});continue;
+   }
    if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
     if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
@@ -490,8 +583,15 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
 }
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.properties.y,map_id:Args.properties.map_id},{additionalProperties:false});
+const Confirm=Type.Optional(Type.Boolean({description:CONFIRM_DESCRIPTION}));
+const SightArgs=Type.Object({...Args.properties,[CONFIRM_ARG]:Confirm},{additionalProperties:false});
+const SightRunningArgs=Type.Object({...DeterministicRunningArgs.properties,[CONFIRM_ARG]:Confirm},{additionalProperties:false});
+type Goal={readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean;readonly confirm_trainer_sight?:boolean;readonly confirm?:boolean};
 export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
-export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean}
+// trainer-sight-check-v2: navigate_to_target asks for trainer-sight-check-v1's check on its first walk; exclude is the
+// object it goes to talk to (its own sight is no reason to refuse).
+export interface TargetSightCheck {readonly confirm:boolean;readonly exclude:number|null}
+export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
@@ -506,8 +606,10 @@ export interface NavigationPorts {
  readonly truth?:boolean;
  // With truth: plan around coordinate triggers whose condition matches now (coordinate-script-conditions-v1).
  readonly triggers?:boolean;
+ readonly triggerBoundary?:boolean;
  // navigation-refusal-reasons-v2: say when an in-window goal's route leaves the local window.
  readonly windowReasons?:boolean;
+ readonly waypointAdvice?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
  readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck,options?:CheckedPressOptions)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
@@ -524,16 +626,26 @@ export interface NavigationPorts {
  readonly floor?:boolean;
  // navigate-first-prompt-v1: the description leads with when to use the tool.
  readonly navigateFirst?:boolean;
+ // semantic-navigation-v2: the description sends listed targets to navigate_to_target.
+ readonly semanticTargets?:boolean;
  // cross-map-goal-v1: a goal on another map, before any press, is refused as such, not as "map changed".
  readonly crossMapGoal?:boolean;
  // exit-reachability-v1: the server's foot area decides "call again" and person refusals; edge notes skip blocked
  // connections (water ones too with surf-gated-exits-v1).
  readonly exitReach?:boolean;
  readonly surfGate?:boolean;
+ // field-move-gates-v1: plan around closed obstacle objects even when not loaded, slide down slopes, and refuse a goal only
+ // closed obstacles cut off (with exitReach), naming them with the game's own text.
+ readonly fieldMoveGates?:boolean;
  // deterministic-warp-navigation-v1: choose an exact equivalent warp and perform one verified arrow-warp press.
  readonly deterministicWarps?:boolean;
  // navigate-already-here-v1: a goal on the player's own tile, before any press, says so.
  readonly alreadyHere?:boolean;
+ // trainer-sight-check-v1: the model's own call checks its first planned route against unbeaten trainers' sight.
+ readonly trainerSight?:TrainerSightPorts|undefined;
+ // story-battle-heal-gate-v1: the model's own call is not started when its first planned route would start a trainer
+ // battle it cannot run from while the party is not at full HP.
+ readonly healGate?:StoryBattleHealGate|undefined;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -546,6 +658,8 @@ function crossMapReason(state:GameStateSnapshot,here:readonly [number,number],go
  const place=state.location_display??state.location;
  return `${at(goal)} on ${mapOf(goal.map_id)} is on another map; you are on ${mapOf(here)}${place===null?"":` (${place})`} and navigate_to only walks within the current map; to walk on this map, pass map_id [${String(here[0])},${String(here[1])}]; to reach ${mapOf(goal.map_id)}, use a listed warp or a map connection`;
 }
+// semantic-navigation-v2: people, objects, warps and exits the readout lists go to navigate_to_target.
+export const SEMANTIC_NAVIGATE_RULES="It cannot walk while a message is open: dismiss the message with B first. To talk to a person, use an object, or go through a door, stairs, another warp or a map exit that the readout lists with a navigate_to_target target, call navigate_to_target with that target instead.";
 export const NAVIGATE_RULES="To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates.";
 const LOCAL_DESCRIPTION="Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. "+NAVIGATE_RULES;
 const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing. "+NAVIGATE_RULES;
@@ -572,6 +686,39 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  }
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation};
 }
+// trainer-sight-check-v1: asks the game server which planned tiles an unbeaten trainer can see and records the check.
+// Returns the refusal text, or null to walk (clear, confirmed, or a check the server could not make).
+// answer: the server's reply already fetched for story-battle-heal-gate-v1 (one request serves both); gateConfirmed: the
+// model confirmed a gate refusal that listed these sightings.
+async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal,answer:SightAnswer|null=null,gateConfirmed=false,target:TargetSightCheck|null=null):Promise<string|null> {
+ const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
+ if(origin===null||map===null||tiles===null)return null;
+ const confirmed=goal.confirm_trainer_sight===true||gateConfirmed||target?.confirm===true;
+ const asked=answer??await askSight(sight.check,state,map,tiles,signal);
+ const reason:string|null="reason" in asked?asked.reason:null,seen:SightSeen[]="seen" in asked?asked.seen.filter(s=>s.local_id!==target?.exclude):[];
+ const outcome:SightOutcome=reason!==null?"unavailable":seen.length===0?"clear":confirmed?"confirmed":"refused";
+ let text:string|null=null;
+ if(outcome==="refused")text=sightText(seen,origin,{x:goal.x,y:goal.y},tiles.length,state,target===null?"navigate_to":"navigate_to_target");
+ sight.record({tool_call_id:id,map_id:[map[0],map[1]],origin:{x:origin.x,y:origin.y},goal:{x:goal.x,y:goal.y},route_tiles:tiles.length,confirmed,outcome,reason,sightings:seen,text});
+ return text;
+}
+// trainer-sight-check-v1 and story-battle-heal-gate-v1 on the model's first planned route. The gate decides first when it
+// is engaged; its refusal is the only one (it lists every sighting trainer-sight would), and its confirm also confirms
+// those. Otherwise trainer-sight acts alone, as before.
+async function checkRoute(sight:TrainerSightPorts|undefined,gate:StoryBattleHealGate|undefined,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal):Promise<{readonly status:string;readonly text:string}|null> {
+ const alone=async(answer:SightAnswer|null,gateConfirmed:boolean):Promise<{readonly status:string;readonly text:string}|null>=>{
+  if(sight===undefined)return null;
+  const text=await checkSight(sight,id,goal,state,path,options,signal,answer,gateConfirmed);
+  return text===null?null:{status:SIGHT_STATUS,text};
+ };
+ const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
+ const engaged=gate===undefined||harnessCall(id)||origin===null||map===null||tiles===null?null:await gate.engaged(state);
+ if(gate===undefined||engaged===null||origin===null||map===null||tiles===null)return alone(null,false);
+ const answer=sight!==undefined||engaged.gym?await askSight(sight?.check??gate.check,state,map,tiles,signal):null;
+ const verdict=await gate.route(id,state,engaged,goal.confirm===true,origin,path,tiles,answer,sight!==undefined);
+ if(verdict.text!==null)return {status:GATE_STATUS,text:verdict.text};
+ return alone(answer,verdict.outcome==="confirmed");
+}
 export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const mode:NavigationMode=ports.fullMap===true?"full":ports.visitedTerrain===true?"visited":"local",truth=ports.truth===true;
  const limit=mode==="local"?MAX_NAVIGATION_COMMANDS:MAX_FULL_ROUTE_COMMANDS;
@@ -581,30 +728,42 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const strideDescription=ports.safeStrides===true?`${described.replace("Maximum 8 ordinary button attempts", "Maximum 8 planned route steps")} Straight plain-floor corridors use explicit strides of at most 8 tiles, validated against native movement before each step. Strides stop before turns, grass, ledges, warps, objects, script coordinates and elevation changes; special steps walk without automatic running.`:described;
- const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${strideDescription}${mode==="local"?COMMAND_LIMIT_HINT:""}`:strideDescription;
- const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
+ const targeted=ports.semanticTargets===true?strideDescription.replace(NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES):strideDescription;
+ const navigationDescription=ports.navigateFirst===true?`${ports.semanticTargets===true?SEMANTIC_NAVIGATE_DESCRIPTION:NAVIGATE_FIRST_DESCRIPTION} ${targeted}${mode==="local"?COMMAND_LIMIT_HINT:""}`:targeted;
+ const sight=ports.trainerSight,healGate=ports.healGate;
+ const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
+ const gatedDescription=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
+ const description=ports.triggerBoundary===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
+ const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
+ const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
-  const strideReceipts:string[]=[];let plannedSteps=0;
+  const strideReceipts:string[]=[],sightParts:string[]=[];let plannedSteps=0,sightChecked=false;
   let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false,goalEntryActivation:Direction|"step"|null=null;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
+   advice?.observeMap(state);
+   if(ports.fieldMoveGates===true)state=gatedState(state);
    const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
     if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
-   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
+   const guardedOptions:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...((truth&&ports.triggers===true)||ports.triggerBoundary===true?{triggers:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{})};
+   const options:NavigationOptions=ports.triggerBoundary===true&&planNavigation(state,goal,guardedOptions)===null?{...guardedOptions,triggers:[]}:guardedOptions;
+   // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
+   const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
+   if(cutOff!==null){status=`${at(goal)} cannot be reached on foot from where you stand: ${cutOff}`;break;}
    const warpPlan=ports.deterministicWarps===true&&checkedOptions.exactTarget!==true?deterministicWarpPlan(state,goal,options):null;
    selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
    const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true}:null):null)??(truth?triggerReason(state,goal,options):null)??(mode==="local"&&ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":mode==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice):null)??(truth?triggerReason(state,goal,options):null)??(mode==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":mode==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;
@@ -628,12 +787,28 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     // navigate-already-here-v1: the model's own call, no press yet, on the requested tile; semantic travel keeps the status it checks.
     status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
    }
+   // trainer-sight-check-v1: the model's own call, once, on the route it first plans.
+   if((sight!==undefined||healGate!==undefined)&&stop===undefined&&!sightChecked){
+    sightChecked=true;
+    const refused=await checkRoute(sight,healGate,id,goal,state,path,options,signal);
+    if(refused!==null){status=refused.status;sightParts.push(refused.text);break;}
+   }
+   // trainer-sight-check-v2: navigate_to_target's first walk, once (its own story-battle gate decides before it walks).
+   const targetSight=checkedOptions.sightCheck;
+   if(sight!==undefined&&targetSight!==undefined&&stop!==undefined&&!sightChecked){
+    sightChecked=true;
+    const text=await checkSight(sight,id,goal,state,path,options,signal,null,false,targetSight);
+    if(text!==null){status=SIGHT_STATUS;sightParts.push(text);break;}
+   }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options):null;
-   const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
+   const span=stride?.path.length??slideAhead(planned,options,before,direction)??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
+   const entry=ports.triggerBoundary===true?routeTiles(state,[direction],options)?.at(-1):undefined;
+   const entryElevation=ports.triggerBoundary===true?walked(state,[direction],options)?.elevation:undefined;
+   const scriptEntry=entry===undefined||entryElevation===undefined?undefined:triggerAt(matchingTriggers(state),entry,entryElevation);
    const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span&&before.x+delta[1]*span===goal.x&&before.y+delta[2]*span===goal.y;
    const goalEntryTile=finalGoalStep?(mode==="full"?fullGeometry(planned):localGeometry(planned))?.tile(goal)??null:null;
    if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,mode)??"step";
@@ -644,12 +819,15 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
      if(finalGoalStep){const actualTile=(mode==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
      if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
-    },ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
+    },ports.triggerBoundary===true&&stride===null?{automaticRunning:false}:ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;plannedSteps+=stride?.path.length??1;state=blackout.remember(resultState(last));
    // A final press that only turns or bumps leaves the player on the same tile of the same map with input free: no entry happened.
    if(finalGoalStep&&stride===null&&(state.position?.x!==before.x||state.position.y!==before.y||!sameMap()||!ready(state,mode)))goalEntryAttempted=true;
    if(ports.safeStrides===true)strideReceipts.push(...last.content.flatMap(p=>p.type==="text"&&p.text.startsWith("Navigation stride receipt:")?[p.text]:[]));
+   if(scriptEntry!==undefined){
+    status=`script-trigger step attempted at ${at(scriptEntry)}; inspect the resulting state`;stopRequested=true;break;
+   }
    const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;stopRequested=true;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
@@ -670,6 +848,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
+  advice?.observeMap(state);
+  if(state.position!==null&&sameMap()&&samePoint(state.position,goal))advice?.complete(goal);
   const finalStop=stop?.(state)??null;if(finalStop!==null){status=finalStop;stopRequested=true;}
   if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
@@ -678,11 +858,13 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   // The cap text describes the observation returned with it: "call again" only when the walk can go on.
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(ports.safeStrides===true&&status==="command limit")status="planned route-step budget reached; inspect the returned state before continuing";
-  if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
+  if(truth&&status==="command limit"){const here=state.position;const block=exitBlock({surf:false,reach:true,gates:ports.fieldMoveGates===true},state);const cut=ports.exitReach===true&&block.footNear(goal.x,goal.y)===false;const why=cut?block.obstacles(goal.x,goal.y):null;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: ${why===null?"no walkable way on this map leads from your tile to it or to a tile next to it":why}, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...sightParts.map(text=>({type:"text" as const,text})),...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
- return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
+ const sightParameters=sight===undefined?(ports.automaticRunning===true?DeterministicRunningArgs:Args):ports.automaticRunning===true?SightRunningArgs:SightArgs;
+ const parameters=healGate===undefined?sightParameters:Type.Object({...sightParameters.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
+ return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:parameters as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }
 
 export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,options:NavigationOptions):number|null {
@@ -692,9 +874,11 @@ export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,optio
 
 
 // Reuse the actual ordinary tools, including objective guards and recorder hooks.
-export function withNavigation(base:readonly AgentTool[],features:FeatureSet,state:StateSource,gate?:NavigationPorts["gate"]):AgentTool[] {
+export function withNavigation(base:readonly AgentTool[],features:FeatureSet,state:StateSource,gate?:NavigationPorts["gate"],sight?:TrainerSightPorts,healGate?:StoryBattleHealGate):AgentTool[] {
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
+ if(features["trainer-sight-check-v1"]&&sight===undefined)throw new Error("trainer-sight-check-v1 needs the trainer sight check and its recorder");
+ if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"]}));return tools;
+ tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

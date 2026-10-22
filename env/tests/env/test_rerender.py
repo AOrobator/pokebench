@@ -15,6 +15,7 @@ from pokebench_env import rerender
 from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
@@ -67,8 +68,18 @@ def operator_rom() -> bytes:
 
 
 def env_with(off: list[str]) -> dict[str, str]:
-    # The recorded run predates warp-arrival-settle-v1, so it ran with that switch off.
-    off = [*off, "warp-arrival-settle-v1"]
+    # The recorded run predates warp-arrival-settle-v1, semantic-navigation-v2,
+    # respawn-readout-v1, caught-nickname-prompt-v1 and field-move-gates-v1, so it ran with
+    # those switches off.
+    off = [
+        *off,
+        "warp-arrival-settle-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
+        "respawn-readout-v1",
+        "caught-nickname-prompt-v1",
+        "field-move-gates-v1",
+    ]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 
@@ -129,14 +140,32 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "transition_coherence_enabled": False,
         "readout_truth_enabled": False,
         "birch_pages_enabled": False,
+        "birch_intro_pages_enabled": False,
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
         "heal_trainers_enabled": False,
+        "heal_trainers_v2_enabled": False,
         "tutorial_owner_enabled": False,
         "mid_frame_enabled": False,
         "unset_warp_enabled": False,
         "semantic_navigation_enabled": False,
         "evolution_decision_enabled": False,
+        "exit_labels_enabled": False,
+        "exit_sections_enabled": False,
+        "gym_door_label_enabled": False,
+        "caught_nickname_enabled": False,
+        "caught_dex_enabled": False,
+        "party_item_confirmation_enabled": False,
+        "field_moves_enabled": False,
+        "move_learning_enabled": False,
+        "move_learning_early_enabled": False,
+        "mart_stock_enabled": False,
+        "berry_readout_enabled": False,
+        "shop_interface_enabled": False,
+        "exp_next_enabled": False,
+        "pokedex_enabled": False,
+        "map_wide_triggers_enabled": False,
+        "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,
@@ -146,15 +175,27 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_rules_in_prompt": False,
         "fmt_adjacent_tiles": False,
         "fmt_whiteout": None,
+        "fmt_respawn_memory": None,
     }
+    # respawn-readout-v1 OFF hands no map table to the reader even when the caller has one.
+    rerender.read_state(
+        lambda a, n: b"", MapNames({}), active_ui=False, off=all_off, links=LinkCache({})
+    )
+    assert seen["respawn_links"] is None
     event = Whiteout(3000)
+    links, memory = LinkCache({}), RespawnMemory()
     rerender.render(
-        rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),
+        rerender.read_state(
+            lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset(), links=links
+        ),
         frozenset(),
         warp_animation=True,
         whiteout=event,
+        respawn_memory=memory,
     )
     assert seen.pop("fmt_whiteout") is event
+    assert seen.pop("respawn_links") is links
+    assert seen.pop("fmt_respawn_memory") is memory
     assert all(value is True for value in seen.values())
 
 

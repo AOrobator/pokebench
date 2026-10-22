@@ -12,6 +12,20 @@ export const GAME_TEXT: Readonly<Record<string, { readonly fg: Rgb; readonly sha
   tab: { fg: [24, 48, 96], shadow: null },
   white: { fg: [248, 248, 248], shadow: [80, 80, 88] },
   badge: { fg: [80, 56, 0], shadow: null },
+  // POKéMON PARTY page: party-slot text (party_menu.c sFontColorTable[0]) and the summary screen's
+  // sTextColors on palette 6, its OT colors, and the PP states on gPPTextPalette.
+  "pv-slot": { fg: [255, 255, 255], shadow: [115, 115, 115] },
+  "pv-white": { fg: [255, 255, 255], shadow: [98, 98, 98] },
+  "pv-dark": { fg: [0, 0, 0], shadow: [213, 213, 205] },
+  "pv-red": { fg: [230, 8, 8], shadow: [255, 189, 115] },
+  "pv-male": { fg: [65, 205, 255], shadow: [0, 139, 189] },
+  "pv-female": { fg: [255, 156, 148], shadow: [189, 90, 82] },
+  "pv-ot": { fg: [139, 246, 255], shadow: [24, 164, 213] },
+  "pv-ot-f": { fg: [255, 189, 180], shadow: [213, 115, 106] },
+  "pv-pp0": { fg: [213, 197, 0], shadow: [255, 246, 139] },
+  "pv-pp1": { fg: [255, 131, 0], shadow: [255, 238, 115] },
+  "pv-pp2": { fg: [230, 24, 0], shadow: [246, 222, 156] },
+  "pv-pp3": { fg: [74, 74, 74], shadow: [222, 222, 222] },
 };
 
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -50,10 +64,10 @@ export function glyphPixels(font: GameFont, sheet: GlyphSheet, text: string, fg:
   return { width, height: HEIGHT, data };
 }
 
-// Fills every unpainted [data-gt] placeholder under root with a canvas of its text; the text itself
+// Fills every unpainted [data-gt] placeholder under root (or those matching `only`) with a canvas of its text; the text itself
 // stays in the span for screen readers and copy. draw puts the pixels on the canvas (injected for tests).
-export function paintGameText(root: ParentNode, font: GameFont, sheet: GlyphSheet, draw: (canvas: HTMLCanvasElement, pixels: GlyphPixels) => void): void {
-  for (const span of root.querySelectorAll<HTMLElement>("[data-gt]:not([data-painted])")) {
+export function paintGameText(root: ParentNode, font: GameFont, sheet: GlyphSheet, draw: (canvas: HTMLCanvasElement, pixels: GlyphPixels) => void, only = "[data-gt]"): void {
+  for (const span of root.querySelectorAll<HTMLElement>(`${only}:not([data-painted])`)) {
     const colours = GAME_TEXT[span.dataset.c ?? ""];
     if (colours === undefined) continue;
     const pixels = glyphPixels(font, sheet, span.dataset.gt ?? "", colours.fg, colours.shadow, Number(span.dataset.b ?? "0") || 0);

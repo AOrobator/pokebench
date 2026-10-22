@@ -15,7 +15,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
+import { controlBaseProblems, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
@@ -48,7 +48,8 @@ const USAGE = [
   "       fixed-run check <id>                     validate the definition and every phase's start save",
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
-  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase>",
+  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
+  "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
   "       fixed-run analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms> [--primary <milestone>]",
@@ -171,14 +172,60 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
 async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const wallMs = msInt(flag(argv, "--wall-ms"), 120_000, "--wall-ms");
   const rom = requireRom(deps);
-  const { definition: def } = load(deps, id);
+  const target = load(deps, id).definition;
+  const recipeId = flag(argv, "--feature-recipe");
+  if (argv.includes("--feature-recipe") && recipeId === undefined) throw new CliError("--feature-recipe needs a definition id");
+  const recipe = recipeId === undefined ? null : load(deps, recipeId);
+  if (recipe !== null && recipe.definition.romSha1 !== target.romSha1) throw new CliError("feature recipe ROM differs from the model definition");
+  const def = recipe === null ? target : parseFixedDefinition(JSON.stringify({ ...target,
+    controlBase: recipe.definition.controlBase, base: {...target.base, features: recipe.definition.base.features},
+    switches: recipe.definition.switches, offInBoth: recipe.definition.offInBoth,
+    onInBoth: recipe.definition.onInBoth,
+  })).definition;
+  const effectiveProblems = controlBaseProblems(def, readFileSync(join(deps.root, def.controlBase.path), "utf8"));
+  if (effectiveProblems.length > 0) throw new CliError(effectiveProblems.join("\n"));
   requireDefinitionRom(deps, rom, def);
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
-  const dry = dryRunDefinition(def, wallMs, phase);
+  const paired = dryRunDefinition(def, wallMs, phase);
+  const arm=flag(argv,"--arm"), lane=flag(argv,"--lane");
+  if((arm===undefined)!==(lane===undefined))throw new CliError("single-trial dry runs require both --arm and --lane");
+  if(arm!==undefined&&!FIXED_ARMS.some(a=>a===arm))throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
+  const dry=arm===undefined?paired:soloDefinition(paired,arm as FixedArm,lane??"",paired.phases[0]?.id??"",1);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
+  if (recipe !== null) {
+    const dir = experimentDir(deps, dry.id);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "feature-recipe.json"), `${JSON.stringify({id:recipeId,commit:deps.head(),sha256:recipe.sha256,definition:dry},null,2)}\n`);
+    deps.out(`feature recipe ${String(recipeId)} sha256 ${recipe.sha256}; exact canonical flags, model lane and start retained`);
+  }
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);
+}
+
+// An unpaired trial of an approved experiment, on one lane, at the commit its paired trials play.
+async function rerun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
+  const arm = flag(argv, "--arm"), laneId = flag(argv, "--lane");
+  if (!FIXED_ARMS.some((a) => a === arm)) throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
+  const rom = requireRom(deps);
+  const { definition: def, sha256: digest } = load(deps, id);
+  requireDefinitionRom(deps, rom, def);
+  const approval = readApproval(deps, id);
+  if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
+  if (approval.definitionSha256 !== digest) throw new CliError("the definition changed since it was approved; approve it again");
+  const lane = def.lanes.find((l) => l.id === laneId);
+  if (lane === undefined) throw new CliError(`--lane must be one of ${def.lanes.map((l) => l.id).join(", ")}`);
+  const phase = flag(argv, "--phase") ?? def.phases.find((p) => p.primary)?.id ?? def.phases[0]?.id ?? "";
+  if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
+  const launch = readLedger(join(experimentDir(deps, id), "trials.jsonl")).find((e) => e.kind === "launch");
+  const commit = launch?.kind === "launch" ? launch.commit : deps.head();
+  let n = 1;
+  const solo = (): FixedDefinition => soloDefinition(def, arm as FixedArm, lane.id, phase, n);
+  while (existsSync(experimentDir(deps, solo().id))) n += 1;
+  const single = solo();
+  deps.out(`${single.id}: exploratory ${String(arm)} trial on lane ${lane.id} (${lane.gpu}), ${phase}, commit ${commit.slice(0, 12)}`);
+  const result = await deps.run({ def: single, definitionSha256: sha256(JSON.stringify(single)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true, commit });
+  deps.out(`${single.id}: ${result}`);
 }
 
 function status(deps: FixedCliDeps, id: string): void {
@@ -241,6 +288,7 @@ export async function main(argv: readonly string[], deps: FixedCliDeps): Promise
     else if (command === "approve") await approve(deps, id);
     else if (command === "run") await run(deps, id);
     else if (command === "dry-run") await dryRun(rest, deps, id);
+    else if (command === "rerun") await rerun(rest, deps, id);
     else if (command === "status") status(deps, id);
     else if (command === "analyze") analyzeLedger(rest, deps, id);
     else throw new RangeError();
@@ -337,7 +385,7 @@ export function productionFixedHost(deps: FixedHostDeps): FixedHost {
       probe.once("error", () => { resolvePort(true); });
       probe.listen(port, "127.0.0.1", () => { probe.close(() => { resolvePort(false); }); });
     }),
-    runId: (lane) => newRunId(new Date(), `qwen36-${lane.gpu.toLowerCase()}`, randomSuffix),
+    runId: (lane) => newRunId(new Date(), lane.runName ?? `qwen36-${lane.gpu.toLowerCase()}`, randomSuffix),
     launch: (l) => {
       // The runner checks the build before every launch, so a launch always follows a prepared checkout.
       if (prepared === null) return Promise.reject(new Error("no prepared experiment checkout"));

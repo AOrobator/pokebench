@@ -1,0 +1,1126 @@
+[
+  {
+    "id": "ea04",
+    "run": "2026-10-21T13-33-54_qwen36-gpu0_ea04",
+    "cutoff": 22522,
+    "source_prefix_bytes": 252490266,
+    "source_prefix_sha256": "460d50ff29de674f3c8447301d77b9ff6ec957539ccf5bc467d60314a302bbba",
+    "original_chars": 61666,
+    "candidate_chars": 17532,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+        "state_event": 14252,
+        "result_event": 14254
+      },
+      "archive_count": 51,
+      "kept": [
+        {
+          "result_event": 1053,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 4372,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 5006,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 7825,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8083,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8401,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 11212,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 11561,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 11729,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 14254,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 14537,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 15172,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 15270,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 15306,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 15507,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 16309,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 16705,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 17074,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 18777,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 18867,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 19296,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 19520,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 19899,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 21129,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 21500,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 21869,
+          "reason": "current_chapter",
+          "rule": null
+        },
+        {
+          "result_event": 21953,
+          "reason": "current_chapter",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 888,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 973,
+          "reason": "completed",
+          "rule": "clock-request"
+        },
+        {
+          "result_event": 1231,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 1400,
+          "reason": "completed",
+          "rule": "rival-upstairs"
+        },
+        {
+          "result_event": 1597,
+          "reason": "completed",
+          "rule": "rival-introduction"
+        },
+        {
+          "result_event": 1785,
+          "reason": "completed",
+          "rule": "birch-fieldwork"
+        },
+        {
+          "result_event": 2148,
+          "reason": "completed",
+          "rule": "town-rescue-request"
+        },
+        {
+          "result_event": 2198,
+          "reason": "completed",
+          "rule": "birch-rescue-request"
+        },
+        {
+          "result_event": 2514,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 2557,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 2588,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 2834,
+          "reason": "completed",
+          "rule": "home-sign"
+        },
+        {
+          "result_event": 5062,
+          "reason": "completed",
+          "rule": "oldale-healed"
+        },
+        {
+          "result_event": 6964,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 7189,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 7604,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        },
+        {
+          "result_event": 10152,
+          "reason": "completed",
+          "rule": "calvin-intro"
+        },
+        {
+          "result_event": 10413,
+          "reason": "completed",
+          "rule": "rick-intro"
+        },
+        {
+          "result_event": 10685,
+          "reason": "completed",
+          "rule": "allen-intro"
+        },
+        {
+          "result_event": 11248,
+          "reason": "completed",
+          "rule": "petalburg-healed"
+        },
+        {
+          "result_event": 11971,
+          "reason": "completed",
+          "rule": "scott-introduction"
+        },
+        {
+          "result_event": 13147,
+          "reason": "completed",
+          "rule": "cindy-intro"
+        },
+        {
+          "result_event": 13566,
+          "reason": "completed",
+          "rule": "lyle-intro"
+        },
+        {
+          "result_event": 14063,
+          "reason": "completed",
+          "rule": "woods-rescue-request"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1052,
+          "result_event": 1053
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 1595,
+          "result_event": 1597
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2513,
+          "result_event": 2514
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 2587,
+          "result_event": 2588
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 7187,
+          "result_event": 7189
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 8082,
+          "result_event": 8083
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 8400,
+          "result_event": 8401
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 10312,
+          "result_event": 10314
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 10592,
+          "result_event": 10594
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 10911,
+          "result_event": 10913
+        },
+        {
+          "name": "WALLY_TUTORIAL_COMPLETE",
+          "state_event": 11728,
+          "result_event": 11729
+        },
+        {
+          "name": "ROUTE_104_TRAINER_CINDY_DEFEATED",
+          "state_event": 13289,
+          "result_event": 13291
+        },
+        {
+          "name": "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",
+          "state_event": 13813,
+          "result_event": 13815
+        },
+        {
+          "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+          "state_event": 14252,
+          "result_event": 14254
+        }
+      ]
+    }
+  },
+  {
+    "id": "d548",
+    "run": "2026-10-21T13-33-36_qwen36-gpu1_d548",
+    "cutoff": 23110,
+    "source_prefix_bytes": 246743742,
+    "source_prefix_sha256": "87469a232541a11386cb71bbfdc8b61cf41ee4cf48b9a22ddad8c842dde258a3",
+    "original_chars": 32360,
+    "candidate_chars": 10004,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+        "state_event": 11417,
+        "result_event": 11419
+      },
+      "archive_count": 14,
+      "kept": [
+        {
+          "result_event": 1057,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 4795,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 5114,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8154,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8335,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8381,
+          "reason": "unknown",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 874,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 1147,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 2759,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 2802,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 2833,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 3960,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 4192,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 4492,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1056,
+          "result_event": 1057
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 1597,
+          "result_event": 1600
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2758,
+          "result_event": 2759
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 2832,
+          "result_event": 2833
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 4190,
+          "result_event": 4192
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 4794,
+          "result_event": 4795
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 5113,
+          "result_event": 5114
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 6705,
+          "result_event": 6707
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 7011,
+          "result_event": 7013
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 7289,
+          "result_event": 7291
+        },
+        {
+          "name": "WALLY_TUTORIAL_COMPLETE",
+          "state_event": 8334,
+          "result_event": 8335
+        },
+        {
+          "name": "ROUTE_104_TRAINER_CINDY_DEFEATED",
+          "state_event": 9517,
+          "result_event": 9519
+        },
+        {
+          "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+          "state_event": 11417,
+          "result_event": 11419
+        }
+      ]
+    }
+  },
+  {
+    "id": "1331",
+    "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+    "cutoff": 26032,
+    "source_prefix_bytes": 252767512,
+    "source_prefix_sha256": "3b2a00049ac0b695a136e8e4124c1a992fef4906aeaaf01c98f330e508c54f51",
+    "original_chars": 32254,
+    "candidate_chars": 9640,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+        "state_event": 21020,
+        "result_event": 21022
+      },
+      "archive_count": 13,
+      "kept": [
+        {
+          "result_event": 1220,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13635,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13932,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 18006,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 18178,
+          "reason": "unknown",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 1003,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 1303,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 2377,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 2412,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 2442,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 12801,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 13036,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 13278,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1219,
+          "result_event": 1220
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 1635,
+          "result_event": 1637
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2376,
+          "result_event": 2377
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 2441,
+          "result_event": 2442
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 13034,
+          "result_event": 13036
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 13634,
+          "result_event": 13635
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 13931,
+          "result_event": 13932
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 16789,
+          "result_event": 16791
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 17053,
+          "result_event": 17055
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 17347,
+          "result_event": 17349
+        },
+        {
+          "name": "WALLY_TUTORIAL_COMPLETE",
+          "state_event": 18177,
+          "result_event": 18178
+        },
+        {
+          "name": "ROUTE_104_TRAINER_CINDY_DEFEATED",
+          "state_event": 19476,
+          "result_event": 19478
+        },
+        {
+          "name": "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",
+          "state_event": 20185,
+          "result_event": 20187
+        },
+        {
+          "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+          "state_event": 21020,
+          "result_event": 21022
+        }
+      ]
+    }
+  },
+  {
+    "id": "fd95",
+    "run": "2026-10-21T04-27-11_qwen36-gpu1_fd95",
+    "cutoff": 25304,
+    "source_prefix_bytes": 272417860,
+    "source_prefix_sha256": "aaeea023cc94c57d3b41866e0bd00f4e401064a425b081e92781a17b113cd9c2",
+    "original_chars": 32811,
+    "candidate_chars": 10194,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+        "state_event": 16795,
+        "result_event": 16797
+      },
+      "archive_count": 14,
+      "kept": [
+        {
+          "result_event": 1188,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 3695,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8108,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8594,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13015,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13204,
+          "reason": "unknown",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 819,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 1273,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 2989,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 3031,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 3061,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 7435,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 7638,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 7791,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1187,
+          "result_event": 1188
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 1959,
+          "result_event": 1961
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2988,
+          "result_event": 2989
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 3060,
+          "result_event": 3061
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 7636,
+          "result_event": 7638
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 8107,
+          "result_event": 8108
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 8593,
+          "result_event": 8594
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 11228,
+          "result_event": 11230
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 11580,
+          "result_event": 11582
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 12019,
+          "result_event": 12021
+        },
+        {
+          "name": "WALLY_TUTORIAL_COMPLETE",
+          "state_event": 13203,
+          "result_event": 13204
+        },
+        {
+          "name": "ROUTE_104_TRAINER_CINDY_DEFEATED",
+          "state_event": 14342,
+          "result_event": 14344
+        },
+        {
+          "name": "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",
+          "state_event": 14854,
+          "result_event": 14856
+        },
+        {
+          "name": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+          "state_event": 16795,
+          "result_event": 16797
+        }
+      ]
+    }
+  },
+  {
+    "id": "8892",
+    "run": "2026-10-21T08-28-28_qwen36-gpu1_8892",
+    "cutoff": 25455,
+    "source_prefix_bytes": 226352432,
+    "source_prefix_sha256": "455018e4ff742f0f3d8afc8f871f055f5526b6a47db006e45db8ece5ce0e28bf",
+    "original_chars": 31783,
+    "candidate_chars": 9971,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "WALLY_TUTORIAL_COMPLETE",
+        "state_event": 13773,
+        "result_event": 13774
+      },
+      "archive_count": 14,
+      "kept": [
+        {
+          "result_event": 1322,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 10173,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 10418,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 10916,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13593,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 13774,
+          "reason": "current_chapter",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 1150,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 1458,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 2539,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 2582,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 2674,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 8322,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 9637,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 9943,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1321,
+          "result_event": 1322
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 1785,
+          "result_event": 1787
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2538,
+          "result_event": 2539
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 2673,
+          "result_event": 2674
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 9635,
+          "result_event": 9637
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 10417,
+          "result_event": 10418
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 10915,
+          "result_event": 10916
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 12097,
+          "result_event": 12099
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 12400,
+          "result_event": 12402
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 12775,
+          "result_event": 12777
+        },
+        {
+          "name": "WALLY_TUTORIAL_COMPLETE",
+          "state_event": 13773,
+          "result_event": 13774
+        },
+        {
+          "name": "ROUTE_104_TRAINER_CINDY_DEFEATED",
+          "state_event": 15269,
+          "result_event": 15271
+        },
+        {
+          "name": "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",
+          "state_event": 15708,
+          "result_event": 15710
+        }
+      ]
+    }
+  },
+  {
+    "id": "acfa",
+    "run": "2026-10-21T07-17-35_glm53-mac_acfa",
+    "cutoff": 10969,
+    "source_prefix_bytes": 67945789,
+    "source_prefix_sha256": "18d15cec68145f1e2557e0a192b6fc85aa639ae592976905078a988bcccc7772",
+    "original_chars": 21809,
+    "candidate_chars": 5157,
+    "archive_unchanged": true,
+    "retention": {
+      "chapter": {
+        "name": "RUNNING_SHOES_RECEIVED",
+        "state_event": 8446,
+        "result_event": 8447
+      },
+      "archive_count": 12,
+      "kept": [
+        {
+          "result_event": 1343,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 7674,
+          "reason": "unknown",
+          "rule": null
+        },
+        {
+          "result_event": 8447,
+          "reason": "current_chapter",
+          "rule": null
+        }
+      ],
+      "retired": [
+        {
+          "result_event": 1140,
+          "reason": "completed",
+          "rule": "home-clock"
+        },
+        {
+          "result_event": 1538,
+          "reason": "completed",
+          "rule": "tv-birch-introduction"
+        },
+        {
+          "result_event": 2699,
+          "reason": "completed",
+          "rule": "birch-handoff"
+        },
+        {
+          "result_event": 2755,
+          "reason": "completed",
+          "rule": "birch-see-may"
+        },
+        {
+          "result_event": 2908,
+          "reason": "completed",
+          "rule": "birch-agree-see-may"
+        },
+        {
+          "result_event": 6560,
+          "reason": "completed",
+          "rule": "rival-battle-intro"
+        },
+        {
+          "result_event": 6841,
+          "reason": "completed",
+          "rule": "rival-return-lab"
+        },
+        {
+          "result_event": 7308,
+          "reason": "completed",
+          "rule": "rival-hurry-home"
+        },
+        {
+          "result_event": 7808,
+          "reason": "completed",
+          "rule": "may-background"
+        }
+      ],
+      "proofs": [
+        {
+          "name": "CLOCK_SET",
+          "state_event": 1342,
+          "result_event": 1343
+        },
+        {
+          "name": "RIVAL_MET",
+          "state_event": 2068,
+          "result_event": 2070
+        },
+        {
+          "name": "BIRCH_RESCUE_COMPLETE",
+          "state_event": 2698,
+          "result_event": 2699
+        },
+        {
+          "name": "BIRCH_STARTER_HANDOFF_COMPLETE",
+          "state_event": 2907,
+          "result_event": 2908
+        },
+        {
+          "name": "RIVAL_BATTLE_WON",
+          "state_event": 6839,
+          "result_event": 6841
+        },
+        {
+          "name": "RECEIVED_POKEDEX",
+          "state_event": 7673,
+          "result_event": 7674
+        },
+        {
+          "name": "RUNNING_SHOES_RECEIVED",
+          "state_event": 8446,
+          "result_event": 8447
+        },
+        {
+          "name": "ROUTE_102_TRAINER_CALVIN_DEFEATED",
+          "state_event": 9107,
+          "result_event": 9109
+        },
+        {
+          "name": "ROUTE_102_TRAINER_RICK_DEFEATED",
+          "state_event": 9469,
+          "result_event": 9471
+        },
+        {
+          "name": "ROUTE_102_TRAINER_ALLEN_DEFEATED",
+          "state_event": 9997,
+          "result_event": 9999
+        }
+      ]
+    }
+  }
+]

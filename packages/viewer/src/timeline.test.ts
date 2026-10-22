@@ -167,10 +167,98 @@ it("leaves story battle warnings off the timeline (closed to new marks, operator
  expect(view(log).errors).toEqual([]);
 });
 
+it("leaves gym heal warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"gym_heal_warning",turn:2,tool:"press",map_id:[11,3],gym:{name:"RUSTBORO CITY GYM",map_id:[11,3],here:true,x:null,y:null},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:null,heal:null,listed_now:false,mom_heals:true,text:"SUPERVISOR: You are in RUSTBORO CITY GYM"});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});
+
 it("leaves heal-before-trainers warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
  const log=new Log();log.add(0,START);
  log.add(1000,{type:"heal_before_trainers_warning",turn:2,tool:"press",map_id:[0,19],trainers:[{local_id:3,x:31,y:24,sprite_kind:"LASS"}],weak:[{kind:"lead_below_half",species:"TORCHIC",hp:14,max_hp:38}],heal:null,mom_heals:true,money:5168,text:"SUPERVISOR: heal first"});
  const without=new Log();without.add(0,START);
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);
+});
+
+it("leaves trainer sight checks off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"trainer_sight_check",turn:2,tool_call_id:"n",map_id:[11,3],origin:{x:5,y:15},goal:{x:5,y:2},route_tiles:23,confirmed:false,outcome:"refused",reason:null,sightings:[],text:"Trainer sight: ..."});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});
+
+it("draws recorded native pulses instead of overlapping navigation hold budgets", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(100, {type:"button_press",turn:0,tool_call_id:"stride",buttons:["RIGHT"],hold_frames:224,release_frames:8});
+  for (const [id, ms, buttons] of [[1,120,["RIGHT","B"]],[2,137,[]],[3,250,["RIGHT","B"]],[4,267,[]]] as const) {
+    log.add(900, {type:"native_action",turn:0,id,frame:id,server_timestamp:(BASE_MS+ms)/1000,kind:"native_input",details:{buttons:[...buttons]}});
+  }
+  const svg = lanesSvg(view(log), BASE_MS+1000);
+  const marks = [...svg.matchAll(/class="m-press b-RIGHT"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/g)];
+  expect(marks).toHaveLength(2);
+  expect(Number(marks[0]?.[2])).toBeLessThan(1);
+  expect(Number(marks[0]?.[1])+Number(marks[0]?.[2])).toBeLessThan(Number(marks[1]?.[1]));
+  expect(svg).toContain("RIGHT+B · native input");
+  expect(svg.match(/class="press-label"/g)).toHaveLength(1);
+  expect(svg).toContain('aria-hidden="true">→</span>');
+  expect(svg).not.toContain("hold 224f");
+  expect(lanesSvg(view(log),BASE_MS+61000)).not.toContain('class="m-press');
+});
+
+it("keeps native inputs with their own request and does not invent unclosed or invalid holds", () => {
+  const log = new Log(); log.add(0,START);
+  log.add(100,{type:"button_press",turn:0,tool_call_id:"one",buttons:["UP"],hold_frames:224,release_frames:8});
+  log.add(400,{type:"native_action",turn:0,id:1,frame:10,server_timestamp:(BASE_MS+120)/1000,kind:"native_input",details:{buttons:["UP"]}});
+  log.add(400,{type:"native_action",turn:0,id:2,frame:11,server_timestamp:(BASE_MS+137)/1000,kind:"native_input",details:{buttons:[]}});
+  log.add(500,{type:"button_press",turn:0,tool_call_id:"two",buttons:["A"],hold_frames:10,release_frames:8});
+  const svg=lanesSvg(view(log),BASE_MS+1000);
+  expect(svg.match(/class="m-press b-UP"/g)).toHaveLength(1);
+  expect(svg.match(/class="m-press b-A"/g)).toHaveLength(1);
+  log.add(600,{type:"native_action",turn:0,id:3,frame:12,server_timestamp:(BASE_MS+550)/1000,kind:"native_input",details:{buttons:["not-a-button"]}});
+  log.add(700,{type:"native_action",turn:0,id:4,frame:13,server_timestamp:(BASE_MS+567)/1000,kind:"native_input",details:{buttons:[]}});
+  log.add(800,{type:"native_action",turn:0,id:5,frame:14,server_timestamp:(BASE_MS+750)/1000,kind:"native_input",details:{buttons:["A"]}});
+  const incomplete = lanesSvg(view(log),BASE_MS+1000);
+  expect(incomplete).not.toContain('class="m-press b-A"');
+  expect(incomplete).not.toContain('b-not-a-button');
+  expect(lanesSvg(view(log),BASE_MS+110)).not.toContain('class="m-press b-UP"');
+  expect(lanesSvg(view(log),BASE_MS+1000,["thinking"])).not.toContain('class="m-press');
+});
+
+
+it.each([{}, {buttons: "UP"}, {buttons: ["__proto__"]}, {buttons: ["not-a-button"]}])("does not draw invalid native keys: %j", details => {
+  const log = new Log(); log.add(0,START);
+  log.add(100,{type:"button_press",turn:0,tool_call_id:"one",buttons:["UP"],hold_frames:224,release_frames:8});
+  log.add(400,{type:"native_action",turn:0,id:1,frame:10,server_timestamp:(BASE_MS+120)/1000,kind:"native_input",details});
+  log.add(400,{type:"native_action",turn:0,id:2,frame:11,server_timestamp:(BASE_MS+137)/1000,kind:"native_input",details:{buttons:[]}});
+  expect(lanesSvg(view(log),BASE_MS+1000)).not.toContain('class="m-press');
+});
+
+it("clips native holds at the replay cursor and omits zero-length spans", () => {
+  const log = new Log(); log.add(0,START);
+  log.add(100,{type:"button_press",turn:0,tool_call_id:"one",buttons:["UP"],hold_frames:224,release_frames:8});
+  log.add(400,{type:"native_action",turn:0,id:1,frame:10,server_timestamp:(BASE_MS+120)/1000,kind:"native_input",details:{buttons:["UP"]}});
+  log.add(400,{type:"native_action",turn:0,id:2,frame:70,server_timestamp:(BASE_MS+1120)/1000,kind:"native_input",details:{buttons:[]}});
+  const clipped=lanesSvg(view(log),BASE_MS+620);
+  const mark=clipped.match(/class="m-press b-UP"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/);
+  expect(Number(mark?.[1])+Number(mark?.[2])).toBeCloseTo(992,0);
+  expect(lanesSvg(view(log),BASE_MS+120)).not.toContain('class="m-press');
+});
+
+
+it("labels successive native keys separately instead of claiming a simultaneous request chord", () => {
+  const log=new Log();log.add(0,START);
+  log.add(100,{type:"button_press",turn:0,tool_call_id:"batch",buttons:["A","UP"],hold_frames:10,release_frames:8});
+  for(const [id,ms,buttons] of [[1,120,["A"]],[2,300,[]],[3,500,["UP"]],[4,680,[]]] as const){
+    log.add(900,{type:"native_action",turn:0,id,frame:id,server_timestamp:(BASE_MS+ms)/1000,kind:"native_input",details:{buttons:[...buttons]}});
+  }
+  const svg=lanesSvg(view(log),BASE_MS+1000);
+  expect(svg.match(/class="press-label"/g)).toHaveLength(2);
+  expect(svg).toContain('aria-hidden="true">A</span>');
+  expect(svg).toContain('aria-hidden="true">↑</span>');
+  expect(svg).not.toContain('A+↑');
 });

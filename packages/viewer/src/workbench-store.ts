@@ -64,7 +64,7 @@ function runSignature(path: string): string {
   return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
-// same visual evidence and viewer build. A rewrite, truncation or replacement is not.
+// same verified evidence. A rewrite, truncation or replacement is not.
 function appendedSince(then: string, now: string): boolean {
   const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
     const m = /^(\d+):[^:]*:[^:]*:(\d+):(\d+)(.*)$/s.exec(signature);
@@ -96,7 +96,6 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
-    if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };
@@ -156,7 +155,7 @@ function startlessRun(root: string, id: string, viewer: BuildIdentity | null, pr
   if (viewer === null || identity === null || (identity.commit === viewer.commit && !viewer.dirty && !identity.dirty)) return strict;
   try {
     const { view, skipped } = readStartlessLog(path, id), reason = view.end?.reason ?? null;
-    const run: WorkbenchRun = { ...invalidRun(id, null), model: identity.model, started: identity.t, status: view.end === null ? "unresponsive" : "ended", reason, turn: view.turn, excluded: reason === "operator_abort" ? "Excluded operator-aborted run" : null };
+    const run: WorkbenchRun = { ...invalidRun(id, null), model: identity.model, started: identity.t, status: view.end === null ? "unresponsive" : "ended", reason, turn: view.turn };
     const timing: RunTiming = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
     return { run, port: identity.port, tag: null, timing, skew: { commit: identity.commit, dirty: identity.dirty, ...skipped, startless: true } };
   } catch (error) { return { ...strict, run: invalidRun(id, errorText(error)) }; }
@@ -169,7 +168,7 @@ export function settleSkew(loaded: LoadedRun, build: ViewerBuild | null): Loaded
   const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run), startless = loaded.skew.startless === true;
   if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first, startless); return { ...loaded, run }; }
   if (startless) return { run: invalidRun(run.id, `run ${run.id} has no readable run_start`), port: null, tag: null, timing: null, skew: null };
-  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
+  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded };
   return { run: strict, port: null, tag: loaded.tag, timing: null, skew: null };
 }
 // Run time without operator pauses, as runSeconds computes it from a RunView.
@@ -200,7 +199,7 @@ export interface WorkbenchLoader {
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
-// runs (their logs never change) for the next viewer of the same code.
+// runs for the next viewer of the same parser code; current build policy is reapplied on every disk hit.
 // build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
 // stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
 export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
@@ -208,10 +207,9 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
   const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => incremental(root, id, viewer)));
   const build = options.build === undefined ? defaultViewerBuild() : options.build;
   const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
-  const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
   const signatureOf = (path: string, id: string): { signature: string } | { invalid: Loaded } => {
-    try { return { signature: runSignature(path) + buildKey }; } catch (error) {
+    try { return { signature: runSignature(path) }; } catch (error) {
       const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
       cache.set(path, entry); return { invalid: entry };
     }
@@ -228,7 +226,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
         const loaded = stored ?? await compute(root, id, stamp);
         const entry: Loaded = { ...settleSkew(loaded, build), signature };
         latest.set(path, entry);
-        let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
+        let after: string | null = null; try { after = runSignature(path); } catch { /* removed while loading */ }
         if (after === signature) {
           cache.set(path, entry);
           if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
@@ -401,7 +399,8 @@ function experimentCohorts(root: string, failures: Map<string, string>, unverifi
   }
 }
 // A fixed-run ledger (the fixed-N two-arm driver) joins experiment:<id> the same way: all or nothing,
-// every launched run is a member, and a trial the driver judged invalid is excluded with its reason.
+// every launched run is a member. A stop-only trial outcome censors further observation; it does
+// not invalidate earned progress. Other invalid-trial reasons still exclude the recording here.
 // False when the ledger is unreadable and contributed nothing.
 function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): boolean {
   const { entries, problems: bad } = parseFixedLedger(text);
@@ -410,7 +409,10 @@ function fixedCohort(text: string, cohort: string, name: string, failures: Map<s
   for (const e of entries) {
     if (e.kind === "launch") launched.add(e.run);
     else if (!launched.has(e.run)) { problems.push(`Experiment ${name} ledger: run ${e.run} has a ${e.kind} without a launch`); return false; }
-    else if (e.kind === "outcome" && !e.valid) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
+    else if (e.kind === "outcome" && !e.valid) {
+      const stopped = (e.endReason === "operator_abort" || e.endReason === "operator_stop") && e.reason === `the operator stopped the trial (${e.endReason})`;
+      if (!stopped) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
+    }
   }
   for (const run of launched) membership.set(run, cohort);
   for (const [run, message] of invalid) failures.set(run, message);
@@ -544,7 +546,22 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   const found = mode.partial === true
     ? await Promise.all(reduced.map(async s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
     : await Promise.all(reduced.map(s => loader.load(root, s.id)));
-  const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
+  const waiting = found.filter(l => l === null).length, definitions = experimentDefinitions(experimentsDir, root);
+  const loadedRuns = found.flatMap((loaded, index): LoadedRun[] => {
+    if (loaded !== null) return [loaded];
+    // Keep cold recordings in their experiment while the worker validates their log. Header-only
+    // placeholders carry no measurement or splits and cannot compete for the frontier or appear live.
+    const summary = reduced[index];
+    if (mode.cards !== undefined || summary === undefined) return [];
+    const pending: LoadedRun = { run: { ...invalidRun(summary.id, "Recording is still loading; story progress has not been validated yet"), model: summary.model, started: summary.started }, port: null, tag: null, timing: null, skew: null };
+    try {
+      const start = startOf(root, summary.id), experiment = start.evaluation?.experiment;
+      pending.run.config = configuration(start); pending.run.arm = experiment?.arm ?? null;
+      pending.run.experiment = experiment === undefined ? null : { ...experiment };
+      pending.tag = experiment === undefined ? null : { experiment: experiment.id, commit: start.harness.commit };
+    } catch (error) { pending.run.problem = errorText(error); }
+    return [pending];
+  });
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {

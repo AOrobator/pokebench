@@ -14,28 +14,78 @@ from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
 from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
+from pokebench_env.birch_pages import INTRO_PHASE, INTRO_SWITCH
 from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
+from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
+from pokebench_env.field_moves import SWITCH as FIELD_MOVES
+from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
+from pokebench_env.mart_stock import SWITCH as MART_STOCK
+from pokebench_env.mart_stock import stock_lines
+from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
+from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
+from pokebench_env.move_learn import comparison_lines, question_line
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.poison_berry_readout import (
+    BERRY,
+    POISON,
+    POISON_WARNING,
+    bag_berry_lines,
+    poisoned,
+)
+from pokebench_env.pokedex_own import dex_lines
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import RespawnMemory, respawn_line
+from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
+from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
 from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
-from pokebench_env.surf_gate import SurfGate
+from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Topology
+from pokebench_env.training_readout import exp_clause
 from pokebench_env.world import InteractionTarget
+from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
+from pokebench_env.yes_no_answer import answer_line
+
+# post-battle-readout-v1: the battle block after the battle ends (evolution or summary screen while
+# the battle finishes), and the battle's move-learning YES/NO box as the Interface line.
+POST_BATTLE = "post-battle-readout-v1"
+POST_BATTLE_SCREENS = frozenset({"evolution", "pokemon_summary", "summary"})
+# BattleScript_AskToLearnMove yesnoboxlearnmove / yesnoboxstoplearningmove
+# (battle_text.py 0x5A / 0x5B).
+LEARN_BOXES = frozenset({"learn_move", "stop_learning_move"})
+# battle_message_waiting.py's controls for a battle YES/NO box.
+BOX_CONTROLS = "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO"
+
+
+def _learn_box_interface(state: GameState) -> str | None:
+    battle = state.battle
+    prompt = None if battle is None else battle.prompt
+    if (
+        battle is None
+        or battle.diagnostic is not None
+        or prompt is None
+        or prompt.kind not in LEARN_BOXES
+        or not prompt.ready
+        or prompt.selected not in {"YES", "NO"}
+    ):
+        return None
+    return f"Interface: {prompt.kind}; input ready; selected {prompt.selected}; {BOX_CONTROLS}"
+
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -89,6 +139,30 @@ SERVER_FEATURES = (
     "safe-navigation-strides-v1",
     "evolution-decision-v1",
     "original-speed-pacing-v1",
+    "semantic-navigation-v2",
+    "exit-labels-v2",
+    "heal-before-trainers-v2",
+    "respawn-readout-v1",
+    "caught-nickname-prompt-v1",
+    "party-item-confirmation-v1",
+    "yes-no-answer-readout-v1",
+    "field-move-gates-v1",
+    "exit-labels-v3",
+    "move-learn-settle-v1",
+    "move-learn-question-v1",
+    "move-learn-comparison-v1",
+    "gym-door-label-v1",
+    "mart-stock-readout-v1",
+    "caught-dex-input-v1",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
+    "shop-interface-v1",
+    "map-wide-triggers-v1",
+    "birch-intro-pages-v1",
+    "post-battle-readout-v1",
+    "move-learn-early-comparison-v1",
+    POISON,
+    BERRY,
 )
 
 
@@ -108,7 +182,14 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1",
+        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
+        "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
+        "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
+        "move-learn-comparison-v1,gym-door-label-v1,"
+        "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
+        "shop-interface-v1,map-wide-triggers-v1,"
+        "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -136,8 +217,25 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _menu(state: GameState, truth: bool = False, evolution: bool = False) -> str:
+def _menu(
+    state: GameState, truth: bool = False, evolution: bool = False, move_question: bool = False
+) -> str:
     ui = state.active_ui
+    # BattleScript_AskToLearnMove owns a YES/NO box while the controller is busy.
+    # Its verified prompt takes precedence over the generic battle interface.
+    battle = state.battle
+    prompt = None if battle is None else battle.prompt
+    if (
+        move_question
+        and battle is not None
+        and battle.diagnostic is None
+        and battle.text_phase == "prompt"
+        and prompt is not None
+        and prompt.kind in {"learn_move", "stop_learning_move"}
+        and prompt.ready
+        and prompt.selected in {"YES", "NO"}
+    ):
+        return f"Menu: {prompt.kind}; selected {prompt.selected}"
     if (
         evolution
         and state.screen == "evolution"
@@ -162,6 +260,31 @@ def _menu(state: GameState, truth: bool = False, evolution: bool = False) -> str
     )
 
 
+def _move_learning_lines(state: GameState, off: frozenset[str]) -> list[str]:
+    """move-learn-question-v1 and move-learn-comparison-v1, after the Interface line."""
+    lines = []
+    if state.move_learning_diagnostic is not None and not {MOVE_QUESTION, MOVE_COMPARISON} <= off:
+        lines.append(f"HARNESS BUG (move learning): {state.move_learning_diagnostic}")
+    learning = state.move_learning
+    if learning is None:
+        return lines
+    question = question_line(learning) if MOVE_QUESTION not in off else None
+    if question is not None:
+        lines.append(question)
+    if MOVE_COMPARISON not in off:
+        lines.extend(comparison_lines(learning))
+    return lines
+
+
+def _mart_stock_lines(state: GameState, off: frozenset[str]) -> list[str]:
+    """mart-stock-readout-v1, after the Interface line."""
+    if MART_STOCK in off:
+        return []
+    if state.mart_stock_diagnostic is not None:
+        return [f"HARNESS BUG (mart stock): {state.mart_stock_diagnostic}"]
+    return [] if state.mart_stock is None else stock_lines(state.mart_stock, state.money)
+
+
 def format_readout(
     state: GameState,
     off: frozenset[str] = frozenset(),
@@ -175,6 +298,7 @@ def format_readout(
     adjacent_tiles: bool = False,
     rules_in_prompt: bool = False,
     whiteout: Whiteout | None = None,
+    respawn_memory: RespawnMemory | None = None,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -194,6 +318,13 @@ def format_readout(
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
+    # exit-labels-v2: every destination named as the location popup names it (a displayed
+    # place name first), plus arrival reach for warps whose destination shares its name.
+    labels = state.exit_labels if destinations is not None and EXIT_LABELS not in off else None
+    sections = state.exit_sections if "exit-labels-v3" not in off else None
+    warp_labels = {} if sections is None else {(w.x, w.y): w.label for w in sections.warps}
+    if labels is not None and destinations is not None:
+        destinations = {**labels.name_map(), **destinations}
     # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
     dynamic = None
     if destinations is not None and state.dynamic_warp is not None:
@@ -209,6 +340,13 @@ def format_readout(
     incumbent_phases = {
         *(
             (ui.phase,)
+            if "caught-dex-input-v1" not in off
+            and ui is not None
+            and ui.phase.startswith("pokedex_caught_")
+            else ()
+        ),
+        *(
+            (ui.phase,)
             if "evolution-decision-v1" not in off
             and ui is not None
             and ui.phase.startswith("evolution")
@@ -221,6 +359,7 @@ def format_readout(
         "field_transition",
         # birch-speech-pages-v1: a Birch page is shown wherever the Birch phases are.
         *((BIRCH_PAGE,) if BIRCH_PAGES not in off else ()),
+        *((INTRO_PHASE,) if INTRO_SWITCH not in off else ()),
     }
     omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
     if omitted_ui:
@@ -236,10 +375,19 @@ def format_readout(
         lines = [
             f"Screen: {state.screen}",
             f"Dialog: {dialog}",
-            _menu(state, truth, "evolution-decision-v1" not in off),
+            _menu(state, truth, "evolution-decision-v1" not in off, MOVE_QUESTION not in off),
         ]
-        if ui is not None:
+        box = _learn_box_interface(state) if POST_BATTLE not in off and state.in_battle else None
+        if box is not None:
+            lines.append(box)
+        elif ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
+        # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
+        answer = answer_line(state) if YES_NO_ANSWER not in off else None
+        if answer is not None:
+            lines.append(answer)
+        lines.extend(_move_learning_lines(state, off))
+        lines.extend(_mart_stock_lines(state, off))
     if state.resources is not None:
         if expanded and state.resources.bag is not None:
             lines.append(
@@ -306,9 +454,20 @@ def format_readout(
             lines += [
                 *details.lines(
                     battle,
+                    input_override=(
+                        ui.controls
+                        if "caught-dex-input-v1" not in off
+                        and ui is not None
+                        and ui.phase == "pokedex_caught_entry"
+                        and ui.ready is True
+                        else None
+                    ),
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,
+                    ended=POST_BATTLE not in off
+                    and battle.phase == "finishing"
+                    and state.screen in POST_BATTLE_SCREENS,
                 ),
                 *playback,
                 *execution,
@@ -370,12 +529,25 @@ def format_readout(
         )
     x, y = state.position
     named_status = STATUS_NAMES not in off
+    poison_readout = POISON not in off
     facing = "" if state.facing is None else f", facing {state.facing}"
+    next_levels = state.party_next_level or ()
     party = "; ".join(
         f"{m.species or 'UNKNOWN'} Lv{m.level} HP {m.hp}/{m.max_hp}"
+        # exp-next-level-v1: the summary screen's EXP. POINTS and NEXT LV.
+        + (
+            f" · {exp_clause(m.experience, next_levels[i])}"
+            if i < len(next_levels) and exp_clause(m.experience, next_levels[i])
+            else ""
+        )
         # status-names-v1: the status by name (poison, sleep turns, ...) instead of its bits.
         + (
-            f" · STATUS {(status_text(m.status) if named_status else None) or m.status}"
+            " · STATUS "
+            + (
+                "PSN (poisoned)"
+                if poison_readout and poisoned(m.status)
+                else str((status_text(m.status) if named_status else None) or m.status)
+            )
             if expanded and m.status
             else ""
         )
@@ -390,15 +562,20 @@ def format_readout(
         + (f" · nickname {m.nickname}" if expanded and m.nickname else "")
         + (f" · HARNESS BUG: {m.diagnostic}" if m.diagnostic else "")
         + (f" · HARNESS BUG: {m.nickname_diagnostic}" if m.nickname_diagnostic else "")
-        for m in state.party or ()
+        for i, m in enumerate(state.party or ())
     )
     location = places.get(state.map_id) if state.map_id is not None else None
-    lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
+    lines += [
+        f"Player: {state.name}",
+        f"Location: {sections.current if sections is not None else location or state.location}",
+    ]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
     owner = state.party_owner or "unknown"
     lines.append(f"Party ({owner}): {party or 'none'}")
+    if state.pokedex is not None:
+        lines.extend(dex_lines(state, state.pokedex))
     triage = (
         field_triage_line(state.party, owner)
         if TRIAGE not in off and not state.in_battle and state.battle is None
@@ -406,12 +583,31 @@ def format_readout(
     )
     if triage is not None:
         lines.append(triage)
+    lines.append(f"Money: ₽{state.money}")
+    # respawn-readout-v1: where a blackout sends the player, beside the money it would halve.
+    if state.respawn is not None and RESPAWN not in off:
+        lines.append(
+            respawn_line(state.respawn, state.money, respawn_memory, places, here=state.location)
+        )
     lines += [
-        f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
+    if (
+        poison_readout
+        and state.screen == "overworld"
+        and not state.in_battle
+        and state.party_owner == "player"
+        and any(
+            poisoned(m.status) and (m.hp or 0) > 0 and not m.diagnostic for m in state.party or ()
+        )
+    ):
+        lines.append(POISON_WARNING)
+    if BERRY not in off:
+        lines.extend(bag_berry_lines(state.resources))
+        if state.screen == "overworld" and not state.in_battle:
+            lines.extend(state.berry_readout or ())
     # blackout-readout-v1: the first observation back on the field after CB2_WhiteOut.
     if whiteout is not None and BLACKOUT not in off:
         lines.append(whiteout_line(whiteout, state))
@@ -463,6 +659,7 @@ def format_readout(
                 edge_walls=edge_walls,
                 counters=counters,
                 destinations=destinations,
+                warp_labels=warp_labels,
                 dynamic=dynamic,
                 next_tiles=neighbours,
                 # A local-map fallback keeps its legend: the prompt describes the whole map.
@@ -470,6 +667,12 @@ def format_readout(
             )
             if shown is not None
             else state.local_map
+        )
+    if sections is not None:
+        lines.append(
+            "Terrain sections distinguish areas of the same map; "
+            "arrows preserve one-way movement. Terrain paths do not account for "
+            "temporary objects and scripts."
         )
     if state.world_context is not None:
         context = state.world_context.text(
@@ -489,10 +692,13 @@ def format_readout(
     )
     if offscreen is not None and state.map_id is not None:
         lines.append(offscreen_text(offscreen, state.map_id))
+    # semantic-navigation-v2: listed targets carry the navigate_to_target argument.
+    semantic = SEMANTIC_V2 not in off and "world-targets-v1" not in off
     if state.story_characters is not None and "character-presence-v1" not in off:
         lines.append(
             state.story_characters.text(
-                None if offscreen is None else {o.local_id: o for o in offscreen}
+                None if offscreen is None else {o.local_id: o for o in offscreen},
+                listed_objects(state.interaction_targets) if semantic else None,
             )
         )
     # surf-gated-exits-v1: exits reachable only across water while Surf cannot be used.
@@ -502,6 +708,15 @@ def format_readout(
 
     # exit-reachability-v1: exits reachable neither on foot nor across water from here.
     reach = state.exit_reach if EXIT_REACH not in off else None
+    # field-move-gates-v1: the closed obstacles and the exits every way to which passes one.
+    field = state.field_obstacles if reach is not None and FIELD_MOVES not in off else None
+    # The names the Warp destination lines use (OFF of named-warp-destinations-v1 keeps the
+    # internal map-table names, as those lines do).
+    names = (
+        {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+        if destinations is None
+        else destinations
+    )
 
     def across(t: InteractionTarget) -> bool:
         return gate is not None and t.kind == "warp" and gate.blocks_warp(t.x, t.y)
@@ -510,13 +725,55 @@ def format_readout(
         return reach is not None and t.kind == "warp" and reach.blocks_warp(t.x, t.y)
 
     def warp_note(t: InteractionTarget) -> str:
+        obstacle = None if field is None else field.warp_note(t.x, t.y)
         return (
             gate.warp_note(plain=plain)
             if gate is not None and across(t)
-            else reach.warp_note()
+            else (obstacle or reach.warp_note())
             if reach is not None and cut_off(t)
             else ""
         )
+
+    def warp_name(tile: tuple[int, int]) -> str:
+        target = next(
+            (
+                t
+                for t in state.interaction_targets or ()
+                if t.kind == "warp" and (t.x, t.y) == tile and t.destination is not None
+            ),
+            None,
+        )
+        at = f"({tile[0]},{tile[1]})"
+        if target is None or target.destination is None:
+            return at
+        if tile in warp_labels:
+            return f"{at} -> {warp_labels[tile]}"
+        g, n, _ = target.destination
+        if (g, n) == (127, 127):
+            return f"{at} -> {dynamic or 'dynamic destination'}"
+        return f"{at} -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    def connection_name(key: ConnectionKey) -> str:
+        direction, (g, n), offset = key
+        if sections is not None:
+            label = next(
+                (
+                    c.label
+                    for c in sections.connections
+                    if (c.direction, c.offset, c.destination) == (direction, offset, (g, n))
+                ),
+                None,
+            )
+            if label is not None:
+                return f"{direction} edge -> {label}"
+        return f"{direction} edge -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    if field is not None:
+        lines.extend(field.lines(warp_name, connection_name))
+
+    def distinct(t: InteractionTarget) -> bool:
+        # semantic-navigation-v2: the tool tells these apart by kind and tile only.
+        return t.kind == "object" or same_tile(state.interaction_targets, t) == 1
 
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
@@ -525,8 +782,14 @@ def format_readout(
                 named=named_interactions and "named-interactions-v1" not in off,
                 destinations=destinations,
                 dynamic=dynamic,
+                warp_label=warp_labels.get((t.x, t.y)) if t.kind == "warp" else None,
             )
             + warp_note(t)
+            + (
+                interaction_suffix(t)
+                if semantic and not cut_off(t) and not across(t) and distinct(t)
+                else ""
+            )
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
@@ -535,23 +798,45 @@ def format_readout(
         notes = (
             {}
             if state.topology is None
-            else connection_notes(state.topology, gate, reach, plain=plain)
+            else connection_notes(state.topology, gate, reach, plain=plain, field=field)
         )
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
-            else state.topology.text(notes or None)
+            else state.topology.text(
+                notes or None,
+                targets=SEMANTIC_V2 not in off,
+                labels=None
+                if sections is None
+                else {
+                    i: label.label
+                    for i, connection in enumerate(state.topology.connections)
+                    for label in sections.connections
+                    if (label.direction, label.offset, label.destination)
+                    == (connection.direction, connection.offset, connection.destination)
+                },
+            )
         )
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.
-            # OFF preserves the incumbent internal-map-table rendering byte for byte.
-            names = (
-                {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
-                if destinations is None
-                else destinations
-            )
+            # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
             for target in state.interaction_targets:
                 if target.destination is not None:
+                    if (
+                        sections is not None
+                        and (
+                            section_exit := next(
+                                (w for w in sections.warps if (w.x, w.y) == (target.x, target.y)),
+                                None,
+                            )
+                        )
+                        is not None
+                    ):
+                        lines.append(
+                            f"Warp destination at ({target.x},{target.y}): "
+                            f"{section_exit.label}{warp_note(target)}. {section_exit.detail}"
+                        )
+                        continue
                     g, n, _ = target.destination
                     name = (
                         dynamic or "dynamic destination"
@@ -561,8 +846,10 @@ def format_readout(
                             f"unknown map {g}/{n}" if destinations is None else f"map {g}/{n}",
                         )
                     )
+                    labelled = labels is not None and name == names.get((g, n))
                     lines.append(
                         f"Warp destination at ({target.x},{target.y}): {name}"
+                        + (f" (map {g}/{n})" if labelled else "")
                         + (
                             gate.destination_note(plain=plain)
                             if gate is not None and across(target)
@@ -570,23 +857,39 @@ def format_readout(
                             if reach is not None and cut_off(target)
                             else ""
                         )
+                        + (
+                            (labels.arrival(target.x, target.y) or "")
+                            if labels is not None and labelled
+                            else ""
+                        )
                     )
     return "\n".join(lines)
 
 
 def connection_notes(
-    topology: Topology, gate: SurfGate | None, reach: ExitReach | None, *, plain: bool = False
+    topology: Topology,
+    gate: SurfGate | None,
+    reach: ExitReach | None,
+    *,
+    plain: bool = False,
+    field: FieldObstacles[ConnectionKey] | None = None,
 ) -> dict[int, str]:
     """The note each map connection line carries instead of its walk-off instruction, by index.
 
-    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection.
+    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection, naming the
+    obstacles every way passes with field-move-gates-v1.
     """
     notes: dict[int, str] = {}
     for i, c in enumerate(topology.connections):
         if gate is not None and gate.blocks_connection(c.direction):
             notes[i] = gate.connection_note(plain=plain)
         elif reach is not None and reach.blocks_connection(c.direction, c.destination, c.offset):
-            notes[i] = reach.connection_note()
+            obstacle = (
+                None
+                if field is None
+                else field.connection_note((c.direction, c.destination, c.offset))
+            )
+            notes[i] = obstacle or reach.connection_note()
     return notes
 
 
@@ -598,9 +901,12 @@ def _location_display(state: GameState) -> dict[str, str]:
 
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
-    full = (
+    full: dict[str, object] = (
         {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
     )
+    # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
+    if state.party_next_level is not None:
+        full = {**full, "party_next_level": list(state.party_next_level)}
     return {
         **full,
         "screen": state.screen,
@@ -643,6 +949,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "name": state.name,
         "location": state.location,
         **_location_display(state),
+        **({} if state.exit_sections is None else {"exit_sections": state.exit_sections.json()}),
         "map_id": None if state.map_id is None else list(state.map_id),
         "position": None
         if state.position is None
@@ -669,6 +976,12 @@ def state_json(state: GameState) -> dict[str, object]:
         **({} if state.surf_gate is None else {"surf_gate": state.surf_gate.json()}),
         # exit-reachability-v1: present only with the switch, so switch-off state is unchanged.
         **({} if state.exit_reach is None else {"exit_reach": state.exit_reach.json()}),
+        # field-move-gates-v1: present only with the switch, so switch-off state is unchanged.
+        **(
+            {}
+            if state.field_obstacles is None
+            else {"field_obstacles": state.field_obstacles.json()}
+        ),
         # heal-before-trainers-v1: present only with the switch, so switch-off state is unchanged.
         **(
             {}

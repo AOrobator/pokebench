@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { RECENT_EVENT_BYTES, RECENT_EVENT_TURNS, RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, runDir } from "./runs.js";
+import { RECENT_EVENT_BYTES, RECENT_EVENT_TURNS, RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, readHeadEvents, runDir } from "./runs.js";
 
 function root(): string {
   return mkdtempSync(join(tmpdir(), "pokebench-viewer-runs-"));
@@ -468,4 +468,36 @@ it("folds rival splits recovered from raw RAM into a comparison baseline, and re
   copyRam(join(r, "rv"));
   writeFileSync(join(r, "rv", "derived", "route103_rival.jsonl"), [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...([[1, false], [2, true]] as const).map(([n, active]) => ({ seq: n, raw_ram: ram(n).path, sha256: ram(n).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
   expect((await reader("rv")).milestones).toContainEqual({ name: "RIVAL_BATTLE_STARTED", offsetMs: 2000, derived: true });
+});
+
+
+it("recovers old pause and extension acknowledgements without folding old gameplay", async () => {
+  const runsRoot = root(), log = new Log();
+  log.add(0, { ...START, extend_run: true });
+  log.add(10, { type: "operator_control", turn: 0, action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: 1800000, max_wall_ms: 3600000 });
+  log.add(20, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 2, emulator_frozen: true });
+  for (let turn = 1; turn <= 4; turn++) {
+    log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(turn * 1000 + 1, assistant({ turn, thinking: "history payload".repeat(10) }));
+  }
+  const path = writeRun(runsRoot, "controls-head", log);
+  writeFileSync(join(runsRoot, "controls-head", "control.jsonl"), "requests live here");
+  const cursor = { offset: 0 };
+  const head = await readHeadEvents(runsRoot, "controls-head", cursor, 1, 800);
+  expect(head.filter(e => e.type === "operator_control")).toEqual(log.events.filter(e => e.type === "operator_control").map(e => ({ ...e, run: "controls-head" })));
+  expect(head.filter(e => e.type === "assistant").map(e => e.turn)).toEqual([4]);
+  expect(cursor.offset).toBe(readFileSync(path).length);
+});
+
+it("keeps the head cursor at the last complete byte including multibyte text", () => {
+  const runsRoot = root(), log = new Log();
+  log.add(0, START);
+  log.add(1, assistant({ thinking: "Pokémon 🎮" }));
+  const path = writeRun(runsRoot, "cursor", log);
+  const end = readFileSync(path).length;
+  appendFileSync(path, '{"partial":"🎮');
+  const cursor = { offset: 0 };
+  const head = readRecentEvents(runsRoot, "cursor", 30, 8000, cursor);
+  expect(cursor.offset).toBe(end);
+  expect(head.map(e => e.seq)).toEqual(log.events.map(e => e.seq));
 });

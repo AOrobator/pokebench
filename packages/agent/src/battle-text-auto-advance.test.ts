@@ -14,11 +14,12 @@ import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.j
 import {battleDecisionContext,playGameTools} from "./play-wiring.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
-import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,serverFeatureEnv,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import {RUN_START_META} from "../test-support/events.js";
 
 const ID="battle-text-auto-advance-v1";
@@ -426,9 +427,9 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-82)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-82)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-71)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-151)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-151)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ON,"dialogue-auto-advance-v1":false})).toContain(`${ID} needs dialogue-auto-advance-v1`);
@@ -445,16 +446,16 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).slice(-82,-76)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(presetFeatures(preset)).slice(-151,-145)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
  it("is the key before battle-message-waiting-v1 wherever a preset or default lists switches, and in the registry",()=>{
   const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
-  expect(Object.keys(normalizeFeatures(old)).slice(-82,-76)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(normalizeFeatures(old)).slice(-151,-145)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-82)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-151)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
@@ -601,8 +602,8 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-16)).toBe(id);
- expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-85)).toBe(id);
+ expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
  expect(flags[id]).toBe(false);
@@ -642,3 +643,158 @@ it.each(["observe","battle_action"] as const)("battle settling preserves an inte
  expect(stateOfResult(result).blackout_receipt).toEqual(receipt);
  expect(server.posts.map(p=>p.button)).toEqual(["B","B"]);
 });
+
+describe("pending-field-dialogue-v1",()=>{
+ const recorded=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pending-field-dialogue-97a0.json.gz",import.meta.url))).toString("utf8")) as {state:unknown};
+ const waiting=parseGameState(recorded.state);
+ const free=parseGameState({...Object.fromEntries(Object.entries(waiting).filter(([key])=>key!=="raw_ram")),field_controls_locked:false,world_context:{...waiting.world_context,objects:waiting.world_context?.objects??[],triggers:[],dialogue:null,message:null}});
+ const enabled={...ON,"battle-decision-ready-v1":true,"pending-field-dialogue-v1":true} as FeatureSet;
+ it("advances the recorded trainer intro on observe and records the whole page",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  const {tool,rec}=wire(server,enabled);
+  const result=await tool("observe").execute("late-field",{});
+  expect(server.posts).toEqual([{button:"B",phase:"field_waiting"}]);
+  expect(stateOfResult(result).field_controls_locked).toBe(false);
+  expect(textOf(result)).toContain(waiting.world_context?.dialogue);
+  expect(rec.advances()).toMatchObject([{tool:"observe",stop:"field_free",auto_presses:1,pages:[{text:waiting.world_context?.dialogue}]}]);
+  expect(()=>checkEvent(rec.advances()[0])).not.toThrow();
+ });
+ it.each(["field","battle"] as const)("settles pending field dialogue before battle_action and leaves the %s boundary to a new decision",async boundary=>{
+  const server=new ScriptServer([waiting,boundary==="battle"?INPUT:free],[]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;return Promise.resolve({content:[{type:"text",text:"Battle action: nothing pressed: no battle is in progress."}],details:{state:server.now,battle_action:{refused:true}}});}};
+  const {tool,rec}=wire(server,enabled,[action]);
+  const result=await tool("battle_action").execute("late-action",{});
+  expect(called).toBe(0);
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("Battle action: requested action not executed; inspect the decision reached after advancing field dialogue.");
+  expect(rec.advances()).toMatchObject([{tool:"battle_action",auto_presses:1,stop:boundary==="battle"?"battle_input":"field_free"}]);
+  expect(stateOfResult(result).in_battle).toBe(boundary==="battle");
+ });
+ it("works without battle text advancing or battle readiness enabled",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  const {tool,rec}=wire(server,{...enabled,"battle-text-auto-advance-v1":false,"battle-decision-ready-v1":false});
+  await tool("observe").execute("field-only",{});
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(rec.advances()).toMatchObject([{stop:"field_free",auto_presses:1}]);
+ });
+ it("describes and settles field dialogue on battle_action without claiming disabled battle-text advancing",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;throw new Error("stale action must not execute");}};
+  const {tool,rec}=wire(server,{...enabled,"battle-text-auto-advance-v1":false,"battle-decision-ready-v1":false},[action]);
+  const battle=tool("battle_action");
+  expect(battle.description).toContain("Pending ordinary field dialogue advances first");
+  expect(battle.description).not.toContain("If the battle then runs its own text");
+  await battle.execute("field-only-action",{});
+  expect(called).toBe(0);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(rec.advances()).toMatchObject([{tool:"battle_action",stop:"field_free",auto_presses:1}]);
+ });
+ it("stops at a menu reached after dialogue without choosing its highlighted option",async()=>{
+  const menu={...free,active_ui:{phase:"yes_no",selected:"YES",ready:true,controls:"A chooses",diagnostic:null,value:null}};
+  const server=new ScriptServer([waiting,menu],[]);
+  const {tool,rec}=wire(server,enabled);
+  await tool("observe").execute("field-menu",{});
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(rec.advances()).toMatchObject([{stop:"menu"}]);
+ });
+ it("leaves unknown field locks alone",async()=>{
+  const server=new ScriptServer([{...free,field_controls_locked:true},free],[]);
+  const {tool,rec}=wire(server,enabled);
+  await tool("observe").execute("unknown",{});
+  expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ });
+ it("honors the existing automatic press cap on an unchanged waiting message",async()=>{
+  const server=new ScriptServer([waiting],[]);
+  const {tool,rec}=wire(server,enabled);
+  await tool("observe").execute("capped",{});
+  expect(server.posts).toHaveLength(AUTO_ADVANCE_LIMITS.presses);
+  expect(rec.advances()).toMatchObject([{stop:"press_cap",auto_presses:AUTO_ADVANCE_LIMITS.presses}]);
+ });
+ it("the production factory honors ON/OFF and records pages and input attribution",async()=>{
+  const root=mkdtempSync(join(tmpdir(),"pending-field-factory-"));
+  try{
+   let server=new ScriptServer([waiting,free],[]);
+   const log=RunLog.create(root,"production"),recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(server.now)}});
+   await recorder.start(RUN_START_META);
+   for(const on of [false,true]){
+    server=new ScriptServer([waiting,free],[]);
+    const watcher=new StateWatcher(URL_BASE,server.fetch);
+    const base=[observeTool(URL_BASE,server.fetch),pressTool(URL_BASE,{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress()},server.fetch,{now:()=>0,sleep:()=>Promise.resolve()})];
+    const tools=playGameTools(base,{...enabled,"pending-field-dialogue-v1":on},watcher,recorder);
+    const tool=tools.find(t=>t.name==="observe");if(tool===undefined)throw new Error("observe missing");
+    const result=await tool.execute(on?"factory-on":"factory-off",{});
+    expect(server.posts.map(p=>p.button)).toEqual(on?["B"]:[]);
+    expect(stateOfResult(result).field_controls_locked).toBe(!on);
+   }
+   recorder.end("budget");
+   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+   expect(events.filter(e=>e.type==="button_press")).toMatchObject([{tool_call_id:"factory-on",buttons:["B"]}]);
+   expect(events.filter(e=>e.type==="dialogue_auto_advance")).toMatchObject([{tool_call_id:"factory-on",tool:"observe",stop:"field_free",pages:[{text:waiting.world_context?.dialogue}]}]);
+  }finally{rmSync(root,{recursive:true,force:true});}
+ });
+ it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
+  const id="pending-field-dialogue-v1";
+  expect(SWITCHABLE_FEATURES.at(-44)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-44)?.id).toBe(id);
+  expect(playHarnessFeatures({...ALL_ON,[id]:true},null).at(-1)).toBe(id);
+  expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
+  expect(SERVER_FEATURES).not.toContain(id);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
+  const {[id]:omitted,...historical}=BASE;expect(omitted).toBe(false);
+  expect(normalizeFeatures(historical)[id]).toBe(false);
+  expect(dependencyProblems({...enabled,"dialogue-auto-advance-v1":false})).toContain(`${id} needs dialogue-auto-advance-v1`);
+ });
+ it("OFF preserves the observed message and the existing refusal without pressing",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Battle action: nothing pressed: no battle is in progress."}],details:{state:server.now,battle_action:{refused:true}}})};
+  const {tool,rec}=wire(server,{...enabled,"pending-field-dialogue-v1":false},[action]);
+  const result=await tool("observe").execute("off-observe",{});
+  expect(textOf(result)).toBe(`Screen: ${waiting.screen}`);
+  expect(stateOfResult(result)).toEqual(waiting);
+  expect(textOf(await tool("battle_action").execute("off-action",{}))).toBe("Battle action: nothing pressed: no battle is in progress.");
+  expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ });
+});
+
+it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
+ const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
+ expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="birch-intro-pages-v1"&&id!=="shop-interface-v1"&&id!=="progress-aware-cycles-v1"&&id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="story-goal-player-name-v1"&&id!=="cut-off-reply-feedback-v1"&&id!=="trainer-sight-check-v2"&&id!=="auto-talk-v2"&&id!=="map-wide-triggers-v1"&&id!=="drought-battle-heal-hold-v1"&&id!=="tool-prompt-docs-v1"&&id!=="field-ownership-feedback-v1"&&id!=="move-learn-loop-fingerprint-v1"&&id!=="stale-plan-fact-v1"&&id!=="post-battle-readout-v1"&&id!=="move-learn-tool-v1"&&id!=="move-learn-early-comparison-v1"));
+ const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
+ expect(entry.queuePosition).toBeUndefined();
+ expect(SWITCHABLE_FEATURES.filter(id=>id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
+});
+
+describe("caught-dex-input-v1 archived registration page",()=>{
+ const dex=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/caught-dex-c6c2.json.gz",import.meta.url))).toString("utf8")) as {off:{state:unknown;readout:string};on:{state:unknown;readout:string}};
+ it("hands input back to the native A/B page instead of waiting on a busy battle",async()=>{
+  const off=parseGameState(dex.off.state),on=parseGameState(dex.on.state);
+  expect(battleEngaged(off)).toBe(true);expect(classifyBattle(off)).toEqual({kind:"wait"});
+  expect(battleEngaged(on)).toBe(false);expect(classifyBattle(on)).toMatchObject({kind:"stop",stop:"menu",detail:expect.stringContaining("pokedex_caught_entry") as string});
+  expect(dex.on.readout).toContain("A or B closes the registration page");
+  const server=new ScriptServer([on],[]);server.readout=()=>dex.on.readout;
+  const {tool}=wire(server,{...ON,"caught-dex-input-v1":true});
+  const observed=await tool("observe").execute("dex-observe",{});
+  expect(textOf(observed)).toContain("A or B closes the registration page");
+  await tool("press").execute("dex-close",{buttons:["A"]});
+  expect(server.posts).toEqual([{button:"A",phase:"other"}]);
+  expect(server.battlePaths()).not.toContain("/pokebench/battle/wait");
+ });
+});
+
+
+it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
+ const id="caught-dex-input-v1";
+ expect(SWITCHABLE_FEATURES.at(-35)).toBe(id);expect(SERVER_FEATURES.at(-10)).toBe(id);
+ expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
+ expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
+ expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);
+ for(const name of ["bundle-v-control","bundle-cook-1h"]){
+  const raw=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(raw.base.features[id]).toBe(false);expect(raw.switches).toContain(id);
+ }
+ const pending=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/caught-dex-input-v1.json",import.meta.url),"utf8")));
+ const arms=experimentArms(pending);expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);
+ expect(pending.queuePosition).toBeUndefined();
+});
+function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}

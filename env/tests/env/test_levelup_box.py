@@ -47,6 +47,8 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "status-names-v1",
     "surf-gated-exits-v2",
     "battle-effective-damage-v1",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
 }
 ON = RECORDED_OFF - {SWITCH}
 OFF_TEXT = "Battle details: WILD single · turn 6 · resolving (no input until the game asks)"
@@ -221,7 +223,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-17] == SWITCH
+    assert SERVER_FEATURES[-41] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

@@ -1,24 +1,14 @@
+import { createWorkbenchClient } from "./workbench-sync.js";
 import { frontierLegend, type SwitchDescriptions } from "./frontier-legend.js";
 import type { VersionIndex } from "./frontier-versions.js";
 import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.js";
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { currentRunHtml, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+import { backToViewer, currentRunLinks, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import type { GlyphPixels, GlyphSheet } from "./game-font.js";
 import { cardHtml, cardInputFor } from "./trainer-card.js";
-// Copies changed [data-current-field] content and styles from `next` onto `root`; false when their fields differ.
-function patchFields(root: Element, next: Element): boolean {
-  const was = [...root.querySelectorAll<HTMLElement>("[data-current-field]")], now = [...next.querySelectorAll<HTMLElement>("[data-current-field]")];
-  if (was.length !== now.length || was.some((field, i) => field.dataset.currentField !== now[i]?.dataset.currentField)) return false;
-  was.forEach((field, i) => {
-    const fresh = now[i] ?? field, style = fresh.getAttribute("style");
-    if (field.innerHTML !== fresh.innerHTML) field.innerHTML = fresh.innerHTML;
-    if (style !== null && field.getAttribute("style") !== style) field.setAttribute("style", style);
-  });
-  return true;
-}
 // Replaces root's HTML only when it changed; a focused control inside it keeps focus by its data attributes.
 function replaceKeepingFocus(root: HTMLElement, html: string): void {
   if (root.dataset.html === html) return;
@@ -32,8 +22,16 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });
 }
 // fetchFeatures: the switch catalog (/api/features), read once for the legend's switch descriptions.
-// fetchJson, loadGlyphSheet, drawGlyphs: the trainer card art (/sprites); without fetchJson the live runs stay name plates.
+// fetchJson, loadGlyphSheet, drawGlyphs: optional trainer card artwork (/sprites).
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number; fetchJson?(url: string): Promise<unknown>; loadGlyphSheet?(url: string): Promise<GlyphSheet | null>; drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void }
+// Calendar dates use the operator's timezone, independent of browser/server timezone and DST.
+const runDateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
+function runDate(started: string | null): string | null {
+  const at = Date.parse(started ?? "");
+  if (!Number.isFinite(at)) return null;
+  const parts = runDateFormat.formatToParts(at), part = (type: string): string => parts.find(p => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 const HOVER_EVENTS = ["mouseover", "mouseout", "focusin", "focusout"] as const;
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -43,6 +41,8 @@ export class Workbench {
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
   private detailHtml: string | null = null;
+  private versionKey = "";
+  private plotKey = "";
   private versions: VersionIndex = { versions: [], byRun: new Map() };
   private descriptions: SwitchDescriptions = new Map();
   private catalog: Promise<void> | null = null;
@@ -61,6 +61,8 @@ export class Workbench {
   private overlay = "all";
   private model = "all";
   private preset = "all";
+  private dateFrom = "";
+  private dateThrough = "";
   private zoom = true;
   private hideTimeOutliers = true;
   private runLanes: RunLanes | LaneUnknown = "loading";
@@ -92,7 +94,14 @@ export class Workbench {
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
-      this.data = data; this.versions = frontierVersions(data.runs, this.versionColors); for (const v of this.versions.versions) this.versionColors.set(v.key, v.color); this.verified = true;
+      this.data = data;
+      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.started, r.config, r.problem, r.excluded, r.measurement?.controller]));
+      if (versionKey !== this.versionKey) {
+        this.versions = frontierVersions(data.runs, this.versionColors);
+        for (const v of this.versions.versions) this.versionColors.set(v.key, v.color);
+        this.versionKey = versionKey;
+      }
+      this.verified = true;
       if (!this.initialized) {
         this.scope = "all"; this.initialized = true;
       }
@@ -113,32 +122,22 @@ export class Workbench {
   clock(): void {
     if (!this.active()) return;
     if (this.cards()) return;
-    const host = this.ui("current"), template = this.doc.createElement("template");
-    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back, this.runLanes);
-    // Plates are reconciled by run id and patched field by field, so a focused plate link survives clock
-    // ticks and other runs joining or leaving, and the blinking NEW MILESTONE! chip is not re-created
-    // (restarting its animation) every tick.
-    const list = host.querySelector(".wb-plates"), nextList = template.content.querySelector(".wb-plates");
-    const head = host.querySelector(".wb-party-head"), nextHead = template.content.querySelector(".wb-party-head");
-    if (list === null || nextList === null || head === null || nextHead === null || this.verified !== (host.querySelector(".wb-notice") === null)) {
-      if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
+    const host = this.ui("current"), live = this.verified ? liveOrPaused(this.data.runs) : [];
+    if (live.length === 0) {
+      const html = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + backToViewer(this.back);
+      if (host.innerHTML !== html) host.innerHTML = html;
       return;
     }
-    patchFields(head, nextHead);
-    const wanted = [...nextList.querySelectorAll<HTMLAnchorElement>(".wb-plate")], keep = new Set(wanted.map(p => p.getAttribute("href")));
-    const existing = new Map<string | null, HTMLAnchorElement>();
-    for (const plate of list.querySelectorAll<HTMLAnchorElement>(".wb-plate")) { if (keep.has(plate.getAttribute("href"))) existing.set(plate.getAttribute("href"), plate); else plate.remove(); }
-    let cursor = list.firstElementChild;
-    for (const fresh of wanted) {
-      const old = existing.get(fresh.getAttribute("href"));
-      if (old === undefined) { list.insertBefore(fresh, cursor); continue; }
-      if (old.className !== fresh.className) old.className = fresh.className;
-      if (!patchFields(old, fresh)) old.replaceChildren(...fresh.childNodes);
-      if (cursor === old) cursor = old.nextElementSibling; else list.insertBefore(old, cursor);
+    if (host.querySelector(".wb-card-row") === null) host.innerHTML = `<div class="wb-party">${partyHead(live)}<p class="wb-notice">Trainer artwork unavailable. You can still watch each run.</p><div class="wb-card-row"></div></div>`;
+    const head = host.querySelector(".wb-party-head"), row = host.querySelector(".wb-card-row"), nextHead = partyHead(live);
+    if (head !== null && head.outerHTML !== nextHead) head.outerHTML = nextHead;
+    if (row !== null) {
+      const focused = row.contains(this.doc.activeElement) ? this.doc.activeElement?.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
+      syncCards(row, currentRunLinks(live, this.runLanes), this.cardMemo);
+      if (focused !== undefined) row.querySelector<HTMLElement>(`[data-watch="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
     }
   }
-  // With the card art, the live runs are the viewer's trainer cards (linking to the viewer), each with its lane and
-  // warnings under it; false when the plates should be drawn instead.
+  // Trainer cards share the viewer design; missing artwork uses ordinary Watch links.
   private cards(): boolean {
     const loaded = this.art, live = this.verified ? liveOrPaused(this.data.runs) : [];
     if (loaded === null || live.length === 0) return false;
@@ -165,7 +164,11 @@ export class Workbench {
     this.doc.removeEventListener("toggle", this.onToggle, true); for (const type of HOVER_EVENTS) this.doc.removeEventListener(type, this.onHover);
   }
   private filtered(): WorkbenchRun[] {
-    return this.data.runs.filter(r => (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset));
+    const dated = this.dateFrom !== "" || this.dateThrough !== "";
+    return this.data.runs.filter(r => {
+      const day = dated ? runDate(r.started) : null;
+      return (!dated || (day !== null && (this.dateFrom === "" || day >= this.dateFrom) && (this.dateThrough === "" || day <= this.dateThrough))) && (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset);
+    });
   }
   private renderCharts(): void {
     const runs = this.filtered(), width = this.deps.width();
@@ -176,7 +179,26 @@ export class Workbench {
     replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status, this.descriptions));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
-    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers);
+    const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
+      id: run.id, model: run.model, status: run.status, problem: run.problem, excluded: run.excluded,
+      config: run.config, splits: run.splits,
+      measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features },
+    };
+    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers, this.hideTimeOutliers ? this.data.runs.map(run => [run.id, run.splits]) : null]);
+    if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }
+    const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
+    const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;
+    const replayHref = active?.tagName === "A" && coverage?.contains(active) === true ? active.getAttribute("href") : null;
+    plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers, this.data.runs);
+    this.plotKey = plotKey;
+    const nextCoverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
+    if (nextCoverage !== null) {
+      nextCoverage.open = coverageOpen;
+      if (coverageFocused || replayHref !== null) {
+        const replay = replayHref === null ? null : [...nextCoverage.querySelectorAll("a")].find(link => link.getAttribute("href") === replayHref);
+        (replay ?? nextCoverage.querySelector("summary"))?.focus({ preventScroll: true });
+      }
+    }
     const outliers = this.doc.querySelector<HTMLButtonElement>("[data-frontier-outliers]"), chart = this.ui("frontier-full").querySelector<SVGElement>("[data-hidden-outliers]");
     if (outliers !== null) {
       const count = chart?.dataset.hiddenOutliers ?? "0";
@@ -194,6 +216,9 @@ export class Workbench {
   private isolate(id: string | null): void { this.isolated = id === this.isolated ? null : id; this.renderCharts(); }
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.hasAttribute("data-frontier-outliers") ? this.hideTimeOutliers : (button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
+    const dateProblem = this.ui("date-problem"), reversed = this.dateFrom !== "" && this.dateThrough !== "" && this.dateFrom > this.dateThrough;
+    dateProblem.hidden = !reversed; dateProblem.textContent = reversed ? "From must be on or before Through." : "";
+    for (const name of ["date-from", "date-through"]) this.ui(name).setAttribute("aria-invalid", String(reversed));
     // Newest experiment first: each entry is placed by its first trial; undated entries go last.
     const first = new Map<string, number>();
     for (const r of this.data.runs) if (r.cohort !== null) { const at = Date.parse(r.started ?? ""), prior = first.get(r.cohort); first.set(r.cohort, prior === undefined || Number.isNaN(prior) || at < prior ? at : prior); }
@@ -241,6 +266,11 @@ export class Workbench {
     const version = target.closest<HTMLElement>("[data-ver]");
     if (version !== null) { const inner = target.closest("details, summary, a, button"); if (inner === null || !version.contains(inner)) this.isolate(version.dataset.ver ?? null); return; }
     if (target.closest("[data-frontier-outliers]") !== null) { this.hideTimeOutliers = !this.hideTimeOutliers; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
+    if (target.closest("[data-clear-dates]") !== null) {
+      this.dateFrom = ""; this.dateThrough = "";
+      for (const name of ["date-from", "date-through"]) (this.ui(name) as HTMLInputElement).value = "";
+      this.render(); return;
+    }
     const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };
@@ -277,15 +307,15 @@ export class Workbench {
     this.hovered = hovered; this.focus();
   };
   private onChange = (event: Event): void => {
-    const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
+    const element = event.target as HTMLSelectElement | HTMLInputElement; const name = element.dataset.wb;
+    if (name === "date-from") this.dateFrom = element.value; else if (name === "date-through") this.dateThrough = element.value; else if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
     this.render();
   };
 }
 export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
-    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
+    fetchSnapshot: createWorkbenchClient(async (url) => { const response = await win.fetch(url, { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; }),
     fetchFeatures: async () => { const response = await win.fetch("/api/features"); if (!response.ok) throw new Error(`Feature catalog request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
     fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; },

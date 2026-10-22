@@ -9,7 +9,7 @@ import { defaultViewerBuild, gitRelation, readBuildStamp, skewOf, viewerBuildAt,
 import { createWorkbenchLoader, loadRun, workbenchSnapshot, type LoadedRun } from "./workbench-store.js";
 import { createWorkbenchStore, type RunStore } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
-import { currentRunHtml } from "./workbench-view.js";
+import { currentRunLinks } from "./workbench-view.js";
 import { startViewer, type Viewer } from "./server.js";
 
 const RUN_COMMIT = START.harness.commit;
@@ -121,7 +121,7 @@ describe("a run from a newer build than the viewer", () => {
     expect(by("end")?.problem).toContain("invalid run_end event");
     expect(by("envelope")?.problem).toContain("line 4: invalid state event");
   });
-  it("keys persisted runs by the viewer build, so another build never reuses them", async () => {
+  it("reuses parser-scoped raw records across builds and reapplies current skew policy", async () => {
     const r = root(), lines = newerRun();
     lines.push(JSON.stringify({ v: 1, run: "newer", seq: 5, t: "2026-10-11T22:00:06.000-04:00", turn: 1, type: "run_end", reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }));
     write(r, "newer", lines);
@@ -130,6 +130,17 @@ describe("a run from a newer build than the viewer", () => {
     expect((await snapshot(r, older, store)).runs[0]).toMatchObject({ status: "ended", problem: expect.stringContaining("restart the viewer") as unknown });
     expect((await snapshot(r, older, store)).runs[0]?.status).toBe("ended");
     expect((await snapshot(r, same, store)).runs[0]?.status).toBe("invalid");
+  });
+  it("does not reread a completed log after an unrelated viewer commit", async () => {
+    const r = root(); write(r, "done", fullRun().events.map(e => JSON.stringify({ ...e, run: "done" })));
+    const store = createWorkbenchStore(join(dirname(r), "cache"));
+    const first = createWorkbenchLoader({ build: same, store });
+    const expected = await first.load(r, "done");
+    expect(expected.run.status).toBe("ended");
+    let reads = 0;
+    const restarted = createWorkbenchLoader({ build: older, store, compute: () => { reads++; return Promise.reject(new Error("log reread")); } });
+    expect((await restarted.load(r, "done")).run).toEqual(expected.run);
+    expect(reads).toBe(0);
   });
   it("gives a worker the build stamp as plain data and refuses a malformed one", () => {
     const r = root(); write(r, "newer", newerRun());
@@ -143,10 +154,10 @@ describe("a run from a newer build than the viewer", () => {
     expect(handleBaselineRequest({ id: 3, kind: "workbench", runsRoot: r, runId: "newer", viewer: 7 })).toEqual({ id: -1, failure: "invalid baseline request" });
   });
   it("shows the problem on the current-run plate", () => {
-    const html = currentRunHtml([wbRun({ status: "live", problem: "viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main) <x>" })], 1000, 2000, null);
+    const html = currentRunLinks([wbRun({ status: "live", problem: "viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main) <x>" })], "unavailable").join("");
     expect(html).toContain('data-current-field="problem"');
     expect(html).toContain("restart the viewer (just viewer-main) &lt;x&gt;");
-    expect(currentRunHtml([wbRun({ status: "live" })], 1000, 2000, null)).not.toContain('data-current-field="problem"');
+    expect(currentRunLinks([wbRun({ status: "live" })], "unavailable").join("")).not.toContain('data-current-field="problem"');
   });
 });
 

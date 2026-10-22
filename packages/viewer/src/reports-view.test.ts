@@ -33,8 +33,8 @@ describe("the report list", () => {
 describe("the report card", () => {
   it("draws the trainer card top with the frontier run's trainer, tier from the frontier, STORY bar and the verdict sheet", () => {
     const html = detailHtml(top50, 2, ART);
-    expect(html).toContain("/sprites/card/wide-gold.png"); expect(html).toContain("/sprites/trainers/norman.png");
-    expect(html).toContain("OCT 17 · No.002"); expect(html).toContain(">39/45<"); expect(html).toContain("Aqua woods event");
+    expect(html).toContain("/sprites/card/wide-silver.png"); expect(html).toContain("/sprites/trainers/norman.png");
+    expect(html).toContain("OCT 17 · No.002"); expect(html).toContain(">39/49<"); expect(html).toContain("Aqua woods event");
     expect(html).toContain("The harness is helping."); expect(html).toContain("<dt>Bundle vs control</dt><dd>8–0</dd>");
     expect(html).toContain('href="/reports?open=2026-10-17_top50"');
   });
@@ -116,9 +116,9 @@ describe("the header chips", () => {
   const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLElement>('header.bar nav.nav-chips[aria-label="Pages"] .nav-chip')]
     .map(a => [a.tagName, a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
   // The current page is not a link: following it would drop ?from= (the stats page's way back to a run) or ?open=.
-  it("show the same two pages on both headers, the current one filled and not a link", () => {
-    expect(chips(STATS)).toEqual([["SPAN", "RUNS & COMPARISONS", "", "page"], ["A", "REPORTS", "/reports", ""]]);
-    expect(chips(PAGE)).toEqual([["A", "RUNS & COMPARISONS", "/comparisons", ""], ["SPAN", "REPORTS", "", "page"]]);
+  it("show the same pages on both headers, the current one filled and not a link", () => {
+    expect(chips(STATS)).toEqual([["SPAN", "RUNS & COMPARISONS", "", "page"], ["A", "REPORTS", "/reports", ""], ["A", "PROBES", "/probes", ""]]);
+    expect(chips(PAGE)).toEqual([["A", "RUNS & COMPARISONS", "/comparisons", ""], ["SPAN", "REPORTS", "", "page"], ["A", "PROBES", "/probes", ""]]);
     expect(STATS).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("rp-here");
   });
   it("style a link as the outline of the filled chip", () => {

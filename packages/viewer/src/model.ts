@@ -1,7 +1,12 @@
+import { roxanneFirstInteraction } from "./roxanne-interaction.js";
 // A run's events folded into what the panels show. Shared by the browser and
 // tests; it imports only types from the agent's schema.
 import type { RunEvent } from "@pokebench/agent/events";
 import { eventMs, hms, num } from "./format.js";
+
+// drought-battle-heal-hold-v1: the message prefix of a held drought briefing (packages/agent/src/stall-briefing.ts).
+const HELD_DROUGHT = "Not sent (drought-battle-heal-hold-v1): ";
+const SUPPRESSED_DROUGHT = "Not sent (milestone-drought-suppression-v1): ";
 
 type Of<T extends RunEvent["type"]> = Extract<RunEvent, { type: T }>;
 export type RunStartEvent = Of<"run_start">;
@@ -81,9 +86,14 @@ const KNOWN: Record<RunEvent["type"], true> = {
   people_id_card: true,
   loop_breaker: true,
   stall_gate: true,
+  unfinished_activity: true,
+  trainer_sight_check: true,
+  story_battle_heal_gate: true,
+  heal_first_line: true,
   auto_talk: true,
   story_battle_warning: true,
   heal_before_trainers_warning: true,
+  gym_heal_warning: true,
   story_goal_away: true,
   destination_citation: true,
   dialogue_auto_advance: true,
@@ -132,7 +142,7 @@ function routeHomeOf(state: StateEvent): string | null {
   return witnessed ?? (saved && clockSet(state) === true ? houseFamily(state.location, "1F") ?? houseFamily(state.location, "2F") : null);
 }
 
-export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "RIVAL_HOUSE_EXITED", "BIRCH_RESCUE_REQUESTED", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "ROUTE_101_AFTER_HANDOFF", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_BATTLE_WON", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL", "ROUTE_102", "ROUTE_102_TRAINER_CALVIN_DEFEATED", "ROUTE_102_TRAINER_RICK_DEFEATED", "ROUTE_102_TRAINER_TIANA_DEFEATED", "ROUTE_102_TRAINER_ALLEN_DEFEATED", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "ROUTE_104_TRAINER_IVAN_DEFEATED", "ROUTE_104_TRAINER_BILLY_DEFEATED", "ROUTE_104_TRAINER_HALEY_DEFEATED", "ROUTE_104_TRAINER_WINSTON_DEFEATED", "ROUTE_104_TRAINER_CINDY_DEFEATED", "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", "ROUTE_104_TRAINER_DARIAN_DEFEATED", "PETALBURG_WOODS", "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED", "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED", "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROUTE_115", "ROUTE_116", "ROUTE_116_TRAINER_JOEY_DEFEATED", "ROUTE_116_TRAINER_JOSE_DEFEATED", "ROUTE_116_TRAINER_JERRY_DEFEATED", "ROUTE_116_TRAINER_CLARK_DEFEATED", "ROUTE_116_TRAINER_JANICE_DEFEATED", "ROUTE_116_TRAINER_KAREN_DEFEATED", "ROUTE_116_TRAINER_SARAH_DEFEATED", "ROUTE_116_TRAINER_DAWSON_DEFEATED", "ROUTE_116_TRAINER_DEVAN_DEFEATED", "ROUTE_116_TRAINER_JOHNSON_DEFEATED", "RUSTURF_TUNNEL", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
+export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "RIVAL_HOUSE_EXITED", "BIRCH_RESCUE_REQUESTED", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "ROUTE_101_AFTER_HANDOFF", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_BATTLE_WON", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL", "ROUTE_102", "ROUTE_102_TRAINER_CALVIN_DEFEATED", "ROUTE_102_TRAINER_RICK_DEFEATED", "ROUTE_102_TRAINER_TIANA_DEFEATED", "ROUTE_102_TRAINER_ALLEN_DEFEATED", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "ROUTE_104_TRAINER_IVAN_DEFEATED", "ROUTE_104_TRAINER_BILLY_DEFEATED", "ROUTE_104_TRAINER_HALEY_DEFEATED", "ROUTE_104_TRAINER_WINSTON_DEFEATED", "ROUTE_104_TRAINER_CINDY_DEFEATED", "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", "ROUTE_104_TRAINER_DARIAN_DEFEATED", "PETALBURG_WOODS", "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED", "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED", "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROUTE_115", "ROUTE_116", "ROUTE_116_TRAINER_JOEY_DEFEATED", "ROUTE_116_TRAINER_JOSE_DEFEATED", "ROUTE_116_TRAINER_JERRY_DEFEATED", "ROUTE_116_TRAINER_CLARK_DEFEATED", "ROUTE_116_TRAINER_JANICE_DEFEATED", "ROUTE_116_TRAINER_KAREN_DEFEATED", "ROUTE_116_TRAINER_SARAH_DEFEATED", "ROUTE_116_TRAINER_DAWSON_DEFEATED", "ROUTE_116_TRAINER_DEVAN_DEFEATED", "ROUTE_116_TRAINER_JOHNSON_DEFEATED", "RUSTURF_TUNNEL", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_FIRST_INTERACTION", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
 
 // Mirrors the agent's DEPTH_ORDER (model.test.ts checks it); the page cannot import the agent package.
 const ACTIVITY_MILESTONES: ReadonlySet<string> = new Set(["FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL"]);
@@ -229,7 +239,8 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
-  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[]; emulatorFrame?:number }[] = [];
+  private roxanneNegativeBaseline = false;
+  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[]; emulatorFrame?:number; screenshotEvidence?: readonly {seq:number;path:string;sha1:string}[] }[] = [];
   readonly nativeActions: Of<"native_action">[] = [];
   readonly activities: Of<"activity">[] = [];
   readonly battleChoices: Of<"battle_choice">[] = [];
@@ -261,7 +272,7 @@ export class RunView {
   }
 
   loopLabel(event: Of<"loop_guard">): string {
-    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated" } as const;
+    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated", same_target_no_progress: "Same target, no progress" } as const;
     const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
     const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
     const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase === "supervisor" ? "supervisor message sent to the model" : event.phase;
@@ -332,13 +343,15 @@ export class RunView {
       case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|RIVAL_BATTLE_STARTED|RIVAL_BATTLE_DEFEATED|RIVAL_OLDALE_SEND_OFF|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_FIRST_INTERACTION|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|RIVAL_BATTLE_STARTED|RIVAL_BATTLE_DEFEATED|RIVAL_OLDALE_SEND_OFF|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
       }
       case "loop_guard":
-        this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        // same-target-no-progress-v1 stays off the closed timeline (operator decision 2026-10-16), and so do the drought
+        // briefings drought-battle-heal-hold-v1 held (Activity History and the inspector only).
+        if (event.kind !== "same_target_no_progress" && !event.message.startsWith(HELD_DROUGHT) && !(event.kind === "milestone_drought" && "mode" in event && event.mode === "diagnostic" && event.phase === "would_warn" && event.message.startsWith(SUPPRESSED_DROUGHT))) this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "text_only_supervisor":
         this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });
@@ -444,6 +457,11 @@ export class RunView {
     // bound at their first recorded observation, not an exact defeat timestamp.
     if (this.start !== null && !this.start.harness_features.includes("native-progress-activity-v1") && event.started && event.screen !== "field_transition" && event.screen !== "unknown" && !event.in_battle && event.story?.roxanne_defeated === undefined && event.story?.rustboro_gym_complete === true && event.story.stone_badge === true && !this.milestones.some(mark => mark.name === "ROXANNE_DEFEATED")) {
       this.milestones.push({ name: "ROXANNE_DEFEATED", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: previous === null || this.start.start_state.kind !== "boot" ? "present_at_start" : "observed", evidence: [event.seq] });
+    }
+    const roxanneInteraction = roxanneFirstInteraction(event);
+    if (roxanneInteraction === false) this.roxanneNegativeBaseline = true;
+    if (this.start !== null && !this.start.harness_features.includes("roxanne-first-interaction-v1") && roxanneInteraction === true && !this.milestones.some(mark => mark.name === "ROXANNE_FIRST_INTERACTION")) {
+      this.milestones.push({name:"ROXANNE_FIRST_INTERACTION",ms:eventMs(event),seq:event.seq,derived:true,kind:"story",origin:this.start.start_state.kind === "boot" || this.roxanneNegativeBaseline ? "observed" : "present_at_start",evidence:[event.seq]});
     }
     this.recoverPostClockRoute(event);
     this.recoverRoute101Return(event);

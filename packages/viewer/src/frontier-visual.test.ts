@@ -63,3 +63,9 @@ it("bounds the actual image behind an allowed in-run symlink",()=>{
  writeFileSync(target,"");truncateSync(target,2*1024*1024+1);unlinkSync(image);symlinkSync(target,image);
  expect(()=>visualEvidenceSignature(f.path)).toThrow("exceeds bounds");
 });
+it("supports a reviewed first Roxanne introduction without conflating it with a victory",()=>{
+ const f=setup();f.save({...f.plan,method:"reviewed-game-screens",milestones:f.plan.milestones.map(m=>({...m,name:"ROXANNE_FIRST_INTERACTION"}))});
+ const result=readNativeRecording(f.path,f.plan.run??"",qualifiedNativeMilestone);
+ expect(result.splits).toMatchObject([{name:"ROXANNE_FIRST_INTERACTION",derived:true,screenshotEvidence:[{seq:1}]}]);
+ expect(result.splits.some(m=>m.name==="ROXANNE_DEFEATED")).toBe(false);
+});

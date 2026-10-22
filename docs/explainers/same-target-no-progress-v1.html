@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same target, no progress</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#b07a12;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e2b25a}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+</style>
+<style id="pb-emerald">
+/* PokeBench Emerald page theme: the viewer's PokéNav look for reports and explainers.
+   Layered after a page's own CSS. Pixel font for headings and labels, system fonts for prose.
+   Frame colours: graphics/text_window/1.png (text window frame 1). Screen, ring and bar colours: the viewer's PokéNav. */
+@font-face{font-family:'Press Start 2P';font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2')}
+body,body *{
+  --bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;
+}
+html{background:#4a9fd8!important;color-scheme:light!important}
+:where(main){max-width:1080px}
+body{
+  --pb-px:'Press Start 2P',ui-monospace,monospace;--pb-ink:#283038;--pb-red:#c83030;--pb-blue:#345779;--pb-navy:#1e2c44;--pb-gold:#ffd447;
+  --pb-gut:36px;--pb-ring:10px;--pb-head:30px;
+  margin:0!important;padding:0 0 48px!important;max-width:none!important;min-height:100vh;isolation:isolate;color:var(--pb-ink)!important;
+  background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px)!important;
+}
+body::before{
+  content:'POKéBENCH';display:block;padding:12px 18px;background:var(--pb-navy);color:var(--pb-gold);
+  font:10px/1.4 var(--pb-px);letter-spacing:.04em;box-shadow:0 3px 0 #22476e;
+}
+main{
+  position:relative;box-sizing:border-box!important;width:calc(100% - 2 * var(--pb-gut))!important;
+  margin:64px auto 24px!important;padding:28px 30px 40px!important;
+  background:#f8f8f8!important;color:var(--pb-ink)!important;border:4px solid #283038!important;border-radius:12px!important;box-shadow:none!important;
+}
+main::before{
+  content:'POKéNAV';position:absolute;z-index:-1;box-sizing:border-box;
+  top:calc(-8px - var(--pb-head));left:calc(-8px - var(--pb-ring));right:calc(-8px - var(--pb-ring));bottom:calc(-8px - var(--pb-ring));
+  padding:calc((var(--pb-head) - 9px) / 2 + 2px) 16px 0;background:#e04848;border:4px solid #8a2020;border-radius:22px;
+  box-shadow:0 6px 0 #6a1818;color:#fff;font:9px/1 var(--pb-px);letter-spacing:.04em;
+}
+main h1{
+  font:clamp(13px,2.2vw,18px)/1.7 var(--pb-px)!important;color:var(--pb-gold)!important;background:var(--pb-navy);
+  margin:0 0 14px!important;padding:14px 16px!important;border-radius:8px;box-shadow:0 4px 0 #22476e;overflow-wrap:anywhere;
+}
+main h2{
+  font:13px/1.7 var(--pb-px)!important;color:var(--pb-red)!important;letter-spacing:.02em;
+  margin:44px 0 12px!important;padding:0 0 10px!important;border:0!important;border-bottom:4px double #9fb2c8!important;
+  display:block!important;background:none!important;border-radius:0!important;
+}
+main h3{font:10.5px/1.8 var(--pb-px)!important;color:var(--pb-blue)!important;margin:26px 0 8px!important;border:0!important}
+main h4{font:9px/1.8 var(--pb-px)!important;color:var(--pb-blue)!important;margin:18px 0 6px!important;border:0!important}
+main a{color:#2a62b8}
+main :is(.card,.box,.tile,.chartbox,details):not(svg *){
+  background:#ffffff!important;border:2px solid #293131!important;border-radius:6px!important;padding:18px 20px!important;
+  box-shadow:inset 0 0 0 2px #4a4a6a,inset 0 4px 0 0 #8b8bcd,inset 0 0 0 8px #736a83,inset 0 0 0 10px #ded5de!important;
+}
+main details>summary{font:9px/1.8 var(--pb-px)!important;color:var(--pb-red)!important;list-style:none;cursor:pointer}
+main details>summary::-webkit-details-marker{display:none}
+main details>summary::before{content:'▶ ';color:var(--pb-ink)}
+main details[open]>summary::before{content:'▼ '}
+main .kpi:not(svg *){
+  background:var(--pb-navy)!important;color:#dfe8f5!important;border:3px solid #3a6ea5!important;border-radius:10px!important;
+  box-shadow:0 4px 0 #22476e!important;padding:12px 14px!important;
+}
+main .kpi :is(span,small,.sub){color:#b8c7dc!important}
+main :is(.kpi>b,.tile>b,.key .n){font-family:var(--pb-px)!important;font-size:14px!important;line-height:1.6!important;font-weight:400!important}
+main .kpi>b{color:var(--pb-gold)!important}
+main :is(.tile>b,.key .n){color:var(--pb-red)!important}
+main :is(.tbl,.table,.scroll,.wide):not(svg *){border:2px solid #9fb2c8!important;border-radius:8px!important;background:#fff!important}
+main table:not(svg *){background:#fff}
+main th:not(svg *){
+  font:8px/1.9 var(--pb-px)!important;color:var(--pb-blue)!important;background:#e8eef6!important;
+  border-bottom:2px solid #9fb2c8!important;letter-spacing:.02em;overflow-wrap:normal!important;word-break:normal!important;
+}
+main td:not(svg *){border-bottom:1px solid #dbe3ee!important}
+main code:not(pre code){background:#eef3fa!important;color:#1e2c44!important;border:1px solid #d3deec!important;border-radius:4px!important}
+main pre:not(svg *){overflow-x:auto;max-width:100%;background:var(--pb-navy)!important;color:#dfe8f5!important;border:0!important;border-radius:8px!important}
+main pre code{background:none!important;color:inherit!important;border:0!important}
+main blockquote{
+  border:3px solid #4870a0!important;border-radius:8px!important;background:#fff!important;color:var(--pb-ink)!important;
+  outline:2px solid #a0c0f0;outline-offset:-6px;padding:12px 16px!important;
+}
+main :is(.tag,.rank,.chip,.pill,.badge):not(svg *){font-family:var(--pb-px)!important;font-size:8px!important;line-height:1.9!important;font-weight:400!important}
+main .rank:not(svg *){background:var(--pb-gold)!important;color:var(--pb-ink)!important;border:2px solid var(--pb-ink)!important;border-radius:4px!important}
+main hr{border:0;border-top:4px double #9fb2c8}
+@media (max-width:640px){
+  body{--pb-gut:22px;--pb-ring:8px}
+  main{padding:20px 14px 28px!important;margin-top:58px!important}
+  main h2{font-size:11px!important}
+  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important;min-width:0;max-width:100%}
+  main table:not(svg *){display:block;overflow-x:auto;max-width:100%}
+  main code:not(pre code){overflow-wrap:anywhere}
+}
+</style>
+</head>
+<body><main>
+<h1>Same target, no progress</h1>
+<p class="muted"><code>same-target-no-progress-v1</code> · guard · needs <code>deterministic-loop-guard-v1</code> · bundle-only, default off · guard approved by the operator 2026-10-20</p>
+<p>In control run <code>2026-10-20T16-14-34_qwen36-gpu0_a8f9</code>, from turn 1282 (6:42 PM New York) the model called <code>navigate_to {x:29, y:16, map_id:[24,4]}</code> again and again in RUSTURF TUNNEL: 39 times, then 12 or more times to (18,20). From turn 1282 to 1322 each walk hit the 8-button command limit or was stopped by a wild battle, and every one ended on one of six tiles within 3 tiles of (4,9). No loop guard fired; only the 5-minute milestone-drought briefing did, at turns 1309 and 1340.</p>
+
+<h2>Where the walks ended</h2>
+<figure>
+<svg viewBox="0 0 640 300" width="640" height="300" role="img" aria-label="Tiles near (4,9): the six end tiles inside the 3-tile radius of the anchor">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<g transform="translate(40,20)">
+<!-- 7 columns x=1..7, 6 rows y=5..10; 36px tiles -->
+<g stroke="var(--line)" fill="none">
+<rect x="0" y="0" width="252" height="216"/>
+</g>
+<g font-size="11">
+<text x="12" y="232" class="small">x=1</text><text x="48" y="232" class="small">2</text><text x="84" y="232" class="small">3</text><text x="120" y="232" class="small">4</text><text x="156" y="232" class="small">5</text><text x="192" y="232" class="small">6</text><text x="228" y="232" class="small">7</text>
+<text x="-34" y="22" class="small">y=5</text><text x="-20" y="58" class="small">6</text><text x="-20" y="94" class="small">7</text><text x="-20" y="130" class="small">8</text><text x="-20" y="166" class="small">9</text><text x="-20" y="202" class="small">10</text>
+</g>
+<!-- within-3 diamond around (4,9): cells with |dx|+|dy|<=3 shaded -->
+<g fill="var(--fill)" stroke="var(--line)">
+<rect x="108" y="36" width="36" height="36"/>
+<rect x="72" y="72" width="36" height="36"/><rect x="108" y="72" width="36" height="36"/><rect x="144" y="72" width="36" height="36"/>
+<rect x="36" y="108" width="36" height="36"/><rect x="72" y="108" width="36" height="36"/><rect x="108" y="108" width="36" height="36"/><rect x="144" y="108" width="36" height="36"/><rect x="180" y="108" width="36" height="36"/>
+<rect x="0" y="144" width="36" height="36"/><rect x="36" y="144" width="36" height="36"/><rect x="72" y="144" width="36" height="36"/><rect x="108" y="144" width="36" height="36"/><rect x="144" y="144" width="36" height="36"/><rect x="180" y="144" width="36" height="36"/><rect x="216" y="144" width="36" height="36"/>
+<rect x="36" y="180" width="36" height="36"/><rect x="72" y="180" width="36" height="36"/><rect x="108" y="180" width="36" height="36"/><rect x="144" y="180" width="36" height="36"/><rect x="180" y="180" width="36" height="36"/>
+</g>
+<!-- end tiles (4,7) (5,7) (4,8) (5,8) (4,9) (5,9) -->
+<g fill="var(--warn)" opacity="0.85">
+<circle cx="126" cy="90" r="9"/><circle cx="162" cy="90" r="9"/>
+<circle cx="126" cy="126" r="9"/><circle cx="162" cy="126" r="9"/>
+<circle cx="162" cy="162" r="9"/>
+</g>
+<rect x="111" y="147" width="30" height="30" fill="none" stroke="var(--accent)" stroke-width="3"/>
+<circle cx="126" cy="162" r="9" fill="var(--warn)" opacity="0.85"/>
+<line x1="252" y1="162" x2="330" y2="200" stroke="var(--muted)" stroke-dasharray="5 4" marker-end="url(#a)"/>
+</g>
+<text x="380" y="212">target (29,16): 32 tiles away</text>
+<text x="380" y="60">■ anchor (4,9): where turn 1282's</text>
+<text x="396" y="78">navigate_to began</text>
+<text x="380" y="108">● the six tiles every call ended on</text>
+<text x="380" y="138">shaded: within 3 tiles (Manhattan)</text>
+<text x="380" y="156">of the anchor, so a call ending</text>
+<text x="380" y="174">there counts</text>
+</svg>
+<figcaption>Every navigate_to to (29,16) from turn 1282 ended on one of (4,7) (4,8) (4,9) (5,7) (5,8) (5,9), at most 3 tiles from (4,9). A call that ends 4 or more tiles from the anchor resets that target instead of counting.</figcaption>
+</figure>
+
+<h2>Why the existing guards missed it</h2>
+<div class="tablewrap"><table>
+<tr><th>Guard</th><th>What it needs</th><th>a8f9</th></tr>
+<tr><td><code>ineffective-loops-v1</code></td><td>alternating targets ending on at most 2 tiles; resets on battles</td><td>one target, six tiles, a battle every few calls</td></tr>
+<tr><td>deterministic loop guard, same target</td><td>no movement between calls</td><td>each call moved the player a tile or two</td></tr>
+<tr><td><code>ineffective-navigation-v2</code></td><td>walks ending on the start tile; resets on any battle</td><td>walks ended on a different tile</td></tr>
+<tr><td><code>duplicate-turn-collapse-v1</code></td><td>identical turns</td><td>turns differed (battles, positions)</td></tr>
+</table></div>
+
+<h2>How the count runs</h2>
+<figure>
+<svg viewBox="0 0 860 190" width="860" height="190" role="img" aria-label="Counted calls from turn 1282 to 1292 with warnings on the 4th and 8th">
+<g font-size="12">
+<text x="10" y="20" class="small">turn</text>
+<text x="10" y="70" class="small">call</text>
+<text x="10" y="128" class="small">count</text>
+</g>
+<g>
+<!-- 11 columns from turn 1282 to 1292, 70px apart starting x=60 -->
+<text x="60" y="20">1282</text><text x="130" y="20">1283</text><text x="200" y="20">1284</text><text x="270" y="20">1285</text><text x="340" y="20">1286</text><text x="410" y="20">1287</text><text x="480" y="20">1288</text><text x="550" y="20">1289</text><text x="620" y="20">1290</text><text x="690" y="20">1291</text><text x="760" y="20">1292</text>
+<rect x="58" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)"/><text x="64" y="58">walk</text><text x="64" y="76" class="small">(5,8)</text>
+<rect x="128" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)"/><text x="134" y="58">walk</text><text x="134" y="76" class="small">(4,7)</text>
+<rect x="198" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)"/><text x="204" y="58">walk</text><text x="204" y="76" class="small">battle (4,8)</text>
+<rect x="268" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/><text x="274" y="58">battle</text><text x="274" y="76" class="small">action</text>
+<rect x="338" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)"/><text x="344" y="58">walk</text><text x="344" y="76" class="small">(5,9)</text>
+<rect x="408" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)"/><text x="414" y="58">walk</text><text x="414" y="76" class="small">battle (5,9)</text>
+<rect x="478" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/><text x="484" y="58">battle</text><text x="484" y="76" class="small">action</text>
+<rect x="548" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)"/><text x="554" y="58">walk</text><text x="554" y="76" class="small">(5,7)</text>
+<rect x="618" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)"/><text x="624" y="58">walk</text><text x="624" y="76" class="small">battle (5,7)</text>
+<rect x="688" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/><text x="694" y="58">battle</text><text x="694" y="76" class="small">action</text>
+<rect x="758" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)"/><text x="764" y="58">walk</text><text x="764" y="76" class="small">(4,8)</text>
+<text x="80" y="128">1</text><text x="150" y="128">2</text><text x="220" y="128">3</text><text x="290" y="128" class="small">kept</text><text x="360" y="128" fill="var(--drop)">4</text><text x="430" y="128">5</text><text x="500" y="128" class="small">kept</text><text x="570" y="128">6</text><text x="640" y="128">7</text><text x="710" y="128" class="small">kept</text><text x="780" y="128" fill="var(--drop)">8</text>
+<rect x="330" y="140" width="76" height="40" rx="5" fill="none" stroke="var(--drop)"/><text x="338" y="158">note 1</text><text x="338" y="174" class="small">result 41310</text>
+<rect x="750" y="140" width="76" height="40" rx="5" fill="none" stroke="var(--drop)"/><text x="758" y="158">note 2</text><text x="758" y="174" class="small">result 41605</text>
+</g>
+</svg>
+<figcaption>Replaying a8f9's recorded events (seq 41060–43000) with the switch on: the 4th counted call (turn 1286, result seq 41310) opens the episode and the 8th (turn 1292, seq 41605) rebriefs it. battle_action calls and battles do not reset the count. Later notes land at turns 1296, 1302, 1308 and 1318.</figcaption>
+</figure>
+
+<h2>What resets and what does not</h2>
+<div class="tablewrap"><table>
+<tr><th>Event</th><th>Effect</th></tr>
+<tr><td>A wild battle, battle_action, presses in battle, an evolution or level-up screen, observe, navigate_to to another target</td><td>nothing: the count goes on (other targets keep their own counts)</td></tr>
+<tr><td>A counted-shape call ending 4 or more tiles from its anchor</td><td>that target starts over; the next call anchors it again</td></tr>
+<tr><td>A map change (the state's map), a story milestone, a changed known story flag, the target reached</td><td>every target starts over, and an open note closes (a <code>recovered</code> event)</td></tr>
+<tr><td>Any call that leaves the player in a free field 4 or more tiles from the warned target's anchor</td><td>the open note closes and that target starts over, so a note does not outlive a walk away by presses</td></tr>
+<tr><td>Errors, unknown or transition end states, a call ending on another map</td><td>not counted, no reset</td></tr>
+</table></div>
+<p>A call counts when it ends on the anchor's map with field controls free, in a battle (the position a battle state shows is the tile it started on) or with field controls locked. <code>navigate_to_target</code> calls count under their target's tile: a warp or interaction tile, or the object's tile in the state the call began from; a map connection has no tile and is not tracked. Reached means on the tile for navigate_to, within 1 tile for navigate_to_target.</p>
+
+<h2>What the model is told</h2>
+<p>With the switch off, nothing changes. With it on, the note below is the loop episode's briefing (with <code>loop-guard-supervisor-v1</code>; without it the same text sits inside the usual <code>LOOP GUARD (same_target_no_progress): …</code> line). It is shown at every model call while the episode is open, from turn 1287 (6:42 PM New York) here. Every clause comes from the recorded state and the harness's own result lines; it gives no order, no route and no place the game has not shown.</p>
+<div class="note off">OFF, turn 1287: (no loop guard text)</div>
+<div class="note on">ON, turn 1287:
+SUPERVISOR: Since turn 1282, when you were at (4,9), 4 of your navigate_to calls to (29,16) on RUSTURF TUNNEL (map 24/4) have ended within 3 tiles of (4,9). The latest 4 ended at (5,8), (4,7), (4,8) when a battle began, and (5,9). Their results said: "Navigation: command limit: stopped at (5,8) after 8 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (29,16); 8 ordinary button attempts."; "Navigation: command limit: stopped at (4,7) after 8 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (29,16); 8 ordinary button attempts."; "Navigation: walk interrupted: field controls were locked; after auto-advance: the battle action menu is ready (FIGHT, BAG, POKEMON, RUN); highlighted FIGHT; 1 ordinary button attempts."; "Navigation: command limit: stopped at (5,9) after 8 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (29,16); 8 ordinary button attempts.".</div>
+<p>The loop guard keeps one episode at a time. While this note is open, no other loop note or stall briefing is sent: in the a8f9 replay the milestone-drought briefing of turn 1309 would not have gone out. While another loop note is open, this one is not sent; it is recorded as a diagnostic <code>would_warn</code> event whose message starts "Not sent (another loop episode is open):".</p>
+<p>From the 8th counted call the note adds how many of all counted calls stopped when a battle began (turn 1292 here: "3 of the 8 stopped when a battle began."). Result lines are quoted whole, each once.</p>
+
+<h2>Wiring</h2>
+<figure>
+<svg viewBox="0 0 860 170" width="860" height="170" role="img" aria-label="Switch wiring from preset to loop guard event">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<rect x="10" y="20" width="150" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="20" y="42">FeatureSet</text><text x="20" y="62" class="small">preset / bundle arm</text>
+<line x1="160" y1="47" x2="192" y2="47" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="194" y="20" width="160" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="204" y="42">attachLoopGuard</text><text x="204" y="62" class="small">live.ts, decision-probe.ts</text>
+<line x1="354" y1="47" x2="386" y2="47" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="388" y="20" width="160" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="398" y="42">LoopCoordinator</text><text x="398" y="62" class="small">episode, notices</text>
+<line x1="548" y1="47" x2="580" y2="47" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="582" y="20" width="200" height="54" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2"/><text x="592" y="42">SameTargetNoProgress</text><text x="592" y="62" class="small">loop/same-target.ts (the change)</text>
+<line x1="468" y1="74" x2="468" y2="104" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="300" y="106" width="200" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="310" y="128">loop_guard event</text><text x="310" y="148" class="small">kind same_target_no_progress</text>
+<line x1="500" y1="133" x2="532" y2="133" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="534" y="106" width="250" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="544" y="128">Activity History, raw inspector</text><text x="544" y="148" class="small">not drawn on the closed TIMELINE</text>
+<line x1="388" y1="60" x2="170" y2="125" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="10" y="106" width="158" height="54" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="20" y="128">context()</text><text x="20" y="148" class="small">note at each model call</text>
+</svg>
+<figcaption>The switch travels from the run's FeatureSet through <code>attachLoopGuard</code> to the coordinator, which owns the counter. Its warnings are <code>loop_guard</code> events: Activity History and the raw-event inspector show them; the viewer does not add them to the timeline's errors lane (operator decision 2026-10-16).</figcaption>
+</figure>
+
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/same-target-no-progress</code>, not merged. Tests: counter unit cases, coordinator episode, the a8f9 replay above, registry and wiring, viewer Activity History without a timeline mark.</li>
+<li>Pending experiment <code>experiments/same-target-no-progress-v1.json</code> (not queued); joins the bundle arm of <code>bundle-v-control</code> and <code>bundle-cook-1h</code>, off in control.</li>
+<li>Not done: measured runs (only the operator approves and launches them).</li>
+</ul>
+</main></body>
+</html>

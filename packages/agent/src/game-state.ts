@@ -1,6 +1,7 @@
 import type { Static } from "typebox";
 import { Value } from "typebox/value";
-import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
+import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, LearnWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
+import { parseTrainerSight, type TrainerSightReply } from "./trainer-sight.js";
 
 export class GameStateError extends Error {
   override readonly name = "GameStateError";
@@ -14,8 +15,12 @@ export interface StateSource {
   battleChoices?(after:number):Promise<Static<typeof BattleJournalSchema>>;
   battleMessages?(after:number,signal?:AbortSignal):Promise<Static<typeof BattleTextJournalSchema>>;
   battleWait?(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>>;
+  // move-learn-tool-v1: held until the move-learning flow waits for input or leaves it (GET /pokebench/move-learn/wait).
+  moveLearnWait?(signal?:AbortSignal):Promise<Static<typeof LearnWaitSchema>>;
   // story-destinations-v1: the game's map table (GET /pokebench/places), validated by its reader.
   places?(signal?:AbortSignal):Promise<unknown>;
+  // trainer-sight-check-v1: which planned route tiles an unbeaten trainer can see (POST /pokebench/trainer-sight).
+  trainerSight?(mapId:readonly [number,number],tiles:readonly {readonly x:number;readonly y:number}[],signal?:AbortSignal):Promise<TrainerSightReply>;
 }
 
 export function parseGameState(body: unknown): GameStateSnapshot {
@@ -67,10 +72,25 @@ export class StateWatcher implements StateSource {
     return payload;
   }
 
+  // Held by the server until the move-learning flow waits for input or leaves it, at most 600 emulated frames.
+  async moveLearnWait(signal?:AbortSignal):Promise<Static<typeof LearnWaitSchema>> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/move-learn/wait`,{signal:signal===undefined?AbortSignal.timeout(30_000):AbortSignal.any([signal,AbortSignal.timeout(30_000)])});
+    if(!response.ok)throw new GameStateError(`Move-learning wait returned HTTP ${String(response.status)}`);
+    const payload:unknown=await response.json();
+    if(!Value.Check(LearnWaitSchema,payload))throw new GameStateError("Malformed move-learning wait");
+    return payload;
+  }
+
   async places(signal?:AbortSignal):Promise<unknown> {
     const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/places`,{signal:signal===undefined?AbortSignal.timeout(15_000):AbortSignal.any([signal,AbortSignal.timeout(15_000)])});
     if(!response.ok)throw new GameStateError(`Map table returned HTTP ${String(response.status)}`);
     return response.json() as Promise<unknown>;
+  }
+
+  async trainerSight(mapId:readonly [number,number],tiles:readonly {readonly x:number;readonly y:number}[],signal?:AbortSignal):Promise<TrainerSightReply> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/trainer-sight`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({map_id:[mapId[0],mapId[1]],tiles:tiles.map(t=>[t.x,t.y])}),signal:signal===undefined?AbortSignal.timeout(15_000):AbortSignal.any([signal,AbortSignal.timeout(15_000)])});
+    if(!response.ok)throw new GameStateError(`Trainer sight returned HTTP ${String(response.status)}`);
+    return parseTrainerSight(await response.json());
   }
 
   async read(signal?:AbortSignal): Promise<GameStateSnapshot> {

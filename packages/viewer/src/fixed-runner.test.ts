@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -8,12 +9,12 @@ import {checkEvent} from "@pokebench/agent/events";
 import {cohortIndex} from "./workbench-store.js";
 import {experimentsAudit} from "./experiments-audit.js";
 import {fileURLToPath} from "node:url";
-import {FRONTIER_MILESTONES} from "./frontier.js";
-import { LEGACY_LEASE, leaseDir } from "./lease.js";
+import {REQUIRED_FRONTIER_MILESTONES} from "@pokebench/agent/milestones";
+import { LEGACY_LEASE, LeaseHeldError, leaseDir, leasePool, readLeaseOwner, takeLease } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, armPreset, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -55,9 +56,17 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
-  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v1","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","fixed-point-breaker-v1","story-character-stall-gate-v1","heal-before-trainers-v1","positive-supervisor-v1"]){
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","unfinished-activity-v1","exit-labels-v3"]){
    expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
   }
+  expect(def.offInBoth).toContain("positive-supervisor-v1");expect(armFeatureBits(def,"control")["positive-supervisor-v1"]).toBe(false);expect(armFeatureBits(def,"bundle")["positive-supervisor-v1"]).toBe(false);
+  // Operator decision 2026-10-20: the duplicate-turn collapse in both arms, the breaker's note in neither.
+  for(const arm of ["control","bundle"] as const){expect(armFeatureBits(def,arm)["duplicate-turn-collapse-v1"]).toBe(true);expect(armFeatureBits(def,arm)["fixed-point-breaker-v1"]).toBe(false);}
+  expect(def.onInBoth).toContain("duplicate-turn-collapse-v1");expect(def.offInBoth).toContain("fixed-point-breaker-v1");
+  // Operator decision 2026-10-20 10:43 PM ET: the heal-first line in both arms.
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["story-battle-heal-first-v1"]).toBe(true);
+  expect(def.offInBoth).toContain("semantic-navigation-v1");
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["semantic-navigation-v1"]).toBe(false);
  }
  const {definition:cook}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
  expect(cook.phases.map(phase=>[phase.perArm,phase.maxWallMs])).toEqual([[2,3_600_000]]);
@@ -300,6 +309,95 @@ describe("runFixed", () => {
     expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).state).toBe("stopped");
   });
 
+  it("gives back a lane's lease while it waits on the replacement reserve, so another runner can take that GPU", async () => {
+    const { def, runsRoot } = setup(definition({ replacementReserveMs: 0 }));
+    const [poolA, poolB] = def.lanes.map((l) => leasePool(l.modelUrl));
+    let stop = false, bFailed = false;
+    const seen: { a: boolean; b: boolean; other: string | null }[] = [];
+    const blocked = (): boolean => {
+      const path = join(runsRoot, "experiments", def.id, "status.json");
+      return existsSync(path) && parseFixedStatus(JSON.parse(readFileSync(path, "utf8"))).lanes[1]?.reason.startsWith("replacement reserve used up") === true;
+    };
+    const host = new Fake(runsRoot, {
+      ending: (l) => { if (l.lane === "B" && !bFailed) { bFailed = true; return "never-started"; } return "budget"; },
+      beforeExit: async (l) => {
+        if (l.lane !== "A") return;
+        while (!blocked()) await new Promise((r) => setImmediate(r));
+        let other: string | null;
+        const a = existsSync(leaseDir(runsRoot, poolA ?? "")), b = existsSync(leaseDir(runsRoot, poolB ?? ""));
+        try { other = takeLease(runsRoot, poolB ?? "", { pid: 4343, owner: "fixed-run:solo" }, () => false); } catch { other = null; }
+        if (other !== null) rmSync(other, { recursive: true, force: true });
+        seen.push({ a, b, other });
+      },
+    });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    await vi.waitFor(() => { expect(seen.length).toBeGreaterThan(0); });
+    while (!host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[1]?.reason.startsWith("replacement reserve used up") === true)) await new Promise((r) => setImmediate(r));
+    expect(existsSync(leaseDir(runsRoot, poolA ?? ""))).toBe(false);
+    stop = true;
+    expect(await done).toBe("stopped");
+    expect(seen[0]).toMatchObject({ a: true, b: false });
+    expect(seen[0]?.other).toBe(leaseDir(runsRoot, poolB ?? ""));
+    for (const pool of [poolA, poolB]) expect(existsSync(leaseDir(runsRoot, pool ?? ""))).toBe(false);
+  });
+
+  it("gives back a finished lane's lease while the other lane still plays", async () => {
+    const { def, runsRoot } = setup(dryRunDefinition(definition(), 120_000));
+    const [poolA, poolB] = def.lanes.map((l) => leasePool(l.modelUrl));
+    const laneDone = (id: string): boolean => {
+      const path = join(runsRoot, "experiments", def.id, "status.json");
+      return existsSync(path) && parseFixedStatus(JSON.parse(readFileSync(path, "utf8"))).lanes.find((l) => l.id === id)?.state === "done";
+    };
+    const seen: { a: boolean; b: boolean }[] = [];
+    let aLaunches = 0;
+    const host = new Fake(runsRoot, {
+      beforeExit: async (l) => {
+        if (l.lane !== "A" || ++aLaunches < 2) return;
+        while (!laneDone("B")) await new Promise((r) => setImmediate(r));
+        seen.push({ a: existsSync(leaseDir(runsRoot, poolA ?? "")), b: existsSync(leaseDir(runsRoot, poolB ?? "")) });
+      },
+    }, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    expect(seen).toEqual([{ a: true, b: false }]);
+  });
+
+  it("names each lane's own trial and pid in that lane's lease while it plays", async () => {
+    const { def, runsRoot } = setup();
+    const named: boolean[] = [];
+    const host = new Fake(runsRoot, {
+      beforeExit: (l, n) => {
+        const lane = def.lanes.find((x) => x.id === l.lane);
+        const owner = readLeaseOwner(runsRoot, leasePool(lane?.modelUrl ?? ""));
+        named.push(owner?.run === l.runId && owner.child === 1000 + n && owner.pid === 77 && owner.owner === `fixed-run:${def.id}`);
+        return Promise.resolve();
+      },
+    });
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+    expect(named).toHaveLength(12);
+    expect(named.every(Boolean)).toBe(true);
+  });
+
+  it("plays a given commit instead of HEAD when the runner is told to (a rerun at its experiment's pin)", async () => {
+    const { def, runsRoot, dir } = setup(dryRunDefinition(definition(), 120_000));
+    const host = new Fake(runsRoot, { head: () => "b".repeat(40) }, def.id);
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true, commit: "c".repeat(40) });
+    expect(new Set(host.verified)).toEqual(new Set(["c".repeat(40)]));
+    expect(new Set(launchesOf(readLedger(join(dir, "trials.jsonl"))).map((l) => l.commit))).toEqual(new Set(["c".repeat(40)]));
+  });
+
+  it("plays a single-arm rerun's one trial on its one lane, holding only that lane's lease", async () => {
+    const parent = definition();
+    const { def, runsRoot, dir } = setup(soloDefinition(parent, "bundle", "B", "cook", 1));
+    const other = takeLease(runsRoot, leasePool(parent.lanes[0]?.modelUrl ?? ""), { pid: 999, owner: "fixed-run:bundle-v-control" }, () => true);
+    const host = new Fake(runsRoot, { alive: (pid) => pid === 999 }, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    expect(host.launches.map((l) => [l.lane, l.arm, l.phase])).toEqual([["B", "bundle", "cook"]]);
+    expect(JSON.parse(host.launches[0]?.env["POKEBENCH_EXPERIMENT"] ?? "")).toEqual({ id: "bundle-v-control-solo-bundle-b-1", arm: "bundle", trial: 1, of: 1 });
+    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toEqual([expect.objectContaining({ valid: true })]);
+    expect(readLeaseOwner(runsRoot, leasePool(parent.lanes[0]?.modelUrl ?? ""))?.pid).toBe(999);
+    expect(existsSync(other)).toBe(true);
+  });
+
   it("stops launching once stop is requested, letting running trials finish", async () => {
     const { def, runsRoot, dir } = setup();
     let stop = false;
@@ -342,8 +440,79 @@ describe("runFixed", () => {
     const host: Fake = new Fake(runsRoot, { alive: (pid: number): boolean => pid === 999 && holder.sleeps() < 3 });
     holder.sleeps = () => host.sleeps;
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
-    expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.every((l) => l.reason === `waiting for the gameplay lease for ${pool}, held by experiment-queue (pid 999)`))).toBe(true);
+    const held = host.statuses.filter((s) => s.lanes[1]?.state === "waiting" && s.lanes[1].reason === `waiting for the gameplay lease for ${pool}, held by experiment-queue (pid 999)`);
+    expect(held.length).toBeGreaterThan(0);
+    // Only the lane whose pool is held waits: the other plays meanwhile.
+    expect(held.some((s) => s.lanes[0]?.state === "running")).toBe(true);
+    expect(held.every((s) => s.lanes[0]?.reason.startsWith("waiting for the gameplay lease") !== true)).toBe(true);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
+  });
+
+  it("adopts an earlier runner's trial only once its lane's lease is free", async () => {
+    const { def, runsRoot, dir } = setup();
+    const slot = def.plan.find((s) => s.lane === "A");
+    if (slot === undefined) throw new Error("fixture");
+    const run = "2026-10-15T23-00-00_qwen36-gpu1_old1";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), [
+      { kind: "launch", slot: slot.slot, lane: "A", phase: slot.phase, arm: slot.arm, run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" },
+      { kind: "started", slot: slot.slot, run, pid: 4242, at: "2026-10-15T23:00:01.000Z" },
+    ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    mkdirSync(leaseDir(runsRoot, pool), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, pool), "owner.json"), JSON.stringify({ pid: 999, owner: "next-run" }));
+    let stop = false, ended = false;
+    const host: Fake = new Fake(runsRoot, { alive: (pid) => (pid === 999 && host.sleeps < 3) || (pid === 4242 && !ended) });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    while (!host.statuses.some((s) => s.lanes[0]?.reason.endsWith("adopted from an earlier runner") === true)) await new Promise((r) => setImmediate(r));
+    stop = true;
+    expect(host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[0].reason === `waiting for the gameplay lease for ${pool}, held by next-run (pid 999)`)).toBe(true);
+    expect(readLeaseOwner(runsRoot, pool)).toMatchObject({ pid: 77, run, child: 4242 });
+    ended = true;
+    expect(await done).toBe("stopped");
+  });
+
+  it("keeps a lane's lease through an I/O error while it adopts a trial that still plays", async () => {
+    const { def, runsRoot, dir } = setup(soloDefinition(definition(), "bundle", "B", "cook", 1));
+    const run = "2026-10-15T23-00-00_qwen36-gpu0_old2";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), [
+      { kind: "launch", slot: 1, lane: "B", phase: "cook", arm: "bundle", run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" },
+      { kind: "started", slot: 1, run, pid: 4242, at: "2026-10-15T23:00:01.000Z" },
+    ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    mkdirSync(join(runsRoot, "experiments", "runner.json"), { recursive: true });
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    let ended = false;
+    const host: Fake = new Fake(runsRoot, { alive: (pid) => pid === 4242 && !ended }, def.id);
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true });
+    while (!host.statuses.some((s) => s.lanes[0]?.reason.includes("EISDIR") === true)) await new Promise((r) => setImmediate(r));
+    expect(existsSync(leaseDir(runsRoot, pool))).toBe(true);
+    expect(() => takeLease(runsRoot, pool, { pid: 5555, owner: "fixed-run:other" }, (pid) => pid === 4242 || pid === 77)).toThrow(LeaseHeldError);
+    ended = true;
+    expect(await done).toBe("finished");
+    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toEqual([expect.objectContaining({ slot: 1, run })]);
+    expect(host.launches).toHaveLength(0);
+    expect(existsSync(leaseDir(runsRoot, pool))).toBe(false);
+  });
+
+  it("stops while waiting for the lease of a lane with an earlier runner's trial", async () => {
+    const { def, runsRoot, dir } = setup();
+    const slot = def.plan.find((s) => s.lane === "A");
+    if (slot === undefined) throw new Error("fixture");
+    const run = "2026-10-15T23-00-00_qwen36-gpu1_old3";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), JSON.stringify({ kind: "launch", slot: slot.slot, lane: "A", phase: slot.phase, arm: slot.arm, run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" }) + "\n");
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    mkdirSync(leaseDir(runsRoot, pool), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, pool), "owner.json"), JSON.stringify({ pid: 999, owner: "next-run" }));
+    let stop = false;
+    const host = new Fake(runsRoot, { alive: (pid) => pid === 999 });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    while (!host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[0].reason.startsWith("waiting for the gameplay lease"))) await new Promise((r) => setImmediate(r));
+    stop = true;
+    expect(await done).toBe("stopped");
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8"))).lanes[0]?.state).toBe("stopped");
+    expect(readLeaseOwner(runsRoot, pool)?.pid).toBe(999);
   });
 
   it("runs while another compute pool or the old single lease is held", async () => {
@@ -374,7 +543,8 @@ describe("runFixed", () => {
 it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-time-prompt-v1"],[false,"jit-v2-10m","just-in-time-prompt-v2"],[true,"jit-v2-10m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: 24 outcomes, both GPUs, six of each arm per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
- expect(def.progressOrder).toEqual(FRONTIER_MILESTONES.map(m=>m.id));
+ // These existing experiment definitions retain their original frozen measurement catalog.
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
@@ -430,7 +600,8 @@ it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-tim
 it.each([[false,"jit-v2-cache-20m","just-in-time-prompt-v2"],[true,"jit-v2-cache-20m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: two concurrent 20-minute outcomes, one per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
- expect(def.progressOrder).toEqual(FRONTIER_MILESTONES.map(m=>m.id));
+ // These existing experiment definitions retain their original frozen measurement catalog.
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
@@ -549,9 +720,9 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
  }
 });
 
-it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+it("enables explicit evolution in both arms through the production arm builder",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
- expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(true);
  expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
  });
 it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{
@@ -565,4 +736,191 @@ it("rehearses all sixteen starter diagnostic slots with one switch, native early
   for(const launch of launches){const p=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;stopAt:string;features:Record<string,boolean>;limits:{maxWallMs:number}};expect(p.target).toBeNull();expect(p.stopAt).toBe("STARTER_CHOSEN");expect(p.limits.maxWallMs).toBe(300_000);expect(p.features["starter-decision-salience-v1"]).toBe(arm==="bundle");}
  }
  expect(host.maxRunning).toBe(2);expect(def.replacementReserveMs).toBe(0);expect(def.terminalErrorsAsOutcomes).toBe(true);
+});
+
+it("enables native party-item confirmation only in the bundle of both current bundle definitions",()=>{
+ const id="party-item-confirmation-v1";
+ for(const file of ["bundle-v-control","bundle-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+it("enables the YES/NO answer readout only in the bundle of the three current bundle definitions",()=>{
+ const id="yes-no-answer-readout-v1";
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+it("enables the five move-learn switches only in the bundle of the three current bundle definitions, and keeps them OFF in the next-run default",()=>{
+ for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","effectiveness-heard-v1","game-said-goals-v1"] as const){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+   expect(def.switches.filter(s=>s===id)).toEqual([id]);
+   expect(def.onInBoth).not.toContain(id);
+   expect(def.base.features[id]).toBe(false);
+   expect(armFeatures(def,"control")[id]).toBe(false);
+   expect(armFeatures(def,"bundle")[id]).toBe(true);
+   expect(armFeatureBits(def,"control")[id]).toBe(false);
+   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+  }
+ }
+});
+
+it("enables the mart stock readout only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+ const id="mart-stock-readout-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+it("enables the shop interface only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+ const id="shop-interface-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+it("enables the seven training and catching switches only in the bundle of the four current bundle definitions, and keeps them OFF in the next-run default",()=>{
+ const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
+ for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  for(const id of ids){
+   expect(def.switches.filter(s=>s===id)).toEqual([id]);
+   expect(def.onInBoth).not.toContain(id);
+   expect(def.base.features[id]).toBe(false);
+   expect(armFeatures(def,"control")[id]).toBe(false);
+   expect(armFeatures(def,"bundle")[id]).toBe(true);
+   expect(armFeatureBits(def,"control")[id]).toBe(false);
+   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+  }
+ }
+});
+
+it("enables the six GLM-run fixes only in the bundle of the five current bundle definitions, keeps them OFF in the next-run default, and pins each pending experiment to the landing merge",()=>{
+ const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"] as const;
+ for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  const control=armFeatures(def,"control"),bundle=armFeatures(def,"bundle"),controlBits=armFeatureBits(def,"control"),bundleBits=armFeatureBits(def,"bundle");
+  for(const id of ids){
+   expect(def.switches.filter(s=>s===id)).toEqual([id]);
+   expect(def.onInBoth).not.toContain(id);
+   expect(def.base.features[id]).toBe(false);
+   expect([control[id],bundle[id],controlBits[id],bundleBits[id]]).toEqual([false,true,false,true]);
+  }
+ }
+ for(const id of ids){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  const pending=JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as {source:{commit:string}};
+  expect(pending.source.commit).toBe("be531506a1504bd5e1e21135e599861a34249545");
+ }
+});
+
+it("keeps section-aware labels OFF in the generic next-run default",()=>{
+ expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
+ expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
+});
+
+it.each([false,true])("rehearses the four-hour GLM pair serially and retains its stop boundary (stop after first: %s)", async stopAfterFirst=>{
+ const source=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
+ const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=dryRunDefinition({...source,base:{...source.base,features:canonical.base.features},controlBase:canonical.controlBase,switches:canonical.switches,offInBoth:canonical.offInBoth,onInBoth:canonical.onInBoth},14_400_000,"cook");
+ for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
+ expect(def.plan.map(s=>s.arm)).toEqual(["control","bundle"]);
+ const {runsRoot,dir}=setup(def);let stop=false;
+ class GlmFake extends Fake {
+  override async launch(l:FixedLaunch):Promise<number|null>{
+   this.launches.push(l);this.running++;this.maxRunning=Math.max(this.maxRunning,this.running);l.started(1000+this.launches.length);this.snapshot();
+   await new Promise<void>(resolve=>setImmediate(resolve));this.clock+=14_400_000;
+   writeEvents(this.runsRoot,l,"budget");
+   const path=join(this.runsRoot,l.runId,"events.jsonl");
+   const rows=readFileSync(path,"utf8").trim().split("\n").map(line=>{
+    const e=checkEvent(JSON.parse(line));return {...e,run:l.runId,...(e.type==="run_start"&&e.evaluation!==undefined?{evaluation:{...e.evaluation,experiment:{id:def.id,arm:l.arm,trial:l.slot,of:def.plan.length}}}:{})};
+   });
+   writeFileSync(path,rows.map(e=>JSON.stringify(e)).join("\n")+"\n");this.running--;if(stopAfterFirst)stop=true;return 0;
+  }
+ }
+ const host=new GlmFake(runsRoot,{serving:()=>({...RECEIPT,...def.serving})},def.id);
+ expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>stop,pid:77,dryRun:true})).toBe(stopAfterFirst?"stopped":"finished");
+ const rows=readLedger(join(dir,"trials.jsonl"));const n=stopAfterFirst?1:2;
+ expect(host.maxRunning).toBe(1);expect(host.launches.map(l=>l.arm)).toEqual(def.plan.slice(0,n).map(s=>s.arm));
+ expect(launchesOf(rows)).toHaveLength(n);expect(outcomes(rows)).toHaveLength(n);expect(outcomes(rows).every(o=>o.valid)).toBe(true);
+ const status=parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")));
+ expect(status).toMatchObject({state:stopAfterFirst?"stopped":"finished",valid:n,invalid:0,total:2});
+ expect(status.lanes.map(l=>l.valid)).toEqual([n]);
+ const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
+ expect(index.runs).toHaveLength(n);expect(index.runs.every(r=>r.cohort===`experiment:${def.id}@${COMMIT.slice(0,12)}`&&r.problem===null)).toBe(true);
+ expect(experimentsAudit(runsRoot,index)).toEqual([]);
+ for(const launch of host.launches){
+  const preset=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;limits:{maxWallMs:number};features:Record<string,boolean>;start:{sha1:string}};
+  expect(preset.target).toBeNull();expect(preset.limits.maxWallMs).toBe(14_400_000);expect(preset.start.sha1).toBe("b3a6cc1c19836600a15febf41b8f8b19661ce5d4");
+  expect(preset.features).toEqual(armFeatures(canonical,launch.arm));
+ }
+});
+
+it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","bundle-v-control-2h","whole-map-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
+  expect(def.switches).toContain("progress-aware-cycles-v1");
+  expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);
+  expect(armFeatures(def,"bundle")["progress-aware-cycles-v1"]).toBe(true);
+ }
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1","birch-intro-pages-v1"] as const){
+  expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
+  expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
+  expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
+ }
+});
+
+
+it("the active two-hour cook includes approved gym evidence and milestone memory only in the bundle",()=>{
+ const {definition:source}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8"));
+ const dry=dryRunDefinition(source,7_200_000,"cook");
+ for(const arm of ["control","bundle"] as const){
+  const def=soloDefinition(dry,arm,"A","dry-run",1);
+  const preset=armPreset(def,"dry-run",arm);
+  for(const id of ["gym-evidence-v1","milestone-instruction-memory-v1"] as const){
+   expect(source.base.features[id],id).toBe(false);
+   expect(source.switches,id).toContain(id);
+   expect(source.onInBoth,id).not.toContain(id);
+   expect(preset.features[id],`${arm}:${id}`).toBe(arm==="bundle");
+   expect(DEFAULT_NEXT_RUN.features[id],`default:${id}`).toBe(false);
+  }
+ }
 });

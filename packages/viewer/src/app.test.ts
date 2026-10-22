@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
+import { bagRun } from "../test-support/bag.js";
 import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
@@ -75,7 +76,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"]): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"], fallback = true, replies: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const frames: FakeFrameStream[] = [];
@@ -87,6 +88,7 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       const next = nextRunReply(url);
       if (next !== null) return next;
       fetched.push(url);
+      if (url in replies) return Promise.resolve(replies[url]);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url.startsWith("/api/cards")) return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
       if (url.endsWith("/head")) {
@@ -103,6 +105,8 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
     openStream: (url) => {
       const stream = new FakeStream(url);
       streams.push(stream);
+      // Exercise the HTTP thinking fallback when the primary connection fails.
+      if (fallback) queueMicrotask(() => { stream.send("error", {}); });
       return stream;
     },
     openFrameStream: (url) => {
@@ -176,6 +180,7 @@ describe("viewer app", () => {
     const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-page]")];
     expect([...select.options].map((option) => [option.value, option.textContent])).toEqual(buttons.map((button) => [button.dataset.page, button.textContent]));
     expect(select.value).toBe("trace");
+    expect([...select.options].map((option) => option.value)).toEqual(["trace", "party", "next", "queue", "config", "trainer", "bag", "stats", "splits", "field", "run"]);
     const shown = (): string[] => [...document.querySelectorAll<HTMLElement>("[data-nav-page]")].filter((panel) => !panel.hidden).map((panel) => panel.dataset.navPage ?? "");
     select.value = "stats";
     select.dispatchEvent(new Event("change"));
@@ -185,7 +190,10 @@ describe("viewer app", () => {
     expect(select.value).toBe("party");
     const step = (by: string): void => { must(document.querySelector<HTMLButtonElement>(`[data-page-step="${by}"]`)).click(); };
     step("1");
-    expect(shown()).toEqual(["stats"]);
+    expect(shown()).toEqual(["next"]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
+    step("1");
+    expect(shown()).toEqual(["party"]);
     must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
     step("-1");
     expect(shown()).toEqual(["run"]);
@@ -217,7 +225,7 @@ describe("viewer app", () => {
 
   it("defaults to a live run instead of restoring an old replay selection", async () => {
     const { streams } = await harness(`#run=${M4_ID}`);
-    expect(streams[0]?.url).toBe(`/api/runs/${must(RUNS[0]).id}/events`);
+    expect(streams[0]?.url).toBe(`/api/runs/${must(RUNS[0]).id}/events?head=1`);
     expect((ui("run") as HTMLSelectElement).value).toBe(must(RUNS[0]).id);
   });
 
@@ -226,13 +234,13 @@ describe("viewer app", () => {
     const options = [...ui("run").querySelectorAll("option")].map((option) => option.value);
     expect(options).toEqual(RUNS.map((run) => run.id));
     expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
-    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`]);
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`]);
     expect(ui("gba").querySelector('[data-btn="A"]')).not.toBeNull();
   });
 
   it("opens the newest run when the hash names none, and shows no data before events arrive", async () => {
     const { streams } = await harness();
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
     expect(ui("party").innerHTML).toContain("no data");
     expect(ui("mode").textContent).toBe("LOADING");
@@ -306,6 +314,23 @@ describe("viewer app", () => {
     app.clock?.seek(Date.parse(press.t) + 1000);
     app.tick(0);
     expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(false);
+  });
+
+  it("lights running B from delayed native receipts at execution time in replay", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, {type: "button_press", turn: 1, tool_call_id: "run", buttons: ["RIGHT"], hold_frames: 224, release_frames: 8, automatic_running: true, requested_held_buttons: ["B"]});
+    log.add(2000, {type: "native_action", turn: 1, id: 1, kind: "native_input", frame: 1, server_timestamp: (BASE_MS + 1010) / 1000, details: {buttons: ["RIGHT", "B"]}});
+    log.add(2001, {type: "native_action", turn: 1, id: 2, kind: "native_input", frame: 10, server_timestamp: (BASE_MS + 1200) / 1000, details: {buttons: []}});
+    log.add(3000, {type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: {input: 0, output: 0}, frames: {saved: 0, bytes: 0}});
+    feed(must(streams[0]), log.events);
+    app.clock?.pause();
+    for (const [offset, held] of [[1050, true], [1250, false], [1050, true]] as const) {
+      app.clock?.seek(BASE_MS + offset);
+      app.tick(0);
+      for (const button of ["RIGHT", "B"]) expect(ui("gba").querySelector(`[data-btn="${button}"]`)?.classList.contains("lit")).toBe(held);
+    }
   });
 
   it("drives the replay from the controls and seeks backwards", async () => {
@@ -516,7 +541,7 @@ describe("viewer app", () => {
     must(frames[0]).send("close");
     expect(streams[0]?.closed).toBe(true);
     expect(frames[0]?.closed).toBe(true);
-    expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
+    expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events?head=1`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
     expect(ui("problems").hidden).toBe(true);
     expect(ui("screen").dataset.liveFramesReceived).toBe("0");
@@ -559,6 +584,13 @@ describe("viewer app", () => {
     const { app, streams } = await harness("", runs, workbench);
     await app.pollCards();
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
+    const disclosure = document.querySelector<HTMLDetailsElement>("details.run-splits");
+    expect(disclosure).not.toBeNull();
+    expect(disclosure?.open).toBe(false);
+    expect(ui("split-preview").textContent).toContain("NAME ✔");
+    expect(ui("split-preview").textContent).not.toContain("NEW GAME ✔");
+    if (disclosure) disclosure.open = true;
+
 
     const first = must(streams[0]);
     const partial = new Log();
@@ -568,8 +600,12 @@ describe("viewer app", () => {
     app.tick(100);
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
 
+    expect(disclosure?.open).toBe(true);
     app.select(second);
     app.render();
+    expect(disclosure?.open).toBe(true);
+    expect(ui("split-preview").textContent).toContain("TRUCK EXIT ✔");
+    expect(ui("split-preview").textContent).not.toContain("NAME ✔");
     expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
     expect(ui("split-strip").textContent).not.toContain("NAME ✔");
 
@@ -790,7 +826,7 @@ describe("viewer app", () => {
     const app = await mountApp(document, {
       fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
       sendJson: noWrites,
-      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
+      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); queueMicrotask(() => { stream.send("error", {}); }); return stream; },
       now: () => BASE_MS,
       hash: "",
     });
@@ -888,7 +924,7 @@ describe("run list refresh", () => {
     expect(streams).toEqual([]);
     runs.push(runRow("2026-10-11T23-30-00_next", false));
     await app.refreshRuns();
-    expect(streams.map((stream) => stream.url)).toEqual(["/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect(streams.map((stream) => stream.url)).toEqual(["/api/runs/2026-10-11T23-30-00_next/events?head=1"]);
     expect([...ui("run").querySelectorAll("option")].map((option) => option.value)).toEqual(["2026-10-11T23-30-00_next"]);
   });
 
@@ -900,7 +936,7 @@ describe("run list refresh", () => {
     first.send("done", {});
     runs.unshift(runRow("2026-10-11T23-30-00_next", false));
     await app.refreshRuns();
-    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`, "/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`, "/api/runs/2026-10-11T23-30-00_next/events?head=1"]);
     expect((ui("run") as HTMLSelectElement).value).toBe("2026-10-11T23-30-00_next");
   });
 
@@ -938,8 +974,8 @@ describe("run list refresh", () => {
     first.send("done", {});
     await app.refreshRuns();
     expect(streams.map((stream) => stream.url)).toEqual([
-      "/api/runs/2026-10-11T23-00-00_live/events",
-      "/api/runs/2026-10-11T23-30-00_next/events",
+      "/api/runs/2026-10-11T23-00-00_live/events?head=1",
+      "/api/runs/2026-10-11T23-30-00_next/events?head=1",
     ]);
   });
 
@@ -986,7 +1022,7 @@ describe("boot", () => {
     };
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(frames[0]?.url).toBe("ws://127.0.0.1:8790/api/runs/2026-10-11T23-00-00_live/frames");
     expect(intervals).toHaveLength(3);
     intervals[0]?.();
@@ -1026,7 +1062,7 @@ describe("live discovery and diagnostics", () => {
     expect(picker.querySelector("option")?.textContent).toContain("LIVE");
     picker.value = "active_model";
     picker.dispatchEvent(new Event("change"));
-    expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events");
+    expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events?head=1");
   });
 
   it("bounds diagnostics and clears them on a run switch", async () => {
@@ -1062,7 +1098,7 @@ it("retains the selected run in the dropdown after discovery refresh without leg
   expect(picker.value).toBe("first_live");
   picker.value = "second_live";
   picker.dispatchEvent(new Event("change"));
-  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events");
+  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events?head=1");
   await app.refreshRuns();
   expect(picker.value).toBe("second_live");
   expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
@@ -1343,6 +1379,22 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);
 });
 
+it("mounts a heal-trip drought hold in Activity History and the inspector, never on the timeline (drought-battle-heal-hold-v1)",async()=>{
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:419,id:"c419",name:"navigate_to",args:{map_id:[0,19],x:5,y:18}});
+ // Run 4164 replayed through the fixed stallBriefing: the hold that used to end the run "crash" (three evidence ids).
+ const held=log.add(2000,{type:"loop_guard",turn:419,kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:"Not sent (drought-battle-heal-hold-v1): no new story milestone for 10 minutes of play, but the party is on its way to heal after a heal warning (#15727).",calls:0,evidence:[14510,16572]});
+ log.add(70000,{type:"run_end",turn:419,reason:"budget",furthest_milestone:null,turns:419,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(held.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(held.seq)}"]`));
+ expect(row.textContent).toContain("milestone drought diagnostic: would warn");expect(row.textContent).toContain("on its way to heal after a heal warning (#15727)");
+ expect(ui("lanes").querySelectorAll('[aria-label*="on its way to heal"]')).toHaveLength(0);expect(ui("lanes").querySelectorAll(".k-loop")).toHaveLength(0);
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "milestone_drought"');expect(ui("inspector").textContent).toContain("14510");expect(ui("inspector").textContent).toContain("16572");expect(row.classList.contains("sel")).toBe(true);
+});
+
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
@@ -1354,7 +1406,7 @@ it("opens the requested run stream without scanning historical comparisons or fe
  document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
  await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#replay=${M4_ID}`});
  await Promise.resolve();await Promise.resolve();
- expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
+ expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
  expect(requested.filter(url=>url.endsWith("/comparisons"))).toEqual([`/api/runs/${M4_ID}/comparisons`]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
@@ -1754,4 +1806,264 @@ describe("side panel", () => {
     expect(ui("ident").hidden).toBe(false);
     expect(ui("ident").textContent).toContain("MODEL · THINKING");
   });
+});
+
+
+describe("head-first startup", () => {
+  const run = RUNS[0]?.id ?? "missing";
+  const own = (events: readonly RunEvent[]): RunEvent[] => events.map(event => ({ ...event, run }));
+  function log(): Log {
+    const log = new Log();
+    log.add(0, { ...START, extend_run: true });
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2000, assistant({ turn: 1, thinking: "Old thought" }));
+    log.add(3000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } });
+    log.add(4000, { type: "assistant_delta", turn: 2, thinking: "Current head", text: "" });
+    return log;
+  }
+  it("enables controls and renders the current timeline before history arrives; tail wins the handoff", async () => {
+    const { app, streams, fetched, setNow } = await harness("", RUNS, null, {}, undefined, false);
+    const recorded = log();
+    setNow(BASE_MS + 4500);
+    const primary = must(streams[0]);
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
+    app.tick(0);
+    expect(app.mode).toBe("live");
+    expect([...ui("run-controls").querySelectorAll("button")].map(b => [b.textContent, b.disabled])).toEqual([
+      ["⏸PAUSE", false], ["＋EXTEND", false], ["■STOP", false], ["✖ABORT hold to abort", false],
+    ]);
+    expect(ui("think-body").textContent).toContain("Current head");
+    expect(ui("lanes").innerHTML).toContain("m-think open");
+    expect(fetched.some(url => url.endsWith("/head"))).toBe(false);
+    const history = must(streams[1]);
+    expect(history.url).toBe(`/api/runs/${run}/events`);
+    feed(history, recorded.events.slice(0, 3), false);
+    app.tick(0);
+    expect(ui("think-body").textContent).toContain("Current head");
+    const fresh = recorded.add(5000, { type: "assistant_delta", turn: 2, thinking: " plus live tail", text: "" });
+    feed(primary, [fresh], false);
+    feed(history, recorded.events.slice(3, -1));
+    app.tick(0);
+    expect(ui("think-body").textContent).toContain("Current head plus live tail");
+    expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
+    expect(history.closed).toBe(true);
+    expect(ui("trace").textContent).toContain("Old thought");
+    primary.send("head", own(recorded.events.slice(0, 3)));
+    expect(streams).toHaveLength(2);
+    expect(ui("think-body").textContent).toContain("Current head plus live tail");
+  });
+  it("keeps cached full splits while the recent head's history is incomplete", async () => {
+    const workbench = { version: 1, at: BASE_MS, milestones: [], problems: [], runs: [{
+      id: run, cohort: null, arm: null, model: "think-swarm", started: "2026-10-11T23:00:00.000Z", status: "live", reason: null, problem: null, excluded: null, elapsedMs: 5000, turn: 2, config: null,
+      splits: [{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: 2000, segmentMs: 2000, seq: 1, turn: 1, inputTokens: 0, outputTokens: 0 }],
+    }] };
+    const { app, streams } = await harness("", RUNS, workbench, {}, undefined, false);
+    await app.pollCards();
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+    must(streams[0]).send("head", own(log().events));
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+    app.tick(0);
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+  });
+  it("accepts a newer reconnect head and replaces an unfinished history scan", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const primary = must(streams[0]), recorded = log();
+    primary.send("head", own(recorded.events));
+    const oldHistory = must(streams[1]);
+    recorded.add(5000, assistant({ turn: 2, thinking: "Reconnected present" }));
+    primary.send("head", own(recorded.events));
+    expect(oldHistory.closed).toBe(true);
+    expect(streams).toHaveLength(3);
+    feed(oldHistory, recorded.events.slice(0, 3));
+    expect(ui("think-body").textContent).toContain("Reconnected present");
+    feed(must(streams[2]), recorded.events);
+    expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
+  });
+  it("closes old history on a run switch and rejects stale primary/head/history messages", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const primary = must(streams[0]);
+    primary.send("head", own(log().events));
+    const history = must(streams[1]);
+    app.select(M4_ID);
+    expect(primary.closed).toBe(true);
+    expect(history.closed).toBe(true);
+    feed(history, log().events);
+    primary.send("head", own(log().events));
+    feed(primary, log().events, false);
+    expect(app.view.start).toBeNull();
+    expect(app.mode).toBe("loading");
+  });
+  it("rejects malformed or foreign heads before enabling controls", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    must(streams[0]).send("head", log().events.map(e => ({ ...e, run: "foreign" })));
+    expect(app.mode).toBe("loading");
+    expect(streams).toHaveLength(1);
+    expect(ui("problems").textContent).toContain("head:");
+  });
+  it("opens completed recordings at the head and retains full rewind after history loads", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`, RUNS, null, {}, undefined, false);
+    const events = fullRun().events.map(event => ({ ...event, run: M4_ID }));
+    must(streams[0]).send("head", events);
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("lanes").innerHTML).toContain("m-think");
+    must(streams[0]).send("done", {});
+    feed(must(streams[1]), events);
+    expect(app.clock?.positionMs).toBe(app.view.lastMs);
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("trace").textContent).not.toContain("Again.");
+    expect(ui("think-body").textContent).toContain("Again.");
+  });
+});
+
+describe("BAG page", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+
+  function endedBagRun(): RunEvent[] {
+    const log = bagRun();
+    log.add(900_000, { type: "run_end", turn: 80, reason: "budget", furthest_milestone: null, turns: 80, wall_ms: 900_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    return log.events;
+  }
+
+  it("draws the whole run's bag with the game's item icons once the page is open", async () => {
+    const { app, streams, fetched } = await harness(`#replay=${M4_ID}`, RUNS, null, {}, undefined, false, { "/sprites/bag/manifest.json": { items: [4, 13] } });
+    const stream = must(streams[0]);
+    feed(stream, endedBagRun(), false);
+    stream.send("done", {});
+    app.tick(0);
+    expect(ui("bag").innerHTML).toBe("");
+    expect(fetched).not.toContain("/sprites/bag/manifest.json");
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/bag/manifest.json");
+    expect(ui("bag-range").textContent).toBe("RUN 890b · T0–T80");
+    expect([...ui("bag").querySelectorAll(".bg-kpi b")].map((b) => b.textContent)).toEqual(["7", "1", "¥200"]);
+    expect([...ui("bag").querySelectorAll(".bg-pk .bg-pn")].map((p) => p.textContent)).toEqual(["ITEMS", "POKé BALLS", "TMs & HMs", "BERRIES", "KEY ITEMS"]);
+    expect([...ui("bag").querySelectorAll(".bg-lab img")].map((i) => i.getAttribute("src"))).toEqual(["/sprites/bag/items/13.png", "/sprites/bag/items/4.png"]);
+    // A replay moving its cursor leaves the page alone: it shows the whole run.
+    const drawn = ui("bag").innerHTML;
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("bag").innerHTML).toBe(drawn);
+  });
+
+  it("refolds when the recent head is replaced by the full history, and draws names without art", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const run = RUNS[0]?.id ?? "missing";
+    const events = bagRun().events.map((event) => ({ ...event, run }));
+    const primary = must(streams[0]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    primary.send("head", [must(events[0]), ...events.slice(-3)]);
+    app.tick(0);
+    expect(ui("bag").querySelectorAll(".bg-lab")).toHaveLength(1);
+    feed(must(streams[1]), events);
+    app.tick(0);
+    expect([...ui("bag").querySelectorAll(".bg-lab")].map((l) => l.textContent)).toEqual(["POTION", "POKé BALL", "GREAT BALL"]);
+    expect(ui("bag").querySelector("img")).toBeNull();
+    expect(ui("bag").querySelectorAll(".bg-noicon")).toHaveLength(3);
+  });
+});
+
+describe("POKéMON PARTY page", () => {
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+  const RATES = Array.from({ length: 101 }, (_, n) => (n <= 1 ? n : n ** 3));
+  const DATA = {
+    version: 1,
+    types: "normal fight flying poison ground rock bug ghost steel mystery fire water grass electric psychic ice dragon dark".split(" "),
+    species: { "280": { types: [10, 10], gender: 31, growth: 0, abilities: [66, 0], dex: 4 }, "288": { types: [0, 0], gender: 127, growth: 0, abilities: [53, 0], dex: 12 } },
+    moves: { "10": { type: 0, power: 40, accuracy: 100, pp: 35, description: "Scratches the foe with\nsharp claws." } },
+    abilities: { "66": { name: "BLAZE", description: "Ups FIRE moves in a pinch." }, "53": { name: "PICKUP", description: "May pick up items." } },
+    natures: "HARDY LONELY BRAVE ADAMANT NAUGHTY BOLD DOCILE RELAXED IMPISH LAX TIMID HASTY SERIOUS JOLLY NAIVE MODEST MILD QUIET BASHFUL RASH CALM GENTLE SASSY CAREFUL QUIRKY".split(" "),
+    experience: [RATES, RATES, RATES, RATES, RATES, RATES],
+  };
+  const MOVES = [{ move_id: 10, name: "SCRATCH", pp: 30, max_pp: 35, pp_bonus: 0 }];
+  const TORCHIC = { species: "TORCHIC", nickname: "TORCHIC", level: 5, hp: 18, max_hp: 20, species_id: 280, personality: 11, ot_id: 1, moves: MOVES };
+  const ZIGZAGOON = { species: "ZIGZAGOON", nickname: "ZIGZAGOON", level: 3, hp: 12, max_hp: 14, species_id: 288, personality: 200, ot_id: 1, moves: MOVES };
+  const ART = { "/sprites/party/data.json": DATA, "/sprites/party/font/small.json": { widths: [], cmap: {} }, "/sprites/party/font/normal.json": { widths: [], cmap: {} } };
+
+  function partyRun(hp = 12): RunEvent[] {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, state({ party: [TORCHIC, { ...ZIGZAGOON, hp }] }));
+    return log.events;
+  }
+
+  it("draws the game's party screen and keeps the chosen slot, tab and move across updates", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/party/data.json");
+    app.render();
+    const party = ui("party");
+    expect(party.querySelector(".pv")).not.toBeNull();
+    expect(party.querySelector('[data-pv-slot="0"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(party.querySelector<HTMLElement>('[data-pv-slot="1"]')).click();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).click();
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")?.textContent).toContain("sharp claws.");
+    // A live update redraws the page without losing the cursor, the page or the open move.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).focus();
+    stream.send("ev", { ...must(partyRun(3)[1]), run: must(RUNS[0]).id, seq: 9, turn: 2 });
+    app.render();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    expect(ui("party").querySelector(".pv-mdet")).not.toBeNull();
+    expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvMove).toBe("0");
+    // A second click closes the move; arrow keys walk the tabs and keep focus on the chosen one.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")).toBeNull();
+    const tab = must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]'));
+    tab.focus();
+    tab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="0"]')?.getAttribute("aria-selected")).toBe("true");
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvTab).toBe("0");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="0"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    ui("party").querySelector(".pv-list")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("shows the plain list when the party art was never built", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
+    feed(must(streams[0]), partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    app.render();
+    expect(fetched).toContain("/sprites/party/data.json");
+    expect(ui("party").querySelector(".pv")).toBeNull();
+    expect(ui("party").textContent).toContain("ZIGZAGOON");
+  });
+});
+
+it("shows production navigation recovery warning, recovery and stop in Activity History and raw inspection",async()=>{
+ const {NavigationRecovery,NAVIGATION_RECOVERY_CALLS}=await import("../../agent/src/loop/navigation-recovery.js");
+ const {gunzipSync}=await import("node:zlib");const {readFileSync}=await import("node:fs");
+ const {checkEvent}=await import("../../agent/src/events.js");const {parseGameState}=await import("../../agent/src/game-state.js");
+ const fixture=JSON.parse(gunzipSync(readFileSync(join(import.meta.dirname,"../../agent/test-support/navigation-recovery-loop.json.gz"))).toString("utf8")) as {events:unknown[]};
+ const source=fixture.events.map(checkEvent).find(e=>e.type==="state"&&e.seq===6857);
+ const state=parseGameState(Object.fromEntries(Object.entries(source as Record<string,unknown>).filter(([k])=>!["v","run","seq","t","type","turn"].includes(k))));
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ const native=log.add(0,{type:"state",turn:1,...state});
+ const notices:import("../../agent/src/loop/types.js").LoopNotice[]=[];const recovery=new NavigationRecovery(n=>notices.push(n),"enforced");
+ recovery.state(state);recovery.cycle("recorded cycle",[native.seq],1);recovery.context();recovery.progress(native.seq,2);
+ recovery.cycle("recorded cycle",[native.seq],2);recovery.context();
+ for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)recovery.complete({name:"observe",args:{},isError:false,text:"",state,seq:native.seq},i+3);
+ const guards=notices.map((notice,i)=>log.add((i+1)*1000,{type:"loop_guard",turn:i+1,...notice,evidence:[...notice.evidence]}));
+ log.add(6000,{type:"run_end",turn:15,reason:"stuck",furthest_milestone:null,turns:15,wall_ms:6000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});app.tick(5000);
+ expect(notices.map(n=>n.phase)).toEqual(["warning","recovered","warning","stop"]);
+ for(const guard of guards){const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(guard.seq)}"]`));expect(row.textContent).toContain("NAVIGATION RECOVERY");row.click();expect(ui("inspector").textContent).toContain('"kind": "map_cycle"');}
+ const scrub=ui("scrub") as HTMLInputElement;scrub.value="0";scrub.dispatchEvent(new Event("input"));
+ expect(ui("trace").textContent).not.toContain("NAVIGATION RECOVERY");
 });

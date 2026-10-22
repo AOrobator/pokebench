@@ -76,6 +76,9 @@ NEW = frozenset(
         "status-names-v1",
         "surf-gated-exits-v2",
         "battle-effective-damage-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
+        "yes-no-answer-readout-v1",
     }
 )
 ROM_START = 0x08000000
@@ -139,8 +142,12 @@ def reader(seq: int):  # type: ignore[no-untyped-def]
     return read
 
 
+# Registered after these recordings and absent from their readouts.
+TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1"})
+
+
 def recorded_off(seq: int) -> frozenset[str]:
-    return frozenset(frame(seq)["recorded_off"]) | NEW  # type: ignore[arg-type]
+    return frozenset(frame(seq)["recorded_off"]) | NEW | TRAINING  # type: ignore[arg-type]
 
 
 def state(seq: int, on: frozenset[str] = frozenset()) -> GameState:
@@ -329,7 +336,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-15:-12] == (
+    assert SERVER_FEATURES[-39:-36] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

@@ -47,6 +47,10 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "status-names-v1",
     "surf-gated-exits-v2",
     "battle-effective-damage-v1",
+    "semantic-navigation-v2",
+    "exit-labels-v2",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"

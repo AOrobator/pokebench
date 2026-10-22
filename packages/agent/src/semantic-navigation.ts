@@ -1,11 +1,12 @@
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import type {Button} from "./events.js";
-import type {FeatureSet} from "./features.js";
+import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,isCheckedNavigation,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {COUNTER} from "./tile-rules.js";
+import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
@@ -14,6 +15,9 @@ const WarpTarget=Type.Object({kind:Type.Literal("warp"),x:Type.Integer({minimum:
 const ConnectionTarget=Type.Object({kind:Type.Literal("connection"),direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"] as const)},{additionalProperties:false});
 const Target=Type.Union([ObjectTarget,FixedTarget,WarpTarget,ConnectionTarget]);
 const SemanticArgs=Type.Object({map_id:MapId,target:Target},{additionalProperties:false});
+// trainer-sight-check-v2: the confirm argument for a route trainer-sight-check-v1's check refused.
+const SightSemanticArgs=Type.Object({map_id:MapId,target:Target,[CONFIRM_ARG]:Type.Optional(Type.Boolean({description:TARGET_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
+type SemanticRequest={readonly map_id:readonly [number,number];readonly target:RequestTarget;readonly confirm_trainer_sight?:boolean};
 const ExploreArgs=Type.Object({},{additionalProperties:false});
 
 type SnapshotTarget=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
@@ -24,14 +28,14 @@ type RequestTarget=
  | {readonly kind:"connection";readonly direction:"NORTH"|"SOUTH"|"EAST"|"WEST"};
 type Point={readonly x:number;readonly y:number};
 type Approach={readonly point:Point;readonly facing:Button|null;readonly length:number};
-type SemanticDetails={readonly state:GameStateSnapshot;readonly semantic_navigation:{readonly status:string;readonly selected:string;readonly activation_attempted:boolean};readonly [key:string]:unknown};
+type SemanticDetails={readonly state:GameStateSnapshot;readonly semantic_navigation:{readonly status:string;readonly selected:string;readonly activation_attempted:boolean;readonly target:RequestTarget};readonly [key:string]:unknown};
 class SemanticPreconditionError extends Error {}
 const STEPS:readonly [Button,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
 const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:"UP",SOUTH:"DOWN",EAST:"RIGHT",WEST:"LEFT"};
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy"};
+ return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -183,25 +187,63 @@ function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarg
  return (connection?.edges??[]).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
   .sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
 }
-function withStatus(result:AgentToolResult<unknown>,status:string,selected:string,activationAttempted:boolean):AgentToolResult<SemanticDetails> {
+function withStatus(result:AgentToolResult<unknown>,status:string,selected:string,target:RequestTarget,activationAttempted:boolean):AgentToolResult<SemanticDetails> {
  const state=stateOf(result);
  const inherited=typeof result.details==="object"&&result.details!==null?result.details:{};
- return {...result,content:[{type:"text",text:`Semantic navigation: ${status}. Selected ${selected}.`},...result.content],details:{...inherited,state,semantic_navigation:{status,selected,activation_attempted:activationAttempted}}};
+ return {...result,content:[{type:"text",text:`Semantic navigation: ${status}. Selected ${selected}.`},...result.content],details:{...inherited,state,semantic_navigation:{status,selected,activation_attempted:activationAttempted,target}}};
 }
 function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{return state.map_id?.[0]===map[0]&&state.map_id[1]===map[1];}
 function isDestinationMap(state:GameStateSnapshot,destination:readonly number[]|null|undefined):boolean{const map=state.map_id;return destination!==null&&destination!==undefined&&map!==null&&map[0]===destination[0]&&map[1]===destination[1];}
 
-function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
- const options=navigationOptions(features);
+// field-ownership-feedback-v1: navigate_to's refusal reasons (navigation.ts unreadyReason), with a screen that is not a
+// battle screen named before the battle flag: gMain.inBattle stays set through a post-battle evolution (TryEvolvePokemon
+// runs before ReturnFromBattleToOverworld), so in_battle is true while the evolution screen owns input.
+export function fieldOwner(state:GameStateSnapshot):string|null {
+ const battleScreen=state.screen==="battle"||state.screen.startsWith("battle_");
+ if(!state.started)return "the game has not started yet; navigate_to_target walks only on the field";
+ if(state.screen!=="overworld"&&!battleScreen)return `the game is not on the field (screen: ${state.screen}); navigate_to_target walks only on the field`;
+ if(state.in_battle)return "a battle is in progress; navigate_to_target walks only on the field";
+ if(state.screen!=="overworld")return `the game is not on the field (screen: ${state.screen}); navigate_to_target walks only on the field`;
+ const ui=state.active_ui;
+ return ui==null?null:`a menu or other interface is open (${ui.phase}); close it before calling navigate_to_target`;
+}
+
+// semantic-navigation-v2: how to copy a target from the readout, and what happens after activation.
+const SEMANTIC_V2_DESCRIPTION="The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to.";
+
+const SEMANTIC_V2_DIALOGUE=" Dialogue the activation opens is advanced for you as with navigate_to.";
+// The dialogue sentence is true only with dialogue auto-advance on.
+function semanticV2Description(dialogue:boolean):string {
+ const cut=SEMANTIC_V2_DESCRIPTION.indexOf(" It returns control immediately");
+ return dialogue?`${SEMANTIC_V2_DESCRIPTION.slice(0,cut)}${SEMANTIC_V2_DIALOGUE}${SEMANTIC_V2_DESCRIPTION.slice(cut)}`:SEMANTIC_V2_DESCRIPTION;
+}
+function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs> {
+ const baseOptions=navigationOptions(features);
+ // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
+ const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
- return {name:"navigate_to_target",label:"Navigate to a game target",description:"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
-  execute:async(id,request,signal)=>{
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}`,parameters:sightCheck?SightSemanticArgs:SemanticArgs,
+  execute:async(id,args,signal)=>{
+   const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
-   if(!isMap(before,request.map_id))return withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,false);
+   const owner=features["field-ownership-feedback-v1"]&&observe!==undefined?fieldOwner(before):null;
+   if(owner!==null&&observe!==undefined)return withStatus(await observe.execute(id,{},signal),`refused because ${owner}; nothing was pressed`,selected,request.target,false);
+   if(!isMap(before,request.map_id)){
+    const result=withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,request.target,false);
+    if(!features["semantic-current-map-feedback-v1"])return result;
+    const map=before.map_id===null?"map unavailable":`map ${String(before.map_id[0])}/${String(before.map_id[1])}`;
+    const position=before.position===null?"unavailable":`(${String(before.position.x)},${String(before.position.y)})`;
+    return {...result,content:[{type:"text",text:`Current map: ${before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
+   }
+   let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
-   if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,false);
-   const choices=request.target.kind==="connection"?connectionApproaches(before,request.target,options):approaches(before,listed as SnapshotTarget,options);
-   const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,false);
+   if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,request.target,false);
+   // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
+   const planned=features["field-move-gates-v1"]?gatedState(before):before;
+   const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
+   let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
+   if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
+   const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,request.target,false);
    const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
    const selectedConnection=connectionDirection===null?null:before.topology?.connections.find(item=>item.direction===connectionDirection)??null;
    const identityIssue=(actual:GameStateSnapshot,phase:string):string|null=>{
@@ -236,26 +278,28 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const initialEntryActivation=listed?.kind!=="warp"?"step":listedWarpBehavior===null?null:directionalWarpActivation(before,listed,options.mode??"local")??"step";
    let previous=before.position;
    const segmentEnds=new Set<string>(previous===null?[]:[`${String(previous.x)},${String(previous.y)}`]);
-   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
+   const targetSight=sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:request.target.kind==="object"?request.target.local_id:null}}:{};
+   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true,...targetSight}),current:GameStateSnapshot,reason:string|null;
+   if(navigationStatus(walked)===SIGHT_STATUS)return withStatus(walked,SIGHT_STATUS,selected,request.target,false);
    for(;;){
     current=stateOf(walked);
     const entryActivation=navigationGoalEntryActivation(walked)??initialEntryActivation;
     const entryAttempted=listed!==null&&movementActivated(listed)&&entryActivation==="step"&&navigationGoalEntryAttempted(walked);
-    if(navigationStopRequested(walked)){const status=navigationStatus(walked)??"semantic travel stop requested";return withStatus(walked,status,selected,entryAttempted&&status.startsWith("semantic navigation interrupted"));}
-    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked)||(listed!==null&&movementActivated(listed)&&navigationGoalEntryAttempted(walked)));
-    if(entryAttempted)return withStatus(walked,"movement-activated target entry was attempted; inspect the resulting state",selected,true);
-    reason=interrupted(current);if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
-    const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
+    if(navigationStopRequested(walked)){const status=navigationStatus(walked)??"semantic travel stop requested";return withStatus(walked,status,selected,request.target,entryAttempted&&status.startsWith("semantic navigation interrupted"));}
+    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target,navigationActivationAttempted(walked)||(listed!==null&&movementActivated(listed)&&navigationGoalEntryAttempted(walked)));
+    if(entryAttempted)return withStatus(walked,"movement-activated target entry was attempted; inspect the resulting state",selected,request.target,true);
+    reason=interrupted(current);if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,request.target,false);
+    const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,request.target,false);
     const status=navigationStatus(walked);
     if(current.position?.x===choice.point.x&&current.position.y===choice.point.y){
      if(status==="arrived at requested coordinate"||navigationCanContinue(status)||navigationActivationAttempted(walked))break;
-     return withStatus(walked,`route failed at the selected approach${status===null?"":`: ${status}`}`,selected,false);
+     return withStatus(walked,`route failed at the selected approach${status===null?"":`: ${status}`}`,selected,request.target,false);
     }
-    if(!navigationCanContinue(status))return withStatus(walked,"route ended before the selected approach",selected,false);
-    if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
+    if(!navigationCanContinue(status))return withStatus(walked,"route ended before the selected approach",selected,request.target,false);
+    if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,request.target,false);
     if(current.position!==null){
      const end=`${String(current.position.x)},${String(current.position.y)}`;
-     if(segmentEnds.has(end))return withStatus(walked,"route returned to an earlier segment end before the selected approach",selected,false);
+     if(segmentEnds.has(end))return withStatus(walked,"route returned to an earlier segment end before the selected approach",selected,request.target,false);
      segmentEnds.add(end);
     }
     previous=current.position;
@@ -276,42 +320,42 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    };
    if(request.target.kind!=="connection"){
     const fresh=resolve(current,request.target,options);
-    if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);
-    if(listed===null)return withStatus(walked,"target changed before activation; inspect its new identity or position",selected,false);
-    if(fresh.x!==listed.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
-    if(!sameTargetIdentity(listed,fresh))return withStatus(walked,"target changed before activation; inspect its new identity",selected,false);
+    if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,request.target,false);
+    if(listed===null)return withStatus(walked,"target changed before activation; inspect its new identity or position",selected,request.target,false);
+    if(fresh.x!==listed.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,request.target,false);
+    if(!sameTargetIdentity(listed,fresh))return withStatus(walked,"target changed before activation; inspect its new identity",selected,request.target,false);
     if(fresh.kind==="warp"){
-     if(navigationActivationAttempted(walked))return withStatus(walked,"directional warp activation was already attempted by navigation; inspect the unchanged map",selected,true);
+     if(navigationActivationAttempted(walked))return withStatus(walked,"directional warp activation was already attempted by navigation; inspect the unchanged map",selected,request.target,true);
      const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");
-     if(warpActivation===null){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,attempted);}
+     if(warpActivation===null){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,request.target,attempted);}
      let activated:AgentToolResult<unknown>;
      try{activated=await executePress(id,warpActivation,actual=>{checkInput(actual,"activation",null);if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before activation");const fresh=resolve(actual,request.target,options);if(fresh===null||directionalWarpActivation(actual,fresh,options.mode??"local")!==warpActivation)throw new SemanticPreconditionError("directional warp activation changed before input");},signal);}
-     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const state=await stateSource.read(signal);return withStatus({content:[],details:{state}},error.message,selected,false);}
+     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const state=await stateSource.read(signal);return withStatus({content:[],details:{state}},error.message,selected,request.target,false);}
      current=stateOf(activated);reason=interrupted(current);
      const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"directional warp activation did not change maps; inspect the target";
-     return withStatus(activated,status,selected,true);
+     return withStatus(activated,status,selected,request.target,true);
     }
-    if(fresh.activation==="step"){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,attempted);}
+    if(fresh.activation==="step"){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,request.target,attempted);}
    }
-   const facing=choice.facing;if(facing===null)return withStatus(walked,"arrived at the selected target",selected,false);
+   const facing=choice.facing;if(facing===null)return withStatus(walked,"arrived at the selected target",selected,request.target,false);
    if(current.facing!==facing.toLowerCase()){
     let turned:AgentToolResult<unknown>;
     try{turned=await executePress(id,facing,actual=>{checkInput(actual,"facing input",null);},signal);}
-    catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
+    catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,request.target,false);}
     current=stateOf(turned);
-    if(!isMap(current,request.map_id))return withStatus(turned,"interrupted by a map transition while facing the target",selected,request.target.kind==="connection"&&isDestinationMap(current,selectedConnection?.destination));
-    reason=interrupted(current);if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,false);
+    if(!isMap(current,request.map_id))return withStatus(turned,"interrupted by a map transition while facing the target",selected,request.target,request.target.kind==="connection"&&isDestinationMap(current,selectedConnection?.destination));
+    reason=interrupted(current);if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,request.target,false);
     const changed=identityIssue(current,"facing input");
-    if(changed!==null)return withStatus(turned,changed,selected,false);
-    if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y)return withStatus(turned,"facing input moved away from the selected approach",selected,false);
+    if(changed!==null)return withStatus(turned,changed,selected,request.target,false);
+    if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y)return withStatus(turned,"facing input moved away from the selected approach",selected,request.target,false);
    }
    const activation=request.target.kind==="connection"?facing:"A";
    let activated:AgentToolResult<unknown>;
    try{activated=await executePress(id,activation,actual=>{checkInput(actual,"activation",facing);},signal);}
-   catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
+   catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,request.target,false);}
    current=stateOf(activated);reason=interrupted(current);
    const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"activation completed; inspect the resulting state";
-   return withStatus(activated,status,selected,true);
+   return withStatus(activated,status,selected,request.target,true);
   }};
 }
 
@@ -341,12 +385,12 @@ function explorationTool(semantic:AgentTool<typeof SemanticArgs>,features:Featur
 }
 
 export function withSemanticNavigation(tools:readonly AgentTool[],features:FeatureSet,state:StateSource):AgentTool[] {
- if(!features["semantic-navigation-v1"])return [...tools];
- const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press");
+ if(!semanticNavigation(features))return [...tools];
+ const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press"),observe=tools.find(tool=>tool.name==="observe");
  // State-only probes and historical replay builders intentionally construct partial tool sets.
  // Production feature validation requires bounded navigation, and live play always supplies both.
  if(navigate===undefined||press===undefined||!isCheckedNavigation(navigate)||!isCheckedPress(press))return [...tools];
- const semantic=semanticTool(navigate,press,features,state),result=[...tools,semantic];
+ const semantic=semanticTool(navigate,press,features,state,observe),result=[...tools,semantic];
  if(features["deterministic-exploration-v1"])result.push(explorationTool(semantic,features,state));
  return result;
 }

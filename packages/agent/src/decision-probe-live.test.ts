@@ -19,6 +19,8 @@ const owner = vi.hoisted(() => ({
   launched: false,
   exited: false,
   inferences: 0,
+  // cut-off-reply-feedback-v1: the scripted reply with no tool call stops at max_tokens instead of ending normally.
+  cutOff: false,
   contexts: [] as Context[],
   child: null as ChildProcess | null,
   resolve: null as ((value: RunEndReason) => void) | null,
@@ -59,7 +61,7 @@ const SCRIPT = [
   () => assistant({ thinking: "Look first.", toolCalls: [toolCall("c1", "observe", {})], stopReason: "toolUse" }),
   () => assistant({ thinking: "Talk to her.", text: "Pressing A.", toolCalls: [toolCall("c2", "press", { buttons: ["A"] })], stopReason: "toolUse" }),
   () => assistant({ thinking: "Again.", toolCalls: [toolCall("c3", "press", { buttons: ["A", "A"] }), toolCall("c4", "observe", {})], stopReason: "toolUse" }),
-  () => assistant({ text: "I am thinking about it.", stopReason: "stop" }),
+  () => assistant({ text: "I am thinking about it.", stopReason: owner.cutOff ? "length" : "stop" }),
 ];
 vi.mock("./harness.js", async (load) => {
   const actual = await load<typeof import("./harness.js")>();
@@ -74,7 +76,7 @@ vi.mock("./harness.js", async (load) => {
           const message = (SCRIPT[owner.inferences] ?? (() => assistant({ thinking: "Same.", toolCalls: [toolCall(`c${String(owner.inferences + 10)}`, "press", { buttons: ["A"] })], stopReason: "toolUse" })))();
           owner.inferences++;
           const stream = createAssistantMessageEventStream();
-          stream.push({ type: "done", reason: message.stopReason === "toolUse" ? "toolUse" : "stop", message });
+          stream.push({ type: "done", reason: message.stopReason === "toolUse" ? "toolUse" : message.stopReason === "length" ? "length" : "stop", message });
           return stream;
         },
       }),
@@ -114,13 +116,14 @@ PC.before = { ...PC.before, route103_rival: null }; PC.after = { ...PC.after, ro
 // The same place once the box is closed: no message, field controls free.
 const FREE = { ...PC.before, field_controls_locked: false, world_context: { ...(PC.before.world_context as Record<string, unknown>), dialogue: null, message: null } };
 
-async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promise<string> {
+async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff = false): Promise<string> {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "decision-probe-"));
   owner.launched = false;
   owner.exited = false;
   owner.inferences = 0;
   owner.contexts = [];
+  owner.cutOff = cutOff;
   const romPath = join(owner.root, "fixture.gba");
   writeFileSync(romPath, "test-owned ROM identity fixture");
   vi.stubEnv("POKEBENCH_ROM", romPath);
@@ -216,6 +219,34 @@ it.each([
     await expect(probe.decisionContext(run, last, recorded, ports, "replayed", true)).rejects.toThrow(/was auto-advanced through dialogue/);
     await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "fresh-retry-v1", on: !recorded["fresh-retry-v1"] }]), ports)).resolves.toBeDefined();
   }
+}, 60_000);
+
+it.each([[true], [false]])("delivers the cut-off notice through live.ts with cut-off-reply-feedback-v1 %s, and probes rebuild it", async (on) => {
+  const features = { ...flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }), "cut-off-reply-feedback-v1": on };
+  const dir = await recordRun(features, 9, true);
+  const { NUDGE } = await import("./harness.js");
+  const { cutOffReplyNotice } = await import("./cut-off-reply.js");
+  // The scripted fourth reply stopped at max_tokens (100 here) with no tool call; the fifth request carries the follow-up.
+  const followUp = owner.contexts[4]?.messages.at(-1);
+  const notice = "Your last reply reached the output limit (100 tokens) before it made a tool call, so nothing happened in the game. Make one tool call now.";
+  expect(followUp).toMatchObject({ role: "user", content: on ? notice : NUDGE });
+  expect(cutOffReplyNotice({ ...features }, 100)).toBe(on ? notice : undefined);
+  const probe = await import("./decision-probe.js");
+  const run = probe.parseRun(readFileSync(join(dir, "events.jsonl"), "utf8"));
+  expect(run.events.some((e) => e.type === "assistant" && e.stop_reason === "length")).toBe(true);
+  const ports = await framePorts(dir);
+  const turns = run.events.flatMap((e) => (e.type === "turn_start" ? [e] : []));
+  for (const [i, start] of turns.entries()) {
+    const recorded = owner.contexts[i];
+    if (recorded === undefined) throw new Error("missing context");
+    for (const derivation of ["recorded", "replayed"] as const) {
+      const rebuilt = await probe.decisionContext(run, start.turn, probe.recordedFeatures(run), ports, derivation);
+      expect({ turn: start.turn, derivation, ...sent({ systemPrompt: rebuilt.systemPrompt, messages: [...rebuilt.messages], tools: [...rebuilt.tools] }) }).toEqual({ turn: start.turn, derivation, ...sent(recorded) });
+    }
+  }
+  // Flipping the switch in a probe changes exactly that follow-up.
+  const flipped = await probe.decisionContext(run, turns[4]?.turn ?? 0, probe.withSwitches(probe.recordedFeatures(run), [{ id: "cut-off-reply-feedback-v1", on: !on }]), ports);
+  expect(flipped.messages.at(-1)).toMatchObject({ role: "user", content: on ? NUDGE : notice });
 }, 60_000);
 
 it("re-derives press results under a flipped switch and reports how the next call changes", async () => {

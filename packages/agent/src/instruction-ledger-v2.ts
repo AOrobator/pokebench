@@ -13,11 +13,12 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 // One quoted line: who said it, whether that is a person, and the words.
-interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
+export interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
 interface Conversation {readonly turn:number;readonly lines:readonly Line[]}
 interface Room {name:string;turn:number;heard:Line|null;readout:boolean}
 
@@ -25,7 +26,7 @@ export const LEDGER_HEADER="Conversation ledger";
 const HEAD=`${LEDGER_HEADER}: game text you were shown, quoted whole; past text, the current screen overrides it.`;
 const LATEST="Latest conversation with a person";
 const ROOMS="Rooms visited, newest first, with the last line heard in each:";
-const NO_SPEAKER="no speaker shown";
+export const NO_SPEAKER="no speaker shown";
 
 // What each object sprite looks like on screen (pokeemerald OBJ_EVENT_GFX_*, env/pokebench_env/event-graphics.json).
 // People are the person you talked to; anything else is the thing you faced.
@@ -60,7 +61,7 @@ function thingWord(name:string):string {
  if(/^sign\b/i.test(name))return "sign";
  return /^[A-Z][a-z]/.test(name)?`${name.charAt(0).toLowerCase()}${name.slice(1)}`:name;
 }
-const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
+export const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
 // The page as the game printed it, its NAME: prefix moved into the label and its line breaks as spaces.
 function words(page:Page):string {
  const prefix=page.speaker===null?"":`${page.speaker}: `;
@@ -70,7 +71,7 @@ function words(page:Page):string {
 const spriteKey=(page:Page,kind:string)=>`${page.map_id?.join("/")??page.map??"none"}|${kind}`;
 // Who said each page of one call. A sprite the game names in the same call (one NAME: prefix, one faced sprite
 // kind) keeps that name on that map for the rest of the run.
-function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
+export function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
  const prefixes=new Set(pages.flatMap(p=>p.speaker_source==="name_prefix"&&p.speaker!==null?[p.speaker]:[]));
  const sprites=new Set(pages.flatMap(p=>p.speaker_source==="faced_sprite"&&p.speaker!==null&&personWord(p.speaker)!==null?[spriteKey(p,p.speaker)]:[]));
  const [name]=prefixes,[sprite]=sprites;
@@ -142,6 +143,7 @@ export class ConversationLedger {
  }
  block(state:GameStateSnapshot,callId:string):string|null {
   if(!this.visible(state)||state.in_battle)return null;
+  if(this.features["milestone-instruction-memory-v1"]&&this.features["observed-instructions-v1"]&&this.features["observed-field-dialogue-v1"])return null;
   // This result's own pages are delivered with it; they count here before its tool_result is recorded.
   const rooms=new Map([...this.rooms].map(([k,r])=>[k,{...r}]));
   const call=this.pending.get(callId);
@@ -167,6 +169,7 @@ export class ConversationLedger {
    else out.push(head,`- ${quote(latest)}`);
   }
   else out.push(`${LATEST}: none yet; no field dialogue shown yet.`);
+  if(this.features["milestone-instruction-memory-v1"]&&this.features["observed-instructions-v1"])return out.join("\n");
   out.push(ROOMS);
   for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard,hideTurn)}`);
   return out.join("\n");
@@ -200,7 +203,7 @@ export function withInstructionLedgerV2(tools:readonly AgentTool[],features:Feat
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};

@@ -1,0 +1,278 @@
+{
+ "heal_first_line": {
+  "v": 1,
+  "run": "2026-10-21T07-17-35_glm53-mac_acfa",
+  "seq": 3857,
+  "t": "2026-10-21T07:55:37.013-04:00",
+  "type": "heal_first_line",
+  "turn": 66,
+  "tool": "battle_action",
+  "tool_call_id": "CcerteZn6Au7mBhPBGId4WOnF5Vuaa20",
+  "kind": "rival",
+  "opponent": "MAY",
+  "map_id": [
+   0,
+   18
+  ],
+  "party": [
+   {
+    "species": "TORCHIC",
+    "hp": 18,
+    "max_hp": 21
+   }
+  ],
+  "heard": null,
+  "exit": null,
+  "text": "TORCHIC has 18/21 HP. MAY's battle cannot be run from, so heal before talking to her."
+ },
+ "story_battle_warning": {
+  "v": 1,
+  "run": "2026-10-21T07-17-35_glm53-mac_acfa",
+  "seq": 4811,
+  "t": "2026-10-21T08:00:14.243-04:00",
+  "type": "story_battle_warning",
+  "turn": 68,
+  "tool": "navigate_to",
+  "kind": "rival",
+  "opponent": "MAY",
+  "x": 10,
+  "y": 3,
+  "map_id": [
+   0,
+   18
+  ],
+  "party": [
+   {
+    "species": "TORCHIC",
+    "hp": 18,
+    "max_hp": 21
+   }
+  ],
+  "money": 3000,
+  "items": [],
+  "text": "SUPERVISOR: A story battle is on this map: your rival MAY, at (10,3). Talking to her starts a trainer battle you cannot run from. Your party is not at full HP: TORCHIC 18/21. If your party faints, you black out: you lose half your money (\u20bd1500 of \u20bd3000) and wake up back at the last POK\u00e9MON CENTER you entered, or at home. Heal to full before this battle: the nurse at a POK\u00e9MON CENTER heals your whole party, and so does MOM at home."
+ },
+ "heal_before_trainers_warning": {
+  "v": 1,
+  "run": "2026-10-21T07-17-35_glm53-mac_acfa",
+  "seq": 6838,
+  "t": "2026-10-21T08:24:43.440-04:00",
+  "type": "heal_before_trainers_warning",
+  "turn": 93,
+  "tool": "battle_action",
+  "map_id": [
+   0,
+   18
+  ],
+  "trainers": [
+   {
+    "local_id": 3,
+    "x": 71,
+    "y": 11,
+    "sprite_kind": "WOMAN_2",
+    "loaded": false
+   },
+   {
+    "local_id": 4,
+    "x": 65,
+    "y": 12,
+    "sprite_kind": "TWIN",
+    "loaded": false
+   },
+   {
+    "local_id": 5,
+    "x": 64,
+    "y": 12,
+    "sprite_kind": "TWIN",
+    "loaded": false
+   },
+   {
+    "local_id": 6,
+    "x": 50,
+    "y": 8,
+    "sprite_kind": "FISHERMAN",
+    "loaded": false
+   },
+   {
+    "local_id": 12,
+    "x": 56,
+    "y": 13,
+    "sprite_kind": "POKEFAN_M",
+    "loaded": false
+   },
+   {
+    "local_id": 16,
+    "x": 67,
+    "y": 5,
+    "sprite_kind": "BLACK_BELT",
+    "loaded": false
+   },
+   {
+    "local_id": 17,
+    "x": 67,
+    "y": 9,
+    "sprite_kind": "MAN_5",
+    "loaded": false
+   },
+   {
+    "local_id": 18,
+    "x": 36,
+    "y": 6,
+    "sprite_kind": "SWIMMER_F",
+    "loaded": false
+   },
+   {
+    "local_id": 19,
+    "x": 36,
+    "y": 13,
+    "sprite_kind": "SWIMMER_M",
+    "loaded": false
+   }
+  ],
+  "weak": [
+   {
+    "kind": "lead_below_half",
+    "species": "TORCHIC",
+    "hp": 10,
+    "max_hp": 23
+   }
+  ],
+  "heal": {
+   "kind": "pokemon_center",
+   "town": "OLDALE TOWN",
+   "map_id": [
+    2,
+    2
+   ],
+   "hops": 2
+  },
+  "mom_heals": true,
+  "money": 3300,
+  "text": "SUPERVISOR: Trainers you have not beaten are on this map: object 3, sprite WOMAN_2, at (71,11) (not loaded now: the tile the map places it on); object 4, sprite TWIN, at (65,12) (not loaded now: the tile the map places it on); object 5, sprite TWIN, at (64,12) (not loaded now: the tile the map places it on); object 6, sprite FISHERMAN, at (50,8) (not loaded now: the tile the map places it on); object 12, sprite POKEFAN_M, at (56,13) (not loaded now: the tile the map places it on); object 16, sprite BLACK_BELT, at (67,5) (not loaded now: the tile the map places it on); object 17, sprite MAN_5, at (67,9) (not loaded now: the tile the map places it on); object 18, sprite SWIMMER_F, at (36,6) (not loaded now: the tile the map places it on); object 19, sprite SWIMMER_M, at (36,13) (not loaded now: the tile the map places it on). Your party is weak for a battle: TORCHIC, your lead, has 10/23 HP (below half). In a trainer battle the game says \"No! There's no running from a TRAINER battle!\" If your party faints, you black out: you lose half your money (\u20bd1650 of \u20bd3300) and wake up back at the last POK\u00e9MON CENTER you entered, or at home. The nearest place you know of that heals your party is the POK\u00e9MON CENTER in OLDALE TOWN (map 2/2), 2 map changes from here in the game's map table; its nurse says \"We restore your tired POK\u00e9MON to full health.\""
+ },
+ "gym_heal_warning": {
+  "v": 1,
+  "run": "2026-10-21T08-28-28_qwen36-gpu1_8892",
+  "seq": 12979,
+  "t": "2026-10-21T09:22:15.107-04:00",
+  "type": "gym_heal_warning",
+  "turn": 382,
+  "tool": "navigate_to_target",
+  "map_id": [
+   0,
+   0
+  ],
+  "gym": {
+   "name": "PETALBURG CITY GYM",
+   "map_id": [
+    8,
+    1
+   ],
+   "here": false,
+   "x": 15,
+   "y": 8
+  },
+  "hurt": [
+   {
+    "species": "TORCHIC",
+    "hp": 17,
+    "max_hp": 29
+   }
+  ],
+  "player": "RIVAL",
+  "money": 1992,
+  "wake": {
+   "name": "OLDALE TOWN",
+   "map_id": [
+    0,
+    10
+   ],
+   "hops": 2
+  },
+  "heal": {
+   "kind": "pokemon_center",
+   "town": "PETALBURG CITY",
+   "map_id": [
+    8,
+    4
+   ],
+   "hops": 1,
+   "shown": {
+    "map_id": [
+     0,
+     0
+    ],
+    "map": "PETALBURG CITY",
+    "x": 20,
+    "y": 16
+   }
+  },
+  "listed_now": true,
+  "mom_heals": true,
+  "text": "SUPERVISOR: An exit on this map at (15,8) leads to PETALBURG CITY GYM (map 8/1), and your party is not at full HP: TORCHIC 17/29. If your whole party faints in a battle, the game says \"RIVAL is out of usable POK\u00e9MON!\" and \"RIVAL whited out!\"; you lose half your money (\u20bd996 of \u20bd1992) and wake up in OLDALE TOWN (map 0/10), 2 map changes from here. The nearest place you know of that heals your party is the POK\u00e9MON CENTER in PETALBURG CITY (map 8/4), 1 map change from here in the game's map table; you have not entered it; this result lists it as an exit at (20,16) on this map; its nurse says \"We restore your tired POK\u00e9MON to full health.\""
+ },
+ "story_battle_heal_gate": {
+  "v": 1,
+  "run": "2026-10-21T11-08-02_qwen36-gpu0_9f27",
+  "seq": 22046,
+  "t": "2026-10-21T12:41:32.742-04:00",
+  "type": "story_battle_heal_gate",
+  "turn": 510,
+  "tool_call_id": "2cLj0f709rtKdh8HA7DccE2KKH7BKCEU",
+  "tool": "press",
+  "map_id": [
+   0,
+   18
+  ],
+  "confirmed": false,
+  "outcome": "refused",
+  "reason": null,
+  "reached": [
+   {
+    "kind": "rival",
+    "name": "MAY",
+    "local_id": 2,
+    "sprite_kind": "RIVAL_MAY_NORMAL",
+    "x": 10,
+    "y": 3,
+    "loaded": true,
+    "via": "talk",
+    "tile": {
+     "x": 10,
+     "y": 2
+    }
+   }
+  ],
+  "sightings": [],
+  "hurt": [
+   {
+    "species": "TORCHIC",
+    "hp": 21,
+    "max_hp": 26
+   }
+  ],
+  "heal": [
+   {
+    "kind": "pokemon_center",
+    "town": "OLDALE TOWN",
+    "map_id": [
+     2,
+     2
+    ],
+    "hops": 2,
+    "shown": true
+   },
+   {
+    "kind": "home",
+    "town": "LITTLEROOT TOWN",
+    "map_id": [
+     1,
+     0
+    ],
+    "hops": 4,
+    "shown": false
+   }
+  ],
+  "text": "Battle not started: this press of A talks to your rival MAY (object 2, at (10,3)) and starts a trainer battle, and your party is not at full HP: TORCHIC 21/26.\nIn a trainer battle the game says \"No! There's no running from a TRAINER battle!\" If your party faints, you black out: you lose half your money (\u20bd750 of \u20bd1500) and wake up back at the last POK\u00e9MON CENTER you entered, or at home.\nPlaces you know of that heal your party, nearest first:\n- the POK\u00e9MON CENTER in OLDALE TOWN (map 2/2), 2 map changes from here in the game's map table; you have not entered it, but an earlier result listed it as an exit at (6,16) in OLDALE TOWN; its nurse says \"We restore your tired POK\u00e9MON to full health.\"\n- your house in LITTLEROOT TOWN (map 1/0), 4 map changes from here in the game's map table, where MOM says \"I think you should rest a bit.\" and heals your party.\nTo press anyway, call press again with the same buttons and confirm: true."
+ }
+}

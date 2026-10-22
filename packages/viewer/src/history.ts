@@ -77,7 +77,9 @@ async function scoredRuns(runsRoot: string, readBaseline: BaselineReader): Promi
     try {
       const config = configOf(readStart(runsRoot, summary.id));
       if (config === null) return null;
-      return { config, milestones: (await readBaseline(summary.id)).milestones.filter((m) => m.derived !== true) };
+      // Baseline offsets already exclude operator pauses. Match and score at the
+      // recorded original horizon; replay/baseline retain continuation progress.
+      return { config, milestones: (await readBaseline(summary.id)).milestones.filter((m) => m.derived !== true && (config.maxWallMs === null || m.offsetMs <= config.maxWallMs)) };
     } catch (error) {
       if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
       return null;

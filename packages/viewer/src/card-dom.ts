@@ -5,16 +5,21 @@ import { clockParts, parseCardArt, type CardArt, type CardInput } from "./traine
 
 export interface LoadedArt { readonly art: CardArt; readonly font: GameFont | null; readonly glyphs: GlyphSheet | null }
 
-// Null when the art was never built (`just trainer-card-art`); the page then keeps its older look. A font or
+// Null when the art was never built (`just trainer-card-art`). A font or
 // glyph sheet that fails to load leaves the cards with plain text.
-export async function loadCardArt(fetchJson: (url: string) => Promise<unknown>, loadGlyphSheet?: (url: string) => Promise<GlyphSheet | null>, ready?: (loaded: LoadedArt) => void): Promise<LoadedArt | null> {
+export async function loadCardArt(fetchJson: (url: string) => Promise<unknown>, loadGlyphSheet?: (url: string) => Promise<GlyphSheet | null>, onArtReady?: (loaded: LoadedArt) => void): Promise<LoadedArt | null> {
   let art: CardArt | null;
   try { art = parseCardArt(await fetchJson("/sprites/manifest.json")); } catch { return null; }
   if (art === null) return null;
-  ready?.({ art, font: null, glyphs: null });
+  // Card frames and ordinary text are usable before the optional font arrives.
+  onArtReady?.({ art, font: null, glyphs: null });
   try {
-    const font = parseGameFont(await fetchJson("/sprites/font/glyphs.json"));
-    return { art, font, glyphs: font === null ? null : (await loadGlyphSheet?.("/sprites/font/glyphs.png")) ?? null };
+    const [metadata, glyphs] = await Promise.all([
+      fetchJson("/sprites/font/glyphs.json"),
+      loadGlyphSheet?.("/sprites/font/glyphs.png") ?? Promise.resolve(null),
+    ]);
+    const font = parseGameFont(metadata);
+    return { art, font, glyphs: font === null ? null : glyphs };
   } catch {
     return { art, font: null, glyphs: null };
   }

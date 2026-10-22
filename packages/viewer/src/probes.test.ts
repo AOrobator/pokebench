@@ -185,3 +185,28 @@ describe("one probe", () => {
     expect((await readProbe(runs, "p")).cases).toEqual(first.cases);
   });
 });
+
+
+describe("synthetic probe provenance", () => {
+  it("keeps explicit synthetic fixtures separate from missing historical recordings", async () => {
+    const runs = root();
+    probeDir(runs, "probes/synthetic", { manifest: { ...MANIFEST, id: "synthetic", cases: [
+      { id: "constructed", run: "synthetic-fixtures", turn: 1, split: "heldout", sourceKind: "synthetic" },
+      { id: "missing", run: "missing-real-run", turn: 1, split: "heldout" },
+      { id: "unsafe-synthetic", run: "../not-a-source", turn: 1, split: "heldout", sourceKind: "synthetic" },
+    ] } });
+    const result = await readProbe(runs, "synthetic");
+    expect(result.cases[0]).toEqual({ id: "constructed", run: "synthetic-fixtures", turn: 1, split: "heldout", title: "constructed", sourceKind: "synthetic", at: null, recorded: null, frame: null });
+    expect(result.problems).toEqual(["case missing: source run missing-real-run has no events.jsonl", 'case unsafe-synthetic: not a run id: "../not-a-source"']);
+    expect(result.cases[2]).toMatchObject({ sourceKind: "synthetic", recorded: null, frame: null });
+    expect(parseProbe(result)).toEqual(result);
+  });
+  it("never borrows a frame or recorded action even if a synthetic reference names an existing run", async () => {
+    const runs = root(); sourceRun(runs);
+    probeDir(runs, "probes/fixture", { manifest: { ...MANIFEST, id: "fixture", cases: [{ id: "fake-history", run: RUN, turn: 206, split: "heldout", sourceKind: "synthetic" }] } });
+    const result = await readProbe(runs, "fixture");
+    expect(result.problems).toEqual([]);
+    expect(result.cases[0]).toMatchObject({ sourceKind: "synthetic", at: null, recorded: null, frame: null });
+  });
+
+});

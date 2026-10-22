@@ -274,3 +274,45 @@ describe("mounting the page", () => {
     expect(h.urls).toEqual(["/api/probes"]);
   });
 });
+
+
+describe("synthetic case display", () => {
+  it("identifies constructed inputs without pretending they are recorded turns or missing runs", () => {
+    const p = probe();
+    const first = p.cases[0];
+    if (first === undefined) throw new Error("fixture has no case");
+    const synthetic = { ...first, id: "constructed", sourceKind: "synthetic" as const, run: "synthetic-fixtures", at: null, recorded: null, frame: null };
+    const mixed = { ...p, cases: [first, synthetic], samples: [...p.samples, s("gpu0", "constructed", "on", 0, "(text only)")] };
+    const d = dom(pageHtml(mixed, { ...STATE, caseId: "constructed", plot: true }, NOW, false));
+    expect(texts(d, ".pr-sub")[0]).toContain("1 recorded turn + 1 synthetic case");
+    expect(texts(d, ".pr-screen")[0]).toContain("SYNTHETIC");
+    expect(texts(d, ".pr-main").join(" ")).toContain("no recorded call");
+    expect(texts(d, ".pr-main").join(" ")).not.toContain("source run is missing");
+    expect(d.querySelector(".pr-frame")).toBeNull();
+    expect(d.querySelector(".pr-plot")?.textContent).not.toContain("CONSTRUCTED");
+    const base = dom(pageHtml({ ...p, cases: [first] }, STATE, NOW, false));
+    expect(texts(d, ".pr-kpis .pr-kpi:last-child .pr-v, .pr-kpis .pr-kpi:last-child .pr-tail")).toEqual(texts(base, ".pr-kpis .pr-kpi:last-child .pr-v, .pr-kpis .pr-kpi:last-child .pr-tail"));
+  });
+  it("refuses synthetic API data that claims a historical frame, call or time", () => {
+    const p = probe();
+    const first = p.cases[0];
+    if (first === undefined) throw new Error("fixture has no case");
+    const fixture = { ...first, sourceKind: "synthetic", at: null, recorded: null, frame: null };
+    expect(parseProbe({ ...p, cases: [fixture] }).cases[0]).toEqual(fixture);
+    for (const extra of [{ frame: "000019_0.png" }, { at: "2026-10-20T00:00:00Z" }, { recorded: { tool: "press", args: {} } }, { sourceKind: "invented" }])
+      expect(() => parseProbe({ ...p, cases: [{ ...fixture, ...extra }] })).toThrow("probe");
+  });
+  it("labels all-synthetic studies and keeps their failures out of historical comparison", () => {
+    const p = probe();
+    const first = p.cases[0];
+    if (first === undefined) throw new Error("fixture has no case");
+    const fixture = { ...first, id: "fixture", sourceKind: "synthetic" as const, at: null, recorded: null, frame: null };
+    const d = dom(pageHtml({ ...p, cases: [fixture, { ...fixture, id: "second" }], samples: [s("gpu0", "fixture", "on", 0, "(model error: unavailable)")] }, { ...STATE, caseId: "fixture", plot: true }, NOW, true));
+    expect(texts(d, ".pr-sub")[0]).toContain("0 recorded turns + 2 synthetic cases");
+    expect(texts(d, ".pr-kpis .pr-kpi").at(-1)).toContain("Study rubric required");
+    expect(d.querySelector(".pr-more summary")?.textContent).toContain("RECORDED CASES ONLY");
+    expect(d.querySelectorAll("[data-sample]")).toHaveLength(1);
+    expect(d.querySelector(".pr-main")?.textContent).not.toContain("true gap");
+  });
+
+});

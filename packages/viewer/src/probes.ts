@@ -23,6 +23,7 @@ export interface ProbeSummary {
 }
 export interface RecordedCall { readonly tool: string; readonly args: Readonly<Record<string, unknown>> }
 export interface ProbeCase {
+  readonly sourceKind?: "synthetic";
   readonly id: string;
   readonly run: string;
   readonly turn: number;
@@ -79,16 +80,16 @@ function isFile(path: string): boolean {
   try { return statSync(path).isFile(); } catch { return false; }
 }
 
-interface Manifest { readonly id: string; readonly feature: string; readonly tier: string | null; readonly arms: readonly string[] | null; readonly ceilingMs: number | null; readonly cases: readonly { id: string; run: string; turn: number; split: Split; title: string }[] }
+interface Manifest { readonly id: string; readonly feature: string; readonly tier: string | null; readonly arms: readonly string[] | null; readonly ceilingMs: number | null; readonly cases: readonly { id: string; run: string; turn: number; split: Split; title: string; sourceKind?: "synthetic" }[] }
 function manifest(dir: string): Manifest | null {
   const v = readJson(join(dir, "manifest.json"));
   if (!record(v) || str(v.id) === null || !Array.isArray(v.cases) || v.cases.length === 0) return null;
-  const cases: { id: string; run: string; turn: number; split: Split; title: string }[] = [];
+  const cases: { id: string; run: string; turn: number; split: Split; title: string; sourceKind?: "synthetic" }[] = [];
   for (const c of v.cases as unknown[]) {
     if (!record(c)) return null;
     const id = str(c.id), run = str(c.run), turn = c.turn, split = c.split;
     if (id === null || run === null || typeof turn !== "number" || !Number.isInteger(turn) || turn < 0 || (split !== "development" && split !== "heldout")) return null;
-    cases.push({ id, run, turn, split, title: str(c.category) ?? str(c.title) ?? id });
+    cases.push({ id, run, turn, split, title: str(c.category) ?? str(c.title) ?? id, ...(c.sourceKind === "synthetic" ? { sourceKind: "synthetic" as const } : {}) });
   }
   const arms = Array.isArray(v.arms) && v.arms.every((a) => typeof a === "string" && ID.test(a)) ? (v.arms as string[]) : null;
   const ceiling = typeof v.maxWallMsPerLane === "number" && v.maxWallMsPerLane > 0 ? v.maxWallMsPerLane : null;
@@ -226,8 +227,9 @@ export async function readProbe(runsRoot: string, id: string): Promise<ProbeDeta
   const all = lanes.flatMap((l) => samples(entry.dir, l.id, problems));
   const cases: ProbeCase[] = [];
   for (const c of m.cases) {
-    const base = { id: c.id, run: c.run, turn: c.turn, split: c.split, title: c.title };
+    const base = { id: c.id, run: c.run, turn: c.turn, split: c.split, title: c.title, ...(c.sourceKind === "synthetic" ? { sourceKind: "synthetic" as const } : {}) };
     if (!RUN_ID.test(c.run)) { problems.push(`case ${c.id}: not a run id: ${JSON.stringify(c.run)}`); cases.push({ ...base, at: null, recorded: null, frame: null }); continue; }
+    if (c.sourceKind === "synthetic") { cases.push({ ...base, sourceKind: "synthetic", at: null, recorded: null, frame: null }); continue; }
     const log = join(runsRoot, c.run, "events.jsonl");
     if (!isFile(log)) { problems.push(`case ${c.id}: source run ${c.run} has no events.jsonl`); cases.push({ ...base, at: null, recorded: null, frame: null }); continue; }
     const facts = await turnFacts(log, c.turn);

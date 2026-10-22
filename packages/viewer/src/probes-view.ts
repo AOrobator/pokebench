@@ -39,6 +39,7 @@ export function parseProbeList(v: unknown): ProbeSummary[] {
 }
 function caseOk(c: unknown): boolean {
   return record(c) && isStr(c.id) && isStr(c.run) && isInt(c.turn) && (c.split === "development" || c.split === "heldout") && isStr(c.title) && strOrNull(c.at) && strOrNull(c.frame)
+    && (c.sourceKind === undefined || (c.sourceKind === "synthetic" && c.at === null && c.frame === null && c.recorded === null))
     && (c.recorded === null || (record(c.recorded) && isStr(c.recorded.tool) && record(c.recorded.args)));
 }
 function sampleOk(s: unknown): boolean {
@@ -112,11 +113,12 @@ function context(p: ProbeDetail, st: ViewState): Ctx {
   const gradeOf = (s: ProbeSample): Grade => grade(s.key, recorded.get(s.case) ?? null);
   const inGroup = p.samples.filter((s) => lanes.includes(s.lane));
   const split = new Map(p.cases.map((c) => [c.id, c.split]));
+  const synthetic = new Set(p.cases.filter((c) => c.sourceKind === "synthetic").map((c) => c.id));
   return {
     p, st, lanes, on, off, gradeOf,
     name: (arm) => (st.blind ? (arm === on ? "X" : "Y") : arm.toUpperCase()),
     samples: (caseId, arm) => inGroup.filter((s) => s.case === caseId && s.arm === arm).sort((a, b) => a.lane.localeCompare(b.lane) || a.sample - b.sample),
-    t: (caseId, arm, sp) => tally(inGroup.filter((s) => s.arm === arm && (caseId === null || s.case === caseId) && (sp === undefined || split.get(s.case) === sp)).map(gradeOf)),
+    t: (caseId, arm, sp) => tally(inGroup.filter((s) => s.arm === arm && (caseId === null ? !synthetic.has(s.case) : s.case === caseId) && (sp === undefined || split.get(s.case) === sp)).map(gradeOf)),
   };
 }
 
@@ -152,12 +154,15 @@ function header(c: Ctx, now: number, list: readonly ProbeSummary[]): string {
     const ms = median(c.p.samples.filter((s) => s.lane === l.id).map((s) => s.elapsedMs));
     return `<div class="pr-kpi"><div class="pr-k">${esc(l.id.toUpperCase())} · ${esc(modelLabel(l.model).toUpperCase())}</div><div class="pr-v">${String(l.completed)}/${String(l.planned)}</div>${hp(l.planned === 0 ? 0 : l.completed / l.planned, l.state === "complete" ? "OK" : l.state === "running" ? "RUN" : "—")}<div class="pr-tail">${esc(laneTail(l, ms, now))}</div></div>`;
   };
-  const held = c.p.cases.some((x) => x.split === "heldout");
+  const synthetic = c.p.cases.filter((x) => x.sourceKind === "synthetic").length;
+  const historical = c.p.cases.length - synthetic;
+  const countLabel = synthetic === 0 ? `${String(historical)} recorded turns` : `${String(historical)} recorded turn${historical === 1 ? "" : "s"} + ${String(synthetic)} synthetic case${synthetic === 1 ? "" : "s"}`;
+  const held = c.p.cases.some((x) => x.sourceKind !== "synthetic" && x.split === "heldout");
   const on = c.t(null, c.on, held ? "heldout" : undefined), off = c.t(null, c.off, held ? "heldout" : undefined);
-  const summary = `<div class="pr-kpi"><div class="pr-k">${held ? "HELD-OUT" : "ALL CASES"} DEPARTS · ${esc(c.name(c.on))} VS ${esc(c.name(c.off))}</div><div class="pr-v">${String(pct(on))}% · ${String(pct(off))}%</div><div class="pr-tail">${String(on.dif)}/${String(on.n)} vs ${String(off.dif)}/${String(off.n)} · ${pText(pOf(on, off))}</div><div class="pr-tail">hand rubric not graded yet</div></div>`;
+  const summary = historical === 0 ? '<div class="pr-kpi"><div class="pr-k">SYNTHETIC CASES</div><div class="pr-tail">Study rubric required; no recorded calls to compare.</div></div>' : `<div class="pr-kpi"><div class="pr-k">${synthetic > 0 ? "RECORDED " : ""}${held ? "HELD-OUT" : "ALL CASES"} DEPARTS · ${esc(c.name(c.on))} VS ${esc(c.name(c.off))}</div><div class="pr-v">${String(pct(on))}% · ${String(pct(off))}%</div><div class="pr-tail">${String(on.dif)}/${String(on.n)} vs ${String(off.dif)}/${String(off.n)} · ${pText(pOf(on, off))}</div><div class="pr-tail">hand rubric not graded yet</div></div>`;
   const problems = c.p.problems.length === 0 ? "" : `<details class="pr-problems"><summary>${String(c.p.problems.length)} PROBLEM${c.p.problems.length === 1 ? "" : "S"} READING THIS PROBE</summary><ul>${c.p.problems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>`;
   return `<section class="box pr-head"><div class="pr-titlebar">${picker}<span class="pr-mode${live ? " live" : ""}">${live ? "LIVE" : "ENDED"}</span><span class="pr-asof">AS OF ${esc(nyTime(now))} NY</span></div>
-<h1>${esc(c.p.title)}</h1><p class="pr-sub">${esc(c.p.feature)}${c.p.tier === null ? "" : ` · ${esc(c.p.tier)}`} · ${String(c.p.cases.length)} recorded turns, ${esc(c.name(c.on))} vs ${esc(c.name(c.off))}, the next tool call sampled per arm. No game actions run.</p>
+<h1>${esc(c.p.title)}</h1><p class="pr-sub">${esc(c.p.feature)}${c.p.tier === null ? "" : ` · ${esc(c.p.tier)}`} · ${countLabel}, ${esc(c.name(c.on))} vs ${esc(c.name(c.off))}, the next tool call sampled per arm. No game actions run.</p>
 <div class="pr-kpis">${c.p.lanes.map(tile).join("")}${summary}</div>${problems}</section>`;
 }
 function tools(c: Ctx): string {
@@ -167,7 +172,7 @@ function tools(c: Ctx): string {
 function slots(c: Ctx): string {
   return `<aside class="pr-party" aria-label="Cases">${c.p.cases.map((k) => {
     const a = c.t(k.id, c.on), b = c.t(k.id, c.off);
-    return `<button type="button" class="pr-slot" data-case="${esc(k.id)}" aria-current="${String(k.id === c.st.caseId)}"><span class="pr-slot-top"><span class="pr-slot-id">${esc(shortCase(k.id))} T${String(k.turn)}</span><span>${k.split === "heldout" ? "HELD" : "DEV"}</span></span><span class="pr-slot-nm">${esc(k.title)}</span>${hp(a.n === 0 ? 0 : a.dif / a.n, c.name(c.on))}${hp(b.n === 0 ? 0 : b.dif / b.n, c.name(c.off))}${gapBar(gap(a, b), "small")}</button>`;
+    return `<button type="button" class="pr-slot" data-case="${esc(k.id)}" aria-current="${String(k.id === c.st.caseId)}"><span class="pr-slot-top"><span class="pr-slot-id">${esc(shortCase(k.id))}${k.sourceKind === "synthetic" ? " · SYNTHETIC" : ` T${String(k.turn)}`}</span><span>${k.split === "heldout" ? "HELD" : "DEV"}</span></span><span class="pr-slot-nm">${esc(k.title)}</span>${hp(a.n === 0 ? 0 : a.dif / a.n, c.name(c.on))}${hp(b.n === 0 ? 0 : b.dif / b.n, c.name(c.off))}${gapBar(k.sourceKind === "synthetic" ? null : gap(a, b), "small")}</button>`;
   }).join("")}</aside>`;
 }
 function scene(c: Ctx, k: ProbeCase): string {
@@ -175,8 +180,8 @@ function scene(c: Ctx, k: ProbeCase): string {
     const t = c.t(k.id, arm);
     return `<div class="pr-side ${cls}">${typeBadge(c, arm)}<div class="pr-big">${String(t.dif)}/${String(t.n)}</div>${hp(t.n === 0 ? 0 : t.dif / t.n, "GO")}<div class="pr-side-n">REPEATS ${String(t.rep)} · ERROR ${String(t.err)}</div></div>`;
   };
-  const frame = k.frame === null ? '<div class="pr-noframe">NO FRAME</div>' : `<img class="pr-frame" src="/api/runs/${encodeURIComponent(k.run)}/frames/${encodeURIComponent(k.frame)}" alt="${esc(k.run)} at turn ${String(k.turn)}">`;
-  return `<section class="pr-scene">${side(c.on, "foe")}<div class="pr-screen">${frame}<div class="pr-cap">${esc(k.run.slice(-4))} · TURN ${String(k.turn)}${k.at === null ? "" : ` · ${esc(nyTime(k.at))} NY`}</div></div>${side(c.off, "me")}</section>`;
+  const frame = k.sourceKind === "synthetic" ? '<div class="pr-noframe">SYNTHETIC<br>NO RECORDED FRAME</div>' : k.frame === null ? '<div class="pr-noframe">NO FRAME</div>' : `<img class="pr-frame" src="/api/runs/${encodeURIComponent(k.run)}/frames/${encodeURIComponent(k.frame)}" alt="${esc(k.run)} at turn ${String(k.turn)}">`;
+  return `<section class="pr-scene">${side(c.on, "foe")}<div class="pr-screen">${frame}<div class="pr-cap">${k.sourceKind === "synthetic" ? "CONSTRUCTED CASE" : `${esc(k.run.slice(-4))} · TURN ${String(k.turn)}${k.at === null ? "" : ` · ${esc(nyTime(k.at))} NY`}`}</div></div>${side(c.off, "me")}</section>`;
 }
 function callHtml(call: Call): string {
   const args = Object.entries(call.args).filter(([key]) => key !== "because").map(([key, v]) => `${key}=${JSON.stringify(v)}`).join(" ");
@@ -195,6 +200,7 @@ function main(c: Ctx, k: ProbeCase): string {
     return `<div class="pr-armrow">${typeBadge(c, arm)}<div class="pr-sqs" data-arm="${esc(arm)}">${squares}${'<span class="pr-sq todo"></span>'.repeat(Math.max(0, planned - xs.length))}</div><span class="pr-n">${String(t.dif)}/${String(t.n)}</span></div>`;
   };
   const a = c.t(k.id, c.on), b = c.t(k.id, c.off), g = gap(a, b);
+  if (k.sourceKind === "synthetic") return `<section class="box pr-main"><h3>${esc(shortCase(k.id))} · SYNTHETIC · ${esc(k.title)}</h3>${row(c.on)}${row(c.off)}<p class="pr-note">Synthetic fixture: no recorded call, historical frame or acquisition outcome. These samples require the study's rubric and are excluded from recorded-call departure summaries and plots.</p></section>`;
   const recorded = k.recorded === null ? '<p class="pr-note">Recorded call unknown: the source run is missing, so these squares are ungraded.</p>' : `<div class="pr-recorded"><div class="pr-note">Recorded call (what the model did in the real run)</div>${callHtml(k.recorded)}</div>`;
   return `<section class="box pr-main"><h3>${esc(shortCase(k.id))} T${String(k.turn)} · ${esc(k.title)}</h3>${verdictHtml(c, a, b)}${row(c.on)}${row(c.off)}
 <div class="pr-armrow pr-gaprow"><span class="pr-gap-lbl">GAP</span><div>${gapBar(g, "big")}<div class="pr-key"><span class="l">◀ ${esc(c.name(c.off))} <span class="w">DEPARTS </span>MORE</span><span class="r">${esc(c.name(c.on))} <span class="w">DEPARTS </span>MORE ▶</span></div></div><span class="pr-n">${g === null ? "" : String(Math.round(g.d * 100))}</span></div>
@@ -214,7 +220,7 @@ function plot(c: Ctx, phone: boolean): string {
   const X = (v: number): number => L + ((v + 1) / 2) * (W - L - R);
   let y = 52, rows = "";
   for (const split of ["development", "heldout"] as const) {
-    const cases = c.p.cases.filter((k) => k.split === split);
+    const cases = c.p.cases.filter((k) => k.sourceKind !== "synthetic" && k.split === split);
     if (cases.length === 0) continue;
     rows += `<text x="8" y="${String(y + 18)}" font-size="9" fill="#d03a3a">${split === "heldout" ? "HELD-OUT" : "DEVELOPMENT"}</text>`;
     y += rowH;
@@ -250,5 +256,5 @@ export function pageHtml(p: ProbeDetail, st: ViewState, now: number, phone: bool
   const k = p.cases.find((x) => x.id === st.caseId) ?? p.cases[0];
   if (k === undefined) return `${header(c, now, list)}<section class="box"><p class="pr-note">This probe has no cases.</p></section>`;
   return `${header(c, now, list)}${tools(c)}<div class="pr-layout">${slots(c)}<div class="pr-col">${scene(c, k)}${main(c, k)}${reader(c)}</div></div>
-<section class="box"><details class="pr-more"${st.plot ? " open" : ""}><summary>IS THE DIFFERENCE REAL? · ALL CASES</summary><div class="pr-plotwrap"><div>${plot(c, phone)}</div>${guide(c)}</div></details></section>`;
+<section class="box"><details class="pr-more"${st.plot ? " open" : ""}><summary>IS THE DIFFERENCE REAL? · ${p.cases.some((x) => x.sourceKind === "synthetic") ? "RECORDED CASES ONLY" : "ALL CASES"}</summary><div class="pr-plotwrap"><div>${plot(c, phone)}</div>${guide(c)}</div></details></section>`;
 }

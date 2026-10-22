@@ -56,6 +56,7 @@ No subprocesses, paths or network changes. Harness-chosen walks reuse navigate_t
 Unit and factory tests; a recorded-state replay of auto-talk on a battle state; explainer pages served at 127.0.0.1:8791 and listed in viewer Reports (headless checks only, per the operator's no-focus rule).
 
 ## Session Log
+- COMMIT: `feat(agent): auto-talk field-only, auto-talk-v3 and untalked-people header switches` (23a7c304b)
 - GREEN gates (2026-10-22): vitest agent 4542 passed, viewer 1694 passed (two timing flakes, serial-comparison hung-child and live-human, passed on rerun); pytest 3959 passed, 1 failed (test_view production main, needs the mGBA binding absent from this worktree's venv; Python unchanged). Coverage: agent lines 99.22 / branches 93.37 / functions 97.97; viewer 97.96 / 91.43 / 94.43; Python 97.30 / 93.35 / 99.76 (floor 90). Lint: tsc + eslint clean both packages, ruff clean, mypy clean with the main venv. Build OK.
 - Delete-once checks: removing untalkedPeople from play-wiring turned the factory test red; removing the field-only battle return and the v3 breaker bypass in auto-talk.ts turned their tests red; all restored.
 - COMMIT: `test(agent): RED auto-talk field-only, auto-talk-v3 and untalked-people header` (8d5c4a16f)

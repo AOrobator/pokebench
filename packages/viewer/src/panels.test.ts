@@ -1507,7 +1507,7 @@ it("links the caught Pokédex input to its explainer without changing feature st
 });
 
 it("links each GLM-run harness bug switch to its tracked explainer without changing feature status",()=>{
- for(const id of ["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"]){
+ for(const id of ["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1","milestone-drought-suppression-v1"]){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))).toBe(true);
   const on=new Log();on.add(0,{...START,harness_features:["ram-state-v1",id]});

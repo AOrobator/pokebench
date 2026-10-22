@@ -1298,7 +1298,7 @@ it("serves the tracked caught Pokédex input explainer byte for byte",async()=>{
 });
 
 it("serves the tracked GLM-run harness bug explainers byte for byte",async()=>{
- const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"];
+ const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1","milestone-drought-suppression-v1"];
  const root=mkdtempSync(join(tmpdir(),"pokebench-glm-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);

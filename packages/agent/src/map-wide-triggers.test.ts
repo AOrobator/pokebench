@@ -4,7 +4,7 @@
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,serverFeatureEnv} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {planStride} from "./navigation.js";
 import {IN_GAME} from "../test-support/events.js";
@@ -14,8 +14,8 @@ const ID="map-wide-triggers-v1" as const;
 
 describe("registry",()=>{
  it("is the server's last switch: a default-off server observation that needs coordinate-script-conditions-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-12)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-13)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-3)).toBe(ID);

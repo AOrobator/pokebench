@@ -11,7 +11,7 @@ import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
 const ID="story-goal-player-name-v1" as const;
@@ -113,8 +113,8 @@ describe("production factory",()=>{
 
 describe("registry",()=>{
  it("the four GLM-run switches are appended last, in order, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-16,-12)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-16,-12).map(f=>f.id)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-17, -13)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-17, -13).map(f=>f.id)).toEqual([...NEW]);
   expect(playHarnessFeatures(ALL_ON,null).slice(-14,-10)).toEqual([...NEW]);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STORY GOAL: PLAYER NAME"});

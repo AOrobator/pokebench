@@ -146,7 +146,7 @@ export class StallBriefing {
   }
   const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
   if(level<=this.droughts)return;
-  if(retired){
+  if(retired||this.features["milestone-drought-suppression-v1"]){
    this.retiredNote?.("milestone_drought",`No new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play.`,[this.progressSeq??seq,seq]);
    this.droughts=level;return;
   }

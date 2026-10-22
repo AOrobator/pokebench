@@ -6,7 +6,8 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
 import {stallBriefing} from "./play-wiring.js";
-import {STALL_DROUGHT_MS} from "./stall-briefing.js";
+import {INTERFACE_DWELL_CALLS,STALL_DROUGHT_MS} from "./stall-briefing.js";
+import {attachLoopGuard,Governor} from "./harness.js";
 import type {LoopNotice} from "./loop-detection.js";
 
 const ID="milestone-drought-suppression-v1";
@@ -32,8 +33,8 @@ describe(ID,()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(normalizeFeatures(BASE)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
-  expect(playHarnessFeatures(rig(true).features)).toContain(ID);
-  expect(playHarnessFeatures(rig(false).features)).not.toContain(ID);
+  expect(playHarnessFeatures(rig(true).features,null)).toContain(ID);
+  expect(playHarnessFeatures(rig(false).features,null)).not.toContain(ID);
  });
  it("OFF reproduces the recorded false cutscene intervention",()=>{
   const r=rig(false);r.emit(state);r.emit(result);
@@ -48,7 +49,7 @@ describe(ID,()=>{
   expect(result.text).toContain("Field-message phase: dismiss_wait");
   const r=rig(true);r.emit(state);r.emit(result);r.emit(result);
   expect(r.sent).toEqual([]);
-  expect(r.notes).toEqual([{kind:"milestone_drought",message:`Not sent (${ID}): No new story milestone for 5 minutes of play.`,calls:0,evidence:[24542,24542],mode:"diagnostic",phase:"would_warn"}]);
+  expect(r.notes).toEqual([{kind:"milestone_drought",message:`Not sent (${ID}): No new story milestone for 5 minutes of play.`,calls:0,evidence:[24542],mode:"diagnostic",phase:"would_warn"}]);
   r.advance();r.emit(result);
   expect(r.notes.at(-1)?.message).toBe(`Not sent (${ID}): No new story milestone for 10 minutes of play.`);
  });
@@ -59,6 +60,28 @@ describe(ID,()=>{
   for(const r of [existing,combined]){r.emit(state);r.emit(result);}
   expect(combined.notes).toEqual(existing.notes);
   expect(combined.notes[0]?.message).toBe("Not sent (positive-supervisor-v1): No new story milestone for 5 minutes of play.");
+ });
+ it("the actual loop detector queues OFF feedback for the next decision, and none with ON",()=>{
+  for(const on of [false,true]){
+   const subscribers:((e:RunEvent)=>void)[]=[];const notes:LoopNotice[]=[];
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordLoopGuard:(n:LoopNotice)=>{notes.push(n);},recordStallGate:()=>undefined};
+   const governor=new Governor({limits:{maxTurns:1000,maxWallMs:1e9,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+   const detector=attachLoopGuard(recorder,governor,undefined,"enforced");
+   stallBriefing({...BASE,[ID]:on},recorder,detector,{pausedMs:()=>0},()=>STALL_DROUGHT_MS+1);
+   for(const e of [state,result])for(const fn of subscribers)fn(e);
+   const feedback=detector.context();
+   if(on){expect(feedback).toBeNull();expect(notes.map(n=>n.phase)).toEqual(["would_warn"]);}
+   else {expect(feedback).toContain("SUPERVISOR: You are stalling.");expect(notes.map(n=>n.phase)).toEqual(["supervisor"]);}
+  }
+ });
+ it("keeps interface-dwell intervention text and evidence byte-identical",()=>{
+  const off=rig(false),on=rig(true);
+  for(const r of [off,on])for(let i=0;i<=INTERFACE_DWELL_CALLS;i++){
+   const s={...state,seq:26000+i*2,active_ui:{phase:"bag_menu",ready:true,selected:"POTION",controls:"A chooses; B exits",diagnostic:null,value:null,details:{}},screen:"bag_menu",world_context:null};
+   r.emit(s);r.emit({...result,seq:s.seq+1,state_seq:s.seq});
+  }
+  expect(on.sent.filter(n=>n.kind==="interface_dwell")).toEqual(off.sent.filter(n=>n.kind==="interface_dwell"));
+  expect(on.sent.filter(n=>n.kind==="interface_dwell")).toHaveLength(1);
  });
  it("keeps map-cycle intervention text and evidence byte-identical",()=>{
   const off=rig(false),on=rig(true);

@@ -6,7 +6,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
 import {isCheckedPress,pressTool,type CheckedPressTool} from "./game-tools.js";

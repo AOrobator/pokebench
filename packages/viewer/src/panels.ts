@@ -386,6 +386,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "stale-plan-fact-v1":"stale-plan-fact-v1.html",
  "post-battle-readout-v1":"post-battle-readout-v1.html",
  "move-learn-tool-v1":"move-learn-tool-v1.html",
+ "milestone-drought-suppression-v1":"milestone-drought-suppression-v1.html",
  "story-goal-player-name-v1":"story-goal-player-name-v1.html",
  "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
  "trainer-sight-check-v2":"trainer-sight-check-v2.html",

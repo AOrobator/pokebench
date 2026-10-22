@@ -19,7 +19,7 @@ feature-switch, agent-observability, feature-explainer, experiment-queue, talk-t
 ## M1
 
 - [x] RED recorded cutscene/factory and OFF tests; commit
-- [ ] GREEN production wiring, registry/defaults, bundle, pending experiment and explainer; commit
+- [x] GREEN production wiring, registry/defaults, bundle, pending experiment and explainer; commit
 - [ ] Gates, deletion/restoration, local viewer proof
 - [ ] Principles and independent Claude/Grok/GPT frozen-packet reviews
 - [ ] Landing board, reviewed fast-forward, live surface proof
@@ -33,3 +33,10 @@ feature-switch, agent-observability, feature-explainer, experiment-queue, talk-t
 Not started.
 
 - RED: recorded cutscene test fails with the new switch absent; branch test commit contains unchanged production source.
+
+- RED commit 862376708. GREEN tests: just test passed 4,436 agent, 1,671 viewer, 3,889 Python. Initial Python run lacked the worktree ROM configuration/native binding; configured the existing external ROM and linked the existing binding into this isolated virtualenv, then the entire Python suite passed. No Python source changes.
+- Deletion/restoration receipts: /tmp/drought-delete-factory.log (diagnostic assertions fail), /tmp/drought-delete-gate.log (suppression and actual detector feedback fail), /tmp/drought-restored.log (7/7 pass). These exercise the production factory and actual loop-detector context delivery, not only a helper.
+- Six current bundle recipes now include the switch, adding glm53-flash-4h (explicit current-main GLM recipe) to the five shared recipes. Their base/control stays OFF; positive-supervisor-v1 stays OFF. Historical versioned recipes/control-base hashes unchanged.
+- Viewer model's existing diagnostic exclusion extended only for this switch, to preserve the closed timeline invariant. Agent-side JSON/schema remains unchanged. Existing Activity History and inspector retain the diagnostic.
+- Historical registry-tail assertions move by one; old all-on fixtures explicitly keep this new treatment OFF. No behavioral assertions removed or weakened.
+- Joined landing board number 2, behind claude/no-story-foreknowledge-min; informed coordinator to hold landings at our slot before packet sealing. Active runs untouched.

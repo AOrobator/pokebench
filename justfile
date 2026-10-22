@@ -191,12 +191,7 @@ land-done *args:
 land-move *args:
     uv run --project env python -m pokebench_env.agent_mail land-move "$@"
 
-# Number 1 says it is still landing, restarting the 45-minute idle clock.
-[positional-arguments]
-land-touch *args:
-    uv run --project env python -m pokebench_env.agent_mail land-touch "$@"
-
-# LLM-free: checks the number 1 holder each minute (a git rev-parse, no model) and moves it back once idle.
+# LLM-free: moves number 1 to the back 30 minutes after it took the slot, if anyone waits; checks each minute.
 land-keeper:
     uv run --project env python -m pokebench_env.agent_mail land-keeper
 

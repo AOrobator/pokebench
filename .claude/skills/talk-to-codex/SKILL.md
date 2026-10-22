@@ -20,9 +20,9 @@ Whenever someone leaves the board or is moved, every entry whose place changed i
 
 `just land-move --branch B --before C` moves B to just above C and tells everyone whose place changed. Use it only when the operator says so, or the coordinator passes on the operator's words.
 
-The slot expires: if number 1 shows no new commit on its branch and no `just land-touch --branch <branch>` for 45 minutes while others wait (the clock starts when someone queues behind it), it is moved to the back and told why. During long gates or reviews, run `just land-touch` now and then.
+Number 1 holds the slot for 30 minutes from the moment it takes it (operator decision 2026-10-22). After that, if anyone is waiting, it is moved to the back and told why. Commits do not extend it. So run gates and reviews on a branch synced with current `main` before your turn, and use the slot only for the final sync, merge, `just test` on main, evidence commit and `just land-done`. A holder alone on the board keeps the slot, but its 30 minutes still count from when it took it.
 
-Never merge into main while someone else is number 1. If the board says a branch has held the slot for a long time with no sign of work, ask the operator before removing it. Do not remove it yourself.
+Never merge into main while someone else is number 1. Never remove someone else's entry; the keeper moves an overdue number 1 back.
 
 ## Telling a Codex session something
 
@@ -58,8 +58,7 @@ Without crashes, only one listener receives each letter. If two threads listen, 
 | `just land-board` | Who is landing and who is waiting |
 | `just land-join --who W --branch B [--codex-thread T]` | Join the board; prints your position |
 | `just land-done --branch B` | Leave the board; tell everyone their new place |
-| `just land-touch --branch B` | Number 1 only: restart the 45-minute idle clock |
-| `just land-keeper` | Start once, detached: LLM-free; checks number 1 each minute and moves it back once idle |
+| `just land-keeper` | Start once, detached: LLM-free; moves number 1 to the back 30 minutes after it took the slot, if anyone waits |
 | `just land-move --branch B --before C` | Move B above C (operator's word only); tell who moved |
 | `just tell-codex "<session>" "<message>"` | Reach a Codex session: via the Codex coordinator mid-turn, else `codex queue` |
 | `just codex-mailbox [--timeout S]` / `just codex-mailbox-done --claim N` | The Codex coordinator's listener and acknowledgement (Codex side only) |

@@ -202,3 +202,8 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - [ ] ASK USER: archive only after the agreed scope and evidence are complete.
 
 - 2026-10-22 execution: explicit approval received. M1, M2 and M3 delegated to isolated implementation worktrees; parent owns M4 and later integration. Integration/review order follows priorities. Existing factual-healing-guidance-v1 is present at base and will be reused, not recreated. New treatments default/control OFF and bundle ON per latest authorization.
+
+### M4 RED and policy decision
+
+- `coherent-healing-feedback-v1` will supersede overlapping warnings only when ON; OFF preserves existing wrappers. No new 80% threshold: reuse existing verified weakParty criteria (lead below half, fainted member, or verified no damaging PP). Minor damage retains the ordinary party readout with no heal command. One factual warning per unchanged risk/map/party profile; known healing places remain options. Disable the independent repeated heal-first wrapper only under this treatment.
+- Production factory regressions on recorded b300 gym entry with ledger HP variants: all 3 tests fail as intended; receipt `/tmp/frontier-m4-red.log`. Source reference pokeemerald `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, clean read-only checkout. No game inputs executed.

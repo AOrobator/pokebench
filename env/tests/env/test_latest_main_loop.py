@@ -156,6 +156,42 @@ def test_each_trial_uses_fresh_main_and_keeps_old_launcher_immutable(
     assert list(c.archive.glob("*-solo-bundle-a-1-*"))
 
 
+def test_feature_recipe_takes_each_trial_arms_from_that_definition_on_fresh_main(
+    tmp_path: Path,
+) -> None:
+    c = Config(
+        tmp_path / "repo",
+        tmp_path / "runs",
+        tmp_path / "archive",
+        tmp_path / "launchers",
+        experiment="gym-rustboro-torchic",
+        phase="cook",
+        wall_ms=5_400_000,
+        viewer_stamp=tmp_path / "viewer.json",
+        feature_recipe="bundle-v-control-2h",
+    )
+    for path in (c.repo / "env/.venv", c.runs / "experiments", c.archive, c.launchers):
+        path.mkdir(parents=True)
+    (c.repo / ".env").write_text("")
+    h = FakeHost(c)
+    assert Controller(c, h).trial(LANE, "bundle")
+    args = h.children[0][0]
+    assert args[:4] == ["just", "fixed-run", "dry-run", "gym-rustboro-torchic"]
+    assert args[-4:] == ["--lane", "A", "--feature-recipe", "bundle-v-control-2h"]
+    rehearsal = next(a for a, _ in h.commands if a[:2] == ["node", "--env-file=.env"])
+    assert rehearsal[-1] == "bundle-v-control-2h"
+
+
+def test_without_a_feature_recipe_trials_use_their_own_definition(
+    rig: tuple[Config, FakeHost, Controller],
+) -> None:
+    _, h, controller = rig
+    assert controller.trial(LANE, "bundle")
+    assert "--feature-recipe" not in h.children[0][0]
+    rehearsal = next(a for a, _ in h.commands if a[:2] == ["node", "--env-file=.env"])
+    assert rehearsal[-1] == "7200000"
+
+
 @pytest.mark.parametrize("guard", ["pause", "stop", "old_runner", "lease", "port"])
 def test_existing_runs_and_holds_prevent_new_launches_without_signals(
     rig: tuple[Config, FakeHost, Controller], guard: str
@@ -274,7 +310,9 @@ def test_worker_alternates_only_after_completed_trials(
     assert len(h.sleeps) == 3
 
 
-@pytest.mark.parametrize("change", ["experiment", "phase", "wall_ms", "poll", "frame_limit"])
+@pytest.mark.parametrize(
+    "change", ["experiment", "phase", "wall_ms", "poll", "frame_limit", "feature_recipe"]
+)
 def test_invalid_configuration_is_rejected_before_launch(tmp_path: Path, change: str) -> None:
     from dataclasses import replace
 
@@ -285,6 +323,7 @@ def test_invalid_configuration_is_rejected_before_launch(tmp_path: Path, change:
         "wall_ms": 0,
         "poll": 0,
         "frame_limit": 101,
+        "feature_recipe": "../outside",
     }
     with pytest.raises(ValueError):
         replace(c, **{change: invalid[change]})
@@ -350,6 +389,7 @@ def test_main_entry_starts_only_the_controller_and_honors_custom_holds(
         "LATEST_MAIN_LAUNCHERS": str(tmp_path / "launchers"),
         "STOP_FILE": str(tmp_path / "custom-stop"),
         "PAUSE_FILE": str(tmp_path / "custom-pause"),
+        "FEATURE_RECIPE": "bundle-v-control-2h",
     }.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setattr(module, "Controller", StandIn)
@@ -358,6 +398,7 @@ def test_main_entry_starts_only_the_controller_and_honors_custom_holds(
     assert workers == [LANE]
     assert captured[0].stop == tmp_path / "custom-stop"
     assert captured[0].pause == tmp_path / "custom-pause"
+    assert captured[0].feature_recipe == "bundle-v-control-2h"
     assert (tmp_path / "archive/latest-main-loop.pid").read_text().isdigit()
 
 

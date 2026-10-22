@@ -335,3 +335,6 @@ Pending, unqueued. Native 97a0/d548 reparsing proves interface correctness; a re
 Pending, unapproved, unqueued. Activation: PLAYER_NAME_CONFIRMED, subject to native milestone schema. Readiness not assessed against qualifying current runs in this isolated checkout; reviewed source repin and operator-approved checkpoint/design required. Synthetic execution tests do not establish benefit.
 ## leader-loss-comparison-v1
 Pending; no trials approved or launched. Historical fixture exercises a loss; checkpoint load proof and qualifying model readiness remain unestablished.
+
+## npc-approach-feedback-v1
+Pending, unqueued and unapproved. Activation ROUTE_102; primary STONE_BADGE. Template exposure and checkpoint provenance require evaluation design. No measured runs.

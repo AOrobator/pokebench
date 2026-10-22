@@ -1,6 +1,7 @@
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
+import { NPC_TEMPLATE_APPROACH_SENTENCE } from "./semantic-navigation.js";
 import { LEARN_MOVE_SECTION } from "./learn-move.js";
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
@@ -238,6 +239,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
   if (navigateFirst && semantic2) prompt = `${navigateFirstToolList(prompt, true)}\n\n${features["full-map-navigation-v1"] ? SEMANTIC_MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? SEMANTIC_MOVING_AROUND_VISITED : SEMANTIC_MOVING_AROUND_LOCAL}`;
   else if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? MOVING_AROUND_VISITED : MOVING_AROUND_LOCAL}`;
+  if (show("overworld") && semanticNavigation(features) && features["npc-approach-feedback-v1"]) prompt += `\n\n${NPC_TEMPLATE_APPROACH_SENTENCE}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;

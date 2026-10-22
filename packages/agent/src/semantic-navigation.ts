@@ -211,6 +211,7 @@ export function fieldOwner(state:GameStateSnapshot):string|null {
 // semantic-navigation-v2: how to copy a target from the readout, and what happens after activation.
 const SEMANTIC_V2_DESCRIPTION="The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to.";
 
+export const NPC_TEMPLATE_APPROACH_SENTENCE="Exception for an explicitly requested unloaded trainer listed in current-map trainer facts: navigate_to_target may approach its template tile, then returns without facing or pressing A. The template may have moved; inspect the current returned state before choosing an interaction.";
 const SEMANTIC_V2_DIALOGUE=" Dialogue the activation opens is advanced for you as with navigate_to.";
 // The dialogue sentence is true only with dialogue auto-advance on.
 function semanticV2Description(dialogue:boolean):string {
@@ -222,7 +223,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
  // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
  const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
- return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}`,parameters:sightCheck?SightSemanticArgs:SemanticArgs,
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}${features["npc-approach-feedback-v1"]?` ${NPC_TEMPLATE_APPROACH_SENTENCE}`:""}`,parameters:sightCheck?SightSemanticArgs:SemanticArgs,
   execute:async(id,args,signal)=>{
    const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
@@ -237,6 +238,42 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    }
    let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
+   // heal_trainers._template_tile excludes hidden templates using the native hide flag.
+   // Without native loaded slots there is no verified recipient for A. Approach only,
+   // then yield fresh state even if this walk causes the object to load.
+   if(features["npc-approach-feedback-v1"]&&listed===null&&request.target.kind==="object"){
+    const requested=request.target.local_id;
+    const template=before.heal_before_trainers?.trainers.find(t=>t.local_id===requested&&t.loaded===false);
+    if(template!==undefined){
+     const reason=fieldOwner(before)??interrupted(before);
+     if(reason!==null)return withStatus({content:[],details:{state:before}},`template approach refused: ${reason}; nothing was pressed`,selected,request.target,false);
+     const gated=features["field-move-gates-v1"]?gatedState(before):before;
+     const reserved={x:template.x,y:template.y};
+     const planned={...gated,...(gated.navigation_grid==null?{}:{navigation_grid:{...gated.navigation_grid,objects:[...gated.navigation_grid.objects,reserved]}}),...(gated.map_grid==null?{}:{map_grid:{...gated.map_grid,objects:[...gated.map_grid.objects,reserved]}})};
+     const templateOptions={...options,triggers:matchingTriggers(before)};
+     const candidates=STEPS.flatMap(([,dx,dy])=>{
+      const point={x:template.x+dx,y:template.y+dy};
+      if(point.x<0||point.y<0)return [];
+      if((before.interaction_targets??[]).some(t=>t.kind==="warp"&&t.x===point.x&&t.y===point.y))return [];
+      const path=planNavigation(planned,point,templateOptions);
+      return path===null?[]:[{point,length:path.length}];
+     }).sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
+     const choice=candidates[0];
+     const qualification=`object ${String(requested)} template tile; current presence and position are unverified (it may have moved). No interaction is attempted; inspect the returned current state`;
+     if(choice===undefined)return withStatus({content:[],details:{state:before}},`${qualification}; no supported route to an adjacent tile`,selected,request.target,false);
+     const stop=(actual:GameStateSnapshot):string|null=>{
+      if(!isMap(actual,request.map_id))return "map changed during template approach";
+      const interruptedReason=interrupted(actual);if(interruptedReason!==null)return interruptedReason;
+      const still=actual.heal_before_trainers?.trainers.find(t=>t.local_id===requested);
+      if(still===undefined)return "template no longer verified";
+      if(still.loaded===true)return "object loaded; inspect its verified current position";
+      if(still.x!==template.x||still.y!==template.y)return "template changed during approach";
+      return null;
+     };
+     const result=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id,...(request.confirm_trainer_sight===undefined?{}:{confirm_trainer_sight:request.confirm_trainer_sight})},stop,signal);
+     return withStatus(result,`${qualification}; ${navigationStatus(result)??"returned from checked navigation"}`,selected,request.target,false);
+    }
+   }
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,request.target,false);
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
    const planned=features["field-move-gates-v1"]?gatedState(before):before;

@@ -4,8 +4,8 @@
  "title": "Observed leader loss comparison",
  "changedFeature": "leader-loss-comparison-v1",
  "hypothesis": "Explicit unchanged and unknown party comparisons reduce unchanged rematches without selecting a strategy.",
- "activationMilestone": "RUSTBORO_GYM_ENTERED",
- "primaryMilestone": "ROUTE_103",
+ "activationMilestone": "ROXANNE_FIRST_INTERACTION",
+ "primaryMilestone": "STONE_BADGE",
  "source": {
   "checkout": "main",
   "commit": "4967a3ca955bb8696c9ed44725805c7696af9c78"
@@ -210,7 +210,8 @@
    "mart-stock-readout-v1": false,
    "caught-dex-input-v1": false,
    "navigation-recovery-v1": false,
-   "leader-loss-comparison-v1": false
+   "leader-loss-comparison-v1": false,
+   "npc-approach-feedback-v1": false
   }
  },
  "trialsPerArm": 8,

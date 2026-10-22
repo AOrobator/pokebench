@@ -28,7 +28,7 @@ interface Source {readonly battle:number;readonly wild:string;readonly place:str
 interface Earned {readonly battle:number;label:string;readonly place:string;trainer:boolean;readonly turn:number;readonly amounts:string[];readonly values:number[]}
 interface LeaderFoe {readonly species:string;readonly level:number;hp:number;maxHp:number}
 interface LeaderBattle {
- readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
+ readonly effectiveness:string[];readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
  readonly foes:Map<number,LeaderFoe>;outcome:string|null;moneyAfter:number|null;done:boolean;
 }
 interface SeenTrainer {readonly id:number;readonly sprite:string|null;readonly x:number;readonly y:number;defeated:boolean}
@@ -65,7 +65,10 @@ export class TrainingBlock {
   if(event.type==="state"&&"started" in event){this.state(event);return;}
   if(event.type==="dialogue_auto_advance"&&this.features["leader-loss-comparison-v1"]&&this.leaderRunning!==null){
    for(const page of event.pages)if(page.battle_message_id!==undefined){
-    const text=oneLine(page.text);if(text!==""&&this.leaderRunning.battle.messages.at(-1)!==text)this.leaderRunning.battle.messages.push(text);
+    const text=oneLine(page.text);
+    if(/not very effective|super effective|doesn.t affect/i.test(text)&&!this.leaderRunning.battle.effectiveness.includes(text))this.leaderRunning.battle.effectiveness.push(text);
+    this.leaderRunning.battle.effectiveness.splice(0,Math.max(0,this.leaderRunning.battle.effectiveness.length-4));
+    if(text!==""&&this.leaderRunning.battle.messages.at(-1)!==text)this.leaderRunning.battle.messages.push(text);
    }
    this.leaderRunning.battle.messages.splice(0,Math.max(0,this.leaderRunning.battle.messages.length-4));
   }
@@ -116,7 +119,7 @@ export class TrainingBlock {
   if(battling&&leaderActive(s)){
    const name=s.trainer_opponent?.name??"GYM LEADER";
    if(this.leaderRunning===null){
-    const battle:LeaderBattle={messages:[],startParty:structuredClone(s.party),turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
+    const battle:LeaderBattle={effectiveness:[],messages:[],startParty:structuredClone(s.party),turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
     this.leaderRunning={name,battle};
     this.leaders.set(name,[...(this.leaders.get(name)??[]),battle]);
    }
@@ -191,7 +194,7 @@ export class TrainingBlock {
    const before=loss.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
    const complete=before.length>0&&now.length>0&&[...before,...now].every(m=>m.identity!=null);
    const membership=complete?(before.map(m=>m.identity).join("|")===now.map(m=>m.identity).join("|")?"unchanged":"changed"):"unknown";
-   const comparable=complete&&before.length>0&&now.length===before.length&&before.every((m,i)=>m.species===now[i]?.species&&m.identity===now[i]?.identity);
+   const comparable=complete&&before.length>0&&now.length===before.length&&before.every((m,i)=>m.species===now[i]?.species&&m.identity===now[i].identity);
    const compare=(values:(party:Party)=>readonly unknown[]|null):string=>{
     if(!comparable)return "unknown";const a=values(before),b=values(now);
     return a===null||b===null?"unknown":JSON.stringify(a)===JSON.stringify(b)?"unchanged":"changed";
@@ -204,6 +207,7 @@ export class TrainingBlock {
     `  At battle start: ${partyExp(before)}. Now: ${partyExp(now)||"unknown"}.`,
     `  Moves at battle start: ${moveText(before)}. Now: ${moveText(now)}.`,
     `  Opponents last observed: ${[...loss.foes.values()].map(f=>`${f.species} Lv${String(f.level)} HP ${String(f.hp)}/${String(f.maxHp)}`).join(", ")||"unknown"}. Damage attribution: unknown.`,
+    `  Effectiveness pages delivered: ${loss.effectiveness.length===0?"unknown":loss.effectiveness.join(" | ")}`,
     `  Last battle pages delivered (up to 4; game words): ${loss.messages.length===0?"unknown":loss.messages.join(" | ")}`];
   });
  }

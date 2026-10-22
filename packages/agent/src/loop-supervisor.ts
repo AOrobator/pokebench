@@ -16,6 +16,8 @@ import {listedArgument,semanticWalk,targetSuffix} from "./semantic-targets.js";
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
  | {readonly kind:"milestone_drought";readonly minutes:number}
+ // turn-drought-clock-v1: actions since the last story milestone, level-up, trainer win or full heal.
+ | {readonly kind:"action_drought";readonly actions:number}
  | {readonly kind:"interface_dwell";readonly name:string;readonly calls:number};
 
 // An interface the game owns input for: a naming editor (any phase), or a ready menu or prompt outside battle.
@@ -537,9 +539,19 @@ export class SupervisorBriefing {
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
+  if(stall.kind==="action_drought")return this.droughtFacts(stall.actions,calls);
   if(this.features["positive-supervisor-v1"])return this.positive(stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name}.`:"");
   const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name} without leaving it, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
+ }
+
+ // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training).
+ private droughtFacts(actions:number,calls:number):string {
+  return [`SUPERVISOR: No new story milestone, level-up, trainer win or full heal in the last ${String(actions)} actions (stall briefing, ${String(calls)} calls into the run).`,
+   `- Last story progress: ${this.lastProgress()}`,
+   `- Where you are: ${this.where()}`,
+   ...(this.hint===null?[]:[`- Next milestone (hint): ${this.hint.describe()}`]),
+   `- Story steps the game confirms are done: ${this.done()}`].join("\n");
  }
 
  // positive-supervisor-v1: what to do and what the game shows, never that it is looping, a route, or a way off the map.

@@ -125,8 +125,9 @@ describe(`${ID} ON`,()=>{
  it("a party member's level going up restarts the clock",()=>{
   const r=rig(ON);
   r.acts(20,{party:[MON(21,9)]});
+  // The tool result of the action that leveled up is the first action counted after it.
   r.act({party:[MON(21,10)]});
-  r.acts(29,{party:[MON(21,10)]});
+  r.acts(28,{party:[MON(21,10)]});
   expect(r.droughts()).toEqual([]);
   r.act({party:[MON(21,10)]});
   expect(r.droughts()).toHaveLength(1);
@@ -139,13 +140,24 @@ describe(`${ID} ON`,()=>{
   r.act({party:[MON(15,12,"0000beef:00001234"),MON(21,9)]});
   expect(r.droughts()).toHaveLength(1);
  });
+ it("a POKéMON with no identity is followed by its slot and species; an egg and an empty party are not progress",()=>{
+  const r=rig(ON);
+  const plain=(level:number)=>({species:"TORCHIC",level,hp:21,max_hp:21});
+  const egg={species:"EGG",level:5,hp:null,max_hp:null,is_egg:true};
+  r.acts(20,{party:[plain(9),egg]});
+  r.act({party:[plain(10),{...egg,level:6}]});
+  r.acts(28,{party:[]});
+  expect(r.droughts()).toEqual([]);
+  r.act({party:[]});
+  expect(r.droughts()).toHaveLength(1);
+ });
  it("a trainer battle won (the trainer seen undefeated, then defeated) restarts the clock",()=>{
   const r=rig(ON);
   const trainer=(defeated:boolean,battle_active:boolean)=>({trainer_id:300,trainer_class:5,name:"CALVIN",defeated,battle_active});
   r.acts(20);
   r.acts(5,{in_battle:true,screen:"battle",trainer_opponent:trainer(false,true)});
   r.act({trainer_opponent:trainer(true,false)});
-  r.acts(29);
+  r.acts(28);
   expect(r.droughts()).toEqual([]);
   r.act();
   expect(r.droughts()).toHaveLength(1);
@@ -160,7 +172,7 @@ describe(`${ID} ON`,()=>{
   r.acts(10,{party:[MON(21)]});
   r.acts(10,{party:[MON(12)]});
   r.act({party:[MON(21)]});
-  r.acts(29,{party:[MON(21)]});
+  r.acts(28,{party:[MON(21)]});
   expect(r.droughts()).toEqual([]);
   r.act({party:[MON(21)]});
   expect(r.droughts()).toHaveLength(1);

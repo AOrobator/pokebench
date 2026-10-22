@@ -191,7 +191,7 @@ export class TrainingBlock {
    const before=loss.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
    const complete=before.length>0&&now.length>0&&[...before,...now].every(m=>m.identity!=null);
    const membership=complete?(before.map(m=>m.identity).join("|")===now.map(m=>m.identity).join("|")?"unchanged":"changed"):"unknown";
-   const comparable=complete&&before.length>0&&now.length===before.length&&before.every((m,i)=>m.species===now[i]?.species&&(m.identity==null||now[i]?.identity==null||m.identity===now[i]?.identity));
+   const comparable=complete&&before.length>0&&now.length===before.length&&before.every((m,i)=>m.species===now[i]?.species&&m.identity===now[i]?.identity);
    const compare=(values:(party:Party)=>readonly unknown[]|null):string=>{
     if(!comparable)return "unknown";const a=values(before),b=values(now);
     return a===null||b===null?"unknown":JSON.stringify(a)===JSON.stringify(b)?"unchanged":"changed";

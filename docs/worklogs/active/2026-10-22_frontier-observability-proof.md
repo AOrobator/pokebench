@@ -18,3 +18,5 @@ Deletion proof frontier-observe-deletion-stride: removing new toolSwitches mappi
 Agent build and tsc passed. Focused suite3agent+4viewer passed. Targeted lint/typecheck ongoing; isolated frozen-build headless viewer replay is next. No foreground interactions.
 
 Focused lint/typecheck final: agent test ESLint, viewer test ESLint, agent tsc and viewer tsc all exit0. GREEN tests3agent+4viewer. Commit test-only packet before freezing built viewer so served-byte manifest can identify an exact clean source. Remaining isolated headless replay proof follows in a documentation evidence commit.
+
+Followup: added the distinct context-transform owner proof using real ea04 successful upstairs dialogue delivery. Actual production contextTools enables delivered-place-evidence and appends the exact emitted ledger_context text to both pinned-pi requests, including original quote, WOMAN_4/state_event source and historical caveat, without assigning MAY an identity. Four agent delivery tests now pass; no game input/model endpoint.

@@ -14,7 +14,7 @@ import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {featuresOf,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
-import {playGameTools} from "./play-wiring.js";
+import {contextTools,playGameTools} from "./play-wiring.js";
 import {toolSwitches} from "./play-config.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {pressTool,observeTool} from "./game-tools.js";
@@ -95,4 +95,32 @@ it("delivers one production coherent-healing warning and its exact durable text 
  const warnings=out.events.filter(e=>e.type==="gym_heal_warning"||e.type==="heal_before_trainers_warning"||e.type==="story_battle_warning"||e.type==="low_hp_trainer_warning");
  expect(warnings).toHaveLength(1);expect(out.delivered).toContain(warnings[0]?.text??"missing warning");
  expect(out.events.filter(e=>e.type==="button_press"||e.type==="native_action")).toEqual([]);
+});
+
+it("delivers actual ea04 historical upstairs evidence through production context wiring and records identical ledger text",async()=>{
+ const fixture=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/milestone-memory-ea04.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
+ const historical=fixture.events.map(checkEvent),dialogue=historical.find(e=>e.type==="dialogue_auto_advance"&&e.pages.some(p=>p.text.includes("Our daughter is upstairs, I think.")));
+ if(dialogue?.type!=="dialogue_auto_advance")throw new Error("missing recorded upstairs quote");
+ const delivered=historical.find(e=>e.type==="tool_result"&&e.id===dialogue.tool_call_id&&!e.is_error);if(delivered?.type!=="tool_result")throw new Error("missing successful upstairs delivery");
+ const features={...featuresOf([]),"observed-instructions-v1":true,"delivered-place-evidence-v1":true};
+ const r=recording(()=>IN_GAME,"place-context-delivery"),subscribers:((e:RunEvent)=>void)[]=[];
+ const subscribe=r.recorder.subscribe.bind(r.recorder);r.recorder.subscribe=fn=>{subscribers.push(fn);subscribe(fn);};
+ const wiring=contextTools(features,r.recorder,r.recorder.transformContext);
+ for(const event of historical)if(event.seq<=delivered.seq)for(const subscriber of subscribers)subscriber(event);
+ await r.recorder.start({...RUN_START_META,harness_features:SWITCHABLE_FEATURES.filter(id=>features[id]),system_prompt:"Synthetic transport of original ea04 delivered quote; no gameplay or endpoint."});
+ const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});let decisions=0;
+ const requests:string[]=[];
+ const streamFn:StreamFn=(_model,context)=>{
+  decisions++;requests.push(context.messages.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:text({content:m.content})).join("\n"));
+  const message=decisions===1?assistant({toolCalls:[toolCall("synthetic-observe","observe",{})],stopReason:"toolUse"}):assistant({text:"fixture complete"});const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
+ };
+ const observe:AgentTool={name:"observe",label:"Observe",description:"no game input",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Synthetic observation"}],details:{state:IN_GAME}})};
+ const loop=piLoop({systemPrompt:"Synthetic original dialogue context proof",tools:[observe,...wiring.tools],base:{model,convertToLlm:messages=>messages as Message[]},governor,transformContext:wiring.transformContext,emit:r.recorder.emit,streamFn,signal:new AbortController().signal});
+ expect(await play(userText("Fixture"),governor,loop)).toBe("budget");r.recorder.end("budget");
+ const events=readFileSync(r.log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line))),ledger=events.filter(e=>e.type==="ledger_context");
+ expect(decisions).toBe(2);expect(ledger).toHaveLength(2);
+ for(const [i,event]of ledger.entries()){
+  expect(requests[i]).toContain(event.text);expect(event.text).toContain("Our daughter is upstairs, I think.");expect(event.text).toContain("WOMAN_4");expect(event.text).toContain("state_event");expect(event.text).toContain("historical");expect(event.text).not.toContain("MAY is upstairs");
+ }
+ expect(events.filter(e=>e.type==="button_press"||e.type==="native_action")).toEqual([]);
 });

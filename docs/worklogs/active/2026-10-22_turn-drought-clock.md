@@ -43,5 +43,16 @@ feature-switch, feature-explainer, experiment-queue, pokebench-game-state (wordi
 
 (Coordinator runs reviews.)
 
+### Round 1 (packet 632089f43..4f6398968; coordinator merged docs-only main 632089f43 as 4f6398968)
+
+Claude LGTM; GPT BLOCKING; fallback BLOCKING. Accepted findings:
+1. (GPT) The progress-causing result counted toward the next 30, so a nudge came after 29 later actions. Fix: a restart triggered by a state (or by a milestone that arrives between a state and its result) leaves that state's tool result uncounted; 30 later no-progress results are required.
+2. (GPT) Unknown party state fabricated progress: (a) level-ups keyed by slot+species when identity is null; fix: no identity, no level-up credit. (b) withHp() dropped unreadable members, so [full, unreadable] read as a full heal; fix: every non-egg member must have identity and readable hp/max_hp, and the hurt and healed party must be the same set of identified members (a hurt member deposited in the PC is not a heal; a whiteout healing the same party is).
+3. (GPT) The facts-only note included the next-milestone hint; removed from the action_drought text.
+4. (fallback) OFF parity proof: `packages/agent/src/turn-drought-parity.test.ts` runs 8 traces (`packages/agent/test-support/stall-parity.ts`: a synthetic 160-action run with level-ups, a trainer win, heals, a heal warning, a map back-and-forth, a bag-menu dwell, a story milestone and a story character, under plain / suppression / battle-heal hold / story-character gate / positive supervisor / hold+suppression; and recorded run f28d with its own features, plain and with suppression) through the production stallBriefing factory with the real loop guard and supervisor, and compares loop_guard events, stall_gate events and delivered supervisor contexts with `packages/agent/test-support/stall-parity-golden.json.gz`. Golden produced by copying stall-parity.ts into a detached temporary worktree at 632089f43 (`git worktree add --detach .../scratchpad/parity-golden 632089f43`, pnpm install) and running a throwaway vitest file that wrote `JSON.stringify(parityTraces().map(runParity))` gzipped; the worktree was removed afterwards. Golden counts (guards/held/contexts): ordinary 9/0/9, suppression 9/0/3, hold 8/0/7, gate 5/5/5, positive 9/0/1, hold+suppression 8/0/3, f28d 21/0/25, f28d+suppression 21/0/24.
+
+- [x] R1 RED: turn-drought-clock.test.ts 8 failing / 15 passing; turn-drought-parity.test.ts 9 passing on the unchanged code (it is the OFF proof)
+- [ ] R1 GREEN
+
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive

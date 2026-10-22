@@ -125,9 +125,9 @@ describe(`${ID} ON`,()=>{
  it("a party member's level going up restarts the clock",()=>{
   const r=rig(ON);
   r.acts(20,{party:[MON(21,9)]});
-  // The tool result of the action that leveled up is the first action counted after it.
+  // The action that leveled up is not counted: the window is 30 later results with no progress.
   r.act({party:[MON(21,10)]});
-  r.acts(28,{party:[MON(21,10)]});
+  r.acts(29,{party:[MON(21,10)]});
   expect(r.droughts()).toEqual([]);
   r.act({party:[MON(21,10)]});
   expect(r.droughts()).toHaveLength(1);
@@ -140,16 +140,54 @@ describe(`${ID} ON`,()=>{
   r.act({party:[MON(15,12,"0000beef:00001234"),MON(21,9)]});
   expect(r.droughts()).toHaveLength(1);
  });
- it("a POKéMON with no identity is followed by its slot and species; an egg and an empty party are not progress",()=>{
+ it("a POKéMON with no identity earns no level-up, even when a same-species one in its slot shows a higher level",()=>{
   const r=rig(ON);
-  const plain=(level:number)=>({species:"TORCHIC",level,hp:21,max_hp:21});
-  const egg={species:"EGG",level:5,hp:null,max_hp:null,is_egg:true};
-  r.acts(20,{party:[plain(9),egg]});
-  r.act({party:[plain(10),{...egg,level:6}]});
-  r.acts(28,{party:[]});
-  expect(r.droughts()).toEqual([]);
-  r.act({party:[]});
+  const plain=(level:number)=>({species:"TORCHIC",identity:null,level,hp:21,max_hp:21});
+  r.acts(20,{party:[plain(9)]});
+  r.act({party:[plain(10)]});
+  r.acts(9,{party:[plain(10)]});
   expect(r.droughts()).toHaveLength(1);
+ });
+ it("an egg's level and an empty party are not progress",()=>{
+  const r=rig(ON);
+  const egg={species:"EGG",identity:"0000eeee:00001234",level:5,hp:null,max_hp:null,is_egg:true};
+  r.acts(20,{party:[MON(21,9),egg]});
+  r.act({party:[MON(21,9),{...egg,level:6}]});
+  r.acts(9,{party:[]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("a party with a member whose HP is unreadable is neither hurt nor healed",()=>{
+  const r=rig(ON);
+  const unread={...MON(21,7,"0000beef:00001234"),hp:null,max_hp:null};
+  r.acts(10,{party:[MON(12),MON(21,7,"0000beef:00001234")]});
+  r.act({party:[MON(21),unread]});
+  r.acts(19,{party:[MON(21),unread]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("a party that reads full only because the hurt member left it (deposited in the PC) is not a heal",()=>{
+  const r=rig(ON);
+  const other=MON(21,7,"0000beef:00001234");
+  r.acts(10,{party:[MON(21),{...other,hp:3}]});
+  r.act({party:[MON(21)]});
+  r.acts(19,{party:[MON(21)]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("the same party fully healed by a whiteout counts as a full heal",()=>{
+  const r=rig(ON);
+  r.acts(20,{party:[MON(0)]});
+  r.act({party:[MON(21)],location:"OLDALE TOWN"});
+  r.acts(29,{party:[MON(21)]});
+  expect(r.droughts()).toEqual([]);
+  r.act({party:[MON(21)]});
+  expect(r.droughts()).toHaveLength(1);
+ });
+ it("the action-based note has no next-milestone hint, even with next-milestone-hint-v1 on",()=>{
+  const r=rig({...ON,"next-milestone-hint-v1":true});
+  r.acts(30);
+  const text=r.droughts()[0]?.text??"";
+  expect(text.split("\n")[0]).toContain(HEADLINE(30));
+  expect(text).not.toContain("Next milestone");
+  expect(text.split("\n").map(l=>l.split(":")[0])).toEqual(["SUPERVISOR","- Last story progress","- Where you are","- Story steps the game confirms are done"]);
  });
  it("a trainer battle won (the trainer seen undefeated, then defeated) restarts the clock",()=>{
   const r=rig(ON);
@@ -157,7 +195,7 @@ describe(`${ID} ON`,()=>{
   r.acts(20);
   r.acts(5,{in_battle:true,screen:"battle",trainer_opponent:trainer(false,true)});
   r.act({trainer_opponent:trainer(true,false)});
-  r.acts(28);
+  r.acts(29);
   expect(r.droughts()).toEqual([]);
   r.act();
   expect(r.droughts()).toHaveLength(1);
@@ -172,7 +210,7 @@ describe(`${ID} ON`,()=>{
   r.acts(10,{party:[MON(21)]});
   r.acts(10,{party:[MON(12)]});
   r.act({party:[MON(21)]});
-  r.acts(28,{party:[MON(21)]});
+  r.acts(29,{party:[MON(21)]});
   expect(r.droughts()).toEqual([]);
   r.act({party:[MON(21)]});
   expect(r.droughts()).toHaveLength(1);

@@ -120,3 +120,7 @@ export async function saveHumanCheckpoint(url:string,token:string,runDir:string,
  writeFileSync(join(runDir,"final.state"),data,{flag:"wx"});
  writeFileSync(join(runDir,"final-state.json"),JSON.stringify({v:1,frame:payload.frame,sha256:payload.sha256,bytes:data.length,path:"final.state",kind:"native-mgba-state"})+"\n",{flag:"wx"});
 }
+
+const VIEWER_ORIGIN="http://127.0.0.1:8790";
+export function viewerRunUrl(runId:string):string {return `${VIEWER_ORIGIN}/#run=${encodeURIComponent(runId)}`;}
+export function humanPlayUrl(runId:string):string {const id=encodeURIComponent(runId);return `${VIEWER_ORIGIN}/play?run=${id}#run=${id}`;}

@@ -32,6 +32,8 @@ const place=(id:MapId):Place=>{const p=PLACES.find(q=>q.map_id[0]===id[0]&&q.map
 const on=(id:MapId,x:number,y:number):GameStateSnapshot=>({...BASE,screen:"overworld",in_battle:false,field_controls_locked:false,map_id:[id[0],id[1]],location:place(id).name,location_display:place(id).display,position:{x,y},topology:{width:20,height:20,connections:[]}});
 const goal=(speaker:string,text:string,target:MapId):StoryGoal=>({line:{turn:61,speaker,text,lives:null},resolved:[{quote:`"${place(target).display}"`,text:` = ${place(target).display}.`,target:place(target)}]});
 const LITTLEROOT:MapId=[0,9],HOUSE_1F:MapId=[1,0],HOUSE_2F:MapId=[1,1],RUSTBORO:MapId=[0,3],GYM:MapId=[11,3],BRINEY:MapId=[17,0],ROUTE104:MapId=[0,19],WOODS:MapId=[24,11];
+// The Littleroot maps only: the wiring runs need the house, the town and its exits, not the whole map table.
+const LITTLEROOT_AREA=PLACES.filter(p=>p.map_id[0]===0&&(p.map_id[1]===9||p.map_id[1]===16)||p.map_id[0]===1&&p.map_id[1]<=4);
 const MOM=goal("MOM","Well, this is LITTLEROOT TOWN.",LITTLEROOT);
 const DAD=goal("DAD","Head for RUSTBORO CITY beyond this town.",RUSTBORO);
 
@@ -107,7 +109,7 @@ describe("registry, presets and the production factory",()=>{
   const run=async(features:FeatureSet,useFactory:boolean)=>{
    const subs:((e:RunEvent)=>void)[]=[];const away:StoryGoalAwayFacts[]=[];
    const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:(_t:string,f:StoryGoalAwayFacts)=>{away.push(f);},destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
-   const source={read:()=>Promise.resolve(current),places:()=>Promise.resolve({places:PLACES})};
+   const source={read:()=>Promise.resolve(current),places:()=>Promise.resolve({places:LITTLEROOT_AREA})};
    const tools=useFactory?playGameTools([observe,press],features,source,recorder):withHarnessTrust([observe,press],true,recorder,source,{supervisor:true,buildings:features[ID]});
    for(const e of page(1))for(const s of subs)s(e);
    const p=tools.find(t=>t.name==="press");if(p===undefined)throw Error("no press");
@@ -119,5 +121,5 @@ describe("registry, presets and the production factory",()=>{
   expect(await run({...trustOnly,[ID]:true},false)).toBe(0);
   expect(await run({...trustOnly,[ID]:false},true)).toBe(1);
   expect(await run({...trustOnly,[ID]:true},true)).toBe(0);
- },30000);
+ });
 });

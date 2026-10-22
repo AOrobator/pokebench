@@ -38,8 +38,8 @@ No new network surface, no subprocess, no file IO. Inputs are model button array
 - [x] Explainer (docs/explainers/rejected-movement-prefix-v1.html, themed, pages-check clean) + FEATURE_EXPLAINERS + panels/server tests + pending experiment + readiness entry
 - [x] Gates: `just lint` 0; `just build` 0; `just coverage` 0 — agent 4532 tests (97.36 stmts / 93.29 branches / 97.98 funcs / 99.21 lines), viewer 1692 (95.46 / 91.43 / 94.43 / 97.96), Python 3960 passed, 96% total. Worktree setup: submodule init, main's mgba binding symlinked into env/.venv, .env copied (all untracked/ignored).
 - [x] COMMIT GREEN: `feat(agent): rejected-movement-prefix-v1 walks the longest valid prefix of a guarded walking batch` (8d09b78f1)
-- [ ] Multi-model review (Claude, Grok, GPT) LGTM
-- [ ] Land, `just viewer-main`, live check
+- [x] Multi-model review: Claude LGTM, GPT (Codex CLI) LGTM, fallback reviewer LGTM in place of Grok (Cursor out of usage; The operator "land without grok")
+- [x] Landed: `git merge --ff-only 0cde4c948` on main (merge SHA 0cde4c94880c676f5fd8c719475c34d48ef7ce02); `just test` on main 0 (agent 4571, viewer 1703, Python 3961). Viewer restart and live check follow.
 
 ## Closing the Loop
 
@@ -82,3 +82,10 @@ Principles self-review: 0 FAIL (runs/reviews/rejected-movement-prefix/principles
 ### Sync with main 1990105e8 (auto-talk-field-only-v1, auto-talk-v3, untalked-people-header-v1 landed)
 
 Conflicts only in the registry and its tail-index tests: took main's side, re-appended rejected-movement-prefix-v1 after untalked-people-header-v1, regenerated the experiment's incumbent feature keys, and re-shifted registry tail indexes (guard count 58 -> 59). Gates on the merged tip: just test 0 (agent 4571, viewer 1703, Python 3961); just lint 0; coverage agent 97.38/93.34/97.98/99.21, viewer 95.47/91.43/94.44/97.97 (one experiment-cli git test timed out at 5 s under load average 20 on the first full run; passes alone in 1.7 s and on the rerun), Python 97.39/93.41/100.
+
+### Round 3 (frozen 1990105e8..0cde4c948, packet SHA-256 8d1b9ac8522f759d425fc1e7a6ffc75f46d6d3a22195275054195345193e44bc)
+
+- Claude CLI: VERDICT: LGTM (hardening notes only: shared free-field predicate, redundant direction filter).
+- GPT lane, isolated Codex CLI gpt-5.6-sol xhigh: VERDICT: LGTM (follow-ups: receipt across transport errors, a prefix slope test).
+- Grok: Cursor "out of usage" again. Lane blocked; asked the operator whether to land without it or wait.
+- Fallback reviewer (fresh read-only Claude Sonnet subagent, standing in for Grok): VERDICT: LGTM, verified packet SHA; follow-ups only. The operator 2026-10-22: "land without grok" (standing rule since 10/21: Claude + GPT + a fallback reviewer is approval while Cursor is out).

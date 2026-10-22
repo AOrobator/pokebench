@@ -237,7 +237,8 @@
    "post-battle-readout-v1": true,
    "move-learn-tool-v1": true,
    "poison-readout-v1": false,
-   "berry-readout-v1": true
+   "berry-readout-v1": true,
+   "move-learn-early-comparison-v1": true
   }
  },
  "trialsPerArm": 8,

@@ -32,6 +32,7 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.menus import PALETTE_FADE
 from pokebench_env.move_learn import (
     COMPARISON_SWITCH,
+    EARLY_SWITCH,
     QUESTION_SWITCH,
     SETTLE_BOUND_FRAMES,
     SETTLE_SWITCH,
@@ -383,7 +384,8 @@ def test_both_switches_on_put_the_question_before_the_moves() -> None:
 
 @pytest.mark.parametrize("name", PRINTING)
 def test_no_comparison_while_the_scene_prints(name: str) -> None:
-    assert "Moves (the game's move data" not in render(state(name), frozenset())
+    off = frozenset({EARLY_SWITCH})
+    assert "Moves (the game's move data" not in render(state(name, off), off)
 
 
 # --- OFF parity, typed state and failures -------------------------------------------------
@@ -429,7 +431,7 @@ def test_reader_needs_the_party() -> None:
 
 
 def test_switches_are_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-14:-11] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
+    assert SERVER_FEATURES[-15:-12] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
     assert SWITCHES <= features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SETTLE_SWITCH}) == {SETTLE_SWITCH}
 

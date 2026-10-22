@@ -477,8 +477,8 @@ describe("instruction-ledger-v2 switch",()=>{
  });
  it("is registered last, default-off, an observation that needs dialogue auto-advance",()=>{
   const id="instruction-ledger-v2";
-  expect(SWITCHABLE_FEATURES.at(-101)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-101)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-102)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-102)?.id).toBe(id);
   expect(featureInfo(id)).toMatchObject({group:"observation",title:"CONVERSATION LEDGER",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo(id).description).toContain(" Off: ");
   // The switchboard copy describes the shipped rule (review round 1: it still described the NAME:-only pin).
@@ -493,7 +493,7 @@ describe("instruction-ledger-v2 switch",()=>{
   const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([k])=>k!==id));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without});
   expect(presetFeatures(preset)[id]).toBe(false);
-  expect(Object.keys(normalizeFeatures(without as Parameters<typeof normalizeFeatures>[0])).at(-101)).toBe(id);
+  expect(Object.keys(normalizeFeatures(without as Parameters<typeof normalizeFeatures>[0])).at(-102)).toBe(id);
   // instruction-ledger-v1 is unchanged: same title, tool and description.
   expect(featureInfo("instruction-ledger-v1").title).toBe("INSTRUCTION LEDGER");
  });

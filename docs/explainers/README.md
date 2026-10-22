@@ -220,6 +220,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Move-learning loop fingerprint](move-learn-loop-fingerprint-v1.html) — default OFF, bundle arm: move-learning prompts get a loop-guard fingerprint even while the battle flag is set, so a cycle made only of them is reported after two repeats.
 - [Stale plan fact](stale-plan-fact-v1.html) — default OFF, bundle arm: when the thinking repeats word for word but the game shows a different Interface line or question, the result ends with one line saying so.
 - [Post-battle readout](post-battle-readout-v1.html) — default OFF, bundle arm, game server: after a battle on the evolution or summary screen the battle block says ended and takes the POKéMON and its moves from the party; in battle a ready learn-move box is the Interface line.
+- [Move-learn early comparison](move-learn-early-comparison-v1.html) — default OFF, game server, needs move-learn-comparison-v1: the move comparison block also shows on the pages before and while the game asks "Delete a move to make room for …?" (evolution and trade steps 0–3, and the two battle pages), with no question line.
 - [Learn move tool](move-learn-tool-v1.html) — default OFF, bundle arm: learn_move(forget: a known move or "none") answers the move-learning prompts one checked press at a time and verifies the party's moves.
 
 - [Poison readout](poison-readout-v1.html) — readable poison and game-owned walking warning.

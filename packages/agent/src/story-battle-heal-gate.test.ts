@@ -434,9 +434,9 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-46)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-47)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-40)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-41)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -467,6 +467,7 @@ describe("registry and event",()=>{
   delete arm["stale-plan-fact-v1"];
   delete arm["post-battle-readout-v1"];
   delete arm["move-learn-tool-v1"];
+  delete arm["move-learn-early-comparison-v1"];
   delete arm["poison-readout-v1"];
   delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];

@@ -12,10 +12,10 @@ const NEEDS=[null,"ram-state-v1","ram-state-v1","battle-text-auto-advance-v1",nu
 
 describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=>{
  it("are appended in order to every registry list as default-off observations",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-38,-33)).toEqual([...IDS]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-38,-33).map(f=>f.id)).toEqual([...IDS]);
-  expect(SERVER_FEATURES.slice(-14,-11)).toEqual([...SERVER]);
-  expect(playHarnessFeatures({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false},null).slice(-31,-26)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-39,-34)).toEqual([...IDS]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-39,-34).map(f=>f.id)).toEqual([...IDS]);
+  expect(SERVER_FEATURES.slice(-15,-12)).toEqual([...SERVER]);
+  expect(playHarnessFeatures({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false},null).slice(-32,-27)).toEqual([...IDS]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

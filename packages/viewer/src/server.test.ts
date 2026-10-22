@@ -1310,7 +1310,7 @@ it("serves the tracked GLM-run harness bug explainers byte for byte",async()=>{
 });
 
 it("serves the tracked interface-ownership explainers byte for byte",async()=>{
- const ids=["tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1"];
+ const ids=["tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1","move-learn-early-comparison-v1"];
  const root=mkdtempSync(join(tmpdir(),"pokebench-interface-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);

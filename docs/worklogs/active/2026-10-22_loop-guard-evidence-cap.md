@@ -63,3 +63,15 @@ agent exception "emulator or game server crash"; the emulator was fine.
 - Mounted viewer test: heal-trip payload in Activity History text and inspector, no `k-loop` on the timeline.
 - Guard deletions (receipts in `runs/loop-guard-evidence-proof/`): `guard-1` removed only the stall-briefing cap → still passes (play-wiring's `loopEvidence` caps it; kept as an unexpected pass); `guard-1b` removed both caps → `EventError: invalid loop_guard event at /evidence: must not have more than 2 items`; `guard-2` removed the `(#N)` text → 2 assertion failures; both restored → 16/16.
 - Gates after round-2 edits: `just lint` clean; `just coverage` agent 4425 (97.39 / 93.29 / 97.98), viewer 1668 (95.45 / 91.33 / 94.35), Python 3889 passed.
+
+## Review round 2 (packet 20aeba725, diff sha256 8e4b12dc…304d)
+
+- **Claude**: `VERDICT: LGTM`; round-1 GPT blocker judged closed by the replay and built-viewer receipts.
+- **GPT** (Codex `gpt-5.6-sol` xhigh): `VERDICT: BLOCKING`, required-evidence gap only: wants an automated mounted-app test (`mountApp`, `parseEvent`, replay cursor, click to inspector, no timeline mark) for the heal-trip payload. No code defect. PB13 PASS wording noted as documentation precision.
+- **Fallback** (Codex `gpt-6-astra` xhigh): `VERDICT: BLOCKING`, same evidence gap; independently replayed run 4164 and confirmed one valid hold after #16572, evidence `[14510,16572]`, warning #15727.
+- Two-round cap reached: asked the operator whether to run round 3 (2026-10-22 ~1:00 AM ET).
+
+## Prepared for round 3 (pending the operator)
+
+- Mounted app test in `packages/viewer/src/app.test.ts`: schema-parsed heal-trip loop_guard through the real stream, hidden before its replay time, Activity History row with label and message, no timeline mark, click selects the row and the inspector shows kind and both evidence ids.
+- Guard deletion `guard-3-mounted-timeline-filter`: removing the viewer's held-drought timeline filter fails it (a mark appears); restored → passes.

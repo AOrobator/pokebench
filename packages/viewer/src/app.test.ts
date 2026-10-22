@@ -1379,6 +1379,22 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);
 });
 
+it("mounts a heal-trip drought hold in Activity History and the inspector, never on the timeline (drought-battle-heal-hold-v1)",async()=>{
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:419,id:"c419",name:"navigate_to",args:{map_id:[0,19],x:5,y:18}});
+ // Run 4164 replayed through the fixed stallBriefing: the hold that used to end the run "crash" (three evidence ids).
+ const held=log.add(2000,{type:"loop_guard",turn:419,kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:"Not sent (drought-battle-heal-hold-v1): no new story milestone for 10 minutes of play, but the party is on its way to heal after a heal warning (#15727).",calls:0,evidence:[14510,16572]});
+ log.add(70000,{type:"run_end",turn:419,reason:"budget",furthest_milestone:null,turns:419,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(held.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(held.seq)}"]`));
+ expect(row.textContent).toContain("milestone drought diagnostic: would warn");expect(row.textContent).toContain("on its way to heal after a heal warning (#15727)");
+ expect(ui("lanes").querySelectorAll('[aria-label*="on its way to heal"]')).toHaveLength(0);expect(ui("lanes").querySelectorAll(".k-loop")).toHaveLength(0);
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "milestone_drought"');expect(ui("inspector").textContent).toContain("14510");expect(ui("inspector").textContent).toContain("16572");expect(row.classList.contains("sel")).toBe(true);
+});
+
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});

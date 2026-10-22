@@ -1301,3 +1301,15 @@ def test_a_failed_expiry_notice_is_reported_by_board_and_keeper(
     )
     printed = capsys.readouterr().out
     assert "failed (codex queue exit 7)" in printed and "expired" in printed
+
+
+def test_joining_as_the_first_waiter_expires_an_overdue_lone_holder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "0")
+    r = am.Mailroom(tmp_path / "mail")
+    board_of(r, "a")
+    assert am.main(["land-join", "--who", "b", "--branch", "b"], run=Runs()) == 0
+    assert "You are landing now" in capsys.readouterr().out
+    assert [e.branch for e in am.read_board(r)] == ["b", "a"]

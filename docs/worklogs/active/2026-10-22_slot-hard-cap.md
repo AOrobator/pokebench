@@ -14,3 +14,7 @@ Design:
 ## Progress
 - RED 0221f347: the rewritten expiry tests fail on the idle-clock code. They cover expire_holder, the stamp on taking the slot, a lone holder past the limit expiring once someone waits, the removed land-touch, and an old top_head key being ignored.
 - GREEN: expire_holder with the hard cap; land-touch, top_head and git_branch_heads removed; skills and justfile updated. 82 agent-mail tests, module 100% lines and branches; ruff and mypy clean.
+- R1 (head 28dbd25f): Claude LGTM (non-blocking: the in-slot list should mention the gate rerun; mark the old worklog superseded; a one-time free slot on old boards; fractional-limit wording; a mid-merge move is inherent to the cap). GPT BLOCKING (2), both accepted. The fallback lane did not run: its prompt had stray quotes that broke the codex argv; fixed for R2.
+  - land-join checked expiry before adding the first waiter, so an overdue lone holder stayed number 1. FIX: land-join expires again after joining and reports the joiner's real position (test drives main).
+  - The numbered steps in both skills still said to join first. FIX: new step 0 (sync, gates, reviews before joining); at your turn, gates rerun only if main moved; a changed diff means land-done, review, rejoin. execute-worklog says the same. The old slot-expiry worklog is marked superseded.
+  - 83 agent-mail tests, module 100%.

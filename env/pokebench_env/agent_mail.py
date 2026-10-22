@@ -914,14 +914,16 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         print(render_board(read_board(room)))
         return expired
     if args.command == "land-join":
-        position = board_join(
-            room, who=args.who, branch=args.branch, codex_thread=args.codex_thread, now=now
-        )
+        board_join(room, who=args.who, branch=args.branch, codex_thread=args.codex_thread, now=now)
+        # Joining may make the first waiter, so an overdue lone holder can expire only now.
+        expired = report(expire_holder(room, now=now, run=run)) or expired
+        board = read_board(room)
+        position = next(i for i, e in enumerate(board, start=1) if e.branch == args.branch)
         if position == 1:
             print(f"You are landing now. Run just land-done --branch {args.branch} when finished.")
         else:
             print(f"You are number {position}. You will be told when it is your turn.")
-        print(render_board(read_board(room)))
+        print(render_board(board))
         return expired
     if args.command == "land-move":
         notices = board_move(room, branch=args.branch, before_branch=args.before, now=now, run=run)

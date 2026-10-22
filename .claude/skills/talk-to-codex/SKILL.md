@@ -11,16 +11,17 @@ Operator decision 2026-10-21: agents talk to each other directly. There is no gi
 
 ## Before you land on main
 
+0. Get ready first: merge current `main` into your branch, pass the gates and get the review verdicts that `.claude/skills/execute-worklog/SKILL.md` requires. Number 1 has only 30 minutes, so never join to do this work.
 1. `just land-join --who "claude: <thread title>" --branch <your branch>`.
 2. Number 1 means you are landing now. Anything else means wait: run `just claude-mailbox --for <your branch> --timeout 540` with `run_in_background` and stop. That is your own mailbox: board notices for your branch go there and nowhere else. The board mails you "your turn to land <branch>" when the slot reaches you. Each time the mailbox returns, also run `just land-board`, since another listener may have taken your letter; handle other letters as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
-3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit.
+3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit. If `main` moved since your review, merge it and rerun the gates. If that changes your branch's own diff, it needs a new review: run `just land-done` now, review, and join again.
 4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session the same way as `just tell-codex` (the Codex coordinator when it is listening, else `codex queue`), a Claude thread through its mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
 
 Whenever someone leaves the board or is moved, every entry whose place changed is told its new number: Codex sessions the same way as `just tell-codex`, Claude threads by mail. Relay those to the coordinator like any other letter.
 
 `just land-move --branch B --before C` moves B to just above C and tells everyone whose place changed. Use it only when the operator says so, or the coordinator passes on the operator's words.
 
-Number 1 holds the slot for 30 minutes from the moment it takes it (operator decision 2026-10-22). After that, if anyone is waiting, it is moved to the back and told why. Commits do not extend it. So run gates and reviews on a branch synced with current `main` before your turn, and use the slot only for the final sync, merge, `just test` on main, evidence commit and `just land-done`. A holder alone on the board keeps the slot, but its 30 minutes still count from when it took it.
+Number 1 holds the slot for 30 minutes from the moment it takes it (operator decision 2026-10-22). After that, if anyone is waiting, it is moved to the back and told why. Commits do not extend it. So run gates and reviews on a branch synced with current `main` before your turn, and use the slot only for the final sync (and gate rerun if `main` moved), merge, `just test` on main, evidence commit and `just land-done`. A holder alone on the board keeps the slot, but its 30 minutes still count from when it took it.
 
 Never merge into main while someone else is number 1. Never remove someone else's entry; the keeper moves an overdue number 1 back.
 

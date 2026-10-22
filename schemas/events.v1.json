@@ -6880,6 +6880,90 @@
           },
           "additionalProperties": false
         },
+        "static_npc_templates": {
+          "type": "object",
+          "required": [
+            "map_id",
+            "source",
+            "templates"
+          ],
+          "properties": {
+            "map_id": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              ],
+              "minItems": 2
+            },
+            "source": {
+              "type": "string",
+              "const": "saveblock1_templates"
+            },
+            "templates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "local_id",
+                  "x",
+                  "y",
+                  "elevation",
+                  "movement_type",
+                  "hide_flag"
+                ],
+                "properties": {
+                  "local_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 254
+                  },
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "elevation": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "movement_type": {
+                    "enum": [
+                      0,
+                      7,
+                      8,
+                      9,
+                      10
+                    ]
+                  },
+                  "hide_flag": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2399
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 64
+            }
+          },
+          "additionalProperties": false
+        },
         "screen": {
           "type": "string"
         },

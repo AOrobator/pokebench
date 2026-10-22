@@ -556,6 +556,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
  "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
  "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
+ "static-npc-template-approach-v1":"static-npc-template-approach-v1.html",
  "owned-battle-context-v1":"owned-battle-context-v1.html",
  "npc-approach-feedback-v1":"npc-approach-feedback-v1.html",
  "leader-loss-comparison-v1":"leader-loss-comparison-v1.html",

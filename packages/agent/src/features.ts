@@ -235,6 +235,7 @@ export const SWITCHABLE_FEATURES = [
   "delivered-place-evidence-v1",
   "reachable-section-alternatives-v1",
   "owned-battle-context-v1",
+  "static-npc-template-approach-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -587,6 +588,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("delivered-place-evidence-v1", "guidance", "DELIVERED PERSON AND PLACE EVIDENCE", "observed-instructions-v1", "Default off. Preserves exact delivered spatial dialogue with source map, turn, event and unknown speaker attribution in a compact historical evidence block. Explicit named-person and named-place statements from an unnamed speaker can use the existing map resolver, qualified as historical rather than a current presence or action instruction. Existing audited milestone retirement applies to the compact evidence. Off: existing instruction memory and named-speaker-only destination eligibility."),
   on("reachable-section-alternatives-v1", "guidance", "REACHABLE SECTION ALTERNATIVES", "exit-labels-v3", "Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent. Off: previous unreachable navigation result without departure section alternatives."),
   on("owned-battle-context-v1", "observation", "OWNED BATTLE CONTEXT", null, "Default off; bundle only. Explicit evolution and move-forget screen ownership overrides a lingering in-battle bit in battle text settlement/readiness and drought battle holds. Does not choose a move or evolution input. Off: previous battle detection, settling and hold reasons are unchanged."),
+  on("static-npc-template-approach-v1", "observation", "STATIC NPC TEMPLATE APPROACH", null, "Default off; bundle only. Lists qualified current-map unloaded scripted stationary object templates with clear hide flags. The model can request a static_object local ID: checked navigation approaches a neighbouring tile at matching elevation and returns without facing or pressing A. Static idle movement never proves current presence or prevents script relocation. Off: state, readout, target arguments and approach behavior are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -659,6 +661,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "poison-readout-v1",
   "berry-readout-v1",
   "battle-move-learn-input-v1",
+  "static-npc-template-approach-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -879,6 +882,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("delivered-place-evidence-v1"),
     ...when("reachable-section-alternatives-v1"),
     ...when("owned-battle-context-v1"),
+    ...when("static-npc-template-approach-v1"),
   ];
 }
 

@@ -351,3 +351,6 @@ Pending only; no queued/approved runs. Earliest activation PLAYER_BEDROOM is an 
 Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.
 ## owned-battle-context-v1
 Pending only. STARTER_CHOSEN is an early eligibility bound; owned evolution/move-forget exposure must be proven separately. Native d951 replay is correctness evidence, not gameplay benefit. No approval or launch.
+
+## static-npc-template-approach-v1
+Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.

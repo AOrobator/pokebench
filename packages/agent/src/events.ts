@@ -522,6 +522,11 @@ export const StateBodySchema = Type.Object(
     raw_ram: Type.Optional(RawRamReferenceSchema),
     // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
     settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold", "move_learning", "move_learning_bound"]) }, closed)),
+    static_npc_templates: Type.Optional(Type.Object({
+      map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),
+      source:Type.Literal("saveblock1_templates"),
+      templates:Type.Array(Type.Object({local_id:Type.Integer({minimum:1,maximum:254}),x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),elevation:Type.Integer({minimum:0,maximum:15}),movement_type:Type.Enum([0,7,8,9,10] as const),hide_flag:Type.Integer({minimum:0,maximum:0x95f})},closed),{maxItems:64}),
+    },closed)),
     screen: Type.String(),
     active_ui: Type.Optional(Type.Union([Type.Object({
       phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),

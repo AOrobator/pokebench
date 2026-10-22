@@ -247,3 +247,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [delivered-place-evidence-v1](delivered-place-evidence-v1.html): exact historical spatial dialogue and qualified named places.
 - [REACHABLE SECTION ALTERNATIVES](reachable-section-alternatives-v1.html): Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent.
 - [owned-battle-context-v1](owned-battle-context-v1.html) — explicit evolution/move-forget ownership wins over lingering battle bit.
+
+## [static-npc-template-approach-v1](static-npc-template-approach-v1.html)
+Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.

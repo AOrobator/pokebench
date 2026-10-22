@@ -1,4 +1,5 @@
 """Static template facts: exact native structure, hide flag and map identity guards."""
+
 import struct
 from dataclasses import replace
 
@@ -33,9 +34,13 @@ def test_stationary_unloaded_scripted_template_has_qualified_provenance():
     m = setup()
     facts = read_static_npc_templates(m.read, SB1, (0, 9))
     assert facts is not None
-    assert facts.json() == {"map_id": [0, 9], "source": "saveblock1_templates", "templates": [
-        {"local_id": 2, "x": 3, "y": 0, "elevation": 3, "movement_type": 7, "hide_flag": 0x52}
-    ]}
+    assert facts.json() == {
+        "map_id": [0, 9],
+        "source": "saveblock1_templates",
+        "templates": [
+            {"local_id": 2, "x": 3, "y": 0, "elevation": 3, "movement_type": 7, "hide_flag": 0x52}
+        ],
+    }
 
 
 def test_hidden_loaded_moving_trainer_wrong_map_and_unknown_templates_are_excluded():
@@ -62,7 +67,7 @@ def test_hidden_loaded_moving_trainer_wrong_map_and_unknown_templates_are_exclud
 
 def test_production_reader_state_and_text_are_exactly_old_when_off():
     m = setup()
-    off = frozenset(SERVER_FEATURES)
+    off = frozenset(SERVER_FEATURES) - {"ram-state-v1"}
     before = read_state(m.read, MAPS, active_ui=False, off=off)
     on = read_state(m.read, MAPS, active_ui=False, off=off - {SWITCH})
     assert on.static_npc_templates is not None
@@ -71,3 +76,60 @@ def test_production_reader_state_and_text_are_exactly_old_when_off():
     assert state_json(replace(on, static_npc_templates=None)) == state_json(before)
     assert "current presence and position unverified" in render(on, off - {SWITCH})
     assert render(replace(on, static_npc_templates=None), off) == render(before, off)
+
+
+def test_native_recorded_static_placements_through_production_state_and_readout():
+    import json
+    from pathlib import Path
+
+    from test_move_learn import _rom
+
+    from pokebench_env.raw_ram import load_raw_ram
+
+    fixtures = Path(__file__).parent / "fixtures"
+    provenance = json.loads((fixtures / "static-npc-47c3.provenance.json").read_text())
+    read = load_raw_ram(
+        fixtures / "static-npc-47c3.json.gz", provenance["raw_ram"]["sha256"], rom=_rom()
+    )
+    off = frozenset(SERVER_FEATURES) - {"ram-state-v1"}
+    before = read_state(read, MAPS, active_ui=True, off=off)
+    on = read_state(read, MAPS, active_ui=True, off=off - {SWITCH})
+    assert before.static_npc_templates is None
+    assert on.static_npc_templates is not None
+    assert [(t.local_id, t.x, t.y, t.movement_type) for t in on.static_npc_templates.templates] == [
+        (7, 24, 51, 10),
+        (8, 25, 51, 9),
+        (13, 19, 27, 8),
+    ]
+    assert state_json(replace(on, static_npc_templates=None)) == state_json(before)
+    assert "current presence and position unverified" in render(on, off - {SWITCH})
+
+
+def test_fail_closed_invalid_source_structure_and_flags():
+    for offset, value in (
+        (2, b"\x01"),
+        (8, b"\x10"),
+        (0, b"\xff"),
+        (0x14, b"\x00\x40"),
+        (4, b"\xff\xff"),
+        (0x10, bytes(4)),
+    ):
+        m = setup()
+        m.put(SB1 + TEMPLATES + offset, value)
+        assert read_static_npc_templates(m.read, SB1, (0, 9)).templates == ()
+    m = setup()
+    m.put(MAP_HEADER + 4, bytes(4))
+    assert read_static_npc_templates(m.read, SB1, (0, 9)) is None
+    m = setup()
+    m.put(EVENTS, bytes([65]))
+    assert read_static_npc_templates(m.read, SB1, (0, 9)) is None
+    m = setup()
+    m.put(CANONICAL, b"\x03")
+    assert read_static_npc_templates(m.read, SB1, (0, 9)).templates == ()
+    m = setup()
+    m.put(EVENTS, struct.pack("<BBBBI", 2, 0, 0, 0, CANONICAL))
+    row = m.read(SB1 + TEMPLATES, 24)
+    m.put(SB1 + TEMPLATES + 24, row)
+    m.put(CANONICAL + 24, row)
+    assert read_static_npc_templates(m.read, SB1, (0, 9)) is None
+    assert read_static_npc_templates(lambda _a, _s: b"", SB1, (0, 9)) is None

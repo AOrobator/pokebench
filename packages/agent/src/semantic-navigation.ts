@@ -14,6 +14,10 @@ const FixedTarget=Type.Object({kind:Type.Literal("interaction"),interaction_kind
 const WarpTarget=Type.Object({kind:Type.Literal("warp"),x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0})},{additionalProperties:false});
 const ConnectionTarget=Type.Object({kind:Type.Literal("connection"),direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"] as const)},{additionalProperties:false});
 const Target=Type.Union([ObjectTarget,FixedTarget,WarpTarget,ConnectionTarget]);
+const StaticObjectTarget=Type.Object({kind:Type.Literal("static_object"),local_id:Type.Integer({minimum:1,maximum:254})},{additionalProperties:false});
+const StaticTarget=Type.Union([ObjectTarget,FixedTarget,WarpTarget,ConnectionTarget,StaticObjectTarget]);
+const StaticSemanticArgs=Type.Object({map_id:MapId,target:StaticTarget},{additionalProperties:false});
+const StaticSightSemanticArgs=Type.Object({map_id:MapId,target:StaticTarget,[CONFIRM_ARG]:Type.Optional(Type.Boolean({description:TARGET_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
 const SemanticArgs=Type.Object({map_id:MapId,target:Target},{additionalProperties:false});
 // trainer-sight-check-v2: the confirm argument for a route trainer-sight-check-v1's check refused.
 const SightSemanticArgs=Type.Object({map_id:MapId,target:Target,[CONFIRM_ARG]:Type.Optional(Type.Boolean({description:TARGET_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
@@ -23,6 +27,7 @@ const ExploreArgs=Type.Object({},{additionalProperties:false});
 type SnapshotTarget=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 type RequestTarget=
  | {readonly kind:"object";readonly local_id:number}
+ | {readonly kind:"static_object";readonly local_id:number}
  | {readonly kind:"interaction";readonly interaction_kind:string;readonly x:number;readonly y:number}
  | {readonly kind:"warp";readonly x:number;readonly y:number}
  | {readonly kind:"connection";readonly direction:"NORTH"|"SOUTH"|"EAST"|"WEST"};
@@ -89,17 +94,20 @@ function interrupted(state:GameStateSnapshot):string|null {
 }
 function targetKey(map:readonly number[],target:RequestTarget):string {
  const head=`${String(map[0])}/${String(map[1])}:`;
+ if(target.kind==="static_object")return `${head}static_object:${String(target.local_id)}`;
  if(target.kind==="object")return `${head}object:${String(target.local_id)}`;
  if(target.kind==="connection")return `${head}connection:${target.direction}`;
  return `${head}${target.kind}:${target.kind==="interaction"?target.interaction_kind:"warp"}:${String(target.x)},${String(target.y)}`;
 }
 function label(target:RequestTarget):string {
+ if(target.kind==="static_object")return `static map object template ${String(target.local_id)}`;
  if(target.kind==="object")return `map object ${String(target.local_id)}`;
  if(target.kind==="connection")return `${target.direction} map connection`;
  if(target.kind==="warp")return `warp at (${String(target.x)},${String(target.y)})`;
  return `${target.interaction_kind.replaceAll("_"," ")} at (${String(target.x)},${String(target.y)})`;
 }
 function resolve(state:GameStateSnapshot,target:RequestTarget,options:NavigationOptions):SnapshotTarget|null {
+ if(target.kind==="static_object")return null;
  const listed=state.interaction_targets??[];
  if(target.kind==="object")return listed.find(item=>item.kind==="object"&&item.local_id===target.local_id)??null;
  if(target.kind==="connection")return null;
@@ -211,6 +219,7 @@ export function fieldOwner(state:GameStateSnapshot):string|null {
 // semantic-navigation-v2: how to copy a target from the readout, and what happens after activation.
 const SEMANTIC_V2_DESCRIPTION="The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to.";
 
+export const STATIC_NPC_APPROACH_SENTENCE="For a static scripted object template listed in current-map native facts, pass target kind static_object with its local_id. This approaches only: current presence and position are unverified, scripts may relocate it, and the tool returns without facing or pressing A even if the object has loaded. No automatic field or battle text is advanced.";
 export const NPC_TEMPLATE_APPROACH_SENTENCE="Exception for an explicitly requested unloaded trainer listed in current-map trainer facts: navigate_to_target may approach its template tile, then returns without facing or pressing A. The template may have moved; inspect the current returned state before choosing an interaction.";
 const SEMANTIC_V2_DIALOGUE=" Dialogue the activation opens is advanced for you as with navigate_to.";
 // The dialogue sentence is true only with dialogue auto-advance on.
@@ -218,12 +227,12 @@ function semanticV2Description(dialogue:boolean):string {
  const cut=SEMANTIC_V2_DESCRIPTION.indexOf(" It returns control immediately");
  return dialogue?`${SEMANTIC_V2_DESCRIPTION.slice(0,cut)}${SEMANTIC_V2_DIALOGUE}${SEMANTIC_V2_DESCRIPTION.slice(cut)}`:SEMANTIC_V2_DESCRIPTION;
 }
-function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs> {
+function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs|typeof StaticSemanticArgs|typeof SightSemanticArgs|typeof StaticSightSemanticArgs> {
  const baseOptions=navigationOptions(features);
  // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
  const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
- return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}${features["npc-approach-feedback-v1"]?` ${NPC_TEMPLATE_APPROACH_SENTENCE}`:""}`,parameters:sightCheck?SightSemanticArgs:SemanticArgs,
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}${features["npc-approach-feedback-v1"]?` ${NPC_TEMPLATE_APPROACH_SENTENCE}`:""}${features["static-npc-template-approach-v1"]?` ${STATIC_NPC_APPROACH_SENTENCE}`:""}`,parameters:features["static-npc-template-approach-v1"]?(sightCheck?StaticSightSemanticArgs:StaticSemanticArgs):(sightCheck?SightSemanticArgs:SemanticArgs),
   execute:async(id,args,signal)=>{
    const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
@@ -241,9 +250,12 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    // heal_trainers._template_tile excludes hidden templates using the native hide flag.
    // Without native loaded slots there is no verified recipient for A. Approach only,
    // then yield fresh state even if this walk causes the object to load.
-   if(features["npc-approach-feedback-v1"]&&listed===null&&request.target.kind==="object"){
+   if(listed===null&&((features["npc-approach-feedback-v1"]&&request.target.kind==="object")||(features["static-npc-template-approach-v1"]&&request.target.kind==="static_object"))){
     const requested=request.target.local_id;
-    const template=before.heal_before_trainers?.trainers.find(t=>t.local_id===requested&&t.loaded===false);
+    const staticRequest=request.target.kind==="static_object";
+    const staticFacts=before.static_npc_templates;
+    const staticTemplate=staticFacts?.map_id[0]===request.map_id[0]&&staticFacts.map_id[1]===request.map_id[1]?staticFacts.templates.find(t=>t.local_id===requested):undefined;
+    const template=staticRequest?staticTemplate:before.heal_before_trainers?.trainers.find(t=>t.local_id===requested&&t.loaded===false);
     if(template!==undefined){
      const reason=fieldOwner(before)??interrupted(before);
      if(reason!==null)return withStatus({content:[],details:{state:before}},`template approach refused: ${reason}; nothing was pressed`,selected,request.target,false);
@@ -255,7 +267,10 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
       const point={x:template.x+dx,y:template.y+dy};
       if(point.x<0||point.y<0)return [];
       if((before.interaction_targets??[]).some(t=>t.kind==="warp"&&t.x===point.x&&t.y===point.y))return [];
+      if(staticRequest&&[...(planned.navigation_grid?.warps??[]),...(planned.map_grid?.warps??[])].some(w=>w.x===point.x&&w.y===point.y))return [];
+      if(staticRequest&&(before.world_context?.triggers??[]).some(t=>t.x===point.x&&t.y===point.y))return [];
       const path=planNavigation(planned,point,templateOptions);
+      if(path!==null&&staticRequest&&staticTemplate!==undefined){const elevation=plannedArrivalElevation(planned,point,templateOptions);if(elevation===null||!elevationsMatch(staticTemplate.elevation,elevation))return [];}
       return path===null?[]:[{point,length:path.length}];
      }).sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
      const choice=candidates[0];
@@ -264,6 +279,16 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      const stop=(actual:GameStateSnapshot):string|null=>{
       if(!isMap(actual,request.map_id))return "map changed during template approach";
       const interruptedReason=interrupted(actual);if(interruptedReason!==null)return interruptedReason;
+      if(staticRequest){
+       if((actual.world_context?.triggers??[]).some(t=>t.x===choice.point.x&&t.y===choice.point.y)||[...(actual.navigation_grid?.warps??[]),...(actual.map_grid?.warps??[])].some(t=>t.x===choice.point.x&&t.y===choice.point.y))return "approach tile became a script or warp boundary; no interaction attempted";
+       const loaded=(actual.interaction_targets??[]).some(t=>t.kind==="object"&&t.local_id===requested)||actual.interaction_object_slots?.some(t=>t.local_id===requested&&t.map_id[0]===request.map_id[0]&&t.map_id[1]===request.map_id[1])===true||(actual.world_context?.objects??[]).some(t=>t.local_id===requested&&t.map_id[0]===request.map_id[0]&&t.map_id[1]===request.map_id[1]);
+       if(loaded)return "object loaded; inspect its verified current position; no interaction attempted";
+       const facts=actual.static_npc_templates;
+       const fresh=facts?.map_id[0]===request.map_id[0]&&facts.map_id[1]===request.map_id[1]?facts.templates.find(t=>t.local_id===requested):undefined;
+       if(fresh===undefined||staticTemplate===undefined)return "static template no longer verified; no interaction attempted";
+       if(fresh.x!==staticTemplate.x||fresh.y!==staticTemplate.y||fresh.elevation!==staticTemplate.elevation||fresh.movement_type!==staticTemplate.movement_type||fresh.hide_flag!==staticTemplate.hide_flag)return "static template evidence changed; no interaction attempted";
+       return null;
+      }
       const still=actual.heal_before_trainers?.trainers.find(t=>t.local_id===requested);
       if(still===undefined)return "template no longer verified";
       if(still.loaded===true)return "object loaded; inspect its verified current position";
@@ -401,7 +426,7 @@ function requestFor(target:SnapshotTarget):RequestTarget {
  if(target.kind==="warp")return {kind:"warp",x:target.x,y:target.y};
  return {kind:"interaction",interaction_kind:target.kind,x:target.x,y:target.y};
 }
-function explorationTool(semantic:AgentTool<typeof SemanticArgs>,features:FeatureSet,stateSource:StateSource):AgentTool<typeof ExploreArgs> {
+function explorationTool(semantic:AgentTool<typeof SemanticArgs|typeof StaticSemanticArgs|typeof SightSemanticArgs|typeof StaticSightSemanticArgs>,features:FeatureSet,stateSource:StateSource):AgentTool<typeof ExploreArgs> {
  const tried=new Set<string>(),options=navigationOptions(features);
  return {name:"explore_map",label:"Explore one map target",description:"Deterministically chooses one reachable listed interaction not previously attempted by this explorer. When none remain, chooses a reachable walking connection. It navigates to and activates only that one target, returning immediately on battle, dialogue, menus, scripts, forced movement or map changes.",parameters:ExploreArgs,
   execute:async(id,_request,signal)=>{

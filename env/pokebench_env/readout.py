@@ -164,6 +164,7 @@ SERVER_FEATURES = (
     POISON,
     BERRY,
     "battle-move-learn-input-v1",
+    "static-npc-template-approach-v1",
 )
 
 
@@ -175,6 +176,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
         "battle-message-waiting-v1,"
+        "static-npc-template-approach-v1,"
         "offscreen-objects-v1,"
         "levelup-box-v1,"
         "transition-coherence-v1,"
@@ -693,6 +695,20 @@ def format_readout(
     )
     if offscreen is not None and state.map_id is not None:
         lines.append(offscreen_text(offscreen, state.map_id))
+    if state.static_npc_templates is not None and "static-npc-template-approach-v1" not in off:
+        lines.append(
+            "Static scripted object templates on this map "
+            "(current presence and position unverified; scripts may relocate them):"
+        )
+        for template in state.static_npc_templates.templates:
+            target = (f'; navigate_to_target target {{"kind":"static_object",'
+                       f'"local_id":{template.local_id}}}'
+                      if "semantic-navigation-v1" not in off or "semantic-navigation-v2" not in off
+                      else "")
+            lines.append(
+                f"- object {template.local_id} template at ({template.x},{template.y}); "
+                f"approach only, no interaction{target}"
+            )
     # semantic-navigation-v2: listed targets carry the navigate_to_target argument.
     semantic = SEMANTIC_V2 not in off and "world-targets-v1" not in off
     if state.story_characters is not None and "character-presence-v1" not in off:
@@ -910,6 +926,8 @@ def state_json(state: GameState) -> dict[str, object]:
         full = {**full, "party_next_level": list(state.party_next_level)}
     return {
         **full,
+        **({} if state.static_npc_templates is None
+           else {"static_npc_templates": state.static_npc_templates.json()}),
         "screen": state.screen,
         "active_ui": None if state.active_ui is None else state.active_ui.json(),
         "story": None if state.story is None else state.story.json(),

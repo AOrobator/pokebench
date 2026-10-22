@@ -250,7 +250,8 @@
    "reachable-section-alternatives-v1": false,
    "owned-battle-context-v1": false,
    "menu-item-guidance-v1": false,
-   "factual-healing-guidance-v1": false
+   "factual-healing-guidance-v1": false,
+   "static-npc-template-approach-v1": false
   }
  },
  "switches": [
@@ -300,7 +301,8 @@
   "reachable-section-alternatives-v1",
   "owned-battle-context-v1",
   "menu-item-guidance-v1",
-  "factual-healing-guidance-v1"
+  "factual-healing-guidance-v1",
+  "static-npc-template-approach-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

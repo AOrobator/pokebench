@@ -161,7 +161,8 @@
    "context-token-budget-v1": true,
    "leader-loss-comparison-v1": false,
    "npc-approach-feedback-v1": false,
-   "owned-battle-context-v1": false
+   "owned-battle-context-v1": false,
+   "static-npc-template-approach-v1": false
   }
  },
  "switches": [
@@ -205,7 +206,8 @@
   "observed-instructions-v1",
   "leader-loss-comparison-v1",
   "npc-approach-feedback-v1",
-  "owned-battle-context-v1"
+  "owned-battle-context-v1",
+  "static-npc-template-approach-v1"
  ],
  "offInBoth": [
   "visited-terrain-navigation-v1",

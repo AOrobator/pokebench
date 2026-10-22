@@ -232,7 +232,8 @@
    "berry-readout-v1": false,
    "milestone-drought-suppression-v1": false,
    "navigation-recovery-v1": false,
-   "coherent-healing-feedback-v1": false
+   "coherent-healing-feedback-v1": false,
+   "explorer-family-guidance-v1": false
   }
  },
  "switches": [
@@ -334,7 +335,9 @@
   "berry-readout-v1",
   "milestone-drought-suppression-v1",
   "navigation-recovery-v1",
-  "coherent-healing-feedback-v1"
+  "coherent-healing-feedback-v1",
+  "explorer-family-guidance-v1",
+  "fixed-point-breaker-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -348,7 +351,6 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "fixed-point-breaker-v1",
   "positive-supervisor-v1"
  ],
  "onInBoth": [

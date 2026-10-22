@@ -325,3 +325,5 @@ Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: RO
 `menu-item-guidance-v1` and `factual-healing-guidance-v1` are pending, default OFF and unapproved. Native manual probes qualify interface mechanics only. No readiness promotion is claimed: a current 3-of-4 qualifying model reach receipt has not been established for these source pins. Both activate no later than STARTER_CHOSEN; no measured cohort launched.
 
 | coherent-healing-feedback-v1 | STARTER_CHOSEN | BLOCKED pending qualification | 2026-10-22: implementation only; matching boot readiness and pre-activation checkpoint/load evidence not established. No trial launched. |
+
+| explorer-family-guidance-v1 | PLAYER_NAME_CONFIRMED | BLOCKED pending qualification | 2026-10-22: new prompt treatment, source/start and matching-incumbent readiness not qualified; no launches. |

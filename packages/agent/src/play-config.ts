@@ -232,7 +232,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("battle") && features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
   if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${features["whiteout-healed-v1"] ? TRAINER_HEAL_SECTION.replace(BLACKOUT_FAR, `${BLACKOUT_FAR}${WHITEOUT_HEALED}`) : TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
-  const explorer = features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
+  const explorer = features["explorer-family-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
   if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? SEMANTIC_TALK_IS_CHEAP : EXPLORER_TALK_IS_CHEAP}` : ""}`;
   if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${semantic2 ? SEMANTIC_UNTAKEN_EXITS_SECTION : UNTAKEN_EXITS_SECTION}`;
   if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;

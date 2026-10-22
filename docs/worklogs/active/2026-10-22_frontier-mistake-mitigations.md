@@ -219,3 +219,7 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 
 - New explorer-family-guidance-v1 independently selects the already-existing family/re-talk section without mutating explorer v1/v2 historical precedence. Default/control OFF, bundle ON. This makes the approved prompt replacement one effective experimental difference; fixed-point-breaker will also enter the bundle with explicit existing auto-talk bits unchanged.
 - Production prompt test fails on missing replacement (`/tmp/frontier-m6-explorer-red.log`); OFF precedence cases pass. No story names or routes added.
+
+### M6 explorer GREEN candidate
+
+- Independent prompt replacement implements exact existing family/re-talk text; OFF precedence unchanged. Focused tests 2 pass; deleting selector fails 1 replacement regression while OFF test remains green; source restored. Six future bundle definitions enable this treatment and fixed-point-breaker while preserving explicit existing auto-talk settings. Explain/pending entry added, themed/check clean. Full integration gates/review and browser remain pending. No trial launched.

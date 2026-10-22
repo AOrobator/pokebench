@@ -226,6 +226,7 @@ export const SWITCHABLE_FEATURES = [
   "menu-item-guidance-v1",
   "factual-healing-guidance-v1",
   "coherent-healing-feedback-v1",
+  "explorer-family-guidance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -565,6 +566,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("menu-item-guidance-v1", "guidance", "MENU ITEM GUIDANCE", null, "Default off. Gives state-owned menu controls, vertical choices and the difference between using medicine and giving a held item. Waits for input readiness and never selects for the model. Off: existing menu observations and prompt are unchanged."),
   on("factual-healing-guidance-v1", "guard", "FACTUAL HEALING GUIDANCE", null, "Default off. Replaces blanket full-HP directives with HP, battle constraints and healing options, and bypasses the full-HP encounter gate. Trainer-sight confirmation is preserved. No battle safety prediction. Off: original heal-first lines, full-HP advice and encounter gate are unchanged."),
   on("coherent-healing-feedback-v1", "guard", "COHERENT HEALING FEEDBACK", "low-hp-trainer-warning-v1", "Default off; bundle only. Replaces overlapping story, trainer, gym and heal-first messages with one factual warning when the existing verified weakness criteria hold: lead below half HP, a fainted party member, or no damaging PP. Minor damage keeps the ordinary party readout without a heal directive. Unchanged risk profiles are deduplicated. Known healing places and applicable BAG medicine are options; no route, threshold prediction or action is chosen. Off: the existing independent healing wrappers and their text are unchanged."),
+  on("explorer-family-guidance-v1", "guidance", "FAMILY AND REPEAT CONVERSATIONS", null, "Default off; bundle only. Selects the existing explorer-guidance-v1 family, neighbours and repeat-conversation prompt section in place of explorer-guidance-v2. Names no character, place or story step and chooses no action. The original explorer switches retain their values and precedence when this treatment is off. Off: the previous explorer-guidance-v2/v1 prompt selection is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -843,6 +845,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("menu-item-guidance-v1"),
     ...when("factual-healing-guidance-v1"),
     ...when("coherent-healing-feedback-v1"),
+    ...when("explorer-family-guidance-v1"),
   ];
 }
 
@@ -853,5 +856,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

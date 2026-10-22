@@ -22,7 +22,7 @@ const state=parseGameState(row.state);
 const places=JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as {places:{display:string}[]};
 const BASE:FeatureSet={...featuresOf(recorded.harness_features),"harness-trust-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"no-exit-here-v1":false,"blocked-exit-fact-v1":false,"battle-move-tool-v1":false,"heal-before-trainers-v2":true,"story-battle-heal-first-v1":true,"gym-heal-warning-v1":true};
 const hp=(n:number):GameStateSnapshot=>({...state,party:state.party.map((p,i)=>i===0?{...p,hp:n,max_hp:33}:p)});
-async function replay(on:boolean,states:readonly GameStateSnapshot[],overrides:Partial<FeatureSet>={}){
+async function replay(on:boolean,states:readonly GameStateSnapshot[],overrides:Partial<FeatureSet>={},placeSource:()=>Promise<unknown>=()=>Promise.resolve(places)){
  const root=mkdtempSync(join(tmpdir(),"coherent-heal-"));
  try{
   const log=RunLog.create(root,"replay");
@@ -30,7 +30,7 @@ async function replay(on:boolean,states:readonly GameStateSnapshot[],overrides:P
   await recorder.start(RUN_START_META);
   let index=0;
   const press:AgentTool={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"recorded state"}],details:{state:states[index++]}})};
-  const tool=playGameTools([press],{...BASE,...overrides,[ID]:on},{read:()=>Promise.resolve(state),places:()=>Promise.resolve(places)},recorder).find(t=>t.name==="press");
+  const tool=playGameTools([press],{...BASE,...overrides,[ID]:on},{read:()=>Promise.resolve(state),places:placeSource},recorder).find(t=>t.name==="press");
   if(tool===undefined)throw new Error("missing production tool");
   const texts:string[]=[];
   for(const [i] of states.entries()){const r=await tool.execute(`r${String(i)}`,{});texts.push(r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n"));}
@@ -101,4 +101,16 @@ it("qualifies exact ea04 healing observations while preserving their missing con
    expect(on.texts[0]).not.toMatch(/Heal to full|heal before talking|Heal before you battle/);
   }
  }
+});
+it("keeps a verified risk when healing-place evidence is unavailable without inventing a destination",async()=>{
+ const on=await replay(true,[hp(3)],{},()=>Promise.reject(new Error("place source unavailable")));
+ expect(on.warnings).toHaveLength(1);
+ expect(on.texts[0]).toContain("3/33");
+ expect(on.texts[0]).not.toContain("POKéMON CENTER in");
+});
+it("does not repeat an unchanged risk after a map detour without new party or healing evidence",async()=>{
+ const outside:GameStateSnapshot={...hp(3),map_id:[0,9],location:"ROUTE 101",world_context:null,heal_before_trainers:{trainers:[],move_power:[],last_heal:null,home:[1,0],mom_heals:false}};
+ const on=await replay(true,[hp(3),outside,hp(3)]);
+ expect(on.warnings).toHaveLength(1);
+ expect(on.texts[2]).toBe("recorded state");
 });

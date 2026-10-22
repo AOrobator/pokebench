@@ -4,7 +4,7 @@
 
 Status: APPROVED FOR IMPLEMENTATION — 2026-10-22. All new treatments go in the bundle, control/default OFF. No experiments or probes may launch.
 
-The operator approved implementation on October 22, including parallel subagents, default/control-OFF treatments and future bundle ON. Ten treatments are integrated and the final generic stationary-NPC approach packet is in progress. No experiment or probe is authorized to launch. Branch implementation, reviewed landing, viewer delivery, later-run activation and measured benefit remain separate stages.
+The operator approved implementation on October 22, including parallel subagents, default/control-OFF treatments and future bundle ON. Eleven new treatments are integrated, including the generic stationary-NPC approach packet. No experiment or probe is authorized to launch. Branch implementation, reviewed landing, viewer delivery, later-run activation and measured benefit remain separate stages.
 
 The October 22 holistic Frontier report records 16 episodes in run `2026-10-21T13-33-54_qwen36-gpu0_ea04`. Several interventions already existed in that run; others have landed since. We need to distinguish missing capability, incomplete feedback, harmful intervention and ordinary gameplay cost before adding more switches.
 
@@ -96,7 +96,7 @@ All “ON” below describes the future candidate bundle; all new switches are d
 | E1 | existing trigger-navigation-boundary; new rejected-movement-stride | old one-step/rejection superseded only when new stride handles a request | Trigger entry remains its separate bounded step; no story continuation. Exact historical native fixture proof not located. |
 | E2 | field-ownership-feedback, tool-prompt-docs, delivered-place-evidence, explorer-family-guidance; conditional stale-plan-fact | explorer v2 section replaced through new treatment, original bits not blindly swapped | Does not detect every invented nickname belief or infer a named daughter identity. |
 | E3 | navigate-already-here, boundary-crossing-facts, delivered-place-evidence, explorer-family-guidance | none required beyond treatment precedence | Current verified crossing fact only; no hidden route. |
-| E4 | grass-cost and semantic navigation, coherent healing, npc-approach feedback for qualified trainers; existing occupied-person neighbour checks | story-battle-heal-gate stays OFF | 3/21 danger preserved; automatic RUN deferred. Generic stationary non-trainer approach is being completed under its own switch; automatic activation remains prohibited. |
+| E4 | grass-cost and semantic navigation, coherent healing, npc-approach feedback for qualified trainers; existing occupied-person neighbour checks | story-battle-heal-gate stays OFF | 3/21 danger preserved; automatic RUN deferred. Generic stationary non-trainer approach is implemented under static-npc-template-approach-v1; automatic activation remains prohibited. |
 | E5 | coherent factual healing and historical place evidence where actual exposure qualifies | no proven single switch to turn OFF | Wrong-turn/heal causality not established; no claimed fixed detour. |
 | E6 | trigger boundary, checked requested stride, boundary/place facts, explorer-family | one-step fallback superseded under new stride | Existing live trigger expiry retained; model still selects crossing/route. |
 | E7 | coherent healing, field ownership/no-battle feedback | overlapping heal advice bypassed under coherent policy; standalone gym-warning-OFF remains optional | Native invalid battle calls retain current Interface facts, not new mandatory advice. |
@@ -107,7 +107,7 @@ All “ON” below describes the future candidate bundle; all new switches are d
 | E12 | battle-effective-damage/coverage, coherent low-HP feedback, leader-loss comparison when actual prior leader-loss context exists | do not disable useful low-HP facts | 14/35 heal justified; delivered effectiveness/outcome pages supplied, no damage predictor. |
 | E13 | leader-attempt/party-coverage/seen-trainers retained; leader-loss comparison + qualified trainer template approach | mandatory rematch gate deferred | Factual changes/unchanged/unknown; no selected strategy/training requirement. |
 | E14 | learn_move/comparison/early comparison/fingerprint/stale-plan retained; battle-move-learn-input + owned-battle-context; existing evolution result correction | stale battle-context interpretation superseded only for verified non-battle owner | Native B6/d951 and 83d7 reparsing qualify correctness separately from gameplay benefit; no forced evolution or move selection. |
-| E15 | qualified leader trainer approach, existing gym evidence, delivered historical facts | no puzzle solver or rematch gate | Completion status does not disprove imaginary boulders; generic stationary non-trainer approach is in progress separately. |
+| E15 | qualified leader trainer approach, existing gym evidence, delivered historical facts | no puzzle solver or rematch gate | Completion status does not disprove imaginary boulders; generic stationary non-trainer approach is separately switched. |
 | E16 | existing trigger boundary plus safe requested strides where relevant | old unproductive one-step fallback superseded under treatment | Preserve post-cap status; do not fold 29.5 minutes into an additive two-hour speedup. |
 
 
@@ -133,68 +133,68 @@ Use existing typed event/readout contracts and verified ROM/RAM access. No new e
 
 **Shared execution checklist — required for each implementation packet M1–M6**
 
-- [ ] Refresh base, ownership, concurrent worklogs and feature inventory; record packet boundary and chosen switch contract before edits.
-- [ ] Ground behavior in game source and recorded event/frame/RAM fixtures; add failing regressions and exact OFF tests.
-- [ ] COMMIT RED tests; record SHA and actual failing assertions in this worklog.
-- [ ] Implement one treatment with concrete types, production wiring, append-only registry/default-OFF handling and prompt synchronization where relevant.
-- [ ] Delete guarded behavior/wiring once; observe the named regression fail, restore it and record both receipts.
+- [x] Refresh base, ownership, concurrent worklogs and feature inventory; record packet boundary and chosen switch contract before edits.
+- [x] Ground behavior in game source and recorded event/frame/RAM fixtures; add failing regressions and exact OFF tests.
+- [x] COMMIT RED tests; record SHA and actual failing assertions in this worklog.
+- [x] Implement one treatment with concrete types, production wiring, append-only registry/default-OFF handling and prompt synchronization where relevant.
+- [x] Delete guarded behavior/wiring once; observe the named regression fail, restore it and record both receipts.
 - [ ] Run `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions per stack), and `just verify-vendor`; record counts and receipts.
-- [ ] COMMIT GREEN; record SHA and gate results. Update tracked explainer/card link, pending experiment and current readiness before landing; keep experiment unapproved.
+- [x] COMMIT GREEN; record SHA and gate results. Update tracked explainer/card link, pending experiment and current readiness before landing; keep experiment unapproved.
 - [ ] Complete PB1–PB13 self-review and repository-required cloud review on the frozen packet. Do not treat this checklist as authority to replace a missing lane.
 - [ ] Prove delivery through replay/model input and browser surfaces as applicable. Synthetic rehearsals are labeled and do not establish gameplay benefit.
 - [ ] Land only through the shared board and reviewed-tree rules; record merge SHA, coordinated viewer proof and actual later activation separately.
 
 **M1 — Interface correctness before menu benefit claims (P0)**
 
-- [ ] Reparse d951/83d7 decline-result fixtures using corrected evolution code; verify existing tests cover decline, accept, ready result and animation without reimplementing landed B1 correction.
-- [ ] Reproduce B6 from 97a0/d548 battle YES/NO RAM: ready choice must not be called battle_resolving. If current main still fails, implement the independent correction using the shared checklist.
-- [ ] Verify comparison delivery before learn_move decisions, tool availability/prompt consistency, and refusal paths preserving owned Interface/frame evidence.
-- [ ] Acceptance: both learning and declining return to normal input; no default selection of Double Kick or forced evolution. Replay success is correctness evidence only.
+- [x] Reparse d951/83d7 decline-result fixtures using corrected evolution code; verify existing tests cover decline, accept, ready result and animation without reimplementing landed B1 correction.
+- [x] Reproduce B6 from 97a0/d548 battle YES/NO RAM: ready choice must not be called battle_resolving. If current main still fails, implement the independent correction using the shared checklist.
+- [x] Verify comparison delivery before learn_move decisions, tool availability/prompt consistency, and refusal paths preserving owned Interface/frame evidence.
+- [x] Acceptance: both learning and declining return to normal input; no default selection of Double Kick or forced evolution. Replay success is correctness evidence only.
 
 **M2 — Trigger navigation and direction batch execution (P1)**
 
-- [ ] Verify E1/E8/E16 trigger boundary behavior against source/current tests; add only missing coverage rather than changing that switch's contract.
-- [ ] Specify checked execution for repeated and mixed direction sequences, hazard endpoints and batch-remainder disposal. Reuse existing stride primitives; do not infer a route.
-- [ ] Implement the independent stride alternative; freeze compatibility/precedence with rejected-movement-step and navigation-tool-use-guard.
-- [ ] Acceptance: requested plain-corridor movement makes bounded multi-tile progress; scripts/maps/battles interrupt and return; old fallback remains exact with treatment OFF.
+- [x] Verify E1/E8/E16 trigger boundary behavior against source/current tests; add only missing coverage rather than changing that switch's contract.
+- [x] Specify checked execution for repeated and mixed direction sequences, hazard endpoints and batch-remainder disposal. Reuse existing stride primitives; do not infer a route.
+- [x] Implement the independent stride alternative; freeze compatibility/precedence with rejected-movement-step and navigation-tool-use-guard.
+- [x] Acceptance: requested plain-corridor movement makes bounded multi-tile progress; scripts/maps/battles interrupt and return; old fallback remains exact with treatment OFF.
 
 **M3 — Repeated-loss evidence and verified NPC approaches (P1)**
 
-- [ ] Packet A: last-loss/current-party comparison using observed levels, EXP, moves, party and damage/effectiveness; distinguish no change from missing data.
-- [ ] Packet B: qualified unloaded static NPC approach and occupied-tile interaction alternatives. Honor hidden flags, map identity, movement uncertainty, obstacles and trainer sight; do not auto-start a battle on inferred presence.
-- [ ] Verify no-battle errors deliver current screen/interface; avoid redundant notices when existing feedback already suffices.
-- [ ] Acceptance: E13's unchanged-rematch facts are prominent and accurate; the model retains all choices. Leader template approaches work without false current-presence claims.
+- [x] Packet A: last-loss/current-party comparison using observed levels, EXP, moves, party and damage/effectiveness; distinguish no change from missing data.
+- [x] Packet B: qualified unloaded static NPC approach and occupied-tile interaction alternatives. Honor hidden flags, map identity, movement uncertainty, obstacles and trainer sight; do not auto-start a battle on inferred presence.
+- [x] Verify no-battle errors deliver current screen/interface; avoid redundant notices when existing feedback already suffices.
+- [x] Acceptance: E13's unchanged-rematch facts are prominent and accurate; the model retains all choices. Leader template approaches work without false current-presence claims.
 - DEFERRED: proposed leader-rematch-gate-v1. Try factual feedback first; a new action restriction needs separate design/approval based on evidence.
 
 **M4 — One coherent healing policy (P1)**
 
-- [ ] Replay E4/E7/E11/E12 and identify every contributing warning; choose and document the new treatment's exact trigger and deduplication rule before implementation.
-- [ ] Separate factual HP/cost/heal-location observations from advice to leave. Consider team viability, readable state, available healing and immediate battle context without inventing a battle outcome predictor.
-- [ ] Test minor-damage and severe-damage pairs, full HP/low PP, multiple party members, unknown ownership, stale heal facts and repeated map entry. Use the shared checklist for the independently switched policy.
-- [ ] Acceptance: 30/33 does not produce three heal commands; genuine low-HP information survives; no inferred mandatory trip or hidden action gate.
+- [x] Replay E4/E7/E11/E12 and identify every contributing warning; choose and document the new treatment's exact trigger and deduplication rule before implementation.
+- [x] Separate factual HP/cost/heal-location observations from advice to leave. Consider team viability, readable state, available healing and immediate battle context without inventing a battle outcome predictor.
+- [x] Test minor-damage and severe-damage pairs, full HP/low PP, multiple party members, unknown ownership, stale heal facts and repeated map entry. Use the shared checklist for the independently switched policy.
+- [x] Acceptance: 30/33 does not produce three heal commands; genuine low-HP information survives; no inferred mandatory trip or hidden action gate.
 
 **M5 — Useful route and person-location facts (P2)**
 
-- [ ] Packet A: verified edge direction/destination on already-here results, plus expiry of prior trigger barriers when live conditions change.
-- [ ] Packet B: section-aware reachable exit connectivity toward the model's stated destination, explicitly qualified and with alternatives; no automatic route selection.
-- [ ] Packet C: person/place evidence from delivered dialogue, including unnamed speakers, with exact quote/source/turn and story relevance/expiry. Normalize contradictory displayed place labels where source verifies identity.
-- [ ] Acceptance: E3 states the crossing fact; E9 explains relevant Woods connectivity with terrain/gate limits; person-goal handling never supplies unheard May whereabouts.
+- [x] Packet A: verified edge direction/destination on already-here results, plus expiry of prior trigger barriers when live conditions change.
+- [x] Packet B: section-aware reachable exit connectivity toward the model's stated destination, explicitly qualified and with alternatives; no automatic route selection.
+- [x] Packet C: person/place evidence from delivered dialogue, including unnamed speakers, with exact quote/source/turn and story relevance/expiry. Normalize contradictory displayed place labels where source verifies identity.
+- [x] Acceptance: E3 states the crossing fact; E9 explains relevant Woods connectivity with terrain/gate limits; person-goal handling never supplies unheard May whereabouts.
 
 **M6 — Existing switch ablations and productive-progress handling (P2)**
 
-- [ ] Prepare explicit explorer replacement and fixed-point candidates without modifying current presets. Check conditional auto-talk behavior and dependencies.
-- [ ] Audit navigation-recovery-v1 and milestone-drought-suppression against these windows; preserve independent loop/stop attribution and legitimate backtracking.
-- [ ] Replay EXP/level/trainer-win windows against progress-aware-cycles. Only if a gap persists, design a separately switched bounded exemption with regressions for endless unproductive grinding/revisiting.
-- [ ] Acceptance: no duplicate new recovery feature; feedback does not call verified productive training a failed plan; loop handling retains bounded behavior and model agency.
+- [x] Prepare explicit explorer replacement and fixed-point candidates in future bundle definitions as subsequently authorized; preserve historical control-base files. Check conditional auto-talk behavior and dependencies.
+- [x] Audit navigation-recovery-v1 and milestone-drought-suppression against these windows; preserve independent loop/stop attribution and legitimate backtracking.
+- [x] Replay EXP/level/trainer-win windows against progress-aware-cycles. Only if a gap persists, design a separately switched bounded exemption with regressions for endless unproductive grinding/revisiting.
+- [x] Acceptance: no duplicate new recovery feature; feedback does not call verified productive training a failed plan; loop handling retains bounded behavior and model agency.
 
 **M7 — Evaluation plans and operator review (P3)**
 
-- [ ] For each candidate, resolve activation milestone from the pinned native catalog and assess readiness using current qualifying evidence. No READY claim is made by this document.
+- [x] For each candidate, resolve activation milestone from the pinned native catalog and assess readiness using current qualifying evidence. No READY claim is made by this document.
 - [ ] Prefer validated checkpoint designs for late-game mechanisms; require save provenance/hash/load proof. Boot designs need the documented 3-of-last-4 activation criterion. A named milestone is not a restorable checkpoint.
 - [ ] Freeze primary outcomes, regressions, start, complete effective flags, source/model/serving identity, caps, power/budget and balanced order with experiment-design. Screens use eight trials per arm/model; confirmation size follows the design skill and approved budget.
-- [ ] Measure target reliability first, then turns/tokens/time, interface failures, invalid calls, unchanged rematches and heal trips. Preserve all outcomes and separate infrastructure losses.
+- [x] Measure target reliability first, then turns/tokens/time, interface failures, invalid calls, unchanged rematches and heal trips. Preserve all outcomes and separate infrastructure losses.
 - [ ] Specify regression checks preserving useful healing, no softlocks, no premature guard stops and downstream progress. Fix numerical acceptance margins before execution; do not select them after results.
-- [ ] Present concrete experiment artifacts for operator approval. No probes/cohorts launched, no queue approvals, no incumbent promotion or defaults changed by plan approval alone.
+- [x] Present concrete experiment artifacts for operator approval. No probes/cohorts launched, no queue approvals, no incumbent promotion or defaults changed by plan approval alone.
 
 ## Closing the Loop
 
@@ -307,3 +307,18 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Normalized recipe audit found four inherited bundle switch lists still enabled story-battle-heal-gate-v1, contrary to this approved worklog's explicit OFF choice. Existing factual-healing guidance currently bypasses that gate, but the effective bit must also match the contract. Added regression requiring OFF in every normalized arm; RED4 failures/12 pass (`/tmp/frontier-heal-gate-config-red.log`). Fix will remove only that inherited bundle bit, keep base/control false and preserve all new treatment ON bits. No mechanism semantics or historical control-base file changes.
 
 - Heal-gate configuration GREEN: all16 normalized bundle/pending tests pass (`/tmp/frontier-heal-gate-config-green.log`). Four future switch-list removals only; all base/control values remain false, historical control-base files untouched. Current branch explicitly enforces worklog story-battle-heal-gate OFF rather than relying on another switch's bypass.
+
+- Generic M3 packet integrated as626557d21 plus format/type-only followups: static-npc-template-approach-v1 reads current-map, hide-filtered scripted stationary placements, never live presence; dedicated static_object intent cannot auto-activate if the object loads. Native47c3 archived RAM proof,20 Python/90 semantic/7 viewer focused checks, deletion/restore and headless pixel receipts are in static-NPC child worklog. Parent corrected recipe scope to the six active future bundle definitions and restored three obsolete recipes byte-for-byte to prepacket.
+- Generic registry append required one more historical fixture migration: default-off server environment gains the new ID, current registry positions shift by one, frozen historical comparison vectors explicitly exclude only the new treatment. Initial integrated agent46 fixture failures→10→4630 passing; viewer114 diagnostic failures traced to stale compiled agent package before rebuilding, not accepted as final gates. Python29 fixture failures being corrected (server ordering/defaults/forwarding and exact historical new-switch-OFF snapshots). No assertions/coverage thresholds skipped.
+- New delivery-owner qualification integrated: checked stride, loss and coherent-heal tool results reach the next pinned-pi request and durable RunRecorder event; exact ea04 delivered historical place quote reaches both requests through production contextTools and ledger_context. Existing Activity History/raw-inspector/replay folding preserves these exact producer texts. No timeline additions. Frozen isolated headless replay at childbb1b6d873 verified seven served asset hashes, selected raw JSON and start/end cursor behavior with no page errors; explicitly synthetic rehearsal, not main/live or gameplay benefit.
+
+### Integrated implementation status before final review
+
+- M1–M6 code is implemented with eleven independent new default/control-OFF treatments, future bundle ON. Existing fixed-point treatment is bundle ON with its historical collapse+note semantics. All six future recipes explicitly set story-battle-heal-gate OFF in both arms. Deterministic acceptance checks do not claim a completed gameplay trial.
+- M3 trainer-template contract remains separate from generic stationary non-trainer approach. Generic request intent, readout, prompt, schema and auto-dialogue boundary are switched together; current presence is never inferred.
+- M4 final production case matrix8/8 passes: exact available ea04 snapshots, minor/severe HP, full-HP/no damaging PP, fainted teammate, unknown ownership/HP, unavailable healing-place evidence, unchanged-profile deduplication and map detour. Source snapshots missing richer context remain unknown.
+- M5 section alternatives repeat delivered qualified terrain facts rather than compute a hidden route. Source map display/name provenance is retained, not a general rewrite of map labels.
+- M6 audit is complete for the three cited training windows; no new training-cycle treatment justified. The original literal explorer v1/v2 swap is replaced by one independently testable selector, preserving old switch semantics.
+- M7 preparation catalogue and one-bit blocked definitions are complete. A launch-ready study is intentionally NOT complete: checkpoint hash/load/context, post-start primary/exposure, matched cap/baseline, operator budget, power/N and numeric margins require a later approved design. No trial, probe, queue approval or incumbent promotion occurred.
+- Three obsolete bundle-cook4h/6h/6h-v2 files restored to prepacket; historical control-base hashes untouched. Current generated arm validation uses offInBoth for the explicitly disabled heal gate, retaining strict frozen-control provenance checks.
+- Latest component passes:4630 agent,1755 viewer,3975 Python (zero skips). These are diagnostic component runs; final same-tree just test/lint/build/coverage/vendor and frozen review follow after source-pin commit.

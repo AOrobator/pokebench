@@ -225,7 +225,8 @@
    "reachable-section-alternatives-v1": false,
    "owned-battle-context-v1": false,
    "menu-item-guidance-v1": false,
-   "factual-healing-guidance-v1": false
+   "factual-healing-guidance-v1": false,
+   "static-npc-template-approach-v1": false
   }
  },
  "switches": [
@@ -320,7 +321,8 @@
   "reachable-section-alternatives-v1",
   "owned-battle-context-v1",
   "menu-item-guidance-v1",
-  "factual-healing-guidance-v1"
+  "factual-healing-guidance-v1",
+  "static-npc-template-approach-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -334,7 +336,8 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "positive-supervisor-v1"
+  "positive-supervisor-v1",
+  "story-battle-heal-gate-v1"
  ],
  "onInBoth": [
   "original-speed-pacing-v1",

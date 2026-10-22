@@ -128,6 +128,7 @@ def rig(tmp_path: Path) -> tuple[Config, FakeHost, Controller]:
         tmp_path / "archive",
         tmp_path / "launchers",
         viewer_stamp=tmp_path / "viewer.json",
+        prepare_lock=tmp_path / "prepare.lock",
     )
     for path in (c.repo / "env/.venv", c.runs / "experiments", c.archive, c.launchers):
         path.mkdir(parents=True)
@@ -169,6 +170,7 @@ def test_feature_recipe_takes_each_trial_arms_from_that_definition_on_fresh_main
         wall_ms=5_400_000,
         viewer_stamp=tmp_path / "viewer.json",
         feature_recipe="bundle-v-control-2h",
+        prepare_lock=tmp_path / "prepare.lock",
     )
     for path in (c.repo / "env/.venv", c.runs / "experiments", c.archive, c.launchers):
         path.mkdir(parents=True)
@@ -180,6 +182,26 @@ def test_feature_recipe_takes_each_trial_arms_from_that_definition_on_fresh_main
     assert args[-4:] == ["--lane", "A", "--feature-recipe", "bundle-v-control-2h"]
     rehearsal = next(a for a, _ in h.commands if a[:2] == ["node", "--env-file=.env"])
     assert rehearsal[-1] == "bundle-v-control-2h"
+
+
+def test_preparation_waits_for_another_controller_holding_the_shared_lock(
+    rig: tuple[Config, FakeHost, Controller],
+) -> None:
+    import fcntl
+    import threading
+
+    c, h, controller = rig
+    with c.prepare_lock.open("a") as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        worker = threading.Thread(target=controller.trial, args=(LANE, "bundle"))
+        worker.start()
+        worker.join(0.5)
+        assert worker.is_alive()
+        assert not any(a[:2] == ["git", "clone"] for a, _ in h.commands)
+        fcntl.flock(held, fcntl.LOCK_UN)
+    worker.join(5)
+    assert not worker.is_alive()
+    assert len(h.children) == 1
 
 
 def test_without_a_feature_recipe_trials_use_their_own_definition(
@@ -390,6 +412,7 @@ def test_main_entry_starts_only_the_controller_and_honors_custom_holds(
         "STOP_FILE": str(tmp_path / "custom-stop"),
         "PAUSE_FILE": str(tmp_path / "custom-pause"),
         "FEATURE_RECIPE": "bundle-v-control-2h",
+        "PREPARE_LOCK": str(tmp_path / "custom-prepare.lock"),
     }.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setattr(module, "Controller", StandIn)
@@ -399,6 +422,7 @@ def test_main_entry_starts_only_the_controller_and_honors_custom_holds(
     assert captured[0].stop == tmp_path / "custom-stop"
     assert captured[0].pause == tmp_path / "custom-pause"
     assert captured[0].feature_recipe == "bundle-v-control-2h"
+    assert captured[0].prepare_lock == tmp_path / "custom-prepare.lock"
     assert (tmp_path / "archive/latest-main-loop.pid").read_text().isdigit()
 
 

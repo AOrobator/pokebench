@@ -62,3 +62,7 @@ On landing turn main had advanced to3a43509a8 with navigation-recovery-v1. Sync 
 
 ## Bundle activation — operator request 2026-10-22
 User explicitly requests both switches ON in the bundle for future runs, without interrupting current runs. Scope: six current recipes (bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h). Controls/general defaults stay OFF; no historical recipes, run presets, approvals, live process controls or loop scripts change. Add production arm-normalization regression first; then append both switches with base false. No performance claim or experiment promotion. Current loops read main recipes for subsequent runs; current pinned processes remain untouched.
+
+Bundle RED: six actual production recipe tests fail as expected on missing switches. GREEN: six recipe files append two bundle-only switches, both false in base; historical poison/berry positional assertion shifts by two, preserving its exact IDs.
+
+Focused GREEN12/12 verifies normalized presets in every phase and pinned control-base parity; original recipe title escaping retained. Global switch defaults unchanged.

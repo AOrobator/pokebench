@@ -27,3 +27,20 @@ it("shows a held drought in Activity History and the inspector, and adds nothing
   for (const event of sent.events) drawn.apply(event);
   expect(drawn.errors).toHaveLength(1);
 });
+
+// The heal-trip hold that ended run 2026-10-21T18-07-08_qwen36-gpu0_4164 as "crash", as the fixed build records it
+// when its own recorded events are replayed through stallBriefing (heal warning #15727, last progress #14510).
+const HEAL_HELD = "Not sent (drought-battle-heal-hold-v1): no new story milestone for 10 minutes of play, but the party is on its way to heal after a heal warning (#15727).";
+
+it("shows a heal-trip hold in Activity History and the inspector, and adds nothing to the timeline", () => {
+  const log = new Log();
+  log.add(0, START);
+  const held = log.add(100, { type: "loop_guard", turn: 419, kind: "milestone_drought", message: HEAL_HELD, calls: 0, evidence: [14510, 16572], mode: "diagnostic", phase: "would_warn" });
+  const v = new RunView();
+  for (const event of log.events) v.apply(event);
+  if (held.type !== "loop_guard") throw new Error("not a loop_guard");
+  expect(eventText(held, v)).toContain("on its way to heal after a heal warning (#15727)");
+  expect(inspector(held)).toMatch(/14510[^0-9]+16572/);
+  expect(v.errors).toEqual([]);
+  expect(lanesSvg(v, BASE_MS + 1000)).not.toContain("k-loop");
+});

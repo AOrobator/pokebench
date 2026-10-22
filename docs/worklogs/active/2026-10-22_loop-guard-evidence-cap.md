@@ -49,3 +49,17 @@ agent exception "emulator or game server crash"; the emulator was fine.
 | PB11 Verify pinned dependency | N/A | No dependency or vendor change. |
 | PB12 macOS privacy prompts | N/A | No file-system or device access added. |
 | PB13 Close the loop | PASS | RED test fails with the production error string; GREEN passes; gates below; live check after landing is the next bundle run reaching a heal-trip hold without `crash`. |
+
+## Review round 1 (packet 3fc7276a4, diff sha256 6ae78517…f411)
+
+- **Claude** (Claude CLI, `CLAUDE_CONFIG_DIR=~/.claude-review`, plan mode): `VERDICT: LGTM`. Hardening: comment at `notice()` that it keeps the last two ids (done); progress-aware-cycles heal-trip path has no test (its hold is set on the tool_result whose seq the coordinator passes, so it dedupes to two; now capped by `loopEvidence` anyway).
+- **GPT** (isolated Codex CLI `gpt-5.6-sol` xhigh; Cursor out of usage): `VERDICT: BLOCKING`. Required evidence gap: no mounted-viewer test or built-viewer replay of the heal-trip payload (agent-observability skill). Accepted: fixed below.
+- **Fallback for Grok** (isolated Codex CLI `gpt-6-astra` xhigh, the operator's waiver while Cursor is out): `VERDICT: LGTM`.
+
+## Observability proof (round 2)
+
+- Production replay: `stallBriefing` from the built agent over run 4164's own recorded events (read-only) records exactly one heal-trip hold, after tool_result #16572 (the one before the original crash): evidence `[14510,16572]`, text names heal warning #15727 (the run's `gym_heal_warning`). Scratch copy of the run (events through #16572 + that loop_guard + run_end; frames/raw-ram symlinked, originals untouched) under the session scratchpad.
+- Built candidate viewer served on 127.0.0.1:8796 against that scratch root: the row shows in the agent trace as "Loop guard · milestone drought diagnostic: would warn" and the inspector shows the full message; the TIMELINE has no new mark. Screenshots: `runs/loop-guard-evidence-proof/inspector-heal-hold.jpg`, `timeline-no-mark.jpg`. Served `main.js`, `model.js`, `panels.js` byte-identical to `packages/viewer/dist` (sha256 a2fe34d2…, 7644d9d9…, f5858b28…). Scratch viewer stopped after.
+- Mounted viewer test: heal-trip payload in Activity History text and inspector, no `k-loop` on the timeline.
+- Guard deletions (receipts in `runs/loop-guard-evidence-proof/`): `guard-1` removed only the stall-briefing cap → still passes (play-wiring's `loopEvidence` caps it; kept as an unexpected pass); `guard-1b` removed both caps → `EventError: invalid loop_guard event at /evidence: must not have more than 2 items`; `guard-2` removed the `(#N)` text → 2 assertion failures; both restored → 16/16.
+- Gates after round-2 edits: `just lint` clean; `just coverage` agent 4425 (97.39 / 93.29 / 97.98), viewer 1668 (95.45 / 91.33 / 94.35), Python 3889 passed.

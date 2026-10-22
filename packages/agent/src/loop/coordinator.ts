@@ -516,6 +516,7 @@ export class LoopCoordinator {
       kind: episode.kind,
       message: this.noticeMessage(phase, episode),
       calls: this.completed,
+      // Episode notices keep their last two ids, as before; loopEvidence's first-and-last rule is for the others.
       evidence: loopEvidence(
         [...episode.evidence, seq].filter((value, index, all) => all.indexOf(value) === index).slice(-2),
       ),

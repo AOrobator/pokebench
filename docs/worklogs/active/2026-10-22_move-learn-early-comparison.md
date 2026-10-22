@@ -55,3 +55,5 @@ OFF: today's readout bytes.
   4. panels.test loop cost O(K×F). Rebutted: one id added to an existing loop pattern; no shared-gate change in scope.
 - **Grok stand-in** (isolated Codex CLI `gpt-6-astra` xhigh, the operator "yes" 2026-10-22 2:14 AM ET): round 1 still running when round 2 was sealed; superseded.
 - Fix verified RED-first: reverting move_learn.py fails 3 new tests; reverting the screen gate fails the evolution test.
+- Repinned experiments/move-learn-early-comparison-v1.json source.commit to ae1b0b9c36c9ecd0835caad321fd98925112c0fb.
+- Repin commit follows the fix commit.

@@ -15,3 +15,4 @@ the Torchic data. The operator's message is the launch approval for that one run
 - [x] Wiring deleted once: 4 ON tests red; restored: green
 
 Gates and review recorded below.
+- COMMIT: `feat(agent): random-starter-v1 ...` (c240a6bcf120dd1e15a322629ee620679acdf891); pending entry pinned to it in the next commit

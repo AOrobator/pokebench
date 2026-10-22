@@ -8,7 +8,7 @@
   "primaryMilestone": "STARTER_CHOSEN",
   "source": {
     "checkout": "main",
-    "commit": "3b48eb4eb94544d4442e2621f2b7028b36295402"
+    "commit": "c240a6bcf120dd1e15a322629ee620679acdf891"
   },
   "incumbent": {
     "version": 2,

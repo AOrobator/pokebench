@@ -29,7 +29,9 @@ feature-switch, feature-explainer, experiment-queue, pokebench-game-state (wordi
 - [x] Wiring deletion red/green check: `turnClock()` forced to false gave 13 failed / 5 passed in turn-drought-clock.test.ts (production `stallBriefing` factory); restored 18 passed
 - [x] Gates before the GREEN commit: `just lint` 0; `just build` 0; `just coverage` 0: agent 4749 tests (97.30 stmts / 93.31 branches / 97.79 funcs / 99.20 lines), viewer 1784 (95.47 / 91.44 / 94.44 / 97.97), Python 3975 passed (lines 97.40 / branches 93.46 / functions 100, floor 90); `just verify-vendor` OK. `just experiments-check` reports no definition problems; it exits 1 only on runs/.../starter-decision-salience trials.jsonl 'not a ledger entry' lines, as main's checkout does.
 - [x] COMMIT GREEN: `feat(agent): turn-drought-clock-v1 counts the milestone drought in actions` (d9b4bc7e8)
-- [x] Pin the pending experiment's source to the GREEN commit
+- [x] Pin the pending experiment's source to the GREEN commit (1fc816088)
+- [x] `just test` at 1fc816088: 0 (agent 4749, viewer 1784, Python 3975); `just pages-check` on the explainer prints nothing
+- [ ] Multi-model review and landing (coordinator)
 
 ## Session Log
 

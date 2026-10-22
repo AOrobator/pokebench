@@ -4,7 +4,7 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, type FeatureSet } from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false,"leader-loss-comparison-v1":false};
 import type { GameStateSnapshot } from "./game-state.js";
 import { playGameTools } from "./play-wiring.js";
 import { TRAINING_HEADER, TrainingBlock } from "./training-block.js";
@@ -157,5 +157,26 @@ describe("production wiring of the training block",()=>{
   const on=await run({"leader-attempt-ledger-v1":true});
   expect(on).toEqual(["Screen: overworld",[TRAINING_HEADER,...LEADER].join("\n")]);
   expect(await run({})).toEqual(["Screen: overworld"]);
+ });
+});
+
+
+describe("leader-loss-comparison-v1",()=>{
+ it("compares unchanged EXP and levels at the last observed loss without inventing moves",()=>{
+  const text=fed(only({"leader-loss-comparison-v1":true})).block(at(GYM_FIELD))??"";
+  expect(text).toContain("Last observed loss to GYM LEADER ROXANNE");
+  expect(text).toContain("levels: unchanged");
+  expect(text).toContain("EXP: unchanged");
+  expect(text).toContain("moves: unknown");
+  expect(text).not.toMatch(/must|should|recommend|train before|cannot rematch/i);
+ });
+ it("reports EXP changes and unreadable current party separately",()=>{
+  const block=fed(only({"leader-loss-comparison-v1":true}));
+  const s=at(GYM_FIELD);
+  expect(block.block({...s,party:s.party.map((m,i)=>i===0?{...m,experience:2300}:m)})).toContain("EXP: changed");
+  expect(block.block({...s,party:[]})).toContain("levels: unknown");
+ });
+ it("OFF keeps the prior leader ledger byte identical",()=>{
+  expect(fed(only({"leader-attempt-ledger-v1":true})).block(at(GYM_FIELD))).toBe([TRAINING_HEADER,...LEADER].join("\n"));
  });
 });

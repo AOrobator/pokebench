@@ -76,3 +76,11 @@ agent exception "emulator or game server crash"; the emulator was fine.
 - Mounted app test in `packages/viewer/src/app.test.ts`: schema-parsed heal-trip loop_guard through the real stream, hidden before its replay time, Activity History row with label and message, no timeline mark, click selects the row and the inspector shows kind and both evidence ids.
 - Guard deletion `guard-3-mounted-timeline-filter`: removing the viewer's held-drought timeline filter fails it (a mark appears); restored → passes.
 - Gates on 7c3fb556b: `just lint` clean; `just coverage` agent 4425 (97.39 / 93.29 / 97.98), viewer 1669 (95.45 / 91.33 / 94.35), Python 3889 passed. Two earlier coverage runs timed out once in `experiment-cli.test.ts` "pins the agent and env sources" (5 s limit, machine load 36–39); it passes alone (11/11) and in the third full run. Unrelated to this diff.
+
+## Landing
+
+- The operator, 2026-10-22 1:12 AM ET (project chat): "land now" — no round 3; landed on round-2 Claude LGTM plus the mounted test that answers the GPT/fallback evidence gap (that test itself not re-reviewed).
+- Landing board slot 1; `git merge --ff-only ca925fd1c` onto main (base bdab890da unchanged). MERGE: ca925fd1c.
+- `just test` on main: agent 4425, viewer 1669, Python 3889 passed.
+- `just viewer-main`: 8790 at ca925fd1c, 3 live runs kept and listed live with no problem (d951 lane B bundle, 83d7 lane A control, 557c GLM).
+- Live proof still open: the next bundle run that reaches a drought during a heal trip should record the hold and keep going instead of ending `crash`.

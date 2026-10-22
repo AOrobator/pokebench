@@ -1,4 +1,5 @@
 """d951 seq17459 native evolution owner despite lingering gMain.inBattle."""
+
 import json
 from pathlib import Path
 

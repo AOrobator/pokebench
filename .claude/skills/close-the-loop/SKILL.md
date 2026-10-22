@@ -9,6 +9,8 @@ description: Prove a PokeBench change works where the operator will use it befor
 
 A subagent's report is a claim, not proof. Check its evidence yourself (open the screenshot, rerun the command, read the output) before repeating it.
 
+All browser and screenshot proof follows [viewer-e2e's desktop-focus boundary](../viewer-e2e/SKILL.md#preserve-desktop-focus): use an agent-owned headless browser or documented focus-preserving context. "Open" a page or screenshot below means inspect it through background browser/image tools, not activate an application or tab. Do not use global mouse/keyboard input or foreground the operator's browser to satisfy these gates. If background browser control is unavailable, leave the affected check pending and report it; do not claim browser proof from an HTTP or mounted-DOM substitute. Relay this rule to subagents.
+
 ## Pick the proof by the surface
 
 | Change | Proof required before "done" | Never enough on its own |
@@ -25,8 +27,8 @@ A subagent's report is a claim, not proof. Check its evidence yourself (open the
 ## Viewer and page proof
 
 1. Build what you will serve. For a branch, serve the built viewer on a scratch port against a scratch copy of a few run dirs. **Never start the viewer CLI against `~/dev/pokebench/runs`** except through `just viewer-main`. Every viewer CLI launch also starts the experiment queue runner on the runs root it serves, so the scratch copy must leave out `experiments/` approvals and ledgers. Stop the scratch server when done.
-2. Open the page in the browser tools. Click each changed control with real input, both pointer and keyboard where the control supports it. Confirm the outcome you claimed, for example that the filter removed the runs, the plate shows the lane, or the card expands.
-3. Take screenshots at 1280×900, 1440×900 and 375×812, with the legends and details in their default state and again opened. Open every image and check it: no text wrapping into a sliver, no column squeezed to a letter, no overflow past its card, nothing cut off, and the mobile header short enough that the chart is on the first screen.
+2. Open the page in a background browser context under viewer-e2e's desktop-focus boundary. Click each changed control with context-scoped pointer and keyboard input where the control supports it. Confirm the outcome you claimed, for example that the filter removed the runs, the plate shows the lane, or the card expands.
+3. Take context-scoped screenshots at 1280×900, 1440×900 and 375×812, with the legends and details in their default state and again opened. Inspect every image with the image-reading tool: no text wrapping into a sliver, no column squeezed to a letter, no overflow past its card, nothing cut off, and the mobile header short enough that the chart is on the first screen. Do not resize or foreground the operator's window for these captures.
 4. Put screenshots under the 8791 pages root (for example `runs/mockups/<slug>/shots/`) and link them as `http://127.0.0.1:8791/...` after checking each returns 200. Never use `SendUserFile` or `/mnt/project-files` for pages or screenshots.
 
 ## Rehearse runners and schedules on fake data

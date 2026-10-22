@@ -1,4 +1,4 @@
-"""window-escape-route-v1: the state carries the whole current map for navigate_to; the readout keeps its local map."""
+"""window-escape-route-v1: the state carries the whole map; the readout keeps its local map."""
 
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render

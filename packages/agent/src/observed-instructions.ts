@@ -17,7 +17,9 @@ const identified=(page:Dialogue["pages"][number])=>page.speaker_source==="name_p
 
 export class ObservedInstructions {
  private readonly policy:MilestoneMemory|null;
- constructor(private readonly allField=false,trim=false){this.policy=trim?new MilestoneMemory():null;}
+ // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false){this.policy=trim?new MilestoneMemory():null;}
+ private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
  retention():MemoryRetention|null{return this.policy?.select(this.archive())??null;}
  private run:string|null=null;
@@ -79,7 +81,7 @@ export class ObservedInstructions {
   const retention=this.retention();
   if(retention!==null){
    const selected=new Set(retention.kept.map(e=>e.result_event));
-   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,p.map,p.map_id,p.state_seq])})),current:this.current};
+   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq])})),current:this.current};
    return "OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n"+quote(payload);
   }
   const out=[
@@ -89,7 +91,7 @@ export class ObservedInstructions {
   ];
   for(const e of this.episodes.values()){
    out.push(`  - dialogue_events: ${quote(e.dialogue_events)}`,`    delivered_result: ${String(e.result_event)}`,`    turn: ${String(e.turn)}`,"    pages:");
-   for(const p of e.pages)out.push(`      - speaker: ${quote(p.speaker)}`,`        speaker_source: ${quote(p.speaker_source)}`,`        text: ${quote(p.text)}`,`        map: ${quote(p.map)}`,`        map_id: ${quote(p.map_id)}`,`        state_event: ${quote(p.state_seq)}`);
+   for(const p of e.pages)out.push(`      - speaker: ${quote(p.speaker)}`,`        speaker_source: ${quote(p.speaker_source)}`,`        text: ${quote(p.text)}`,`        map: ${quote(this.mapName(p))}`,`        map_id: ${quote(p.map_id)}`,`        state_event: ${quote(p.state_seq)}`);
   }
   out.push("observed_progress:",`  current: ${quote(this.current)}`,`  observed_locations: ${quote([...this.visits.values()])}`);
   return out.join("\n");
@@ -99,7 +101,7 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"]);
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"]);
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{

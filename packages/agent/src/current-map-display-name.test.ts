@@ -11,6 +11,9 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {withNavigation} from "./navigation.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
+import {observedInstructions} from "./observed-instructions.js";
+import {checkEvent,type RunEvent} from "./events.js";
+import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import type {CheckedPressTool} from "./game-tools.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 
@@ -42,7 +45,7 @@ describe("current-map-display-name-v1 at 47c3 seq 4776",()=>{
   expect(await refusal({...BASE,[ID]:true},STATE)).toBe("Current map: PROF. BIRCH'S HOUSE 2F (map 1/3). Position: (1,2). No input was sent.");
  });
  it("ON without a displayed name keeps the map-table name, and without either says so",async()=>{
-  const {location_display:_dropped,...bare}=STATE;
+  const bare=Object.fromEntries(Object.entries(STATE).filter(([key])=>key!=="location_display")) as GameStateSnapshot;
   expect(await refusal({...BASE,[ID]:true},bare)).toBe(RECORDED_LINE);
   expect(await refusal({...BASE,[ID]:true},{...bare,location:null})).toBe("Current map: name unavailable (map 1/3). Position: (1,2). No input was sent.");
  });
@@ -51,11 +54,38 @@ describe("current-map-display-name-v1 at 47c3 seq 4776",()=>{
 describe("registry and presets",()=>{
  it("is a default-off switch that needs the current-map feedback and says what OFF does",()=>{
   expect(featureInfo(ID)).toMatchObject({switchable:true,needs:"semantic-current-map-feedback-v1",group:"observation"});
-  expect(featureInfo(ID).description).toContain(" Off: the map-table name (LITTLEROOT TOWN MAYS HOUSE 2F).");
+  expect(featureInfo(ID).description).toContain(" Off: the map-table name (LITTLEROOT TOWN MAYS HOUSE 2F) in both places.");
   expect(FEATURES.filter(f=>f.id===ID)).toHaveLength(1);
-  const {[ID]:_omitted,...older}=ALL_ON;
+  const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
   expect(dependencyProblems({...ALL_ON,[ID]:true,"semantic-current-map-feedback-v1":false})).toContain(`${ID} needs semantic-current-map-feedback-v1`);
+ });
+});
+
+describe("current-map-display-name-v1 in the observed instruction memory (47c3 seq 4777 printed the map-table name five times)",()=>{
+ // MOM's page in PROF. BIRCH'S HOUSE 2F, recorded as dialogue auto-advance records it, then its delivered result.
+ const events:RunEvent[]=[
+  checkEvent({v:1,run:"r",seq:1,t:"2026-10-22T02:20:00.000-04:00",type:"dialogue_auto_advance",turn:66,tool_call_id:"pc",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:5,map:"LITTLEROOT TOWN MAYS HOUSE 2F",map_display:"PROF. BIRCH'S HOUSE 2F",map_id:[1,3],position:{x:5,y:2},speaker:"MAY",speaker_source:"name_prefix",text:"MAY: Oh, hi!"}],stop:"field_free",detail:"d",duration_ms:1}),
+  checkEvent({v:1,run:"r",seq:2,t:"2026-10-22T02:20:00.000-04:00",type:"tool_result",turn:66,id:"pc",name:"press",is_error:false,duration_ms:1,text:"Location: PROF. BIRCH'S HOUSE 2F",frames:[]}),
+ ];
+ const delivered=async(features:FeatureSet):Promise<string>=>{
+  const subs:((e:RunEvent)=>void)[]=[];let sent="";
+  const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:()=>({seq:1,turn:1})} as never,(m:AgentMessage[])=>Promise.resolve(m));
+  for(const e of events)for(const s of subs)s(e);
+  const out=await transform([]);
+  const last=out.at(-1);if(last!==undefined&&"content" in last&&typeof last.content==="string")sent=last.content;
+  return sent;
+ };
+ const memory:FeatureSet={...BASE,"observed-instructions-v1":true};
+ it("OFF: the map-table name",async()=>{
+  const text=await delivered({...memory,[ID]:false});
+  expect(text).toContain('map: "LITTLEROOT TOWN MAYS HOUSE 2F"');
+  expect(text).not.toContain('map: "PROF. BIRCH\'S HOUSE 2F"');
+ });
+ it("ON: the displayed name the readout showed",async()=>{
+  const text=await delivered({...memory,[ID]:true});
+  expect(text).toContain('map: "PROF. BIRCH\'S HOUSE 2F"');
+  expect(text).not.toContain("MAYS HOUSE");
  });
 });

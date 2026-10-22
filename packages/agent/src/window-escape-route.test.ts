@@ -68,7 +68,7 @@ describe("window-escape-route-v1 registry",()=>{
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...RUN,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv({...RUN,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  const {[ID]:_omitted,...older}=RUN;
+  const older=Object.fromEntries(Object.entries(RUN).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(playHarnessFeatures({...RUN,[ID]:true},null)).toContain(ID);
   expect(playHarnessFeatures({...RUN,[ID]:false},null)).not.toContain(ID);
@@ -98,7 +98,7 @@ describe("window-escape-route-v1 at f3b2's ROUTE101 ledge pocket (seq 3216)",()=
  });
  it("ON: repeated calls reach the north edge, (9,0)",async()=>{
   let state=at({x:7,y:7},true);let calls=0;
-  let last={status:"",end:state.position as {x:number;y:number}|null};
+  let last:{status:string;end:{x:number;y:number}|null}={status:"",end:state.position};
   while(calls<10){
    const r=await navigate({...RUN,[ID]:true},state,{x:9,y:0},true);calls++;last=r;
    if(r.end===null)throw new Error("lost position");

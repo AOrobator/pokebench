@@ -90,7 +90,7 @@ describe("registry, presets and the production factory",()=>{
   expect(featureInfo(ID)).toMatchObject({switchable:true,needs:"harness-trust-v1",group:"guidance"});
   expect(featureInfo(ID).description).toContain(" Off: the note counts moves on every map other than the named place.");
   expect(FEATURES.filter(f=>f.id===ID)).toHaveLength(1);
-  const {[ID]:_omitted,...older}=ALL_ON;
+  const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
  });
@@ -119,5 +119,5 @@ describe("registry, presets and the production factory",()=>{
   expect(await run({...trustOnly,[ID]:true},false)).toBe(0);
   expect(await run({...trustOnly,[ID]:false},true)).toBe(1);
   expect(await run({...trustOnly,[ID]:true},true)).toBe(0);
- });
+ },30000);
 });

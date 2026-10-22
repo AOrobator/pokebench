@@ -43,9 +43,9 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 
 **M4 — Explainers, recipes, experiments, gates, review, landing**
 - [x] Pending experiments (experiments/<id>.json, unqueued, source commit ab94f79cd until the landing SHA) and readiness entries
-- [ ] Explainers (3), FEATURE_EXPLAINERS
+- [x] Explainers (3, themed, pages-check clean, headless desktop/phone screenshots), FEATURE_EXPLAINERS, Reports copies under runs/reports/run-analysis/2026-10-22_<id>/
 - [x] Bundle arm on in bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h (frontier-report-fixes-bundle.test.ts); 4 older recipe tests given the three ids
-- [ ] Gates: lint, build, coverage
+- [x] Gates: lint 0, build 0, coverage 0 — agent 4763 tests (97.3 stmts / 93.32 branches / 97.79 funcs / 99.2 lines), viewer 1787 (95.48 / 91.45 / 94.44 / 97.97), Python 3978 passed, 96% total
 - [ ] Review: Claude, GPT, fallback
 - [ ] Land via board, viewer restart, live check
 
@@ -54,5 +54,9 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 - 2026-10-22 3:50 PM: registry entries for the three switches added with the RED tests (registry-tail test indexes fixed in GREEN). Fixtures: test-support/window-escape-f3b2.json, test-support/current-map-display-47c3.json.
 
 ## Surprises
+
+- Explainer pass found H7's "map 1/3 is two houses" thought predates result 4776 and cites the OBSERVED INSTRUCTION MEMORY block, which printed MAYS HOUSE 2F five times; current-map-display-name-v1 now also renames that block's map column (tests in current-map-display-name.test.ts).
+- window-escape-route-v1's description wrongly said out-of-window goals were unchanged; fixed to say only goals with no whole-map route are refused as before.
+- Python and TS registry-tail tests shift with each appended server switch (13 Python files, SERVER_FEATURES count 78).
 
 ## Multi-Model Review Log

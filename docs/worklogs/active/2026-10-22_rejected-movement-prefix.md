@@ -69,3 +69,12 @@ Tests at the press-tool boundary, a pinned-pi delivery test, replay against reco
 Principles self-review: 0 FAIL (runs/reviews/rejected-movement-prefix/principles.md). Gates on the synced tip: just test 0 (agent 4532, viewer 1699, Python 3961).
 - Claude CLI (~/.claude-review, plan mode): VERDICT: LGTM. Follow-ups only (receipt lost if a mid-walk state read throws; no abort/slope tests).
 - Grok (cursor-grok-4.5-high) and GPT (cursor gpt-5.6-sol-xhigh): Cursor "You're out of usage" (ActionRequiredError), no review. GPT lane switched to isolated Codex CLI (standing-authorized). Grok lane BLOCKED: Cursor is its only harness; no self-merge without operator decision.
+
+### Round 2 (frozen 540cb4e02..02656a5ea, packet SHA-256 15f1f5b4f87c29ea194f17c300c4ada90fd3512c601bbc776170f65344204521)
+
+- Claude CLI on the round-2 delta (explainer layout fix, worklog): VERDICT: LGTM.
+- GPT lane via isolated Codex CLI (gpt-5.6-sol, xhigh; config default gpt-6.1-sol is refused for this ChatGPT account): VERDICT: BLOCKING, two findings, both accepted as Fix:
+  1. experiment source.commit pinned the RED commit (no implementation). Repinned to GREEN 8d09b78f1 (has the switch, requestedStep and the entry).
+  2. OFF parity asserted only POSTs and a substring. The test now deep-compares the whole result, every request and every hook call against the press tool with no prefix rules, for the rejection and the one-step cut, plus exact-text goldens. Mutation (prefix branch forced on) turns it red; restored green.
+  Follow-up (not this branch): receipt lost if a state read throws mid-walk (also noted by Claude).
+- Grok (cursor-grok-4.5-high): retried, still "You're out of usage". Lane blocked.

@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it,vi} from "vitest";
 import {IN_GAME,NAME_CONFIRMED} from "../test-support/events.js";
-import {pressTool} from "./game-tools.js";
+import {ALL_TOOL_SWITCHES,pressTool,type ToolSwitches} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {requestedStep,type PrefixRules} from "./navigation.js";
 import {flagFeatures} from "./play-preset.js";
@@ -142,12 +142,23 @@ describe("rejected-movement-prefix-v1 at the press boundary",()=>{
   await press(g,hooks(),features({"rejected-movement-step-v1":true})).execute("model",{buttons:["UP","UP","UP"]});
   expect(g.posts).toHaveLength(3);
  });
- it("OFF keeps the original rejection and the one-step cut exactly",async()=>{
-  const run=async(f:Record<string,boolean>)=>{const g=game(field()),h=hooks();const result=await press(g,h,features(f)).execute("model",{buttons:["UP","UP"]});return {content:text(result),posts:g.posts,hooks:h.beforePress.mock.calls};};
-  const refused=await run({"rejected-movement-prefix-v1":false});
-  expect(refused.posts).toEqual([]);expect(refused.content).toContain("Navigation tool-use guard: no input was sent");
-  const step=await run({"rejected-movement-prefix-v1":false,"rejected-movement-step-v1":true});
-  expect(step.posts).toEqual([{buttons:["UP"],hold_frames:10,release_frames:8}]);expect(step.content).toContain("Movement batch limited to one direction press");
+ it("OFF keeps the original rejection and the one-step cut exactly: whole result, every request and every hook call",async()=>{
+  const run=async(switches:ToolSwitches)=>{
+   const g=game(field()),before=vi.fn(),after=vi.fn(()=>Promise.resolve());
+   const result=await pressTool("http://game",{beforePress:before,afterPress:after},g.fetchFn,clock,switches).execute("model",{buttons:["UP","UP"]});
+   return {result,requests:g.fetchFn.mock.calls.map(([u,i])=>[urlOf(u),i?.method??"GET",typeof i?.body==="string"?i.body:null]),before:before.mock.calls,after:after.mock.calls.length};
+  };
+  for(const step of [false,true]){
+   const f=features({"rejected-movement-prefix-v1":false,"rejected-movement-step-v1":step});
+   const off=await run(toolSwitches(f));
+   // The press tool as it was before this switch existed: the same switches with no prefix rules at all.
+   const previous:ToolSwitches=Object.fromEntries(Object.entries(toolSwitches(f)).filter(([k])=>k!=="rejectedMovementPrefix")) as unknown as ToolSwitches;
+   expect("rejectedMovementPrefix" in previous).toBe(false);
+   expect(off).toEqual(await run(previous));
+   expect(off).toEqual(await run({...ALL_TOOL_SWITCHES,...previous}));
+   if(step){expect(off.requests.filter(r=>r[1]==="POST")).toEqual([["http://game/action","POST",JSON.stringify({buttons:["UP"],hold_frames:10,release_frames:8})]]);expect(text(off.result)).toContain(`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:["UP","UP"],submitted:["UP"],dropped:["UP"]})}`);}
+   else{expect(off.requests.filter(r=>r[1]==="POST")).toEqual([]);expect(off.before).toEqual([]);expect(text(off.result).startsWith(`Navigation tool-use guard: no input was sent. Use an available navigation tool with a target you choose for walking. Single direction presses remain available for facing or crossing an exit. ${JSON.stringify({requested:["UP","UP"],submitted:[],map_id:[0,16],position:{x:3,y:6}})}`)).toBe(true);}
+  }
  });
  it("leaves checked navigation, single presses, mixed batches and a disabled guard alone",async()=>{
   for(const [buttons,f] of [[["UP","A"],{}],[["UP"],{}],[["UP","UP"],{"navigation-tool-use-guard-v1":false}]] as const){

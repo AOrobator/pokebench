@@ -575,6 +575,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "factual-healing-guidance-v1":"factual-healing-guidance-v1.html",
  "coherent-healing-feedback-v1":"coherent-healing-feedback-v1.html",
  "explorer-family-guidance-v1":"explorer-family-guidance-v1.html",
+ "rejected-movement-prefix-v1":"rejected-movement-prefix-v1.html",
  "mart-stock-readout-v1":"mart-stock-readout-v1.html",
  "exp-next-level-v1":"exp-next-level-v1.html",
  "pokedex-own-v1":"pokedex-own-v1.html",

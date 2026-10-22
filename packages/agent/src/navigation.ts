@@ -689,6 +689,36 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  }
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation};
 }
+// rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
+export interface PrefixRules {readonly ledges:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
+export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean}|{readonly ok:false;readonly reason:string};
+// rejected-movement-prefix-v1: one direction of a model's walking batch is valid when navigate_to's own planner would take
+// exactly that press to its landing tile (a ledge hop or slope slide included) and the landing is not a coordinate script
+// whose condition matches now. A refusal names the observable reason.
+export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:PrefixRules):RequestedStep {
+ const state=rules.fieldMoveGates?gatedState(raw):raw,geometry=localGeometry(state),from=state.position;
+ if(geometry===null||from===null||!ready(state))return {ok:false,reason:"the field is not free to walk"};
+ const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return {ok:false,reason:`${direction} is not a direction`};
+ const next={x:from.x+delta[1],y:from.y+delta[2]},tile=geometry.tile(next),occupied=(p:Point):boolean=>geometry.objects.some(o=>samePoint(o,p));
+ if(tile===undefined)return {ok:false,reason:`${at(next)} is outside the known map`};
+ if(occupied(next))return {ok:false,reason:`${at(next)} has a person or object on it`};
+ const triggers=matchingTriggers(state);
+ const options:NavigationOptions={mode:"local",ledges:rules.ledges,oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
+ const landing=routeTiles(state,[direction],options)?.at(-1);
+ const path=landing===undefined?null:planNavigation(state,landing,options);
+ if(landing!==undefined&&path?.length===1&&path[0]===direction){
+  const arrived=walked(state,[direction],options)?.elevation??geometry.elevation;
+  if(triggerAt(triggers,landing,arrived)!==undefined)return {ok:false,reason:`${at(landing)} is a script tile whose condition matches now; stepping on it runs a script, so press ${direction} on its own to step on it on purpose`};
+  return {ok:true,landing,warp:geometry.warps.some(w=>samePoint(w,landing))};
+ }
+ const arrow=LEDGES.get(tile.behavior);
+ if(arrow!==undefined)return {ok:false,reason:arrow===direction?`the ledge at ${at(next)} has no free landing tile`:`${at(next)} is a ledge; it can be hopped only going ${arrow}`};
+ if(WATER.has(tile.behavior))return {ok:false,reason:`${at(next)} is water`};
+ if(tile.collision!==0)return {ok:false,reason:`${at(next)} is a wall or other solid tile`};
+ if(rules.oneWay&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(from),direction)))return {ok:false,reason:`a one-way edge blocks moving ${direction} from ${at(from)} to ${at(next)}`};
+ if((rules.elevation==="legacy"?LEGACY_RULE:GAME_RULE).mismatch(geometry.elevation,tile.elevation))return {ok:false,reason:`${at(next)} is at another height than where you stand`};
+ return {ok:false,reason:`navigate_to's rules do not walk ${direction} onto ${at(next)}`};
+}
 // trainer-sight-check-v1: asks the game server which planned tiles an unbeaten trainer can see and records the check.
 // Returns the refusal text, or null to walk (clear, confirmed, or a check the server could not make).
 // answer: the server's reply already fetched for story-battle-heal-gate-v1 (one request serves both); gateConfirmed: the

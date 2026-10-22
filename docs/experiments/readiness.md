@@ -357,3 +357,9 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 ## 2026-10-22: early talk
 
 `auto-talk-field-only-v1`, `auto-talk-v3` and `untalked-people-header-v1` are pending, default OFF and unapproved (worklog `docs/worklogs/active/2026-10-22_early-talk.md`). Activations: ROUTE_101 (field-only, first wild battles) and BIRCH_STARTER_HANDOFF_COMPLETE (v3 and the header, where the find-MAY search starts); primary: ROUTE_103. Recent bundle and control runs reach the starter handoff routinely, but no 3-of-4 readiness receipt is claimed for these pins. Unit and factory tests verify mechanics only; no measured runs launched.
+
+## rejected-movement-prefix-v1 (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `rejected-movement-prefix-v1` | `PLAYER_NAME_CONFIRMED` (the guard can intercept a walking batch from the truck on) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `navigation-tool-use-guard-v1` and `rejected-movement-step-v1` ON. Evidence: 1fe0 seq 8033/8041, 108 one-tile cuts, 53 under Route 101's south ledges. No measured benefit claimed. |

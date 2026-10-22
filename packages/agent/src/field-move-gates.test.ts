@@ -83,8 +83,8 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"exit-reachability-v1",switchable:true,title:"FIELD MOVE GATES"});
   expect(featureInfo(ID).description).toContain(" Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before");
   expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
-  expect(SWITCHABLE_FEATURES.at(-66)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-66)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-67)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-19)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-45)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

@@ -16,6 +16,10 @@ function server(initial=field,completed?:number){
  const fetchFn=vi.fn<typeof fetch>((input,init)=>{
  const url=urlOf(input);let body:unknown={status:"success"};
  if(init?.method==="POST"&&url.endsWith("/pokebench/stride")){plan=JSON.parse(typeof init.body==="string"?init.body:"null") as StridePlan;state={...state,position:plan.path[(completed??plan.path.length)-1]??plan.origin};}
+ if(init?.method==="POST"&&url.endsWith("/action")){
+  const action=JSON.parse(typeof init.body==="string"?init.body:"null") as {buttons:string[]};
+  for(const direction of action.buttons)if(state.position!==null)state={...state,position:{x:state.position.x+(direction==="RIGHT"?1:direction==="LEFT"?-1:0),y:state.position.y+(direction==="DOWN"?1:direction==="UP"?-1:0)}};
+ }
  if(url.endsWith("/pokebench/state"))body=state;
  else if(url.endsWith("/pokebench/observation"))body={state,state_text:"field",screenshot_base64:png.toString("base64")};
  else if(url.endsWith("/queue_status"))body={queue_empty:true};
@@ -58,5 +62,24 @@ it("registers default OFF with an unqueued single-feature experiment",async()=>{
  const {"rejected-movement-stride-v1":_enabled,...old}=ALL_ON;expect(_enabled).toBe(true);expect(normalizeFeatures(old)["rejected-movement-stride-v1"]).toBe(false);
  expect(featureInfo("rejected-movement-stride-v1").needs).toBe("safe-navigation-strides-v1");
  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/rejected-movement-stride-v1.json",import.meta.url),"utf8")) as unknown);expect(entry.queuePosition).toBeUndefined();
- const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(id=>id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&arms.incumbent.features[id]!==arms.candidate.features[id])).toEqual(["rejected-movement-stride-v1"]);
+ const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(id=>id!=="rejected-movement-prefix-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&arms.incumbent.features[id]!==arms.candidate.features[id])).toEqual(["rejected-movement-stride-v1"]);
+});
+
+
+it.each([
+ {prefix:true,stride:true,step:true,owner:"prefix"},
+ {prefix:false,stride:true,step:true,owner:"stride"},
+ {prefix:false,stride:false,step:true,owner:"step"},
+ {prefix:false,stride:false,step:false,owner:"guard"},
+])("production combined switches select $owner ownership",async({prefix,stride,step,owner})=>{
+ const s=server();const switches=toolSwitches({...features(),"rejected-movement-prefix-v1":prefix,"rejected-movement-stride-v1":stride,"rejected-movement-step-v1":step,"walkable-floor-v1":true});
+ expect(switches.rejectedMovementPrefix!==undefined).toBe(prefix);expect(switches.rejectedMovementStride===true).toBe(stride);
+ const out=await pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},switches).execute("model",{buttons:["RIGHT","RIGHT"]});
+ if(owner==="prefix"){
+  expect(s.posts()).toMatchObject([{url:"http://game/action",body:{buttons:["RIGHT"]}},{url:"http://game/action",body:{buttons:["RIGHT"]}}]);expect(text(out)).toContain("Requested movement: walked 2 of 2 directions");expect(text(out)).not.toContain("Checked requested movement");expect(out.details).toMatchObject({state:{position:{x:2,y:0}}});
+ }else if(owner==="stride"){
+  expect(s.posts()).toMatchObject([{url:"http://game/pokebench/stride",body:{path:[{x:1,y:0},{x:2,y:0}]}}]);expect(text(out)).toContain("Checked requested movement");
+ }else if(owner==="step"){
+  expect(s.posts()).toMatchObject([{url:"http://game/action",body:{buttons:["RIGHT"]}}]);expect(text(out)).toContain("Movement batch limited to one direction press");
+ }else{expect(s.posts()).toEqual([]);expect(text(out)).toContain("Navigation tool-use guard: no input was sent");}
 });

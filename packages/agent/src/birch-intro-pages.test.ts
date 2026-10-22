@@ -10,8 +10,8 @@ const ID = "birch-intro-pages-v1";
 
 describe("birch-intro-pages-v1", () => {
   it("is appended last as a default-off observation", () => {
-    expect(SWITCHABLE_FEATURES.at(-28)).toBe(ID);
-    expect(FEATURES.filter(feature => feature.switchable).at(-28)?.id).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-29)).toBe(ID);
+    expect(FEATURES.filter(feature => feature.switchable).at(-29)?.id).toBe(ID);
     expect(SERVER_FEATURES.at(-7)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-14)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "observation", switchable: true, title: "BIRCH INTRO PAGES", needs: null });

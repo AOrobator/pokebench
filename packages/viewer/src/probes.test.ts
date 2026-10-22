@@ -185,3 +185,18 @@ describe("one probe", () => {
     expect((await readProbe(runs, "p")).cases).toEqual(first.cases);
   });
 });
+
+
+describe("synthetic probe provenance", () => {
+  it("keeps explicit synthetic fixtures separate from missing historical recordings", async () => {
+    const runs = root();
+    probeDir(runs, "probes/synthetic", { manifest: { ...MANIFEST, id: "synthetic", cases: [
+      { id: "constructed", run: "synthetic-fixtures", turn: 1, split: "heldout", sourceKind: "synthetic" },
+      { id: "missing", run: "missing-real-run", turn: 1, split: "heldout" },
+    ] } });
+    const result = await readProbe(runs, "synthetic");
+    expect(result.cases[0]).toEqual({ id: "constructed", run: "synthetic-fixtures", turn: 1, split: "heldout", title: "constructed", sourceKind: "synthetic", at: null, recorded: null, frame: null });
+    expect(result.problems).toEqual(["case missing: source run missing-real-run has no events.jsonl"]);
+    expect(parseProbe(result)).toEqual(result);
+  });
+});

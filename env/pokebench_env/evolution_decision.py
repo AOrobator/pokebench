@@ -14,6 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pokebench_env.battle_text import (
     AUTO_SCROLL,
+    BATTLE_TEXT,
+    BATTLE_TEXT_SIZE,
     PRINTERS,
     TEXT_FLAGS,
     WAIT_STATES,
@@ -25,16 +27,22 @@ from pokebench_env.menu_pokemon_lifecycle import read_pokemon_lifecycle_menu
 from pokebench_env.ui_state import ActiveUi
 
 SWITCH = "evolution-decision-v1"
+RESULT_STATES = frozenset({15, 20, 21})
+TASK_BIT_LEARN_MOVE = 1 << 7
 
 
-def result_message_waiting(read: ReadMemory) -> bool:
+def result_message_waiting(read: ReadMemory, *, move_result: bool = False) -> bool:
     # Task_EvolutionScene EVOSTATE_TRY_LEARN_MOVE waits on printer 0 after
     # BattlePutTextOnWindow(gStringVar4, B_WIN_MSG). TextPrinterWait/Scroll in
     # text.c consumes JOY_NEW(A_BUTTON | B_BUTTON). gStringVar4 is 0x3E8 bytes.
+    # MVSTATE_CANCEL and EVOSTATE_LEARNED_MOVE instead print gDisplayedStringBattle.
     printer = read(PRINTERS, 0x24)
     pointer = int.from_bytes(printer[:4], "little")
     return (
-        0x02021FC4 <= pointer < 0x02021FC4 + 0x3E8
+        (
+            0x02021FC4 <= pointer < 0x02021FC4 + 0x3E8
+            or (move_result and BATTLE_TEXT <= pointer < BATTLE_TEXT + BATTLE_TEXT_SIZE)
+        )
         and printer[4] == 0
         and printer[0x1B] == 1
         and printer[0x1C] in WAIT_STATES
@@ -60,6 +68,23 @@ def decision_ui(ui: ActiveUi | None, read: ReadMemory | None = None) -> ActiveUi
             controls="A or B advances the waiting move-learning text; inspect the next choice"
             if waiting
             else "Move-learning text is printing or animating; no menu choice is open",
+        )
+    details = ui.details or {}
+    flags = details.get("task_flags")
+    move_result = isinstance(flags, int) and bool(flags & TASK_BIT_LEARN_MOVE)
+    if (
+        read is not None
+        and details.get("trade_evolution") is False
+        and details.get("evolution_state") in RESULT_STATES
+        and result_message_waiting(read, move_result=move_result)
+    ):
+        message = read_battle_message(read) if move_result else None
+        return replace(
+            ui,
+            phase="evolution_result",
+            ready=True,
+            controls="A or B advances the waiting evolution result text; no menu choice is open.",
+            value=message.page if message is not None and message.diagnostic is None else ui.value,
         )
     pending = ui.phase == "evolution_cancel_window"
     return replace(
@@ -146,7 +171,11 @@ class EvolutionGate:
         if details.get("trade_evolution") is True or not isinstance(state, int):
             return buttons
         if self.decision is not None and state < 22:
-            if state == 15 and result_message_waiting(self.read):
+            flags = details.get("task_flags")
+            move_result = isinstance(flags, int) and bool(flags & TASK_BIT_LEARN_MOVE)
+            if state in RESULT_STATES and result_message_waiting(
+                self.read, move_result=move_result
+            ):
                 self.ack_pressed = not self.ack_pressed
                 return ["A"] if self.ack_pressed else []
             self.ack_pressed = False

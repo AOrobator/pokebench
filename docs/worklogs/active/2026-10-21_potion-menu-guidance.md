@@ -68,3 +68,5 @@ Bundle RED: six actual production recipe tests fail as expected on missing switc
 Focused GREEN12/12 verifies normalized presets in every phase and pinned control-base parity; original recipe title escaping retained. Global switch defaults unchanged.
 
 Bundle round1 GPT/Sol/Astra LGTM; full suite exposed three historical recipe tests that compare frozen pending incumbents to evolving recipes. Adjusted only the two new-key exclusions and Birch positional offset; original pending definitions/control bytes preserved. Final packet re-review follows. Python3960 passed, zero skips, coverage floor passes.
+
+Full viewer suite found the analogous historical open-goal incumbent comparison and drought switch-tail position; both metadata-only assertions now account for the same two appended flags. No recipe/runtime/source behavior changed after initial GREEN. These are gate maintenance findings, not additional reviewer behavioral blockers. Final cumulative confirmation includes all five historical assertions.

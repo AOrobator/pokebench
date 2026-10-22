@@ -245,7 +245,8 @@
    "delivered-place-evidence-v1": false,
    "reachable-section-alternatives-v1": false,
    "leader-loss-comparison-v1": false,
-   "npc-approach-feedback-v1": false
+   "npc-approach-feedback-v1": false,
+   "owned-battle-context-v1": false
   }
  },
  "switches": [
@@ -290,7 +291,8 @@
   "delivered-place-evidence-v1",
   "reachable-section-alternatives-v1",
   "leader-loss-comparison-v1",
-  "npc-approach-feedback-v1"
+  "npc-approach-feedback-v1",
+  "owned-battle-context-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

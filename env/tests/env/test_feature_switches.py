@@ -295,6 +295,7 @@ def test_env_list_is_validated() -> None:
             "poison-readout-v1",
             "berry-readout-v1",
             "battle-move-learn-input-v1",
+            "battle-move-learn-input-v1",
         }
     )
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()

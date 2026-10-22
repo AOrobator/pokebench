@@ -254,3 +254,7 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Historical fixture repair accidentally changed one unrelated duplicate-shape .at assertion in harness.test; restored original -2/toolResult assertion immediately. No harness behavior change. Future registry compatibility uses explicit frozen treatment-OFF helper for old receipt positions, retaining separate current registry tests.
 
 - P0 owned-battle-context integration: separate RED/GREEN packet imported; shared predicate handles verified evolution and move-learning ownership rather than stale in_battle. Native d951 archive and model-delivery regressions retained; integration/full review pending.
+
+- Final owned-context integration exposed duplicated new-only metadata/receipt entries from overlapping child append hunks; removed duplicate leader/NPC additions and restored exact registry order with no existing ID reordering. Registry bijection tests remain strict.
+- Viewer projection fixture now uses6500 synthetic heavy splits instead of6000 because the expanded current feature catalogue grew the small card metadata; the unchanged20× compression assertion remains. No projection source behavior or coverage threshold changed.
+- Agent prior9 candidate reached4597 pass/3 fail before final P0 registry append; viewer1724 pass/3 fixture-shape failures; Python3968 pass/1 expected default-OFF membership mismatch. All remaining failures corrected or being rerun; no final gate claim yet.

@@ -603,8 +603,8 @@ describe("the cycle state is the whole recorded state minus a documented list",(
 
 describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
  it("registers a default-off guard with no dependency, appended last, with an exact OFF",()=>{
-  expect(SWITCHABLE_FEATURES.at(-56)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-56)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-57)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-57)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
   // OFF is exactly the previous behavior: the copy says so, and the production wiring with the switch off builds the
   // same request and records the same events as with the switch absent from the preset.

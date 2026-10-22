@@ -570,12 +570,11 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("poison-readout-v1", "observation", "POISON READOUT", "ram-state-v1", "Names PSN as poisoned independently of status-names-v1. On the field, a living poisoned player Pokémon adds the game's sentence: If you walk around with a poisoned POKéMON, it will lose HP until it faints. No remedy or route is inferred. Off: the previous numeric or status-names-v1 party status and no poison warning."),
   on("berry-readout-v1", "observation", "BERRY READOUT", "ram-state-v1", "Visible loaded berry trees distinguish ripe berries from growing plants using the game-owned growth stage. Face the tree and press A to examine; the game retains its YES/NO harvest choice. Berry type and yield remain undisclosed until the game shows them. Medicinal berries already in the BAG quote the game item descriptions. Off: the previous sprite labels and BAG list, without berry growth or description lines."),
   on("milestone-drought-suppression-v1", "guard", "MILESTONE DROUGHT SUPPRESSION", "stall-briefing-v1", "Default off; enabled in the bundle by operator request (2026-10-22). Milestone-drought timers remain recorded as diagnostic loop_guard would_warn events in Activity History and never send a supervisor instruction, including during cutscenes. A missing milestone does not prove that the game stopped progressing: GLM 557c seq 24543 was warned while the Devon researcher cutscene had just begun. Independent of positive-supervisor-v1: no other supervisor wording changes. Map-cycle, interface-dwell, repeated-action and text-only supervisors keep their existing behavior. No new timeline marks. Off: milestone-drought interventions and diagnostic attribution follow the existing switches exactly."),
-  on("owned-battle-context-v1", "observation", "OWNED BATTLE CONTEXT", null, "Default off; bundle only. Explicit evolution and move-forget screen ownership overrides a lingering in-battle bit in battle text settlement/readiness and drought battle holds. Does not choose a move or evolution input. Off: previous battle detection, settling and hold reasons are unchanged."),
-  on("npc-approach-feedback-v1", "observation", "QUALIFIED TRAINER TEMPLATE APPROACH", null, "Default off; bundle only. A requested unloaded trainer with hide-filtered current-map template data can be approached using checked navigation, then returns without facing or pressing A. Presence and position stay unverified. Non-trainer templates remain unsupported. Off: unloaded targets retain their previous refusal."),
-  on("leader-loss-comparison-v1", "observation", "LAST LEADER LOSS COMPARISON", null, "Default off; bundle only. Compares recorded party membership, levels, EXP and moves at the last observed leader loss against now; missing evidence stays unknown. No action is selected or refused. Off: the previous training feedback is unchanged."),
   on("navigation-recovery-v1", "guard", "BOUNDED NAVIGATION RECOVERY", null, "Default off; bundle only. Two no-input navigation requests for a stale map identity warn with the qualified current map. Existing map-cycle warnings remain active across revisits. Twelve calls after delivery without verified recovery stop the run. All navigation remains available, including backtracking; no route or story objective is chosen. Off: navigation feedback and map-cycle recovery retain their previous behavior."),
   on("menu-item-guidance-v1", "guidance", "MENU ITEM GUIDANCE", null, "Default off. Gives state-owned menu controls, vertical choices and the difference between using medicine and giving a held item. Waits for input readiness and never selects for the model. Off: existing menu observations and prompt are unchanged."),
   on("factual-healing-guidance-v1", "guard", "FACTUAL HEALING GUIDANCE", null, "Default off. Replaces blanket full-HP directives with HP, battle constraints and healing options, and bypasses the full-HP encounter gate. Trainer-sight confirmation is preserved. No battle safety prediction. Off: original heal-first lines, full-HP advice and encounter gate are unchanged."),
+
+
 
 
   on("coherent-healing-feedback-v1", "guard", "COHERENT HEALING FEEDBACK", "low-hp-trainer-warning-v1", "Default off; bundle only. Replaces overlapping story, trainer, gym and heal-first messages with one factual warning when the existing verified weakness criteria hold: lead below half HP, a fainted party member, or no damaging PP. Minor damage keeps the ordinary party readout without a heal directive. Unchanged risk profiles are deduplicated. Known healing places and applicable BAG medicine are options; no route, threshold prediction or action is chosen. Off: the existing independent healing wrappers and their text are unchanged."),
@@ -587,6 +586,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("boundary-crossing-facts-v1", "guidance", "CURRENT BOUNDARY FACTS", "connection-edge-tiles-v1", "Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit. Off: unchanged already-here result without a crossing fact."),
   on("delivered-place-evidence-v1", "guidance", "DELIVERED PERSON AND PLACE EVIDENCE", "observed-instructions-v1", "Default off. Preserves exact delivered spatial dialogue with source map, turn, event and unknown speaker attribution in a compact historical evidence block. Explicit named-person and named-place statements from an unnamed speaker can use the existing map resolver, qualified as historical rather than a current presence or action instruction. Existing audited milestone retirement applies to the compact evidence. Off: existing instruction memory and named-speaker-only destination eligibility."),
   on("reachable-section-alternatives-v1", "guidance", "REACHABLE SECTION ALTERNATIVES", "exit-labels-v3", "Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent. Off: previous unreachable navigation result without departure section alternatives."),
+  on("owned-battle-context-v1", "observation", "OWNED BATTLE CONTEXT", null, "Default off; bundle only. Explicit evolution and move-forget screen ownership overrides a lingering in-battle bit in battle text settlement/readiness and drought battle holds. Does not choose a move or evolution input. Off: previous battle detection, settling and hold reasons are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -863,11 +863,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("berry-readout-v1"),
     ...when("milestone-drought-suppression-v1"),
     ...when("navigation-recovery-v1"),
-    ...when("leader-loss-comparison-v1"),
-    ...when("npc-approach-feedback-v1"),
-    ...when("owned-battle-context-v1"),
     ...when("menu-item-guidance-v1"),
     ...when("factual-healing-guidance-v1"),
+
+
 
 
     ...when("coherent-healing-feedback-v1"),
@@ -879,6 +878,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("boundary-crossing-facts-v1"),
     ...when("delivered-place-evidence-v1"),
     ...when("reachable-section-alternatives-v1"),
+    ...when("owned-battle-context-v1"),
   ];
 }
 

@@ -94,3 +94,4 @@ Conflicts only in the registry and its tail-index tests: took main's side, re-ap
 
 Six current bundle recipes (bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h) get rejected-movement-prefix-v1 false in base and appended to the bundle switches, as the potion-guidance enable did. All six already turn navigation-tool-use-guard-v1 on in the bundle arm.
 - [x] RED: packages/viewer/src/rejected-movement-prefix-bundle.test.ts, 6 failing / 0 passing
+- [x] GREEN: six recipes enable it (base false, appended to bundle switches); positional/arm-parity tests updated the same way the potion-guidance enable did (poison-berry slices, milestone-drought tail, birch tail and exclusion list, open-goal and story-battle-heal-gate arm exclusions, heal-first incumbent overrides). just test 0 (agent 4571, viewer 1709, Python 3961); just lint 0.

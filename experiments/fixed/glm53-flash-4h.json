@@ -215,7 +215,8 @@
    "berry-readout-v1": false,
    "milestone-drought-suppression-v1": false,
    "menu-item-guidance-v1": false,
-   "factual-healing-guidance-v1": false
+   "factual-healing-guidance-v1": false,
+   "rejected-movement-prefix-v1": false
   }
  },
  "switches": [
@@ -300,7 +301,8 @@
   "berry-readout-v1",
   "milestone-drought-suppression-v1",
   "menu-item-guidance-v1",
-  "factual-healing-guidance-v1"
+  "factual-healing-guidance-v1",
+  "rejected-movement-prefix-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

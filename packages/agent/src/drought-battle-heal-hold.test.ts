@@ -16,7 +16,7 @@ import type {LoopNotice} from "./loop-detection.js";
 import {loopEvidence} from "./loop/types.js";
 
 const ID="drought-battle-heal-hold-v1" as const;
-const BASE:FeatureSet={...LEGACY_ALL_ON,"coherent-battle-observation-v1":false,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false};
+const BASE:FeatureSet={...LEGACY_ALL_ON,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false};
 const MON=(hp:number)=>({species:"TORCHIC",level:9,hp,max_hp:21});
 // Recorded heal warnings: acfa's heal_first_line (seq 3857), story_battle_warning (seq 4811) and
 // heal_before_trainers_warning (seq 6838), run 8892's gym_heal_warning (seq 12979) and run 9f27's refused

@@ -8,7 +8,7 @@ import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
 // blackout-readout-v1 (bundle arm only): game-server readout switches, recorded last.
 const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"] as const;
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
   expect(SWITCHABLE_FEATURES.slice(-146,-143)).toEqual([...IDS]);

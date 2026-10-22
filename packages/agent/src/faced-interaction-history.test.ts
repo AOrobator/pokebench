@@ -20,7 +20,7 @@ const MOVED_MOM={...MOM,x:3} as const;
 const RIVAL={kind:"object",x:0,y:1,elevation:0,activation:"A",availability:"conditional",facing:"up",local_id:8,destination:null,name:"RIVAL"} as const;
 const NORTH_TRIGGER={kind:"trigger",x:4,y:1,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:"north path"} as const;
 type Target=typeof PC|typeof TV|typeof MOM|typeof MOVED_MOM|typeof RIVAL|typeof NORTH_TRIGGER;
-const features=(on:boolean,overrides:Partial<FeatureSet>={}):FeatureSet=>({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,...overrides,[ID]:on});
+const features=(on:boolean,overrides:Partial<FeatureSet>={}):FeatureSet=>({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,...overrides,[ID]:on});
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cdb1-tv",t:"2026-10-18T01:32:00.000-04:00",turn:84,seq,...body});
 const state=(seq:number,x:number,y:number,facing:string,dialogue:string|null,targets:readonly Target[])=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x,y},facing,field_controls_locked:dialogue!==null,interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue}},seq);
 

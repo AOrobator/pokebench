@@ -5,7 +5,7 @@ import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, 
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "adjacent-tiles-v1";
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers adjacent tiles as a default-off observation switch that needs the live map", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "live-map-v1", switchable: true, title: "ADJACENT TILES" });

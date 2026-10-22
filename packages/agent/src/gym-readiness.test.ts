@@ -81,7 +81,7 @@ describe("gym-readiness-readout-v1 wiring",()=>{
  const tool=(name:string,state:unknown):AgentTool=>({name,label:name,description:"",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"Location: RUSTBORO CITY GYM\nPosition: 5,19"}],details:{state}} as AgentToolResult<unknown>)});
  const recorder=()=>{const subs:((e:RunEvent)=>void)[]=[];return {subscribe:(f:(e:RunEvent)=>void)=>{subs.push(f);},emit:(e:RunEvent)=>{for(const f of subs)f(e);}};};
  it("ON annotates observe, press and navigate_to results; OFF returns the tools unchanged",async()=>{
-  const on={...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true} as FeatureSet,off={...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false} as FeatureSet;
+  const on={...ALL_ON,[ID]:true} as FeatureSet,off={...ALL_ON,[ID]:false} as FeatureSet;
   const r=recorder();
   const tools=withGymReadiness([tool("observe",BODY),tool("press",BODY),tool("navigate_to",BODY),tool("battle_action",BODY)],on,r);
   for(const e of RUN.events)r.emit((e.type==="state"?{...e,started:true,battle:{battlers:e.battlers}}:e) as unknown as RunEvent);
@@ -111,6 +111,6 @@ describe("gym-readiness-readout-v1 wiring",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(FEATURES.some(f=>f.id===ID)).toBe(true);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true},null)).toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
  });
 });

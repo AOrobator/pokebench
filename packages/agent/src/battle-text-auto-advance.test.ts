@@ -431,7 +431,7 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   expect(SWITCHABLE_FEATURES.at(-167)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-167)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-72)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ON,"dialogue-auto-advance-v1":false})).toContain(`${ID} needs dialogue-auto-advance-v1`);
   expect(dependencyProblems(ON)).toEqual([]);
@@ -444,7 +444,7 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("normalized presets list every switch in registry order, so this switch comes just before battle-message-waiting-v1, even from a preset that already names it",()=>{
   // Codex merge review round 5: a preset written before the newest switches, which already names this one.
   const newer=new Set<string>(["explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
-  const frozen=Object.fromEntries(Object.entries({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
+  const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
   expect(Object.keys(presetFeatures(preset)).slice(-167,-161)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
@@ -738,7 +738,7 @@ describe("pending-field-dialogue-v1",()=>{
   const id="pending-field-dialogue-v1";
   expect(SWITCHABLE_FEATURES.at(-60)).toBe(id);
   expect(FEATURES.filter(f=>f.switchable).at(-60)?.id).toBe(id);
-  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,[id]:true}),null).at(-1)).toBe(id);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[id]:true}),null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
@@ -798,4 +798,4 @@ it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle 
  const arms=experimentArms(pending);expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);
  expect(pending.queuePosition).toBeUndefined();
 });
-function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}
+function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}

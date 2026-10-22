@@ -49,12 +49,12 @@ describe("registry",()=>{
   expect(featureInfo(ID).description).toContain(T363_TEXT);
   expect(SWITCHABLE_FEATURES.at(-135)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-40)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);

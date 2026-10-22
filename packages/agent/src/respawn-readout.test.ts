@@ -13,19 +13,19 @@ describe("respawn-readout-v1 registry",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("If your party faints, you wake up at your house in LITTLEROOT TOWN");
   expect(SERVER_FEATURES).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true},null)).toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true,"ram-state-v1":false})).toContain(`${ID} needs ram-state-v1`);
+  expect(dependencyProblems({...ALL_ON,[ID]:true,"ram-state-v1":false})).toContain(`${ID} needs ram-state-v1`);
  });
  it("is appended last, so recorded runs keep their switch order",()=>{
   expect(SWITCHABLE_FEATURES.at(-78)).toBe(ID);
   expect(SERVER_FEATURES.at(-24)).toBe(ID);
-  const all=playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true},null);
+  const all=playHarnessFeatures({...ALL_ON,[ID]:true},null);
   expect(all.at(-1)).toBe(ID);
  });
 });

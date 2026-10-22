@@ -31,7 +31,7 @@ describe("input-cuts-v1",()=>{
   expect(playHarnessFeatures(OFF,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,title:"INPUT CUTS",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(stateOnlyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
+  expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  });
 
  it("does not quote this call's pages again, and still quotes an earlier turn",()=>{

@@ -309,7 +309,7 @@ describe("people-id-cards-v1 registration",()=>{
   expect(dependencyProblems({...OFF,"people-id-cards-v1":true})).toContain("people-id-cards-v1 needs people-ledger-v1");
   expect(playHarnessFeatures(withoutFrontierTreatments({...OFF,"battle-refusal-loop-v1":false,"people-id-cards-v1":true}),null).at(-1)).toBe("people-id-cards-v1");
   expect(playHarnessFeatures(OFF,null)).not.toContain("people-id-cards-v1");
-  expect(stateOnlyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires people-id-cards-v1 OFF");
+  expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires people-id-cards-v1 OFF");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["people-id-cards-v1"]).toBe(false);
   const preset=parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:{...OFF}});
   expect(presetFeatures(preset)["people-id-cards-v1"]).toBe(false);

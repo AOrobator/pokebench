@@ -11,7 +11,7 @@ import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js"
 const ID = "battle-triage-guidance-v1";
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
 const with_ = (features: FeatureSet, value: boolean): FeatureSet => ({ ...features,"coherent-battle-observation-v1":false, [ID]: value });
-const PLAYABLE: FeatureSet = { ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"state-only-decisions-v1": false };
+const PLAYABLE: FeatureSet = { ...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1": false };
 
 // run_start of 2026-10-16T00-34-26_qwen36-gpu1_show (7 wild battles, 0 fled, blackout at turn 768).
 const SHOW_FEATURES = ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "live-player-position-v1", "world-coordinate-grid-v1", "field-dialogue-phase-v1", "interaction-loop-detection-v1", "press-result-v1", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1", "clock-milestone-v1", "story-state-v1", "active-ui-ownership-v1", "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1", "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", "deterministic-loop-guard-v1", "contextual-interface-docs-v1", "elevation-transitions-v1", "game-evidence-priority-v1", "loop-guard-supervisor-v1", "named-warp-destinations-v1", "text-only-supervisor-v1", "character-presence-v1", "navigation-refusal-reasons-v1", "transition-press-result-v1", "stall-briefing-v1", "dialogue-auto-advance-v1"];
@@ -47,7 +47,7 @@ it("OFF reproduces the showcase run's recorded system prompt byte for byte", () 
 });
 
 it("ON appends exactly the battle and healing section; tools and results are unchanged", () => {
-  for (const base of [featuresOf(SHOW_FEATURES), with_(ALL_ON, false), { ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false, [ID]: false }]) {
+  for (const base of [featuresOf(SHOW_FEATURES), with_(ALL_ON, false), { ...ALL_ON,"battle-decision-ready-v1":false,"objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false, [ID]: false }]) {
     const off = playSystemPrompt(base, null), on = playSystemPrompt(with_(base, true), null);
     expect(on.length).toBe(off.length + BATTLE_TRIAGE_SECTION.length + 2);
     expect(on.split(`\n\n${BATTLE_TRIAGE_SECTION}`).join("")).toBe(off);
@@ -55,7 +55,7 @@ it("ON appends exactly the battle and healing section; tools and results are unc
     expect(toolSwitches(with_(base, true))).toEqual(toolSwitches(base));
     expect(objectiveSwitches(with_(base, true))).toEqual(objectiveSwitches(base));
   }
-  const plain = { ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "explorer-guidance-v1": false, "explorer-guidance-v2": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false, "dialog-button-b-v1": false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false };
+  const plain = { ...ALL_ON,"battle-decision-ready-v1":false,"harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "explorer-guidance-v1": false, "explorer-guidance-v2": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false, "dialog-button-b-v1": false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false };
   expect(playSystemPrompt(plain, null)).toBe(`${playSystemPrompt(with_(plain, false), null)}\n\n${BATTLE_TRIAGE_SECTION}`);
   expect(playSystemPrompt(ALL_ON, "RIVAL_MET")).toContain(BATTLE_TRIAGE_SECTION);
 });

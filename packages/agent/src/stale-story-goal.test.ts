@@ -79,9 +79,9 @@ describe("stale-story-goal-v1",()=>{
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-22)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,[ID2]:false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,[ID2]:false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
  });
@@ -396,12 +396,12 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
 
  it("is last, default off, and depends on v1",()=>{
   expect(SWITCHABLE_FEATURES.at(-104)).toBe(ID2);
-  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID2]:true}),null).at(-8)).toBe(ID2);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"battle-decision-ready-v1":false,[ID2]:true}),null).at(-8)).toBe(ID2);
   expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
   expect(featureInfo(ID2).description).toContain(" Off: ");
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false,[ID2]:true})).toContain(`${ID2} needs ${ID}`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false,[ID2]:true})).toContain(`${ID2} needs ${ID}`);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID2]).toBe(false);
-  expect(normalizeFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2]).toBe(false);
+  expect(normalizeFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2]).toBe(false);
  });
 
  it("OFF preserves the current invitation, while ON omits the retired goal and remains compatible with input cuts",async()=>{

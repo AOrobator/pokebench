@@ -48,10 +48,10 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
   expect(SWITCHABLE_FEATURES.at(-161)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-66)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
   // Entries leave on a story-flag change, which needs the story state (review round 1).
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -366,8 +366,8 @@ describe("leaving the ledger and never clipping",()=>{
  });
  it("the production factory is null when the switch is off",()=>{
   const recorder={subscribe:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>undefined};
-  expect(disprovedBeliefs({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
-  expect(disprovedBeliefs({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
  });
 });
 

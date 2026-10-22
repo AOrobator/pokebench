@@ -61,10 +61,10 @@ describe("registry",()=>{
   expect(featureInfo(ID).description).toContain(CITY_TEXT);
   expect(SWITCHABLE_FEATURES.at(-79)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,"heal-before-trainers-v2":true,[ID]:true}),null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true}),null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"heal-before-trainers-v2":true,[ID]:true})).toEqual([]);
+  expect(dependencyProblems({...ALL_ON,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
+  expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true})).toEqual([]);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

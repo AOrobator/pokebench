@@ -330,7 +330,7 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
   expect(playSystemPrompt(BASE,null)).not.toContain("learn_move");
   expect(playSystemPrompt(ON,null)).toBe(`${playSystemPrompt(BASE,null)}\n\n${LEARN_MOVE_SECTION}`);
   expect(LEARN_MOVE_SECTION).toBe('- learn_move: when the game asks "Delete a move to make room for …?" or "Stop learning …?", or shows the pages before them or the summary screen\'s list of moves to forget, call learn_move with forget set to one of the four moves the POKéMON knows (as the game names them) or "none". With a move, the harness answers YES, moves the summary highlight to that move checking it after each press, and presses A; with none, it answers NO to deleting a move and YES to stopping, and the POKéMON keeps its moves. It reports what the game printed and the party\'s moves afterwards. No choice is recommended. It refuses, and presses nothing, when no move-learning prompt is open or the move is not one the POKéMON knows. press still works on these prompts.');
-  const jit={...ALL_ON,"coherent-battle-observation-v1":false,"just-in-time-prompt-v1":true,"tool-prompt-docs-v1":true};
+  const jit={...ALL_ON,"just-in-time-prompt-v1":true,"tool-prompt-docs-v1":true};
   for(const scene of SCENES){
    const prompt=playSystemPrompt(jit,null,scene);
    expect(prompt).toContain(LEARN_MOVE_SECTION);

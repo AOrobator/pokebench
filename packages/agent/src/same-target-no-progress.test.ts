@@ -353,7 +353,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   const build=(on:boolean)=>{
    const notices:LoopNotice[]=[];const subs:((e:RunEvent)=>void)[]=[];
    const governor=new Governor({limits:{maxTurns:50,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-   const d=playLoopGuard({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor);
+   const d=playLoopGuard({...ALL_ON,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor);
    [at(5,8),at(4,7),battle(4,8),at(5,9)].forEach((to,i)=>{d.complete(walk(i+1,at(4,9),to));});
    return notices.map(n=>n.kind);
   };

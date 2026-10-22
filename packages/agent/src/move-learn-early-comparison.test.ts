@@ -15,7 +15,7 @@ describe("move-learn-early-comparison-v1 (the operator 2026-10-22)",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"MOVE-LEARN EARLY COMPARISON",needs:"move-learn-comparison-v1"});
   expect(featureInfo(ID).description).toContain("COMBUSKEN is trying to learn DOUBLE KICK.");
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"move-learn-comparison-v1":false})).toContain(`${ID} needs move-learn-comparison-v1`);
+  expect(dependencyProblems({...ALL_ON,"move-learn-comparison-v1":false})).toContain(`${ID} needs move-learn-comparison-v1`);
  });
  it("defaults off in presets, legacy flags and the frozen legacy all-on set",()=>{
   const off=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});

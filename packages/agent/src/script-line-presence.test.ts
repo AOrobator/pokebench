@@ -240,12 +240,12 @@ describe("script-line-presence-v1: registry",()=>{
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-70)).toBe("script-line-presence-v1");
-  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);
   expect(normalizeFeatures({...older,"script-line-presence-v1":true})["script-line-presence-v1"]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["script-line-presence-v1"]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
  });
 });
 

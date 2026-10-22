@@ -77,7 +77,7 @@ it("registers and records two independent optional default-OFF features",()=>{
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);
  for(const id of ids){expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");}
- expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"bounded-navigation-v1":false})).toContain("navigation-tool-use-guard-v1 needs bounded-navigation-v1");
+ expect(dependencyProblems({...ALL_ON,"bounded-navigation-v1":false})).toContain("navigation-tool-use-guard-v1 needs bounded-navigation-v1");
 });
 for(const [name,change] of [
  ["not started",{started:false}], ["menu",{screen:"menu"}], ["battle",{in_battle:true}],

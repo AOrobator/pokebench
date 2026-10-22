@@ -40,7 +40,7 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(featureInfo(ID).description).toContain("Bundle arm only");
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
     expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const without = Object.fromEntries(Object.entries({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
+    const without = Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
     expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
     const bundle = JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url), "utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
     expect(bundle.base.features[ID]).toBe(false);

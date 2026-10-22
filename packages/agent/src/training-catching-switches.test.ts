@@ -42,7 +42,7 @@ describe("training and catching switches (the operator 2026-10-21: \"both sets\"
   const on={...off,...Object.fromEntries(TRAINING_CATCHING_IDS.map(id=>[id,true]))};
   const onList=serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",");
   for(const id of TRAINING_CATCHING_IDS)expect(onList).not.toContain(id);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"heal-before-trainers-v2":false,"story-battle-heal-gate-v1":false})).toContain("seen-trainers-ledger-v1 needs heal-before-trainers-v2");
+  expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,"story-battle-heal-gate-v1":false})).toContain("seen-trainers-ledger-v1 needs heal-before-trainers-v2");
  });
 });
 

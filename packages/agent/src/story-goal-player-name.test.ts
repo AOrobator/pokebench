@@ -94,7 +94,7 @@ describe("production factory",()=>{
    subs[0]?.(talk("tv",33));subs[0]?.(delivered("tv",33));
    return textOf(await tool?.execute("o",{}) ?? {content:[],details:undefined});
   };
-  const base={...LEGACY_ALL_ON,"coherent-battle-observation-v1":false,"story-destinations-v1":true,"scripted-place-guidance-v1":false,"unfinished-activity-v1":false};
+  const base={...LEGACY_ALL_ON,"story-destinations-v1":true,"scripted-place-guidance-v1":false,"unfinished-activity-v1":false};
   expect(await run({...base,[ID]:true})).toContain(BIRCH);
   expect(await run({...base,[ID]:false})).toContain(AMBIGUOUS);
  });

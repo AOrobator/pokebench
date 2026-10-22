@@ -8,7 +8,7 @@ import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, 
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "battle-message-waiting-v1";
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers a default-off observation switch with no dependency, recorded last", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: null, switchable: true, title: "BATTLE MESSAGE WAITING" });

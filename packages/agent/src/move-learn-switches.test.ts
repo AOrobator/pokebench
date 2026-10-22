@@ -16,7 +16,7 @@ describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=
   expect(SWITCHABLE_FEATURES.slice(-59,-54)).toEqual([...IDS]);
   expect(FEATURES.filter(f=>f.switchable).slice(-59,-54).map(f=>f.id)).toEqual([...IDS]);
   expect(SERVER_FEATURES.slice(-18,-15)).toEqual([...SERVER]);
-  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false}),null).slice(-35,-30)).toEqual([...IDS]);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false}),null).slice(-35,-30)).toEqual([...IDS]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");
@@ -42,6 +42,6 @@ describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=
   const onList=serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",");
   for(const id of IDS)expect(onList).not.toContain(id);
   expect(playHarnessFeatures(withoutFrontierTreatments(on),null).slice(-5)).toEqual([...IDS]);
-  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-decision-ready-v1":false})).toContain("effectiveness-heard-v1 needs battle-text-auto-advance-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-decision-ready-v1":false})).toContain("effectiveness-heard-v1 needs battle-text-auto-advance-v1");
  });
 });

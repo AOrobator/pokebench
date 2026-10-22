@@ -5,7 +5,7 @@ import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,semanticNavigation,serverFeatureEnv,type FeatureSet} from "./features.js";
 const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"static-npc-template-approach-v1":false,"npc-approach-feedback-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
-const ALL_ON={...PENDING_BASE_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false,"trainer-sight-check-v2":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false,"trainer-sight-check-v2":false};
 import type {GameStateSnapshot} from "./game-state.js";
 import {NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,SEMANTIC_MOVING_AROUND_FULL,SEMANTIC_MOVING_AROUND_LOCAL,SEMANTIC_NAVIGATE_DESCRIPTION,SEMANTIC_NAVIGATE_TOOL_LINE,SEMANTIC_TOOL_LINE} from "./navigate-first.js";
 import {NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES,navigationTool} from "./navigation.js";
@@ -19,7 +19,7 @@ import {withUntakenExits} from "./untaken-exits.js";
 const ID="semantic-navigation-v2";
 const V1="semantic-navigation-v1";
 // The bundle-style prompt: every switch on except the first version.
-const ON:FeatureSet={...ALL_ON,"coherent-battle-observation-v1":false,[V1]:false,[ID]:true};
+const ON:FeatureSet={...ALL_ON,[V1]:false,[ID]:true};
 const OFF:FeatureSet={...ON,[ID]:false};
 const LOCAL:FeatureSet={...ON,"full-map-navigation-v1":false,"visited-terrain-navigation-v1":false};
 

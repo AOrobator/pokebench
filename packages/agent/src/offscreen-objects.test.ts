@@ -6,7 +6,7 @@ import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from
 const ID = "offscreen-objects-v1";
 const PREVIOUS = "script-line-presence-v1";
 const PREVIOUS_SERVER = "battle-message-waiting-v1";
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"coherent-battle-observation-v1":false, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers off-screen objects as a default-off observation switch that needs live object sprites", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "live-object-sprites-v1", switchable: true, title: "OFF-SCREEN PEOPLE AND OBJECTS" });

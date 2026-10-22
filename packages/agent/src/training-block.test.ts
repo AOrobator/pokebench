@@ -153,6 +153,9 @@ describe("production wiring of the training block",()=>{
   const r:AgentToolResult<unknown>=await tool.execute("id",{});
   return r.content.flatMap(c=>c.type==="text"?[c.text]:[]);
  }
+ it("new loss comparison is wired independently through playGameTools",async()=>{
+  expect((await run({"leader-loss-comparison-v1":true})).join("\n")).toContain("Last observed loss to GYM LEADER ROXANNE");
+ });
  it("ON appends the block to the observe result; OFF adds nothing",async()=>{
   const on=await run({"leader-attempt-ledger-v1":true});
   expect(on).toEqual(["Screen: overworld",[TRAINING_HEADER,...LEADER].join("\n")]);
@@ -167,7 +170,7 @@ describe("leader-loss-comparison-v1",()=>{
   expect(text).toContain("Last observed loss to GYM LEADER ROXANNE");
   expect(text).toContain("levels: unchanged");
   expect(text).toContain("EXP: unchanged");
-  expect(text).toContain("moves: unknown");
+  expect(text).toContain("moves: unchanged");
   expect(text).not.toMatch(/must|should|recommend|train before|cannot rematch/i);
  });
  it("reports EXP changes and unreadable current party separately",()=>{
@@ -175,6 +178,7 @@ describe("leader-loss-comparison-v1",()=>{
   const s=at(GYM_FIELD);
   expect(block.block({...s,party:s.party.map((m,i)=>i===0?{...m,experience:2300}:m)})).toContain("EXP: changed");
   expect(block.block({...s,party:[]})).toContain("levels: unknown");
+  expect(block.block({...s,party:s.party.map(m=>({...m,moves:null}))})).toContain("moves: unknown");
  });
  it("OFF keeps the prior leader ledger byte identical",()=>{
   expect(fed(only({"leader-attempt-ledger-v1":true})).block(at(GYM_FIELD))).toBe([TRAINING_HEADER,...LEADER].join("\n"));

@@ -238,3 +238,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Family and repeat conversations](explorer-family-guidance-v1.html): an independently switched replacement of the generic explorer section.
 - [battle-move-learn-input-v1](battle-move-learn-input-v1.html): native ready battle move-learning YES/NO ownership.
 - [Checked requested movement](rejected-movement-stride-v1.html): one bounded native stride from a model-selected direction prefix.
+- [leader-loss-comparison-v1](leader-loss-comparison-v1.html) — compact observed last-loss comparison.

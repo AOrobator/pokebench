@@ -227,3 +227,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - M1 integration: cherry-picked RED/GREEN; resolved append-only registry and future bundle JSON conflicts preserving parent healing/explorer treatments and existing flags. Child worklog retains its independent RED/native regression evidence. No main changes.
 
 - M2 integration: checked-stride RED/GREEN cherry-pick, append-only registry/list conflicts combined. All parent/M1 flags preserved. Broad historical fixture reconciliation deferred until every new treatment is integrated.
+
+- M3A integration: observed leader-loss comparison RED/GREEN cherry-picked with production wiring and exact unknown/change distinctions; no rematch gate. Review/gates remain pending on cumulative branch.

@@ -17,7 +17,7 @@ Boundary: probes.ts manifest/API reader and probes-view.ts rendering/validation 
 - [x] RED tests: explicit synthetic source vs missing historical source, decoder fraud rejection, mixed display and exclusion from departure summaries.
 - [x] GREEN implementation, focused/full gates and coverage90%.
 - [x] Background browser proof on owned preview, desktop+phone, historical/synthetic selection and samples.
-- [ ] Principles and frozen Claude/Grok/GPT cloud review.
+- [x] Principles and frozen amended review roster: Claude, GPT and distinct Astra fallback under relayed operator Grok outage exception.
 - [ ] Landing board, ff-only merge, main tests and served proof.
 
 ## Evidence
@@ -31,3 +31,11 @@ GREEN: API preserves explicitsyntheticprovenance and forcesnullhistory fields; d
 Owned read-only preview8832 (noqueue/autorun/modelendpoint) served completedcandidatebuild. HeadlessChrome desktop1280 andphone375: actualvisible studyselector→historical704cT604 frame240×160→syntheticMudkipBide noframe, nofalsemissing-sourcewarning, plotexcludessynthetic. Screensopenedandinspected. BrowserdriverfirstfailedambiguousselectorandSVGinnerText; correcteddriverandfinalproofpassed, noapplicationworkaround. Receipts canonical runs/reports/double-kick-heldout-20261022/browser-proof/provenance-preview/receipt.json; zeroJSerrors. Operatorforegroundpreserved. Noactualprobeinference.
 
 Experimentoverview: docs/experiments/double-kick-generalization-128-20261022.html, themed/self-contained/pages-checkpass; canonicalservedcopyunder runs/reports/double-kick-heldout-20261022/overview.html. No model or controlconfigsource changed. COMMIT: feat(viewer): identify synthetic probe cases (GREEN commit).
+
+## Landing evidence
+
+Reviewed tree fast-forwarded main to `074c21457e34e3bcc4d22543822ee07ab466e72b` while number 1 on the shared board, with exact Codex chat ID `00000000-0000-4000-8000-ba8b017cb1b7`. Frozen binary diff SHA256 `6cc7378dafefcdcf61b5416d3c674d532d2aff5cebd30a560623ebb657f37770`; clean source before/after all reviewers. Claude formal receipt and fresh isolated GPT (`gpt-5.6-sol`, xhigh) and distinct fallback (`gpt-6-astra`, high) each returned terminal LGTM. Both discovered Grok models exited with Cursor usage-limit error; no Grok approval claimed. Coordinator relayed operator blanket exception, message `[private message reference]`: Claude + GPT + distinct fallback sufficient during outage. The fallback disclosed accidental inventory exposure to prior GPT verdict only after independently reporting no production defect.
+
+Eight isolated-copy mutations (decoder kind/time/frame/call, manifest propagation, synthetic lookup bypass, pooled tally exclusion, plot exclusion) each failed focused tests and passed all 35 after restoration. First temporary-copy setup lacked static fixtures, so baseline failed; corrected copy passed before mutation. Candidate was never mutated. Receipts: canonical `runs/reviews/synthetic-probe-provenance/`, including synthesis, exception, reviewer identities and mutation logs. No blockers, accepted code fixes or scope growth.
+
+Post-merge `just test` on main passed: agent 4845, viewer 1809, Python 4013. Log `/tmp/synthetic-probe-main-test.log`. This commit is evidence-only under the worklog exception. Canonical viewer refresh and headless served proof are the next delivery steps; no held-out inference has started. GPU1 8091 is dedicated to decision probes; GPU0 8098 yielded to the separately owned two-hour run.

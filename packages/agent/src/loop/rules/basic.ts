@@ -1,5 +1,5 @@
 import type { CompletedCall, LoopHit, LoopKind, LoopPolicy, LoopRule, LoopRuleId, RuleContext } from "../types.js";
-import { battleState, menuRefusalState, semanticState, waitingState } from "../fingerprints.js";
+import { battleState, isMoveLearning, menuRefusalState, semanticState, waitingState } from "../fingerprints.js";
 
 export const BASIC_MESSAGES = {
   planning: "Repeated objective calls without game interaction. Writing a next_decision does not execute buttons. Observe if uncertain, then use press when ready.",
@@ -56,6 +56,8 @@ export class BasicRules {
   private previousBattle: string | null = null;
   private previousWaiting: string | null = null;
   private readonly history: string[] = [];
+  // move-learn-loop-fingerprint-v1: the tail of history made only of move-learning states.
+  private readonly learning: string[] = [];
   private readonly messageVisits: string[] = [];
   private readonly visited: string[] = [];
   private readonly battlesSeen: string[] = [];
@@ -68,10 +70,11 @@ export class BasicRules {
     private readonly battles: boolean,
     private readonly ineffectiveLoops: boolean,
     private readonly transitions: boolean,
+    private readonly moveLearning = false,
   ) {}
 
   prepare(call: CompletedCall): BasicEvaluation {
-    const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions);
+    const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions, this.moveLearning);
     const game = !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "navigate_to_target" || call.name === "explore_map" || call.name === "observe");
     const changed = game && fingerprint !== null && fingerprint !== this.previous;
     const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
@@ -125,7 +128,7 @@ export class BasicRules {
     const action: unknown = call.name === "navigate_to" ? [call.args["map_id"], call.args["x"], call.args["y"]]
       : navigation ? [call.name, call.requested ?? call.args]
       : batch ? buttons : Array.isArray(buttons) ? buttons[0] : null;
-    const before = call.beforeState === undefined ? null : semanticState(call.beforeState, this.interactions);
+    const before = call.beforeState === undefined ? null : semanticState(call.beforeState, this.interactions, this.moveLearning);
     const key = eligible && evaluation.fingerprint !== null && evaluation.fingerprint === before
       ? `${evaluation.fingerprint}:${JSON.stringify(action)}` : "";
     this.ineffective = key !== "" && key === this.ineffective.key
@@ -146,7 +149,13 @@ export class BasicRules {
       this.history.push(JSON.stringify([before, action, evaluation.fingerprint]));
       if (this.history.length > 12) this.history.shift();
       stateCycle = repeating(this.history, this.policy.cycleRepeats);
-    } else if (!(this.transitions && eligible && passable(call))) this.history.length = 0;
+      if (this.moveLearning && isMoveLearning(before) && isMoveLearning(evaluation.fingerprint)) {
+        this.learning.push(JSON.stringify([before, action, evaluation.fingerprint]));
+        if (this.learning.length > 8) this.learning.shift();
+        // A cycle made only of move-learning prompts is reported after it repeats twice.
+        stateCycle ||= repeating(this.learning, 2);
+      } else this.learning.length = 0;
+    } else if (!(this.transitions && eligible && passable(call))) { this.history.length = 0; this.learning.length = 0; }
     return {
       interactionMessage,
       restartedDialogue,
@@ -224,11 +233,14 @@ export class BasicRules {
     this.messageVisits.length = 0;
   }
 
+  resetCycles():void {this.history.length=0;this.learning.length=0;}
+
   resetNativeProgress(): void {
     this.planning = 0;
     this.observations = 0;
     this.previous = null;
     this.history.length = 0;
+    this.learning.length = 0;
     this.messageVisits.length = 0;
     this.visited.length = 0;
   }

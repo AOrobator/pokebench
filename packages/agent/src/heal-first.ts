@@ -125,8 +125,10 @@ function told(h:HeardLine):string {
 }
 
 // The one shared wording: this line, and the lead of story-battle-heal-gate-v1's refusal (it passes through the same wrapper).
-export function healFirstText(f:HealFirstFacts):string {
- const parts=[f.party.map(p=>`${p.species} has ${String(p.hp)}/${String(p.max_hp)} HP.`).join(" ")];
+export function healFirstText(f:HealFirstFacts,factual=false):string {
+ const hp=f.party.map(p=>`${p.species} has ${String(p.hp)}/${String(p.max_hp)} HP.`).join(" ");
+ const parts=[hp];
+ if(factual) return `${hp} ${f.opponent}'s battle cannot be run from. HP alone does not establish whether you will win.`;
  parts.push(f.kind==="aqua_grunt"?`The ${f.opponent}'s battle cannot be run from, so heal before ${f.pronoun.subject} stops you on the forest path.`:`${f.opponent}'s battle cannot be run from, so heal before talking to ${f.pronoun.object}.`);
  if(f.heard!==null)parts.push(told(f.heard));
  const e=f.exit;
@@ -193,7 +195,7 @@ export interface HealFirstRecorder {
  healFirstLine?(tool:string,toolCallId:string,facts:HealFirstFacts,text:string):void;
 }
 // Outermost of the game tools, so the line leads every result, a story-battle-heal-gate-v1 refusal among them.
-export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:HealFirstRecorder,source:PlaceSource):AgentTool[] {
+export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:HealFirstRecorder,source:PlaceSource,factual=false):AgentTool[] {
  if(!on)return [...tools];
  const record=recorder.healFirstLine?.bind(recorder);
  if(record===undefined)throw new Error("story-battle-heal-first-v1 needs a recorder for heal_first_line events");
@@ -204,7 +206,7 @@ export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:Hea
   if(state===null)return result;
   const facts=await heal.facts(state,result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n"),id);
   if(facts===null)return result;
-  const text=healFirstText(facts);
+  const text=healFirstText(facts,factual);
   record(tool,id,facts,text);
   return leadWith(result,text);
  };

@@ -139,6 +139,62 @@ pages-check +files:
 pages-inline-fonts +files:
     scripts/pages.sh inline-fonts {{files}}
 
+# Give the given pages the Emerald PokéNav theme (docs/design/emerald-pages.css), in place; re-run after regenerating.
+pages-theme +files:
+    scripts/pages.sh theme {{files}}
+
+# Claude <-> Codex mail and the landing board (skills: talk-to-codex, talk-to-claude).
+# State lives in the main checkout's runs/agent-mail/, shared by every worktree.
+[positional-arguments]
+tell-claude *args:
+    uv run --project env python -m pokebench_env.agent_mail tell-claude "$@"
+
+[positional-arguments]
+claude-mailbox *args:
+    uv run --project env python -m pokebench_env.agent_mail claude-mailbox "$@"
+
+# The Codex coordinator thread listens here and forwards letters to Codex threads mid-turn.
+[positional-arguments]
+codex-mailbox *args:
+    uv run --project env python -m pokebench_env.agent_mail claude-mailbox --for codex-coordinator --hold "$@"
+
+# LLM-free: sleeps on the Codex coordinator's mailbox and queues one wake into that idle thread
+# when letters arrive. Start it once, detached; it holds no model and does not poll.
+[positional-arguments]
+codex-wake-watch thread:
+    uv run --project env python -m pokebench_env.agent_mail mailbox-watch --for codex-coordinator --wake-codex "$1"
+
+[positional-arguments]
+codex-mailbox-done *args:
+    uv run --project env python -m pokebench_env.agent_mail mailbox-done --for codex-coordinator "$@"
+
+[positional-arguments]
+tell-codex *words:
+    uv run --project env python -m pokebench_env.agent_mail tell-codex "$@"
+
+[positional-arguments]
+codex-sessions *args:
+    uv run --project env python -m pokebench_env.agent_mail codex-sessions "$@"
+
+land-board:
+    uv run --project env python -m pokebench_env.agent_mail land-board
+
+[positional-arguments]
+land-join *args:
+    uv run --project env python -m pokebench_env.agent_mail land-join "$@"
+
+[positional-arguments]
+land-done *args:
+    uv run --project env python -m pokebench_env.agent_mail land-done "$@"
+
+[positional-arguments]
+land-move *args:
+    uv run --project env python -m pokebench_env.agent_mail land-move "$@"
+
+# LLM-free: moves number 1 to the back 30 minutes after it took the slot, if anyone waits; checks each minute.
+land-keeper:
+    uv run --project env python -m pokebench_env.agent_mail land-keeper
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

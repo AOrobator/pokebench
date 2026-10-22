@@ -1,0 +1,27 @@
+{
+ "run": "2026-10-22T00-22-02_qwen36-gpu0_d951",
+ "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+ "archives": {
+  "evo-page1": {
+   "source": "raw-ram/00007183.json.gz",
+   "sequence": 7183,
+   "frame": 256100,
+   "event_seq": 16473,
+   "sha256": "d6cada6e4eaa14d45bfeb7e82993580eb887820356480af140b447944aaf6d37"
+  },
+  "battle-page1": {
+   "source": "raw-ram/00007072.json.gz",
+   "sequence": 7072,
+   "frame": 253508,
+   "event_seq": 16298,
+   "sha256": "7c1c85857c117f1bb9091f97c2084c1ad6f5496845171f637918a05a9ed50088"
+  },
+  "battle-page2": {
+   "source": "raw-ram/00007077.json.gz",
+   "sequence": 7077,
+   "frame": 253559,
+   "event_seq": 16306,
+   "sha256": "f8c5da6ab44f6b5a7352e7ed85b901b7c0df471e68a49158084e8cdad57bb6d7"
+  }
+ }
+}

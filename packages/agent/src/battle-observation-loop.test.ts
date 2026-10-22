@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
@@ -128,7 +129,7 @@ describe("battle-observation-loop-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
   expect(featureInfo("battle-observation-loop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo("battle-observation-loop-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-53)).toBe("battle-observation-loop-v1");
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-53)).toBe("battle-observation-loop-v1");
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"battle-observation-loop-v1":false},null)).not.toContain("battle-observation-loop-v1");
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining("battle-observation-loop-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["battle-observation-loop-v1"]).toBe(false);

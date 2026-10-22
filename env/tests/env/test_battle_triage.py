@@ -230,7 +230,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     m.put(MONS + 0x28, struct.pack("<H", 5))
     texts = {}
     for off in ("battle-details-v2", f"battle-details-v2,{SWITCH}"):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "coherent-battle-observation-v1," + off)
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off + ",coherent-battle-observation-v1")
         app = FastAPI()
         install_observation(app, lambda: _Shot(), m.read, MAPS)
         status, _, body = get(app, "/pokebench/observation")

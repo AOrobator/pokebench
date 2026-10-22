@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-first-v1 (the operator 2026-10-20 10:43 PM ET: "the heal first line needs to be in both control and the
 // bundle"). Probe story-battle-heal-first-20261020 (97a0 turn 157, 16 per arm, recorded features with gym-heal-warning-v1
 // off) inserted, right under the first line of result 4541 ("Read from game memory, always true:"), the PROBE line below:
@@ -11,7 +12,9 @@ import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const RAW_PROGRESS_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...RAW_PROGRESS_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -288,11 +291,11 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-61)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-12)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual(dependencyProblems({...ALL_ON,[ID]:false}));
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true}),null).at(-41)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true})).toEqual(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false}));
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
@@ -309,9 +312,9 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
-  expect(dexOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
-  expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
+  const {"trigger-navigation-boundary-v1":triggerOff,"milestone-instruction-memory-v1":memoryOff,"rejected-movement-step-v1":stepOff,"observed-field-dialogue-v1":fieldOff,"progress-aware-cycles-v1":progressOff,"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"shop-interface-v1":shopOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,"exp-next-level-v1":expNextOff,"pokedex-own-v1":pokedexOff,"exp-earned-ledger-v1":expEarnedOff,"leader-attempt-ledger-v1":leaderOff,"seen-trainers-ledger-v1":seenOff,"party-coverage-v1":coverageOff,"said-type-matches-v1":saidTypeOff,"story-goal-player-name-v1":glm0Off,"cut-off-reply-feedback-v1":glm1Off,"trainer-sight-check-v2":glm2Off,"auto-talk-v2":glm3Off,"map-wide-triggers-v1":glm4Off,"drought-battle-heal-hold-v1":glm5Off,...historicalControl0}=control;const historicalControl=Object.fromEntries(Object.entries(historicalControl0).filter(([id])=>!["menu-item-guidance-v1","factual-healing-guidance-v1","poison-readout-v1","berry-readout-v1","tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1","move-learn-early-comparison-v1"].includes(id)));
+  expect(triggerOff).toBe(false);expect(memoryOff).toBe(false);expect([stepOff,fieldOff]).toEqual([false,false]);expect(progressOff).toBe(false);expect(dexOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(shopOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);expect([expNextOff,pokedexOff,expEarnedOff,leaderOff,seenOff,coverageOff,saidTypeOff]).toEqual([false,false,false,false,false,false,false]);expect([glm0Off,glm1Off,glm2Off,glm3Off,glm4Off,glm5Off]).toEqual([false,false,false,false,false,false]);
+  expect({...entry.incumbent.features,"rejected-movement-prefix-v1":false,"static-npc-template-approach-v1":false,"owned-battle-context-v1":false,"coherent-healing-feedback-v1":false,"explorer-family-guidance-v1":false,"battle-move-learn-input-v1":false,"rejected-movement-stride-v1":false,"leader-loss-comparison-v1":false,"npc-approach-feedback-v1":false,"boundary-crossing-facts-v1":false,"delivered-place-evidence-v1":false,"reachable-section-alternatives-v1":false,"navigation-recovery-v1":false,"milestone-drought-suppression-v1":false,"gym-evidence-v1":false,"birch-intro-pages-v1":false}).toEqual({...historicalControl,[ID]:false});
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{
   const root=mkdtempSync(join(tmpdir(),"pokebench-heal-first-"));

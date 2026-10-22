@@ -141,7 +141,7 @@ def test_fixtures_are_the_recorded_mart_states() -> None:
         "action-menu": ("shop_action_menu", "BUY", None),
     }
     for name, (phase, selected, diagnostic) in expected.items():
-        ui = state(name, OFF).active_ui
+        ui = state(name, OFF | {"shop-interface-v1"}).active_ui
         assert ui is not None
         assert (ui.phase, ui.selected, ui.diagnostic) == (phase, selected, diagnostic), name
 
@@ -309,7 +309,7 @@ def test_a_failed_read_is_a_visible_harness_bug_not_a_guess() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-3] == SWITCH == "mart-stock-readout-v1"
+    assert SERVER_FEATURES[-14] == SWITCH == "mart-stock-readout-v1"
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
 

@@ -33,6 +33,7 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/offscreen-objects-sh02.j
 ROM_START = 0x08000000
 # Server switches registered after cook run #2 were off for it.
 RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    "static-npc-template-approach-v1",
     "connection-edge-tiles-v1",
     "in-game-naming-readout-v1",
     "readout-truth-v1",
@@ -49,6 +50,8 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "battle-effective-damage-v1",
     "semantic-navigation-v2",
     "exit-labels-v2",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"

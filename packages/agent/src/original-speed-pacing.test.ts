@@ -1,26 +1,27 @@
 import { expect, it } from "vitest";
-import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
   featuresOf, playHarnessFeatures, serverFeatureEnv, type SwitchableFeature,
 } from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, "short-cycle-fixed-point-v1": false, "party-item-confirmation-v1": false, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "exit-labels-v2": false, "heal-before-trainers-v2": false, "gym-heal-warning-v1": false, "respawn-readout-v1": false, "trainer-sight-check-v1": false, "caught-nickname-prompt-v1": false, "fail-open-input-v1": false, "whiteout-healed-v1": false, "field-move-gates-v1": false, "gym-readiness-readout-v1": false, "same-target-no-progress-v1": false, "story-progress-clock-v1": false, "yes-no-answer-readout-v1": false , "story-battle-heal-gate-v1": false, "story-battle-heal-first-v1": false };
+const OFF = { ...ALL_ON,"coherent-battle-observation-v1":false, "short-cycle-fixed-point-v1": false, "party-item-confirmation-v1": false, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "exit-labels-v2": false, "heal-before-trainers-v2": false, "gym-heal-warning-v1": false, "respawn-readout-v1": false, "trainer-sight-check-v1": false, "caught-nickname-prompt-v1": false, "fail-open-input-v1": false, "whiteout-healed-v1": false, "field-move-gates-v1": false, "gym-readiness-readout-v1": false, "same-target-no-progress-v1": false, "story-progress-clock-v1": false, "yes-no-answer-readout-v1": false , "story-battle-heal-gate-v1": false, "story-battle-heal-first-v1": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-40)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-46)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-89)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-95)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-17)).toBe(ID);
+  expect(SERVER_FEATURES.at(-28)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {
@@ -37,7 +38,7 @@ it("defaults omitted historical presets and legacy flags OFF", () => {
 
 it("transports only the explicit server selection and records ON at the end", () => {
   expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,caught-dex-input-v1`);
-  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,caught-dex-input-v1");
+  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,caught-dex-input-v1,coherent-battle-observation-v1");
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);

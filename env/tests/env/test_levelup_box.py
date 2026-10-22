@@ -33,21 +33,27 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/levelup-box-54a7.json").read_text())
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
-    SWITCH,
-    "readout-truth-v1",
-    "birch-speech-pages-v1",
-    "blackout-readout-v1",
-    "surf-gated-exits-v1",
-    "exit-reachability-v1",
-    "heal-before-trainers-v1",
-    "tutorial-party-owner-v1",
-    "mid-frame-readout-v1",
-    "unset-dynamic-warp-v1",
-    "status-names-v1",
-    "surf-gated-exits-v2",
-    "battle-effective-damage-v1",
-}
+RECORDED_OFF = (
+    frozenset({"coherent-battle-observation-v1"})
+    | frozenset(FIXTURE["recorded_off"])
+    | {
+        SWITCH,
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+        "surf-gated-exits-v1",
+        "exit-reachability-v1",
+        "heal-before-trainers-v1",
+        "tutorial-party-owner-v1",
+        "mid-frame-readout-v1",
+        "unset-dynamic-warp-v1",
+        "status-names-v1",
+        "surf-gated-exits-v2",
+        "battle-effective-damage-v1",
+        "exp-next-level-v1",
+        "pokedex-own-v1",
+    }
+)
 ON = RECORDED_OFF - {SWITCH}
 OFF_TEXT = "Battle details: WILD single · turn 6 · resolving (no input until the game asks)"
 WAIT = "waiting for a button: press A or B to continue (the game takes any new button press)"
@@ -209,9 +215,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader(8618)
     payloads = {}
     for off in (ON, RECORDED_OFF):
-        monkeypatch.setenv(
-            "POKEBENCH_FEATURES_OFF", "coherent-battle-observation-v1," + ",".join(sorted(off))
-        )
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
         install_observation(app, lambda: _Shot(), read, maps())
@@ -223,7 +227,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-33] == SWITCH
+    assert SERVER_FEATURES[-44] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 
@@ -401,7 +405,7 @@ def _production(monkeypatch: pytest.MonkeyPatch, off: str | None) -> FastAPI:
     else:
         monkeypatch.setenv(
             "POKEBENCH_FEATURES_OFF",
-            ",".join(filter(None, ("coherent-battle-observation-v1", off))),
+            ",".join(filter(None, (off, "coherent-battle-observation-v1"))),
         )
     memory = box_memory(6)
     memory.set(0x030022C4, 0x08038421)

@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
@@ -232,19 +233,19 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-116)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-165)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
-  expect(playHarnessFeatures(ALL_ON,null).at(-70)).toBe("script-line-presence-v1");
-  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-70)).toBe("script-line-presence-v1");
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);
   expect(normalizeFeatures({...older,"script-line-presence-v1":true})["script-line-presence-v1"]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["script-line-presence-v1"]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
  });
 });
 
@@ -282,7 +283,7 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("script-line-presence-v1")+1));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);

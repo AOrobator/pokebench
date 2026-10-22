@@ -1,3 +1,4 @@
+import {playSystemPrompt} from "./play-config.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
@@ -588,4 +589,51 @@ it("semantic v2 wrong-map feedback uses actual facts and explicitly unavailable 
   expect(out.details).toMatchObject({semantic_navigation:{status:"refused because the requested map is not current",activation_attempted:false}});
   expect(f.buttons).toEqual([]);expect(f.navigations).toEqual([]);
  }
+});
+
+
+describe("npc-approach-feedback-v1",()=>{
+ const facts=(s:GameStateSnapshot)=>{if(s.heal_before_trainers===undefined)throw new Error("fixture trainer facts");return s.heal_before_trainers;};
+ it("updates both the production tool description and system prompt",()=>{
+  const features={...baseFeatures(),"npc-approach-feedback-v1":true};
+  expect(fixture(undefined,features).tools.find(t=>t.name==="navigate_to_target")?.description).toContain("returns without facing or pressing A");
+  expect(playSystemPrompt(features,null)).toContain("returns without facing or pressing A");
+  expect(playSystemPrompt(baseFeatures(),null)).not.toContain("Exception for an explicitly requested unloaded trainer");
+ });
+ const templateState=():GameStateSnapshot=>({...field([]),heal_before_trainers:{trainers:[{local_id:2,x:3,y:0,graphics_id:0,sprite_kind:"PERSON",trainer_id:1,defeated:false,loaded:false}],move_power:[],last_heal:null,home:null,mom_heals:false}});
+ it("approaches an explicitly requested unloaded trainer template, then returns without A",async()=>{
+  const f=fixture(undefined,{...baseFeatures(),"npc-approach-feedback-v1":true},undefined,templateState());
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("tool");
+  const out=await tool.execute("id",{map_id:[0,9],target:{kind:"object",local_id:2}});
+  expect(f.navigations).toEqual([{x:2,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([]);
+  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+  expect(out.content.filter(c=>c.type==="text").map(c=>c.text).join("\n")).toContain("template tile; current presence and position are unverified");
+ });
+ it("returns before interaction when a template becomes a loaded object",async()=>{
+  const f=fixture(s=>({...s,heal_before_trainers:{...facts(s),trainers:facts(s).trainers.map(t=>({...t,loaded:true}))}}),{...baseFeatures(),"npc-approach-feedback-v1":true},undefined,templateState());
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("tool");
+  const out=await tool.execute("id",{map_id:[0,9],target:{kind:"object",local_id:2}});
+  expect(f.buttons).toEqual([]);
+  expect(out.content.filter(c=>c.type==="text").map(c=>c.text).join("\n")).toContain("object loaded; inspect its verified current position");
+ });
+ it("retains map identity and field ownership refusals",async()=>{
+  const f=fixture(undefined,{...baseFeatures(),"npc-approach-feedback-v1":true},undefined,templateState());
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("tool");
+  await tool.execute("id",{map_id:[0,10],target:{kind:"object",local_id:2}});
+  f.setState({...templateState(),field_controls_locked:true});
+  await tool.execute("id",{map_id:[0,9],target:{kind:"object",local_id:2}});
+  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
+ });
+ it("OFF retains the unloaded-object refusal and sends no input",async()=>{
+  const f=fixture(undefined,baseFeatures(),undefined,templateState());
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("tool");
+  const out=await tool.execute("id",{map_id:[0,9],target:{kind:"object",local_id:2}});
+  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
+  expect(out.content.filter(c=>c.type==="text").map(c=>c.text).join("\n")).toContain("target is not listed in the current verified state");
+ });
+ it("never guesses an absent or hidden template",async()=>{
+  const s=templateState();const f=fixture(undefined,{...baseFeatures(),"npc-approach-feedback-v1":true},undefined,{...s,heal_before_trainers:{...facts(s),trainers:[]}});
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("tool");
+  await tool.execute("id",{map_id:[0,9],target:{kind:"object",local_id:2}});expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
+ });
 });

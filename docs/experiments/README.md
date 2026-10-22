@@ -17,3 +17,5 @@ Readiness verdicts are in [readiness.md](readiness.md).
 - [Starter decision salience diagnostic](starter-decision-salience.html) — eight per arm, Route101 checkpoint, five-minute cap; not approved or launched.
 
 - [Whole-map navigation cook, 1 hour](whole-map-cook-1h.html) — screen; MAIN_MENU start; 12 one-hour pairs; gated on bundle fixes.
+
+- [October 22 Frontier mistake mitigation evaluation catalogue](frontier-mistake-mitigations-plan.html) — correctness and study preparation; 8/arm screen proposal; checkpoint/readiness/cost/power unresolved; no approval or launch.

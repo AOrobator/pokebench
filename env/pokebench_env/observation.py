@@ -16,6 +16,7 @@ from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
+from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_learner
 from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
@@ -60,6 +61,7 @@ def install_observation(
     raw_archive: RawRamArchive | None = None,
     settle: FrameSettle | None = None,
     battle_wait: BattleWait | None = None,
+    learn_wait: LearnWait | None = None,
     whiteout: WhiteoutLatch | None = None,
 ) -> Callable[[], dict[str, object]]:
     if raw_snapshot is not None and raw_archive is None:
@@ -310,5 +312,41 @@ def install_observation(
             else:
                 captured, reason, frames = wait.wait(serialize, lock, max_frames)
             return {"reason": reason, "frames": frames, "state": captured}
+
+    if learn_wait is not None:
+        held = learn_wait
+
+        # move-learn-tool-v1: the state on the first emulated frame the move-learning flow waits
+        # for input or leaves it, with the battle learner read on that frame; bounded in frames.
+        @app.get("/pokebench/move-learn/wait")
+        def learn_wait_state(
+            max_frames: int = Query(default=LEARN_BOUND_FRAMES, ge=1, le=3600),
+        ) -> dict[str, object]:
+            lock = memory_lock if memory_lock is not None else nullcontext()
+            if raw_snapshot is not None:
+                assert raw_archive is not None
+                with raw_archive.reserve() as reservation:
+
+                    def grab() -> tuple[RawRamSnapshot, dict[str, object] | None, Exception | None]:
+                        frozen = raw_snapshot(reservation)
+                        try:
+                            return frozen, battle_learner(read_memory), None
+                        except (ValueError, IndexError) as error:
+                            return frozen, None, error
+
+                    (frozen, learner, error), reason, frames = held.wait(grab, lock, max_frames)
+                    # A learner read error is raised after the raw capture persists.
+                    receipt, _, captured, _ = finish_snapshot(reservation, frozen, error=error)
+                raw_archive.pair(receipt, captured, None)
+            else:
+                (captured, learner), reason, frames = held.wait(
+                    lambda: (serialize(), battle_learner(read_memory)), lock, max_frames
+                )
+            return {
+                "reason": reason,
+                "frames": frames,
+                "state": captured,
+                "battle_learner": learner,
+            }
 
     return observation

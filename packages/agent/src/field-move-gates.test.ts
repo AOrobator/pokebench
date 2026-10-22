@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // field-move-gates-v1 on the agent side: the server's field_obstacles and gated exit_reach reach every exit list through
 // exitBlock (surf-gate.ts), and navigate_to plans around closed obstacles, slides down slopes and names what cuts a goal off.
 // Fixture field-moves-a8f9-states.json.gz: control run 2026-10-20T16-14-34_qwen36-gpu0_a8f9, RUSTURF TUNNEL (24/4), state seq
@@ -9,8 +10,9 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import { ALL_ON as PENDING_BASE_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {gatedState,navigationTool,planNavigation,withNavigation,type NavigationOptions} from "./navigation.js";
@@ -81,19 +83,19 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"exit-reachability-v1",switchable:true,title:"FIELD MOVE GATES"});
   expect(featureInfo(ID).description).toContain(" Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before");
   expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
-  expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-19)?.id).toBe(ID);
-  expect(SERVER_FEATURES.at(-9)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-16)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-68)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-68)?.id).toBe(ID);
+  expect(SERVER_FEATURES.at(-20)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-45)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"exit-reachability-v1":false})).toContain(`${ID} needs exit-reachability-v1`);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"exit-reachability-v1":false})).toContain(`${ID} needs exit-reachability-v1`);
  });
  it("defaults off in presets and the legacy flag presets",()=>{
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  expect(reachSwitches({...ALL_ON,[ID]:false})).toEqual({surf:true,reach:true,gates:false});
+  expect(reachSwitches({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false})).toEqual({surf:true,reach:true,gates:false});
   expect(reachSwitches(ALL_ON)).toEqual({surf:true,reach:true,gates:true});
  });
 });

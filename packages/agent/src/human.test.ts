@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { humanPlan, humanLease } from './human.js';
+import { humanPlan, humanLease, humanPlayUrl, viewerRunUrl } from './human.js';
 import { withRun, type RunHost } from './run.js';
 import { FrameStore } from './frames.js';
 import { parseEvent } from './events.js';
@@ -73,4 +73,9 @@ it('retains the exact native final state and verifies its hash before any write'
  await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(Response.json({frame:42,sha256:'wrong',state_base64:data.toString('base64')})))).rejects.toThrow('integrity');
  await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(Response.json({frame:42})))).rejects.toThrow('Invalid');
  await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(new Response('',{status:503})))).rejects.toThrow('503');
+});
+
+it('links human play and probe runs to the viewer on 8790, not the pages server', () => {
+  expect(humanPlayUrl('2026-10-22T12-35-14_human_f8d7')).toBe('http://127.0.0.1:8790/play?run=2026-10-22T12-35-14_human_f8d7#run=2026-10-22T12-35-14_human_f8d7');
+  expect(viewerRunUrl('probe a&b')).toBe('http://127.0.0.1:8790/#run=probe%20a%26b');
 });

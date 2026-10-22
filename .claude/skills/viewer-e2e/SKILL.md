@@ -7,6 +7,14 @@ description: Verify PokeBench viewer navigation, playback and polling interactio
 
 Use the available browser-control tools against the actual candidate server. Take the happy/failure/recovery approach from local inference stack's playwright-e2e skill, but follow the tools and safety boundaries available in this session. Mounted DOM tests and HTTP 200s support browser proof; they do not replace it.
 
+## Preserve desktop focus
+
+Operator decision 2026-10-22: all routine verification runs in the background. Before operating a browser, check the tool's documented focus behavior. Prefer an agent-owned headless Playwright/Chromium context; use another context only when its documented operations preserve desktop focus. A hidden tab alone is insufficient if the next click, keyboard operation, screenshot or viewport change activates its window. Do not probe this by stealing focus once.
+
+Do not bring an app/window/tab to the foreground, select the operator's working tab, use global mouse/keyboard input, run `open` or an application-activation command, or open screenshots in desktop apps for proof. Use context-scoped browser actions and screenshots; inspect saved screenshot pixels through the image-reading tool. DOM focus and keyboard tests inside an isolated background page remain valid; OS/application focus must stay with the operator. Give subagents these same constraints.
+
+If the tool only supports foreground/native interaction, do not use it for routine testing. Keep the affected browser check pending and state the limitation separately from completed tests; HTTP/DOM-only checks do not replace the missing browser proof. An explicit user request to show a page or interact with a foreground surface authorizes only that operation, not later focus-taking verification. A generic request to test, fix, land or capture screenshots grants no such permission.
+
 ## Timeline is closed to additions
 
 Never add new marks, lanes, labels or colors for new kinds of events to the TIMELINE swimlanes without the operator's explicit permission (operator decision 2026-10-16). Put new diagnostics in Activity History and the raw-event inspector instead. Fixing how an existing mark is drawn is allowed.
@@ -15,7 +23,7 @@ Never add new marks, lanes, labels or colors for new kinds of events to the TIME
 
 Identify the user's existing tab, URL, selected run and the server PID/source before editing or testing. Read the active worklog and preserve shared servers, original recordings and frozen benchmark checkouts. Use the owned preview for candidate changes. Confirm served HTML/modules/styles match completed build artifacts; avoid testing while a build is rewriting those files.
 
-For an existing-tab report, inspect and try the reported interaction there first. Record tab-control failures separately from application failures. A fresh tab is a diagnostic comparison, not proof that the original tab recovered. Do not close a user's tabs, reset their browser or switch to another app to bypass a blocked control surface. If the original remains uninspectable, disclose that limitation instead of declaring it repaired.
+For an existing-tab report, inspect and try the reported interaction there first only if the tool can do so without changing desktop focus or disrupting the operator's working tab. Otherwise reproduce it in an agent-owned background context and record that the original-tab check remains pending. Record tab-control failures separately from application failures. A fresh tab is a diagnostic comparison, not proof that the original tab recovered. Do not close a user's tabs, reset their browser or switch to another app to bypass a blocked control surface. If the original remains uninspectable, disclose that limitation instead of declaring it repaired.
 
 ## Click through to the outcome
 

@@ -27,7 +27,9 @@ from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
+from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
+from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
@@ -36,6 +38,7 @@ from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
+from pokebench_env.training_readout import SWITCH as EXP_NEXT
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 PORYMAP_MAPS = (
@@ -71,9 +74,11 @@ def read_state(
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
         in_game_naming_enabled="in-game-naming-readout-v1" not in off,
         offscreen_objects_enabled="offscreen-objects-v1" not in off,
+        static_npc_templates_enabled="static-npc-template-approach-v1" not in off,
         transition_coherence_enabled="transition-coherence-v1" not in off,
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
+        birch_intro_pages_enabled="birch-intro-pages-v1" not in off,
         surf_gate_enabled=SURF_GATE not in off,
         exit_reach_enabled=EXIT_REACH not in off,
         heal_trainers_enabled=HEAL_TRAINERS not in off,
@@ -95,7 +100,16 @@ def read_state(
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
+        # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
+        move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
+        berry_readout_enabled="berry-readout-v1" not in off,
+        battle_move_learn_input_enabled="battle-move-learn-input-v1" not in off,
         mart_stock_enabled=MART_STOCK not in off,
+        shop_interface_enabled="shop-interface-v1" not in off,
+        exp_next_enabled=EXP_NEXT not in off,
+        pokedex_enabled=POKEDEX_OWN not in off,
+        map_wide_triggers_enabled="map-wide-triggers-v1" not in off
+        and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

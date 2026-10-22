@@ -15,6 +15,8 @@ else
     git -C "$root" worktree add --quiet --detach "$tree" main
 fi
 git -C "$tree" submodule update --init --quiet
+# Start over launches a human run from this tree; its game server needs the main venv (mGBA binding).
+ln -sfn "$root/env/.venv" "$tree/env/.venv"
 (cd "$tree" && pnpm install --frozen-lockfile --silent && pnpm -r --silent build)
 
 "$(dirname "$0")/viewer-restart.sh" "$tree/packages/viewer/dist/cli.js" "$port" "$root/runs" "$root/.env" "$root/runs/viewer-$port.log"

@@ -61,6 +61,14 @@ export function openedHtml(entries: readonly ReportEntry[], slug: string): strin
   if (entry === undefined) return `<div class="rp-bar"><a href="/reports">◀ REPORTS</a><b>No report called ${esc(slug)}</b></div>`;
   const newer = entries[i - 1], older = entries[i + 1];
   const link = (r: ReportEntry | undefined, label: string): string => (r === undefined ? `<span class="off">${label}</span>` : `<a href="/reports?open=${esc(r.slug)}">${label}</a>`);
-  return `<div class="rp-bar"><a href="/reports#${esc(entry.slug)}">◀ REPORTS</a><b>${shortDate(entry.date)} · ${esc(entry.title)}</b><span class="rp-nav">${link(newer, "NEWER")}${link(older, "OLDER ▶")}</span></div>`
+  return '<div class="rp-progress" data-rp="progress" role="progressbar" aria-label="How far down the report you are" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>'
+    + `<div class="rp-bar"><a href="/reports#${esc(entry.slug)}">◀ REPORTS</a><b>${shortDate(entry.date)} · ${esc(entry.title)}</b><span class="rp-pct" data-rp="pct">0%</span><span class="rp-nav">${link(newer, "NEWER")}${link(older, "OLDER ▶")}</span></div>`
     + `<iframe class="rp-frame" src="/reports/${esc(entry.slug)}/index.html" title="${esc(entry.title)}"></iframe>`;
+}
+
+// How far down its report an opened report's scroll probe (reports-scroll.ts) says it is, or null for any other message.
+export function reportScrollFraction(data: unknown): number | null {
+  if (!record(data)) return null;
+  const f = data.pokebenchReportScroll;
+  return typeof f === "number" && f >= 0 && f <= 1 ? f : null;
 }

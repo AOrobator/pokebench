@@ -25,6 +25,8 @@ To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
+Browser verification must preserve the operator's desktop focus (operator decision 2026-10-22). Use an agent-owned headless browser or a documented background context. Do not activate apps/windows/tabs, use desktop mouse/keyboard input, or open screenshot files in desktop apps for routine verification. If the available tool cannot guarantee background operation, leave that check pending and report the limitation; do not take focus to satisfy a proof requirement. A request to test, land or verify is not permission to take focus. Explicit requests to show or interact with a foreground surface authorize only that operation. Follow `.claude/skills/viewer-e2e/SKILL.md` and pass this boundary to every subagent.
+
 The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add new marks, lanes, labels or colors for new kinds of events to it without the operator's explicit permission (operator decision 2026-10-16). New diagnostics go to Activity History and the raw-event inspector. Fixing how an existing mark is drawn is still fine.
 
 ## Project overrides of the global rules
@@ -73,6 +75,8 @@ The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set 
 
 The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main`.
 
+Claude threads and Codex sessions both land on local `main`, so the landing board is the one queue for both (operator decision 2026-10-21). Run `just land-join` before merging, merge only while you are number 1, and run `just land-done` after the evidence commit. Claude talks to Codex with `just tell-codex`. Codex talks to Claude with `just tell-claude`, which a Mac Claude thread running `just claude-mailbox` receives and relays to the coordinator. Use `.claude/skills/talk-to-codex/SKILL.md`; Codex uses `.claude/skills/talk-to-claude/SKILL.md`. Messaging Codex sessions is always allowed, in any thread (operator standing approval 2026-10-21). A Codex coordinator thread (`.claude/skills/codex-coordinator/SKILL.md`) listens on `just codex-mailbox` and forwards Claude's letters into Codex threads mid-turn; `just tell-codex` uses it whenever it is listening.
+
 An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
 
 - Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
@@ -87,6 +91,8 @@ The rule never covers pushing, pull requests, approving or launching experiments
 
 Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested. Use `.claude/skills/feature-switch/SKILL.md`.
 
+Adding, renaming, removing or re-gating a model tool updates its system-prompt section in the same change (the operator 2026-10-21). Use `.claude/skills/tool-prompt-sync/SKILL.md`.
+
 ## Explainers
 
 Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.
@@ -94,6 +100,7 @@ Every new feature or switch gets an explainer page with diagrams. Use `.claude/s
 Every HTML deliverable (explainer, UI mockup, report, review, gallery or index page) stays on this Mac and reaches the operator as a working local link. Operator decision 2026-10-16: cloud copies are external links, not local files.
 
 - **Zero network requests.** Inline CSS, SVG and scripts. Fonts come from system stacks or `just pages-inline-fonts <file>`, never `http://127.0.0.1:8790/fonts/...`, a CDN or a path outside the served folder. Run `just pages-check <files>` before linking; it must print nothing.
+- **Pokémon theme by default.** Every explainer, report, review and experiment overview wears the Emerald PokéNav theme (`docs/design/emerald-pages.css`): striped viewer-blue background, navy POKéBENCH bar, the page inside a red PokéNav frame, pixel-font headings and Emerald text-window cards. Write the page with plain semantic HTML (`main`, `h1`–`h4`, `.card`, `.kpi`, `table`, `details`) and run `just pages-theme <files>` after writing or regenerating it, before `just pages-check`. The theme pins one light palette, the same on desktop and phone; never add solid side-stripe accents. UI mockups of the viewer itself are exempt.
 - **Serve it locally.** `just pages` serves `runs/mockups/` at `http://127.0.0.1:8791/` and exposes `runs/reports/`, `runs/reviews/`, `docs/explainers/` and `docs/experiments/` under it by the same names. Put mockups in `runs/mockups/<slug>/`. A page that exists only in a worktree is copied to `runs/mockups/<slug>/` before linking.
 - **Link it.** Write `[Name](http://127.0.0.1:8791/<path>)` in the reply, one link per page, and check each returns 200 first. Add the `open ~/dev/pokebench/<path>.html` fallback after the links, never instead.
 - **Never use `SendUserFile`, `/mnt/project-files` or `attached_outputs`** for HTML pages, and never claude.ai artifacts or other hosted previews. Markdown or data files may still go through `SendUserFile`.

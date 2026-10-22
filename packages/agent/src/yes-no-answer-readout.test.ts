@@ -1,14 +1,15 @@
 import { expect, it } from "vitest";
-import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
 const ID="yes-no-answer-readout-v1";
 it("appends a default-OFF observation server switch and transports explicit ON/OFF",()=>{
- expect(SWITCHABLE_FEATURES.at(-20)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-20)?.id).toBe(ID);
- expect(SERVER_FEATURES.at(-10)).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-69)?.id).toBe(ID);
+ expect(SERVER_FEATURES.at(-21)).toBe(ID);
  expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"YES/NO ANSWER READOUT"});
  expect(featureInfo(ID).description).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
  expect(featureInfo(ID).description).toContain(" Off: ");

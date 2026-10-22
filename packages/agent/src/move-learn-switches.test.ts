@@ -1,5 +1,8 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import { describe, expect, it } from "vitest";
-import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+const RAW_PROGRESS_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...RAW_PROGRESS_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false};
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
@@ -10,10 +13,10 @@ const NEEDS=[null,"ram-state-v1","ram-state-v1","battle-text-auto-advance-v1",nu
 
 describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=>{
  it("are appended in order to every registry list as default-off observations",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-10,-5)).toEqual([...IDS]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-10,-5).map(f=>f.id)).toEqual([...IDS]);
-  expect(SERVER_FEATURES.slice(-7,-4)).toEqual([...SERVER]);
-  expect(playHarnessFeatures({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false,"coherent-battle-observation-v1":false},null).slice(-5)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-59,-54)).toEqual([...IDS]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-59,-54).map(f=>f.id)).toEqual([...IDS]);
+  expect(SERVER_FEATURES.slice(-18,-15)).toEqual([...SERVER]);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false}),null).slice(-35,-30)).toEqual([...IDS]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");
@@ -38,7 +41,7 @@ describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=
   const on={...off,...Object.fromEntries(IDS.map(id=>[id,true]))};
   const onList=serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",");
   for(const id of IDS)expect(onList).not.toContain(id);
-  expect(playHarnessFeatures(on,null).slice(-5)).toEqual([...IDS]);
-  expect(dependencyProblems({...ALL_ON,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-decision-ready-v1":false})).toContain("effectiveness-heard-v1 needs battle-text-auto-advance-v1");
+  expect(playHarnessFeatures(withoutFrontierTreatments(on),null).slice(-5)).toEqual([...IDS]);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-decision-ready-v1":false})).toContain("effectiveness-heard-v1 needs battle-text-auto-advance-v1");
  });
 });

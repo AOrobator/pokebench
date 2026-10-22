@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // exit-reachability-v1: one walk-reachability check (the server's exit_reach) read by every exit list and navigate_to message.
 // Fixture exit-reach-states.json.gz: recorded state bodies (envelope stripped) from runs/<id>/events.jsonl, each with the
@@ -130,7 +131,7 @@ describe("exit-reachability-v1: the person refusal for MAY at (10,3) on ROUTE103
  });
  it("ON, whole map: the whole-map plan reaches her, so the refusal offers the tiles to talk from and never mentions a local window",async()=>{
   const features:FeatureSet={...runFeatures("4198"),"full-map-navigation-v1":true};
-  const on=await navigate({...features,[ID]:true},recorded("4198:23325",true),{x:10,y:3});
+  const on=await navigate({...features,"coherent-battle-observation-v1":false,[ID]:true},recorded("4198:23325",true),{x:10,y:3});
   const off=await navigate(features,recorded("4198:23325",true),{x:10,y:3});
   expect(on.status).toBe(off.status);
   expect(on.status).toContain("walk to one of these free tiles, face it and press A");
@@ -205,7 +206,7 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   expect(new UntakenExits(features).line(noEast,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand)");
   const water={...s,interaction_targets:[],topology:s.topology==null?null:{...s.topology,connections:s.topology.connections.filter(c=>c.direction==="SOUTH")}} as GameStateSnapshot;
   expect(new UntakenExits(features).line(water,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet)");
-  expect(new UntakenExits({...features,"surf-gated-exits-v2":false}).line(water,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
+  expect(new UntakenExits({...features,"coherent-battle-observation-v1":false,"surf-gated-exits-v2":false}).line(water,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
  });
  it("the supervisor's lists and ways-off line leave them out with the switch on and are unchanged off",()=>{
   const shown:RunEvent[]=[
@@ -214,7 +215,7 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   ];
   const brief=(features:FeatureSet)=>{const b=new SupervisorBriefing(features);for(const e of shown)b.observe(e);return b.stallText({kind:"milestone_drought",minutes:5},9);};
   const features={...runFeatures("0e05"),"briefing-exits-v1":true,"connection-edge-tiles-v1":true};
-  const off=brief(features),on=brief({...features,[ID]:true});
+  const off=brief(features),on=brief({...features,"coherent-battle-observation-v1":false,[ID]:true});
   const pick=(text:string,head:string)=>text.split("\n").find(l=>l.startsWith(head))??"";
   const WAYS="- Ways off this map across its edge (the game's map connections)";
   expect(pick(off,WAYS)).toContain("NORTH -> RUSTBORO CITY (map 0/3)");
@@ -267,7 +268,7 @@ describe("exit-reachability-v1: two connections on one side",()=>{
   const block=exitReach(features,two);
   expect([block.connection(A),block.connection(B),block.connectionCut(B)]).toEqual([false,true,"none"]);
   expect(new UntakenExits(features).line(two,"")).toBe("Exits here you have not taken: WEST edge -> map 0/1");
-  expect(new UntakenExits({...features,[ID]:false}).line(two,"")).toBe("Exits here you have not taken: WEST edge -> map 0/1; WEST edge -> map 0/2");
+  expect(new UntakenExits({...features,"coherent-battle-observation-v1":false,[ID]:false}).line(two,"")).toBe("Exits here you have not taken: WEST edge -> map 0/1; WEST edge -> map 0/2");
   expect(edgeNote(two.topology,{x:0,y:0},block.connection)).toContain("WEST to ROUTE 1 (map 0/1)");
   expect(edgeNote(two.topology,{x:0,y:2},block.connection)).toBeNull();
  });
@@ -317,10 +318,10 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-84)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
-  expect(SERVER_FEATURES.at(-27)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-133)?.id).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-38)).toBe(ID);
+  expect(SERVER_FEATURES.at(-38)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
@@ -331,7 +332,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
+ const BASE:FeatureSet={...ALL_ON,"coherent-battle-observation-v1":false,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

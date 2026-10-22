@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
@@ -23,7 +24,7 @@ const at = (seq: number): { before: GameStateSnapshot; after: GameStateSnapshot;
   if (found === undefined) throw new Error(`no case ${String(seq)}`);
   return { before: parseGameState(found.before), after: parseGameState(found.after), buttons: found.buttons, recorded: found.recorded };
 };
-const on = (features: FeatureSet): FeatureSet => ({ ...features, [ID]: true });
+const on = (features: FeatureSet): FeatureSet => ({ ...features,"coherent-battle-observation-v1":false, [ID]: true });
 
 describe("2919 replay: the recorded blocked batches", () => {
   it("covers the forensics seqs", () => {
@@ -184,10 +185,10 @@ describe("registry, presets and production wiring", () => {
   it("is a registered guidance switch that needs press results, second to last in the run record", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: "press-result-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(FEATURES.filter(f => f.switchable).at(-126)?.id).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-80)).toBe(ID);
-    expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false, [ID]: false }, null)).not.toContain(ID);
-    expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);
+    expect(FEATURES.filter(f => f.switchable).at(-175)?.id).toBe(ID);
+    expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-80)).toBe(ID);
+    expect(playHarnessFeatures({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false, [ID]: false }, null)).not.toContain(ID);
+    expect(dependencyProblems({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);
   });
   it("defaults OFF in presets that omit it and in legacy flag presets", () => {
     const rest = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== ID)) as Omit<FeatureSet, typeof ID>;
@@ -197,10 +198,10 @@ describe("registry, presets and production wiring", () => {
     expect(ALL_TOOL_SWITCHES.blockedBatch).toBeUndefined();
   });
   it("toolSwitches threads the switch and the live-map visibility", () => {
-    expect(toolSwitches({ ...ALL_ON,"battle-decision-ready-v1":false,[ID]: true })).toMatchObject({ blockedBatch: true, liveMap: true });
-    expect(toolSwitches({ ...ALL_ON,"battle-decision-ready-v1":false,[ID]: false, "live-map-v1": false })).toMatchObject({ blockedBatch: false, liveMap: false });
-    expect(toolSwitches({ ...ALL_ON,"battle-decision-ready-v1":false,[ID]: true })).toMatchObject({ ledges: true, edgeWalls: true, counters: true, topology: true });
-    expect(toolSwitches({ ...ALL_ON,"battle-decision-ready-v1":false,[ID]: true, "ledge-hops-v1": false, "one-way-tiles-v1": false, "counter-talk-v1": false, "world-destinations-v1": false })).toMatchObject({ ledges: false, edgeWalls: false, counters: false, topology: false });
+    expect(toolSwitches({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]: true })).toMatchObject({ blockedBatch: true, liveMap: true });
+    expect(toolSwitches({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]: false, "live-map-v1": false })).toMatchObject({ blockedBatch: false, liveMap: false });
+    expect(toolSwitches({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]: true })).toMatchObject({ ledges: true, edgeWalls: true, counters: true, topology: true });
+    expect(toolSwitches({ ...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]: true, "ledge-hops-v1": false, "one-way-tiles-v1": false, "counter-talk-v1": false, "world-destinations-v1": false })).toMatchObject({ ledges: false, edgeWalls: false, counters: false, topology: false });
   });
   const SERVER = "http://game.test";
   function png(): string {

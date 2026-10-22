@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // heal-before-trainers-v1: on the free field, when a trainer the player has not beaten is loaded on this map and the
 // party is weak (a Pokémon fainted, the lead below half HP, or the lead's damaging moves out of PP), the tool result
@@ -56,16 +57,16 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-83)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-132)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-37)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"state-only-decisions-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
@@ -288,7 +289,7 @@ describe("the pending experiment",()=>{
  it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
   // Every switch registered when the entry was written (through instruction-ledger-v2); later ones default off.
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("instruction-ledger-v2")+1));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();

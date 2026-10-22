@@ -35,12 +35,15 @@ from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.poison_berry_readout import visible_berry_lines
+from pokebench_env.pokedex_own import Pokedex, read_pokedex, wild_foes
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
 from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
+from pokebench_env.static_npc_templates import StaticNpcTemplates, read_static_npc_templates
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.surf_gate import (
     ConnectionKey,
@@ -51,6 +54,7 @@ from pokebench_env.surf_gate import (
 )
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
+from pokebench_env.training_readout import next_level_exp
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
 from pokebench_env.ui_state import (
     ActiveUi,
@@ -153,6 +157,7 @@ class GameState:
     displayed_places: tuple[tuple[int, int, str], ...] = ()
     # offscreen-objects-v1: this map's objects outside the readout's window; None when off.
     offscreen_objects: tuple[MapObject, ...] | None = None
+    static_npc_templates: StaticNpcTemplates | None = None
     # readout-truth-v1: the active interface was read (active-ui-ownership-v1 on); text only.
     active_ui_read: bool = False
     # readout-truth-v1: sMenu's window is drawn (even with an invalid cursor); None when off.
@@ -175,9 +180,15 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
+    # berry-readout-v1: visible loaded trees; text only, None when off.
+    berry_readout: tuple[str, ...] | None = None
     # mart-stock-readout-v1: the open buy list of a normal shop; text only.
     mart_stock: MartStock | None = None
     mart_stock_diagnostic: str | None = None
+    # exp-next-level-v1: the summary screen's NEXT LV. per party slot; None when off.
+    party_next_level: tuple[int | None, ...] | None = None
+    # pokedex-own-v1: the POKéDEX counts once the POKéDEX is received; text only, None when off.
+    pokedex: Pokedex | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -274,9 +285,16 @@ def _move_learning(
     ui: ActiveUi | None,
     battle: BattleState | None,
     party: tuple[PartyMon, ...],
+    early: bool,
+    screen: str,
 ) -> tuple[MoveLearning | None, str | None]:
+    # The evolution scene prints its pages in the battle message window too; only a battle
+    # screen's pages belong to the battle script.
+    message = None if battle is None or screen != "battle" else battle.message
+    page = None if message is None else message.page
+    prompt = None if battle is None else battle.prompt
     try:
-        return read_move_learning(read, ui, None if battle is None else battle.prompt, party), None
+        return read_move_learning(read, ui, prompt, party, early=early, page=page), None
     except (ValueError, IndexError) as error:
         return None, f"harness bug: move learning: {error}"
 
@@ -286,6 +304,30 @@ def _mart_stock(read: ReadMemory, save1: int) -> tuple[MartStock | None, str | N
         return read_mart_stock(read, save1), None
     except (ValueError, IndexError) as error:
         return None, f"harness bug: mart stock: {error}"
+
+
+def _with_training(
+    read: ReadMemory, state: "GameState", *, exp_next_enabled: bool, pokedex_enabled: bool
+) -> "GameState":
+    """exp-next-level-v1 and pokedex-own-v1, read once the rest of the state is known."""
+    next_level = (
+        tuple(
+            None
+            if m.is_egg or m.species_id is None or m.level is None or m.experience is None
+            else next_level_exp(read, m.species_id, m.level, m.experience)
+            for m in state.party or ()
+        )
+        if exp_next_enabled
+        else None
+    )
+    dex = None
+    if pokedex_enabled and state.story is not None and state.story.pokedex_received:
+        dex = read_pokedex(read)
+        if dex is not None:
+            dex = replace(dex, wild_foes=wild_foes(read, dex.owned, state))
+    if next_level is None and dex is None:
+        return state
+    return replace(state, party_next_level=next_level, pokedex=dex)
 
 
 def read_game_state(
@@ -303,9 +345,14 @@ def read_game_state(
     connection_edges_enabled: bool = False,
     in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
+    static_npc_templates_enabled: bool = False,
     transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
+    # map-wide-triggers-v1: every coordinate trigger on the map in the state;
+    # the text keeps the nearby ones.
+    map_wide_triggers_enabled: bool = False,
     birch_pages_enabled: bool = False,
+    birch_intro_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
@@ -323,7 +370,13 @@ def read_game_state(
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
+    move_learning_early_enabled: bool = False,
+    berry_readout_enabled: bool = False,
+    battle_move_learn_input_enabled: bool = False,
     mart_stock_enabled: bool = False,
+    shop_interface_enabled: bool = False,
+    exp_next_enabled: bool = False,
+    pokedex_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -350,10 +403,12 @@ def read_game_state(
         read,
         screen,
         caught_dex=caught_dex_enabled,
+        battle_move_learn_input=battle_move_learn_input_enabled,
         truth=readout_truth_enabled,
         party_item_confirmation=party_item_confirmation_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
+        birch_intro_pages=birch_intro_pages_enabled,
         transition_coherence=coherent,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
@@ -368,11 +423,24 @@ def read_game_state(
         from pokebench_env.evolution_decision import decision_ui
 
         native_ui = decision_ui(native_ui, read)
+    if shop_interface_enabled:
+        from pokebench_env.shop_interface import shop_ui
+
+        native_ui = shop_ui(native_ui, read)
     active_ui = native_ui if active_ui_enabled else None
     truth_read = readout_truth_enabled and active_ui_enabled
     window_drawn = menu_window_drawn(read) if readout_truth_enabled else None
     if native_ui and native_ui.details and isinstance(native_ui.details.get("message"), str):
         dialog = str(native_ui.details["message"])
+    # birch-intro-pages-v1: Dialog is the page on screen, not the whole gStringVar4 buffer.
+    if (
+        birch_intro_pages_enabled
+        and native_ui is not None
+        and native_ui.phase == "birch_intro_page"
+        and native_ui.ready is True
+        and native_ui.value
+    ):
+        dialog = native_ui.value
     player_object = 0
     field_initialized = False
     if screen.kind not in PRE_GAME or screen.kind == "naming":
@@ -464,6 +532,7 @@ def read_game_state(
             message_phase=message_phase_enabled,
             native_ui=native_ui,
             truth=readout_truth_enabled,
+            map_wide_triggers=map_wide_triggers_enabled,
         )
         if screen.kind == "overworld" and not in_battle
         else None
@@ -498,10 +567,12 @@ def read_game_state(
         build_exit_reach(flood, found) if exit_reach_enabled and flood is not None else None
     )
     learning, learning_diagnostic = (
-        _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
+        _move_learning(read, native_ui, battle, party, move_learning_early_enabled, label)
+        if move_learning_enabled
+        else (None, None)
     )
     stock, stock_diagnostic = _mart_stock(read, save1) if mart_stock_enabled else (None, None)
-    return GameState(
+    state = GameState(
         move_learning=learning,
         move_learning_diagnostic=learning_diagnostic,
         mart_stock=stock,
@@ -569,6 +640,9 @@ def read_game_state(
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
         world_context=context,
+        berry_readout=visible_berry_lines(read, resources, map_id, (x, y))
+        if berry_readout_enabled and screen.kind == "overworld" and not in_battle
+        else None,
         story_characters=read_story_characters(
             read,
             save1,
@@ -578,6 +652,9 @@ def read_game_state(
             live_wins=readout_truth_enabled,
         )
         if story_characters_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        static_npc_templates=read_static_npc_templates(read, save1, map_id)
+        if static_npc_templates_enabled and screen.kind == "overworld" and not in_battle
         else None,
         offscreen_objects=read_offscreen_objects(read, save1, map_id, (x, y))
         if offscreen_objects_enabled and screen.kind == "overworld" and not in_battle
@@ -653,4 +730,7 @@ def read_game_state(
         respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
         if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,
+    )
+    return _with_training(
+        read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )

@@ -184,11 +184,15 @@ export class FieldRules {
     return this.passable(call.state) && this.passable(call.beforeState);
   }
 
-  resetNativeProgress(pending: Iterable<PendingCall>): void {
+  resetCycles(): void {
     this.trip = null;
     this.pushbacks.length = 0;
     this.moves.length = 0;
     this.movesHeard.clear();
+  }
+
+  resetNativeProgress(pending: Iterable<PendingCall>): void {
+    this.resetCycles();
     this.triggerScripts.clear();
     this.activeTriggerScript = undefined;
     for (const call of pending) delete call.triggerScript;

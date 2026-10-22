@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import { readFileSync } from "node:fs";
@@ -137,13 +138,13 @@ describe("context-token-budget-v1 budget", () => {
 describe("context-token-budget-v1 registration", () => {
   const ID = "context-token-budget-v1";
   it("is registered just before original-speed-pacing-v1, a default-off guard with no dependency", () => {
-    expect(SWITCHABLE_FEATURES.at(-43)).toBe(ID);
-    expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: true }, null).at(-4)).toBe(ID);
-    expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: false }, null)).not.toContain(ID);
+    expect(SWITCHABLE_FEATURES.at(-92)).toBe(ID);
+    expect(playHarnessFeatures(withoutFrontierTreatments({ ...ALL_ON,"coherent-battle-observation-v1":false, "battle-decision-ready-v1": false, [ID]: true }), null).at(-4)).toBe(ID);
+    expect(playHarnessFeatures({ ...ALL_ON,"coherent-battle-observation-v1":false, "battle-decision-ready-v1": false, [ID]: false }, null)).not.toContain(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "CONTEXT TOKEN BUDGET" });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);
-    expect(normalizeFeatures({ ...ALL_ON, [ID]: undefined } as unknown as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
+    expect(normalizeFeatures({ ...ALL_ON,"coherent-battle-observation-v1":false, [ID]: undefined } as unknown as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   });
 
   it("has a pending experiment that flips only this switch", () => {

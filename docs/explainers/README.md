@@ -171,6 +171,15 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Effectiveness heard](effectiveness-heard-v1.html) — bundle-only: a record of what the game printed right after the player's moves ("It's not very effective…"), by move and foe with turns, shown at battle decisions and move-learning prompts.
 - [Game-said goals](game-said-goals-v1.html) — bundle-only: at move-learning prompts and the evolution decision, the trainer battles lost and not won since, with the POKéMON seen and the type lines said on that gym map.
 - [Mart stock readout](mart-stock-readout-v1.html) — bundle-only readout block while a shop's buy list is open: every row with the price the list prints and the game's own item description, CANCEL, the highlighted row and the player's money.
+- [Shop interface](shop-interface-v1.html) — bundle-only fix of the shop's Interface line: the highlighted buy-list row with its real item id (or CANCEL), the quantity box's item, and the after-purchase page as a ready owner.
+- [Birch intro pages](birch-intro-pages-v1.html) — bundle-arm readout of PROF. BIRCH's speech before the name is chosen: the page on screen, not the whole joined buffer.
+- [EXP next level](exp-next-level-v1.html) — bundle-only server readout: the summary screen's EXP. POINTS and NEXT LV. on each Party entry, repeated in the Training block.
+- [POKéDEX own](pokedex-own-v1.html) — bundle-only server readout: the POKéDEX list's HOENN SEEN and OWN counts and party size, and whether each wild foe is in the OWN list.
+- [EXP earned ledger](exp-earned-ledger-v1.html) — bundle-only Training block part: the EXP. Points the game printed, by battle, for the last 10 battles, with the per-page range for trainers and wild POKéMON.
+- [Leader attempt ledger](leader-attempt-ledger-v1.html) — bundle-only Training block part: each battle with a GYM LEADER side by side (party EXP. Points, BAG, her POKéMON left, outcome, money).
+- [Seen trainers ledger](seen-trainers-ledger-v1.html) — bundle-only Training block part: the trainers listed on maps stood on this run, with the game's trainer flags.
+- [Party coverage](party-coverage-v1.html) — bundle-only, at battle decisions: each move's uses and the effectiveness line printed, by foe type, and the types no move has hit super effectively.
+- [Said type matches](said-type-matches-v1.html) — bundle-only, at battle decisions: foe and party types and moves that a type line the game printed names, quoted with its map.
 - [Story battle heal gate](story-battle-heal-gate-v1.html) — bundle-only guard: while a party Pokémon is below max HP, a press of A, navigate_to_target or navigate_to that would start the Route 103 rival battle or a gym trainer battle (in gyms also a route a trainer can see) is not started; it says so in the game's words with the hurt party and known heal places, and confirm: true goes ahead.
 
 - [Distinct exits and map sections](exit-labels-v3.html): versioned terrain sections, physical exit identities and explicit same-map return relationships.
@@ -188,4 +197,60 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
 
 - [Caught Pokédex registration input](caught-dex-input-v1.html): battle-owned post-catch A/B page; default OFF, bundle ON.
+
+- [Progress-aware cycles](progress-aware-cycles-v1.html): bounded healing trips and milestone-turn precedence.
+
+- [rejected-movement-step-v1](rejected-movement-step-v1.html)
+- [observed-field-dialogue-v1](observed-field-dialogue-v1.html)
+- [Story goal: player name](story-goal-player-name-v1.html) — default OFF, bundle arm only: the player's own name (the readout's Player line) is not a candidate for "He/She lives", so e9ee's "He lives right next door" resolves to PROF. BIRCH'S HOUSE (door (14,8)) instead of leaving the Story goal on the PETALBURG GYM line.
+- [Cut-off reply feedback](cut-off-reply-feedback-v1.html) — default OFF, bundle arm only: after a reply that stopped at max_tokens with no tool call, the next message says so and asks for one tool call (naming the walking tools), instead of the plain NUDGE; a due text-only supervisor note still wins.
+- [Trainer sight: target walks](trainer-sight-check-v2.html) — default OFF, bundle arm only: navigate_to_target routes get trainer-sight-check-v1's check (first walk of the call; the talk target's own sight left out) and a confirm_trainer_sight argument.
+- [Auto-talk: skip beaten trainers](auto-talk-v2.html) — default OFF, bundle arm only: trainers the readout shows as defeated are not auto-talk targets.
+- [Auto-talk on the field only](auto-talk-field-only-v1.html) — default OFF, bundle arm only: auto-talk does nothing in a battle and records no not_free no-ops.
+- [Auto-talk after a quiet stretch](auto-talk-v3.html) — default OFF, bundle arm only: auto-talk acts after 10 quiet free-field turns on one map instead of on a loop.
+- [People not talked to](untalked-people-header-v1.html) — default OFF, bundle arm only: the trust header lists people on this map not talked to since the last story milestone.
+- [Map-wide triggers](map-wide-triggers-v1.html) — default OFF, bundle arm only, game server: the state lists every coordinate trigger on the map so a Littleroot stride stops at (10,10) before the (10,9) trigger; the readout text keeps the 7-tile list.
+- [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
+
+- [Gym evidence](gym-evidence-v1.html): current native completion, compound Gym identity and citation delivery; no next-action guidance.
+
+- [Script trigger boundaries](trigger-navigation-boundary-v1.html) — matching scripts interrupt navigation instead of blocking the route.
+
+- [Milestone instruction memory](milestone-instruction-memory-v1.html): conservative native-scene retirement, compact whole-episode memory and six frozen trace keep/drop audits.
+
+- [Every tool in the system prompt](tool-prompt-docs-v1.html) — default OFF, proposed for both arms: every tool the model is given is named in its system prompt (choose_evolution, battle_action, and one line per tool a just-in-time scene keeps but whose section it hides).
+- [Field ownership feedback](field-ownership-feedback-v1.html) — default OFF, proposed for both arms: navigate_to_target checks the field is free before resolving its target and, when an interface owns input, refuses with navigate_to's reason and the whole readout; the stall briefing and auto-talk name the interface and its controls.
+- [Move-learning loop fingerprint](move-learn-loop-fingerprint-v1.html) — default OFF, bundle arm: move-learning prompts get a loop-guard fingerprint even while the battle flag is set, so a cycle made only of them is reported after two repeats.
+- [Stale plan fact](stale-plan-fact-v1.html) — default OFF, bundle arm: when the thinking repeats word for word but the game shows a different Interface line or question, the result ends with one line saying so.
+- [Post-battle readout](post-battle-readout-v1.html) — default OFF, bundle arm, game server: after a battle on the evolution or summary screen the battle block says ended and takes the POKéMON and its moves from the party; in battle a ready learn-move box is the Interface line.
+- [Move-learn early comparison](move-learn-early-comparison-v1.html) — default OFF, game server, needs move-learn-comparison-v1: the move comparison block also shows on the pages before and while the game asks "Delete a move to make room for …?" (evolution and trade steps 0–3, and the two battle pages), with no question line.
+- [Learn move tool](move-learn-tool-v1.html) — default OFF, bundle arm: learn_move(forget: a known move or "none") answers the move-learning prompts one checked press at a time and verifies the party's moves.
+
+- [Poison readout](poison-readout-v1.html) — readable poison and game-owned walking warning.
+- [Berry readout](berry-readout-v1.html) — visible ripe/growing trees and owned berry descriptions.
+
+- [milestone-drought-suppression-v1](milestone-drought-suppression-v1.html): milestone-drought timers stay diagnostic; no model intervention.
+
+- [Bounded navigation recovery](navigation-recovery-v1.html): stale-map refusals and persistent map-cycle recovery; backtracking stays available.
+
+- [Menu item guidance](menu-item-guidance-v1.html)
+- [Factual healing guidance](factual-healing-guidance-v1.html)
+
+- [Coherent healing feedback](coherent-healing-feedback-v1.html): one factual warning for verified weakness; no full-heal command for minor damage.
+
+- [Family and repeat conversations](explorer-family-guidance-v1.html): an independently switched replacement of the generic explorer section.
+- [battle-move-learn-input-v1](battle-move-learn-input-v1.html): native ready battle move-learning YES/NO ownership.
+- [Checked requested movement](rejected-movement-stride-v1.html): one bounded native stride from a model-selected direction prefix.
+- [leader-loss-comparison-v1](leader-loss-comparison-v1.html) — compact observed last-loss comparison.
+
+- [npc-approach-feedback-v1](npc-approach-feedback-v1.html) — approach a qualified trainer template without interaction.
+
+- [CURRENT BOUNDARY FACTS](boundary-crossing-facts-v1.html): Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit.
+
+- [delivered-place-evidence-v1](delivered-place-evidence-v1.html): exact historical spatial dialogue and qualified named places.
+- [REACHABLE SECTION ALTERNATIVES](reachable-section-alternatives-v1.html): Default off; bundle treatment. When the current foot mask establishes a requested coordinate unreachable, returns up to four currently foot-reachable departure warps with their already-delivered destination terrain-section facts and script/object caveats. These alternatives do not establish a route to the requested coordinate; no exit is chosen and no input sent.
+- [owned-battle-context-v1](owned-battle-context-v1.html) — explicit evolution/move-forget ownership wins over lingering battle bit.
+
+## [static-npc-template-approach-v1](static-npc-template-approach-v1.html)
+Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.
 - [Coherent battle observation](coherent-battle-observation-v1.html): bounded safe battle capture; default OFF.

@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // heal-before-trainers-v2: trainers from the map's whole object list, loaded or not; heal places include every
 // POKéMON CENTER a delivered result listed as an exit; a story battle's opponent is named below full HP.
@@ -65,13 +66,13 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v1",switchable:true,title:"HEAL BEFORE TRAINERS V2"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_JOSH_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-31)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-80)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true}),null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,[ID]:true,"heal-before-trainers-v1":false})).toContain(`${ID} needs heal-before-trainers-v1`);
+  expect(serverFeatureEnv({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true,"heal-before-trainers-v1":false})).toContain(`${ID} needs heal-before-trainers-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

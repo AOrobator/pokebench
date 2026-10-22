@@ -30,21 +30,27 @@ FIXTURE = json.loads(
 )
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
-    "readout-truth-v1",
-    "birch-speech-pages-v1",
-    "blackout-readout-v1",
-    "surf-gated-exits-v1",
-    "exit-reachability-v1",
-    "heal-before-trainers-v1",
-    "tutorial-party-owner-v1",
-    "mid-frame-readout-v1",
-    "unset-dynamic-warp-v1",
-    "status-names-v1",
-    "surf-gated-exits-v2",
-    "battle-effective-damage-v1",
-    "caught-nickname-prompt-v1",
-}
+RECORDED_OFF = (
+    frozenset({"coherent-battle-observation-v1"})
+    | frozenset(FIXTURE["recorded_off"])
+    | {
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+        "surf-gated-exits-v1",
+        "exit-reachability-v1",
+        "heal-before-trainers-v1",
+        "tutorial-party-owner-v1",
+        "mid-frame-readout-v1",
+        "unset-dynamic-warp-v1",
+        "status-names-v1",
+        "surf-gated-exits-v2",
+        "battle-effective-damage-v1",
+        "caught-nickname-prompt-v1",
+        "exp-next-level-v1",
+        "pokedex-own-v1",
+    }
+)
 OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
 WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'
 RESOLVING = (
@@ -318,7 +324,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-35] == SWITCH
+    assert SERVER_FEATURES[-46] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 
@@ -333,9 +339,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader("00004700", operator_rom())
     payloads = {}
     for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
-        monkeypatch.setenv(
-            "POKEBENCH_FEATURES_OFF", "coherent-battle-observation-v1," + ",".join(sorted(off))
-        )
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
         install_observation(app, lambda: _Shot(), read, maps())

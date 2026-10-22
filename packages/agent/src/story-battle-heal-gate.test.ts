@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-gate-v1 (the operator 2026-10-20 8:53 PM ET: "yes i also want the gate built", "the gate could also be useful
 // for the gym"). Run 97a0 (2026-10-20T20-26-22_qwen36-gpu1_97a0): result 4541 (turn 156, state 4540) carried the story
 // battle warning "TORCHIC 5/22 … Heal to full before this battle"; at turn 157 (seq 4549) the model called
@@ -14,8 +15,9 @@ import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import { ALL_ON as PENDING_BASE_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -236,7 +238,7 @@ function navTools(state:GameStateSnapshot,features:FeatureSet,gate:StoryBattleHe
   executeChecked:(_id:string,params:{buttons:string[]},check:(s:GameStateSnapshot)=>void)=>{check(current);pressed.push([...params.buttons]);step(params.buttons[0]??"");return Promise.resolve(result(current,"pressed"));}} as unknown as AgentTool;
  const observe={name:"observe",label:"observe",description:"observe",parameters:{} as never,execute:()=>Promise.resolve(result(current))} as unknown as AgentTool;
  const trainerSight=sight===undefined?undefined:{check:()=>sight instanceof Error?Promise.reject(sight):Promise.resolve(sight),record:(c:TrainerSightCheck)=>{sightRecords.push(c);}};
- const navigate=must(withNavigation([press,observe],walk?{...features,"safe-navigation-strides-v1":false}:features,{read:()=>Promise.resolve(current)},undefined,trainerSight,gate).find(t=>t.name==="navigate_to"));
+ const navigate=must(withNavigation([press,observe],walk?{...features,"coherent-battle-observation-v1":false,"safe-navigation-strides-v1":false}:features,{read:()=>Promise.resolve(current)},undefined,trainerSight,gate).find(t=>t.name==="navigate_to"));
  return {navigate,pressed,sightRecords};
 }
 
@@ -386,15 +388,15 @@ describe("production factory",()=>{
  it("playGameTools refuses 97a0's turn 157 with the switch on and records the event; off, MAY is talked to and nothing is recorded",async()=>{
   const root=mkdtempSync(join(tmpdir(),"pokebench-heal-gate-wire-"));
   try{
-   for(const on of [true,false]){
-    const log=RunLog.create(root,on?"on":"off");
+   for(const [on,progress] of [[true,false],[true,true],[false,true]]){
+    const log=RunLog.create(root,`${String(on)}-${String(progress)}`);
     const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(MAY_STATE)}});
     await recorder.start(RUN_START_META);
     const pressed:unknown[]=[];
     const queue=[OLDALE];
     const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(_id:string,params:unknown)=>{pressed.push(params);const r=queue.shift()??{text:"pressed",state:MAY_STATE};return Promise.resolve(result(r.state,r.text));},executeChecked:(_id:string,params:unknown,check:(s:GameStateSnapshot)=>void)=>{check(MAY_STATE);pressed.push(params);return Promise.resolve(result(MAY_STATE,"pressed"));}} as unknown as AgentTool;
     const observe={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve(result(MAY_STATE))} as unknown as AgentTool;
-    const tools=playGameTools([press,observe],{...WIRE,[ID]:on},{read:()=>Promise.resolve(MAY_STATE),places:PLACES.places,trainerSight:()=>Promise.resolve(TURN501)},recorder);
+    const tools=playGameTools([press,observe],{...WIRE,[ID]:on===true,"progress-aware-cycles-v1":progress===true},{read:()=>Promise.resolve(MAY_STATE),places:PLACES.places,trainerSight:()=>Promise.resolve(TURN501)},recorder);
     await must(tools.find(t=>t.name==="press")).execute("p",{buttons:["B"]});
     const out=await must(tools.find(t=>t.name==="navigate_to_target")).execute("t157",{map_id:[0,18],target:{kind:"object",local_id:2}});
     recorder.end("budget");
@@ -404,6 +406,8 @@ describe("production factory",()=>{
      expect(texts(out).slice(0,2)).toEqual([`Semantic navigation: ${GATE_STATUS}. Selected map object 2.`,TURN157_TEXT]);
      expect(pressed).toEqual([{buttons:["B"]}]);
      expect(gates.map(g=>[g.tool,g.outcome,g.text])).toEqual([["navigate_to_target","refused",TURN157_TEXT]]);
+     if(progress)expect(gates[0]?.heal_routes).toEqual(expect.arrayContaining([{outward:[[0,18],[0,10],[2,2]],back:[[2,2],[0,10],[0,18]]}]));
+     else expect(gates[0]).not.toHaveProperty("heal_routes");
      expect(formatEvent(must(gates[0]))).toContain("story battle heal gate · navigate_to_target · refused · MAY (10,3) by talk · TORCHIC 5/22");
     }else{
      expect(texts(out).join("\n")).not.toContain("Battle not started");
@@ -431,11 +435,11 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-15)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
+  expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:true}),null).at(-44)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
@@ -443,11 +447,11 @@ describe("registry and event",()=>{
   expect(playSystemPrompt(F97,null)).toBe(playSystemPrompt({...F97,[ID]:false},null));
   expect(playTools(F97)).toEqual(playTools({...F97,[ID]:false}));
  });
- it("is in the bundle arm only of both fixed bundles, and its pending experiment's incumbent is that arm with the switch off",()=>{
+ it("stays OFF in future bundles while its historical pending incumbent remains unchanged",()=>{
   const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[]};
-   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).not.toContain(ID);
   }
   const fixed=read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>};switches:string[]};
   const arm:Record<string,boolean>={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
@@ -456,9 +460,24 @@ describe("registry and event",()=>{
   delete arm["pending-field-dialogue-v1"];
   delete arm["menu-refusal-recovery-v1"];
   delete arm["mart-stock-readout-v1"];
+  delete arm["shop-interface-v1"];
+  delete arm["birch-intro-pages-v1"];
+  delete arm["tool-prompt-docs-v1"];
+  delete arm["field-ownership-feedback-v1"];
+  delete arm["move-learn-loop-fingerprint-v1"];
+  delete arm["stale-plan-fact-v1"];
+  delete arm["post-battle-readout-v1"];
+  delete arm["move-learn-tool-v1"];
+  delete arm["move-learn-early-comparison-v1"];
+  delete arm["menu-item-guidance-v1"];
+  delete arm["factual-healing-guidance-v1"];
+  delete arm["rejected-movement-prefix-v1"];
+  delete arm["poison-readout-v1"];
+  delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
+  for(const id of ["static-npc-template-approach-v1","owned-battle-context-v1","coherent-healing-feedback-v1", "explorer-family-guidance-v1", "battle-move-learn-input-v1", "rejected-movement-stride-v1", "leader-loss-comparison-v1", "npc-approach-feedback-v1", "boundary-crossing-facts-v1", "delivered-place-evidence-v1", "reachable-section-alternatives-v1"])Reflect.deleteProperty(arm,id);
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
-  expect({...entry.incumbent.features,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
+  expect({...entry.incumbent.features,"fixed-point-breaker-v1":true,"navigation-recovery-v1":true,"milestone-drought-suppression-v1":true,"trigger-navigation-boundary-v1":true,"milestone-instruction-memory-v1":true,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

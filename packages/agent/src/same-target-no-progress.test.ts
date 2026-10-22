@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // same-target-no-progress-v1 (the operator approved the guard 2026-10-20). Run 2026-10-20T16-14-34_qwen36-gpu0_a8f9 from
 // turn 1282 (tool_call seq 41089) called navigate_to (29,16) on RUSTURF TUNNEL 39 times; every call ended on one of
 // six tiles next to (4,9), a third of them in a wild battle, and no loop guard fired.
@@ -8,7 +9,9 @@ import {describe,expect,it} from "vitest";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {recorded} from "../test-support/battle-facts.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import { ALL_ON as PENDING_BASE_CURRENT_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const RAW_PROGRESS_PENDING_BASE_CURRENT_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_CURRENT_ON={...RAW_PROGRESS_PENDING_BASE_CURRENT_ON,"progress-aware-cycles-v1":false};
 const CURRENT_ON={...PENDING_BASE_CURRENT_ON,"pending-field-dialogue-v1":false};
 import type {GameStateSnapshot} from "./game-state.js";
 import {readFileSync} from "node:fs";
@@ -301,11 +304,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-22)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-71)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-71)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-21)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(CURRENT_ON),null).at(-50)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
@@ -350,7 +353,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   const build=(on:boolean)=>{
    const notices:LoopNotice[]=[];const subs:((e:RunEvent)=>void)[]=[];
    const governor=new Governor({limits:{maxTurns:50,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-   const d=playLoopGuard({...ALL_ON,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor);
+   const d=playLoopGuard({...ALL_ON,"coherent-battle-observation-v1":false,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor);
    [at(5,8),at(4,7),battle(4,8),at(5,9)].forEach((to,i)=>{d.complete(walk(i+1,at(4,9),to));});
    return notices.map(n=>n.kind);
   };

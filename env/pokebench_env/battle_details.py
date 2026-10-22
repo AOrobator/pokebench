@@ -153,6 +153,7 @@ class BattleDetails:
         levelup_box: bool = False,
         effective_damage: bool = False,
         input_override: str | None = None,
+        ended: bool = False,
     ) -> list[str]:
         return battle_details_lines(
             battle,
@@ -161,6 +162,7 @@ class BattleDetails:
             levelup_box=levelup_box,
             effective_damage=effective_damage,
             input_override=input_override,
+            ended=ended,
         )
 
 
@@ -567,6 +569,19 @@ def _actor_text(label: str, actor: BattleBattler, held: HeldItem | None) -> str:
     )
 
 
+def _ended_lines(member: MemberFacts) -> list[str]:
+    """post-battle-readout-v1: the player's POKéMON and moves as the party holds them now."""
+    if member.diagnostic is not None or member.types is None:
+        return [f"You {member.name} · HARNESS BUG: {member.diagnostic or 'types unavailable'}"]
+    return [
+        f"You {member.name} Lv{member.level} · {_types(member.types)} · "
+        f"HP {member.hp}/{member.max_hp} · {status1_text(member.status)} "
+        "(from the party; the battle has ended)",
+        "Your moves (from the party; the battle has ended):",
+        *(f"  {slot + 1} {move_text(move)}" for slot, move in enumerate(member.moves)),
+    ]
+
+
 def battle_details_lines(
     battle: BattleState,
     details: BattleDetails,
@@ -575,13 +590,19 @@ def battle_details_lines(
     levelup_box: bool = False,
     effective_damage: bool = False,
     input_override: str | None = None,
+    ended: bool = False,
 ) -> list[str]:
+    """post-battle-readout-v1 (ended): the game has left the battle screen for the evolution or
+    summary screen while the battle finishes; the battle struct still holds the POKéMON as it was
+    in battle, so the player's POKéMON and moves come from the party."""
     flags = battle.battle_type or 0
     lines = [
         f"Battle details: {_kind(flags)} · turn {battle.turn} · "
         + (
             input_override
             if input_override is not None
+            else f"ended (outcome {battle.outcome})"
+            if ended
             else _input_text(battle, message_waiting, levelup_box)
         )
     ]
@@ -598,7 +619,24 @@ def battle_details_lines(
         if not foe.absent:
             line += " · moves: " + ("; ".join(move_text(m) for m in moves) or "none")
         lines.append(line)
+    party = {m.identity: m for m in details.party or () if m.identity is not None}
     for actor in players:
+        if ended and actor.absent:
+            gone = party.get(actor.identity)
+            if gone is not None:
+                lines.append(f"You {gone.name} · absent (fainted or switched out)")
+            continue
+        if ended:
+            member = party.get(actor.identity)
+            lines.extend(
+                _ended_lines(member)
+                if member is not None
+                else [
+                    "You · HARNESS BUG: no party member matches the player's battler; "
+                    "the battle has ended, so its own copy is not shown"
+                ]
+            )
+            continue
         control = inputs.get(actor.battler)
         if flags & WALLY_TUTORIAL:
             lines.append("Actions: none (the game plays the WALLY tutorial)")

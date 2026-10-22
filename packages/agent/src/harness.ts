@@ -11,7 +11,7 @@ import { createAssistantMessageEventStream, streamSimple, type Context, type Api
 import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
-import type { FeatureSet } from "./features.js";
+import {semanticNavigation,type FeatureSet} from "./features.js";
 import type { BudgetTrim, ContextBudget } from "./context-budget.js";
 
 export interface Chunked {
@@ -153,6 +153,8 @@ export interface GovernorDeps {
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number) => string;
   readonly textOnlyReminder?: string;
+  // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
+  readonly cutOffNotice?: string;
 }
 
 export class Governor {
@@ -160,6 +162,7 @@ export class Governor {
   private failures = 0;
   private modelErrors = 0;
   private nudgeDue = false;
+  private cutOff = false;
   private silent = 0;
   private notes = 0;
   private note: { replies: number; note: number } | null = null;
@@ -175,6 +178,7 @@ export class Governor {
     this.modelErrors = 0;
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
+    this.cutOff = calls === 0 && message.stopReason === "length";
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
     this.silent = calls === 0 ? this.silent + 1 : 0;
     if (message.stopReason === "length") this.fail("reply hit max_tokens");
@@ -208,7 +212,8 @@ export class Governor {
     const due = this.note;
     this.note = null;
     // The note is built, and recorded, only when it is actually delivered.
-    const content = due === null || this.deps.textOnlySupervisor === undefined ? (this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE) : this.deps.textOnlySupervisor(due.replies, due.note);
+    const plain = this.cutOff && this.deps.cutOffNotice !== undefined ? this.deps.cutOffNotice : this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE;
+    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note);
     return [{ role: "user", content, timestamp: Date.now() }];
   }
 
@@ -248,11 +253,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Pick<FeatureSet,"menu-refusal-recovery-v1">): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Partial<Pick<FeatureSet,"menu-refusal-recovery-v1"|"progress-aware-cycles-v1"|"move-learn-loop-fingerprint-v1"|"navigation-recovery-v1"|"semantic-navigation-v1"|"semantic-navigation-v2">>): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["progress-aware-cycles-v1"]??false,features?.["move-learn-loop-fingerprint-v1"]??false,features?.["navigation-recovery-v1"]??false,semanticNavigation({"semantic-navigation-v1":features?.["semantic-navigation-v1"]??false,"semantic-navigation-v2":features?.["semantic-navigation-v2"]??false}));
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

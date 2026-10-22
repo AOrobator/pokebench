@@ -361,10 +361,12 @@ def read_active_ui(
     truth: bool = False,
     evolution_decision: bool = False,
     birch_pages: bool = False,
+    birch_intro_pages: bool = False,
     transition_coherence: bool = True,
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
     caught_dex: bool = False,
+    battle_move_learn_input: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -589,6 +591,23 @@ def read_active_ui(
             current_battle_only=transition_coherence,
             tutorial_owner_enabled=tutorial_owner_enabled,
         )
+        if battle_move_learn_input:
+            # Cmd_yesnoboxlearnmove / Cmd_yesnoboxstoplearningmove own cursor input
+            # at learnMoveState == 1; battle action controllers do not own this box.
+            prompt = battle.prompt
+            if (
+                battle.diagnostic is None
+                and prompt is not None
+                and prompt.ready
+                and prompt.kind in {"learn_move", "stop_learning_move"}
+            ):
+                return ActiveUi(
+                    "battle_yes_no",
+                    prompt.selected,
+                    True,
+                    "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO",
+                    details={"prompt_kind": prompt.kind},
+                )
         inputs = battle.player_inputs or ()
         selected = (
             "; ".join(
@@ -684,6 +703,25 @@ def read_active_ui(
             if ready
             else "Transition or text printing; selection input is not active",
         )
+    if birch_intro_pages and not owners:
+        from pokebench_env.birch_pages import (
+            INTRO_NOT_READY,
+            INTRO_PAGE_TASKS,
+            INTRO_PHASE,
+            read_birch_page,
+        )
+
+        intro = [fn for fn in functions if fn in INTRO_PAGE_TASKS]
+        if len(intro) == 1:
+            task = next(
+                tasks[i : i + 0x28]
+                for i in range(0, len(tasks), 0x28)
+                if tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == intro[0]
+            )
+            page = read_birch_page(read, task, tasks=INTRO_PAGE_TASKS, phase=INTRO_PHASE)
+            if page is not None:
+                return page
+            return ActiveUi(INTRO_PHASE, None, False, INTRO_NOT_READY)
     if screen.kind != "unknown" and not owners:
         return None
     if transition_coherence and not owners and screen.callback2 in HANDOFF_CALLBACKS:

@@ -304,7 +304,21 @@ def test_native_geodude_fixture_through_model_observation_keeps_guard_and_pairin
             )
 
     memory = NativeMemory()
-    off = frozenset(phases[0]["off"])
+    off = frozenset(phases[0]["off"]) | frozenset(
+        {
+            "exp-next-level-v1",
+            "pokedex-own-v1",
+            "shop-interface-v1",
+            "map-wide-triggers-v1",
+            "birch-intro-pages-v1",
+            "post-battle-readout-v1",
+            "move-learn-early-comparison-v1",
+            "poison-readout-v1",
+            "berry-readout-v1",
+            "battle-move-learn-input-v1",
+            "static-npc-template-approach-v1",
+        }
+    )
     if enabled:
         off -= {"coherent-battle-observation-v1"}
     monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))

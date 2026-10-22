@@ -158,6 +158,8 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
                     "battle-effective-damage-v1",
                     "semantic-navigation-v1",
                     "semantic-navigation-v2",
+                    "exp-next-level-v1",
+                    "pokedex-own-v1",
                 }
             )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)

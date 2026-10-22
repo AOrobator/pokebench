@@ -1,3 +1,4 @@
+import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // no-exit-here-v1: a press into a map edge, or navigate_to aimed at or past one, on a side of the map with no map
 // connection adds one line saying so, with the ways off the map the readout already lists.
@@ -126,7 +127,7 @@ describe("no-exit-here-v1 warp names from the readout's Warp destination lines (
   const warp=(x:number,y:number,destination:[number,number,number])=>({kind:"warp" as const,x,y,elevation:0,activation:"movement",availability:"conditional" as const,facing:null,local_id:null,destination,name:"w"});
   const state:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_battle:false,location:"CAVE",map_id:[3,3],position:{x:5,y:5},facing:"up",interaction_targets:[warp(5,5,[4,4,0]),warp(6,6,[8,8,0])],topology:{width:10,height:10,connections:[]},surf_gate:{can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:5,y:5}],connections:[]}};
   const readout="Warp destination at (5,5): DEEP HALL (not an exit you can use now: across water, needs Surf)\nWarp destination at (6,6): unknown map 8/8";
-  expect(noExitLine({...ALL_ON,"battle-decision-ready-v1":false,"surf-gated-exits-v1":true},state,readout,["NORTH"])).toBe("There is no way off CAVE to the north; the ways off this map are: (5,5) -> DEEP HALL (map 4/4) (crosses water you cannot cross yet); (6,6) -> map 8/8");
+  expect(noExitLine({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"surf-gated-exits-v1":true},state,readout,["NORTH"])).toBe("There is no way off CAVE to the north; the ways off this map are: (5,5) -> DEEP HALL (map 4/4) (crosses water you cannot cross yet); (6,6) -> map 8/8");
  });
 });
 
@@ -175,11 +176,11 @@ describe("no-exit-here-v1 line",()=>{
  });
  it("says when nothing is listed, and lists no connections without world destinations",()=>{
   expect(noExitLine(ALL_ON,base({interaction_targets:[],topology:{width:10,height:10,connections:[]}}),"",["EAST"])).toBe("There is no way off HALL to the east; the ways off this map are: none are listed");
-  expect(noExitLine({...ALL_ON,"battle-decision-ready-v1":false,"world-destinations-v1":false},base({}),"",["EAST"])).toBeNull();
+  expect(noExitLine({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"world-destinations-v1":false},base({}),"",["EAST"])).toBeNull();
  });
  it("marks an exit exit-reachability-v1 finds unreachable on foot",()=>{
   const reach={foot:{width:10,height:10,rows:Array.from({length:10},()=>"000")},warps:[{x:1,y:0,reach:"none" as const},{x:2,y:0,reach:"none" as const},{x:5,y:5,reach:"foot" as const}],connections:[{direction:"NORTH" as const,destination:[7,7] as [number,number],offset:0,reach:"foot" as const}]};
-  expect(noExitLine({...ALL_ON,"battle-decision-ready-v1":false,"exit-reachability-v1":true},base({exit_reach:reach}),"",["EAST"])).toBe("There is no way off HALL to the east; the ways off this map are: NORTH edge -> map 7/7; (1,0) or (2,0) -> map 4/4 (cannot be reached on foot from where you stand); (5,5) -> dynamic destination");
+  expect(noExitLine({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"exit-reachability-v1":true},base({exit_reach:reach}),"",["EAST"])).toBe("There is no way off HALL to the east; the ways off this map are: NORTH edge -> map 7/7; (1,0) or (2,0) -> map 4/4 (cannot be reached on foot from where you stand); (5,5) -> dynamic destination");
  });
  it("no sides, no line",()=>{
   expect(noExitLine(ALL_ON,base({}),"",[])).toBeNull();
@@ -264,14 +265,14 @@ describe("no-exit-here-v1 through playGameTools",()=>{
 
 describe("no-exit-here-v1 registry",()=>{
  it("is appended last, a guidance switch that needs world destinations, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-72)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-26)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-72)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-121)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-26)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-121)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"world-destinations-v1",switchable:true,title:"NO EXIT HERE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -> ROUTE103 (map 0/18)");
-  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"world-destinations-v1":false})).toContain(`${ID} needs world-destinations-v1`);
-  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,"world-destinations-v1":false})).toContain(`${ID} needs world-destinations-v1`);
+  expect(playHarnessFeatures({...ALL_ON,"coherent-battle-observation-v1":false,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
  });
  it("presets and flag presets leave it off when omitted",()=>{
   const omitted=Object.fromEntries(Object.entries(ALL_ON).filter(([k])=>k!==ID));

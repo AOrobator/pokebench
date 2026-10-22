@@ -1,0 +1,16 @@
+{
+  "run": "2026-10-22T00-22-02_qwen36-gpu0_d951",
+  "state_seq": 17459,
+  "tool_result_seq": 17460,
+  "loop_guard_seq": 17461,
+  "turn": 492,
+  "raw_ram": {
+    "v": 1,
+    "sequence": 7494,
+    "frame": 273486,
+    "sha256": "3b69dfa0e60f653a9ae486a1348eb345f527c10fc8e30828c767ce1de0a55f09",
+    "path": "raw-ram/00007494.json.gz"
+  },
+  "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+  "source_revision": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881"
+}

@@ -239,7 +239,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
       const cycle=event.trigger==="short_cycle"?`a cycle of ${String(event.period)} turns (the same tool calls and game state, apart from fields that change on their own) repeated over ${String(event.repeats)} turns`:null;
       return event.stage===1?`Loop breaker stage 1 · ${String(event.collapsed)} ${cycle===null?"duplicate":"earlier"} ${event.collapsed===1?"turn":"turns"} left out of the request${cycle===null?"":" across every cycle in it"} (${cycle===null?"":"longest: "}${cycle??`${String(event.repeats)} identical ${event.trigger==="no_tool_call"?"replies with no tool call":"turns"} in a row`})`:`Loop breaker stage 2 note sent to the model (${event.trigger==="no_tool_call"?"reply with no tool call":cycle??"fixed point"}${cycle===null?`, ${String(event.repeats)} in a row`:""}) · ${esc(event.text??"")}`;
     }
-    case "auto_talk":return `Loop breaker stage 3 auto-talk (${event.trigger==="no_tool_call"?"replies with no tool call":"fixed point"}, ${String(event.repeats)} in a row) · ${event.outcome==="talked"?"talked to":event.outcome==="unreachable"?"could not reach":event.outcome==="none"?"no one untalked on this map":"the field was not free"}${event.target===null?"":` ${esc(event.target.name)} at (${String(event.target.x)},${String(event.target.y)})`} · ${String(event.walks)} walks, ${String(event.tried)} tried${event.text===null?"":` · ${esc(event.text)}`}`;
+    case "auto_talk":return `${event.trigger==="quiet_map"?`Auto-talk after a quiet stretch (${String(event.repeats)} turns on this map with no story milestone)`:`Loop breaker stage 3 auto-talk (${event.trigger==="no_tool_call"?"replies with no tool call":"fixed point"}, ${String(event.repeats)} in a row)`} · ${event.outcome==="talked"?"talked to":event.outcome==="unreachable"?"could not reach":event.outcome==="none"?"no one untalked on this map":"the field was not free"}${event.target===null?"":` ${esc(event.target.name)} at (${String(event.target.x)},${String(event.target.y)})`} · ${String(event.walks)} walks, ${String(event.tried)} tried${event.text===null?"":` · ${esc(event.text)}`}`;
     case "trainer_sight_check":return `Trainer sight check (navigate_to to (${String(event.goal.x)},${String(event.goal.y)}), ${String(event.route_tiles)} route tiles${event.confirmed?", confirm_trainer_sight":""}) · ${event.outcome==="refused"?"not walked":event.outcome==="confirmed"?"walked anyway":event.outcome==="clear"?"no trainer in sight":`not checked: ${esc(event.reason??"unknown")}`}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) facing ${t.facing} sees (${String(t.tile.x)},${String(t.tile.y)}), step ${String(t.step)}`).join("; ")}`}`;
     case "heal_first_line":return `Heal first line added to the ${esc(event.tool)} result · ${esc(event.opponent)} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${event.heard===null?"no heal line heard":`heal line heard turn ${String(event.heard.turn)}`}${event.exit===null?"":` · exit to ${esc(event.exit.to)}`} · ${esc(event.text)}`;
     case "story_battle_heal_gate":return `Story battle heal gate (${event.tool}${event.confirmed?", confirm":""}) · ${event.outcome==="refused"?"not started":event.outcome==="confirmed"?"started anyway":event.outcome==="clear"?"no trainer battle ahead":`sight not checked: ${esc(event.reason??"unknown")}`}${event.reached.map(r=>` · ${r.kind==="rival"?`rival ${esc(r.name??"unknown")}`:r.kind==="gym_leader"?`Gym Leader ${esc(r.name??"unknown")}`:`object ${String(r.local_id)} ${esc(r.sprite_kind??"unknown")}`} at (${String(r.x)},${String(r.y)}) ${r.via==="talk"?"talked to":`approached from (${String(r.tile.x)},${String(r.tile.y)})`}`).join("")}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) sees (${String(t.tile.x)},${String(t.tile.y)})`).join("; ")}`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")}${event.text===null?"":` · ${esc(event.text)}`}`;
@@ -253,7 +253,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
-    case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "ledger_context":return `Instruction ledger delivered${event.retention===undefined?"":` · ${String(event.retention.kept.length)} kept · ${String(event.retention.retired.length)} archived`} · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -379,8 +379,34 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "gym-evidence-v1":"gym-evidence-v1.html",
+ "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",
+ "field-ownership-feedback-v1":"field-ownership-feedback-v1.html",
+ "move-learn-loop-fingerprint-v1":"move-learn-loop-fingerprint-v1.html",
+ "stale-plan-fact-v1":"stale-plan-fact-v1.html",
+ "post-battle-readout-v1":"post-battle-readout-v1.html",
+ "move-learn-early-comparison-v1":"move-learn-early-comparison-v1.html",
+ "move-learn-tool-v1":"move-learn-tool-v1.html",
+ "milestone-drought-suppression-v1":"milestone-drought-suppression-v1.html",
+ "story-goal-player-name-v1":"story-goal-player-name-v1.html",
+ "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
+ "trainer-sight-check-v2":"trainer-sight-check-v2.html",
+ "auto-talk-v2":"auto-talk-v2.html",
+ "auto-talk-field-only-v1":"auto-talk-field-only-v1.html",
+ "auto-talk-v3":"auto-talk-v3.html",
+ "untalked-people-header-v1":"untalked-people-header-v1.html",
+ "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
+ "map-wide-triggers-v1":"map-wide-triggers-v1.html",
+ "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
+ "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
+ "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "boundary-crossing-facts-v1":"boundary-crossing-facts-v1.html",
+  "reachable-section-alternatives-v1":"reachable-section-alternatives-v1.html",
+  "rejected-movement-stride-v1":"rejected-movement-stride-v1.html",
+  "rejected-movement-step-v1":"rejected-movement-step-v1.html",
+  "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
@@ -533,6 +559,11 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
  "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
  "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
+ "static-npc-template-approach-v1":"static-npc-template-approach-v1.html",
+ "owned-battle-context-v1":"owned-battle-context-v1.html",
+ "npc-approach-feedback-v1":"npc-approach-feedback-v1.html",
+ "leader-loss-comparison-v1":"leader-loss-comparison-v1.html",
+ "navigation-recovery-v1":"navigation-recovery-v1.html",
  "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
  "gym-door-label-v1":"gym-door-label-v1.html",
  "move-learn-settle-v1":"move-learn-settle-v1.html",
@@ -540,7 +571,25 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",
  "effectiveness-heard-v1":"effectiveness-heard-v1.html",
  "game-said-goals-v1":"game-said-goals-v1.html",
+ "menu-item-guidance-v1":"menu-item-guidance-v1.html",
+ "factual-healing-guidance-v1":"factual-healing-guidance-v1.html",
+ "coherent-healing-feedback-v1":"coherent-healing-feedback-v1.html",
+ "explorer-family-guidance-v1":"explorer-family-guidance-v1.html",
+ "rejected-movement-prefix-v1":"rejected-movement-prefix-v1.html",
  "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
+ "shop-interface-v1":"shop-interface-v1.html",
+ "birch-intro-pages-v1":"birch-intro-pages-v1.html",
+ "poison-readout-v1":"poison-readout-v1.html",
+ "berry-readout-v1":"berry-readout-v1.html",
+ "battle-move-learn-input-v1":"battle-move-learn-input-v1.html",
+ "delivered-place-evidence-v1":"delivered-place-evidence-v1.html",
  "coherent-battle-observation-v1":"coherent-battle-observation-v1.html",
 });
 

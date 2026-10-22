@@ -24,7 +24,7 @@ const at = (seq: number): { before: GameStateSnapshot; after: GameStateSnapshot;
   if (found === undefined) throw new Error(`no case ${String(seq)}`);
   return { before: parseGameState(found.before), after: parseGameState(found.after), buttons: found.buttons, recorded: found.recorded };
 };
-const on = (features: FeatureSet): FeatureSet => ({ ...features, [ID]: true });
+const on = (features: FeatureSet): FeatureSet => ({ ...features,"coherent-battle-observation-v1":false, [ID]: true });
 
 describe("2919 replay: the recorded blocked batches", () => {
   it("covers the forensics seqs", () => {
@@ -185,7 +185,7 @@ describe("registry, presets and production wiring", () => {
   it("is a registered guidance switch that needs press results, second to last in the run record", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: "press-result-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(FEATURES.filter(f => f.switchable).at(-174)?.id).toBe(ID);
+    expect(FEATURES.filter(f => f.switchable).at(-175)?.id).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-80)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false, [ID]: false }, null)).not.toContain(ID);
     expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);

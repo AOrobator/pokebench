@@ -1,7 +1,7 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
-const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
@@ -122,7 +122,7 @@ describe("story-progress-clock-v1 stall counts",()=>{
   expect(r.kinds).toEqual(["map_cycle"]);
  });
  it("OFF: those trips count, so the note comes one move after the measurement-only milestone",()=>{
-  const r=rig({...features,[ID]:false});
+  const r=rig({...features,"coherent-battle-observation-v1":false,[ID]:false});
   r.go("A",[0,1]);r.go("B",[0,2]);r.go("A",[0,1]);r.go("B",[0,2]);
   r.milestone("RIVAL_OLDALE_SEND_OFF");
   r.go("A",[0,1]);
@@ -136,7 +136,7 @@ describe("story-progress-clock-v1 stall counts",()=>{
    r.state({screen:"naming"});
    return r.kinds;
   };
-  expect(dwell({...features,[ID]:false})).toEqual(["interface_dwell"]);
+  expect(dwell({...features,"coherent-battle-observation-v1":false,[ID]:false})).toEqual(["interface_dwell"]);
   expect(dwell(features)).toEqual([]);
  });
  it("a measurement-only milestone present at start, and GAME_RUNNING, are never progress",()=>{
@@ -150,7 +150,7 @@ describe("story-progress-clock-v1 stall counts",()=>{
  });
  it("positive-supervisor-v1 ON (the bundle arm): the retired drought diagnostic follows the same clock",()=>{
   const run=(on:boolean)=>{
-   const r=rig({...features,"positive-supervisor-v1":true,[ID]:on});
+   const r=rig({...features,"coherent-battle-observation-v1":false,"positive-supervisor-v1":true,[ID]:on});
    r.advance(4*60_000);r.state({});
    r.milestone("RIVAL_BATTLE_STARTED");
    r.advance(2*60_000);r.state({});
@@ -167,8 +167,8 @@ describe("story-progress-clock-v1 switch",()=>{
   expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-69)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-70)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");

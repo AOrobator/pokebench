@@ -10,7 +10,7 @@ import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {recorded} from "../test-support/battle-facts.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-const RAW_PROGRESS_PENDING_BASE_CURRENT_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const RAW_PROGRESS_PENDING_BASE_CURRENT_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const PENDING_BASE_CURRENT_ON={...RAW_PROGRESS_PENDING_BASE_CURRENT_ON,"progress-aware-cycles-v1":false};
 const CURRENT_ON={...PENDING_BASE_CURRENT_ON,"pending-field-dialogue-v1":false};
 import type {GameStateSnapshot} from "./game-state.js";
@@ -304,8 +304,8 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-70)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-71)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-71)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(playHarnessFeatures(withoutFrontierTreatments(CURRENT_ON),null).at(-50)).toBe(ID);

@@ -4,7 +4,7 @@ import {Type} from "typebox";
 import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,semanticNavigation,serverFeatureEnv,type FeatureSet} from "./features.js";
-const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"static-npc-template-approach-v1":false,"npc-approach-feedback-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"static-npc-template-approach-v1":false,"npc-approach-feedback-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false,"trainer-sight-check-v2":false};
 import type {GameStateSnapshot} from "./game-state.js";
 import {NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,SEMANTIC_MOVING_AROUND_FULL,SEMANTIC_MOVING_AROUND_LOCAL,SEMANTIC_NAVIGATE_DESCRIPTION,SEMANTIC_NAVIGATE_TOOL_LINE,SEMANTIC_TOOL_LINE} from "./navigate-first.js";
@@ -25,10 +25,10 @@ const LOCAL:FeatureSet={...ON,"full-map-navigation-v1":false,"visited-terrain-na
 
 describe("registry, presets and dependencies",()=>{
  it("is appended last, default off, a guidance switch that needs bounded navigation, applied by the game server too",()=>{
-  expect(SWITCHABLE_FEATURES.at(-84)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-84)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-85)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-85)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-61)).toBe(ID);
-  expect(SERVER_FEATURES.at(-26)).toBe(ID);
+  expect(SERVER_FEATURES.at(-27)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
@@ -134,10 +134,10 @@ describe("results",()=>{
   for(const name of ["navigate_to_target","explore_map"]){
    const on=await text(withUntakenExits([tool(name)],features,recorder),name);
    expect(on).toContain('Exits here you have not taken: (1,0) [navigate_to_target target {"kind":"warp","x":1,"y":0}] -> map 4/4; NORTH edge -> map 5/5 [navigate_to_target target {"kind":"connection","direction":"NORTH"}]');
-   const off=await text(withUntakenExits([tool(name)],{...features,[ID]:false},recorder),name);
+   const off=await text(withUntakenExits([tool(name)],{...features,"coherent-battle-observation-v1":false,[ID]:false},recorder),name);
    expect(off).not.toContain("Exits here you have not taken");
   }
-  const plain=await text(withUntakenExits([tool("navigate_to")],{...features,[ID]:false},recorder),"navigate_to");
+  const plain=await text(withUntakenExits([tool("navigate_to")],{...features,"coherent-battle-observation-v1":false,[ID]:false},recorder),"navigate_to");
   expect(plain).toContain("Exits here you have not taken: (1,0) -> map 4/4; NORTH edge -> map 5/5\n");
  });
  it("the production factory wraps the semantic tools only with v2",()=>{
@@ -145,7 +145,7 @@ describe("results",()=>{
   const r={subscribe:()=>undefined,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1})};
   const features:FeatureSet={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"untaken-exits-v1":true,[ID]:true};
   const on=playGameTools(base,features,{read:()=>Promise.resolve(snapshot)},r).find(t=>t.name==="navigate_to_target");
-  const off=playGameTools(base,{...features,[ID]:false},{read:()=>Promise.resolve(snapshot)},r).find(t=>t.name==="navigate_to_target");
+  const off=playGameTools(base,{...features,"coherent-battle-observation-v1":false,[ID]:false},{read:()=>Promise.resolve(snapshot)},r).find(t=>t.name==="navigate_to_target");
   expect(on).not.toBe(base[2]);
   expect(off?.execute).toBe(base[2]?.execute);
  });

@@ -22,12 +22,12 @@ import {toolSwitches} from "./play-config.js";
 
 
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,dependencyProblems} from "./features.js";
-const RAW_PROGRESS_BEFORE_PENDING_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
-const BEFORE_PENDING_ALL_ON={...RAW_PROGRESS_BEFORE_PENDING_ALL_ON,"progress-aware-cycles-v1":false};
+const RAW_PROGRESS_BEFORE_PENDING_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const BEFORE_PENDING_ALL_ON={...RAW_PROGRESS_BEFORE_PENDING_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false};
 import type {Button} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 
-const ALL_ON={...BEFORE_PENDING_ALL_ON,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+const ALL_ON={...BEFORE_PENDING_ALL_ON,"coherent-battle-observation-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 const field:GameStateSnapshot={...IN_GAME,story:NAME_CONFIRMED.story,started:true,screen:"overworld",map_id:[0,16],location:"ROUTE101",position:{x:10,y:7},in_battle:false,active_ui:null,field_controls_locked:false,world_context:null,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:1,callback2:2,diagnostic:null,raw_hex:null}};
 const text=(result:{content:readonly {type:string;text?:string}[]})=>result.content.flatMap(c=>c.type==="text"?[c.text??""]:[]).join("\n");
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAPAAAACgCAIAAAC9uXYyAAACYklEQVR4nO3OAQnAMAADsNqYjwm4f1U3USiMQAQk537wjMwHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFGU+gKLMB1CU+QCKMh9AUeYDKMp8AEWZD6Ao8wEUZT6AoswHUJT5AIoyH0BR5gMoynwARZkPoCjzARRlPoCizAdQlPkAijIfQFHmAyjKfABFmQ+gKPMBFP07k6LPv/wpiQAAAABJRU5ErkJggg==","base64");
@@ -72,7 +72,7 @@ describe("navigation tool-use guard at the native input boundary",()=>{
 const hooks=()=>({beforePress:vi.fn(),afterPress:()=>Promise.resolve()});
 it("registers and records two independent optional default-OFF features",()=>{
  const ids=["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const;
- expect(SWITCHABLE_FEATURES.slice(-64,-62)).toEqual(ids);
+ expect(SWITCHABLE_FEATURES.slice(-65,-63)).toEqual(ids);
  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-43,-41)).toEqual(ids);
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);

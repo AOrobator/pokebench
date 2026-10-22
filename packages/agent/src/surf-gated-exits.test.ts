@@ -153,7 +153,7 @@ describe("surf-gated-exits-v1 rules",()=>{
   const features={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true,"surf-gated-exits-v2":false};
   const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[EAST]},surf_gate:GATED} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
-  expect(new UntakenExits({...features,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
+  expect(new UntakenExits({...features,"coherent-battle-observation-v1":false,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
   const nothing={...island,interaction_targets:[],topology:{...ROUTE.topology,connections:[]}} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(nothing,"")).toBe("Exits here you have not taken: none (no exits are listed on this map)");
  });
@@ -162,8 +162,8 @@ describe("surf-gated-exits-v1 rules",()=>{
   const gated={...ROUTE,surf_gate:GATED};
   const listed=(f:FeatureSet)=>{const b=new SupervisorBriefing(f);for(const e of shown(gated))b.observe(e);return line(b.text("cycle",9),"- Listed here that you have not tried yet");};
   expect(listed(features)).toBe("- Listed here that you have not tried yet: Warp to map 2/2 at 3,3 (movement)");
-  expect(listed({...features,[ID]:false})).toBe("- Listed here that you have not tried yet: Warp to map 24/106 at 45,6 (movement); Warp to map 2/2 at 3,3 (movement)");
-  expect(listed({...features,"briefing-exits-v1":false})).toBe("- Listed here that you have not tried yet: Warp to map 2/2 at 3,3 (movement)");
+  expect(listed({...features,"coherent-battle-observation-v1":false,[ID]:false})).toBe("- Listed here that you have not tried yet: Warp to map 24/106 at 45,6 (movement); Warp to map 2/2 at 3,3 (movement)");
+  expect(listed({...features,"coherent-battle-observation-v1":false,"briefing-exits-v1":false})).toBe("- Listed here that you have not tried yet: Warp to map 2/2 at 3,3 (movement)");
   expect(edgeBearings(gated.topology)).toContain("EAST -> ROUTE110");
  });
 });
@@ -203,7 +203,7 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-142)).toBe(ID);
+  expect(ids.at(-143)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-48)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

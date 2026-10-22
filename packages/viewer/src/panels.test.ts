@@ -1524,7 +1524,7 @@ it("links each GLM-run harness bug switch to its tracked explainer without chang
 });
 
 it("links each interface-ownership switch to its tracked explainer without changing feature status",()=>{
- for(const id of ["tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1"]){
+ for(const id of ["tool-prompt-docs-v1","field-ownership-feedback-v1","move-learn-loop-fingerprint-v1","stale-plan-fact-v1","post-battle-readout-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))).toBe(true);
   const on=new Log();on.add(0,{...START,harness_features:["ram-state-v1",id]});

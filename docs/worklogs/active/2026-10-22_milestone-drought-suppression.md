@@ -55,3 +55,13 @@ Synthesis: behavior and test quality approved in both completed reviews. All nin
 - Bounded round-2 fix: four-column readiness table with its own header, regression assertion through production parseReadinessDoc, and pending source pin moved to build/lint-valid implementation 06802718c. The runtime implementation is unchanged. Focused viewer tests pass. No approval or gameplay launched.
 
 - Round-2 preflight: fdbf37e97 received Claude LGTM, but final viewer lint rejected the new test's asymmetric expect.stringContaining value as an unsafe assignment. Do not claim that packet gated. Replaced the matcher-object assertion with exact verdict and evidence-string assertions (same parser/value coverage), then re-sealed before dispatching remaining reviewers. No runtime change. Claude's statement that final lint passed was based on the earlier log and is not accepted as current gate evidence.
+
+## Resume and integration (2026-10-22)
+
+Verified standing operator authorization in Claude transcript 00000000-0000-4000-8000-1bb4e739f4f4.jsonl lines4143/4145 and4962/4964: server-copied the operator message [private message reference] at2026-10-21T20:35:35Z says "yes dont wait for grok"; project coordinator confirms this answered the global-while-Cursor-unavailable question allowing Claude+GPT+distinct fallback. Thus no new operator confirmation is required. Earlier request in this chat was unnecessary.
+
+Final c1477a208 packet had Claude CLI, normal isolated GPT gpt-5.6-sol, fresh gpt-6.1-sol and gpt-6-astra fallback LGTM on exact diff b5182796027b0fea98482ba6301728800878da6fdd9779de0af2788c20d89346, clean before/after. Full synthesis in runs/reviews/milestone-drought-suppression/final/synthesis.md. Under verified authorization that roster is sufficient while Grok is unavailable.
+
+Main advanced to d14390a48. Integrating it preserves the newer move-learn early comparison, current fixed recipes/defaults/registry order, and all unrelated source. Our treatment remains the one appended switch, defaultOFF, bundleON. Registry/default and historical tail tests resolved from current main plus our one append; no existing behavior tests removed. Pending incumbent refreshed to the current bundle with only this switch OFF. Native harness suppression code is unchanged from reviewed c1477a208. Initial sync tests exposed nine mechanical tail-index assertions, adjusted by exactly one.
+
+The keeper expired the old landing slot while relay mail was buffered; current board position4. Main/restarts remain untouched until our turn. Final packet will be refreshed after upstream landings settle.

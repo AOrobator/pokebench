@@ -232,6 +232,7 @@
    "stale-plan-fact-v1": false,
    "post-battle-readout-v1": false,
    "move-learn-tool-v1": false,
+   "move-learn-early-comparison-v1": false,
    "milestone-drought-suppression-v1": false
   }
  },
@@ -263,6 +264,7 @@
   "stale-plan-fact-v1",
   "post-battle-readout-v1",
   "move-learn-tool-v1",
+  "move-learn-early-comparison-v1",
   "milestone-drought-suppression-v1"
  ],
  "offInBoth": [

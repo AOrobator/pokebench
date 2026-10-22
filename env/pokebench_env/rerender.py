@@ -27,6 +27,7 @@ from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
+from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
@@ -98,6 +99,8 @@ def read_state(
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
+        # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
+        move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
         mart_stock_enabled=MART_STOCK not in off,
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,

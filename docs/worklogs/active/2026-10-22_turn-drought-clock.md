@@ -28,7 +28,8 @@ feature-switch, feature-explainer, experiment-queue, pokebench-game-state (wordi
 - [x] GREEN implementation + registry (appended after rejected-movement-prefix-v1, the current tail, so after every frontier switch) / presets / defaults / LEGACY_ALL_ON / recipes (bundle arms keep every frontier switch, this one appended last) / explainer / pending experiment / readiness entry. Agent test registry tail indexes shifted by exactly one; experiment-incumbent exclusion lists gained the id; story-progress-clock and drought-battle-heal-hold ALL_ON fixtures pin it OFF; viewer recipe-index tests (rejected-movement-prefix-bundle, open-goal-prompt) account for the new last bundle switch. The workbench-offthread fixture bump from the first series is no longer needed on this main.
 - [x] Wiring deletion red/green check: `turnClock()` forced to false gave 13 failed / 5 passed in turn-drought-clock.test.ts (production `stallBriefing` factory); restored 18 passed
 - [x] Gates before the GREEN commit: `just lint` 0; `just build` 0; `just coverage` 0: agent 4749 tests (97.30 stmts / 93.31 branches / 97.79 funcs / 99.20 lines), viewer 1784 (95.47 / 91.44 / 94.44 / 97.97), Python 3975 passed (lines 97.40 / branches 93.46 / functions 100, floor 90); `just verify-vendor` OK. `just experiments-check` reports no definition problems; it exits 1 only on runs/.../starter-decision-salience trials.jsonl 'not a ledger entry' lines, as main's checkout does.
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(agent): turn-drought-clock-v1 counts the milestone drought in actions` (d9b4bc7e8)
+- [x] Pin the pending experiment's source to the GREEN commit
 
 ## Session Log
 

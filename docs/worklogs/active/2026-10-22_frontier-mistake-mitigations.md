@@ -138,7 +138,7 @@ Use existing typed event/readout contracts and verified ROM/RAM access. No new e
 - [x] COMMIT RED tests; record SHA and actual failing assertions in this worklog.
 - [x] Implement one treatment with concrete types, production wiring, append-only registry/default-OFF handling and prompt synchronization where relevant.
 - [x] Delete guarded behavior/wiring once; observe the named regression fail, restore it and record both receipts.
-- [ ] Run `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions per stack), and `just verify-vendor`; record counts and receipts.
+- [x] Run `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions per stack), and `just verify-vendor`; record counts and receipts.
 - [x] COMMIT GREEN; record SHA and gate results. Update tracked explainer/card link, pending experiment and current readiness before landing; keep experiment unapproved.
 - [ ] Complete PB1–PB13 self-review and repository-required cloud review on the frozen packet. Do not treat this checklist as authority to replace a missing lane.
 - [ ] Prove delivery through replay/model input and browser surfaces as applicable. Synthetic rehearsals are labeled and do not establish gameplay benefit.
@@ -324,3 +324,15 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Latest component passes:4630 agent,1755 viewer,3975 Python (zero skips). These are diagnostic component runs; final same-tree just test/lint/build/coverage/vendor and frozen review follow after source-pin commit.
 
 - Complete eleven-treatment implementation source commit:93f46ce6a. All eleven blocked pending entries now pin `93f46ce6a70197e2901c78ec7a0bde0b3cfc9ded` instead of their stale planning/child bases; full future-bundle vectors and one-bit treatment deltas preserved. No approval, queue position, external cohort or launch written.
+
+### Final gates (source7f7a32dda, synced maina0c3d6138)
+
+All required gates pass on the clean complete implementation tree: just test4632 agent +1755 viewer +3975 Python =10362, zero skips; just lint TypeScript/ESLint/Ruff/mypy115 files; just build clean stamp7f7a32d; just coverage above90 for each required metric; just verify-vendor clean pinned bbab97ad73e460b7cd7c08527d10ced30cc03fbe. No gate threshold/exclusion change.
+
+| Stack | Lines | Branches | Functions |
+|---|---:|---:|---:|
+| Agent |99.20%|93.21%|97.77%|
+| Viewer |97.96%|91.43%|94.43%|
+| Python |97.40%|93.46%|100.00%|
+
+Durable gate receipts and SHA256 manifest: canonical ignored runs/reviews/2026-10-22_frontier-mitigations-r1/gates/ and gate-metadata.json. This worklog-only evidence update does not alter tested application code. Rebuild its clean stamp before final background card proof and freeze the exact review tip. All eleven tracked explainers plus catalogue and static study page pass local pages-check; game source remains clean731ad5bfd6e6f265508d0efcca0ba42f9dcf5881. Independent cloud review and main landing remain pending.

@@ -52,3 +52,9 @@ feature-switch, agent-observability, feature-explainer, feature-worklog, experim
 - [x] Test cost: harness.test.ts shares one lazily parsed and validated navigation-recovery fixture state across the three pinned-pi cases; map-cycle-recovery-bundle.test.ts parses each recipe and reads each control base once.
 - [x] Gates: just lint 0; just build 0; just coverage 0 — agent 4845 (97.32/93.4/97.81/99.21), viewer 1804 (95.48/91.46/94.45/97.97), Python 4013 passed (lines 97.41 / branches 93.48 / functions 100).
 - [x] COMMIT: `fix(agent): map-cycle recovery tracks the exact exit used and keeps no history when off` (3b48eb4eb); experiment source.commit repinned to it in its own commit.
+
+## Landing
+
+- Review round 1 (head 2c3aabcf3): Claude LGTM, fallback LGTM, GPT BLOCKING (exit identity, OFF history, test cost, pin) — fixed in 3b48eb4eb, 2784e365e.
+- Review round 2 (packet 4f374fc99..2784e365e, sha256 e1943e8e…): Claude CLI LGTM, GPT (Codex CLI gpt-5.6-sol) LGTM, fallback subagent LGTM.
+- Landed 5:37 PM New York via the board: `git merge --ff-only` → main 2784e365e; `pnpm -r build` then `just test` 0 (agent 4845, viewer 1804, Python 4013); `just viewer-main` → 8790 at 2784e365e, PPID 1 (launchd), 1 live gameplay process kept; explainer 200 on 8790 /explainers/, 8791 and Tailscale Reports.

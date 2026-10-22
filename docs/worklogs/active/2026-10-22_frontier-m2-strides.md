@@ -17,3 +17,5 @@ Full isolated agent suite: 4354 passed, 167 failed across 97 files, primarily hi
 GREEN validation additions: agent build passed. Viewer normalized bundle-only tests (five definitions), Harness Config card link and HTTP byte-serving: 7 passed, 329 unrelated skipped. These verify generated arm presets, rather than JSON source flags alone. Canonical runtime is unchanged.
 
 Lint correction: the initial background lint header was incorrectly reported as success before completion. Final ESLint found fixture non-null assertions/stringification and a redundant direction guard. Corrected; tsc/build had passed. Full lint is rerun explicitly after these fixes. This receipt supersedes the earlier premature lint claim.
+
+Final targeted ESLint on game-tools/rejected-movement-stride/navigation/boundary fixtures exited 0 after cleanup. Use TypeScript's narrowed directional buttons directly (no redundant filter).

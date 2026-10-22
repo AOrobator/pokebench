@@ -225,7 +225,7 @@ export function pressTool(
       let limitedMovement=false;
       if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
         if(switches.rejectedMovementStride===true){
-          const directions=params.buttons.filter((button):button is "UP"|"DOWN"|"LEFT"|"RIGHT"=>button!=="A"&&button!=="B"&&button!=="START"&&button!=="SELECT");
+          const directions=params.buttons;
           const corridor=planStride(before,directions,{});
           const submitted=corridor===null?[]:directions.slice(0,corridor.path.length);
           const prefix=`Checked requested movement: one safe straight prefix only; remaining directions were not sent. ${JSON.stringify({requested:params.buttons,submitted,dropped:params.buttons.slice(submitted.length)})}\n`;

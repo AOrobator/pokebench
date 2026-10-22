@@ -31,7 +31,12 @@ CONTROLS = "A or B advances the waiting evolution result text; no menu choice is
 def result_memory(state=15):
     m = native()
     put_task(m, 0, 0x0813E571, [state, 280, 281, 129, 0, 0, 11, 11, 0, 0, 0])
-    raw = text("COMBUSKEN did not learn DOUBLE KICK.") + b"\xfb\xff"
+    page = {
+        15: "COMBUSKEN did not learn DOUBLE KICK.",
+        20: "And…",
+        21: "COMBUSKEN learned DOUBLE KICK!",
+    }[state]
+    raw = text(page) + b"\xfb\xff"
     m.put(BATTLE_TEXT, raw)
     printer = bytearray(36)
     struct.pack_into("<I", printer, 0, BATTLE_TEXT + len(raw) - 1)
@@ -47,7 +52,7 @@ def test_result_pages_reach_native_emulator_and_switch_off_stays_unchanged(monke
         m = native()
         off = (
             frozenset(SERVER_FEATURES)
-            - {"ram-state-v1"}
+            - {"ram-state-v1", "expanded-menu-battle-information-v1"}
             - ({"evolution-decision-v1"} if enabled else set())
         )
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(off))
@@ -85,7 +90,8 @@ def test_result_pages_reach_native_emulator_and_switch_off_stays_unchanged(monke
             assert observed.active_ui.phase == "evolution_result"
             assert observed.active_ui.ready is True
             assert observed.active_ui.controls == CONTROLS
-            assert f"Interface: evolution_result; input ready; {CONTROLS}" in shown
+            assert "Interface: evolution_result; input ready; value " in shown
+            assert CONTROLS in shown
         else:
             assert observed.active_ui.phase == "evolution" and observed.active_ui.ready is False
             assert "Hold B to stop an eligible evolution" in shown

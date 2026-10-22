@@ -16,7 +16,7 @@ Run 2026-10-22T00-22-02_qwen36-gpu0_d951: choose_evolution evolve turn 425; lear
 
 ## Milestone
 - [x] RED regression commit
-- [ ] GREEN minimal repair and explainer update
+- [x] GREEN minimal repair and explainer update
 - [ ] Gate deletion/restoration; test, lint, build, coverage, vendor
 - [ ] Frozen Claude, Grok and independent GPT reviews; synthesis
 - [ ] Landing board, ff-only main, main tests and viewer build/live receipt
@@ -25,3 +25,9 @@ Run 2026-10-22T00-22-02_qwen36-gpu0_d951: choose_evolution evolve turn 425; lear
 - 2026-10-22: Created isolated branch codex/evolution-result-page at a637f683c. Told Claude. No active run modified.
 
 - RED: five regressions fail at discarded result acknowledgment, including the actual d951 native archive. Tests cover the existing server factory OFF/ON and result states 15/20/21. Receipt /tmp/evolution-result-red.log.
+
+- RED commit dd6bcd338. GREEN: existing gate additionally recognizes the verified battle-text result buffer only with TASK_BIT_LEARN_MOVE, and covers native result states 15/20/21 (same result domain as LearnWait). Readout reports evolution_result ready with the printed page. Tests: 24/24 evolution tests. New tests corrected to turn on expanded controls (synthetic fixture has no save), and assert the readout including its value field; final assertions cover production delivery.
+
+- Guard deletion receipts (each restored before next): /tmp/evolution-result-delete-{battle-buffer,result-state-20,result-state-21,readout-ready,result-bit,readout-wiring}.log. Each mutation failed the named targeted test; /tmp/evolution-result-restored.log: 5 passed. The 20/21 cases independently detect each missing state. Gate/readout twin checks are covered by separate readiness and wiring mutations; no claim that every legacy operand was mutated.
+- Worktree setup: initial gate attempts used linked dependencies and exposed mixed main/worktree package identity; first viewer test also preceded its build. Replaced with a complete offline pnpm install and worktree-local Python venv. These setup failures are preserved in /tmp/evolution-result-{test,test-after-build,lint}.log; no source workaround or threshold change.
+- The existing switch is present and true in bundle-v-control-2h base.features and the bundle switch list; it also applies to control by the existing operator contract. No experiment added because no new switch is introduced. No bundle promotion or measured benefit claimed.

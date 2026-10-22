@@ -87,3 +87,5 @@ Frozen base a637f683c024f60e00455f68961ddec369602e6a, head 5095262feceb2d0e25cfd
 - Explainer diagram now has an explicit horizontal scroll container and 600px minimum width, keeping labels readable on phones. No model readout behavior changes.
 
 - Round-2 full coverage passed: agent 4438, viewer 1671, Python 3898 tests; coverage unchanged at the prior passing floors. Native archive, four switch combinations and original OFF digest all pass with the offScreen mask.
+
+- Correction GREEN commit `2bd5ce8b9`; both pending definitions repinned to it. Corrected packet retains original frozen scope and all PB1–PB13 scores with zero FAIL; accepted blocker now covered by the exact offScreen test. Responsive QA repeated after diagram change at all three verified widths.

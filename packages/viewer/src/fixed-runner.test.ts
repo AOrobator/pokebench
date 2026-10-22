@@ -924,3 +924,14 @@ it("the active two-hour cook includes approved gym evidence and milestone memory
   }
  }
 });
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts checked requested strides in %s normalized bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
+ expect(def.switches).toContain("rejected-movement-stride-v1");
+ for(const arm of ["control","bundle"] as const){
+  const preset=armPreset(def,phase.id,arm);
+  expect(preset.features["rejected-movement-stride-v1"]).toBe(arm==="bundle");
+  if(arm==="bundle")expect(preset.features["safe-navigation-strides-v1"]).toBe(true);
+ }
+});

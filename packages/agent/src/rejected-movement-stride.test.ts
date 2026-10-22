@@ -7,7 +7,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import type {StridePlan} from "./stride.js";
 const tiles=Array.from({length:9},(_,x)=>({x,y:0,collision:0,behavior:0,elevation:3}));
 const field:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,9],position:{x:0,y:0},navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:null,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:1,callback2:2,diagnostic:null,raw_hex:null}};
-const features=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true,"rejected-movement-stride-v1":true});
+const features=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"safe-navigation-strides-v1":true,"rejected-movement-step-v1":true,"rejected-movement-stride-v1":true});
 function server(initial=field,completed?:number){
  let state=initial,plan:StridePlan|undefined;
  const png=Buffer.alloc(24);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
@@ -35,7 +35,7 @@ it("OFF is byte-identical to the incumbent one-step fallback",async()=>{
  expect(await run(false)).toEqual(await run());
 });
 it.each(["grass","object","warp","trigger","elevation","missing"])("ends the prefix before %s and discards the remainder",async hazard=>{
- const state:GameStateSnapshot={...field,navigation_grid:{...field.navigation_grid!,tiles:tiles.filter(t=>hazard!=="missing"||t.x!==2).map(t=>t.x===2?{...t,behavior:hazard==="grass"?2:t.behavior,elevation:hazard==="elevation"?4:t.elevation}:t),objects:hazard==="object"?[{x:2,y:0}]:[],warps:hazard==="warp"?[{x:2,y:0}]:[]},world_context:hazard==="trigger"?{objects:[],triggers:[{x:2,y:0,elevation:3,variable:1,required:0,current:0}],dialogue:null}:null};
+ const state:GameStateSnapshot={...field,navigation_grid:{...field.navigation_grid!,tiles:tiles.filter(t=>hazard!=="missing"||t.x!==2).map(t=>t.x===2?{...t,behavior:hazard==="grass"?2:t.behavior,elevation:hazard==="elevation"?4:t.elevation}:t),objects:hazard==="object"?[{x:2,y:0}]:[],warps:hazard==="warp"?[{x:2,y:0}]:[]},world_context:hazard==="trigger"?{objects:[],triggers:[{x:2,y:0,elevation:3,variable:1,required_value:0,current_value:0,condition_met:true,script_pointer:1}],dialogue:null}:null};
  const s=server(state);const result=await pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},toolSwitches(features())).execute("m",{buttons:["RIGHT","RIGHT","RIGHT"]});
  expect(s.posts()).toMatchObject([{body:{path:[{x:1,y:0}]}}]);expect(text(result)).toContain('"dropped":["RIGHT","RIGHT"]');
 });
@@ -49,4 +49,12 @@ it("returns the terminal interrupted receipt without submitting the rest again",
 });
 it("the new treatment is inert when the original guard is OFF",async()=>{
  const s=server();await pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},toolSwitches({...features(),"navigation-tool-use-guard-v1":false})).execute("m",{buttons:["RIGHT","RIGHT"]});expect(s.posts()).toMatchObject([{url:"http://game/action",body:{buttons:["RIGHT","RIGHT"]}}]);
+});
+
+it("registers default OFF with an unqueued single-feature experiment",async()=>{
+ const {readFileSync}=await import("node:fs");const {parseExperiment,experimentArms}=await import("./experiments.js");const {normalizeFeatures}=await import("./play-preset.js");const {ALL_ON,featureInfo,SWITCHABLE_FEATURES}=await import("./features.js");
+ const {"rejected-movement-stride-v1":_enabled,...old}=ALL_ON;expect(_enabled).toBe(true);expect(normalizeFeatures(old)["rejected-movement-stride-v1"]).toBe(false);
+ expect(featureInfo("rejected-movement-stride-v1").needs).toBe("safe-navigation-strides-v1");
+ const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/rejected-movement-stride-v1.json",import.meta.url),"utf8")) as unknown);expect(entry.queuePosition).toBeUndefined();
+ const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(id=>arms.incumbent.features[id]!==arms.candidate.features[id])).toEqual(["rejected-movement-stride-v1"]);
 });

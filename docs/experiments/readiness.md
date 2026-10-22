@@ -330,3 +330,6 @@ Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: RO
 ## 2026-10-22 battle-move-learn-input-v1
 
 Pending, unqueued. Native 97a0/d548 reparsing proves interface correctness; a reproducible move-learning checkpoint and exposure-qualified cohort are not prepared. No measured benefit or launch. STARTER_CHOSEN is an earliest activation bound, not sufficient exposure. Source preparation pin must be replaced after landing.
+## rejected-movement-stride-v1 (2026-10-22)
+
+Pending, unapproved, unqueued. Activation: PLAYER_NAME_CONFIRMED, subject to native milestone schema. Readiness not assessed against qualifying current runs in this isolated checkout; reviewed source repin and operator-approved checkpoint/design required. Synthetic execution tests do not establish benefit.

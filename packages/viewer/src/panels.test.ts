@@ -1602,4 +1602,8 @@ it("links the battle move-learning owner card to its tracked explainer",()=>{
  const id="battle-move-learn-input-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+it("links checked requested strides to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["rejected-movement-stride-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="rejected-movement-stride-v1"] a')?.getAttribute("href")).toBe("/explainers/rejected-movement-stride-v1.html");
 });

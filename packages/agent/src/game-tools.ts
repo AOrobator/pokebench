@@ -6,11 +6,12 @@ import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import {evolutionTool} from "./evolution-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
+import {planStride} from "./navigation.js";
 import {randomUUID} from "node:crypto";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+export interface ToolSwitches { readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -223,6 +224,20 @@ export function pressTool(
       check?.(before);
       let limitedMovement=false;
       if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
+        if(switches.rejectedMovementStride===true){
+          const directions=params.buttons.filter((button):button is "UP"|"DOWN"|"LEFT"|"RIGHT"=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT");
+          const corridor=planStride(before,directions,{});
+          const submitted=corridor===null?[]:directions.slice(0,corridor.path.length);
+          const prefix=`Checked requested movement: one safe straight prefix only; remaining directions were not sent. ${JSON.stringify({requested:params.buttons,submitted,dropped:params.buttons.slice(submitted.length)})}\n`;
+          if(corridor===null){
+            const result=await observation(gameServerUrl,fetchFn,signal,prefix+"No verified plain-floor corridor; no input was sent. Inspect the state before continuing.\n");
+            shown.record(result.state,before);return {content:result.content,details:{state:result.state}};
+          }
+          const result=await execute(toolCallId,{buttons:submitted},signal,_update,actual=>{
+            if(actual===undefined||actual.screen!=="overworld"||actual.in_battle||actual.active_ui!==null||actual.field_controls_locked!==false||actual.running?.controllable!==true||actual.world_context?.field_activity!=null||actual.world_context?.dialogue!=null||actual.world_context?.message!=null||JSON.stringify(planStride(actual,directions,{}))!==JSON.stringify(corridor))throw new Error("Requested stride geometry or field input changed before submission; no command submitted");
+          },{automaticRunning:false,stride:corridor});
+          return {...result,content:[{type:"text",text:prefix},...result.content]};
+        }
         if(switches.rejectedMovementStep===true){limitedMovement=true;}else{
           const receipt={requested:params.buttons,submitted:[],map_id:before.map_id,position:before.position};
           const result=await observation(gameServerUrl,fetchFn,signal,`Navigation tool-use guard: no input was sent. Use an available navigation tool with a target you choose for walking. Single direction presses remain available for facing or crossing an exit. ${JSON.stringify(receipt)}\n`);

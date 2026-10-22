@@ -241,7 +241,8 @@
    "navigation-recovery-v1": false,
    "coherent-healing-feedback-v1": false,
    "explorer-family-guidance-v1": false,
-   "battle-move-learn-input-v1": false
+   "battle-move-learn-input-v1": false,
+   "rejected-movement-stride-v1": false
   }
  },
  "switches": [
@@ -282,7 +283,8 @@
   "coherent-healing-feedback-v1",
   "explorer-family-guidance-v1",
   "fixed-point-breaker-v1",
-  "battle-move-learn-input-v1"
+  "battle-move-learn-input-v1",
+  "rejected-movement-stride-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

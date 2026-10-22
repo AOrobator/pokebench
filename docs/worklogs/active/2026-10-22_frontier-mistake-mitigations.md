@@ -225,3 +225,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - Independent prompt replacement implements exact existing family/re-talk text; OFF precedence unchanged. Focused tests 2 pass; deleting selector fails 1 replacement regression while OFF test remains green; source restored. Six future bundle definitions enable this treatment and fixed-point-breaker while preserving explicit existing auto-talk settings. Explain/pending entry added, themed/check clean. Full integration gates/review and browser remain pending. No trial launched.
 
 - M1 integration: cherry-picked RED/GREEN; resolved append-only registry and future bundle JSON conflicts preserving parent healing/explorer treatments and existing flags. Child worklog retains its independent RED/native regression evidence. No main changes.
+
+- M2 integration: checked-stride RED/GREEN cherry-pick, append-only registry/list conflicts combined. All parent/M1 flags preserved. Broad historical fixture reconciliation deferred until every new treatment is integrated.

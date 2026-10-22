@@ -4,11 +4,11 @@
  "title": "Suppress milestone-drought interventions",
  "changedFeature": "milestone-drought-suppression-v1",
  "hypothesis": "Removing milestone-drought interventions avoids false redirects during legitimate progress such as cutscenes; compare native story reach and time against the same bundle with only this switch off.",
- "activationMilestone": "PLAYER_NAME_CONFIRMED",
- "primaryMilestone": "PETALBURG_CITY",
+ "activationMilestone": "NEW_GAME_CREATED",
+ "primaryMilestone": "TEAM_AQUA_WOODS_EVENT_COMPLETE",
  "source": {
   "checkout": "main",
-  "commit": "a637f683c024f60e00455f68961ddec369602e6a"
+  "commit": "f15bfaf79536c51192da84d04dff6077b9b61986"
  },
  "incumbent": {
   "version": 2,
@@ -252,5 +252,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved. Operator 2026-10-22 explicitly requests this independent switch in the bundle. Incumbent is bundle-v-control-2h bundle arm with only this switch OFF; positive-supervisor-v1 stays at its bundle value. Source pin must be refreshed to the landing commit before approval. No gameplay-benefit claim or launch authorization."
+ "notes": "Pending, unqueued, unapproved. Operator 2026-10-22 explicitly requests this independent switch in the bundle. Incumbent is bundle-v-control-2h bundle arm with only this switch OFF; positive-supervisor-v1 stays at its bundle value. Source pin names the implementation commit; registration/proof commits may follow. Repin to current main before approval. No gameplay-benefit claim or launch authorization."
 }

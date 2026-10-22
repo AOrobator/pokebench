@@ -351,7 +351,7 @@ export class RunView {
       case "loop_guard":
         // same-target-no-progress-v1 stays off the closed timeline (operator decision 2026-10-16), and so do the drought
         // briefings drought-battle-heal-hold-v1 held (Activity History and the inspector only).
-        if (event.kind !== "same_target_no_progress" && !event.message.startsWith(HELD_DROUGHT) && !(event.kind === "milestone_drought" && event.mode === "diagnostic" && event.phase === "would_warn" && event.message.startsWith(SUPPRESSED_DROUGHT))) this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        if (event.kind !== "same_target_no_progress" && !event.message.startsWith(HELD_DROUGHT) && !(event.kind === "milestone_drought" && "mode" in event && event.mode === "diagnostic" && event.phase === "would_warn" && event.message.startsWith(SUPPRESSED_DROUGHT))) this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "text_only_supervisor":
         this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });

@@ -15,6 +15,7 @@ import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
+import {loopEvidence} from "./loop/types.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
 import {StoryCharacterGate} from "./stall-gate.js";
@@ -96,10 +97,10 @@ export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"sub
  const gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate(recorder):null;
  if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
  // positive-supervisor-v1: retired stall briefings stay in the record as diagnostics; the model is not sent them.
- const retired=features["positive-supervisor-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (positive-supervisor-v1): ${text}`,calls:0,evidence:evidence.filter((v,i,all)=>all.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});}:null;
- const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:[...new Set(evidence)],mode:"diagnostic",phase:"would_warn"});},
+ const retired=features["positive-supervisor-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (positive-supervisor-v1): ${text}`,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null;
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});},
   // drought-battle-heal-hold-v1: a held drought briefing stays in the record as a diagnostic (Activity History).
-  features["drought-battle-heal-hold-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:[...evidence],mode:"diagnostic",phase:"would_warn"});}:null);
+  features["drought-battle-heal-hold-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
  recorder.subscribe(event=>{stall.observe(event);});
  return stall;
 }

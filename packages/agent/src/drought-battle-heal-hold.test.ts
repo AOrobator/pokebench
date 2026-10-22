@@ -12,6 +12,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {STALL_DROUGHT_MS,StallBriefing} from "./stall-briefing.js";
 import {stallBriefing} from "./play-wiring.js";
 import type {LoopNotice} from "./loop-detection.js";
+import {loopEvidence} from "./loop/types.js";
 
 const ID="drought-battle-heal-hold-v1" as const;
 const BASE:FeatureSet={...LEGACY_ALL_ON,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false};
@@ -60,7 +61,7 @@ describe("drought-battle-heal-hold-v1",()=>{
   healLine(r);
   r.step(STALL_DROUGHT_MS,{party:[MON(17)]});
   expect(r.kinds).toEqual([]);
-  expect(r.held.at(-1)?.text).toBe("Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but the party is on its way to heal after a heal warning.");
+  expect(r.held.at(-1)?.text).toBe("Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but the party is on its way to heal after a heal warning (#3).");
   r.step(1000,{party:[MON(21)]});
   expect(r.kinds).toEqual([]);
   r.step(STALL_DROUGHT_MS+1000,{party:[MON(21)]});
@@ -197,6 +198,16 @@ describe("recorded heal-trip hold",()=>{
   expect(held).toHaveLength(1);
   expect(held[0]).toMatchObject({kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",evidence:[1,seq-1]});
   expect(held[0]?.type==="loop_guard"&&held[0].message).toBe(`Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but the party is on its way to heal after a heal warning (#${String(warning)}).`);
+ });
+});
+
+describe("loopEvidence",()=>{
+ it("keeps one or two distinct ids, the first and the last, and needs at least one",()=>{
+  expect(loopEvidence([7])).toEqual([7]);
+  expect(loopEvidence([7,7])).toEqual([7]);
+  expect(loopEvidence([3,9])).toEqual([3,9]);
+  expect(loopEvidence([3,5,5,9,3])).toEqual([3,9]);
+  expect(()=>loopEvidence([])).toThrow("loop_guard evidence needs an event id");
  });
 });
 

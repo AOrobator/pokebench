@@ -23,11 +23,22 @@ export type NavigationLoopKind = "same_target_no_progress";
 export type LoopMode = "enforced" | "diagnostic";
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 
+// The loop_guard event schema cites one or two event ids.
+export type LoopEvidence = readonly [number] | readonly [number, number];
+
+// Distinct ids in order; more than two keep the first and the last.
+export function loopEvidence(ids: readonly number[]): LoopEvidence {
+  const distinct = ids.filter((value, index, all) => all.indexOf(value) === index);
+  const first = distinct[0], last = distinct.at(-1);
+  if (first === undefined || last === undefined) throw new Error("loop_guard evidence needs an event id");
+  return first === last ? [first] : [first, last];
+}
+
 interface NoticeFields {
   readonly kind: LoopKind | StallKind | NavigationLoopKind;
   readonly message: string;
   readonly calls: number;
-  readonly evidence: readonly number[];
+  readonly evidence: LoopEvidence;
 }
 
 export type LoopNotice = NoticeFields &

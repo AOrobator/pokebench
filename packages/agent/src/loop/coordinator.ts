@@ -5,6 +5,7 @@ import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "../milestones.js";
 import type { GameStateSnapshot } from "../game-state.js";
 import {
   LOOP_POLICY,
+  loopEvidence,
   type CompletedCall,
   type LoopKind,
   type LoopCoordinatorOptions,
@@ -358,7 +359,7 @@ export class LoopCoordinator {
     if(cycleHold!==null){
       for(const [id,candidate] of candidates)if(candidate.kind==="cycle"||(cycleHold.reason==="milestone"&&candidate.kind==="trigger_script")){
         candidates.delete(id);
-        this.notify({kind:candidate.kind,message:`Not sent (progress-aware-cycles-v1): ${cycleHold.reason}; cycle evidence retired.`,calls:this.completed,evidence:[...cycleHold.evidence,seq].filter((v,i,a)=>a.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});
+        this.notify({kind:candidate.kind,message:`Not sent (progress-aware-cycles-v1): ${cycleHold.reason}; cycle evidence retired.`,calls:this.completed,evidence:loopEvidence([...cycleHold.evidence,seq]),mode:"diagnostic",phase:"would_warn"});
       }
       this.retireCycles(seq,cycleHold.reason==="milestone"?"newly observed milestone":"gate-directed healing trip");
       this.basic.resetCycles();
@@ -374,7 +375,7 @@ export class LoopCoordinator {
     }
     // One episode at a time: with another loop episode open the note is not sent, but the record keeps it.
     if (same?.warning != null)
-      this.notify({ kind: "same_target_no_progress", message: `Not sent (another loop episode is open): ${same.warning.text}`, calls: this.completed, evidence: [...same.warning.evidence], mode: "diagnostic", phase: "would_warn" });
+      this.notify({ kind: "same_target_no_progress", message: `Not sent (another loop episode is open): ${same.warning.text}`, calls: this.completed, evidence: loopEvidence(same.warning.evidence), mode: "diagnostic", phase: "would_warn" });
     if (
       this.episode?.exposed &&
       this.episode.kind !== "same_target_no_progress" &&
@@ -430,7 +431,7 @@ export class LoopCoordinator {
     if (this.stopped || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
     const message = text(this.completed);
     this.stallNote = { text: message, exposed: false,kind };
-    this.notify({ kind, message, calls: this.completed, evidence: evidence.filter((value, index, all) => all.indexOf(value) === index), mode: "enforced", phase: "supervisor" });
+    this.notify({ kind, message, calls: this.completed, evidence: loopEvidence(evidence), mode: "enforced", phase: "supervisor" });
     return true;
   }
 
@@ -515,9 +516,9 @@ export class LoopCoordinator {
       kind: episode.kind,
       message: this.noticeMessage(phase, episode),
       calls: this.completed,
-      evidence: [...episode.evidence, seq].filter(
-        (value, index, all) => all.indexOf(value) === index,
-      ).slice(-2),
+      evidence: loopEvidence(
+        [...episode.evidence, seq].filter((value, index, all) => all.indexOf(value) === index).slice(-2),
+      ),
     };
     if (this.mode === "diagnostic")
       this.notify({

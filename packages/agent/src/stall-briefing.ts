@@ -154,8 +154,8 @@ export class StallBriefing {
   if(holding!==null){
    if(level>this.heldLevel){
     this.heldLevel=level;
-    const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":"the party is on its way to heal after a heal warning";
-    this.heldDrought?.(`Not sent (drought-battle-heal-hold-v1): no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play, but ${why}.`,[...new Set([this.progressSeq??seq,...(holding==="heal"&&this.healTrip!==null?[this.healTrip.seq]:[]),seq])]);
+    const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
+    this.heldDrought?.(`Not sent (drought-battle-heal-hold-v1): no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play, but ${why}.`,[this.progressSeq??seq,seq]);
    }
    return;
   }

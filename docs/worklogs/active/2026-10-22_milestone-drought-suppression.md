@@ -21,8 +21,8 @@ feature-switch, agent-observability, feature-explainer, experiment-queue, talk-t
 - [x] RED recorded cutscene/factory and OFF tests; commit
 - [x] GREEN production wiring, registry/defaults, bundle, pending experiment and explainer; commit
 - [x] Gates, deletion/restoration, local viewer proof
-- [ ] Principles and independent Claude/Grok/GPT frozen-packet reviews
-- [ ] Landing board, reviewed fast-forward, live surface proof
+- [x] Principles and independent Claude/GPT/distinct fallback frozen-packet reviews under verified operator Grok waiver
+- [x] Landing board, reviewed fast-forward, live surface proof
 
 ## Session log
 
@@ -82,3 +82,18 @@ Reconstructed shared registries/defaults/current recipes and historical registry
 
 - Final integration3395eb63c gates all pass: just test4456 agent,1679 viewer,3960 Python; just coverage passes (agent lines99.23 branches93.30 functions97.98; viewer lines97.95 branches91.34 functions94.35; Python lines97.39 branches93.41 functions100); lint/build stamp3395eb6/vendor pass. Full6-recipe normalized arm assertions retain poison/berry switches and establish new suppression ON in bundle/OFF in control. No timeouts or source fixes needed in the final gate run.
 - Pending source pin now names tested integrated implementation3395eb63c. Still unqueued/unapproved; no benchmark launch. Final review refresh includes only authorized integration and metadata, no new behavior domain. Final reviewer artifacts under runs/reviews/milestone-drought-suppression/landing/.
+
+
+## Final review and landing receipt
+
+Frozen base e21aaa8c56ec2fc9031449d01834145ec7a907b5; head9bcae1eb52c7645f7ca900c7caad4f6b8ee423df; diff SHA2567c55cee5900e248a5fa614e479e692ddda8d09e637fde0c27c47061612359a6c. Real Claude CLI, isolated GPT gpt-5.6-sol, distinct fresh gpt-6-astra and gpt-6.1-sol all returned VERDICT: LGTM and reproduced clean exact identity before/after. Actual Grok retry failed usage exhaustion; not approval. Verified operator blanket waiver supplies landing authorization with reduced vendor diversity. Synthesis retained in owned worktree runs/reviews/milestone-drought-suppression/landing/synthesis.md. No required fixes. Narrower callback typing is an optional follow-up; pre-name diagnostic timing is documented and affects no delivered instruction.
+
+Joined board at number1 with actual Codex session 00000000-0000-4000-8000-68e008828e91. Reviewed fast-forward landed on main9bcae1eb52c7645f7ca900c7caad4f6b8ee423df. Rebuilt main and reran full just test:4456 agent,1679 viewer,3960 Python passed. Prelanding coverage/lint/vendor gates above remain valid; no source edits after freeze.
+
+Live proof2026-10-22 at11:30AM EDT: viewer own clean served stamp9bcae1eb5; one8790 listener PID86337; all3 gameplay PIDs22914,33844,34624 preserved;499 unique run IDs before and after, none lost; no old-build problems in api/workbench. First restart child exited after terminal session cleanup; verified no listener remained, then repeated viewer-main in a detached session (no concurrent restart). Detached viewer stable and responding. No gameplay or emulator restart.
+
+Real browser fresh comparison tab selected ongoing GLM d51d, RUNNING T205, visible live Pokemon Center pixels, new HARNESS CONFIG card NOT RECORDED as expected for frozen older run, Read explainer click opened correct new document. Console errors empty; repeated polling remained RUNNING. Original agent-created proof tab caught a connection-refused page during restart and browser URL policy blocked reconnecting it; no claim that tab recovered. Fresh comparison proves served page, not repair of the old tab. Screenshots inspected and saved runs/mockups/milestone-drought-suppression-v1/landed-glm.png and landed-explainer.png. Earlier isolated production-derived replay verifies diagnostic retained in Activity History/raw inspector and no delivered supervisor/timeline mark. Explainer desktop/phone screenshots inspected earlier, final pages-check passes and both8790/8791 tracked links return200.
+
+Current bundle definitions enable this one switch; control/default OFF; positive-supervisor stays OFF. Old runs retain original settings. No measured run launched and no gameplay-benefit claim. Experiment remains pending, unqueued and unapproved. No worklog archival.
+
+COMMIT: `docs: record drought suppression landing evidence` (evidence-only main commit; code landed9bcae1eb5).

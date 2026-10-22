@@ -15,8 +15,8 @@ Boundary: probes.ts manifest/API reader and probes-view.ts rendering/validation 
 ## Milestone
 
 - [x] RED tests: explicit synthetic source vs missing historical source, decoder fraud rejection, mixed display and exclusion from departure summaries.
-- [ ] GREEN implementation, focused/full gates and coverage90%.
-- [ ] Background browser proof on owned preview, desktop+phone, historical/synthetic selection and samples.
+- [x] GREEN implementation, focused/full gates and coverage90%.
+- [x] Background browser proof on owned preview, desktop+phone, historical/synthetic selection and samples.
 - [ ] Principles and frozen Claude/Grok/GPT cloud review.
 - [ ] Landing board, ff-only merge, main tests and served proof.
 
@@ -25,3 +25,9 @@ Boundary: probes.ts manifest/API reader and probes-view.ts rendering/validation 
 Studydata and independent reviews: canonical runs/reports/double-kick-heldout-20261022. No study inference before this repair is delivered. Existing35Bmodel/build unchanged.
 
 RED: focused probe API/display suite33tests,3expectedfailures,30pass. Log /tmp/synthetic-probe-red.log. COMMIT: test(viewer): distinguish synthetic probe provenance (this RED commit).
+
+GREEN: API preserves explicitsyntheticprovenance and forcesnullhistory fields; decoder rejects syntheticforgeries; historicalmissing-sourceerrors preserved. Mixedheadercounts, syntheticlabels/no-frame/norecordedcall, and exclusionfromhistoricaldeparturepool/plots tested. Focused35pass. Fulltests4845agent/1809viewer/4013Pythonpass. justbuild/justlint/justverify-vendorpass. Coverageagent99.21%lines/93.41%branches/97.81%functions; viewer97.97%/91.51%/94.46%; Python97.41%/93.48%/100%, floor90 unchanged. Lint initially found5testnon-nullassertions, correctedwithoutproductionbehaviorchange; finallintpass.
+
+Owned read-only preview8832 (noqueue/autorun/modelendpoint) served completedcandidatebuild. HeadlessChrome desktop1280 andphone375: actualvisible studyselector→historical704cT604 frame240×160→syntheticMudkipBide noframe, nofalsemissing-sourcewarning, plotexcludessynthetic. Screensopenedandinspected. BrowserdriverfirstfailedambiguousselectorandSVGinnerText; correcteddriverandfinalproofpassed, noapplicationworkaround. Receipts canonical runs/reports/double-kick-heldout-20261022/browser-proof/provenance-preview/receipt.json; zeroJSerrors. Operatorforegroundpreserved. Noactualprobeinference.
+
+Experimentoverview: docs/experiments/double-kick-generalization-128-20261022.html, themed/self-contained/pages-checkpass; canonicalservedcopyunder runs/reports/double-kick-heldout-20261022/overview.html. No model or controlconfigsource changed. COMMIT: feat(viewer): identify synthetic probe cases (GREEN commit).

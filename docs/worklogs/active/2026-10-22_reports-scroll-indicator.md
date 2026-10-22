@@ -21,10 +21,10 @@ The probe sends one number to `parent` with target `*`; it carries no report con
 ## Milestones
 
 **M1 — Scroll indicator**
-- [x] Tests (RED): 8 failing (view 4, probe 3, server 1)
-- [ ] Implement (GREEN)
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage`
-- [ ] Headless desktop and phone proof on a candidate viewer
+- [x] Tests (RED): 8 failing (view 4, probe 3, server 1). COMMIT: `test(viewer): failing tests for the opened report's scroll HP bar` (bb1f80607)
+- [x] Implement (GREEN)
+- [x] Gates: `just test` (agent 4507, viewer 1697, pytest 3961 passed), `just lint`, `just build`, `just coverage` (viewer 95.47 lines / 91.43 branches / 94.44 functions; one unrelated experiment-cli timeout on the first run, clean rerun), `just verify-vendor` OK
+- [x] Headless desktop and phone proof on a candidate viewer (8796, copied reports): 0% at top, 42% after scrolling the report, 100% at the bottom by wheel, outer page never scrolls, no console errors. Shots: runs/mockups/reports-scroll-indicator/built/. The phone header hides the POKE BENCH logo on main too (pre-existing).
 - [ ] Review: Claude and GPT lanes (Grok not needed, per coordinator brief)
 - [ ] Land, viewer-main, live check
 

@@ -365,3 +365,9 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 | `rejected-movement-prefix-v1` | `PLAYER_NAME_CONFIRMED` (the guard can intercept a walking batch from the truck on) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `navigation-tool-use-guard-v1` and `rejected-movement-step-v1` ON. Evidence: 1fe0 seq 8033/8041, 108 one-tile cuts, 53 under Route 101's south ledges. No measured benefit claimed. |
 ### coherent-battle-observation (2026-10-21)
 Pending, not queued. Correctness repair: native proof and regression coverage before measured evaluation. Current-build cloud review and landed source pin required. No model sampling/experiment launch authorized. Strategy experiment remains held and must use identical reviewed repair settings in both arms.
+
+## turn-drought-clock-v1 (2026-10-22)
+
+| Switch | Activation milestone | Verdict | Evidence |
+| --- | --- | --- | --- |
+| `turn-drought-clock-v1` | `NEW_GAME_CREATED` (the drought clock runs from the first action) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment (the operator 2026-10-22: make the drought nudge turn based, ON in the bundle). Incumbent is the bundle-v-control-2h bundle arm with only this switch OFF. Evidence: Qwen 25-30 actions per 5 minutes, GLM 5-8 (8 recent 2h runs); GLM pushed back on the drought text 7-13 times a run. No measured benefit claimed. |

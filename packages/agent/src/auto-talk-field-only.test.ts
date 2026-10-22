@@ -19,19 +19,21 @@ type Target=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 const BOY:Target={kind:"object",name:"BOY_1",x:9,y:9,elevation:3,activation:"A",availability:"live",facing:"down",local_id:3,destination:null};
 const FIELD:GameStateSnapshot={...IN_GAME,map_id:[0,17],location:"ROUTE102",position:{x:7,y:9},facing:"right",field_controls_locked:false,in_battle:false,active_ui:null,interaction_targets:[BOY]};
 const BATTLE:GameStateSnapshot={...FIELD,screen:"battle",in_battle:true,active_ui:{phase:"battle_input",selected:"FIGHT",ready:true,controls:"A picks FIGHT",diagnostic:null,value:null}};
+// A post-battle evolution decision keeps the battle flag set (gMain.inBattle) with its own interface ready.
+const EVOLUTION:GameStateSnapshot={...FIELD,screen:"evolution",in_battle:true,active_ui:{phase:"evolution_decision",selected:null,ready:true,controls:"Evolution is waiting for choose_evolution: evolve or cancel.",diagnostic:null,value:null}};
 const YES_NO:GameStateSnapshot={...FIELD,active_ui:{phase:"field_yes_no",selected:"YES",ready:true,controls:"UP/DOWN selects",diagnostic:null,value:null}};
 type Talk={readonly outcome:string;readonly text:string|null};
 
 function rig(features:FeatureSet,start:GameStateSnapshot){
- let s=start;const calls:string[]=[];const talks:Talk[]=[];const subscribers:((e:RunEvent)=>void)[]=[];
+ let s=start;const calls:string[]=[];const talks:Talk[]=[];const subscribers:((e:RunEvent)=>void)[]=[];let walked=():void=>undefined;
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:(_id,params)=>{
   calls.push(name);
-  if(name==="navigate_to"){const a=params as {x:number;y:number};s={...s,position:{x:a.x,y:a.y}};}
+  if(name==="navigate_to"){const a=params as {x:number;y:number};s={...s,position:{x:a.x,y:a.y}};walked();}
   return Promise.resolve({content:[{type:"text",text:name==="press"?"BOY: Hi!":"x"}],details:{state:s}});
  }});
  const transform=autoTalkContext(features,{read:()=>Promise.resolve(s)},[tool("navigate_to"),tool("press")],m=>Promise.resolve(m),{fixedPoint:()=>({turns:8,loop:"a",names:["battle_action"]}),noTool:()=>({replies:0,loop:"silent:0"})} as never,{subscribe:fn=>{subscribers.push(fn);},recordAutoTalk:b=>{talks.push({outcome:b.outcome,text:b.text});}});
  const messages:AgentMessage[]=[userText("Play."),{role:"toolResult",toolCallId:"c1",toolName:"battle_action",content:[{type:"text",text:"x"}],isError:false,timestamp:0}];
- return {calls,talks,messages,send:()=>transform([...messages]),set:(next:GameStateSnapshot)=>{s=next;}};
+ return {calls,talks,messages,send:()=>transform([...messages]),set:(next:GameStateSnapshot)=>{s=next;},onWalk:(fn:()=>void)=>{walked=fn;}};
 }
 
 describe("auto-talk-field-only-v1",()=>{
@@ -75,6 +77,23 @@ describe("auto-talk-field-only-v1",()=>{
   expect(out.length).toBe(noted.messages.length+1);
   await noted.send();
   expect(noted.talks.length).toBe(1);
+ });
+ it("ON: a post-battle evolution decision is not the battle: field-ownership-feedback-v1 keeps its one note",async()=>{
+  const r=rig({...BASE,[ID]:true,"field-ownership-feedback-v1":true},EVOLUTION);
+  const out=await r.send();
+  expect(r.talks.map(t=>t.outcome)).toEqual(["not_free"]);
+  expect(r.talks[0]?.text).toContain("the game is showing the evolution decision (screen evolution)");
+  expect(out.length).toBe(r.messages.length+1);
+  await r.send();
+  expect(r.talks.length).toBe(1);
+  expect(r.calls).toEqual([]);
+ });
+ it("ON: a walk a wild battle interrupts is still recorded with its target",async()=>{
+  const r=rig({...BASE,[ID]:true},FIELD);
+  r.onWalk(()=>{r.set(BATTLE);});
+  await r.send();
+  expect(r.talks).toEqual([{outcome:"not_free",text:null}]);
+  expect(r.calls).toEqual(["navigate_to"]);
  });
  it("is registered as a default-off agent-only guard that needs auto-talk-v1",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"auto-talk-v1",switchable:true});

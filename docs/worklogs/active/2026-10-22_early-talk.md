@@ -67,6 +67,9 @@ Unit and factory tests; a recorded-state replay of auto-talk on a battle state; 
 - This worktree's env/.venv has no mGBA binding (just build-mgba is once per clone): mypy's mgba._pylib import and tests/env/test_view.py's production-server start fail here. No Python changed on this branch; mypy passes with the main checkout's venv.
 
 ## Multi-Model Review Log
+- Round 1 (packet 0531dfa1…f0dab, a0c3d6138..9f99dd7c4; principles 10 PASS / 3 N/A / 0 FAIL):
+  - Claude CLI (~/.claude-review, plan mode): BLOCKING, one finding: no test covers the in_battle + ready non-battle interface exception (post-battle evolution decision). Triage: Fix (a guard with no red test). Added the evolution-decision test (delete-once: dropping the ready clause turns it red) and pinned the interrupted-walk not_free record the reviewer listed as hardening. Speculation (retried request double-counts quiet turns) rebutted: no failure shown; transform runs once per model request.
+  - Cursor Grok (cursor-grok-4.5-high) and Cursor GPT (gpt-5.6-sol-xhigh): not run, Cursor "You're out of usage" (ActionRequiredError). GPT lane switches to isolated Codex CLI (standing harness switch). Grok has no other harness: lane blocked, so no self-merge without the operator's word.
 
 ## Boy Scout Log
 

@@ -209,6 +209,11 @@ Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. The ro
   2. recorder.ts:289: `learn_move` is not in the tool_result state allowlist, so its result gets no `state_seq` paired with the final party state (PB7). Triage: real observability gap in the new tool (choose_evolution has the same pre-existing gap); fix is one allowlist entry plus a recorder test like battle-action.test.ts:444, effective only when move-learn-tool-v1 is ON.
 - Round limit reached (max 2). Not fixed here: a third round needs the operator's scope confirmation (multi-model-review contract). No self-merge: GPT lane BLOCKING and the Grok lane needs an operator-approved substitution.
 
+### Round 3 fixes (operator the operator approved round 3, 2026-10-21 10:44 PM ET, "sgtm")
+
+- [x] RED: GPT round-2 #2 — recorder test `learn_move is recorded like the other game tools` (learn-move.test.ts) fails: learn_move tool_result has no `state_seq`. GPT round-2 #1 — `test_on_after_the_battle_an_absent_battler_is_named_from_the_party_or_omitted` (test_post_battle_readout.py) fails: ON ended block shows `You TORCHIC · absent`.
+  - choose_evolution has the same recorder gap, but evolution-decision-v1 is already ON in both arms of the live fixed experiments; adding it would change recorded events of a merged switch's ON runs. Recorded as follow-up, not fixed here.
+
 ## Boy Scout Log
 
 (none yet)

@@ -6,11 +6,17 @@
 // battle summary list, the "did not learn" page after evolving, the battle "Poof!" page) are the recorded ones with
 // the fields the game would change.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {readFileSync} from "node:fs";
+import {mkdtempSync,readFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {RUN_START_META} from "../test-support/events.js";
 import {Value} from "typebox/value";
 import {describe,expect,it} from "vitest";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
-import type {Button} from "./events.js";
+import {parseEvent,type Button} from "./events.js";
+import {FrameStore} from "./frames.js";
+import {RunRecorder} from "./recorder.js";
+import {RunLog} from "./run-log.js";
 import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {GameStateError,StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {observeTool,pressTool,type BeforePressCheck} from "./game-tools.js";
@@ -372,5 +378,24 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
   const gatedTool=withLearnMove(base,ON,{read:()=>Promise.resolve(sim.state()),moveLearnWait:()=>Promise.resolve({reason:"other",frames:0,state:sim.state(),battle_learner:null})},()=>{gated.push("gate");return Promise.resolve();}).find(t=>t.name==="learn_move");
   await gatedTool?.execute("l",{forget:"EMBER"});
   expect(gated).toEqual(["gate"]);
+ });
+});
+
+describe("learn_move is recorded like the other game tools",()=>{
+ it("the recorder pairs a learn_move result with the final state it returned",async()=>{
+  const root=mkdtempSync(join(tmpdir(),"pokebench-learn-move-")),log=RunLog.create(root,"learn-move");
+  const sim=new LearnSim("evolution",{kind:"delete",selected:"YES"});
+  const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(sim.state())}});
+  await recorder.start(RUN_START_META);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"l1",toolName:"learn_move",args:{forget:"SCRATCH"}});
+  const result=await learnMoveTool(sim.ports()).execute("l1",{forget:"SCRATCH"});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"l1",toolName:"learn_move",isError:false,result});
+  const logged=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>parseEvent(line));
+  const out=logged.findLast(e=>e.type==="tool_result");
+  if(out?.type!=="tool_result")throw new Error("no tool_result");
+  expect(out.name).toBe("learn_move");expect(out.state_seq).toBeDefined();
+  const paired=logged.find(e=>e.seq===out.state_seq);
+  expect(paired).toMatchObject({type:"state"});
+  expect(JSON.stringify(paired)).toContain("DOUBLE KICK");
  });
 });

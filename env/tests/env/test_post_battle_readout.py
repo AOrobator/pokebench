@@ -202,3 +202,19 @@ def test_on_an_unreadable_party_member_is_a_visible_harness_bug() -> None:
     text = readout(replace(AFTER, battle_details=replace(DETAILS, party=(broken,))), ON)
     assert "You COMBUSKEN · HARNESS BUG: species unavailable" in text
     assert "Your moves (from the party" not in text
+
+
+def test_on_after_the_battle_an_absent_battler_is_named_from_the_party_or_omitted() -> None:
+    # Review round 2 (GPT): an absent player battler in the ended block must not show the battle
+    # struct's species (TORCHIC) when the party member has since evolved (COMBUSKEN).
+    gone = replace(FINISHING, battlers=(replace(PLAYER, absent=True), FOE))
+    state = replace(AFTER, battle=gone)
+    assert "You TORCHIC · absent (fainted or switched out)" in readout(state, OFF)
+    text = readout(state, ON)
+    assert "You COMBUSKEN · absent (fainted or switched out)" in text
+    assert "You TORCHIC" not in text
+    unmatched = replace(state, battle_details=replace(DETAILS, party=(replace(EVOLVED, identity="x"),)))
+    text = readout(unmatched, ON)
+    assert "ended (outcome won)" in text
+    assert "You TORCHIC" not in text
+    assert "absent (fainted or switched out)" not in text

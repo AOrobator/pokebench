@@ -63,3 +63,9 @@ Tests at the press-tool boundary, a pinned-pi delivery test, replay against reco
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive
+
+### Round 1 (frozen 540cb4e02..169aafefe, packet SHA-256 3472d6a7976e8fbdf4bd7cfe3392fd97a649e5ce9d29fc57df86ee0be0692be9)
+
+Principles self-review: 0 FAIL (runs/reviews/rejected-movement-prefix/principles.md). Gates on the synced tip: just test 0 (agent 4532, viewer 1699, Python 3961).
+- Claude CLI (~/.claude-review, plan mode): VERDICT: LGTM. Follow-ups only (receipt lost if a mid-walk state read throws; no abort/slope tests).
+- Grok (cursor-grok-4.5-high) and GPT (cursor gpt-5.6-sol-xhigh): Cursor "You're out of usage" (ActionRequiredError), no review. GPT lane switched to isolated Codex CLI (standing-authorized). Grok lane BLOCKED: Cursor is its only harness; no self-merge without operator decision.

@@ -1607,3 +1607,9 @@ it("links checked requested strides to its tracked explainer",()=>{
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector('[data-feature="rejected-movement-stride-v1"] a')?.getAttribute("href")).toBe("/explainers/rejected-movement-stride-v1.html");
 });
+
+it("links current boundary facts to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["boundary-crossing-facts-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="boundary-crossing-facts-v1"] a')?.getAttribute("href")).toBe("/explainers/boundary-crossing-facts-v1.html");
+});

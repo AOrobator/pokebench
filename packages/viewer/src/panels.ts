@@ -399,6 +399,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
  "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "boundary-crossing-facts-v1":"boundary-crossing-facts-v1.html",
   "rejected-movement-stride-v1":"rejected-movement-stride-v1.html",
   "rejected-movement-step-v1":"rejected-movement-step-v1.html",
   "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",

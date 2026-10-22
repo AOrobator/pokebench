@@ -231,3 +231,5 @@ None. Keep unrelated cleanup outside these evidence-backed packets.
 - M3A integration: observed leader-loss comparison RED/GREEN cherry-picked with production wiring and exact unknown/change distinctions; no rematch gate. Review/gates remain pending on cumulative branch.
 
 - M3B integration: qualified unloaded trainer-template approaches preserve hide filtering/current-state checks and never press A or claim live presence. Safe template facts currently cover trainers, including the leader; non-trainer templates remain unavailable and are not guessed.
+
+- M5A integration: current-boundary crossing facts added only for unique delivered edge + current foot reachability and no matching trigger; zero inputs. Existing blocked-exit feedback already retires changed live trigger conditions, so no duplicate stale-barrier treatment added.

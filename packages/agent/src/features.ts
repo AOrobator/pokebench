@@ -231,6 +231,7 @@ export const SWITCHABLE_FEATURES = [
   "rejected-movement-stride-v1",
   "leader-loss-comparison-v1",
   "npc-approach-feedback-v1",
+  "boundary-crossing-facts-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -575,6 +576,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("explorer-family-guidance-v1", "guidance", "FAMILY AND REPEAT CONVERSATIONS", null, "Default off; bundle only. Selects the existing explorer-guidance-v1 family, neighbours and repeat-conversation prompt section in place of explorer-guidance-v2. Names no character, place or story step and chooses no action. The original explorer switches retain their values and precedence when this treatment is off. Off: the previous explorer-guidance-v2/v1 prompt selection is unchanged."),
   on("battle-move-learn-input-v1", "observation", "BATTLE MOVE-LEARNING INPUT", null, "Default off. A ready native learn-move or stop-learning YES/NO battle script owns the Interface line and its current YES/NO cursor. No input or move selection is automated. Off: the previous battle controller Interface line, including battle_resolving during these questions."),
   on("rejected-movement-stride-v1", "guard", "CHECKED REQUESTED MOVEMENT", "safe-navigation-strides-v1", "Default off; bundle treatment. When navigation-tool-use-guard-v1 intercepts a direction batch, replaces rejection or the one-step fallback with one native checked straight prefix of the requested directions (at most eight). Stops before bends, hazards, objects, triggers, warps, unknown geometry or elevation changes; returns a terminal receipt and discards remaining directions. No route is chosen. Off: existing rejection or rejected-movement-step-v1 behavior exactly."),
+  on("boundary-crossing-facts-v1", "guidance", "CURRENT BOUNDARY FACTS", "connection-edge-tiles-v1", "Default off; bundle treatment. Adds a direction and delivered destination to a zero-input already-here navigation result only at a verified current connection edge, with live foot reachability and no matching trigger. Does not cross or select an exit. Off: unchanged already-here result without a crossing fact."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -859,6 +861,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("explorer-family-guidance-v1"),
     ...when("battle-move-learn-input-v1"),
     ...when("rejected-movement-stride-v1"),
+    ...when("boundary-crossing-facts-v1"),
   ];
 }
 

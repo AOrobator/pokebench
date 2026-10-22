@@ -338,3 +338,7 @@ Pending; no trials approved or launched. Historical fixture exercises a loss; ch
 
 ## npc-approach-feedback-v1
 Pending, unqueued and unapproved. Activation ROUTE_102; primary STONE_BADGE. Template exposure and checkpoint provenance require evaluation design. No measured runs.
+
+## boundary-crossing-facts-v1 (2026-10-22)
+
+Pending unapproved and unqueued. Readiness not assessed against qualifying current runs in isolated checkout. Reviewed integrated source repin and approved evaluation design required.

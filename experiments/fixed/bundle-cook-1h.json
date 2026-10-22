@@ -238,7 +238,8 @@
    "battle-move-learn-input-v1": false,
    "rejected-movement-stride-v1": false,
    "leader-loss-comparison-v1": false,
-   "npc-approach-feedback-v1": false
+   "npc-approach-feedback-v1": false,
+   "boundary-crossing-facts-v1": false
   }
  },
  "switches": [
@@ -346,7 +347,8 @@
   "battle-move-learn-input-v1",
   "rejected-movement-stride-v1",
   "leader-loss-comparison-v1",
-  "npc-approach-feedback-v1"
+  "npc-approach-feedback-v1",
+  "boundary-crossing-facts-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

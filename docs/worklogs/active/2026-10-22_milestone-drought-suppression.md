@@ -20,7 +20,7 @@ feature-switch, agent-observability, feature-explainer, experiment-queue, talk-t
 
 - [x] RED recorded cutscene/factory and OFF tests; commit
 - [x] GREEN production wiring, registry/defaults, bundle, pending experiment and explainer; commit
-- [ ] Gates, deletion/restoration, local viewer proof
+- [x] Gates, deletion/restoration, local viewer proof
 - [ ] Principles and independent Claude/Grok/GPT frozen-packet reviews
 - [ ] Landing board, reviewed fast-forward, live surface proof
 
@@ -65,3 +65,9 @@ Final c1477a208 packet had Claude CLI, normal isolated GPT gpt-5.6-sol, fresh gp
 Main advanced to d14390a48. Integrating it preserves the newer move-learn early comparison, current fixed recipes/defaults/registry order, and all unrelated source. Our treatment remains the one appended switch, defaultOFF, bundleON. Registry/default and historical tail tests resolved from current main plus our one append; no existing behavior tests removed. Pending incumbent refreshed to the current bundle with only this switch OFF. Native harness suppression code is unchanged from reviewed c1477a208. Initial sync tests exposed nine mechanical tail-index assertions, adjusted by exactly one.
 
 The keeper expired the old landing slot while relay mail was buffered; current board position4. Main/restarts remain untouched until our turn. Final packet will be refreshed after upstream landings settle.
+
+- Integrated snapshot22ad13abe gates: just test passes4443 agent,1671 viewer,3947 Python; just lint, just build (stamp22ad13a) and verify-vendor pass. First viewer test attempt used stale pre-main-sync agent dist and rejected the newly landed move-learn-early-comparison flag; rebuilding before the full suite resolved that without source changes.
+- First coverage attempt hit the existing5000ms pending-field-dialogue test deadline (one failure; all4442 others passed). Unchanged full battle-text-auto-advance file then passed60/60. Repeated unchanged just coverage passed all TS and Python tests with no test/deadline/coverage edits: agent lines99.23 branches93.30 functions97.98; viewer lines97.95 branches91.34 functions94.35; Python all metrics above90. Logs /tmp/drought-sync-tests2.log, /tmp/drought-sync-lint.log, /tmp/drought-sync-build.log, /tmp/drought-sync-coverage2.log. No gate is lowered or skipped.
+- Pending experiment source repinned to integrated implementation22ad13abe, whose current-main flag vocabulary matches its updated incumbent. This is metadata only, still unqueued/unapproved. Do not launch it.
+- Fresh operator blanket land-without-Grok instruction also relayed at10:47AM EDT2026-10-22: "land without grok. you are not a very good coordinator if you force me to go into chats". Earlier verified standing waiver already authorized the fallback roster. No remaining operator-approval blocker; no further permission question needed.
+- Current board position4, behind poison/berry readouts, evolution result page and slot-hard-cap. Upstream main has since advanced to7a85828b0 during those landings. Wait for board notification; then sync the final preceding main, rerun required integration gates, seal renewed packet and obtain Claude+GPT+distinct fallback LGTM under the verified waiver, reviewed fast-forward at slot1, single coordinated viewer restart/live checks, evidence-only main worklog commit and land-done. Main/restart/active runs untouched by this branch so far. No unresolved implementation or correctness blocker.

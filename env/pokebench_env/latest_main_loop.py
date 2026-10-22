@@ -77,6 +77,8 @@ class Config:
     viewer_stamp: Path = Path("/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json")
     # Another definition on the same fresh main whose arms every trial takes (`--feature-recipe`).
     feature_recipe: str | None = None
+    # Shared by every controller on this Mac: launcher builds, fixed trees and viewer restarts.
+    prepare_lock: Path = Path("/private/tmp/pokebench-latest-main-prepare.lock")
 
     def __post_init__(self) -> None:
         for name in (
@@ -363,7 +365,8 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
     def trial(self, lane: Lane, arm: str) -> bool:
         if self.observe_stop() or self.c.pause.exists() or self.busy(lane):
             return False
-        with self.preparation:
+        with self.preparation, self.c.prepare_lock.open("a") as shared:
+            fcntl.flock(shared, fcntl.LOCK_EX)
             pin = self.head()
             current = next((item for item in self.lanes(pin) if item.id == lane.id), None)
             if current is None or (current.port, current.model_url) != (lane.port, lane.model_url):
@@ -486,6 +489,9 @@ def main() -> None:
         )
         / "packages/viewer/dist/build-stamp.json",
         feature_recipe=os.environ.get("FEATURE_RECIPE") or None,
+        prepare_lock=Path(
+            os.environ.get("PREPARE_LOCK", "/private/tmp/pokebench-latest-main-prepare.lock")
+        ),
     )
     archive.mkdir(parents=True, exist_ok=True)
     config.launchers.mkdir(parents=True, exist_ok=True)

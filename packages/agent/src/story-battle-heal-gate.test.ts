@@ -461,6 +461,12 @@ describe("registry and event",()=>{
   delete arm["mart-stock-readout-v1"];
   delete arm["shop-interface-v1"];
   delete arm["birch-intro-pages-v1"];
+  delete arm["tool-prompt-docs-v1"];
+  delete arm["field-ownership-feedback-v1"];
+  delete arm["move-learn-loop-fingerprint-v1"];
+  delete arm["stale-plan-fact-v1"];
+  delete arm["post-battle-readout-v1"];
+  delete arm["move-learn-tool-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
   expect({...entry.incumbent.features,"trigger-navigation-boundary-v1":true,"milestone-instruction-memory-v1":true,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);

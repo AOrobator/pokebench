@@ -207,7 +207,7 @@ The game printed: "COMBUSKEN did not learn DOUBLE KICK."</code></pre>
 <h2>Status</h2>
 <ul>
 <li>Branch <code>claude/interface-ownership</code>; RED 0dcfc846c, GREEN 2af9cefca. Not merged into main.</li>
-<li>Default OFF. Proposed ON in the bundle arm; the arms wait for the operator's OK.</li>
+<li>Default OFF. ON in the bundle arm only of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).</li>
 <li>Tests: <code>packages/agent/src/learn-move.test.ts</code> (fake game over ea04's recorded states) and <code>env/tests/env/test_learn_move_wait.py</code> (the nine 97a0 raw-RAM archives). No save state at a move-learn prompt exists, so it has not been driven on the emulator. Multi-model review: not run yet.</li>
 <li>Not measured in runs. Pending experiment: <code>experiments/move-learn-tool-v1.json</code>.</li>
 </ul>

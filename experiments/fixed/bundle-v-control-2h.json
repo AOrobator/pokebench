@@ -227,7 +227,13 @@
    "trigger-navigation-boundary-v1": false,
    "gym-evidence-v1": false,
    "milestone-instruction-memory-v1": false,
-   "birch-intro-pages-v1": false
+   "birch-intro-pages-v1": false,
+   "tool-prompt-docs-v1": true,
+   "field-ownership-feedback-v1": true,
+   "move-learn-loop-fingerprint-v1": false,
+   "stale-plan-fact-v1": false,
+   "post-battle-readout-v1": false,
+   "move-learn-tool-v1": false
   }
  },
  "switches": [
@@ -255,7 +261,11 @@
   "trigger-navigation-boundary-v1",
   "gym-evidence-v1",
   "milestone-instruction-memory-v1",
-  "birch-intro-pages-v1"
+  "birch-intro-pages-v1",
+  "move-learn-loop-fingerprint-v1",
+  "stale-plan-fact-v1",
+  "post-battle-readout-v1",
+  "move-learn-tool-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -290,7 +300,9 @@
   "duplicate-turn-collapse-v1",
   "evolution-decision-v1",
   "counter-talk-v1",
-  "story-battle-heal-first-v1"
+  "story-battle-heal-first-v1",
+  "tool-prompt-docs-v1",
+  "field-ownership-feedback-v1"
  ],
  "phases": [
   {

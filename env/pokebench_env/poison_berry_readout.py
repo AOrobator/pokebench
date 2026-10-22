@@ -46,6 +46,8 @@ def visible_berry_lines(
 ) -> tuple[str, ...]:
     """Only loaded visible trees within the same 7-tile window as Field objects.
 
+    ObjectEvent.invisible/offScreen are byte +1 bits 0x20/0x40;
+    UpdateObjectEventSpriteVisibility hides either (event_object_movement.c).
     No type, quantity, timer or off-screen tree information is exposed. Missing
     resource data is unavailable, never interpreted as a ripe or empty tree.
     """
@@ -58,7 +60,7 @@ def visible_berry_lines(
         obj = raw[offset : offset + 0x24]
         if (
             not obj[0] & 1
-            or obj[1] & 0x20
+            or obj[1] & 0x60
             or obj[2] & 1
             or (obj[10], obj[9]) != map_id
             or obj[5] not in (60, 61, 62)

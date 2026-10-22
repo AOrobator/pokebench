@@ -80,3 +80,10 @@ Frozen base a637f683c024f60e00455f68961ddec369602e6a, head 5095262feceb2d0e25cfd
 - Test-quality dimensions 1–9 remain as above, with dimension 2/7 gap caught by the missing offScreen operand. New regression goes RED on the frozen implementation, log /tmp/poison-berry-offscreen-red.log; will repeat full Python checks after fix.
 - Grok primary CLI returned ActionRequiredError: out of usage, increase limits or switch to Auto. Retrying the listed Grok fast harness; no local model substitution and no self-merge without required cloud lanes.
 - Responsive proof resolved without changing product code: self-authored same-origin QA iframe viewports, html.clientWidth verified at 1280, 1440 and 375, native screenshot clips saved/opened for both pages. Screenshots: main runs/mockups/poison-berry-readouts/{poison,berry}-{1280,1440,375}-frame.png. Earlier screenshots without -frame retain the failed override attempt and are not proof of width.
+
+- Off-screen RED commit `0d455939b`. GREEN correction is a single visibility mask: 0x20 → 0x60, matching ObjectEvent.invisible and offScreen. Regression flips only offScreen, keeping all other fixture data and the production reader/formatter seam. The paired native GLM fixture's two actual berry objects have flags 0x10, so its example remains valid.
+- Grok fast retry also returned the same out-of-usage ActionRequiredError. Both discovered Grok options exhausted. The repository explicitly requires operator approval before self-merging with a missing cloud lane; fallback reviews may be prepared read-only, but cannot silently waive that main-landing rule.
+
+- Explainer diagram now has an explicit horizontal scroll container and 600px minimum width, keeping labels readable on phones. No model readout behavior changes.
+
+- Round-2 full coverage passed: agent 4438, viewer 1671, Python 3898 tests; coverage unchanged at the prior passing floors. Native archive, four switch combinations and original OFF digest all pass with the offScreen mask.

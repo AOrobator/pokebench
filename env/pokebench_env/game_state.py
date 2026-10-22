@@ -178,8 +178,9 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
-    # mart-stock-readout-v1: the open buy list of a normal shop; text only.
+    # berry-readout-v1: visible loaded trees; text only, None when off.
     berry_readout: tuple[str, ...] | None = None
+    # mart-stock-readout-v1: the open buy list of a normal shop; text only.
     mart_stock: MartStock | None = None
     mart_stock_diagnostic: str | None = None
     # exp-next-level-v1: the summary screen's NEXT LV. per party slot; None when off.

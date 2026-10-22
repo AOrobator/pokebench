@@ -246,7 +246,9 @@
    "reachable-section-alternatives-v1": false,
    "leader-loss-comparison-v1": false,
    "npc-approach-feedback-v1": false,
-   "owned-battle-context-v1": false
+   "owned-battle-context-v1": false,
+   "menu-item-guidance-v1": false,
+   "factual-healing-guidance-v1": false
   }
  },
  "switches": [
@@ -292,7 +294,9 @@
   "reachable-section-alternatives-v1",
   "leader-loss-comparison-v1",
   "npc-approach-feedback-v1",
-  "owned-battle-context-v1"
+  "owned-battle-context-v1",
+  "menu-item-guidance-v1",
+  "factual-healing-guidance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -68,3 +68,5 @@ User outcome: two independent switches for poison and berry readouts, grounded i
 - Final lint caught accidental duplicated test_game_state.py code from a registry-edit script. Restored that unrelated file byte for byte from HEAD; no production behavior was affected. Re-running lint and Python coverage after correction.
 
 - Final lint passes (both TypeScript packages, ruff check/format, mypy 114 source files). Viewer coverage rerun after explicit card/route tests: 1671 tests, same coverage floors passed. Build passes; pages-check clean; both local page URLs return 200.
+
+- GREEN commit: `ca12beec0`. Pending definitions use the schema-required main checkout and pin the verified implementation commit (main must contain it before any launch); they remain unqueued/unapproved and will need the landing pin if merged. Final corrected Python coverage: 3898 passed, 97.39% lines / 93.41% branches / 100% functions.

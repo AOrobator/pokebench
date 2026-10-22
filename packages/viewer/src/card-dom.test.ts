@@ -10,6 +10,21 @@ const FONT = { widths: Array.from({ length: 512 }, () => 4), cmap: { A: 1 } };
 const FACTS: PlateFacts = { live: true, elapsed: 61_000, reached: null, level: 0, total: 45, recovered: false, fresh: false, cap: 120_000 };
 
 describe("trainer card art", () => {
+  it("publishes usable art before the optional font finishes", async () => {
+    const font = Promise.withResolvers<unknown>();
+    const ready = Promise.withResolvers<NonNullable<Awaited<ReturnType<typeof loadCardArt>>>>();
+    const loading = loadCardArt(url => url.endsWith("manifest.json") ? Promise.resolve(MANIFEST) : font.promise, undefined, ready.resolve);
+    // Observe the immediate callback without a timing-based race or leaving a pending promise on failure.
+    await Promise.resolve();
+    let early: Awaited<typeof ready.promise> | null = null;
+    void ready.promise.then(value => { early = value; });
+    await Promise.resolve();
+    const beforeFont = early;
+    font.resolve(FONT);
+    await loading;
+    expect(beforeFont).toMatchObject({ art: { trainers: ["may"] }, font: null, glyphs: null });
+  });
+
   it("publishes usable card art while the optional font image is still pending", async () => {
     let finish: ((value: null) => void) | undefined;
     const glyphs = new Promise<null>(resolve => { finish = resolve; });

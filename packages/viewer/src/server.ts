@@ -139,7 +139,7 @@ export interface ViewerOptions {
   // This viewer's own build (default: dist/build-stamp.json); null when unknown.
   readonly build?: ViewerBuild | null;
   // Where workbench run logs are reduced (default: in process) and where finished runs persist.
-  readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun>; readonly partial?: boolean };
+  readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun>; readonly partial?: boolean; readonly prioritize?: (runIds: readonly string[]) => void };
 }
 
 const MAX_BODY = 64 * 1024;
@@ -671,7 +671,10 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     const healthy = healthProbe(options.fetchFn ?? fetch);
     const pending = cards === undefined
       ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }, catalog))
-      : liveRuns(options.runsRoot, healthy, catalog).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }, catalog));
+      : liveRuns(options.runsRoot, healthy, catalog).then(live => {
+        options.workbench?.prioritize?.([...live, ...(cards.selected === null ? [] : [cards.selected])]);
+        return workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }, catalog);
+      });
     if (cards === undefined) {
       const next = { until: Infinity, result: pending }; snapshot = next;
       next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });

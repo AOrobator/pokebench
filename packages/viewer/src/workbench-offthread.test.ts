@@ -6,6 +6,7 @@ import { Log, START, assistant, state } from "../test-support/events.js";
 import { createBaselinePool, type BaselineRequest, type BaselineWorkerLike } from "./baseline-pool.js";
 import { createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
+import { viewerOffload } from "./cli.js";
 import { startViewer, type Viewer } from "./server.js";
 import { cardWorkbench, createIncrementalRunLoader, createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
@@ -443,6 +444,69 @@ it("serves disk-cached runs in the very first partial snapshot without loading t
   expect(first.problems).toContain("Still loading 3 of 4 recorded runs; this page fills in as they finish.");
   expect(h.calls).not.toContain("done");
   h.release();
+});
+
+
+it("promotes already queued card runs over historical work without adding a worker", async () => {
+  const workers: FakeWorker[] = [];
+  const pool = createBaselinePool(() => { const worker = new FakeWorker(); workers.push(worker); return worker; }, 1);
+  const jobs = [pool.compute("/r", "busy"), pool.load("/r", "history", null), pool.load("/other", "selected", null), pool.load("/r", "selected", null)];
+  for (const job of jobs) void job.catch(() => undefined);
+  try {
+    pool.prioritize("/r", ["selected"]);
+    workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: "busy", milestones: [] } } });
+    await jobs[0];
+    expect(workers).toHaveLength(1);
+    expect(workers[0]?.posted.map(job => [job.runsRoot, job.runId])).toEqual([["/r", "busy"], ["/r", "selected"]]);
+    // A later selection replaces the priority; identities are scoped to the runs root.
+    pool.prioritize("/other", ["selected"]);
+    workers[0]?.emit("message", { id: workers[0].posted[1]?.id, failure: "test finished" });
+    await jobs[3]?.catch(() => undefined);
+    expect(workers[0]?.posted[2]?.runsRoot).toBe("/other");
+  } finally { await pool.close(); }
+});
+
+
+it.each(["selected", "live"] as const)("prioritizes a %s HTTP card through production offload while history is queued", async kind => {
+  const r = root();
+  for (const id of ["z-history", "y-history"]) write(r, id, ended());
+  write(r, "a-card", kind === "live" ? named() : ended());
+  let now = NOW;
+  const posted = Promise.withResolvers<undefined>();
+  const prioritized = Promise.withResolvers<undefined>();
+  const worker = new FakeWorker();
+  const originalPost = worker.postMessage.bind(worker);
+  worker.postMessage = message => { originalPost(message); posted.resolve(undefined); };
+  const offload = viewerOffload(r, new URL("file:///test-worker.js"), CODE, 32, () => worker);
+  const promote = offload.workbench?.prioritize;
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, ...offload, now: () => new Date(now), fetchFn: () => Promise.resolve(new Response("ok")),
+    workbench: { ...offload.workbench, prioritize: ids => { promote?.(ids); prioritized.resolve(undefined); } },
+  });
+  viewers.push(viewer);
+  const history = fetch(new URL("api/runs/a-card/frontier", viewer.url));
+  await posted.promise;
+  const path = kind === "selected" ? "api/cards?run=a-card" : "api/cards";
+  const cards = fetch(new URL(path, viewer.url));
+  await prioritized.promise;
+  // Finish only the running historical job; selected must bypass every queued historical job.
+  const first = worker.posted[0];
+  if (first === undefined) throw new Error("missing running reduction");
+  worker.emit("message", { id: first.id, outcome: loadRun(r, first.runId) });
+  const nextRun = worker.posted[1]?.runId;
+  const selected = worker.posted[1];
+  if (selected === undefined) throw new Error("missing selected reduction");
+  worker.emit("message", { id: selected.id, outcome: loadRun(r, selected.runId) });
+
+  const last = worker.posted[2];
+  if (last === undefined) throw new Error("missing remaining history reduction");
+  worker.emit("message", { id: last.id, outcome: loadRun(r, last.runId) });
+  await (await cards).json();
+  now += 5_001;
+  const data = parseWorkbench(await (await fetch(new URL(path, viewer.url))).json());
+  expect((await history).status).toBe(200);
+  expect(nextRun).toBe("a-card");
+  expect(data.runs.map(run => run.id)).toEqual(["a-card"]);
+  expect(worker.posted).toHaveLength(3);
 });
 
 it("keeps a tagged cold run selectable in its exact cohort until validated progress arrives", async () => {

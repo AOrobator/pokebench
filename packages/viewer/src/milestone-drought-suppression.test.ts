@@ -6,6 +6,8 @@ import {eventText,inspector} from "./panels.js";
 import {lanesSvg} from "./timeline.js";
 import {parseReadinessDoc} from "./experiment-store.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
+import {armPreset,parseFixedDefinition} from "./fixed-design.js";
+import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 import {parseExperiment} from "@pokebench/agent/experiments";
 
 const ID="milestone-drought-suppression-v1";
@@ -28,5 +30,10 @@ it("registers an unqueued one-switch experiment and enables only the current bun
   expect(f.base.features[ID],name).toBe(false);expect(f.switches.at(-1),name).toBe(ID);
   expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth,name).not.toContain(ID);
   expect(f.base.features["positive-supervisor-v1"],name).toBe(false);expect(f.switches,name).not.toContain("positive-supervisor-v1");
+  const {definition}=parseFixedDefinition(JSON.stringify(f));
+  for(const phase of definition.phases){
+   expect(presetFeatures(parsePlayPreset(armPreset(definition,phase.id,"bundle")))[ID],name).toBe(true);
+   expect(presetFeatures(parsePlayPreset(armPreset(definition,phase.id,"control")))[ID],name).toBe(false);
+  }
  }
 });

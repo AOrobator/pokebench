@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { presetFeatures } from "@pokebench/agent/play-preset";
+import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const IDS = ["poison-readout-v1", "berry-readout-v1"] as const;
@@ -13,8 +13,8 @@ describe("poison and berry bundle activation", () => {
       expect(definition.switches.slice(-2)).toEqual(IDS);
       expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
       for (const phase of definition.phases) {
-        const control = presetFeatures(armPreset(definition, phase.id, "control"));
-        const bundle = presetFeatures(armPreset(definition, phase.id, "bundle"));
+        const control = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")));
+        const bundle = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")));
         for (const id of IDS) {
           expect(definition.base.features[id]).toBe(false);
           expect(control[id]).toBe(false);

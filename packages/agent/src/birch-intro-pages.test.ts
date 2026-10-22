@@ -50,11 +50,11 @@ describe("birch-intro-pages-v1", () => {
     for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h"]) {
       const fixed = JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")) as { base: { features: Record<string, boolean> }; switches: string[] };
       expect(fixed.base.features[ID]).toBe(false);
-      expect(fixed.switches.at(-5)).toBe(ID);
+      expect(fixed.switches.at(-7)).toBe(ID);
       const bundle = { ...fixed.base.features, ...Object.fromEntries(fixed.switches.map((id) => [id, true])) };
       expect(bundle[ID]).toBe(true);
       if (name === "bundle-v-control") {
-        for (const [id, value] of Object.entries(bundle)) if (!["tool-prompt-docs-v1", "field-ownership-feedback-v1", "move-learn-loop-fingerprint-v1", "stale-plan-fact-v1", "post-battle-readout-v1", "move-learn-tool-v1"].includes(id)) expect(incumbent.features[id as SwitchableFeature]).toBe(id === ID ? false : value);
+        for (const [id, value] of Object.entries(bundle)) if (!["poison-readout-v1", "berry-readout-v1", "tool-prompt-docs-v1", "field-ownership-feedback-v1", "move-learn-loop-fingerprint-v1", "stale-plan-fact-v1", "post-battle-readout-v1", "move-learn-tool-v1"].includes(id)) expect(incumbent.features[id as SwitchableFeature]).toBe(id === ID ? false : value);
       }
     }
     expect(readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8")).toContain(`| \`${ID}\` | \`NEW_GAME_CREATED\``);

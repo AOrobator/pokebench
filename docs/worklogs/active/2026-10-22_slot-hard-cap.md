@@ -18,3 +18,7 @@ Design:
   - land-join checked expiry before adding the first waiter, so an overdue lone holder stayed number 1. FIX: land-join expires again after joining and reports the joiner's real position (test drives main).
   - The numbered steps in both skills still said to join first. FIX: new step 0 (sync, gates, reviews before joining); at your turn, gates rerun only if main moved; a changed diff means land-done, review, rejoin. execute-worklog says the same. The old slot-expiry worklog is marked superseded.
   - 83 agent-mail tests, module 100%.
+- R2 (head 9fcfcb6b, synced with main d14390a4; gates EXIT 0 first try): Claude LGTM, fallback (gpt-5.6-terra, standing in for Grok) LGTM, GPT BLOCKING (3).
+  - Accepted: the talk-to-codex and execute-worklog "land-done" instructions lacked `--branch`. FIX: both say `just land-done --branch <branch>`.
+  - Accepted: the review artifacts were stale. The boundary's file list omitted the superseded 2026-10-21 worklog, and PB10 said 82 tests; both are corrected.
+  - Rebutted: fixture runtime. board_of seeds 1–3 fixed rows per test (Claude and the fallback both audited it as bounded; the same point was rebutted on 2026-10-21).

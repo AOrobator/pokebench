@@ -37,7 +37,7 @@ No new network surface, no subprocess, no file IO. Inputs are model button array
 - [x] Wiring deletion goes red, restored: deleting the play-config mapping gave 11 failed / 10 passed; restored 21 passed
 - [x] Explainer (docs/explainers/rejected-movement-prefix-v1.html, themed, pages-check clean) + FEATURE_EXPLAINERS + panels/server tests + pending experiment + readiness entry
 - [x] Gates: `just lint` 0; `just build` 0; `just coverage` 0 — agent 4532 tests (97.36 stmts / 93.29 branches / 97.98 funcs / 99.21 lines), viewer 1692 (95.46 / 91.43 / 94.43 / 97.96), Python 3960 passed, 96% total. Worktree setup: submodule init, main's mgba binding symlinked into env/.venv, .env copied (all untracked/ignored).
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(agent): rejected-movement-prefix-v1 walks the longest valid prefix of a guarded walking batch` (8d09b78f1)
 - [ ] Multi-model review (Claude, Grok, GPT) LGTM
 - [ ] Land, `just viewer-main`, live check
 

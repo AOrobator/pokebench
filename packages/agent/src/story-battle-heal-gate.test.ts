@@ -468,6 +468,8 @@ describe("registry and event",()=>{
   delete arm["post-battle-readout-v1"];
   delete arm["move-learn-tool-v1"];
   delete arm["move-learn-early-comparison-v1"];
+  delete arm["menu-item-guidance-v1"];
+  delete arm["factual-healing-guidance-v1"];
   delete arm["poison-readout-v1"];
   delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];

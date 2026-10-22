@@ -236,7 +236,9 @@
    "poison-readout-v1": false,
    "berry-readout-v1": false,
    "milestone-drought-suppression-v1": false,
-   "navigation-recovery-v1": false
+   "navigation-recovery-v1": false,
+   "menu-item-guidance-v1": false,
+   "factual-healing-guidance-v1": false
   }
  },
  "switches": [
@@ -271,7 +273,9 @@
   "poison-readout-v1",
   "berry-readout-v1",
   "milestone-drought-suppression-v1",
-  "navigation-recovery-v1"
+  "navigation-recovery-v1",
+  "menu-item-guidance-v1",
+  "factual-healing-guidance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

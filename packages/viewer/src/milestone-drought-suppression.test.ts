@@ -27,7 +27,7 @@ it("registers an unqueued one-switch experiment and enables only the current bun
  expect(e.changedFeature).toBe(ID);expect(e.queuePosition).toBeUndefined();
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"]){
   const f=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
-  expect(f.base.features[ID],name).toBe(false);expect(f.switches.at(f.switches.includes("navigation-recovery-v1")?-2:-1),name).toBe(ID);
+  expect(f.base.features[ID],name).toBe(false);expect(f.switches.at(f.switches.includes("navigation-recovery-v1")?-4:-3),name).toBe(ID);
   expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth,name).not.toContain(ID);
   expect(f.base.features["positive-supervisor-v1"],name).toBe(false);expect(f.switches,name).not.toContain("positive-supervisor-v1");
   const {definition}=parseFixedDefinition(JSON.stringify(f));

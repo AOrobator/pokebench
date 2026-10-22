@@ -72,3 +72,15 @@ it("keeps justified 14/35 healing evidence and does not guess through unreadable
  expect(on.texts[0]).toContain("below half");
  expect(on.texts.slice(1)).toEqual(["recorded state","recorded state"]);
 });
+it("preserves full-HP damaging-PP and fainted-party risks without stacking heal commands",async()=>{
+ const lead=state.party[0],facts=state.heal_before_trainers;
+ if(lead?.moves==null||facts==null)throw new Error("fixture needs native move and trainer facts");
+ const noPP:GameStateSnapshot={...hp(33),party:[{...lead,hp:33,max_hp:33,moves:lead.moves.map(m=>({...m,pp:0}))}]};
+ const fainted:GameStateSnapshot={...hp(33),party:[{...lead,hp:33,max_hp:33},{...lead,identity:"fixture-fainted-member",species:"WURMPLE",hp:0,max_hp:15}]};
+ const pp=await replay(true,[noPP]),party=await replay(true,[fainted]);
+ expect(pp.warnings).toHaveLength(1);
+ expect(pp.texts[0]).toContain("no PP left");
+ expect(party.warnings).toHaveLength(1);
+ expect(party.texts[0]).toContain("WURMPLE has fainted");
+ for(const result of [pp,party])expect(result.texts[0]).not.toMatch(/Heal to full|heal before talking|Heal before you battle/);
+});

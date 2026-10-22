@@ -22,3 +22,6 @@ Gates and review recorded below.
 - [x] fix: checked presses (objective-tracking-v1 path) bypassed the pick; interception no longer requires an unchecked press (the check still runs first)
 - [x] fix: RNG test was stochastic; pickRandomStarter takes an injectable draw, tested with 0 and 1
 - Review round 2 (packet 24a360c33..9c634fdad, sha256 f2fe6c37…): GPT BLOCKING only on the pending entry's stale source pin; repinned to 9c634fdad
+- Review round 3 (packet 24a360c33..615404f2f, sha256 e921f5c7…): GPT (Codex CLI gpt-5.6-sol) LGTM; Claude lane (Claude reviewer subagent; Claude CLI OAuth expired) LGTM on 9c634fdad and on the config-only delta to 615404f2f; fallback subagent LGTM on 9c634fdad (delta config-only).
+- Synced main a8cdf3198 (3bbd6be5e); own diff byte-identical to the reviewed packet (same sha256). Gates on the merged tip: agent 4866, viewer 1809, Python 4013, coverage/lint/vendor pass.
+- LANDED: main fast-forwarded to 3bbd6be5e (2026-10-22 6:50 PM New York); just build + just test on main green (4866/1809/4013).

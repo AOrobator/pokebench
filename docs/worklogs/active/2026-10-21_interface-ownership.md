@@ -222,6 +222,27 @@ Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. The ro
   - Live-run safety: latest_main_loop (pid 37440) launches each trial from its own clone `/private/tmp/pokebench-auto-launchers/<pin>` and reads `git show <pin>:experiments/fixed/bundle-v-control-2h.json`; the live pair (lane A bundle 2026-10-21T21-05-17 bd06 and lane B control from 22:20, both pin 640f01e12, cwd that clone) never re-reads main. The GLM 4h driver (pid 35692, legacy mode, `--feature-recipe bundle-v-control`) runs in `/private/tmp/pokebench-glm-four-hour-main`, checked out only at a round start. So these edits reach only launches after the merge; lanes/ports unchanged (the loop's lane check passes).
   - COMMIT: `feat(experiments): approved arms for the six interface-ownership switches in the fixed bundles` (81a108c79)
 - [x] GATES on the synced tip (main 640f01e12 merged): build OK; agent vitest 4423/4423 (coverage 99.23 L / 93.3 B / 97.95 F), viewer 1667/1667 (97.95 / 91.33 / 94.35); pytest 3889 passed (97.38 L / 93.39 B / 100 F, floor 90); tsc/eslint OK; ruff (one E501 in the new test, wrapped), ruff format, mypy OK; verify-vendor OK.
+  - COMMIT: `style(test): wrap the absent-battler test line; record round-3 gates` (cdbeabf1f)
+
+### Round 3 principles self-review (fix delta 1ffb613a3..cdbeabf1f excluding the SYNC 3 merge, plus the merge's registry collateral)
+
+Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. Round-1 and round-2 tables stand for the unchanged candidate; rows below cover the round-3 delta.
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | The ended block's absent-battler line now takes the name from the matched party member (game RAM party), never the battle struct's pre-evolution copy; an unmatched absent battler is omitted rather than shown stale (battle_details.py `battle_details_lines`, test `test_on_after_the_battle_an_absent_battler_is_named_from_the_party_or_omitted`). No grading change. |
+| PB2 | N/A | No terminal record, stop reason or reporting change. |
+| PB3 | PASS | The arms change claims no benefit; the six experiments stay pending with no queuePosition, and their notes now say the all-six-off incumbent predates the approved membership and must be repinned before queueing. |
+| PB4 | PASS | Arm membership is declared in the fixed definitions (switches / onInBoth / base.features) and recorded per run in harness_features; definitionProblems and controlBaseProblems are empty for all five definitions. No new helper. |
+| PB5 | PASS | Each fix stays inside its own switch: learn_move exists only with move-learn-tool-v1 ON, so the recorder allowlist entry is inert OFF; the absent-battler change runs only with `ended` (post-battle-readout-v1 ON) and the OFF assertion pins `You TORCHIC · absent`; post_battle_off.json golden unchanged. The bundle arm is a declared multi-switch comparison by design (operator-approved membership); the per-switch experiments remain the one-change tests. |
+| PB6 | N/A | One readout line replaces one line; no context growth. |
+| PB7 | PASS | learn_move tool_result now carries `state_seq` paired with the returned final state (recorder.ts allowlist; learn-move.test.ts recorder test asserts the paired state event holds DOUBLE KICK). choose_evolution's identical gap is recorded as a follow-up (evolution-decision-v1 is ON in live fixed arms). |
+| PB8 | N/A | No new model-misbehavior path. |
+| PB9 | PASS | Round 3, the arms and landing were asked and approved by the operator (2026-10-21 10:44 PM ET, "sgtm"); the choose_evolution recorder change was not self-approved and is left as a follow-up. |
+| PB10 | PASS | No skips; floor 90 unchanged; no coverage excludes. Pinning tests for older pending experiments (birch-intro-pages, heal-first, story-battle-heal-gate, viewer open-goal-prompt) exempt the six new members the same way they already exempt every later bundle member; their assertions are otherwise unchanged. Hooks ran on every commit. |
+| PB11 | PASS | Uses the existing absent bitmask read (battle_state.py 0x02024210) and the existing party identity match; no new dependency. Merge offsets checked by running every pinned index test in both stacks. |
+| PB12 | N/A | No ROM/path access change. |
+| PB13 | PASS | RED 119e85316 → GREEN 1262fc2b1 (the RED tree is the guard deletion: both new tests fail there); SYNC 3 2068d9af8 and the arms commit gated (agent 4423, viewer 1667, pytest 3889; coverage ≥90 L/B/F both stacks; lint, build, verify-vendor OK); live-run safety of the definition edit checked against the running loops' pinned clones. |
 
 ## Boy Scout Log
 

@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,isCheckedNavigation,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {COUNTER} from "./tile-rules.js";
 import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
 
@@ -218,7 +218,7 @@ function semanticV2Description(dialogue:boolean):string {
  return dialogue?`${SEMANTIC_V2_DESCRIPTION.slice(0,cut)}${SEMANTIC_V2_DIALOGUE}${SEMANTIC_V2_DESCRIPTION.slice(cut)}`:SEMANTIC_V2_DESCRIPTION;
 }
 function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs> {
- const options=navigationOptions(features);
+ const baseOptions=navigationOptions(features);
  // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
  const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
@@ -235,11 +235,14 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     const position=before.position===null?"unavailable":`(${String(before.position.x)},${String(before.position.y)})`;
     return {...result,content:[{type:"text",text:`Current map: ${before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
    }
+   let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,request.target,false);
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
    const planned=features["field-move-gates-v1"]?gatedState(before):before;
-   const choices=request.target.kind==="connection"?connectionApproaches(planned,request.target,options):approaches(planned,listed as SnapshotTarget,options);
+   const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
+   let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
+   if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
    const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,request.target,false);
    const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
    const selectedConnection=connectionDirection===null?null:before.topology?.connections.find(item=>item.direction===connectionDirection)??null;

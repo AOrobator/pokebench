@@ -901,9 +901,26 @@ it("adds progress-aware cycles only to the bundle in canonical and current whole
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
- for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1"] as const){
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1","birch-intro-pages-v1"] as const){
   expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
   expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
   expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
+ }
+});
+
+
+it("the active two-hour cook includes approved gym evidence and milestone memory only in the bundle",()=>{
+ const {definition:source}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8"));
+ const dry=dryRunDefinition(source,7_200_000,"cook");
+ for(const arm of ["control","bundle"] as const){
+  const def=soloDefinition(dry,arm,"A","dry-run",1);
+  const preset=armPreset(def,"dry-run",arm);
+  for(const id of ["gym-evidence-v1","milestone-instruction-memory-v1"] as const){
+   expect(source.base.features[id],id).toBe(false);
+   expect(source.switches,id).toContain(id);
+   expect(source.onInBoth,id).not.toContain(id);
+   expect(preset.features[id],`${arm}:${id}`).toBe(arm==="bundle");
+   expect(DEFAULT_NEXT_RUN.features[id],`default:${id}`).toBe(false);
+  }
  }
 });

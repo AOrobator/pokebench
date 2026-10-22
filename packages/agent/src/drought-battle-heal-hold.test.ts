@@ -182,9 +182,9 @@ describe("production factory",()=>{
 
 describe("registry",()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-10)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-8)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-11)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-9)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");

@@ -733,7 +733,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const sight=ports.trainerSight,healGate=ports.healGate;
  const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
  const gatedDescription=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
- const description=ports.triggerBoundary===true?`${gatedDescription} Matching coordinate scripts are walkable observation boundaries: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
+ const description=ports.triggerBoundary===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
  const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
@@ -754,7 +754,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
-   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:ports.triggerBoundary===true?[]:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{})};
+   const guardedOptions:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...((truth&&ports.triggers===true)||ports.triggerBoundary===true?{triggers:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{})};
+   const options:NavigationOptions=ports.triggerBoundary===true&&planNavigation(state,goal,guardedOptions)===null?{...guardedOptions,triggers:[]}:guardedOptions;
    // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
    const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
    if(cutOff!==null){status=`${at(goal)} cannot be reached on foot from where you stand: ${cutOff}`;break;}

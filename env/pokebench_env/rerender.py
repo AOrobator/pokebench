@@ -76,6 +76,7 @@ def read_state(
         transition_coherence_enabled="transition-coherence-v1" not in off,
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
+        birch_intro_pages_enabled="birch-intro-pages-v1" not in off,
         surf_gate_enabled=SURF_GATE not in off,
         exit_reach_enabled=EXIT_REACH not in off,
         heal_trainers_enabled=HEAL_TRAINERS not in off,

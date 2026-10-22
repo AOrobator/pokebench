@@ -701,7 +701,7 @@ def format_readout(
             "(current presence and position unverified; scripts may relocate them):"
         )
         for template in state.static_npc_templates.templates:
-            target = (
+            template_target_text = (
                 f'; navigate_to_target target {{"kind":"static_object",'
                 f'"local_id":{template.local_id}}}'
                 if "semantic-navigation-v1" not in off or "semantic-navigation-v2" not in off
@@ -709,7 +709,7 @@ def format_readout(
             )
             lines.append(
                 f"- object {template.local_id} template at ({template.x},{template.y}); "
-                f"approach only, no interaction{target}"
+                f"approach only, no interaction{template_target_text}"
             )
     # semantic-navigation-v2: listed targets carry the navigate_to_target argument.
     semantic = SEMANTIC_V2 not in off and "world-targets-v1" not in off

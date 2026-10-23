@@ -30,7 +30,7 @@ No remote services or new dependencies. ROM stays external, read-only and untrac
 - [ ] GREEN restore builder; CPU-only native replay/load receipts for actual development/control starts; protected qualification via sealed metadata-only path
 - [ ] Record any genuinely unrecoverable starts explicitly
 **M3 — Delivery, rehearsal and review**
-- [ ] RED/GREEN registered default-OFF one-shot reminder and production wiring
+- [ ] RED/GREEN registered default-OFF one-shot reminder and production wiring: RED continuation factory absent; no fresh boot task allowed; replay subscribers must see identical historical prefix.
 - [ ] Full fake-clock campaign/restart/failure rehearsal, zero GPU calls
 - [ ] Gates: tests, build, lint, >=90% coverage, vendor integrity
 - [ ] Principles and independent reviews on frozen implementation packet

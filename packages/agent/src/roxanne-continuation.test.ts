@@ -1,0 +1,12 @@
+import {it,expect} from "vitest";
+import {flagFeatures} from "./play-preset.js";
+import {prepareContinuation,ContinuationEvents} from "./roxanne-continuation.js";
+import {buildRestoreBundle} from "./roxanne-restore.js";
+import {ev} from "../test-support/events.js";
+import {playFromHistory,Governor,type Loop} from "./harness.js";
+const history=[{role:"user" as const,content:"original instruction and last loss",timestamp:0}];
+const bytes=Buffer.from("checkpoint");
+const bundle=()=>buildRestoreBundle({sourceRun:"source",sourceCommit:"a".repeat(40),turn:4,stateSeq:2,stateBytes:bytes,nativeReceipt:{passed:true,frame:100,ewram:"b".repeat(64),iwram:"c".repeat(64),registers:true,restored:true,inputReady:true,insideGym:true},history,eventsPrefix:"prefix",systemPrompt:"source prompt",toolsHash:"d".repeat(64),rtcUnixMs:1792600000000});
+it("registered reminder defaults OFF and only the campaign factory inserts it once",()=>{const flags=flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false});expect(flags["roxanne-campaign-reminder-v1"]).toBe(false);const off=prepareContinuation(flags,bundle(),bytes,history,"prefix","candidate");expect(off.messages).toBe(history);const on=prepareContinuation({...flags,"roxanne-campaign-reminder-v1":true},bundle(),bytes,history,"prefix","candidate");expect(on.messages).toHaveLength(2);expect(on.receipt?.index).toBe(1);});
+it("seeds every actual subscriber with the same prefix, then forwards only ordered future events",()=>{const old=[ev({type:"ledger_context",text:"loss",evidence:[]},1)];const bus=new ContinuationEvents(old);const a:number[]=[],b:number[]=[];bus.subscribe(e=>a.push(e.seq));bus.subscribe(e=>b.push(e.seq));bus.observe(ev({type:"ledger_context",text:"next",evidence:[]},2));expect(a).toEqual([1,2]);expect(b).toEqual([1,2]);expect(()=>bus.observe(old[0]!)).toThrow();});
+it("resumes the ordinary agent loop with restored messages, never a new boot task",async()=>{const governor=new Governor({limits:{maxTurns:1,maxWallMs:1000,maxTokens:1000,failureLimit:1},abort:()=>undefined,now:()=>0});let sent:unknown;const loop:Loop={start:()=>{throw new Error("must not boot");},resume:messages=>{sent=messages;governor.stop("budget");return Promise.resolve([]);}};expect(await playFromHistory(history,governor,loop)).toBe("budget");expect(sent).toEqual(history);});

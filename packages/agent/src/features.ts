@@ -266,6 +266,7 @@ export const MEASUREMENT_FEATURES = [
   "trainer-opponent-v1",
   "native-target-stop-v1",
   "deterministic-loop-diagnostics-v1",
+  "all-gym-story-milestones-v1",
 ] as const;
 export type MeasurementFeature = (typeof MEASUREMENT_FEATURES)[number];
 
@@ -478,6 +479,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
   on("safe-navigation-strides-v1", "guidance", "SAFE NAVIGATION STRIDES", "bounded-navigation-v1", "Default off. Plans straight corridors of at most eight plain-floor tiles and validates every native step and stationary endpoint. Stops before turns, grass, ledges, objects, warps, script coordinates and elevation changes; special steps walk without automatic running. Off: the incumbent one-button navigation and running execution are unchanged."),
   on("evolution-decision-v1", "guidance", "EXPLICIT EVOLUTION DECISION", null, "Requires choose_evolution with evolve or cancel at a verified native cancellation window. The emulator waits for the choice and blocks ordinary button input through the evolution animation; neither option is recommended. After the explicit choice, the harness acknowledges only native waiting evolution result text with A; move-learning choices stay with the model. Removes the invented selected CANCEL menu and generic confirmation controls. Subsequent move-learning prompts retain their native controls. Default off; on in both arms of the fixed experiments (operator decision 2026-10-20). Off: ordinary evolution timing, button input, tools and observations are unchanged."),
+  measured("all-gym-story-milestones-v1", "ALL GYM STORY SPLITS", "Measurement only: records game-owned story progress through Devon, Dewford, Slateport and Mauville, and every gym leader victory, badge and TM through Sootopolis. Does not change model readouts or stall clocks."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -709,7 +711,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("semantic-navigation-v1"), ...when("deterministic-exploration-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
     ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
     ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), ...when("ledge-hops-v1"), ...when("one-way-tiles-v1"), ...when("counter-talk-v1"), ...when("walkable-floor-v1"), "clock-milestone-v1", ...when("story-state-v1"),
-    ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "roxanne-first-interaction-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1", "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "bedroom-exit-v1", "route103-rival-splits-v1", "trainer-opponent-v1",
+    ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "roxanne-first-interaction-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1", "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "bedroom-exit-v1", "route103-rival-splits-v1", "trainer-opponent-v1", "all-gym-story-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
     ...when("navigation-evidence-memory-v1"), ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),

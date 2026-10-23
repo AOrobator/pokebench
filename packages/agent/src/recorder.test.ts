@@ -747,3 +747,11 @@ it("semantic-navigation-v2: navigate_to_target and explore_map results record th
     }
   }
 });
+
+it("refuses a new measurement claim from an old server but accepts explicitly unavailable native state",async()=>{
+ const meta={...START_META,harness_features:["all-gym-story-milestones-v1"]};
+ const missing=harness().recorder;await missing.start(meta,false);
+ expect(()=>missing.recordState(STATE)).toThrow(/no story_progress/);
+ const unavailable=harness().recorder;await unavailable.start(meta,false);
+ expect(()=>unavailable.recordState({...STATE,story_progress:null})).not.toThrow();
+});

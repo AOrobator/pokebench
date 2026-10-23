@@ -149,7 +149,7 @@ describe("live side panel", () => {
     const v = view((l) => { l.add(1_000, mark("CLOCK_SET", "present_at_start")); });
     expect(splitStrip(v)).toBe('<div class="mspl"><span class="next">LEAVE BEDROOM</span></div>');
     const done = view((l) => { l.add(1_000, mark("ROCK_TOMB_RECEIVED")); });
-    expect(splitStrip(done)).toBe('<div class="mspl"><span class="done">ROCK TOMB ✔</span></div>');
+    expect(splitStrip(done)).toBe('<div class="mspl"><span class="done">ROCK TOMB ✔</span><span class="next">RUSTURF AQUA GRUNT DEFEATED</span></div>');
   });
 
   it("points NEXT at the first unreached checkpoint after the deepest checkpoint, and escapes names", () => {

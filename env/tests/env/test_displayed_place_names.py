@@ -176,6 +176,7 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
                 "oldale_stage": 0,
             }
             assert current.pop("trainer_opponent") is None
+            assert isinstance(current.pop("story_progress"), dict)
             assert current == json_golden
 
 

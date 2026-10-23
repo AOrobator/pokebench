@@ -1,3 +1,4 @@
+import {progressAttacher,progressSignature} from "./progress-recovery.js";
 // route103_rival recovered from a run's raw-RAM archives by `just backfill-route103`, kept beside
 // its log in derived/route103_rival.jsonl. The log itself never changes; readers attach the value
 // to the state events that lack it, and RunView derives the rival splits from them.
@@ -22,7 +23,7 @@ const sidePath = (runDir: string): string => join(runDir, "derived", "route103_r
 const MAX_BYTES = 64 * 1024 * 1024;
 
 // Part of a run's cache identity, so writing, changing or removing the side file re-grades the run.
-export function recoveredSignature(runDir: string): string {
+function rivalSignature(runDir: string): string {
   const path = sidePath(runDir);
   if (!existsSync(path)) return "";
   if (lstatSync(join(runDir, "derived")).isSymbolicLink() || !lstatSync(path).isFile()) return ":recovered=refused";
@@ -105,7 +106,7 @@ function decodedFor(runDir: string, path: string, sha256: string): Decoded | nul
   DECODED.set(key, decoded);
   return decoded;
 }
-export function recoveredAttacher(runDir: string): (event: RunEvent) => RunEvent {
+function rivalAttacher(runDir: string): (event: RunEvent) => RunEvent {
   const recovered = loadRecoveredRival(runDir);
   let stopped = recovered.size === 0;
   return (event) => {
@@ -119,3 +120,6 @@ export function recoveredAttacher(runDir: string): (event: RunEvent) => RunEvent
     return withRecovered(event, recovered);
   };
 }
+
+export function recoveredSignature(runDir:string):string {return rivalSignature(runDir)+progressSignature(runDir);}
+export function recoveredAttacher(runDir:string):(event:RunEvent)=>RunEvent {const rival=rivalAttacher(runDir),progress=progressAttacher(runDir);return event=>progress(rival(event));}

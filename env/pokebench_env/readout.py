@@ -998,6 +998,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "party_ownership": None if state.party_ownership is None else state.party_ownership.json(),
         "party": [asdict(mon) for mon in state.party or ()],
         "game_stats": state.game_stats,
+        "story_progress": None if state.story_progress is None else state.story_progress.json(),
         "route103_rival": None if state.route103_rival is None else state.route103_rival.json(),
         "trainer_opponent": None
         if state.trainer_opponent is None

@@ -10148,6 +10148,63 @@
             }
           ]
         },
+        "story_progress": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "flags",
+                "rustboro_stage",
+                "devon_stage",
+                "letter"
+              ],
+              "properties": {
+                "flags": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{600}$"
+                },
+                "rustboro_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "devon_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "letter": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "route103_rival": {
           "anyOf": [
             {

@@ -544,7 +544,7 @@ it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-tim
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
  // These existing experiment definitions retain their original frozen measurement catalog.
- expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.slice(0,REQUIRED_FRONTIER_MILESTONES.indexOf("ROCK_TOMB_RECEIVED")+1).filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
@@ -601,7 +601,7 @@ it.each([[false,"jit-v2-cache-20m","just-in-time-prompt-v2"],[true,"jit-v2-cache
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
  // These existing experiment definitions retain their original frozen measurement catalog.
- expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.slice(0,REQUIRED_FRONTIER_MILESTONES.indexOf("ROCK_TOMB_RECEIVED")+1).filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);

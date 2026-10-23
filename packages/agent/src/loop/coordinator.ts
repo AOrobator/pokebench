@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "../story-progress.js";
 import {ProgressAwareCycles} from "../progress-aware-cycles.js";
 import {NavigationRecovery} from "./navigation-recovery.js";
 import {NavigationFailure} from "../navigation-failure.js";
@@ -181,6 +182,7 @@ export class LoopCoordinator {
     if (event.run !== this.run || event.seq <= this.eventSeq) return;
     this.eventSeq = event.seq;
     this.turn = event.turn;
+    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name))return;
     this.progressCycles?.observe(event);
     if(event.type==="milestone"&&this.progressCycles?.hold()?.reason==="milestone"){
       this.retireCycles(event.seq,"newly observed milestone");

@@ -10,6 +10,7 @@ const root = () => mkdtempSync(join(tmpdir(), 'human-'));
 it('records explicit human identity and exact measurement policy without model tools', () => {
  const plan = humanPlan(root(), 'human-test', 8040, 'a'.repeat(40));
  expect(plan.controller).toEqual({kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275});
+ expect(plan.harnessFeatures).toContain('all-gym-story-milestones-v1');
  expect(plan.tools).toEqual([]); expect(plan.model.max_tokens).toBe(0); expect(plan.harnessFeatures).not.toContain('probe');
 });
 it('takes the human lease exclusively and cleans up only its own acquisition', () => {

@@ -39,7 +39,7 @@ vi.mock("./run.js", async (load) => {
       serverHealthy: () => Promise.resolve(false), launchServer: (dir) => Promise.resolve({ serverDir: `${dir}/server`, stop: () => Promise.resolve() }),
       harness: () => ({ commit: "1".repeat(40), dirty: false }), vendorPin: () => "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
       milestones: { poll: () => Promise.resolve([]),...(owner.seedInitial?{observe:()=>[]}: {}) },
-      gameState: { nativeActions:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), battleChoices:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), read: () => (owner.stateReads++,Promise.resolve({ raw_ram:{v:1 as const,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},game_stats:null,blackout_active:null,route103_rival:null,screen: owner.screen, started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null,story:{...NAME_CONFIRMED.story,name_confirmed:false} })) },
+      gameState: { nativeActions:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), battleChoices:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), read: () => (owner.stateReads++,Promise.resolve({ raw_ram:{v:1 as const,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},game_stats:null,blackout_active:null,route103_rival:null,story_progress:null,screen: owner.screen, started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null,story:{...NAME_CONFIRMED.story,name_confirmed:false} })) },
     };
     try {
       const root = "/test-owned/objective-entrypoint";
@@ -161,7 +161,7 @@ it.each([[false,"clock"],[true,"clock"],[true,"bag_menu"],[true,"party_menu"]] a
  const scene=screen==="clock"?"clock":"menu";
  owner.duringPlay=async loop=>{
   await loop.emit({type:"tool_execution_start",toolCallId:"observe-jit",toolName:"observe",args:{}});
-  await loop.emit({type:"tool_execution_end",toolCallId:"observe-jit",toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen,active_ui:{phase:screen,selected:null,ready:true,controls:"",diagnostic:null},started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:scene==="menu",party:[],money:null,badges:[],play_time_s:null}}}});
+  await loop.emit({type:"tool_execution_end",toolCallId:"observe-jit",toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,story_progress:null,screen,active_ui:{phase:screen,selected:null,ready:true,controls:"",diagnostic:null},started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:scene==="menu",party:[],money:null,badges:[],play_time_s:null}}}});
   const request={systemPrompt:"standing",messages:[],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
   const next=loop.requestContext?.(request);
   expect(next?.tools?.map(t=>t.name)).toEqual(enabled?["observe"]:["observe","battle_action"]);
@@ -262,7 +262,7 @@ it.each([false,true])("actual play delivers and records retained-guide reuse (en
   for(const [n,screen] of ["main_menu","clock"].entries()){
    const id=`reentry-${String(n)}`;
    await loop.emit({type:"tool_execution_start",toolCallId:id,toolName:"observe",args:{}});
-   await loop.emit({type:"tool_execution_end",toolCallId:id,toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:n+2,frame:n+2,path:`raw-ram/0000000${String(n+2)}.json.gz`,sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen,started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null}}}});
+   await loop.emit({type:"tool_execution_end",toolCallId:id,toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:n+2,frame:n+2,path:`raw-ram/0000000${String(n+2)}.json.gz`,sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,story_progress:null,screen,started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null}}}});
    history.push(assistant({toolCalls:[{type:"toolCall",id,name:"observe",arguments:{}}]}),{role:"toolResult",toolCallId:id,toolName:"observe",isError:false,timestamp:n+2,content:[{type:"text",text:screen}]});
    const next=request();if(n===1)expect(next?.messages.filter(m=>m.role==="user"&&typeof m.content==="string"&&m.content.includes("HARNESS INTERFACE GUIDANCE"))).toHaveLength(reuse?1:2);
   }
@@ -283,7 +283,7 @@ it("production play settles battle text before constructing the model request co
  const recorded=JSON.parse(gunzipSync(actualFs.readFileSync(new URL("./fixtures/battle-text-show-7753.json.gz",import.meta.url))).toString("utf8")) as {frames:{raw_ram:string;state:unknown}[]};
  const waiting=parseGameState(recorded.frames.find(f=>f.raw_ram==="00007772.json.gz")?.state);
  const ready=parseGameState(recorded.frames.find(f=>f.raw_ram==="00007782.json.gz")?.state);
- for(const state of [waiting,ready]){state.raw_ram={v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)};state.route103_rival=null;}
+ for(const state of [waiting,ready]){state.raw_ram={v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)};state.route103_rival=null;state.story_progress=null;}
  let current=waiting;const presses:string[]=[];
  const image=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(image);image.writeUInt32BE(13,8);image.write("IHDR",12);image.writeUInt32BE(240,16);image.writeUInt32BE(160,20);
  vi.stubGlobal("fetch",((input,init)=>{

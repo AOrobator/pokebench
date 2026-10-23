@@ -67,7 +67,7 @@ describe("StateMilestones", () => {
   });
 
   it("lists the path to the first gym in order", () => {
-    expect(MILESTONES.map((m) => m.name)).toEqual([
+    expect(MILESTONES.slice(0,MILESTONES.findIndex(m=>m.name==="ROCK_TOMB_RECEIVED")+1).map((m) => m.name)).toEqual([
       "GAME_RUNNING",
       "NEW_GAME_CREATED",
       "PLAYER_NAME_CONFIRMED",

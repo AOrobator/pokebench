@@ -36,3 +36,14 @@ it("every completion tests its own bit, while every map split validates map iden
   }
  }
 });
+
+
+it("requires both Aqua Hideout entrance guards to be removed",()=>{
+ const withFlags=(flags:readonly number[]):GameStateSnapshot=>{
+  const s=snapshot(0);const bytes=Buffer.alloc(300);
+  for(const bit of flags)bytes[bit>>3]=(bytes[bit>>3]??0)|(1<<(bit&7));
+  return {...s,story_progress:{flags:bytes.toString("hex"),rustboro_stage:0,devon_stage:0,letter:false}};
+ };
+ for(const flags of [[],[821],[822]])expect(progressReached("AQUA_HIDEOUT_ACCESS_OPENED",withFlags(flags)),`removed guard flags: ${JSON.stringify(flags)}`).toBe(false);
+ expect(progressReached("AQUA_HIDEOUT_ACCESS_OPENED",withFlags([821,822]))).toBe(true);
+});

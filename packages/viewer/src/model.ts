@@ -227,6 +227,35 @@ export class RunView {
   humanFrame: number | null = null;
   state: StateEvent | null = null;
   partyState: StateEvent | null = null;
+  // Viewer-only overlay; roster/profile and raw event provenance stay in partyState.
+  partyHealth: { source: StateEvent; party: StateEvent["party"]; slots: number[] } | null = null;
+  get partyMembers(): StateEvent["party"] { return this.partyHealth?.party ?? this.partyState?.party ?? []; }
+
+  private updatePartyHealth(event: StateEvent): void {
+    if (this.partyState === event) this.partyHealth = null;
+    const roster = this.partyState, battle = event.battle;
+    if (roster === null || !event.in_battle || battle?.active !== true || !battle.initialized || battle.phase === "unavailable"
+      || (event.party_owner ?? "player") !== (roster.party_owner ?? "player")) return;
+    const players = (battle.battlers ?? []).filter(mon => (mon.position & 1) === 0 && !mon.absent);
+    const slots: number[] = [];
+    const party = this.partyMembers.map((mon, slot) => {
+      // gBattlerPartyIndexes identifies the slot; personality:OT identity prevents
+      // applying an opponent, tutorial rental or old occupant.
+      const matches = players.filter(b => b.party_slot === slot);
+      const b = matches.length === 1 ? matches[0] : undefined;
+      if (b === undefined || mon.identity == null || mon.identity === "" || b.identity !== mon.identity
+        || roster.party.filter(m => m.identity === mon.identity).length !== 1
+        || !Number.isInteger(b.hp) || !Number.isInteger(b.max_hp) || b.max_hp <= 0 || b.max_hp > 65535 || b.hp < 0 || b.hp > b.max_hp
+        || !Number.isInteger(b.status1) || b.status1 < 0 || b.status1 > 0xfff) return mon;
+      slots.push(slot);
+      return { ...mon, hp: b.hp, max_hp: b.max_hp, status: b.status1 };
+    });
+    // Matching current party samples already have this provenance; no overlay needed.
+    if (slots.length > 0 && (roster !== event || party.some((m, i) => { const old = roster.party.at(i); return old === undefined || m.hp !== old.hp || m.max_hp !== old.max_hp || m.status !== old.status; }))) {
+      this.partyHealth = { source: event, party, slots };
+    }
+  }
+
   legacyState = false;
   context: Of<"turn_start">["context"] | null = null;
   // Prompt tokens the server reported for the latest answered request; the
@@ -444,6 +473,7 @@ export class RunView {
     }
     // game_state.py PRE_GAME: an unread field transition can also have started=false.
     if ((!event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen)) || event.play_time_s !== null || event.party.length > 0) this.partyState = event;
+    this.updatePartyHealth(event);
     const previous = this.state;
     // Recover the old route-label mismatch only from a confirmed field map.
     // Retain the state receipt and first observation time without editing logs.

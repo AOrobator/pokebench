@@ -49,3 +49,5 @@ None.
 - Performed mutation receipts in runs/trainer-observed-preview/: removing delivery wiring caused 8 failures; failed-delivery guard 1; delivered-readout predicate 3; opponent-side predicate 5; ambiguous-owner guard 1. Restored code: all 12 new tests passed. Each receipt retained separately.
 - Eight current bundle definitions enabled: bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h and both gym-rustboro-torchic variants. Frozen older comparisons/control bases unchanged; factory armFeatureBits tests prove normalized bundle ON/control OFF.
 - Coordinator reports ELEVATION then party-health own the next landing windows. No hold granted. Sync after their main moves; when number 1, this branch owns one viewer restart.
+
+- GREEN commit c607081bc. Lint passed (TypeScript/ESLint, ruff, mypy). Initial standalone Python coverage command lacked POKEBENCH_ROM and failed fixture reads; rerunning with the same configured ROM used by just test, not changing tests.

@@ -60,3 +60,25 @@ it("retains the exact seeded request body before sending",async()=>{
  const {continuationPayload}=await import("./roxanne-live-continuation.js");const retained:string[]=[];
  const body=continuationPayload(42,{messages:[],presence_penalty:0},s=>{retained.push(s);});expect(JSON.parse(retained[0]??"null")).toEqual(body);expect(body).toEqual({messages:[],presence_penalty:0,seed:42});expect(()=>continuationPayload(42,null,()=>undefined)).toThrow();
 });
+
+async function runtimeFixture(){
+ const f=fixture(),{recordedFeatures}=await import("./decision-probe.js"),legacy=loadLiveContinuation(f.input,f.read);
+ const baseline={version:1,sourceBundleHash:digest(f.bundle),sourceCommit:"b".repeat(40),features:{...recordedFeatures(legacy.source),"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true},systemPrompt:"qualified runtime system",tools:[{name:"learn_move",description:"qualified identity guard",parameters:{type:"object",properties:{decline_move:{type:"string"}}}}],referenceHash:digest(f.history.map(m=>({...m,timestamp:0}))),passed:true};
+ const bind=(value:unknown)=>{const bytes=Buffer.from(JSON.stringify(value));f.files.set("/owned/runtime-baseline.json",bytes);return {...f.input,runtimeBaselineSha256:createHash("sha256").update(bytes).digest("hex")};};
+ const {createHash}=await import("node:crypto");return {...f,baseline,bind,input:bind(baseline)};
+}
+it("binds an explicit guarded runtime while preserving every historical source artifact",async()=>{
+ const f=await runtimeFixture(),original=new Map(f.files),loaded=loadLiveContinuation(f.input,f.read);
+ expect(loaded).toMatchObject({bundle:f.bundle,history:f.history,conversation:f.history,runtimeBaselineSha256:f.input.runtimeBaselineSha256,runtime:{systemPrompt:f.baseline.systemPrompt,tools:f.baseline.tools,sourceCommit:f.baseline.sourceCommit},restoreHash:digest({bundle:f.bundle,runtimeBaseline:f.baseline})});
+ expect(f.files).toEqual(original);
+ const {restoreLiveContinuation}=await import("./roxanne-live-continuation.js"),{ContextBudget}=await import("./context-budget.js"),{normalizeFeatures}=await import("./play-preset.js"),features=normalizeFeatures(f.baseline.features);
+ const run=(systemPrompt:string,tools:readonly unknown[])=>restoreLiveContinuation(loaded,features,{restoreHistory:()=>Promise.resolve()},{transformContext:m=>Promise.resolve(m)},{systemPrompt,tools,budget:new ContextBudget(f.budget.limit)});
+ expect((await run(f.baseline.systemPrompt,f.baseline.tools)).messages).toEqual(f.history);
+ await expect(run(f.bundle.systemPrompt,f.baseline.tools)).rejects.toThrow(/runtime/);
+ await expect(run(f.baseline.systemPrompt,[])).rejects.toThrow(/runtime/);
+});
+it("rejects unqualified, tampered, wrong-source and broadened runtime migrations",async()=>{
+ const f=await runtimeFixture();
+ for(const baseline of [{...f.baseline,passed:false},{...f.baseline,sourceBundleHash:"c".repeat(64)},{...f.baseline,referenceHash:"c".repeat(64)},{...f.baseline,features:{...f.baseline.features,"move-learn-tool-v1":false}},{...f.baseline,features:{...f.baseline.features,"roxanne-campaign-reminder-v1":true}},{...f.baseline,features:{...f.baseline.features,"move-learn-goal-reminder-v1":true}}])expect(()=>loadLiveContinuation(f.bind(baseline),f.read)).toThrow(/runtime/);
+ f.bind({...f.baseline,systemPrompt:"tampered"});expect(()=>loadLiveContinuation(f.input,f.read)).toThrow(/runtime/);
+});

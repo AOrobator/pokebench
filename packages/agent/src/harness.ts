@@ -253,12 +253,12 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Partial<Pick<FeatureSet,"menu-refusal-recovery-v1"|"progress-aware-cycles-v1"|"move-learn-loop-fingerprint-v1"|"navigation-recovery-v1"|"semantic-navigation-v1"|"semantic-navigation-v2"|"map-cycle-recovery-v1">>): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard"> & Partial<Pick<RunRecorder,"isRestoring">>, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Partial<Pick<FeatureSet,"menu-refusal-recovery-v1"|"progress-aware-cycles-v1"|"move-learn-loop-fingerprint-v1"|"navigation-recovery-v1"|"semantic-navigation-v1"|"semantic-navigation-v2"|"map-cycle-recovery-v1">>): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
-    if (notice.phase === "stop") governor.abort("stuck");
+    if (notice.phase === "stop" && recorder.isRestoring?.()!==true) governor.abort("stuck");
   }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["progress-aware-cycles-v1"]??false,features?.["move-learn-loop-fingerprint-v1"]??false,features?.["navigation-recovery-v1"]??false,semanticNavigation({"semantic-navigation-v1":features?.["semantic-navigation-v1"]??false,"semantic-navigation-v2":features?.["semantic-navigation-v2"]??false}),features?.["map-cycle-recovery-v1"]??false);
-  recorder.subscribe((event) => { detector.observe(event); });
+  recorder.subscribe((event) => { if(recorder.isRestoring?.()===true&&event.type==="turn_start")detector.context();detector.observe(event); });
   return detector;
 }
 
@@ -354,7 +354,11 @@ async function untilStopped(governor: Governor, pending: () => Promise<AgentMess
 export async function play(task: AgentMessage, governor: Governor, loop: Loop): Promise<RunEndReason> {
   const started = await untilStopped(governor, () => loop.start([task], []));
   if (typeof started === "string") return started;
-  let messages = started;
+  return finishPlay(started,governor,loop);
+}
+
+async function finishPlay(initial:AgentMessage[],governor:Governor,loop:Loop):Promise<RunEndReason>{
+  let messages = initial;
   for (;;) {
     if (governor.stopReason !== null) return governor.stopReason;
     const last = messages.at(-1);
@@ -367,4 +371,12 @@ export async function play(task: AgentMessage, governor: Governor, loop: Loop): 
     if (typeof more === "string") return more;
     messages = [...messages, ...more];
   }
+}
+
+/** Historical continuation: preserve original task/history and start at the next decision. */
+export async function playFromHistory(history:readonly AgentMessage[],governor:Governor,loop:Loop):Promise<RunEndReason>{
+ if(history.length===0)throw new Error("continuation requires restored history");
+ const resumed=await untilStopped(governor,()=>loop.resume([...history]));
+ if(typeof resumed==="string")return resumed;
+ return finishPlay([...history,...resumed],governor,loop);
 }

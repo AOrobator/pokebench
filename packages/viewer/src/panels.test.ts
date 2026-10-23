@@ -1665,6 +1665,14 @@ it("links the map-cycle recovery switch to its tracked explainer",()=>{
  expect(card?.textContent).toContain("ON");
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
 });
+it("links the campaign reminder card to its qualified-continuation explainer",()=>{
+ const id="roxanne-campaign-reminder-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["probe",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("restored history");
+});
 
 it("links the navigation cycle stop from its recorded feature card",()=>{
  const id="navigation-cycle-stop-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

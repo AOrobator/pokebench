@@ -270,3 +270,14 @@ it('retains crash terminal and stops server when final battle drain fails',async
  await expect(withRun({...plan(r),harnessFeatures:["battle-choices-v1"]},failed,new FrameStore(r),(_recorder,_url,_start,lifecycle)=>{lifecycle.beforeRunEnd(()=>{tasks.push("failed");return Promise.reject(new Error("cleanup failed"));});lifecycle.beforeRunEnd(()=>{tasks.push("continued");return Promise.resolve();});return Promise.resolve("completed");})).rejects.toThrow(/^journal full$/);
  expect(tasks).toEqual(["failed","continued"]);expect(events(r,plan(r).runId).at(-1)).toMatchObject({type:"run_end",reason:"crash"});expect(h.calls.at(-1)).toBe("stop");
 });
+it("validates continuation before any host call and preserves source evidence namespace",async()=>{
+ const runsRoot=root(),fake=host(),p=plan(runsRoot,"continued");
+ const source=parseEvent(JSON.stringify({v:1,run:"source",t:"2026-10-23T12:00:00.000-04:00",seq:10,turn:3,type:"turn_start",context:{messages:1,images:0,est_tokens:1}}));
+ const c={sourceRun:"source",sourceTurn:4,prior:[source],prefix:JSON.stringify(source)+"\n"};
+ await expect(withRun({...p,continuation:c},fake,new FrameStore(runsRoot),()=>Promise.resolve("budget"))).rejects.toThrow(/provenance/);expect(fake.calls).toEqual([]);
+ await withRun({...p,startState:{kind:"save_state",path:"external.state",sha1:"a".repeat(40)},continuation:c},fake,new FrameStore(runsRoot),async recorder=>{
+  const old:number[]=[];recorder.subscribe(e=>old.push(e.seq));await recorder.restoreHistory(()=>Promise.resolve());expect(old).toEqual([10]);await recorder.transformContext([]);return "budget";
+ });
+ const log=events(runsRoot,"continued");expect(log[0]).toMatchObject({seq:0,restoration:{source_run:"source",source_turn:4,prefix_last_seq:10}});
+ expect(log.filter(e=>e.seq>0).every(e=>e.seq>10)).toBe(true);expect(log.at(-1)).toMatchObject({turn:4,turns:1});expect(fake.calls.at(-1)).toBe("stop");
+});

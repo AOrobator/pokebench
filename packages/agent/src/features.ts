@@ -250,6 +250,7 @@ export const SWITCHABLE_FEATURES = [
   "move-learn-goal-reminder-v1",
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
+  "roxanne-campaign-reminder-v1",
   "navigation-cycle-stop-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -622,6 +623,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("move-learn-goal-reminder-v1", "guidance", "MOVE-LEARN GOAL REMINDER", null, "Appends a task reminder at every delivered ready move-learning choice. Only mentions earlier skip reasoning when recorded. The original full wording acquired Double Kick in 86/100 checkpoint trials; the general wording is unmeasured. The model still chooses. Off: previous context unchanged."),
   on("move-learn-offer-identity-v1", "guard", "NAMED MOVE DECLINE", "move-learn-tool-v1", "Requires the offered move name for learn_move declines. Checks the native offer after waiting and before each input; mismatches return the current observation for a fresh choice. Matching declines remain allowed. Off: previous learn_move arguments and execution unchanged."),
   on("campaign-progress-clock-v1", "guard", "EARNED CAMPAIGN PROGRESS CLOCK", "stall-briefing-v1", "Default off. Earned campaign arrivals and completed story milestones reset drought time and action counts once. Checkpoint baselines and optional achievements do not reset it. Off: extended measurement milestones remain excluded from supervisor clocks."),
+  on("roxanne-campaign-reminder-v1", "guidance", "ROXANNE CAMPAIGN REMINDER", null, "Default off. A qualified historical continuation may append its frozen candidate reminder once before the first decision. No recurring coaching, selected route or blocked rematch. Off: restored conversation bytes are unchanged."),
   on("navigation-cycle-stop-v1", "guard", "NAVIGATION CYCLE STOP", "bounded-navigation-v1", "Default off; bundle only. Within one local navigate_to call, stops before repeating the same directional step at the same position, facing, local terrain, planned route and matching triggers. The result names the repeated step and says no onward route was verified. It returns a fresh observation without choosing a destination or ending the run. Evidence: GLM 0d5d turns 1031/1032 alternated RIGHT and LEFT eight times per call. Off: the previous bounded navigation, command-limit feedback and prompt remain unchanged."),
 ];
 
@@ -933,6 +935,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("move-learn-goal-reminder-v1"),
     ...when("move-learn-offer-identity-v1"),
     ...when("campaign-progress-clock-v1"),
+    ...when("roxanne-campaign-reminder-v1"),
     ...when("navigation-cycle-stop-v1"),
   ];
 }

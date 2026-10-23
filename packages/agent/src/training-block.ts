@@ -311,7 +311,7 @@ export class TrainingBlock {
   if(state===null||this.receipt===null)return null;
   const parts:string[]=[],evidence:number[]=[state.seq,this.receipt];
   const latest=[...this.leaders.values()].flat().filter(b=>b.done).sort((a,b)=>(b.endSeq??0)-(a.endSeq??0))[0];
-  if(this.features["leader-loss-immediate-v1"]&&latest?.outcome==="lost"&&latest.endSeq!==this.consumedLoss&&field(state)){
+  if(this.features["leader-loss-immediate-v1"]&&latest?.outcome==="lost"&&latest.endSeq!==this.consumedLoss&&state.started&&!inBattle(state)){
    parts.push(...this.lossPart(state,true));this.offeredLoss=latest.endSeq;
    evidence.push(latest.startSeq,...(latest.endSeq===null?[]:[latest.endSeq]),...[...latest.foes.values()].map(f=>f.seq),...latest.messageSources.values(),...latest.effectivenessSources.values());
   }

@@ -65,32 +65,48 @@ describe("elevation-aware-map-v1 registry and wiring", () => {
   });
 });
 
-// State 127085 (turn 1098, ROUTE110): the player at (17,69) on elevation 3 under the road; the
-// CYCLING_TRIATHLETE_F (object 8) rides at (16,71) on elevation 4 (its interaction candidate's
-// elevation; the recorded state predates object elevations in navigation_grid).
+// State 127085 (turn 1098, ROUTE110), re-read from its raw archive 21932 by the production reader with this
+// switch on: the player at (17,69) on elevation 3 under the road; the CYCLING_TRIATHLETE_F rides at elevation 4
+// and is mid-step from (16,72) to (16,71), so it holds both tiles; object 27 rides at (21,78)/(21,77), elevation 4.
+const reread = JSON.parse(readFileSync(new URL("../test-support/elevation-route110-21932-on.json", import.meta.url), "utf8")) as { state: unknown };
 describe("elevation-aware-map-v1: an object on another level does not occupy the walker's tile", () => {
   const recorded = at(127086).after;
-  const grid = recorded.navigation_grid;
+  const layered = parseGameState(reread.state);
+  const grid = layered.navigation_grid;
   if (grid == null) throw new Error("no grid");
-  const layered: GameStateSnapshot = { ...recorded, navigation_grid: { ...grid, objects: grid.objects.map(o => ({ ...o, elevation: o.x === 16 && o.y === 71 ? 4 : 3 })) } };
   const goal = { x: 16, y: 71 };
   const options = { ledges: true, oneWay: true, floor: true, elevation: "game" as const };
-  it("plans DOWN DOWN LEFT under the cyclist with the switch, and refuses as before without it", () => {
+  it("the re-read state carries the real object elevations, current and previous tiles", () => {
+    expect(grid.objects).toEqual([{ x: 10, y: 76, elevation: 3 }, { x: 14, y: 70, elevation: 3 }, { x: 16, y: 71, elevation: 4 }, { x: 16, y: 72, elevation: 4 }]);
+    expect(layered.map_grid?.objects).toContainEqual({ x: 21, y: 78, elevation: 4 });
+  });
+  it("plans DOWN DOWN LEFT under the cyclist with the switch, locally and on the whole map, and refuses as before without it", () => {
     expect(planNavigation(layered, goal, { ...options, actorElevation: true })).toEqual(["DOWN", "DOWN", "LEFT"]);
+    expect(planNavigation(layered, goal, { ...options, mode: "full", actorElevation: true })).toEqual(["DOWN", "DOWN", "LEFT"]);
     expect(planNavigation(layered, goal, options)).toBeNull();
+    expect(planNavigation(layered, goal, { ...options, mode: "full" })).toBeNull();
     expect(planNavigation(recorded, goal, { ...options, actorElevation: true })).toBeNull();
   });
-  it("an object at elevation 0 or at the walker's elevation still blocks", () => {
-    for (const elevation of [0, 3]) {
-      const same: GameStateSnapshot = { ...layered, navigation_grid: { ...grid, objects: grid.objects.map(o => ({ ...o, elevation })) } };
-      expect(planNavigation(same, goal, { ...options, actorElevation: true })).toBeNull();
-    }
+  it("an object at elevation 0 or at the walker's elevation still blocks; 15 is not a wildcard for objects", () => {
+    const withLevel = (elevation: number): GameStateSnapshot => ({ ...layered, navigation_grid: { ...grid, objects: grid.objects.map(o => ({ ...o, elevation })) } });
+    expect(planNavigation(withLevel(0), goal, { ...options, actorElevation: true })).toBeNull();
+    expect(planNavigation(withLevel(3), goal, { ...options, actorElevation: true })).toBeNull();
+    expect(planNavigation(withLevel(15), goal, { ...options, actorElevation: true })).toEqual(["DOWN", "DOWN", "LEFT"]);
   });
   it("a stack of objects at elevations 3 and 4 on one tile blocks a walker at 3, in either order", () => {
     for (const levels of [[3, 4], [4, 3]]) {
       const stacked: GameStateSnapshot = { ...layered, navigation_grid: { ...grid, objects: [...grid.objects.filter(o => o.x !== 16 || o.y !== 71), ...levels.map(elevation => ({ x: 16, y: 71, elevation }))] } };
       expect(planNavigation(stacked, goal, { ...options, actorElevation: true })).toBeNull();
     }
+  });
+  // A one-row whole map: start at elevation 3, an elevation-4 object at (2,0) over a bridge tile (15).
+  // Through an elevation-0 tile at (1,0) the walker is at 0 when it reaches the object, and 0 collides with anyone.
+  const corridor = (middle: number): GameStateSnapshot => ({ ...recorded, position: { x: 0, y: 0 }, navigation_grid: null, topology: null, map_grid: { width: 4, height: 1, elevation: 3, rows: [[3, middle, 15, 15].map(e => (e << 8).toString(16).padStart(4, "0")).join("")], objects: [{ x: 2, y: 0, elevation: 4 }], warps: [] } });
+  it("checks the walker's planned elevation at each step, not its starting elevation", () => {
+    const full = { ...options, mode: "full" as const, actorElevation: true };
+    expect(planNavigation(corridor(3), { x: 3, y: 0 }, full)).toEqual(["RIGHT", "RIGHT", "RIGHT"]);
+    expect(planNavigation(corridor(0), { x: 3, y: 0 }, full)).toBeNull();
+    expect(planNavigation(corridor(3), { x: 3, y: 0 }, { ...full, actorElevation: false })).toBeNull();
   });
   it("withNavigation hands the switch to navigate_to, which walks under the cyclist", async () => {
     const walk = async (features: FeatureSet): Promise<{ presses: string[][]; status: string }> => {

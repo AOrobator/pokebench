@@ -62,6 +62,8 @@ Re-render archive 21953 (Route 110) and the Granite Cave slope archive through t
 ## Multi-Model Review Log
 - Pre-review findings from Codex CYCLE (2:11 PM, relayed): (1) stacked objects collapsed to one elevation per tile in `_grid_objects`; (2) objects mid-step also occupy previousCoords (DoesObjectCollideWithObjectAt). Fixed: one grid entry per object tile (current and previous) with its own elevation; regressions for a 3/4 stack in both orders (Python serialization, TS planner) and previous coords. Objects array bound raised 16 -> 32 (each of 16 objects can hold two tiles); schema regenerated.
 
+- Codex (2:15 PM, relayed) asked for per-step evidence and real object heights: occupancy tests now use state 127085 re-read from raw archive 21932 by the production reader with the switch on (real heights: the cyclist mid-step holds (16,71) and (16,72) at elevation 4; object 27 at (21,78)/(21,77) elevation 4), plan DOWN DOWN LEFT locally and on the whole map ON, null OFF; objects at 0 or 3 block, 15 is not a wildcard; a one-row whole map proves the check uses the walker's elevation after an elevation-0 tile, not the start elevation.
+
 ## Boy Scout Log
 
 ## Archive Milestone

@@ -91,7 +91,7 @@ it("requires actual review lanes or the specifically authorized missing-Grok exc
  const receipt={status:"LGTM",head,campaign,lanes};
  expect(()=>{verifyCampaignReviews({...receipt,lanes:[...lanes,{family:"grok",model:"grok",cloud:true,verdict:"LGTM"}]},head,campaign);}).not.toThrow();
  expect(()=>{verifyCampaignReviews({...receipt,lanes:[...lanes,...fallback],operatorException:approval},head,campaign);}).not.toThrow();
- for(const value of [receipt,{...receipt,lanes:[...lanes,...fallback]},{...receipt,lanes:[lanes[0],...fallback],operatorException:approval},{...receipt,lanes:[...lanes,fallback[0],fallback[0]],operatorException:approval},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,quote:"go ahead"}},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,campaign:"other"}}])expect(()=>{verifyCampaignReviews(value,head,campaign);}).toThrow(/review/);
+ for(const value of [receipt,{...receipt,lanes:[...lanes,...fallback.map(l=>({...l,cloud:false}))],operatorException:approval},{...receipt,lanes:[...lanes,...fallback]},{...receipt,lanes:[lanes[0],...fallback],operatorException:approval},{...receipt,lanes:[...lanes,fallback[0],fallback[0]],operatorException:approval},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,quote:"go ahead"}},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,campaign:"other"}}])expect(()=>{verifyCampaignReviews(value,head,campaign);}).toThrow(/review/);
  expect(()=>{verifyCampaignReviews({...receipt,head:"b".repeat(40)},head,campaign);}).toThrow(/review/);
 });
 it("requires guarded runtime source parity and emits its exact preset and restore binding",async()=>{

@@ -61,10 +61,6 @@ function level(fraction: number): string {
   return fraction > 0.8 ? "low" : fraction > 0.55 ? "mid" : "";
 }
 
-function hpLevel(fraction: number): string {
-  return fraction < 0.25 ? "low" : fraction < 0.5 ? "mid" : "";
-}
-
 export function partyNotice(view: RunView): string {
   const health = view.partyHealth;
   if (health !== null) {
@@ -75,18 +71,6 @@ export function partyNotice(view: RunView): string {
   }
   if (view.state === null || view.partyState === view.state) return "";
   return `<p class="nodata">Party unavailable in this sample.${view.partyState === null ? "" : ` Last recorded party · state #${String(view.partyState.seq)} · ${esc(view.partyState.t)}. HP and moves may have changed.`}</p>`;
-}
-
-export function party(view: RunView): string {
-  const state = view.partyState;
-  if (state === null) return partyNotice(view) || `<p>${NO_DATA}</p>`;
-  if (state.party.length === 0) return partyNotice(view) + '<p class="nodata">no Pokémon yet</p>';
-  return partyNotice(view) + `<div class="party">${view.partyMembers
-    .map((mon) => {
-      const fraction = mon.max_hp == null || mon.hp == null || mon.max_hp === 0 ? 0 : mon.hp / mon.max_hp;
-      return `<div class="pm"><span>${esc(mon.species ?? "Unknown Pokémon · harness bug")}</span><span>Lv${String(mon.level)} · ${String(mon.hp)}/${String(mon.max_hp)}</span><div class="hpbar"><i class="${hpLevel(fraction)}" style="width:${(fraction * 100).toFixed(0)}%"></i></div></div>`;
-    })
-    .join("")}</div>`;
 }
 
 function budgetBar(label: string, fraction: number, value: string): string {

@@ -242,7 +242,7 @@ describe("viewer app", () => {
     const { streams } = await harness();
     expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
-    expect(ui("party").innerHTML).toContain("no data");
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
     expect(ui("mode").textContent).toBe("LOADING");
   });
 
@@ -297,7 +297,7 @@ describe("viewer app", () => {
     expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
     expect(ui("trainer").innerHTML).toContain("<dt>TURN</dt><dd>4</dd>");
     expect(ui("trainer").innerHTML).toContain("<dt>TIME</dt><dd>0:00:11</dd>");
-    expect(ui("party").innerHTML).toContain("no data");
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
     expect(ui("clock").textContent).toBe("0:00:11 / 0:00:11");
     expect((ui("scrub") as HTMLInputElement).value).toBe("1000");
     expect(ui("trace").querySelector('[data-seqs~="18"]')?.textContent).toContain("run ended: budget");
@@ -1970,7 +1970,6 @@ describe("BAG page", () => {
 });
 
 describe("POKéMON PARTY page", () => {
-  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
   const RATES = Array.from({ length: 101 }, (_, n) => (n <= 1 ? n : n ** 3));
   const DATA = {
     version: 1,
@@ -1998,7 +1997,7 @@ describe("POKéMON PARTY page", () => {
     const stream = must(streams[0]);
     feed(stream, partyRun());
     must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
-    await flush();
+    await app.loadPartyArt();
     expect(fetched).toContain("/sprites/party/data.json");
     app.render();
     const party = ui("party");
@@ -2039,7 +2038,7 @@ describe("POKéMON PARTY page", () => {
     const stream = must(streams[0]);
     feed(stream, partyRun());
     must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
-    await flush();
+    await app.loadPartyArt();
     const partial = { ...must(partyRun()[1]), run: must(RUNS[0]).id, seq: 9, party: [], name: null, money: null, play_time_s: null };
     stream.send("ev", partial);
     app.render();
@@ -2085,7 +2084,7 @@ describe("POKéMON PARTY page", () => {
     const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
     feed(must(streams[0]), partyRun());
     must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
-    await flush();
+    await app.loadPartyArt();
     app.render();
     expect(fetched).toContain("/sprites/party/data.json");
     expect(ui("party").querySelector(".pv")).not.toBeNull();

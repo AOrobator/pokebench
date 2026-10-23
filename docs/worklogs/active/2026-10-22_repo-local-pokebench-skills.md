@@ -9,9 +9,9 @@ The decision-probe source includes the general-wording/specific-error-correction
 ## Migration checks
 - [x] Inventory global copies and compare duplicate repo skills.
 - [x] Copy complete skill folders into `.claude/skills/` and add relative `.agents/skills/` links.
-- [ ] Validate every migrated skill and run bundled helper tests.
-- [ ] Verify links resolve inside an independent copy of tracked files.
-- [ ] Commit isolated migration branch.
+- [x] Three migrated skills validated; publisher4tests and ZIP-audit5tests pass (9total).
+- [x] All14 Codex discovery links resolve inside an independent copy; complete source inventories verified, with only3 documented portability edits. Initial checker mistook macOS /var versus /private/var aliases for an escape; resolving the temporary root fixes the checker, with no skill-path change.
+- [x] Migration committed as `4c947022b` (`docs: move PokeBench skills into the repository`).
 - [ ] Required landing reviews and coordinated merge to main.
 - [ ] Retire verified global copies and global game-state alias after main contains replacements; preserve recoverable backup outside global discovery.
 

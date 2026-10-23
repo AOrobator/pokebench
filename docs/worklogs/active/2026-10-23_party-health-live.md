@@ -26,7 +26,7 @@ Pure recorded-data presentation. No network additions, emulator inputs, RAM writ
 - [x] Tests, lint, build and coverage
 - [x] Read-only real-log before/after evidence: all seven missing-party samples recovered
 - [x] Background browser verification at desktop and phone widths
-- [ ] Independent cloud review and coordinated landing
+- [x] Independent review and coordinated landing (standing Grok waiver; receipts below)
 
 ## Closing the Loop
 Isolated candidate preview against scratch recordings. Preserve desktop focus. No active runs restarted or launched. Shared viewer remains unchanged until reviewed landing and coordinated restart.
@@ -38,7 +38,7 @@ Isolated candidate preview against scratch recordings. Preserve desktop focus. N
 - Missing party and valid initialized battle HP coexist in the same state event.
 
 ## Multi-Model Review Log
-Pending.
+Completed. Exact packets, findings, correction, waiver provenance and literal verdict receipts are recorded below.
 
 ## Boy Scout Log
 None.
@@ -73,3 +73,13 @@ Active gameplay process snapshot before waiting: agent PID53193 and game serverP
 - Synced default build and complete lint passed (ruff279 files, mypy122 source files). Default agent coverage4072 tests passed:99.13% lines/92.94% branches/97.61% functions. Native4065 tests passed:97.37% lines/93.30% branches/100% functions. Initial default viewer coverage retained one existing malformed-lines5s timeout while shared host was busy. A reduced-worker1782-pass run was diagnostic only. After other owners released heavy workers, **unmodified default viewer coverage passed1782 tests across126 files**,98.04% lines/91.61% branches/95.18% functions. No test, timeout, concurrency limit or coverage threshold changed.
 - Real shared8790 browser before-proof at original replay scrub145: raw party fallback39/39 and unavailable notice. Headless screenshots1280/1440/375 inspected. After landing/restart, replay this same position to require22/39 and battle-RAM source18177. Receipts under canonical runs/reviews/party-health-live/shared-before.json; shots/shared-before-*.png.
 - Heavy synced gates now released for other owners during cloud-only frozen-review refresh. Post-main test/restart window remains coordinated. No board join until final packet approvals.
+
+## Final landing and live proof
+- Synced frozen packet: base ba4a1a945fb874897d1ba083525703fd2818eab2, source c249f81eeb5dc5416de9e51321a7db37bc31ff66, binary diff SHA256 ea46338f0e4f6be30fd495e6680bcedda5336450cdca1e83ba1757873eb3677a. Claude CLI, independent GPT, Sol and Astra each VERDICT: LGTM on the same clean packet. No unresolved blockers. Grok remained unavailable; the verified standing operator waiver applied.
+- Joined landing board with verified chat 00000000-0000-4000-8000-ab5c8b20009e and obtained slot1 at3:17PM EDT. Canonical main was clean and exactly the frozen base; landed fast-forward source c249f81ee. Canonical build passed.
+- Initial post-main default justtest: agent4072pass, viewer1781pass/1pre-existing malformed-lines5stimeout while battle-history/trainer suites were active. Retained failure. Owners safely yielded; actual process check and handoff confirmed quiet. Unchanged default justtest then passed **agent4072, viewer1782, native4065** (native38.39s). No skips, timing/concurrency changes or threshold reductions.
+- One justviewer-main restart completed at 2026-10-23T15:23:05.884551-04:00: served clean build stamp c249f81ee, listener12556→44482 (PPID1), exactly one loopback8790 listener. Agent53193 and game53718 stayed alive; active GLM run still shows live with no problem.
+- Real original replay at scrub145: **before39/39 plus unavailable notice; after22/39, battle-RAM state18177**, roster/profile source18174 preserved. Real paired frame018178_0.png also shows22/39. Headless screenshots1280/1440/375 and paired game frame opened and inspected; no page errors. Phone proof and paired frame links at8791/party-health-live/shots/shared-after-375.png and shared-after-game.png returned200.
+- Active GLM session independently verified in headless Chrome after restart: screen-note live, blob frame source, visible MARSHtomp/ARON battle frame; no page errors. API/workbench lists526runs, active run live/problemnull, **zero older-viewer-build warnings**.
+- Final receipts: canonical runs/reviews/party-health-live/ contains frozen packets, default gate logs, failure receipts, reviews and shared-before/after/live JSON. This evidence-only main commit touches only this worklog, then releases board and8790 to next ready owner. No gameplay runs launched/restarted or game inputs/RAM writes performed.
+- Remaining boundary: updates follow recorded RAM samples, not every video frame. Inactive members without a newer trusted sample retain explicitly labeled last-recorded health. Worklog archival remains operator-gated.

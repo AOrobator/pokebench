@@ -35,4 +35,6 @@ Explicit user scope: remove queue and all experiment UI on Stats/PokéNav, prese
 
 - Synced main 5bec91dcd, retaining move-learn-goal-reminder gameplay/prompt/fixed recipes. Resolved test conflicts by keeping current main feature assertions and removing obsolete queue registration checks; deleted its new pending entry and readiness file. No main edits made by this chat.
 
-- Main-sync tests: agent 3884, viewer 1714, Python 4013 passed (full just test). Main-sync lint exposed only empty/unused remnants of removed registration assertions in five conflicted tests; removed those remnants without changing behavior checks. Re-running required gates on the final tree.
+- Main-sync tests: agent 3900, viewer 1716, Python 4013 passed (full just test). Main-sync lint exposed only empty/unused remnants of removed registration assertions in five conflicted tests; removed those remnants without changing behavior checks. Re-running required gates on the final tree.
+
+- Endpoint deletion proof: temporarily renamed the actual server run-lanes route; the real HTTP contract test failed (404 instead of the exact one-run hardware payload). Restored byte-identical source and all 3 queue-removal contract tests passed. Removed one remaining unused test helper left by main-sync registration removal. Skill validator passes all seven edited skill entrypoints.

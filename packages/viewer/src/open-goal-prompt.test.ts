@@ -77,7 +77,6 @@ it("the viewer serves the tracked explainer byte for byte through the explainer 
 it("the pending experiment's incumbent is exactly the bundle-v-control bundle cook arm, with only this switch off", () => {
   const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
   const arm = armPreset(definition, "cook", "bundle");
-  const without = (value: Record<string, unknown>, ...keys: string[]): Record<string, unknown> => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
   expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
   expect(arm.features[ID]).toBe(true);
 });

@@ -253,7 +253,8 @@
    "factual-healing-guidance-v1": false,
    "static-npc-template-approach-v1": false,
    "rejected-movement-prefix-v1": false,
-   "map-cycle-recovery-v1": false
+   "map-cycle-recovery-v1": false,
+   "move-learn-goal-reminder-v1": true
   }
  },
  "switches": [
@@ -342,7 +343,8 @@
   "counter-talk-v1",
   "story-battle-heal-first-v1",
   "tool-prompt-docs-v1",
-  "field-ownership-feedback-v1"
+  "field-ownership-feedback-v1",
+  "move-learn-goal-reminder-v1"
  ],
  "phases": [
   {

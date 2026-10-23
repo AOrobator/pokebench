@@ -93,7 +93,7 @@ it("evicts whole oldest action intervals with small injected limits and preserve
 });
 it("failed and stale action receipts do not publish pending pages",()=>{
  const pages=eventAt(2064),receipt=eventAt(2066);if(receipt.type!=="tool_result")throw new Error("receipt");
- for(const bad of [{...receipt,is_error:true},{...receipt,state_seq:1}]){
+ for(const bad of [{...receipt,is_error:true},{...receipt,state_seq:1},{...receipt,state_seq:2063}]){
   const history=new BattleActionHistory();history.observe(eventAt(2063));history.observe(pages);history.observe(eventAt(2065));history.observe(bad);expect(history.context()).toBeNull();
  }
 });

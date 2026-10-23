@@ -182,7 +182,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "static-npc-template-approach-v1,"
         "offscreen-objects-v1,"
         "levelup-box-v1,"
-        "blackout-transition-v1,transition-coherence-v1,"
+        "transition-coherence-v1,"
         "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"
         "surf-gated-exits-v1,"
         "exit-reachability-v1,"

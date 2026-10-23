@@ -10,7 +10,7 @@ Delete queue runtime, endpoints, approval/promotion machinery, root definitions 
 - [x] GREEN implementation, skill cleanup and fixed-run compatibility
 - [x] Gates on initial candidate: build/lint/vendor pass; full coverage runs all suites (agent 3881, viewer 1714, Python 4013), all above 90. Repeating after main sync.
 - [x] Background browser proof and read-only real-data check
-- [ ] Principles and three cloud review lanes
+- [x] Principles and required reviews (Grok outage exception; Claude/GPT/Sol/Astra LGTM)
 - [ ] Landing board, merge, live verification
 
 ## Skills
@@ -52,3 +52,9 @@ Explicit user scope: remove queue and all experiment UI on Stats/PokéNav, prese
 - Round 2 packet e2f760b14 / cb5b9d61: GPT, distinct Sol and Astra fallback reviewers LGTM. Claude found two active references to deleted readiness ledger; verified documentation-only defect. All final gates passed: 3902 agent, 1716 viewer, 4013 Python, coverage/lint/build/vendor green. Synthesis under proof/review/synthesis-round2.md.
 - Operator checkpoint satisfied: user explicitly said "yes fix those references and finish the review, land it, and verify it's live". Fix only listed documentation references and finish. Main advanced to699d1de16 with repo-local skill migration; synced it, retaining migrated skills and removal of queue guidance. Global cross-model skill was retired by that authorized migration, so do not recreate it. Repository copy now records readiness in worklogs.
 - Grok outage exception verified from exact project user message [private message reference] at2026-10-22T14:47:31Z: "land without grok. you're not a very good coordinator if you force me to go into chats". Coordinator confirmed blanket applicability while Cursor out of usage; Claude+GPT+distinct fallback approval suffices. Evidence retained operator-grok-waiver.json.
+
+## Final review and landing evidence
+- Final frozen packet: base699d1de16fecab68c41e5f05526e24cb69756aa5 → headc82723965803e646f4fe5174f3303fcbb83b6f52; binarydiff SHA25617e11dcb40de0a8d77ed5c8dd199d29394b329ff59a714d654c08abecaa88a89. Claude, independent GPT and distinct Sol/Astra outage fallback all VERDICT: LGTM. Reduced vendor diversity under the verified operator Grok exception, not a Grok approval. Round3 synthesis under canonical runs/mockups/remove-experiment-queue/review/.
+- Full final gates pass:3902 agent +1716 viewer +4013 Python =9631 tests; lint/build/vendor pass. Coverage agent99.2/93.41/97.78%, viewer98.02/91.61/95.04%, Python97.41/93.48/100% (lines/branches/functions). Refreshed headless browser 12 screenshots inspected at1280/1440/375; exact historical run/frame navigation and return link, zero page errors/queue polls.
+- Board1 held with this chat's actual CODEX_THREAD_ID 00000000-0000-4000-8000-50e7a81b9c4b. Canonical main fast-forwarded exactly to reviewed c82723965. Initial main test encountered stale ignored dist missing newly extracted legacy module; canonical build regenerated it, then full main just test passed9631. No source correction or new behavior needed. Obsolete ignored queue build outputs removed from canonical checkout.
+- This commit touches worklogs only, as allowed after landing. Live viewer restart and postlanding proof follow; no launch or inference authorized or performed. Proof preserved in canonical runs/mockups/remove-experiment-queue excluding scratch recordings.

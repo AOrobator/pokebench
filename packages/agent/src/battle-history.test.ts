@@ -63,6 +63,13 @@ it("requires a successful current-state receipt and consumes immediate context o
  s.emit(checkEvent({...reply,seq:1748}));
  expect(await s.wired.transformContext(before)).toBe(before);
 });
+it.each(["party","bag"] as const)("keeps a verified pending loss available when a later call in the same batch ends on %s",async screen=>{
+ const s=setup({"leader-loss-immediate-v1":true});s.feed(1744);
+ const state=eventAt(1742),receipt=eventAt(1744);if(state.type!=="state"||!("started"in state)||receipt.type!=="tool_result")throw new Error("fixture");
+ // Structural menu counterfactual: pi0.73.1 executes every issued tool before its next request.
+ s.emit(checkEvent({...state,seq:1746,screen}));s.emit({...receipt,seq:1747,id:"post-loss-menu",state_seq:1746});
+ const out=last(await s.wired.transformContext(before));expect(out).toContain("Last observed loss to GYM LEADER ROXANNE");expect(s.notes[0]?.evidence).toContain(1747);
+});
 it("incomplete identities produce unknown preparation comparisons, never unchanged EXP or moves",async()=>{
  const s=setup({"leader-loss-immediate-v1":true,"leader-preparation-comparison-v1":true});s.feed(1744);
  const state=eventAt(1742),receipt=eventAt(1744);if(state.type!=="state"||!("started"in state)||receipt.type!=="tool_result")throw new Error("fixture");

@@ -25,7 +25,7 @@ Read-only external ROM and archives; no game assets tracked, new network exposur
 ## Milestones
 - [x] M1: whole-ROM terrain inventory, source/guide cross-check and concrete defect register.
 - [x] M2: RED regression commit; GREEN shared gate/readout/navigation correction with OFF invariance and native archive readback.
-- [ ] M3: both-arm future recipes, explainer, gates, frozen multi-model review and landing/live proof if all gates permit.
+- [x] M3: both-arm future recipes, explainer, gates, frozen multi-model review and landing/live proof if all gates permit.
 
 ## Closing the Loop
 Use archived native states for map/readout proof without disturbing the measured run. Build scratch viewer and verify page in background contexts. Distinguish implementation, checks, review, landing and future activation.
@@ -37,7 +37,7 @@ Use archived native states for map/readout proof without disturbing the measured
 - Prior gate audit names 81 early maps; whole-world claim tests exist, but terrain visibility remains absent.
 
 ## Multi-Model Review Log
-Pending.
+Completed; final roster and operator-approved unavailable-lane exception are recorded below.
 
 ## Boy Scout Log
 None.
@@ -76,3 +76,12 @@ Frozen base 74590b432, head bff18db2f, packet fbc596b677aea928d1a58f373d8b74d6b2
 - Grok lane remains unavailable (Cursor account out of usage). This is reduced diversity, not normal three-cloud-lane approval. Per execute-worklog: no self-merge; awaiting operator approval to land with this roster. Not joined to landing board because landing is not yet authorized under the unavailable-lane rule.
 - M3 preparation complete: 11 future definitions have v1 onInBoth, existing explainer linked and scratch click verified, all gates/native/browser proof pass. Landing, shared-viewer refresh and activation in an actual future run remain pending. Current run, its recordings, scheduler, inference services and shared viewer were not changed by this task.
 - Local delivery: http://127.0.0.1:8791/terrain-gates/audit.html and http://127.0.0.1:8791/terrain-gates/explainer.html; screenshots under the sibling shots directory. Both return 200. This final worklog commit is evidence only; production code remains the reviewed 2382cf59d tree.
+
+
+## Landing and live proof — 2026-10-23
+- Operator replied “yes” to landing with Claude, GPT and the two fallback approvals while Grok was unavailable. Joined landing board as number 1 with actual Codex thread 00000000-0000-4000-8000-08d3409516f2; main was clean at the reviewed base. Fast-forward landed c3aa9d880365b0a151478afacde7f0c8c6821e6b. Its difference from reviewed implementation 2382cf59d is this worklog only.
+- Canonical-main post-merge `just test`: agent 3922, viewer 1736, Python 4042 — all 9700 pass. Receipt: runs/terrain-gates-landing/tests.txt. Prelanding coverage/build/lint receipts above remain applicable to the unchanged production tree.
+- `just viewer-main` completed successfully. At 10:44 AM EDT, exactly one loopback 8790 listener served the clean c3aa9d880 build. Served explainer bytes matched main and frozen viewer copy (SHA256 516d5d5288d9b54f40ead94cc0fcdde8c195c06e5f38cdf40bc70064a083358c).
+- Standalone headless Chrome verified the live shared viewer: Harness Config → READ EXPLAINER opens the correct Field move gates heading at desktop 1440 and phone 375. Both screenshots opened and inspected; no popup page overflow or page errors. The first phone attempt incorrectly used the hidden desktop navigation button and timed out; using the visible phone page selector completed the check. Evidence: runs/terrain-gates-landing/browser-receipt.json and live-{config,explainer}-{1440,375}.png. No desktop focus was taken.
+- The selected historical run still says NOT RECORDED for this switch; no retroactive ON claim. Workbench reports that same GLM run live with original source 5bec91dcd344b1732fc2e7ec1a0ce8c5dcc2aee5. During background recording indexing its only global notice was remaining recordings loading. Original gameplay agent 53193, launcher 53715 and game server 53718 retain their October 22 start times and frozen checkout. Refresh replaced only the viewer. No gameplay inputs, run configuration edits, inference or scheduler changes were made.
+- Eleven current future-run definitions enable the improved gates in both arms. Actual future gameplay activation remains unlaunched; this task establishes implementation, review, landing, configuration and viewer proof, not measured gameplay benefit. All disclosed audit follow-ups remain open. No archive action authorized.

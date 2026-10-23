@@ -48,14 +48,12 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Adjacent tiles v1](adjacent-tiles-v1.html)
 - [Disproved beliefs ledger v1](disproved-beliefs-v1.html)
 - [Same-plan breaker v1](same-plan-breaker-v1.html)
-- [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
 
 - [Current-run harness configuration](current-run-harness-config.html)
 - [Story frontier zoom](frontier-zoom.html)
-- [Winner gate](winner-gate.html)
 - [Transition loop detection](transition-loop-detection-v1.html)
 - [Battle triage guidance](battle-triage-guidance-v1.html)
 - [Battle text auto-advance](battle-text-auto-advance-v1.html)

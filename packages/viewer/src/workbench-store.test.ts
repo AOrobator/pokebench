@@ -376,7 +376,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     const bad = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
     expect(bad.runs[0]?.cohort).toBeNull(); expect(bad.problems.some(p => p.includes("finals ledger"))).toBe(true);
   });
-  it("never lets a hand-run ledger relabel a run a verified receipt or the experiment queue already owns", async () => {
+  it("never lets a hand-run ledger relabel a run a verified receipt or a historical ledger already owns", async () => {
     const r = root(), id = "2026-10-14T20-00-00_think-fast_aaaa"; write(r, id, named());
     mkdirSync(join(r, "experiments", "full-map"), { recursive: true });
     writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: id, at: "t" }) + "\n");

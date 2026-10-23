@@ -6,7 +6,6 @@ import {ALL_TOOL_SWITCHES,pressTool,type ToolSwitches} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {requestedStep,type PrefixRules} from "./navigation.js";
 import {flagFeatures} from "./play-preset.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import {SWITCHABLE_FEATURES,featureInfo} from "./features.js";
 import {toolSwitches} from "./play-config.js";
 import {LEDGES,type Direction} from "./tile-rules.js";
@@ -177,13 +176,7 @@ describe("registry and pending experiment",()=>{
   expect(featureInfo("rejected-movement-prefix-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["rejected-movement-prefix-v1"]).toBe(false);
  });
- it("is pending with one switch flipped over an incumbent that keeps the guard and the one-step cut",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/rejected-movement-prefix-v1.json",import.meta.url),"utf8")) as unknown);
-  expect(entry.queuePosition).toBeUndefined();expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(SWITCHABLE_FEATURES.filter(k=>incumbent.features[k]!==candidate.features[k])).toEqual(["rejected-movement-prefix-v1"]);
-  expect(incumbent.features["navigation-tool-use-guard-v1"]&&incumbent.features["rejected-movement-step-v1"]).toBe(true);
- });
+
 });
 
 describe("production wiring",()=>{

@@ -6,13 +6,11 @@ import { Window } from "happy-dom";
 import { expect, it } from "vitest";
 import { FEATURES } from "@pokebench/agent/features";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
-import { parseExperiment } from "@pokebench/agent/experiments";
 import { Log, START } from "../test-support/events.js";
 import { RunView } from "./model.js";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
 import { FEATURE_EXPLAINERS, harnessConfig } from "./panels.js";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
-import { parseReadinessDoc } from "./experiment-store.js";
 
 const ID = "turn-drought-clock-v1";
 const read = (path: string): string => readFileSync(fileURLToPath(new URL(`../../../${path}`, import.meta.url)), "utf8");
@@ -52,15 +50,4 @@ it("is on only in the bundle arm of the bundle-v-control recipes, appended last,
     expect(definition.switches, name).not.toContain(ID);
     for (const phase of definition.phases) expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")))[ID], name).toBe(false);
   }
-});
-
-it("registers an unqueued one-switch experiment with a pending readiness entry", () => {
-  const entry = parseExperiment(JSON.parse(read(`experiments/${ID}.json`)));
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.incumbent.features[ID]).toBe(false);
-  expect(entry.incumbent.features["milestone-drought-suppression-v1"]).toBe(true);
-  const recorded = parseReadinessDoc(read("docs/experiments/readiness.md")).get(ID);
-  expect(recorded?.verdict).toBe("PENDING until `just experiments` runs after landing");
-  expect(recorded?.evidence).toContain("Pending, unqueued, unapproved");
 });

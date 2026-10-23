@@ -22,8 +22,6 @@ import {FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type Featur
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
-import {dependencyProblems} from "./features.js";
 
 // Recorded state events (scratch extractor over events.jsonl, unchanged bodies):
 // e046 = runs/2026-10-17T13-15-36_qwen36-gpu1_e046, turns 593-594: TORCHIC (SCRATCH 0 PP, GROWL, FOCUS ENERGY, EMBER)
@@ -414,18 +412,6 @@ describe("battle-move-tool-v1 registry and production wiring",()=>{
   const withWait=withBattleAction(base2,ON,{read:()=>Promise.resolve(later.state()),battleWait:()=>{waited++;later.transition();return Promise.resolve({reason:"input",frames:5,state:later.state()});}},()=>{gated.push("gate");return Promise.resolve();}).find(t=>t.name==="battle_action");
   await withWait?.execute("b2",{action:"fight",move:"EMBER"});
   expect(later.chosen).toEqual({action:"fight",slot:3});expect(waited).toBe(1);expect(gated.length).toBe(later.presses.length+1);
- });
-});
-
-describe("the pending experiment",()=>{
- it("flips only battle-move-tool-v1, is not queued and names the evidence runs",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/battle-move-tool.json",import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry).toMatchObject({changedFeature:BATTLE_ACTION_ID,activationMilestone:"STARTER_CHOSEN",primaryMilestone:"RIVAL_BATTLE_WON"});
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([BATTLE_ACTION_ID]);
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
-  expect(entry.hypothesis).toContain("e046");
  });
 });
 

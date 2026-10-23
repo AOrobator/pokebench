@@ -1,12 +1,10 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON as ALL_ON } from "../test-support/legacy-features.js";
-import { SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures } from "./features.js";
-import { experimentArms, parseExperiment } from "./experiments.js";
-import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
+import { SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures } from "./features.js";
+import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { BUDGET_MARGIN, ContextBudget, IMAGE_WEIGHT, budgetLimit, overflowTokens, requestWeight, type BudgetTrim } from "./context-budget.js";
 
 const TASK: AgentMessage = { role: "user", content: "Play.", timestamp: 0 };
@@ -147,13 +145,5 @@ describe("context-token-budget-v1 registration", () => {
     expect(normalizeFeatures({ ...ALL_ON, [ID]: undefined } as unknown as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   });
 
-  it("has a pending experiment that flips only this switch", () => {
-    const raw: unknown = JSON.parse(readFileSync(new URL("../../../experiments/context-token-budget-v1.json", import.meta.url), "utf8"));
-    const entry = parseExperiment(raw);
-    expect(entry.queuePosition).toBeUndefined();
-    expect(entry.changedFeature).toBe(ID);
-    const { incumbent, candidate } = experimentArms(entry);
-    expect(Object.keys(candidate.features).filter((id) => candidate.features[id as keyof typeof candidate.features] !== incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID]);
-    expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
-  });
+
 });

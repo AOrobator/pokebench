@@ -47,12 +47,7 @@ it("defaults OFF for presets that omit it and for legacy flag presets", () => {
   expect(presetFeatures(preset)[ID]).toBe(false);
 });
 
-it("activates its pending experiment at STARTER_CHOSEN, the earliest point a battle readout exists", () => {
-  const entry = JSON.parse(readFileSync(new URL("../../../experiments/battle-message-waiting.json", import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string };
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.activationMilestone).toBe("STARTER_CHOSEN");
-  expect(readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8")).toContain("| `battle-message-waiting-v1` | `STARTER_CHOSEN`");
-});
+
 
 it("accepts the recorded message page, and states recorded before the page existed", () => {
   const waiting = { state: "waiting_for_input", render_state: "page_wait", text: "Wild WINGULL\nfainted!\n", cursor: 22, identity: "773f", diagnostic: null, page: "Wild WINGULL fainted!" };

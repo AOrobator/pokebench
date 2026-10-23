@@ -1,9 +1,7 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,serverFeatureEnv} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {parseExperiment,experimentArms} from "./experiments.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 const IDS=["poison-readout-v1","berry-readout-v1"] as const;
 describe("independent poison and berry observations",()=>{
@@ -28,12 +26,6 @@ describe("independent poison and berry observations",()=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",needs:"ram-state-v1"});
    expect(featureInfo(id).description).toContain("Off: ");
   });
-  it(`${id} has an unqueued, single-switch experiment`,()=>{
-   const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")));
-   expect(entry.changedFeature).toBe(id);expect(entry.queuePosition).toBeUndefined();
-   const {incumbent,candidate}=experimentArms(entry);
-   expect(SWITCHABLE_FEATURES.filter(f=>incumbent.features[f]!==candidate.features[f])).toEqual([id]);
-   expect(incumbent.features[id]).toBe(false);expect(candidate.features[id]).toBe(true);
-  });
+
  }
 });

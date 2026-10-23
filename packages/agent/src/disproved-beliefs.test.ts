@@ -133,12 +133,7 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
   expect(t148.indexOf("PROF. BIRCH on")).toBeLessThan(t148.indexOf("Moving UP"));
  });
 
- it("its pending experiment's incumbent has both entry sources on, so the treatment is not inert (review round 1)",()=>{
-  const entry=JSON.parse(readFileSync(new URL("../../../experiments/disproved-beliefs.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
-  expect(entry.changedFeature).toBe(ID);
-  for(const source of ["character-presence-v1","dialogue-auto-advance-v1","story-state-v1"])expect(entry.incumbent.features[source]).toBe(true);
-  expect(entry.incumbent.features[ID]).toBe(false);
- });
+
 
  it("records Mom's push-back at the front door (T59) and drops it when the story changes",async()=>{
   const {byTurn}=await replay(ON);

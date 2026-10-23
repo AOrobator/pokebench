@@ -6,7 +6,6 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import type {LoopNotice} from "./loop-detection.js";
 import {featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {parseExperiment,experimentArms} from "./experiments.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 
 const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/menu-refusal-loop.json.gz",import.meta.url))).toString("utf8")) as {source:{run:string};events:unknown[]};
@@ -102,12 +101,4 @@ it("does not classify a battle refusal that actually sent a button",()=>{
  const r=rig(true);const button=recorded.find(e=>e.type==="button_press");if(button===undefined)throw Error("missing recorded button");
  for(const e of recorded.filter(e=>e.turn===262||e.turn===263)){r.emit(changed(e,{seq:e.seq*2,...(e.type==="tool_result"?{state_seq:(e.state_seq??0)*2}:{})}));if(e.type==="tool_call")r.emit(changed(button,{seq:e.seq*2+1,tool_call_id:e.id}));}
  expect(r.notices).toEqual([]);
-});
-
-it("registers a pending experiment with only the new switch flipped",()=>{
- const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/menu-refusal-recovery-v1.json",import.meta.url),"utf8")));
- expect(entry.queuePosition).toBeUndefined();expect(entry.activationMilestone).toBe("OLDALE_TOWN");
- const {incumbent,candidate}=experimentArms(entry);
- expect(incumbent.features["menu-refusal-recovery-v1"]).toBe(false);
- expect(candidate.features).toEqual({...incumbent.features,"menu-refusal-recovery-v1":true});
 });

@@ -85,16 +85,16 @@ export function harnessVersions(runs: readonly WorkbenchRun[], previous: Readonl
     const color = versionColor(family, arm, index); used.add(color); return color;
   };
   const named = [...drafts.values()].map(d => {
-    const lane = `${d.model}\u0000${d.arm}`, number = d.legacy ? null : (counters.get(lane) ?? 0) + 1;
+    const lane = d.model, number = d.legacy ? null : (counters.get(lane) ?? 0) + 1;
     if (number !== null) counters.set(lane, number);
     const family: VersionFamily = d.legacy ? "legacy" : familyOf(d.arm);
     const short = d.model === UNKNOWN_MODEL ? UNKNOWN_MODEL : shortModelName(d.model), ids = d.on.map(f => f.id);
-    return { draft: d, short, number, family, color: colorFor(d.key, family, d.arm), name: number === null ? `${short} · legacy ${d.arm}` : `${short} · ${d.arm} v${String(number)}`, print: fingerprint(ids) };
+    return { draft: d, short, number, family, color: colorFor(d.key, family, d.arm), name: number === null ? `${short} · legacy configuration` : `${short} · configuration v${String(number)}`, print: fingerprint(ids) };
   });
-  const find = (model: string, arm: string, number: number): (typeof named)[number] | undefined => named.find(n => n.draft.model === model && n.draft.arm === arm && n.number === number);
+  const find = (model: string, number: number): (typeof named)[number] | undefined => named.find(n => n.draft.model === model && n.number === number);
   const versions: HarnessVersion[] = named.map(n => {
     const d = n.draft;
-    const prior = n.number === null ? undefined : n.number > 1 ? find(d.model, d.arm, n.number - 1) : d.arm === "control" ? undefined : find(d.model, "control", 1);
+    const prior = n.number === null ? undefined : n.number > 1 ? find(d.model, n.number - 1) : undefined;
     const before = new Set(prior?.draft.on.map(f => f.id) ?? []), now = new Set(d.on.map(f => f.id));
     return {
       id: `hv-${hash8(d.key)}`, key: d.key, model: d.model, short: n.short, arm: d.arm, family: n.family, number: n.number, name: n.name, fingerprint: n.print, first: Math.min(...d.runs.map(startedAt)),

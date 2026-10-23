@@ -20,7 +20,6 @@ import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import {RUN_START_META} from "../test-support/events.js";
 
 const ID="battle-text-auto-advance-v1";
@@ -758,13 +757,7 @@ describe("pending-field-dialogue-v1",()=>{
  });
 });
 
-it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
- const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
- expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="random-starter-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="birch-intro-pages-v1"&&id!=="shop-interface-v1"&&id!=="progress-aware-cycles-v1"&&id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="story-goal-player-name-v1"&&id!=="cut-off-reply-feedback-v1"&&id!=="trainer-sight-check-v2"&&id!=="auto-talk-v2"&&id!=="map-wide-triggers-v1"&&id!=="drought-battle-heal-hold-v1"&&id!=="tool-prompt-docs-v1"&&id!=="field-ownership-feedback-v1"&&id!=="move-learn-loop-fingerprint-v1"&&id!=="stale-plan-fact-v1"&&id!=="post-battle-readout-v1"&&id!=="move-learn-tool-v1"&&id!=="move-learn-early-comparison-v1"));
- const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
- expect(entry.queuePosition).toBeUndefined();
- expect(SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="random-starter-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
-});
+
 
 describe("caught-dex-input-v1 archived registration page",()=>{
  const dex=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/caught-dex-c6c2.json.gz",import.meta.url))).toString("utf8")) as {off:{state:unknown;readout:string};on:{state:unknown;readout:string}};
@@ -794,8 +787,5 @@ it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle 
   const raw=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(raw.base.features[id]).toBe(false);expect(raw.switches).toContain(id);
  }
- const pending=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/caught-dex-input-v1.json",import.meta.url),"utf8")));
- const arms=experimentArms(pending);expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);
- expect(pending.queuePosition).toBeUndefined();
 });
 function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}

@@ -39,19 +39,14 @@ it("describes each switch with the exact lines the game server writes", () => {
 
 it("states each switch's intended arms and the whiteout frame scope (operator decisions 2026-10-16)", () => {
   const read = (path: string): string => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
-  const notes = (file: string): string => (JSON.parse(read(`experiments/${file}.json`)) as { notes: string }).notes;
   const birch = featureInfo("birch-speech-pages-v1").description;
   expect(birch).toContain("Correctness fix, meant to be ON in both arms");
-  expect(notes("birch-speech-pages")).toContain("meant to be ON in both arms of bundle-v-control");
-  expect(notes("birch-speech-pages")).not.toContain("bundle arm only");
   expect(read("docs/explainers/birch-speech-pages-v1.html")).toContain("meant to be ON in both arms");
   expect(read("docs/explainers/birch-speech-pages-v1.html")).not.toContain("bundle arm only");
-  expect(read("docs/experiments/readiness.md")).toContain("| `birch-speech-pages-v1` | `PLAYER_NAME_CONFIRMED` (the pages follow the accepted name) | PENDING until `just experiments` runs after landing | Registered 2026-10-16 on branch `claude/readout-truth`; correctness fix, ON in both arms");
   const whiteout = featureInfo("blackout-readout-v1").description;
   expect(whiteout).toContain("Bundle arm only.");
   expect(whiteout).toContain("game-loop frames advanced through run_frame_with_buttons");
   expect(whiteout).toContain("frames the vendor advances directly (tick, the frame load_state runs) are out of scope");
-  expect(notes("blackout-readout")).toContain("bundle arm only");
   const explainer = read("docs/explainers/blackout-readout-v1.html");
   expect(explainer).toContain("Operator amendment (the operator, 2026-10-16)");
   expect(explainer).toContain("<code>run_frame_with_buttons</code>");
@@ -77,20 +72,5 @@ it("defaults OFF for presets that omit them and for legacy flag presets, so reco
     expect(normalizeFeatures({ ...without, [id]: true })[id]).toBe(true);
     expect(legacy[id]).toBe(false);
     expect(presetFeatures(preset)[id]).toBe(false);
-  }
-});
-
-it("registers each switch as a pending experiment with a readiness row", () => {
-  const readiness = readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8");
-  for (const [file, id, activation] of [["readout-truth", "readout-truth-v1", "NEW_GAME_CREATED"], ["birch-speech-pages", "birch-speech-pages-v1", "PLAYER_NAME_CONFIRMED"], ["blackout-readout", "blackout-readout-v1", "STARTER_CHOSEN"]] as const) {
-    const entry = JSON.parse(readFileSync(new URL(`../../../experiments/${file}.json`, import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string; queuePosition?: number; incumbent: { features: Record<string, boolean> }; source: { commit: string } };
-    expect(entry.changedFeature).toBe(id);
-    expect(entry.activationMilestone).toBe(activation);
-    expect(entry.queuePosition).toBeUndefined();
-    expect(entry.incumbent.features[id]).toBe(false);
-    // Pinned past the review fixes (not 639bc92a, the pre-review head); repinned at landing.
-    expect(entry.source.commit).toMatch(/^[0-9a-f]{40}$/);
-    expect(entry.source.commit.startsWith("639bc92a")).toBe(false);
-    expect(readiness).toContain(`| \`${id}\` | \`${activation}\``);
   }
 });

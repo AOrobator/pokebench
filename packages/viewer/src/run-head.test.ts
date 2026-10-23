@@ -33,7 +33,7 @@ function input(over: Partial<HeadInput> = {}): HeadInput {
 
 describe("phone header model", () => {
   it("titles the run by its experiment, then preset, then model, then id", () => {
-    expect(headTitle(view(cohortRun()), LIVE_ID)).toBe(EXP);
+    expect(headTitle(view(cohortRun()), LIVE_ID)).toBe("preset bundle-v-control");
     const preset = new Log();
     preset.add(0, { ...START, evaluation: { preset_id: "checkpoint-clock-set", target: null, failure_limit: 3, flags: FLAGS } });
     expect(headTitle(view(preset.events), "x")).toBe("preset checkpoint-clock-set");
@@ -48,11 +48,11 @@ describe("phone header model", () => {
     const html = headHtml(input({ others: [{ id: OTHER_ID, cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }));
     const box = document.createElement("div");
     box.innerHTML = html;
-    expect(must(box.querySelector(".rh-l1")).textContent).toBe(`${EXP}+1 LIVE`);
+    expect(must(box.querySelector(".rh-l1")).textContent).toBe("preset bundle-v-control+1 LIVE");
     expect(must(box.querySelector(".rh-state")).classList.contains("dot")).toBe(true);
     expect(must(box.querySelector(".rh-state")).getAttribute("aria-label")).toBe("RUNNING");
-    expect(must(box.querySelector(".arm")).textContent).toBe("BUNDLE");
-    expect(must(box.querySelector(".rh-trial")).textContent).toBe("trial 2/4");
+    expect(box.querySelector(".arm")).toBeNull();
+    expect(box.querySelector(".rh-trial")).toBeNull();
     expect(must(box.querySelector(".rh-time")).textContent).toBe("0:27:22 / 1:00:00");
   });
 
@@ -149,8 +149,8 @@ describe("phone header in the viewer", () => {
   it("shows the experiment-first header and moves the controls under the screen and the run picker into the sheet", async () => {
     await mount(375);
     const head = ui("run-head");
-    expect(must(head.querySelector(".rh-l1")).textContent).toBe(`${EXP}+1 LIVE`);
-    expect(must(head.querySelector(".arm")).textContent).toBe("BUNDLE");
+    expect(must(head.querySelector(".rh-l1")).textContent).toBe("preset bundle-v-control+1 LIVE");
+    expect(head.querySelector(".arm")).toBeNull();
     expect(must(head.querySelector(".rh-time")).textContent).toBe("0:00:03 / 0:01:00");
     const stage = must(document.querySelector(".gbaStage"));
     expect(stage.contains(ui("run-controls"))).toBe(true);
@@ -166,7 +166,7 @@ describe("phone header in the viewer", () => {
     const { streams } = await mount(375);
     const head = ui("run-head");
     expect(ui("run-sheet").hidden).toBe(true);
-    must(head.querySelector<HTMLElement>(".rh-trial")).click();
+    must(head.querySelector<HTMLElement>(".rh-time")).click();
     expect(ui("run-sheet").hidden).toBe(false);
     expect(head.getAttribute("aria-expanded")).toBe("true");
     const watch = Array.from(ui("run-sheet").querySelectorAll<HTMLButtonElement>("[data-watch]"));

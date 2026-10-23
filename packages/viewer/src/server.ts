@@ -10,17 +10,12 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { recoveredAttacher } from "./recovered-fields.js";
-import { ApprovalError, approveExperiment, revokeApproval, setFinalsWithdrawn } from "./experiment-approval.js";
-import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
-import { execFileSync } from "node:child_process";
-import { queueSnapshot, recordedRuns, winnerGateOn, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
-import { readFixedStatuses, type FixedStatusView } from "./fixed-status.js";
+import { readFixedStatuses } from "./fixed-status.js";
 import { pidAlive } from "./lease.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
-import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { frontierSplits } from "./frontier.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
@@ -37,9 +32,8 @@ import { WebSocketServer } from "ws";
 import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
-const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["visual-split-view", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
+export const BROWSER_MODULES = ["visual-split-view", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -129,10 +123,6 @@ export interface ViewerOptions {
   readonly restartHuman?: (runId: string) => Promise<string>;
   // Origins a loopback reverse proxy (Tailscale Serve) publishes this viewer at.
   readonly publicOrigins?: readonly string[];
-  // The experiment queue (default: experiments/ and docs/experiments/readiness.md beside runsRoot).
-  readonly experiments?: { readonly paths: QueuePaths; readonly source: RunSource; readonly head?: () => string };
-  // Runs approved experiments by itself; its status is shown on the queue page.
-  readonly autorun?: ExperimentAutoRun;
   // Where baseline validation runs (default: in process), whether to warm every ended run
   // at startup, and what to close with the viewer.
   readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
@@ -184,23 +174,11 @@ async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> 
   }
 }
 
-// The experiment queue's read and its two writes (approve, withdraw), sharing one snapshot cache.
-type QueuePayload = QueueSnapshot & { readonly autorun: AutoRunStatus | null; readonly fixedRuns: readonly FixedStatusView[] };
-type QueueAction = "approve" | "revoke" | "finals-withdraw" | "finals-resume";
-const QUEUE_ACTIONS: readonly string[] = ["approve", "revoke", "finals-withdraw", "finals-resume"];
-interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: QueueAction): QueuePayload }
-const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
-
-async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi, catalog: RunCatalog): Promise<void> {
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, catalog: RunCatalog): Promise<void> {
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
     const body = await jsonBody(req, origin);
-    if (req.method === "POST" && parts.length === 4 && second === "experiments" && id !== undefined && leaf !== undefined && QUEUE_ACTIONS.includes(leaf)) {
-      if (!Value.Check(EmptyBodySchema, body)) throw new RequestError(400, "the body must be empty");
-      sendJson(res, 200, queueApi.change(id, leaf as QueueAction));
-      return;
-    }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch), catalog) });
@@ -251,7 +229,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     throw new RequestError(404, "not found");
   } catch (error) {
-    if (error instanceof RequestError || error instanceof ApprovalError) sendJson(res, error.status, { error: error.message });
+    if (error instanceof RequestError) sendJson(res, error.status, { error: error.message });
     else if (error instanceof NextRunError) sendJson(res, 409, { error: error.message });
     else throw error;
   }
@@ -425,7 +403,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -437,7 +415,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
-    await write(req, res, options, port, parts, origin, queueApi, catalog);
+    await write(req, res, options, port, parts, origin, catalog);
     return;
   }
   if (req.method !== "GET") {
@@ -445,8 +423,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   const [head, second, id, leaf, file] = parts;
-  if (parts.length === 2 && head === "api" && second === "experiments") {
-    sendJson(res, 200, await queueApi.read());
+  if (parts.length === 2 && head === "api" && second === "run-lanes") {
+    sendJson(res, 200, readFixedStatuses(options.runsRoot, pidAlive).flatMap(status => status.lanes.filter(lane => lane.run !== null).map(lane => ({run: lane.run, lane: lane.id, gpu: lane.gpu}))));
     return;
   }
   if (parts.length === 2 && head === "api" && second === "workbench") {
@@ -575,8 +553,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (parts.length === 2) {
     const summaries = strictCatalog();
     const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch), () => summaries));
-    const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, summaries.map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, summaries.map((run) => ({ ...run, live: live.has(run.id) })));
     return;
   }
   try {
@@ -686,33 +663,6 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   };
   const updates = createWorkbenchUpdates(randomUUID());
   const readUpdates = async (since: string | null): Promise<WorkbenchUpdate> => updates(await readWorkbench(), since);
-  const repo = dirname(options.runsRoot);
-  const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) }, source: recordedRuns(options.runsRoot) };
-  // Recorded runs are cached by the source; the snapshot itself is reused for a few seconds.
-  let queued: { until: number; result: Promise<QueueSnapshot> } | null = null;
-  const readExperiments = (): Promise<QueueSnapshot> => {
-    const now = (options.now?.() ?? new Date()).getTime();
-    if (queued !== null && now < queued.until) return queued.result;
-    const next = { until: now + EXPERIMENTS_CACHE_MS, result: Promise.resolve().then(() => queueSnapshot(experiments.paths, experiments.source)) };
-    queued = next;
-    next.result.catch(() => { if (queued === next) queued = null; });
-    return next.result;
-  };
-  const head = experiments.head ?? ((): string => execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim());
-  const payload = (s: QueueSnapshot): QueuePayload => ({ ...s, autorun: options.autorun?.status() ?? null, fixedRuns: readFixedStatuses(options.runsRoot, pidAlive) });
-  const queueApi: QueueApi = {
-    read: async () => payload(await readExperiments()),
-    change: (id, action) => {
-      const at = options.now?.() ?? new Date();
-      if (action === "approve") approveExperiment(experiments.paths, experiments.source, id, "viewer", at, head());
-      else if (action === "revoke") revokeApproval(experiments.paths, experiments.source, id, "viewer", at);
-      else setFinalsWithdrawn(experiments.paths, experiments.source, id, action === "finals-withdraw", "viewer", at);
-      queued = null;
-      return payload(queueSnapshot(experiments.paths, experiments.source));
-    },
-  };
-  const autorun = options.autorun;
-  const autorunTicker = autorun === undefined ? null : setInterval(() => { autorun.tick().catch(() => undefined); }, AUTORUN_TICK_MS);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const loopDelay = monitorEventLoopDelay({ resolution: 10 });
@@ -727,7 +677,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, queueApi, catalog, strictCatalog).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
@@ -800,8 +750,6 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     close: () =>
       new Promise<void>((resolve) => {
         if (ticker !== null) clearInterval(ticker);
-        if (autorunTicker !== null) clearInterval(autorunTicker);
-        autorun?.stop();
         loopDelay.disable();
         for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
         frameHubs.clear();

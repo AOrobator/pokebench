@@ -36,7 +36,7 @@ Separately annotate these fields; do not sum them into an invented quality score
 
 Retain all trials; report success, failure, unknown/censored and opportunity counts explicitly. Historical 33/33 Torchic controls are contextual evidence, not a substitute for the contemporary fresh-context control. Review all traces together after fixed N finishes, using the same rubric; have a second reviewer check all claimed strategic successes and all intention/execution discrepancies. Reviewers should see neutral trial codes before the arm key when feasible, but prompt copying can unblind them and must be disclosed.
 
-The diagnostic may show that the reminder changes expressed reasoning, has no visible effect, or creates unsupported rationalization/cost. It cannot show which starter is optimal, that a species change helps, latent model capability, a gym benefit or whole-run improvement. No automatic promotion or winner-gate nomination is authorized. A selection tool and equal-facts treatment require separate designs.
+The diagnostic may show that the reminder changes expressed reasoning, has no visible effect, or creates unsupported rationalization/cost. It cannot show which starter is optimal, that a species change helps, latent model capability, a gym benefit or whole-run improvement. No automatic promotion is authorized. A selection tool and equal-facts treatment require separate designs.
 
 ## Baseline and budget
 

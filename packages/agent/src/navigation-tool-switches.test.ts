@@ -1,6 +1,5 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {mkdtempSync,readFileSync} from "node:fs";
-import {parseExperiment,experimentArms} from "./experiments.js";
 import {describe,expect,it,vi} from "vitest";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
@@ -119,18 +118,6 @@ it("a stopped request makes no request or native input",async()=>{
  const s=server(field),stop=new AbortController();stop.abort();
  await expect(pressTool("http://game",hooks(),s.fetchFn,clock,{...ALL_TOOL_SWITCHES,navigationToolUseGuard:true}).execute("model",{buttons:["UP","UP"]},stop.signal)).rejects.toThrow();
  expect(s.fetchFn).not.toHaveBeenCalled();
-});
-
-it("registers independent unqueued experiments with one switch difference and explicit incumbent flags",()=>{
- for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1","rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as unknown);
-  expect(entry.queuePosition).toBeUndefined();expect(entry.changedFeature).toBe(id);
-  expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(SWITCHABLE_FEATURES.filter(key=>incumbent.features[key]!==candidate.features[key])).toEqual([id]);
-  expect(incumbent.features[id]).toBe(false);expect(candidate.features[id]).toBe(true);
-  expect(incumbent.features["semantic-navigation-v2"]).toBe(true);
- }
 });
 
 it("delivers both refusals through pinned pi to the next decision and records them with zero native actions",async()=>{

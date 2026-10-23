@@ -2,10 +2,8 @@ import { createWorkbenchClient } from "./workbench-sync.js";
 import { frontierLegend, type SwitchDescriptions } from "./frontier-legend.js";
 import type { VersionIndex } from "./frontier-versions.js";
 import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.js";
-import { esc } from "./format.js";
-import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { backToViewer, currentRunLinks, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+import { backToViewer, currentRunLinks, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, parseRunLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import type { GlyphPixels, GlyphSheet } from "./game-font.js";
 import { cardHtml, cardInputFor } from "./trainer-card.js";
@@ -57,7 +55,6 @@ export class Workbench {
   private readonly allOn = new Set<string>();
   private readonly expanded = new Set<string>();
   private initialized = false;
-  private scope = "all";
   private overlay = "all";
   private model = "all";
   private preset = "all";
@@ -103,7 +100,7 @@ export class Workbench {
       }
       this.verified = true;
       if (!this.initialized) {
-        this.scope = "all"; this.initialized = true;
+        this.initialized = true;
       }
       this.ui("problem").hidden = true; this.render();
     } catch (error) {
@@ -156,7 +153,7 @@ export class Workbench {
     fillCards([row], inputs, loaded, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     return true;
   }
-  // Lane, GPU and arm per run from the experiment queue's /api/experiments poll, or "unavailable" when it fails.
+  // Hardware location from the read-only run-lanes endpoint.
   lanes(lanes: RunLanes | "unavailable"): void { this.runLanes = lanes; this.clock(); }
   resize(): void { if (this.active()) this.renderCharts(); }
   destroy(): void {
@@ -167,7 +164,7 @@ export class Workbench {
     const dated = this.dateFrom !== "" || this.dateThrough !== "";
     return this.data.runs.filter(r => {
       const day = dated ? runDate(r.started) : null;
-      return (!dated || (day !== null && (this.dateFrom === "" || day >= this.dateFrom) && (this.dateThrough === "" || day <= this.dateThrough))) && (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset);
+      return (!dated || (day !== null && (this.dateFrom === "" || day >= this.dateFrom) && (this.dateThrough === "" || day <= this.dateThrough))) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset);
     });
   }
   private renderCharts(): void {
@@ -219,13 +216,6 @@ export class Workbench {
     const dateProblem = this.ui("date-problem"), reversed = this.dateFrom !== "" && this.dateThrough !== "" && this.dateFrom > this.dateThrough;
     dateProblem.hidden = !reversed; dateProblem.textContent = reversed ? "From must be on or before Through." : "";
     for (const name of ["date-from", "date-through"]) this.ui(name).setAttribute("aria-invalid", String(reversed));
-    // Newest experiment first: each entry is placed by its first trial; undated entries go last.
-    const first = new Map<string, number>();
-    for (const r of this.data.runs) if (r.cohort !== null) { const at = Date.parse(r.started ?? ""), prior = first.get(r.cohort); first.set(r.cohort, prior === undefined || Number.isNaN(prior) || at < prior ? at : prior); }
-    const when = (id: string): number => { const at = first.get(id) ?? Number.NaN; return Number.isNaN(at) ? -Infinity : at; };
-    const cohorts = [...first.keys()].sort((a, b) => when(b) - when(a) || a.localeCompare(b));
-    const labels = new Map((this.data.cohorts ?? []).map(c => [c.id, c.label]));
-    this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: labels.get(id) ?? id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
     this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);
@@ -308,7 +298,7 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement | HTMLInputElement; const name = element.dataset.wb;
-    if (name === "date-from") this.dateFrom = element.value; else if (name === "date-through") this.dateThrough = element.value; else if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
+    if (name === "date-from") this.dateFrom = element.value; else if (name === "date-through") this.dateThrough = element.value; else if (name === "overlay") this.overlay = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
     this.render();
   };
 }
@@ -321,11 +311,18 @@ export function bootWorkbench(win: Window): Workbench {
     fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; },
     loadGlyphSheet: browserGlyphSheet(win.document), drawGlyphs,
   }, from);
-  const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
-  const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, unavailable: () => { wb.lanes("unavailable"); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
-  void experiments?.load();
-  const queuePoll = win.setInterval(() => { void experiments?.load(); }, QUEUE_POLL_MS);
-  void wb.features(); void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);
-  win.addEventListener("resize", () => { wb.resize(); }); win.addEventListener("pagehide", () => { wb.destroy(); win.clearInterval(poll); win.clearInterval(clock); win.clearInterval(queuePoll); }, { once: true });
+  void wb.refresh(); void wb.features();
+  const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS);
+  const clock = win.setInterval(() => { wb.clock(); }, 1000);
+  const loadLanes = async (): Promise<void> => {
+    try {
+      const response = await win.fetch("/api/run-lanes");
+      if (!response.ok) throw new Error("Run lanes unavailable");
+      wb.lanes(parseRunLanes(await response.json()));
+    } catch { wb.lanes("unavailable"); }
+  };
+  void loadLanes();
+  const lanePoll = win.setInterval(() => { void loadLanes(); }, WORKBENCH_POLL_MS);
+  win.addEventListener("resize", () => { wb.resize(); }); win.addEventListener("pagehide", () => { wb.destroy(); win.clearInterval(poll); win.clearInterval(clock); win.clearInterval(lanePoll); }, { once: true });
   return wb;
 }

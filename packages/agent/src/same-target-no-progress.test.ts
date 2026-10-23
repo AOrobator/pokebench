@@ -19,7 +19,6 @@ import {Governor,attachLoopGuard} from "./harness.js";
 import {LoopCoordinator} from "./loop/coordinator.js";
 import {SAME_TARGET_CALLS,SAME_TARGET_TILES,SameTargetNoProgress} from "./loop/same-target.js";
 import type {CompletedCall,LoopNotice} from "./loop-detection.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor} from "./play-wiring.js";
 import type {RunRecorder} from "./recorder.js";
@@ -316,12 +315,6 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   expect(ALL_ON[ID]).toBe(false);
  });
  it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.activationMilestone).toBe("PLAYER_NAME_CONFIRMED");
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(incumbent.features["deterministic-loop-guard-v1"]).toBe(true);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
    expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);

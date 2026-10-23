@@ -29,11 +29,11 @@ describe("mounted runs and comparisons workbench", () => {
     expect(ui("frontier-full").firstElementChild).not.toBe(graph); wb.destroy();
   });
   it("loads the frontier, actual configuration options and no execution queue", async () => {
-    const { wb } = mount(); await wb.refresh(); expect(ui("frontier-full").querySelector('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]')).not.toBeNull(); expect(document.querySelector('[data-wb="queue"]')).toBeNull(); expect(ui("current").textContent).not.toContain("QUEUED"); expect(ui("cohort").textContent).toContain("cohort"); wb.destroy();
+    const { wb } = mount(); await wb.refresh(); expect(ui("frontier-full").querySelector('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]')).not.toBeNull(); expect(document.querySelector('[data-wb="queue"]')).toBeNull(); expect(ui("current").textContent).not.toContain("QUEUED"); expect(document.querySelector('[data-wb="cohort"]')).toBeNull(); wb.destroy();
   });
   it("preserves filters on a refresh and ignores unrelated changes", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); change("model", run().model ?? ""); change("preset", "objectives-on"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect((ui("model") as HTMLSelectElement).value).toBe(run().model); expect((ui("preset") as HTMLSelectElement).value).toBe("objectives-on"); expect(ui("frontier-full").querySelector('[data-run="run_01"]')).not.toBeNull();
-    const unrelated = document.createElement("select"); unrelated.dataset.wb = "elsewhere"; document.body.append(unrelated); unrelated.dispatchEvent(new Event("change", { bubbles: true })); expect((ui("preset") as HTMLSelectElement).value).toBe("objectives-on"); change("cohort", "all"); wb.resize(); wb.destroy();
+    const unrelated = document.createElement("select"); unrelated.dataset.wb = "elsewhere"; document.body.append(unrelated); unrelated.dispatchEvent(new Event("change", { bubbles: true })); expect((ui("preset") as HTMLSelectElement).value).toBe("objectives-on");  wb.resize(); wb.destroy();
   });
   it("filters inclusive Eastern run-start dates across cohorts, combines filters and clears dates", async () => {
     const runs = [
@@ -49,8 +49,7 @@ describe("mounted runs and comparisons workbench", () => {
     // The global frontier reference remains visible even outside the range.
     expect(plotted()).toEqual(new Set(["after", "bundle", "control"]));
     expect(ui("overlay").textContent).toContain("bundle"); expect(ui("overlay").textContent).not.toContain("unknown");
-    change("cohort", "bundle"); expect(plotted()).toEqual(new Set(["after", "bundle"]));
-    change("cohort", "all"); change("date-from", "2026-10-21");
+     change("date-from", "2026-10-21");
     expect(ui("date-problem").textContent).toContain("on or before"); expect(plotted()).toEqual(new Set(["after"]));
     document.querySelector<HTMLButtonElement>("[data-clear-dates]")?.click();
     expect((ui("date-from") as HTMLInputElement).value).toBe(""); expect((ui("date-through") as HTMLInputElement).value).toBe("");
@@ -120,32 +119,6 @@ describe("mounted runs and comparisons workbench", () => {
   it("coalesces polling and ignores late responses after disposal", async () => {
     let resolve: (value: unknown) => void = () => { throw new Error("not captured"); }; const fetch = vi.fn(() => new Promise<unknown>(r => { resolve = r; })); const wb = new Workbench(document, { fetchSnapshot: fetch, now: () => 6000, width: () => 340 }); const first = wb.refresh(); await wb.refresh(); expect(fetch).toHaveBeenCalledTimes(1); wb.destroy(); resolve(data()); await first; expect(ui("frontier-full").textContent).toBe("Loading recorded runs…"); await wb.refresh(); wb.clock(); wb.resize(); expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("labels EXPERIMENT options from the snapshot's cohort list while values stay machine-readable", async () => {
-    const tagged = "experiment:bundle-v-control@ca37a3922222";
-    const { wb } = mount({ ...data(), runs: [run({ id: "a", cohort: tagged }), run({ id: "b", cohort: "legacy-cohort" }), run({ id: "c", cohort: null })], cohorts: [{ id: tagged, label: "Bundle vs control (dry run, cook)", experiment: "bundle-v-control-dryrun-cook", build: "ca37a392".padEnd(40, "2"), dryRun: true }] });
-    await wb.refresh();
-    const options = [...(ui("cohort") as HTMLSelectElement).options].map(o => [o.value, o.textContent]);
-    expect(options).toEqual([["all", "All recorded runs"], [tagged, "Bundle vs control (dry run, cook)"], ["legacy-cohort", "legacy-cohort"]]);
-    change("cohort", tagged); expect([...(ui("overlay") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "none", "a"]); wb.destroy();
-  });
-  it("orders EXPERIMENT options by each entry's first trial, newest first", async () => {
-    const { wb } = mount({ ...data(), runs: [
-      run({ id: "a", cohort: "old", started: "2026-10-16T12:00:00.000-04:00" }), run({ id: "b", cohort: "new", started: "2026-10-16T11:00:00.000-04:00" }),
-      run({ id: "c", cohort: "old", started: "2026-10-14T09:00:00.000-04:00" }), run({ id: "d", cohort: "undated", started: null }), run({ id: "e", cohort: "also-new", started: "2026-10-16T11:00:00.000-04:00" }),
-    ] }); await wb.refresh();
-    expect([...(ui("cohort") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "also-new", "new", "old", "undated"]); wb.destroy();
-  });
-  it("drops a live run of another experiment from the story frontier when an experiment is picked", async () => {
-    const { wb } = mount({ ...data(), runs: [run({ id: "live_aaaa", status: "live", cohort: "exp-a" }), run({ id: "live_bbbb", status: "live", cohort: "exp-b" })] }); await wb.refresh();
-    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).not.toBeNull();
-    expect(ui("frontier-full").textContent).toContain("bbbb");
-    change("cohort", "exp-a");
-    expect(ui("frontier-full").querySelector('[data-run="live_aaaa"]')).not.toBeNull();
-    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).toBeNull();
-    expect(ui("frontier-full").textContent).not.toContain("bbbb");
-    expect(ui("current").textContent).toContain("2 CURRENT RUNS");
-    wb.destroy();
-  });
   it("rejects a malformed cohort list at the browser boundary", async () => {
     const { wb } = mount({ ...data(), cohorts: [{ id: "x", label: 3 }] }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); wb.destroy();
   });
@@ -194,7 +167,7 @@ describe("live runs as trainer cards on the comparisons page", () => {
     const cards = [...ui("current").querySelectorAll<HTMLAnchorElement>("a.tc.tc-wide")];
     expect(cards.map(c => c.getAttribute("href"))).toEqual(["/#replay=run_live", "/#replay=run_other"]);
     expect(cards[0]?.innerHTML).toContain("/sprites/trainers/norman.png"); expect(cards[0]?.innerHTML).toContain('data-gt="LIVE"'); expect(cards[1]?.innerHTML).toContain('data-gt="PAUSED"');
-    expect(cards[0]?.innerHTML).toContain("trial 2/4"); expect(cards[0]?.textContent).toContain("RED");
+    expect(cards[0]?.innerHTML).not.toContain("trial 2/4"); expect(cards[0]?.textContent).toContain("RED");
     expect(ui("current").textContent).toContain("NOT FROM ZERO"); expect(ui("current").textContent).toContain("2 CURRENT RUNS");
     expect(ui("current").querySelector(".wb-plate")).toBeNull();
     wb.destroy();

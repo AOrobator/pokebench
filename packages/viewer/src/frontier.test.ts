@@ -96,8 +96,8 @@ describe("persistent actual native frontier", () => {
     expect(first).toBe("#af8915"); expect(second).not.toBe(other);
     expect(document.querySelector('[data-run="model-a-1"]')?.getAttribute("stroke")).toBe("#af8915");
     const alpha = versions.byRun.get("model-a-2"), beta = versions.byRun.get("model-b");
-    expect(document.querySelector(`[data-ver="${alpha?.id ?? ""}"]`)?.textContent).toContain("alpha · objectives-on v1");
-    expect(document.querySelector(`[data-ver="${beta?.id ?? ""}"]`)?.textContent).toContain("beta · objectives-on v1");
+    expect(document.querySelector(`[data-ver="${alpha?.id ?? ""}"]`)?.textContent).toContain("alpha · configuration v1");
+    expect(document.querySelector(`[data-ver="${beta?.id ?? ""}"]`)?.textContent).toContain("beta · configuration v1");
     expect(document.querySelector(`[data-ver="${alpha?.id ?? ""}"]`)?.getAttribute("style")).toContain(second);
     for (const id of ["model-a-1", "model-a-2", "model-b", HUMAN_REFERENCE]) {
       expect(document.querySelector(`[data-series="${id}"]`)?.getAttribute("stroke")).toBe(document.querySelector(`[data-run="${id}"]`)?.getAttribute("fill"));

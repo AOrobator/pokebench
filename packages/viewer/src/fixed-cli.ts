@@ -13,7 +13,7 @@ import { Value } from "typebox/value";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
-import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
+import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { controlBaseProblems, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";

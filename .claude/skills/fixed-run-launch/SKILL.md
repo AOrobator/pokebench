@@ -1,6 +1,6 @@
 ---
 name: fixed-run-launch
-description: Launch, restart or stop a PokeBench fixed-N experiment (`just fixed-run`, e.g. bundle-v-control) on the GPU lanes, and prove it is live and visible in the viewer's EXPERIMENT dropdown before calling it launched. Use only after the operator has said to start the runs; not for designing experiments or for experiment-queue (`experiments/*.json`) runs.
+description: Launch, restart or stop a PokeBench fixed-N experiment (`just fixed-run`, e.g. bundle-v-control) on the GPU lanes, and prove its runs are live and visible in the viewer before calling it launched. Use only after the operator has said to start the runs; not for designing comparisons.
 ---
 
 # Fixed-run launch
@@ -33,12 +33,12 @@ A launch is not done until every check below passes. A check that fails means st
 - Each first trial's `runs/<run>/events.jsonl` has a `run_start` whose `evaluation.experiment.id` is the experiment, `evaluation.features` matches its arm, `budgets.max_wall_ms` is the phase cap, `harness.dirty` is false, `harness.commit` is the ledger's pinned launch commit, and `start_state.sha1` is the definition's start sha1. Milestones up to the checkpoint arrive as `present_at_start`.
 - `runs/experiments/<id>/logs/<run>.err` has no `FAILED`.
 - The runner log says `preparing the experiment checkout for <commit7>`, and each run_start's `harness.commit` equals the ledger's pinned launch commit.
-- **EXPERIMENT dropdown (hard requirement):** `GET http://127.0.0.1:8790/api/workbench` lists each launched run with `cohort: "experiment:<id>@<commit12>"` (the pinned launch commit) and that value in `cohorts` with the definition's title as its `label`, and `problems` mentions no `Experiment <id>` line. Then open `http://127.0.0.1:8790/comparisons` in the browser, wait for the dropdown to fill (the workbench can take minutes), and confirm the experiment is an option and selecting it shows the live runs. Finally `just experiments-audit` must print nothing and exit 0 (it reads only run_start lines and ledgers, so it takes about a second). If any of these fails, the launch is not done.
+- **Run visibility:** `/api/workbench` lists every launched run by its exact run ID, without a recording problem. Open Stats in a background browser, locate each run card and follow WATCH RUN to its actual frame. `just experiments-audit` must print nothing and exit 0; it checks internal result provenance rather than a UI selector.
 - **No version skew:** no run in `/api/workbench` has a `problem` (and `problems` has no `Run <id>:` line) saying `viewer build … is older than this run's build …: restart the viewer (just viewer-main)`. That message means the viewer cannot read some of the pinned build's events; the run stays listed with its last valid status, but its splits may be incomplete. Run `just viewer-main` and recheck. Do not wait for a battle to find out: a viewer built before the pin passes this check until the first event with a new field arrives, so the build-stamp precondition in step 1 is what actually prevents it.
 
-### How runs reach the dropdown
+### Recorded provenance
 
-A run joins the dropdown from its own `run_start`: `evaluation.experiment` (set by the runner through `POKEBENCH_EXPERIMENT`) names the experiment, and `harness.commit` the build. Runs of one experiment id and one commit are one entry; a second build of the same id is a separate entry whose label adds the build and its first trial in New York time. Dry runs (`<id>-dryrun-<phase>`) are their own entries, labelled `<title> (dry run, <phase>)`. Ledgers no longer decide membership for these runs, only validity: a trial a ledger marks invalid stays excluded wherever that ledger lives. So a finished dry run's `runs/experiments/<id>-dryrun-<phase>/` can be archived anywhere (by convention `runs/dryruns/<name>/`) without its runs leaving the dropdown. Run dirs themselves must stay in `runs/` (or `runs/human/`); moving them to `runs/aborted/` takes them out of the viewer on purpose.
+`evaluation.experiment` and `harness.commit` remain in each run_start for fixed-run analysis. Ledgers retain validity and exclusion evidence. Keep run directories in `runs/` (or `runs/human/`); moving them to `runs/aborted/` removes them from the viewer. Stats and PokéNav have no experiment controls or badges.
 
 ## 4. If a launch went wrong
 
@@ -50,4 +50,4 @@ An operator-caused or launch-procedure fault (wrong environment, wrong command, 
 
 ## 5. Report
 
-Lead with the furthest milestone each live trial has reached, then the run ids per lane and arm, the runner pid, and the dropdown evidence.
+Lead with the furthest milestone each live trial has reached, then the run ids per lane and arm, the runner pid, and the run-card and playback evidence.

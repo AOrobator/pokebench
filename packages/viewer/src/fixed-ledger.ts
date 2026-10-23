@@ -54,7 +54,7 @@ export function parseFixedLedger(text: string): { entries: FixedLedgerEntry[]; p
   return { entries, problems };
 }
 
-// The fixed-run driver and the experiment queue both write runs/experiments/<id>/trials.jsonl;
+// The fixed-run driver and historical queue wrote runs/experiments/<id>/trials.jsonl;
 // fixed-run rows carry `kind`, queue rows carry `type`.
 export function isFixedLedgerText(text: string): boolean {
   const first = text.split("\n").find(line => line.trim() !== "");

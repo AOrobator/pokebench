@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { QUEUE_FEATURES } from "../test-support/experiments.js";
+import { ALL_ON as QUEUE_FEATURES } from "@pokebench/agent/features";
 import { BROWSER_MODULES, HOST, startViewer, validFramePng, type Viewer } from "./server.js";
 import { REPORT_SCROLL_SCRIPT, reportScrollProbe } from "./reports-scroll.js";
 import { createWorkbenchClient } from "./workbench-sync.js";
@@ -254,7 +254,7 @@ describe("viewer server", () => {
     expect(JSON.parse(reply.body.toString())).toMatchObject([{ id: "2026-10-11T22-00-00_a", ended: true }]);
   });
 
-  it("labels a finals run with its finals place and leaves every other run's label alone", async () => {
+  it("keeps historical finals recordings listed without finals UI labels", async () => {
     const { runsRoot, viewer } = await fixture();
     writeRun(runsRoot, "2026-10-11T22-00-00_a", fullRun());
     writeRun(runsRoot, "2026-10-11T22-00-00_f", fullRun());
@@ -264,7 +264,7 @@ describe("viewer server", () => {
     writeFileSync(join(dir, "nomination.json"), JSON.stringify({ experiment: "fm", source: "queue", at: "t", incumbent, finals: { runsPerArm: 1, maxWallMs: 1000, target: null }, ranking: [], reusedIncumbent: [], finalists: [{ arm: "whole", switches: { "full-map-navigation-v1": true } }], reason: "r" }));
     writeFileSync(join(dir, "finals.jsonl"), `${JSON.stringify({ type: "launch", trial: 1, arm: "whole", run: "2026-10-11T22-00-00_f", at: "t", model: "m", commit: "c".repeat(40) })}\n`);
     const runs = JSON.parse((await get(viewer, "/api/runs")).body.toString()) as { id: string; experiment?: string }[];
-    expect(runs.find((r) => r.id === "2026-10-11T22-00-00_f")?.experiment).toBe("fm finals · whole · run 2/2");
+    expect(runs.find((r) => r.id === "2026-10-11T22-00-00_f")?.experiment).toBeUndefined();
     expect(runs.find((r) => r.id === "2026-10-11T22-00-00_a")?.experiment).toBeUndefined();
   });
 

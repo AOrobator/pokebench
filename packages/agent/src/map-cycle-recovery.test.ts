@@ -6,7 +6,6 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import type {LoopNotice} from "./loop-detection.js";
 import {featureInfo,playHarnessFeatures,dependencyProblems,type FeatureSet} from "./features.js";
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
-import {parseExperiment,experimentArms} from "./experiments.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
 import {NavigationRecovery,NAVIGATION_RECOVERY_CALLS} from "./loop/navigation-recovery.js";
 import {StallBriefing} from "./stall-briefing.js";
@@ -278,14 +277,7 @@ describe("registry, presets and experiment",()=>{
   expect(playHarnessFeatures({...base,[ID]:true},null)).toEqual([...playHarnessFeatures(base,null),ID]);
   expect(dependencyProblems({...LEGACY_ALL_ON,[ID]:true})).toContain(`${ID} needs navigation-recovery-v1`);
  });
- it("has a pending single-switch experiment and a readiness row",()=>{
-  const e=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));
-  expect(e.queuePosition).toBeUndefined();expect(e.changedFeature).toBe(ID);
-  const {incumbent,candidate}=experimentArms(e);
-  expect(candidate.features).toEqual({...incumbent.features,[ID]:true});expect(incumbent.features[ID]).toBe(false);expect(incumbent.features["navigation-recovery-v1"]).toBe(true);
-  expect(dependencyProblems(candidate.features)).toEqual([]);
-  expect(readFileSync(new URL("../../../docs/experiments/readiness.md",import.meta.url),"utf8")).toContain(`| \`${ID}\``);
- });
+
  it("is on in the bundle arm of every current recipe whose bundle runs navigation-recovery-v1, and nowhere else",()=>{
   const on=["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","gym-rustboro-torchic"];
   for(const name of on){

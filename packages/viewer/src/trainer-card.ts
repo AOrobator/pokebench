@@ -3,7 +3,7 @@
 // the ROM by `just trainer-card-art`; positions below are in the card art's own pixels.
 import { esc } from "./format.js";
 import type { WorkbenchCard, WorkbenchRun } from "./workbench-data.js";
-import { armColor, clockText, plateFacts, type PlateFacts } from "./workbench-view.js";
+import { clockText, plateFacts, type PlateFacts } from "./workbench-view.js";
 
 export const TIERS = ["green", "bronze", "copper", "silver", "gold"] as const;
 export type Tier = (typeof TIERS)[number];
@@ -84,13 +84,13 @@ function experimentTrainerFor(group: string, current: TrainerPeer, peers: readon
 // One run's card from the workbench snapshot; runs: every run the snapshot has, so the trainer pick sees
 // all of the experiment's arms the same way on every page.
 export function cardInputFor(run: WorkbenchRun, at: number, now: number, status: CardInput["status"], runs: readonly WorkbenchRun[], art: CardArt): CardInput {
-  const experiment = run.experiment ?? null, title = experiment?.id ?? run.model ?? run.id;
-  const gpu = gpuOf(run.id);
+  const experiment = run.experiment ?? null, title = run.model ?? run.id;
+  const gpu = gpuOf(run.id), group = experiment?.id ?? title;
   const trainer = experiment === null
     ? trainerFor(title, trainerIdentity("", gpu), [], art.trainers)
-    : experimentTrainerFor(title, { arm: experiment.arm, gpu }, runs.flatMap((other) => (other.experiment?.id === experiment.id ? [{ arm: other.experiment.arm, gpu: gpuOf(other.id) }] : [])), art.trainers);
+    : experimentTrainerFor(group, { arm: experiment.arm, gpu }, runs.flatMap((other) => (other.experiment?.id === experiment.id ? [{ arm: other.experiment.arm, gpu: gpuOf(other.id) }] : [])), art.trainers);
   const facts = plateFacts(run, at, now);
-  return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
+  return { runId: run.id, title, arm: null, trial: null,
     card: run.card ?? null, facts: status === "replay" ? { ...facts, fresh: false } : facts, status, trainer };
 }
 
@@ -128,8 +128,7 @@ function mon(art: CardArt, m: WorkbenchCard["party"][number]): string {
 }
 
 function nameType(input: CardInput, wide: boolean): string {
-  const arm = input.arm === null ? "" : `<span class="tc-ty">TYPE/<em style="--tyc:${armColor(input.arm)}">${esc(input.arm.toUpperCase())}</em></span>`;
-  return `<span class="tc-line"><span class="tc-nm${wide ? " tc-big" : ""}">${esc(input.card?.name ?? "—")}</span>${arm}</span>`;
+  return `<span class="tc-line"><span class="tc-nm${wide ? " tc-big" : ""}">${esc(input.card?.name ?? "—")}</span></span>`;
 }
 
 function bar(label: string, fill: string, width: string, value: string, clock: boolean): string {
@@ -142,7 +141,7 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const g: Geometry = wide ? { w: 388, h: 180 } : { w: 288, h: ribbon ? 94 : 76 };
   const image = `/sprites/card/${wide ? "wide" : ribbon ? "mini-ribbon" : "mini"}-${tierOf(facts.level, facts.total)}.png`;
   const corner = wide && facts.fresh ? `<span class="tc-dot"></span>${badge()}` : stateChip(input.status);
-  const second = [`<b>${esc(facts.reached?.label ?? "No milestone yet")}</b>`, esc(placeText(input.card?.location ?? null)), input.trial === null ? "" : esc(input.trial)].filter(part => part !== "").join(" · ");
+  const second = [`<b>${esc(facts.reached?.label ?? "No milestone yet")}</b>`, esc(placeText(input.card?.location ?? null))].filter(part => part !== "").join(" · ");
   const story = bar("STORY", "#58b850", pct(facts.level, facts.total), `${String(facts.level)}/${String(facts.total)}`, false);
   const time = bar("TIME", "#3890f8", "0%", "", true);
   const party = input.card?.party ?? [], sprite = `<img src="/sprites/trainers/${esc(input.trainer)}.png" alt="">`;
@@ -156,7 +155,7 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
       : box(g, 52, 27, 230, 18, nameType(input, false)) + box(g, 52, 47, 172, 11, story) + box(g, 52, 59, 172, 11, time))
     + mons
     + (ribbon ? box(g, 8, 72, 272, 16, `<span class="tc-ribbon">${badge()}</span>`) : "");
-  const label = `Watch run ${input.runId}: ${input.title}${input.arm === null ? "" : `, ${input.arm}`}`;
+  const label = `Watch run ${input.runId}: ${input.title}`;
   const cls = `tc tc-${kind}${facts.fresh ? " tc-new" : ""}`, frame = `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span>`;
   return href === null
     ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching" || input.status === "replay")}" aria-label="${esc(label)}">${frame}</button>`

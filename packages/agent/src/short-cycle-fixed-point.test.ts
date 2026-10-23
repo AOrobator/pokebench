@@ -17,7 +17,6 @@ import {IN_GAME} from "../test-support/events.js";
 import {assistant,toolCall,userText} from "../test-support/pi.js";
 import {decisionContext,parseRun} from "./decision-probe.js";
 import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
-import {parseExperiment,experimentArms} from "./experiments.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 const RAW_PROGRESS_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...RAW_PROGRESS_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false};
@@ -633,11 +632,6 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   }
  });
  it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(incumbent.features["duplicate-turn-collapse-v1"]).toBe(true);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);
   for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
    const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
    expect(fixed.base.features[ID],name).toBe(false);

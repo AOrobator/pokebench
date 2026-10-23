@@ -1,6 +1,4 @@
-// The phone header (design Q, runs/mockups/viewer-header-phone/q-compact-experiment-first.html):
-// experiment and arm first, the trial quiet, the time once; the sheet behind it
-// shows what you are watching, then the other live runs.
+// The phone header identifies the current configuration and other live runs.
 import { esc } from "./format.js";
 import type { RunView } from "./model.js";
 import type { Cohort } from "./runs.js";
@@ -24,17 +22,9 @@ export interface HeadInput {
 
 export function headTitle(view: RunView, runId: string | null): string {
   const evaluation = view.start?.evaluation;
-  if (evaluation?.experiment !== undefined) return evaluation.experiment.id;
   if (evaluation !== undefined) return `preset ${evaluation.preset_id}`;
   return view.start?.model.id ?? runId ?? "NO RUN";
 }
-
-function cohortOf(view: RunView): Cohort | null {
-  return view.start?.evaluation?.experiment ?? null;
-}
-
-const armBadge = (arm: string): string => `<span class="arm${arm === "control" ? " control" : ""}">${esc(arm.toUpperCase())}</span>`;
-const trial = (cohort: Cohort): string => `trial ${String(cohort.trial)}/${String(cohort.of)}`;
 
 function state(input: HeadInput): string {
   return input.running
@@ -43,9 +33,8 @@ function state(input: HeadInput): string {
 }
 
 export function headHtml(input: HeadInput): string {
-  const cohort = cohortOf(input.view);
   const more = input.others.length === 0 ? "" : `<span class="rh-more">+${String(input.others.length)} LIVE</span>`;
-  const meta = cohort === null ? "" : `${armBadge(cohort.arm)}<span class="rh-trial">${trial(cohort)}</span>`;
+  const meta = "";
   return `<span class="rh-l1">${state(input)}<span class="rh-title">${esc(headTitle(input.view, input.runId))}</span>${more}</span>`
     + `<span class="rh-l2">${meta}<span class="rh-time">${esc(input.time)}</span></span>`;
 }

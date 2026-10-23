@@ -4,8 +4,7 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {LoopNotice} from "./loop-detection.js";
-import {featureInfo,type FeatureSet} from "./features.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
+import {featureInfo} from "./features.js";
 
 const GYM="See? This is PETALBURG CITY's GYM.";
 const SIGN="This is the GYM's sign. Look for it whenever you're looking for a GYM.";
@@ -97,11 +96,6 @@ describe("trigger-script-loop-v1",()=>{
  });
  it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
   expect(featureInfo("trigger-script-loop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/trigger-script-loop.json",import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(incumbent.features["trigger-script-loop-v1"]).toBe(false);expect(candidate.features["trigger-script-loop-v1"]).toBe(true);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual(["trigger-script-loop-v1"]);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features["trigger-script-loop-v1"]).toBe(false);expect(bundle.switches).toContain("trigger-script-loop-v1");
   expect(readFileSync(new URL("./live.ts",import.meta.url),"utf8")).toContain('features["trigger-script-loop-v1"]');

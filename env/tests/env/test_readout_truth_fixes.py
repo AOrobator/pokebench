@@ -503,11 +503,10 @@ def test_surf_v2_says_only_what_the_game_shows_without_a_surf_user() -> None:
     assert CANNOT_CROSS == "crosses water you cannot cross yet"
 
 
-# --- each pending experiment's arms (review round 1) --------------------------------------------
+# --- independent treatment arms on recorded RAM -----------------------------------------------
 # The candidate arm is the incumbent with only changedFeature flipped; its prerequisite must be on
 # in both arms, or the switch changes nothing. Each arm's server switches are the incumbent's off
 # features, as serverFeatureEnv builds POKEBENCH_FEATURES_OFF.
-EXPERIMENTS = Path(__file__).resolve().parents[3] / "experiments"
 ARMS = [
     (
         "tutorial-party-owner",
@@ -524,14 +523,15 @@ ARMS = [
 def test_each_experiment_arm_turns_its_change_on(
     experiment: str, name: str, before_text: str, after_text: str
 ) -> None:
-    body = json.loads((EXPERIMENTS / f"{experiment}.json").read_text())
-    features: dict[str, bool] = body["incumbent"]["features"]
-    changed_feature = body["changedFeature"]
-    assert features[changed_feature] is False
-    control = frozenset(f for f in SERVER_FEATURES if not features.get(f, False))
-    candidate = control - {changed_feature}
+    changed_feature = {
+        "tutorial-party-owner": OWNER,
+        "mid-frame-readout": MID_FRAME,
+        "status-names": STATUS,
+    }[experiment]
     frame = BY_KEY[name]
-    active = bool(features.get("active-ui-ownership-v1", False))
+    control = all_off(frame) | {changed_feature}
+    candidate = control - {changed_feature}
+    active = "active-ui-ownership-v1" not in control
 
     def arm(off: frozenset[str]) -> str:
         read = FixtureMemory(frame, operator_rom())
@@ -542,13 +542,8 @@ def test_each_experiment_arm_turns_its_change_on(
     assert after_text in after and after_text not in before
 
 
-def test_unset_dynamic_warp_experiment_is_superseded_but_still_flips_typed_state() -> None:
-    body = json.loads((EXPERIMENTS / "unset-dynamic-warp.json").read_text())
-    features: dict[str, bool] = body["incumbent"]["features"]
-    assert "superseded" in body["hypothesis"]
-    assert "no attributable treatment contrast" in body["discarded"]
-    assert features[UNSET_WARP] is False and features["named-warp-destinations-v1"] is True
-    control = frozenset(f for f in SERVER_FEATURES if not features.get(f, False))
+def test_unset_dynamic_warp_flips_typed_state_without_changing_the_readout() -> None:
+    control = (all_off(BY_KEY["0e05-693"]) | {UNSET_WARP}) - {"named-warp-destinations-v1"}
     candidate = control - {UNSET_WARP}
     frame = BY_KEY["0e05-693"]
     read = FixtureMemory(frame, operator_rom())

@@ -50,8 +50,6 @@ it("bounds alternatives and withholds unknown terrain/landing facts",async()=>{
  const output=reachableSectionAlternatives(many,{x:2,y:0});expect(output).toContain("exit 3");expect(output).not.toContain("exit 4");
 });
 
-it.each(["boundary-crossing-facts-v1","reachable-section-alternatives-v1"] as const)("registers %s default OFF and a pending single-feature comparison",async id=>{
- const {parseExperiment,experimentArms}=await import("./experiments.js");const {normalizeFeatures}=await import("./play-preset.js");const {ALL_ON,featureInfo,SWITCHABLE_FEATURES}=await import("./features.js");
+it.each(["boundary-crossing-facts-v1","reachable-section-alternatives-v1"] as const)("registers %s default OFF and a pending single-feature comparison",async id=>{const {normalizeFeatures}=await import("./play-preset.js");const {ALL_ON,featureInfo}=await import("./features.js");
  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([key])=>key!==id)) as Parameters<typeof normalizeFeatures>[0];expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");
- const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as unknown);expect(entry.queuePosition).toBeUndefined();const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(f=>arms.incumbent.features[f]!==arms.candidate.features[f])).toEqual([id]);
 });

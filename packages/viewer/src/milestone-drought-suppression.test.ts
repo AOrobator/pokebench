@@ -4,11 +4,9 @@ import {BASE_MS,Log,START} from "../test-support/events.js";
 import {RunView} from "./model.js";
 import {eventText,inspector} from "./panels.js";
 import {lanesSvg} from "./timeline.js";
-import {parseReadinessDoc} from "./experiment-store.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import {armPreset,parseFixedDefinition} from "./fixed-design.js";
 import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
-import {parseExperiment} from "@pokebench/agent/experiments";
 
 const ID="milestone-drought-suppression-v1";
 it("keeps suppressed droughts visible as diagnostics, without timeline marks or error counts",()=>{
@@ -21,10 +19,6 @@ it("keeps suppressed droughts visible as diagnostics, without timeline marks or 
 });
 it("registers an unqueued one-switch experiment and enables only the current bundle arms",()=>{
  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
- const e=parseExperiment(read(`experiments/${ID}.json`));
- const recorded=parseReadinessDoc(readFileSync(new URL("../../../docs/experiments/readiness.md",import.meta.url),"utf8")).get(ID);
- expect(recorded?.verdict).toBe("READY (recent fallback: 4/4)");expect(recorded?.evidence).toContain("Pending, unqueued, unapproved");
- expect(e.changedFeature).toBe(ID);expect(e.queuePosition).toBeUndefined();
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"]){
   const f=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
   expect(f.base.features[ID],name).toBe(false);expect(f.switches.indexOf(ID),name).toBeGreaterThan(f.switches.indexOf("berry-readout-v1"));

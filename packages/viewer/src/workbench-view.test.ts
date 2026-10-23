@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import type { FixedLaneStatus, FixedStatusView } from "./fixed-status.js";
-import { armColor, clockText, backToViewer, currentRunLinks, plateNotes, plateWhere, furthestMilestone, plateFacts, runDetails, runLanes, viewerUrl } from "./workbench-view.js";
+import { clockText, backToViewer, currentRunLinks, plateNotes, plateWhere, furthestMilestone, plateFacts, runDetails, viewerUrl } from "./workbench-view.js";
 import { run } from "../test-support/workbench.js";
 const parse = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 describe("workbench visual contract", () => {
@@ -10,12 +9,6 @@ describe("workbench visual contract", () => {
     const r = run({ splits: [split("RIVAL_MET", 331000, 109), split("PLAYER_HOUSE_EXITED_AFTER_CLOCK", 400000, 143), split("NOT_A_FRONTIER_MILESTONE", 500000, 150)] });
     expect(furthestMilestone(r)).toMatchObject({ index: 13, label: "Rival met", split: { turn: 109 } }); expect(furthestMilestone(run({ splits: [] }))).toBeNull();
     expect(clockText(331_999)).toBe("5:31"); expect(clockText(3_723_000)).toBe("1:02:03"); expect(clockText(-5)).toBe("0:00");
-  });
-  it("joins lanes from fixed-run status on run id, skipping idle lanes", () => {
-    const lane = (id: string, runId: string | null, arm: string | null): FixedLaneStatus => ({ id, gpu: `GPU${id}`, port: 1, state: "running", reason: "", slot: 1, arm, phase: "trial", run: runId, since: "", retryAt: null, lastError: null, valid: 0, total: 1 });
-    const status = (lanes: FixedLaneStatus[]): FixedStatusView => ({ kind: "fixed-run", version: 1, experiment: "x", title: "X", definitionSha256: "", pid: 1, updatedAt: "", state: "running", total: 1, valid: 0, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 0 }, lanes, lastError: null, runnerAlive: true });
-    const map = runLanes([status([lane("A", "r1", "bundle"), lane("B", null, null)]), status([lane("C", "r2", null)])]);
-    expect([...map.entries()]).toEqual([["r1", { lane: "A", gpu: "GPUA", arm: "bundle" }], ["r2", { lane: "C", gpu: "GPUC", arm: null }]]);
   });
   it("renders truthful recorded configuration and feature tri-states, checkpoint evidence, and a replay link", () => {
     const html = runDetails(run(), "PLAYER_NAME_CONFIRMED"); expect(html).toContain("OFF"); expect(html).toContain("UNKNOWN"); expect(html).toContain("ON"); expect(html).toContain("#19"); expect(html).toContain("65,536"); expect(html).toContain("objectives-on"); expect(html).toContain("&lt;img"); expect(runDetails(run({ config: null }), null)).toContain("not recorded");
@@ -65,8 +58,6 @@ it("uses ordinary Watch links when artwork is missing, preserving lane truth and
   expect(plateWhere(saved, "loading")).toContain("loading"); expect(plateWhere(saved, new Map())).toContain("HAND RUN");
   expect(plateWhere(saved, new Map([[saved.id, { lane: "<b>", gpu: "<script>", arm: null }]]))).toContain("&lt;b&gt;");
   expect(plateNotes(run())).toBe(""); expect(backToViewer(null)).toContain('href="/"');
-  expect(armColor("bundle")).toBe("#7a3fb8"); expect(armColor("control")).toBe("#2f6fb0");
-  expect(armColor(null)).toBe("#a08020"); expect(armColor("other")).toMatch(/^hsl/);
 });
 it("retains live, paused, recovered and fresh milestone facts for the improved cards", () => {
   expect(plateFacts(run({ status: "paused" }), 1000, 6000)).toMatchObject({ elapsed: 120000, fresh: false });
@@ -75,4 +66,10 @@ it("retains live, paused, recovered and fresh milestone facts for the improved c
   expect(plateFacts(run({ status: "live", elapsedMs: 0 }), 1000, 1000).fresh).toBe(false);
   const base = run({ status: "live" });
   expect(plateFacts({ ...base, splits: base.splits.map(s => ({ ...s, derived: true })) }, 1000, 2000)).toMatchObject({ recovered: true, fresh: false });
+});
+
+it("validates the hardware-only run lane response", async () => {
+  const { parseRunLanes } = await import("./workbench-view.js");
+  expect([...parseRunLanes([{ run: "r", lane: "A", gpu: "GPU1" }])]).toEqual([["r", { lane: "A", gpu: "GPU1", arm: null }]]);
+  for (const bad of [null, {}, [null], [{}], [{run: 1, lane: "A", gpu: "GPU1"}], [{run: "r", lane: 1, gpu: "GPU1"}], [{run: "r", lane: "A", gpu: 1}]]) expect(() => parseRunLanes(bad)).toThrow();
 });

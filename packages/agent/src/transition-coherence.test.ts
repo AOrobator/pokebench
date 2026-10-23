@@ -47,11 +47,3 @@ it("defaults OFF for presets that omit it and for legacy flag presets", () => {
   const preset = parsePlayPreset({ version: 2, id: "p", target: null, limits: { maxTurns: 1, maxWallMs: 1, failureLimit: 1 }, sampling: { thinkingLevel: "medium", maxTokens: 1 }, features: without(legacy) });
   expect(presetFeatures(preset)[ID]).toBe(false);
 });
-
-it("registers a pending experiment that activates at NEW_GAME_CREATED (CB2_NewGame is the first handoff)", () => {
-  const entry = JSON.parse(readFileSync(new URL("../../../experiments/transition-coherence.json", import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string; queuePosition?: number };
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.activationMilestone).toBe("NEW_GAME_CREATED");
-  expect(entry.queuePosition).toBeUndefined();
-  expect(readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8")).toContain(`| \`${ID}\` | \`NEW_GAME_CREATED\``);
-});

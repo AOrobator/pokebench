@@ -180,7 +180,7 @@ describe("viewer app", () => {
     const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-page]")];
     expect([...select.options].map((option) => [option.value, option.textContent])).toEqual(buttons.map((button) => [button.dataset.page, button.textContent]));
     expect(select.value).toBe("trace");
-    expect([...select.options].map((option) => option.value)).toEqual(["trace", "party", "next", "queue", "config", "trainer", "bag", "stats", "splits", "field", "run"]);
+    expect([...select.options].map((option) => option.value)).toEqual(["trace", "party", "next", "config", "trainer", "bag", "stats", "splits", "field", "run"]);
     const shown = (): string[] => [...document.querySelectorAll<HTMLElement>("[data-nav-page]")].filter((panel) => !panel.hidden).map((panel) => panel.dataset.navPage ?? "");
     select.value = "stats";
     select.dispatchEvent(new Event("change"));

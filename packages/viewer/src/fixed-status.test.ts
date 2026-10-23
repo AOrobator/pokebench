@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FixedStatusError, parseFixedStatus, readFixedStatuses, writeFixedStatus, type FixedStatus } from "./fixed-status.js";
-import { fixedRunCards } from "./queue-view.js";
 
 function status(over: Partial<FixedStatus> = {}): FixedStatus {
   return {
@@ -39,30 +38,5 @@ describe("fixed-run status files", () => {
     const views = readFixedStatuses(runsRoot, (pid) => pid !== 99);
     expect(views.map((v) => [v.experiment, v.runnerAlive])).toEqual([["bundle-v-control", true], ["bundle-v-control-dryrun", false]]);
     expect(readFixedStatuses(join(runsRoot, "missing"), () => true)).toEqual([]);
-  });
-});
-
-describe("fixedRunCards", () => {
-  it("shows progress, invalid count, reserve, every lane's state and reason, and the last error", () => {
-    const html = fixedRunCards([{ ...status(), runnerAlive: true }]);
-    expect(html).toContain("Bundle vs &lt;fixed&gt; control");
-    expect(html).toContain("12 / 140 done");
-    expect(html).toContain("1 invalid");
-    expect(html).toContain("reserve 0.25 / 4.00 GPU-h");
-    expect(html).toContain("LANE A · GPU1 · :8071");
-    expect(html).toContain("RUNNING");
-    expect(html).toContain("trial 14 (confirmatory, control)");
-    expect(html).toContain("7 / 70");
-    expect(html).toContain("PAUSED");
-    expect(html).toContain("lane B cannot serve: connect ECONNREFUSED 127.0.0.1:8098");
-    expect(html).toContain("retry 2026-10-16T04:02:00.000Z");
-    expect(html).toContain("LAST ERROR");
-    expect(html).toContain("r3: model/gateway error: model error: HTTP 502");
-  });
-
-  it("says loudly when the runner is gone before the experiment finished, and is empty with no fixed runs", () => {
-    expect(fixedRunCards([{ ...status(), runnerAlive: false }])).toContain("RUNNER NOT RUNNING (pid 4321, last update 2026-10-16T04:00:00.000Z)");
-    expect(fixedRunCards([{ ...status({ state: "finished", lastError: null, invalid: 0, invalidTrials: [] }), runnerAlive: false }])).not.toContain("RUNNER NOT RUNNING");
-    expect(fixedRunCards([])).toBe("");
   });
 });

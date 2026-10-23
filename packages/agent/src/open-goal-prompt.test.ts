@@ -7,7 +7,6 @@ import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {GOAL_SENTENCE,OPEN_GOAL_SENTENCE,OPEN_PLAY_GOAL,PLAY_GOAL,PLAY_SYSTEM_PROMPT,objectiveSwitches,playGoal,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
-import {deriveStatus,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {stateOnlyPrompt} from "./state-runtime.js";
 
@@ -99,24 +98,7 @@ it("a v2 preset with the switch reaches the production prompt (factory path)",()
 });
 
 it("the pending experiment's incumbent is the bundle-v-control bundle arm and flips only this switch",()=>{
- const raw=JSON.parse(readFileSync(new URL("../../../experiments/open-goal-prompt.json",import.meta.url),"utf8")) as {changedFeature:string;queuePosition?:number;externalCohort?:unknown;incumbent:{features:Record<string,boolean>}};
- const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
- expect(raw.changedFeature).toBe(ID);
- expect(raw.queuePosition).toBeUndefined();
- expect(raw.externalCohort).toBeUndefined();
  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1");
  const named=historical.slice(0,historical.indexOf(ID)+1);
  expect(named.at(-1)).toBe(ID);
- expect(Object.keys(raw.incumbent.features).slice(0,named.length)).toEqual(named);
- const bundleArm={...bundle.base.features,...Object.fromEntries(bundle.switches.map(s=>[s,true]))};
- for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:(bundleArm[id]??false)]);
- for(const id of bundle.switches.filter(id=>id in raw.incumbent.features))expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
-});
-
-it("the pending entry never joins the queue by itself: it stays blocked as a bundle-arm switch even once readiness passes",()=>{
- const experiment=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/open-goal-prompt.json",import.meta.url),"utf8")));
- const ready={ready:true,basis:"comparable",milestone:"NEW_GAME_CREATED",window:4,minReached:3,reached:4,considered:["r1","r2","r3","r4"]} as const;
- const status=deriveStatus({experiment,approval:null,ledger:[],runner:null,readiness:ready});
- expect(status.state).toBe("blocked");
- expect(status.reason).toContain("bundle arm of bundle-v-control");
 });

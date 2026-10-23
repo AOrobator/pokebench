@@ -13,8 +13,8 @@ import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
 import { eventsPath, listRuns, readStart, readStartIdentity, type RunCatalog } from "./runs.js";
-import { parseLedger } from "@pokebench/agent/experiments";
-import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
+import { parseLedger } from "@pokebench/agent/legacy-experiment-ledger";
+import { parseFinalsLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import type { HealthProbe } from "./next-run.js";
 import { parseWorkbench, type WorkbenchCohort, type WorkbenchConfig, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
@@ -478,7 +478,7 @@ function jsonRows(path: string): Record<string, unknown>[] {
 }
 // Hand-run cohorts under runs/launch-receipts/<dir>/ that no verified receipt claimed: runs named by
 // trials.jsonl rows or manifest.json attempts join the manifest's id (else the directory name).
-// They never relabel a run that a verified receipt or the experiment queue already owns, never take
+// They never relabel a run that a verified receipt or a historical ledger already owns, never take
 // a verified cohort's name, and a directory whose plan.json historical provenance can use is left to it.
 // Validity only, for run-tagged runs: every launch-receipt directory that no verified receipt reader
 // claimed, including plan.json provenance cohorts and directories whose cohort name is refused below.
@@ -507,7 +507,7 @@ function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: Re
       const rows = existsSync(ledgerPath) ? jsonRows(ledgerPath) : [];
       if (record(manifest) && Array.isArray(manifest.attempts)) rows.push(...manifest.attempts.filter(record));
       const cohort = record(manifest) && typeof manifest.id === "string" && manifest.id !== "" ? manifest.id : entry.name;
-      if (verified.has(cohort) || cohort.startsWith("experiment:")) throw new Error(`cohort id ${cohort} belongs to a verified receipt or the experiment queue`);
+      if (verified.has(cohort) || cohort.startsWith("experiment:")) throw new Error(`cohort id ${cohort} belongs to a verified receipt or a historical ledger`);
       for (const row of rows) {
         const run = runOf(row), failure = rowFailure(row);
         if (run === null || owned.has(run)) continue;
@@ -531,7 +531,7 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
   const tagged = taggedCohorts(tags, definitions);
   return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
-// experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
+// experimentsDir holds fixed-run definitions used for internal result provenance.
 // partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
 // and report the rest as still loading, instead of waiting for a cold cache.
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean; cards?: { selected: string | null; live: ReadonlySet<string> } } = {}, catalog: RunCatalog = () => listRuns(root)): Promise<WorkbenchData> {

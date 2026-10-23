@@ -7,7 +7,6 @@ import {describe,expect,it} from "vitest";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {jitTools,playSystemPrompt,playTools,type PromptScene} from "./play-config.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 
 const ID="tool-prompt-docs-v1" as const;
 const root=(path:string):URL=>new URL(`../../../${path}`,import.meta.url);
@@ -24,11 +23,6 @@ function featureSets():[string,FeatureSet][]{
  for(const name of readdirSync(root("experiments/fixed/control-bases")).filter(file=>file.endsWith(".json"))){
   sets.push([`control base ${name}`,presetFeatures(parsePlayPreset(json(`experiments/fixed/control-bases/${name}`)))]);
  }
- for(const name of readdirSync(root("experiments")).filter(file=>file.endsWith(".json"))){
-  let arms:ReturnType<typeof experimentArms>;
-  try{arms=experimentArms(parseExperiment(json(`experiments/${name}`)));}catch{continue;}
-  sets.push([`experiment ${name} incumbent`,arms.incumbent.features],[`experiment ${name} candidate`,arms.candidate.features]);
- }
  return sets;
 }
 
@@ -37,10 +31,7 @@ const SCENES:readonly PromptScene[]=["overworld","battle","naming","clock","menu
 
 describe("tool-prompt-docs-v1",()=>{
  const sets=featureSets();
- it("covers the default flags, every fixed arm, every control base and experiment arms",()=>{
-  expect(sets.filter(([name])=>name.startsWith("fixed ")).length).toBeGreaterThanOrEqual(40);
-  expect(sets.some(([name])=>name.startsWith("experiment "))).toBe(true);
- });
+
  it.each(sets)("names every tool from playTools in playSystemPrompt: %s",(_name,features)=>{
   const on={...features,"coherent-battle-observation-v1":false,[ID]:true};
   const prompt=playSystemPrompt(on,null);
@@ -91,7 +82,6 @@ describe("tool-prompt-docs-v1",()=>{
   expect(hash({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true}),[ID]:false})).toBe("5afd9eb7df56df30a50292e9daabe32b64924d9e699e5078e5e9b2db603853fe");
   expect(hash({...base,[ID]:false})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
   expect(hash({...base,[ID]:false,"evolution-decision-v1":true,"battle-move-tool-v1":true})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
-  for(const [,features] of sets)expect(playSystemPrompt({...features,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain("- choose_evolution:");
  });
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true});

@@ -1,5 +1,4 @@
 import {describe,expect,it} from "vitest";
-import {readFileSync} from "node:fs";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {GameStateSnapshot} from "./game-state.js";
 import {planNavigation} from "./navigation.js";
@@ -7,7 +6,6 @@ import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 
 type Tile=NonNullable<GameStateSnapshot["navigation_grid"]>["tiles"][number];
 const tile=(x:number,y:number,collision=0,behavior=0,elevation=3):Tile=>({x,y,collision,behavior,elevation});
@@ -109,11 +107,5 @@ describe("visited-terrain-navigation-v1",()=>{
   expect((await observe(whole)).content.flatMap(p=>p.type==="text"?[p.text]:[])).toEqual(["exact incumbent readout"]);
  });
 
- it("the pending comparison follows main's automatic-running bundle and flips only visited terrain",()=>{
-  const experiment=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/visited-terrain-navigation.json",import.meta.url),"utf8")) as unknown);
-  const {incumbent,candidate}=experimentArms(experiment);
-  expect(incumbent.features["automatic-running-v1"]).toBe(true);
-  expect(candidate.features["automatic-running-v1"]).toBe(true);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["visited-terrain-navigation-v1"]);
- });
+
 });

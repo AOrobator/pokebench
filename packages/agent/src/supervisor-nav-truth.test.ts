@@ -10,7 +10,6 @@ import {withSemanticNavigation} from "./semantic-navigation.js";
 import {Type} from "typebox";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -120,9 +119,6 @@ describe("registration",()=>{
    const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
    expect(legacy[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
    expect(playHarnessFeatures({...legacy,[needs]:true,[id]:true},null)).toContain(id);expect(playHarnessFeatures({...legacy,[needs]:true,[id]:false},null)).not.toContain(id);
-   const raw=JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as {queuePosition?:number;changedFeature:string};
-   expect(raw.queuePosition).toBeUndefined();expect(raw.changedFeature).toBe(id);
-   const arms=experimentArms(parseExperiment(raw));expect(SWITCHABLE_FEATURES.filter(f=>arms.incumbent.features[f]!==arms.candidate.features[f])).toEqual([id]);
    expect(readFileSync(new URL(`../../../docs/explainers/${id}.html`,import.meta.url),"utf8")).toContain(id);
   });
  }

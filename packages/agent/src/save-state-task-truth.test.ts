@@ -35,9 +35,3 @@ it("forwards one verified absolute state path to the owned launcher without chan
  expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123,state)).toEqual(["/venv/python","-m","pokebench_env.launcher","--run-dir","/runs/new","--run-id","run-2","--port","8123","--load-state",state]);
  expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123)).not.toContain("--load-state");
 });
-
-it("registers the default-off treatment as pending without pretending the boot queue can test it",()=>{
- const entry=JSON.parse(readFileSync(new URL("../../../experiments/save-state-task-truth.json",import.meta.url),"utf8")) as {changedFeature:string;queuePosition?:number;activationMilestone:string;primaryMilestone:string;incumbent:{features:Record<string,boolean>};notes:string};
- expect(entry).toMatchObject({changedFeature:"save-state-task-truth-v1",activationMilestone:"PETALBURG_WOODS",primaryMilestone:"TEAM_AQUA_WOODS_EVENT_COMPLETE"});
- expect(entry.queuePosition).toBeUndefined();expect(entry.incumbent.features["save-state-task-truth-v1"]).toBe(false);expect(entry.notes).toContain("Boot-start queue trials would have identical arms");
-});

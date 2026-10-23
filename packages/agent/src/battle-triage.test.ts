@@ -1,11 +1,9 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { BATTLE_TRIAGE_SECTION, objectiveSwitches, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
-import { experimentArms, parseExperiment } from "./experiments.js";
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "battle-triage-guidance-v1";
@@ -78,13 +76,4 @@ it("a v2 preset reaches the production prompt and server env (factory path)", ()
   const off = presetFeatures(parsePlayPreset({ ...preset, features: with_(PLAYABLE, false) }));
   expect(playSystemPrompt(off, null)).not.toContain("Battles and healing");
   expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
-});
-
-it("registers the pending experiment as active from the new game, since the prompt section is seen from the first turn", () => {
-  const entry = parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/battle-triage-guidance.json", import.meta.url), "utf8")));
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.queuePosition).toBeUndefined();
-  const { incumbent, candidate } = experimentArms(entry);
-  expect(playSystemPrompt(candidate.features, null)).not.toBe(playSystemPrompt(incumbent.features, null));
-  expect(entry.activationMilestone).toBe("NEW_GAME_CREATED");
 });

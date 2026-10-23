@@ -11,7 +11,6 @@ import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,t
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {Value} from "typebox/value";
-import {experimentArms,parseExperiment} from "./experiments.js";
 
 interface Recording {readonly run:string;readonly events:readonly unknown[]}
 const RECORDED=JSON.parse(readFileSync(new URL("../test-support/story-destinations-recorded.json",import.meta.url),"utf8")) as Record<"4caa"|"sh02",Recording>;
@@ -242,12 +241,6 @@ describe("scripted-place-guidance-v1",()=>{
  });
  it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
   expect(featureInfo("scripted-place-guidance-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/scripted-place-guidance.json",import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(incumbent.features["scripted-place-guidance-v1"]).toBe(false);
-  expect(candidate.features["scripted-place-guidance-v1"]).toBe(true);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual(["scripted-place-guidance-v1"]);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features["scripted-place-guidance-v1"]).toBe(false);expect(bundle.switches).toContain("scripted-place-guidance-v1");
  });
@@ -348,17 +341,5 @@ describe("the game server's map table reader",()=>{
   const [o]=withStoryDestinations([fakeObserve(state,result.text)],ON,{subscribe:fn=>{subs.push(fn);}},{places:()=>Promise.resolve({places:[{map_id:[0,0]}]})});
   subs[0]?.(talk("m",272,[page("Head back to the LAB.","MAY")]));subs[0]?.(delivered("m",272));
   expect(textOf(await o?.execute("o",{}) ?? {content:[],details:undefined})).toContain(`${STORY_HEADER}: not known; the game's map table could not be read (malformed /pokebench/places).`);
- });
-});
-
-describe("the pending experiment",()=>{
- it("flips only story-destinations-v1, in arms that record story lines and name buildings by their signs (round-1 Grok blocker); character presence stays as the finals incumbent has it",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/story-destinations.json",import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["story-destinations-v1"]);
-  expect(candidate.features["story-destinations-v1"]).toBe(true);
-  for(const arm of [incumbent,candidate]){for(const id of ["dialogue-auto-advance-v1","displayed-place-names-v1"] as const)expect(arm.features[id],id).toBe(true);expect(arm.features["character-presence-v1"]).toBe(false);}
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

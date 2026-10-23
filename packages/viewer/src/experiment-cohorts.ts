@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { WorkbenchCohort } from "./workbench-data.js";
-// EXPERIMENT dropdown entries. A run whose run_start carries evaluation.experiment names its own
+// Historical result provenance. A run whose run_start carries evaluation.experiment names its own
 // cohort: one entry per experiment and build (harness.commit). Labels come from the experiment's
 // definition (experiments/fixed/<id>.json, experiments/<id>.json, or a launch-receipt manifest).
 const MAX_BYTES = 1024 * 1024;
@@ -21,7 +21,7 @@ function entries(dir: string, directories: boolean): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).filter(e => (directories ? e.isDirectory() : e.isFile() && e.name.endsWith(".json"))).map(e => e.name).sort();
 }
-// Fixed definitions first, then queue definitions, then hand-run manifests by id, then by label
+// Fixed definitions first, then legacy definitions, then hand-run manifests by id, then by label
 // (hand drivers tag runs with the manifest label). The first definition of a key wins.
 export function experimentDefinitions(experimentsDir: string, runsRoot: string): Definitions {
   const found = new Map<string, Definition>(), add = (key: string, d: Definition): void => { if (!found.has(key)) found.set(key, d); };

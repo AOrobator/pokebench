@@ -404,12 +404,27 @@ def test_v2_without_v1_changes_nothing(case: dict[str, Any]) -> None:
 def test_v2_experiment_arms_differ_only_in_the_notes() -> None:
     # Review round 1: the candidate arm (incumbent with v2 flipped) must show the v2 wording, so
     # both arms have surf-gated-exits-v1 on. Rendered from the 4caa ROUTE103 RAM.
-    body = json.loads(
-        (Path(__file__).resolve().parents[3] / "experiments/surf-gated-exits-v2.json").read_text()
-    )
-    features: dict[str, bool] = body["incumbent"]["features"]
-    assert body["changedFeature"] == V2 and features[V2] is False
-    control = [f for f in SERVER_FEATURES if not features.get(f, False)]
+    on = {
+        "ram-state-v1",
+        "live-map-v1",
+        "live-player-position-v1",
+        "world-coordinate-grid-v1",
+        "live-object-sprites-v1",
+        "world-targets-v1",
+        "named-interactions-v1",
+        "bounded-navigation-v1",
+        "field-dialogue-phase-v1",
+        "active-field-message-buffer-v1",
+        "naming-cursor-v1",
+        "story-state-v1",
+        "coordinate-script-conditions-v1",
+        "field-control-lock",
+        "warp-activation-guidance-v1",
+        "ledge-hops-v1",
+        "one-way-tiles-v1",
+        ID,
+    }
+    control = [f for f in SERVER_FEATURES if f not in on]
     candidate = [f for f in control if f != V2]
     for case in CASES:
         before, after = readout(case, control), readout(case, candidate)

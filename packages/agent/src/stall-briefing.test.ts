@@ -1,7 +1,5 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
 import {STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
@@ -257,6 +255,4 @@ it("can brief before the name is confirmed, so its pending experiment activates 
  for(let i=0;i<31;i++)r.press(["RIGHT"],{...HOUSE_1F,position:{x:i,y:3}},10_000);
  expect(r.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
  expect(r.events.some(e=>e.type==="milestone"&&e.name==="PLAYER_NAME_CONFIRMED")).toBe(false);
- const entry:unknown=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/stall-briefing.json",import.meta.url)),"utf8"));
- expect(entry).toMatchObject({activationMilestone:"NEW_GAME_CREATED"});
 });

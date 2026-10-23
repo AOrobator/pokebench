@@ -195,30 +195,10 @@ land-move *args:
 land-keeper:
     uv run --project env python -m pokebench_env.agent_mail land-keeper
 
-# Experiment queue: list the queue, pending and closed experiments.
-experiments: build
-    node packages/viewer/dist/experiment-cli.js list
-
-# Validate every experiments/*.json definition.
-experiments-check: build
-    node packages/viewer/dist/experiment-cli.js check
-
-# List runs whose run_start names an experiment (evaluation.experiment) but that no EXPERIMENT
-# dropdown entry holds. Read-only on the main checkout's runs/; prints nothing and exits 0 when complete.
+# List runs whose run_start names an experiment (evaluation.experiment) but that no internal
+# provenance mapping holds. Read-only on the main checkout's runs/; prints nothing and exits 0 when complete.
 experiments-audit: build
     node packages/viewer/dist/experiments-audit.js
-
-# Operator only, interactive: approve a queued experiment for measured runs.
-experiment-approve id: build
-    node packages/viewer/dist/experiment-cli.js approve {{quote(id)}}
-
-# Pin an unstarted experiment to main's HEAD (its approval goes stale).
-experiment-pin id: build
-    node packages/viewer/dist/experiment-cli.js pin {{quote(id)}}
-
-# Run approved experiments in queue order (--dry-run prints the plan; --once runs one trial).
-experiment-run *flags: build
-    node packages/viewer/dist/experiment-cli.js run {{flags}}
 
 # Fixed-N two-arm, two-lane experiments (experiments/fixed/<id>.json): plan, check, approve
 # (operator only, interactive), run, dry-run, status, analyze, analyze-receipt.

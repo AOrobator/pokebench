@@ -19,9 +19,9 @@ Before saying any change is done, fixed, merged, live, launched or ready to pick
 
 When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
 
-Before registering, queueing or driving an experiment cohort, design it with `.claude/skills/pokebench-experiment-design/SKILL.md`. It sets the tier, a checkpoint start, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview at `docs/experiments/<id>.html`. To explain why recorded runs stalled or failed, use `.claude/skills/pokebench-trace-forensics/SKILL.md`, which is read-only. To analyze the top runs of a night or cohort and what helped or hurt, use `.claude/skills/run-analysis/SKILL.md`, which is read-only and writes an HTML report.
+Before designing or driving a fixed-run cohort, design it with `.claude/skills/pokebench-experiment-design/SKILL.md`. It sets the tier, a checkpoint start, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview at `docs/experiments/<id>.html`. To explain why recorded runs stalled or failed, use `.claude/skills/pokebench-trace-forensics/SKILL.md`, which is read-only. To analyze the top runs of a night or cohort and what helped or hurt, use `.claude/skills/run-analysis/SKILL.md`, which is read-only and writes an HTML report.
 
-To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude/skills/fixed-run-launch/SKILL.md`. A launch is not done until its runs show live in the viewer's EXPERIMENT dropdown. Any merge to main followed by a fixed-run launch from the newer pin needs `just viewer-main` before the launch check: a viewer built before the pin cannot read the new build's events, and a run it cannot read shows the problem "viewer build … is older than this run's build …: restart the viewer (just viewer-main)".
+To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude/skills/fixed-run-launch/SKILL.md`. A launch is not done until its run cards show live and open the correct frames in the viewer. Any merge to main followed by a fixed-run launch from the newer pin needs `just viewer-main` before the launch check: a viewer built before the pin cannot read the new build's events, and a run it cannot read shows the problem "viewer build … is older than this run's build …: restart the viewer (just viewer-main)".
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
@@ -89,7 +89,7 @@ The rule never covers pushing, pull requests, approving or launching experiments
 
 ## Feature switches
 
-Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested. Use `.claude/skills/feature-switch/SKILL.md`.
+Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested with fixed-run tooling. Use `.claude/skills/feature-switch/SKILL.md`.
 
 Adding, renaming, removing or re-gating a model tool updates its system-prompt section in the same change (the operator 2026-10-21). Use `.claude/skills/tool-prompt-sync/SKILL.md`.
 

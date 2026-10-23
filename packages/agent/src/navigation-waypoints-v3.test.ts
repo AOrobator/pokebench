@@ -90,12 +90,7 @@ for(const mode of ["full","visited"] as const)it(`v3 leaves ${mode} navigation r
  const baseline=await off.call();expect(await on.call()).toBe(baseline);expect(baseline).not.toContain("Exploratory local-map edge tiles");expect(on.presses()).toBe(0);
 });
 
-import {parseExperiment,experimentArms} from "./experiments.js";
-it("registers an unqueued experiment with one effective flag difference",()=>{
- const e=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/navigation-refusal-reasons-v3.json",import.meta.url),"utf8")));
- expect(e.queuePosition).toBeUndefined();expect(e.activationMilestone).toBe("PLAYER_NAME_CONFIRMED");
- const {incumbent,candidate}=experimentArms(e);expect(SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["navigation-refusal-reasons-v3"]);
-});
+
 
 import {mkdtempSync,rmSync} from "node:fs";
 import {join} from "node:path";

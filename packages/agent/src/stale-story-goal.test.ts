@@ -8,7 +8,6 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {HarnessTrust,TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
 import {STALE_LAB_NOTE,STORY_HEADER,StoryDestinations,staleGoalLine,type PlacesBody} from "./story-destinations.js";
@@ -335,21 +334,7 @@ describe("stale-story-goal-v1 production factory",()=>{
   expect(text).not.toContain(STALE_LAB_NOTE);
   expect(text).not.toContain("is done: Pokédex received");
  });
- it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
-  const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="random-starter-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="birch-intro-pages-v1"&&id!=="shop-interface-v1"&&id!=="progress-aware-cycles-v1"&&id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="yes-no-answer-readout-v1"&&id!=="same-target-no-progress-v1"&&id!=="story-progress-clock-v1"&&id!=="story-battle-heal-gate-v1"&&id!=="duplicate-turn-collapse-v1"&&id!=="auto-talk-v1"&&id!=="positive-supervisor-v1"&&id!=="fixed-point-breaker-v1"&&id!=="story-character-stall-gate-v1"&&id!=="unfinished-activity-v1"&&id!=="exit-labels-v2"&&id!=="heal-before-trainers-v2"&&id!=="gym-heal-warning-v1"&&id!=="respawn-readout-v1"&&id!=="trainer-sight-check-v1"&&id!=="caught-nickname-prompt-v1"&&id!=="fail-open-input-v1"&&id!=="whiteout-healed-v1"&&id!=="field-move-gates-v1"&&id!=="gym-readiness-readout-v1"&&id!=="context-token-budget-v1"&&id!=="briefing-repeat-count-v1"&&id!=="navigate-already-here-v1"&&id!=="original-speed-pacing-v1"&&id!=="semantic-navigation-v2"&&id!=="evolution-decision-v1"&&id!=="observed-instructions-v1"&&id!=="starter-decision-salience-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!==ID2&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="visited-terrain-navigation-v1"&&id!=="exp-next-level-v1"&&id!=="pokedex-own-v1"&&id!=="exp-earned-ledger-v1"&&id!=="leader-attempt-ledger-v1"&&id!=="seen-trainers-ledger-v1"&&id!=="party-coverage-v1"&&id!=="said-type-matches-v1"&&id!=="story-goal-player-name-v1"&&id!=="cut-off-reply-feedback-v1"&&id!=="trainer-sight-check-v2"&&id!=="auto-talk-v2"&&id!=="map-wide-triggers-v1"&&id!=="drought-battle-heal-hold-v1"&&id!=="tool-prompt-docs-v1"&&id!=="field-ownership-feedback-v1"&&id!=="move-learn-loop-fingerprint-v1"&&id!=="stale-plan-fact-v1"&&id!=="post-battle-readout-v1"&&id!=="move-learn-tool-v1"&&id!=="move-learn-early-comparison-v1"));
-  const entry=parseExperiment(raw);
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.activationMilestone).toBe("RECEIVED_POKEDEX");
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID]);
-  expect(incumbent.features["story-destinations-v1"]).toBe(true);
-  expect(incumbent.features["harness-trust-v1"]).toBe(true);
-  expect(incumbent.features[ID]).toBe(false);
-  expect(candidate.features[ID]).toBe(true);
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
- });
+
  it("ON retires the lab in both the block and the Story goal line",async()=>{
   const text=await run(true);
   expect(text).toContain([`${STORY_HEADER} (turn 5, MOM): "Go see MAY at the LAB."`,STALE_LAB_NOTE].join("\n"));
@@ -444,19 +429,5 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
   expect(live.texts[2]).toContain("SUPERVISOR:");
  });
 
- it("has a pending experiment that flips only v2 and keeps input cuts on in both arms",()=>{
-  const raw:unknown=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal-v2.json",import.meta.url),"utf8"));
-  const entry=parseExperiment(raw);
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.changedFeature).toBe(ID2);
-  expect(entry.activationMilestone).toBe("BIRCH_STARTER_HANDOFF_COMPLETE");
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID2]);
-  expect(incumbent.features[ID]).toBe(true);
-  expect(incumbent.features[ID2]).toBe(false);
-  expect(candidate.features[ID2 as keyof typeof candidate.features]).toBe(true);
-  expect(incumbent.features["input-cuts-v1"]).toBe(true);
-  expect(candidate.features["input-cuts-v1"]).toBe(true);
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
- });
+
 });

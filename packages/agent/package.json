@@ -40,14 +40,6 @@
       "types": "./src/serial-comparison.ts",
       "default": "./dist/serial-comparison.js"
     },
-    "./experiments": {
-      "types": "./src/experiments.ts",
-      "default": "./dist/experiments.js"
-    },
-    "./experiment-gate": {
-      "types": "./src/experiment-gate.ts",
-      "default": "./dist/experiment-gate.js"
-    },
     "./summary": {
       "types": "./src/summary.ts",
       "default": "./dist/summary.js"
@@ -63,6 +55,10 @@
     "./roxanne-interaction": {
       "types": "./src/roxanne-interaction.ts",
       "default": "./dist/roxanne-interaction.js"
+    },
+    "./legacy-experiment-ledger": {
+      "types": "./src/legacy-experiment-ledger.ts",
+      "default": "./dist/legacy-experiment-ledger.js"
     }
   },
   "scripts": {

@@ -1,4 +1,4 @@
-// The gameplay lease (INV-Q3) that NEXT RUN, the experiment queue and cohorts share, one per
+// The gameplay lease (INV-Q3) that NEXT RUN and fixed-run cohorts share, one per
 // compute pool (the model endpoint's host:port). A viewer that dies mid-run leaves its lease
 // behind; a fresh viewer may take it back only once its owner is gone and its run no longer
 // plays, or to adopt that very run.

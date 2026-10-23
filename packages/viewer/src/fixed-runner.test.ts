@@ -828,7 +828,7 @@ it("enables the seven training and catching switches only in the bundle of the f
  }
 });
 
-it("enables the six GLM-run fixes only in the bundle of the five current bundle definitions, keeps them OFF in the next-run default, and pins each pending experiment to the landing merge",()=>{
+it("enables the six GLM-run fixes only in the bundle of the five current bundle definitions, keeps them OFF in the next-run default",()=>{
  const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"] as const;
  for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
@@ -842,8 +842,6 @@ it("enables the six GLM-run fixes only in the bundle of the five current bundle 
  }
  for(const id of ids){
   expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
-  const pending=JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as {source:{commit:string}};
-  expect(pending.source.commit).toBe("be531506a1504bd5e1e21135e599861a34249545");
  }
 });
 

@@ -1,6 +1,5 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature} from "./features.js";
 import { MAP_RULE_INDEX, MAP_RULE_SWITCHES, MAP_RULE_TEXTS } from "./map-rules.generated.js";
@@ -87,15 +86,5 @@ describe("readout-rules-in-prompt-v1 system prompt", () => {
     expect(Object.values(MAP_RULE_INDEX).every((index) => index >= 0 && index < MAP_RULE_TEXTS.length)).toBe(true);
     expect(() => mapRulesSection(SHOWCASE, {}, MAP_RULE_TEXTS)).toThrow(/no map-rules section for off set "full-map-navigation-v1"/);
     expect(() => mapRulesSection(SHOWCASE, { "full-map-navigation-v1": 99 }, MAP_RULE_TEXTS)).toThrow(/no map-rules section/);
-  });
-});
-
-describe("readout-rules-in-prompt-v1 pending experiment", () => {
-  it("names every registry switch explicitly in its incumbent, with this switch off", () => {
-    const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
-    expect(entry.changedFeature).toBe(ID);
-    const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
-    expect(Object.keys(entry.incumbent.features)).toEqual(historical.slice(0,historical.indexOf(ID)+1));
-    expect(entry.incumbent.features[ID]).toBe(false);
   });
 });

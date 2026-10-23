@@ -25,6 +25,5 @@ describe(ID,()=>{
   expect(root("docs/explainers/README.md")).toContain("battle-effective-damage-v1.html");
   expect(root("docs/explainers/battle-effective-damage-v1.html")).toContain("The harness does not rank moves");
   expect(root("docs/experiments/README.md")).toContain("battle-effective-damage.html");
-  expect(root("experiments/battle-effective-damage.json")).toContain(`"changedFeature": "${ID}"`);
  });
 });

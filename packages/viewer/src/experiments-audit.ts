@@ -59,7 +59,7 @@ export async function auditMain(argv: readonly string[], deps: AuditDeps): Promi
 }
 /* v8 ignore start -- process wiring */
 if (import.meta.main) {
-  const { cohortIndex } = await import("./workbench-store.js"), { mainCheckout } = await import("./experiment-cli.js");
+  const { cohortIndex } = await import("./workbench-store.js"), { mainCheckout } = await import("./fixed-source.js");
   const here = fileURLToPath(new URL(".", import.meta.url));
   const runsRoot = join(mainCheckout(here, (cwd, args) => execFileSync("git", [...args], { cwd, encoding: "utf8" })), "runs");
   process.exitCode = await auditMain(process.argv.slice(2), { runsRoot, snapshot: root => cohortIndex(root), out: line => { console.log(line); }, err: line => { console.error(line); } });

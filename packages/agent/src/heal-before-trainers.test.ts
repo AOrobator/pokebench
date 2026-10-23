@@ -19,7 +19,6 @@ import {formatEvent} from "./tail.js";
 import {HealBeforeTrainers,healBeforeTrainers,healBeforeTrainersText,nearestHeal,weakParty,withLowHpTrainerWarning,warningText,lowHpTrainerWarning,storyBattleText,storyBattleWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import type {PlacesBody} from "./story-destinations.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 
 const ID="heal-before-trainers-v1";
 const E046=JSON.parse(readFileSync(new URL("../test-support/heal-before-trainers-e046.json",import.meta.url),"utf8")) as {harness_features:string[];states:{seq:number;turn:number;state:unknown}[]};
@@ -282,22 +281,5 @@ describe("recorded event",()=>{
   // heal-before-trainers-v2 records weak: [] when it names only a story opponent below full HP; trainers stay required.
   expect(eventProblem({...event,trainers:[]})).not.toBeNull();
   expect(formatEvent(event)).toBe("14:20:00 t582 SUPERVISOR heal before trainers · LASS (31,24) · TORCHIC 14/38 below half · POKéMON CENTER in OLDALE TOWN");
- });
-});
-
-describe("the pending experiment",()=>{
- it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
-  const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  // Every switch registered when the entry was written (through instruction-ledger-v2); later ones default off.
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="coherent-battle-observation-v1"&&id!=="turn-drought-clock-v1"&&id!=="rejected-movement-prefix-v1"&&id!=="map-cycle-recovery-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&id!=="boundary-crossing-facts-v1"&&id!=="npc-approach-feedback-v1"&&id!=="leader-loss-comparison-v1"&&id!=="rejected-movement-stride-v1"&&id!=="battle-move-learn-input-v1"&&id!=="explorer-family-guidance-v1"&&id!=="coherent-healing-feedback-v1"&&id!=="menu-item-guidance-v1"&&id!=="factual-healing-guidance-v1"&&id!=="poison-readout-v1"&&id!=="berry-readout-v1"&&id!=="navigation-recovery-v1"&&id!=="milestone-drought-suppression-v1"&&id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
-  expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("instruction-ledger-v2")+1));
-  const entry=parseExperiment(raw);
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.changedFeature).toBe(ID);
-  expect(entry.activationMilestone).toBe("ROUTE_102");
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID]);
-  expect(incumbent.features["low-hp-trainer-warning-v1"]).toBe(true);
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

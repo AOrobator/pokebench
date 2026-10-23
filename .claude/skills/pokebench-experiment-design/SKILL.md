@@ -1,11 +1,11 @@
 ---
 name: pokebench-experiment-design
-description: "Use when designing, sizing or writing up a PokeBench experiment before it is registered, queued or driven as a cohort, or when the operator asks how many runs or GPU-hours a question needs. Picks the tier, a checkpoint start, the outcome, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview."
+description: "Use when designing, sizing or writing up a PokeBench experiment before it is driven as a cohort, or when the operator asks how many runs or GPU-hours a question needs. Picks the tier, a checkpoint start, the outcome, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview."
 ---
 
 # PokeBench experiment design
 
-Turn a harness question into a design that can answer it at a known cost, and write it up as a page the operator can read at a glance. This skill owns the design. `pokebench-patch-evaluation` owns readiness and how results are reported. `experiment-queue` owns registration, approval and the queue lifecycle. `pokebench-review` critiques a finished design or result.
+Turn a harness question into a design that can answer it at a known cost, and write it up as a page the operator can read at a glance. This skill owns the design. `pokebench-patch-evaluation` owns readiness and how results are reported. Fixed-run tooling executes operator-approved plans. `pokebench-review` critiques a finished design or result.
 
 ## Standing operator decisions (2026-10-15)
 
@@ -20,13 +20,13 @@ Turn a harness question into a design that can answer it at a known cost, and wr
 |---|---|---|---|
 | **Correctness** | Is the readout, guard or grader wrong? | A failing test from the recorded evidence, then the fix | Bug fixed. Never a cohort. |
 | **Diagnostic** | Does the change alter the decision at the moment it matters? | Decision-point probes, or a checkpoint segment of 4–8 per arm | Mechanism evidence. No promotion. |
-| **Screen** | Is this worth a real test? | The queue's 8 per arm (one switch), or a factorial run as an external cohort | Nominate only. Report direction, intervals and power; never "significant". |
+| **Screen** | Is this worth a real test? | Eight per arm (one switch), or a factorial cohort | Nominate only. Report direction, intervals and power; never "significant". |
 | **Confirm** | Does it move the primary outcome? | Two arms, power-sized fixed N, fresh trials, frozen build | The predeclared claim at the predeclared alpha. |
 
 Rules:
 - Deterministic bugs go to the correctness tier. A cohort cannot show a readout is right.
 - **Decision-point probes** re-send a recorded turn's context with the switch on and off, and score the decision. They cost seconds per sample, so hundreds per switch are cheap. They only work for switches that change what the model reads, not for switches that change inputs or game state (auto-advance, routing). Treat them as their own tier: a probe shows the decision moved, not that the run gets further.
-- **Two arms for power, a factorial for screening.** In a factorial, each switch's comparison splits the runs in half, and a correction across many switches cuts power further. The bundle-versus-control estimate is much noisier than a plain two-arm comparison of the same size. Use the factorial to rank candidates, and a two-arm test to confirm one. The queue accepts one `changedFeature` per entry, so a factorial is never an `experiments/<id>.json`: it runs as an external cohort with the operator's approval (as the navigation 2×2 did), and every nominated switch is then confirmed alone (PB5).
+- **Two arms for power, a factorial for screening.** In a factorial, each switch's comparison splits the runs in half, and a correction across many switches cuts power further. The bundle-versus-control estimate is much noisier than a plain two-arm comparison of the same size. Use the factorial to rank candidates, and a two-arm test to confirm one. A factorial needs the operator’s approval, and every nominated switch is then confirmed alone (PB5).
 
 ## 2. State the mechanism with evidence
 
@@ -46,15 +46,13 @@ Default to a checkpoint start:
 - **Pinned by hash.** Presets take `start: {kind: "save_state", path, sha1}`, and the run refuses a save whose SHA-1 differs. Record the source run, milestone and SHA-1 in the overview.
 - **Only progress after the start counts.** Milestones `present_at_start` never count toward the outcome.
 - **Exposure:** checkpoints buy far more trials of the segment that matters per GPU-hour. Use them for the diagnostic, screen and confirm tiers alike when the question is about that segment.
-- **Conditional claims.** A checkpoint result is conditional on reaching that state. A claim about the full run, and any promotion, still needs boot evidence (the winner-gate finals). Say which claim the design supports.
+- **Conditional claims.** A checkpoint result is conditional on reaching that state. A claim about the full run, and any promotion, still needs boot evidence (an operator-approved boot comparison). Say which claim the design supports.
 
 Use a boot start when the question is about the whole route, when the change acts before the first stable save point, or when the change alters what the run would carry into the save.
 
 Plumbing limits today:
-- The queue runs boot starts only, and its schema caps `trialsPerArm` at 4–8.
-- Checkpoint cohorts and power-sized confirmations run as an external cohort driver. The navigation 2×2 from the `CLOCK_SET` save is the precedent: register the experiment with `externalCohort` so the queue tracks it but does not run it again (`experiment-queue`).
-- Every trial a design launches must carry `evaluation.experiment` (the driver sets `POKEBENCH_EXPERIMENT`). That tag alone puts it in the viewer's EXPERIMENT dropdown, one entry per experiment id and build, labelled with the definition title; dry runs (`<id>-dryrun-<phase>`) get their own entries. No ledger folder needs to stay put for that, and `just experiments-audit` must print nothing after launch.
-- Do not claim the queue can do more than this. A missing capability is a follow-up for the operator, not a workaround.
+- Use fixed-run definitions under `experiments/fixed/` for boot or validated checkpoint starts.
+- Every trial carries `evaluation.experiment` (the driver sets `POKEBENCH_EXPERIMENT`) for durable result provenance. The viewer presents runs by model, configuration and run ID; there is no experiment selector.
 
 Readiness changes meaning for a checkpoint start. The question is whether the save exists, sits before the activation milestone and loads reliably on the current build, not whether boot runs reach the activation milestone. Boot comparisons keep the `pokebench-patch-evaluation` readiness rule.
 
@@ -125,7 +123,6 @@ Write these into the design, the driver and the overview:
 - **Failures are results (PB2).** Every launched trial stays in the primary analysis, and model errors and crashes count as not reached: a treatment that causes more of them is worse.
   - Only an outage outside the arm (the gateway down, or an emulator crash with no model call involved) is re-run, at the end of the queue, and reported.
   - Report invalid and failed trials per arm. A predeclared sensitivity analysis may exclude failures shown to be outside the arm. Check the arms for imbalance in failures.
-- **What the queue runner actually does.** It records a trial that ends `model_error` as an outcome (not reached), holds the queue on a launcher error without appending a replacement, and orders arms in Williams rows (ABBA for two arms). In-trial gateway errors end the run as `model_error`. Queue screens follow these rules as they are.
 - **External cohort drivers** may re-run an outage outside the arm, and order arms in randomized balanced blocks so time of day and machine drift do not line up with one arm. A driver never halts silently: it writes the stop reason where the viewer shows it.
 - **Target stop:** a run with `evaluation.target` must have `native-target-stop-v1` on in every arm (`patch-results.ts` requires it); it ends the trial at the verified milestone.
 - **Several executors** (for example both 4090s):
@@ -137,16 +134,11 @@ Write these into the design, the driver and the overview:
 
 ## 8. Record the design
 
-- **`experiments/<id>.json`**, through `experiment-queue`:
-  - Fill `hypothesis`, `activationMilestone` and `primaryMilestone`.
-  - Use `trialsPerArm` within the schema's limits.
-  - Set `incumbent.limits.maxWallMs` to the trial cap and `budget.maxWallMs` to the cohort budget: at least every planned trial times the cap, plus headroom. The runner holds when the next trial could pass `budget.maxWallMs`, so a budget equal to one cap stops a fixed-N cohort after one trial.
-  - Put the start state, the cap source, the power command and its output in `notes`.
-  - For an external cohort driver, set `externalCohort` only when the driver launches. The queue shows an entry with `externalCohort` as being measured, whether or not it is approved.
+- **Fixed-run definition** under `experiments/fixed/<id>.json`: record the arms, validated start, phase caps, serving requirements, balanced plan and budget. Put the hypothesis, activation milestone, primary outcome and power calculation in the overview and worklog.
 - **The HTML overview, required for every design** (step 9).
 - **The active worklog:** record the operator's budget and any judgments, such as the smallest lift worth detecting, with dates.
 
-Approval and launch stay with the operator (`experiment-queue`). This skill never approves or launches.
+Approval and launch stay with the operator (`fixed-run-launch`). This skill never approves or launches.
 
 ## 9. Write the HTML overview
 

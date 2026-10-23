@@ -1,6 +1,6 @@
 # Running the starter decision diagnostic
 
-This is a prompt-only diagnostic, separate from starter-selection tooling. The fixed definition is `experiments/fixed/starter-decision-salience.json`. The ordinary experiment registration deliberately stays blocked and unqueued so a boot screen or winner-gate promotion cannot run instead.
+This is a prompt-only diagnostic, separate from starter-selection tooling. The fixed definition is `experiments/fixed/starter-decision-salience.json`. The diagnostic is run only through its operator-approved fixed definition.
 
 ## Prepared design
 

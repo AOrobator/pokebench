@@ -14,7 +14,6 @@ import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./p
 import {playGameTools,contextTools} from "./play-wiring.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import type {PlacesBody} from "./story-destinations.js";
 
 // Recorded runs, cut down to the events the ledger reads (states without world context, every
@@ -497,20 +496,5 @@ describe("instruction-ledger-v2 switch",()=>{
   expect(Object.keys(normalizeFeatures(without as Parameters<typeof normalizeFeatures>[0])).at(-128)).toBe(id);
   // instruction-ledger-v1 is unchanged: same title, tool and description.
   expect(featureInfo("instruction-ledger-v1").title).toBe("INSTRUCTION LEDGER");
- });
-});
-
-describe("the pending experiment",()=>{
- it("is pending, flips only instruction-ledger-v2, and both arms record dialogue pages",()=>{
-  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/instruction-ledger-v2.json",import.meta.url),"utf8")));
-  expect(entry.queuePosition).toBeUndefined();
-  expect(entry.changedFeature).toBe("instruction-ledger-v2");
-  const {incumbent,candidate}=experimentArms(entry);
-  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["instruction-ledger-v2"]);
-  expect(candidate.features["instruction-ledger-v2"]).toBe(true);
-  for(const arm of [incumbent,candidate]){expect(arm.features["dialogue-auto-advance-v1"]).toBe(true);expect(arm.features["instruction-ledger-v1"]).toBe(false);expect(arm.features["dialogue-log-v1"]).toBe(false);}
-  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
-  expect(entry.hypothesis).toContain("latest conversation with a person");
-  expect(entry.hypothesis).not.toContain("names the speaker");
  });
 });

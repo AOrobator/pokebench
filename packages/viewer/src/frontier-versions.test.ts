@@ -46,8 +46,8 @@ describe("harness versions", () => {
     expect(byRun.get("c1")).toBe(byRun.get("c1b"));
     expect(byRun.get("c1")?.runs).toEqual(["c1", "c1b"]);
     expect(byRun.get("c1")?.builds).toEqual(["1111111", "2222222"]);
-    expect(byRun.get("other-model")?.name).toBe("think-fast · control v1");
-    expect(byRun.get("c2")?.name).toBe("qwen36 · control v2");
+    expect(byRun.get("other-model")?.name).toBe("think-fast · configuration v1");
+    expect(byRun.get("c2")?.name).toBe("qwen36 · configuration v2");
     expect(byRun.get("c1")?.id).toMatch(/^hv-[0-9a-f]{8}$/);
     expect(byRun.get("c1")?.id).not.toBe(byRun.get("other-model")?.id);
     expect(byRun.get("c2")?.on.map(f => f.label)).toEqual(["Live map", "RAM game-state readout"]);
@@ -63,10 +63,10 @@ describe("harness versions", () => {
       { ...trial("undated", "", ["loop-guard-v1"], { arm: "bundle" }) },
     ];
     const { byRun } = harnessVersions(runs);
-    expect(["c1", "b1", "b2", "undated"].map(id => byRun.get(id)?.name)).toEqual(["qwen36 · control v1", "qwen36 · bundle v1", "qwen36 · bundle v2", "qwen36 · bundle v3"]);
-    expect(byRun.get("b1-control")?.name).toBe("qwen36 · bundle v1");
-    expect(byRun.get("preset")?.name).toBe("qwen36 · objectives-on v1");
-    expect(byRun.get("bare")?.name).toBe("qwen36 · untagged v1");
+    expect(["c1", "b1", "b2", "undated"].map(id => byRun.get(id)?.name)).toEqual(["qwen36 · configuration v1", "qwen36 · configuration v4", "qwen36 · configuration v5", "qwen36 · configuration v6"]);
+    expect(byRun.get("b1-control")?.name).toBe("qwen36 · configuration v4");
+    expect(byRun.get("preset")?.name).toBe("qwen36 · configuration v3");
+    expect(byRun.get("bare")?.name).toBe("qwen36 · configuration v2");
     expect(byRun.get("undated")?.first).toBe(Infinity);
     expect(byRun.get("c1")?.first).toBe(Date.parse(at(1)));
   });
@@ -80,14 +80,14 @@ describe("harness versions", () => {
     ];
     const { byRun } = harnessVersions(runs);
     expect(byRun.get("c1")).toMatchObject({ previous: null, added: [], removed: [] });
-    expect(byRun.get("c2")?.previous).toBe("qwen36 · control v1");
+    expect(byRun.get("c2")?.previous).toBe("qwen36 · configuration v1");
     expect(byRun.get("c2")?.removed.map(f => f.id)).toEqual(["dialogue-auto-advance-v1"]);
-    expect(byRun.get("b1")?.previous).toBe("qwen36 · control v1");
-    expect(byRun.get("b1")?.added.map(f => f.id)).toEqual(["live-map-v1"]);
-    expect(byRun.get("b2")?.previous).toBe("qwen36 · bundle v1");
+    expect(byRun.get("b1")?.previous).toBe("qwen36 · configuration v2");
+    expect(byRun.get("b1")?.added.map(f => f.id)).toEqual(["dialogue-auto-advance-v1", "live-map-v1"]);
+    expect(byRun.get("b2")?.previous).toBe("qwen36 · configuration v3");
     expect(byRun.get("b2")?.added.map(f => f.label)).toEqual(["Loop guard", "Walkable floor"]);
     expect(byRun.get("b2")?.removed.map(f => f.id)).toEqual(["dialogue-auto-advance-v1"]);
-    expect(byRun.get("x1")?.previous).toBe("qwen36 · control v1");
+    expect(byRun.get("x1")?.previous).toBe("qwen36 · configuration v4");
     expect(harnessVersions([runs[4] as WorkbenchRun]).byRun.get("x1")).toMatchObject({ previous: null, added: [], removed: [] });
   });
   it("counts null as not on, and groups runs with no switch map as legacy", () => {
@@ -97,8 +97,8 @@ describe("harness versions", () => {
     const none = { ...trial("none", at(0), []), config: null };
     const { byRun, versions } = harnessVersions([partial, known, old, none]);
     expect(byRun.get("partial")).toBe(byRun.get("known"));
-    expect(byRun.get("old")).toMatchObject({ name: "Model not recorded · legacy untagged", number: null, family: "legacy", previous: null, on: [], builds: ["aaaaaaa"] });
-    expect(byRun.get("none")).toMatchObject({ name: "qwen36 · legacy untagged", number: null, family: "legacy", builds: [] });
+    expect(byRun.get("old")).toMatchObject({ name: "Model not recorded · legacy configuration", number: null, family: "legacy", previous: null, on: [], builds: ["aaaaaaa"] });
+    expect(byRun.get("none")).toMatchObject({ name: "qwen36 · legacy configuration", number: null, family: "legacy", builds: [] });
     expect(versions.filter(v => v.family === "legacy")).toHaveLength(2);
   });
   it("colors bundle warm and control cool in first-run order, other arms by hue, and never recolors a known version", () => {
@@ -116,7 +116,7 @@ describe("harness versions", () => {
     const earlier = trial("b0", at(0), ["ram-state-v1", "loop-guard-v1"], { arm: "bundle" });
     const again = harnessVersions([earlier, ...runs], kept);
     expect(again.byRun.get("b1")?.color).toBe(first.byRun.get("b1")?.color);
-    expect(again.byRun.get("b1")?.name).toBe("qwen36 · bundle v2");
+    expect(again.byRun.get("b1")?.name).toBe("qwen36 · configuration v4");
     expect(again.byRun.get("b0")?.color).toBe(versionColor("bundle", "bundle", 2));
     const many = Array.from({ length: 12 }, (_, i) => versionColor("bundle", "bundle", i)).concat(Array.from({ length: 12 }, (_, i) => versionColor("control", "control", i)));
     expect(new Set(many).size).toBe(24);
@@ -127,6 +127,6 @@ describe("harness versions", () => {
       { ...trial("l1", at(0), []), config: null }, trial("o1", at(1), ["loop-guard-v1"], { preset: "zeta" }), trial("o2", at(1), ["live-map-v1"], { preset: "alpha" }),
       trial("c1", at(2), ["ram-state-v1"], { arm: "control" }), trial("b2", at(4), ["walkable-floor-v1"], { arm: "bundle" }), trial("b1", at(3), ["live-map-v1", "ram-state-v1"], { arm: "bundle" }),
     ];
-    expect(orderedVersions(harnessVersions(runs).versions).map(v => v.name)).toEqual(["qwen36 · bundle v1", "qwen36 · bundle v2", "qwen36 · control v1", "qwen36 · alpha v1", "qwen36 · zeta v1", "qwen36 · legacy untagged"]);
+    expect(orderedVersions(harnessVersions(runs).versions).map(v => v.name)).toEqual(["qwen36 · configuration v4", "qwen36 · configuration v5", "qwen36 · configuration v3", "qwen36 · configuration v2", "qwen36 · configuration v1", "qwen36 · legacy configuration"]);
   });
 });

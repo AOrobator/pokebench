@@ -1,26 +1,11 @@
-import type { FixedStatusView } from "./fixed-status.js";
 import { FRONTIER_MILESTONES, preciseTime, resumeMilestone } from "./frontier.js";
 import { esc, hms, num } from "./format.js";
 import type { WorkbenchRun, WorkbenchSplit } from "./workbench-data.js";
 export function viewerUrl(run: string | null): string { return run === null ? "/" : `/#replay=${encodeURIComponent(run)}`; }
 
-// Lane, GPU and arm of a run a fixed-run runner is driving, from /api/experiments fixedRuns[].lanes[].
+// Hardware location of a currently running fixed-run trial.
 export interface RunLane { readonly lane: string; readonly gpu: string; readonly arm: string | null }
 export type RunLanes = ReadonlyMap<string, RunLane>;
-export function runLanes(fixedRuns: readonly FixedStatusView[]): RunLanes {
-  const lanes = new Map<string, RunLane>();
-  for (const status of fixedRuns) for (const lane of status.lanes) if (lane.run !== null) lanes.set(lane.run, { lane: lane.id, gpu: lane.gpu, arm: lane.arm });
-  return lanes;
-}
-const ARM_COLORS: Readonly<Record<string, string>> = { control: "#2f6fb0", bundle: "#7a3fb8" };
-// Any other arm gets a colour hashed from its own text, so a new arm needs no code change.
-export function armColor(arm: string | null): string {
-  if (arm === null) return "#a08020";
-  const known = ARM_COLORS[arm];
-  if (known !== undefined) return known;
-  const hue = Array.from(arm).reduce((sum, ch, i) => sum + (ch.codePointAt(0) ?? 0) * (i + 7), 0) % 360;
-  return `hsl(${String(hue)} 45% 36%)`;
-}
 export interface ReachedMilestone { readonly index: number; readonly label: string; readonly split: WorkbenchSplit }
 export function furthestMilestone(run: WorkbenchRun): ReachedMilestone | null {
   for (let index = FRONTIER_MILESTONES.length - 1; index >= 0; index--) {
@@ -73,4 +58,14 @@ export function runDetails(run: WorkbenchRun, selectedSplit: string | null): str
   const screenshots = split?.screenshotEvidence?.map(frame => `<figure class="wb-proof-frame"><img src="/api/runs/${encodeURIComponent(run.id)}/${esc(frame.path)}" alt="Reviewed game evidence, recorded screenshot #${String(frame.seq)}"/><figcaption>Recorded screenshot #${String(frame.seq)} · SHA1 ${esc(frame.sha1)}</figcaption></figure>`).join("") ?? "";
   const resumed = resumeMilestone(run) !== null ? `<p class="wb-notice">This run loaded a ${esc(resumeMilestone(run)?.label ?? "")} save. It did not start from New game. Times count from when that save loaded.</p>` : "";
   return `<div class="wb-detail-head"><h2>RUN DETAILS</h2><button type="button" class="wb-button" data-close-detail aria-label="Close run details">× CLOSE</button></div><h3>${esc(run.model ?? "Model not recorded")}</h3><p class="wb-run-id">${esc(run.id)}</p><p>${esc(run.status)} · ${esc(run.reason ?? "no terminal outcome")}</p>${resumed}${run.problem === null && run.excluded === null ? "" : `<p class="wb-notice">${esc(run.problem ?? run.excluded ?? "")}</p>`}${native}${screenshots}<h3>MODEL & SAMPLING</h3>${c === null ? '<p>Model configuration was not recorded.</p>' : pairs([["Model", run.model ?? "not recorded"], ["Context", num(c.context)], ["Vision", c.vision ? "supported" : "not supported"], ["Thinking", c.thinking], ["Max output tokens", num(c.maxTokens)], ["Artifact / serving", "not recorded in run_start; no settings inferred from the model name"]])}<h3>HARNESS CONFIGURATION</h3>${c === null ? '<p>Harness configuration was not recorded.</p>' : pairs([["Source", `${c.source}${c.dirty ? " (dirty)" : ""}`], ["Preset", c.preset ?? "not recorded"], ["Fixed target", c.target ?? "not recorded / play to budget"], ["Start", resumeMilestone(run) !== null ? `${resumeMilestone(run)?.label ?? ""} save · not from New game` : c.start], ["Time cap", (c.extendedWallMs ?? c.maxWallMs) === null ? "not recorded" : hms((c.extendedWallMs ?? c.maxWallMs ?? 0) / 1000)], ...(c.extendedWallMs === undefined ? [] : [["Original evaluation cap", c.maxWallMs === null ? "not recorded" : hms(c.maxWallMs / 1000)], ["Operator-extended continuation", `${hms(c.extendedWallMs / 1000)} total · original evaluation horizon unchanged`]] as [string, string][]), ["Turn cap", c.maxTurns === null ? "not recorded" : String(c.maxTurns)], ["Failure limit", c.failureLimit === null ? "not recorded" : String(c.failureLimit)], ["Vendor pin", c.vendor], ["pi version", c.pi], ["Tools", c.tools.join(", ")]])}<h3>FEATURES · RECORDED ON / OFF</h3>${c === null ? '<p>Feature settings were not recorded.</p>' : `<div class="wb-feature-list">${c.features.map(f => `<div><span>${esc(f.label)}<small>${esc(f.id)}</small></span><b class="${f.on === true ? "on" : f.on === false ? "off" : "unknown"}">${f.on === null ? "UNKNOWN" : f.on ? "ON" : "OFF"}</b></div>`).join("")}</div>`}<h3>${split === undefined ? "VERIFIED CHECKPOINTS" : "SELECTED CHECKPOINT"}</h3>${pairs((split === undefined ? run.splits : [split]).map(s => [s.name.replace(/_/g, " "), `${hms(s.elapsedMs / 1000)} · turn ${String(s.turn)} · ${s.derived === true ? (s.screenshotEvidence === undefined ? "recovered state (upper bound)" : "reviewed screenshot (upper bound)") : "milestone"} #${String(s.seq)} · ${num(s.outputTokens)} output tokens`]))}<a class="wb-button wb-primary" href="${viewerUrl(run.id)}">WATCH / REPLAY THIS RUN →</a>`;
+}
+
+export function parseRunLanes(value: unknown): RunLanes {
+  if (!Array.isArray(value)) throw new Error("Invalid run lanes");
+  const lanes = new Map<string, RunLane>();
+  for (const row of value as unknown[]) {
+    if (typeof row !== "object" || row === null || !("run" in row) || typeof row.run !== "string" || !("lane" in row) || typeof row.lane !== "string" || !("gpu" in row) || typeof row.gpu !== "string") throw new Error("Invalid run lane");
+    lanes.set(row.run, { lane: row.lane, gpu: row.gpu, arm: null });
+  }
+  return lanes;
 }

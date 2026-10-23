@@ -15,7 +15,7 @@ Operator rule (the operator 2026-10-21): "everytime u add a tool u update the sy
 4. **Contextual docs**: if `contextual-interface-docs-v1` lists controls per interface, name the tool for the interface it owns.
 5. **Readout pointer**: when the server readout names the controls for that interface, it names the tool (as evolution's "use choose_evolution" does).
 6. **Tests**:
-   - `tool-prompt-sync.test.ts` asserts every tool in `playTools(features)` is named in `playSystemPrompt(features, …)` for the default preset, every `experiments/fixed/*.json` arm and every pending experiment arm, with `tool-prompt-docs-v1` ON. Adding a tool without a section turns it red.
+   - `tool-prompt-sync.test.ts` asserts every tool in `playTools(features)` is named in `playSystemPrompt(features, …)` for the default preset, every `experiments/fixed/*.json` arm, with `tool-prompt-docs-v1` ON. Adding a tool without a section turns it red.
    - The switch's OFF test still proves the old prompt bytes.
 7. **Prompt changes are behavior changes**: the new section ships behind the tool's switch (feature-switch skill). Sections added for tools that predate this rule ride `tool-prompt-docs-v1`.
 8. Removing or renaming a tool removes or renames its section in the same change.

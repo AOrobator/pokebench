@@ -13,7 +13,6 @@ import { lanesSvg } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
-import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
 import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
@@ -275,7 +274,6 @@ export class App {
   private overlayClosed = false;
   private wasLive = false;
   readonly next: NextRunPanel;
-  readonly experiments: QueuePanel | null;
 
   private readonly homes = new Map<HTMLElement, HTMLElement>();
 
@@ -284,8 +282,6 @@ export class App {
     private readonly deps: AppDeps,
   ) {
     this.next = new NextRunPanel(doc, { fetchJson: (url) => deps.fetchJson(url), sendJson: (method, url, body) => deps.sendJson(method, url, body), problem: (text) => { this.problem(text); } });
-    const queueRoot = doc.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
-    this.experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: (url) => deps.fetchJson(url), problem: (text) => { this.problem(text); }, sendJson: (method, url, body) => deps.sendJson(method, url, body), confirm: (text) => doc.defaultView?.confirm(text) ?? false });
   }
 
   private get live(): boolean {
@@ -848,14 +844,8 @@ export class App {
     this.ui("feature-search-results").textContent = matches === 0 ? "No matching features" : `${String(matches)} matching feature${matches === 1 ? "" : "s"}`;
   }
 
-  // Refreshes the queue page only while it is open.
-  async pollExperiments(): Promise<void> {
-    if (this.doc.querySelector('[data-page="queue"][aria-pressed="true"]') !== null) await this.experiments?.load();
-  }
-
   private showPage(name: string): void {
     if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
-    if (name === "queue") void this.experiments?.load();
     if (name === "bag") void this.loadBagArt();
     if (name === "party") void this.loadPartyArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
@@ -1514,7 +1504,6 @@ export async function boot(win: BootWindow): Promise<App> {
   win.setInterval(() => {
     void app.refreshRuns();
     void app.next.poll();
-    void app.pollExperiments();
   }, RUN_LIST_MS);
   win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
   return app;

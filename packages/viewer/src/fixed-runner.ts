@@ -12,7 +12,7 @@ import { fileLines, type LogLines } from "./run-log.js";
 import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
-import { runnerPath } from "./experiment-store.js";
+const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
 
 const startExpectation = (start: FixedStart): { kind: "save_state"; sha1: string } | { kind: "boot" } => (start.kind === "save_state" ? { kind: "save_state", sha1: start.sha1 } : { kind: "boot" });
 

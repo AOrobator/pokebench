@@ -86,10 +86,7 @@ it("replays the actual whole-map failed-coordinate window and delivers the new b
  }
 });
 
-import {parseExperiment,experimentArms} from "./experiments.js";
-it("registers four separate pending experiments with exact one-switch candidates",()=>{
- for(const id of ids){const raw=JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as Record<string,unknown>;expect(raw.queuePosition).toBeUndefined();const definition=parseExperiment(raw),arms=experimentArms(definition);expect(Object.keys(arms.incumbent.features).filter(key=>arms.incumbent.features[key as keyof typeof arms.incumbent.features]!==arms.candidate.features[key as keyof typeof arms.candidate.features])).toEqual([id]);}
-});
+
 
 it("keeps qualified interface ownership, name text and controls in focused recovery",()=>{
  const r=recording(),brief=loopSupervisor({...base,"loop-guard-supervisor-v1":true,"supervisor-briefing-v2":true},r);

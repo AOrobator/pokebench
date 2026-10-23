@@ -101,14 +101,11 @@ it("keeps the complete second window active through the already-visited mart det
 
 import {featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
-import {parseExperiment,experimentArms} from "./experiments.js";
 it("is default OFF, separately receipted and has a pending single-switch experiment",()=>{
  const id="navigation-recovery-v1";
  expect(normalizeFeatures({} as FeatureSet)[id]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(featureInfo(id)).toMatchObject({group:"guard",needs:null});expect(featureInfo(id).description).toContain(" Off: ");
  expect(playHarnessFeatures({...LEGACY_ALL_ON,[id]:true},null)).toEqual([...playHarnessFeatures(LEGACY_ALL_ON,null),id]);
- const e=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/navigation-recovery-v1.json",import.meta.url),"utf8")));
- expect(e.queuePosition).toBeUndefined();const {incumbent,candidate}=experimentArms(e);expect(candidate.features).toEqual({...incumbent.features,[id]:true});expect(incumbent.features[id]).toBe(false);
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const f=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(f.base.features[id]).toBe(false);expect(f.switches).toContain(id);
@@ -140,11 +137,11 @@ it("bounds the second recorded window if known-map decisions keep repeating afte
  expect(r.governor.stopReason).toBe("stuck");expect(r.notices.at(-1)).toMatchObject({kind:"map_cycle",phase:"stop"});
 });
 
+
 import {playTools} from "./play-config.js";
 import {dependencyProblems} from "./features.js";
 for(const [v1,v2]of [[false,false],[true,false],[false,true]]as const)it(`only suggests semantic targets when offered (${String(v1)}/${String(v2)})`,()=>{
- const e=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/navigation-recovery-v1.json",import.meta.url),"utf8")));
- const f={...experimentArms(e).candidate.features,"exit-reachability-v1":true,"semantic-navigation-v1":v1,"semantic-navigation-v2":v2};
+ const f={...LEGACY_ALL_ON,"deterministic-exploration-v1":false,"navigation-recovery-v1":true,"exit-reachability-v1":true,"semantic-navigation-v1":v1,"semantic-navigation-v2":v2};
  expect(dependencyProblems(f)).toEqual([]);const r=rig(true,f);r.replay(252,255);const feedback=r.detector.context();
  expect(feedback).toContain("NORTH");expect(feedback?.includes("navigate_to_target")).toBe(playTools(f).includes("navigate_to_target"));
 });

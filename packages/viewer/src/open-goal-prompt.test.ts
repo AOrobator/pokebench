@@ -75,36 +75,10 @@ it("the viewer serves the tracked explainer byte for byte through the explainer 
 });
 
 it("the pending experiment's incumbent is exactly the bundle-v-control bundle cook arm, with only this switch off", () => {
-  const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/open-goal-prompt.json", import.meta.url)), "utf8")) as { incumbent: { id: string; features: Record<string, boolean> } & Record<string, unknown> };
   const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
   const arm = armPreset(definition, "cook", "bundle");
-  const without = (value: Record<string, unknown>, ...keys: string[]): Record<string, unknown> => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
-  expect(without(raw.incumbent, "id", "features")).toEqual(without(arm, "id", "features"));
   expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
-  expect(raw.incumbent.features[ID]).toBe(false);
   expect(arm.features[ID]).toBe(true);
-  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID, "turn-drought-clock-v1", "map-cycle-recovery-v1", "away-note-buildings-v1","current-map-display-name-v1","window-escape-route-v1","rejected-movement-prefix-v1","menu-item-guidance-v1", "factual-healing-guidance-v1", "coherent-healing-feedback-v1", "explorer-family-guidance-v1", "battle-move-learn-input-v1", "rejected-movement-stride-v1", "leader-loss-comparison-v1", "npc-approach-feedback-v1", "boundary-crossing-facts-v1", "delivered-place-evidence-v1", "reachable-section-alternatives-v1", "owned-battle-context-v1", "static-npc-template-approach-v1", "fixed-point-breaker-v1", "navigation-recovery-v1", "milestone-drought-suppression-v1", "poison-readout-v1", "berry-readout-v1", "trigger-navigation-boundary-v1", "milestone-instruction-memory-v1", "gym-evidence-v1", "birch-intro-pages-v1", "tool-prompt-docs-v1", "field-ownership-feedback-v1", "move-learn-loop-fingerprint-v1", "stale-plan-fact-v1", "post-battle-readout-v1", "move-learn-tool-v1", "move-learn-early-comparison-v1", "story-goal-player-name-v1", "cut-off-reply-feedback-v1", "trainer-sight-check-v2", "auto-talk-v2", "map-wide-triggers-v1", "drought-battle-heal-hold-v1", "rejected-movement-step-v1", "observed-field-dialogue-v1", "shop-interface-v1", "progress-aware-cycles-v1", "exp-next-level-v1", "pokedex-own-v1", "exp-earned-ledger-v1", "leader-attempt-ledger-v1", "seen-trainers-ledger-v1", "party-coverage-v1", "said-type-matches-v1", "caught-dex-input-v1", "gym-door-label-v1", "mart-stock-readout-v1", "menu-refusal-recovery-v1", "pending-field-dialogue-v1", "story-battle-heal-first-v1", "navigation-refusal-reasons-v3", "short-cycle-fixed-point-v1", "navigation-tool-use-guard-v1", "semantic-current-map-feedback-v1", "party-item-confirmation-v1", "yes-no-answer-readout-v1", "field-move-gates-v1","exit-labels-v3", "auto-talk-v1", "duplicate-turn-collapse-v1", "original-speed-pacing-v1", "observed-instructions-v1", "evolution-decision-v1", "safe-navigation-strides-v1", "ineffective-navigation-v2", "supervisor-briefing-v2", "reachable-story-guidance-v1", "text-only-supervisor-v2", "battle-decision-ready-v1", "faced-interaction-history-v1", "scripted-place-guidance-v1", "trigger-script-loop-v1", "battle-effective-damage-v1", "visited-terrain-navigation-v1", "deterministic-warp-navigation-v1", "context-token-budget-v1", "stale-story-goal-v2", "briefing-repeat-count-v1", "navigate-already-here-v1", "fixed-point-breaker-v1", "story-character-stall-gate-v1", "positive-supervisor-v1", "unfinished-activity-v1", "exit-labels-v2", "heal-before-trainers-v2", "gym-heal-warning-v1", "respawn-readout-v1", "trainer-sight-check-v1", "caught-nickname-prompt-v1", "fail-open-input-v1", "whiteout-healed-v1", "gym-readiness-readout-v1", "same-target-no-progress-v1", "story-progress-clock-v1", "story-battle-heal-gate-v1"));
-});
-
-it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {
-  interface Row { cohort: string; turns: number; game_first_rustboro_turn: number | null; rustboro_turns_before_game: number; gym_turns_before_game: number; goal_named_at_turn_1: boolean; lab_in_rustboro_turns: number; prompt_names_rustboro: boolean }
-  const rows = JSON.parse(readFileSync(fileURLToPath(new URL("../../../docs/experiments/open-goal-prompt/manifest.json", import.meta.url)), "utf8")) as Row[];
-  const html = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)), "utf8");
-  const sum = (rs: Row[], f: (r: Row) => number): number => rs.reduce((n, r) => n + f(r), 0);
-  const named = (rs: Row[]): Row[] => rs.filter((r) => r.rustboro_turns_before_game > 0);
-  expect(rows.every((r) => r.prompt_names_rustboro && r.game_first_rustboro_turn === null)).toBe(true);
-  expect(html).toContain(`${String(rows.length)} runs, ${sum(rows, (r) => r.turns).toLocaleString("en-US")} turns`);
-  expect(html).toContain(`<strong>${String(named(rows).length)} of ${String(rows.length)} runs</strong> (${String(sum(rows, (r) => r.rustboro_turns_before_game))} turns)`);
-  for (const cohort of ["cook-bundle", "cook-control", "factorial-clockset", "finals-boot", "dryrun-clockset"]) {
-    const rs = rows.filter((r) => r.cohort === cohort);
-    expect(html, cohort).toContain(`${String(named(rs).length)}/${String(rs.length)} · ${String(sum(rs, (r) => r.rustboro_turns_before_game))} turns`);
-  }
-  const labRuns = rows.filter((r) => r.lab_in_rustboro_turns > 0);
-  expect(html).toContain(`${String(labRuns.length)} runs, ${String(sum(labRuns, (r) => r.lab_in_rustboro_turns))} turns`);
-  const gymRuns = rows.filter((r) => r.gym_turns_before_game > 0);
-  expect(html).toContain(`${String(gymRuns.length)} of ${String(rows.length)} runs; ${String(rows.filter((r) => r.goal_named_at_turn_1).length)} runs named the goal's gym or Rustboro at turn 1`);
-  const bundle = rows.filter((r) => r.cohort === "cook-bundle");
-  expect(html).toContain(`Baseline: bundle cook runs, ${String(named(bundle).length)} of ${String(bundle.length)} runs, ${String(sum(bundle, (r) => r.rustboro_turns_before_game))} turns.`);
 });
 
 it("enables exploratory waypoint guidance only in future bundle treatments",()=>{

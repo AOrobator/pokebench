@@ -9,8 +9,8 @@ You own whether a claim is supported by the numbers, and what sample would settl
   - same model lane, and a build compatible with the incumbent;
   - the planned common start and budget.
 
-  The queue's own check matches lane, boot start, limits and features, but not the source commit, so check build compatibility yourself. Quote reached/total and run ids, and cross-check against the queue's verdict. When that verdict used the recent-basis fallback, say it is weaker than it looks. For a checkpoint design, readiness means the save exists, sits before the activation milestone and loads on the current build.
-- **Tier and claim.** Name the tier (correctness, diagnostic, screen or confirm) and check the claim fits it. A screen nominates, and never says "significant". A checkpoint result is conditional on reaching the save. A screening KEEP is never a new incumbent: promotion runs through the winner gate (`experiment-queue`).
+  Quote reached/total and run IDs, checking source and budget compatibility. For a checkpoint design, readiness means the save exists, sits before the activation milestone and loads on the current build.
+- **Tier and claim.** Name the tier (correctness, diagnostic, screen or confirm) and check the claim fits it. A screen nominates, and never says "significant". A checkpoint result is conditional on reaching the save. A screening KEEP is never a new incumbent: promotion requires a fresh confirmatory comparison and operator approval.
 - **Power before p-values.** For the design's N, baseline and smallest lift worth detecting, what is the exact power? At 8 per arm, a real +25-point lift from 37.5% comes out significant about 9% of the time. "Not significant" from an underpowered design is not evidence of no effect.
 - **Intervals beside tests.** Report a Newcombe interval for every rate difference (`power.py observed`), with completion counts beside times.
 - **Outcome and metric.**

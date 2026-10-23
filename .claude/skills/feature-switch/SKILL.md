@@ -1,11 +1,11 @@
 ---
 name: feature-switch
-description: Put every PokeBench harness behavior change behind a registered feature switch whose OFF state reproduces the previous behavior, so it can be A/B tested in the experiment queue. Use whenever a change alters what the model sees, the tools it gets, how actions execute, navigation/planning, guards or prompts; not for pure measurement, viewer-only or no-behavior refactors.
+description: Put every PokeBench harness behavior change behind a registered feature switch whose OFF state reproduces the previous behavior, so it can be A/B tested with fixed-run tooling. Use whenever a change alters what the model sees, the tools it gets, how actions execute, navigation/planning, guards or prompts; not for pure measurement, viewer-only or no-behavior refactors.
 ---
 
 # Every behavior change ships behind a switch
 
-Operator rule (2026-10-14): "we need a skill so that you always include switches for changes." A change that can alter what the agent does must have a switch, so it can be measured against the incumbent before anyone calls it an improvement. A change with no switch has no OFF arm and cannot be queued.
+Operator rule (2026-10-14): "we need a skill so that you always include switches for changes." A change that can alter what the agent does must have a switch, so it can be measured against the incumbent before anyone calls it an improvement. A change with no switch has no OFF arm and cannot be compared.
 
 ## Does this change need a switch?
 
@@ -29,7 +29,7 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - Append `...when(id)` at the end of `playHarnessFeatures`. Never reorder this list; recorded runs depend on it.
    - Use `needs` only if ON is meaningless or invalid without the other switch. A default-ON switch whose dependency can be OFF must use `needs: null`, or old presets fail validation.
 2. **Presets** (`packages/agent/src/play-preset.ts`): make the id optional in `FeatureSetSchema` and give it a value in `normalizeFeatures`. A new treatment defaults to `false` when omitted. A retroactive switch on landed behavior defaults to `true`. Set `flagFeatures` the same way.
-3. **Defaults**: set `DEFAULT_NEXT_RUN` in `packages/viewer/src/next-run.ts`. New treatments start OFF until they win an experiment.
+3. **Defaults**: set `DEFAULT_NEXT_RUN` in `packages/viewer/src/next-run.ts`. New treatments start OFF until measured evidence and operator approval support activation.
 4. **Server side**: if the game server applies the switch, add it to `SERVER_FEATURES` in both `features.ts` and `env/pokebench_env/readout.py`, and to the Python default-off list if it starts OFF.
 5. **Wiring**: thread the switch from `FeatureSet` to the behavior through the production factory (for example `withNavigation`, `playTools`, `playSystemPrompt`). Do not read env vars or globals.
    - A change that adds, renames, removes or re-gates a model tool also updates the system prompt in the same change: follow `.claude/skills/tool-prompt-sync/SKILL.md`.
@@ -41,8 +41,8 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - Update the registry counts and the legacy harness-feature lists.
 6a. **Game wording**: any new model-facing text about obstacles, exits, blocked actions or next steps follows "Harness messages use the game's own words" in `.claude/skills/pokebench-game-state/SKILL.md`: quote what the game would show, say only the observable fact when it shows nothing, and never name what the game has not shown yet.
 7. **Explainer**: write it with `.claude/skills/feature-explainer/SKILL.md` and map the id in `FEATURE_EXPLAINERS` (`packages/viewer/src/panels.ts`).
-8. **Register it as pending** in the same merge: add `experiments/<id>.json` with no `queuePosition`. Follow `.claude/skills/experiment-queue/SKILL.md`. The entry records the switch id, hypothesis, arms (the shared incumbent with this switch flipped), activation milestone, readiness and `source.commit` set to the merge SHA. Record the readiness verdict in `docs/experiments/readiness.md`. The entry moves into the queue only when readiness passes. Never approve or start it yourself; only the operator approves measured runs.
-9. **Restart the viewer** after the merge with `just viewer-main`. A viewer built before the merge still lists the new experiment, but as blocked (it cannot check readiness for, approve or run a switch its build lacks) until it is rebuilt.
+8. **Evaluation**: document activation milestone and readiness in the feature worklog. A measured comparison uses an operator-approved fixed-run design; merging a switch does not register or launch a comparison.
+9. **Restart the viewer** after the merge with `just viewer-main` so Harness Config and explainers use the current build.
 
 ## Veto
 
@@ -50,4 +50,3 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
 - Changing a default to ON for a new treatment before an experiment supports it.
 - Reordering `SWITCHABLE_FEATURES`, `FEATURES` or `playHarnessFeatures`.
 - Reading the switch anywhere other than the `FeatureSet` passed to the factory.
-- Merging a switch without its pending experiment entry.

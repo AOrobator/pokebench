@@ -455,8 +455,6 @@ describe("registry and event",()=>{
   }
   const fixed=read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>};switches:string[]};
   const arm:Record<string,boolean>={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
-  const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
-  expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
   delete arm["pending-field-dialogue-v1"];
   delete arm["menu-refusal-recovery-v1"];
   delete arm["mart-stock-readout-v1"];
@@ -478,9 +476,6 @@ describe("registry and event",()=>{
   delete arm["berry-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   for(const id of ["static-npc-template-approach-v1","owned-battle-context-v1","coherent-healing-feedback-v1", "explorer-family-guidance-v1", "battle-move-learn-input-v1", "rejected-movement-stride-v1", "leader-loss-comparison-v1", "npc-approach-feedback-v1", "boundary-crossing-facts-v1", "delivered-place-evidence-v1", "reachable-section-alternatives-v1"])Reflect.deleteProperty(arm,id);
-  // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
-  expect({...entry.incumbent.features,"away-note-buildings-v1":true,"current-map-display-name-v1":true,"window-escape-route-v1":true,"fixed-point-breaker-v1":true,"navigation-recovery-v1":true,"milestone-drought-suppression-v1":true,"trigger-navigation-boundary-v1":true,"milestone-instruction-memory-v1":true,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);
-  expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{
   const event={v:1,run:"r",seq:1,t:"2026-10-20T20:43:24.172-04:00",type:"story_battle_heal_gate",turn:157,tool_call_id:"t157",tool:"navigate_to_target",map_id:[0,18],confirmed:false,outcome:"refused",reason:null,

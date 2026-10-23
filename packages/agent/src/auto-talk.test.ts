@@ -1,5 +1,3 @@
-import {readFileSync} from "node:fs";
-import {experimentArms,parseExperiment} from "./experiments.js";
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "@mariozechner/pi-ai";
 import {describe,expect,it} from "vitest";
@@ -69,10 +67,6 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
   expect(autoTalkContext({...normalized,"auto-talk-v1":true},{read:()=>Promise.reject(new Error("no"))},[],base,fake,{subscribe:()=>undefined,recordAutoTalk:()=>undefined})).not.toBe(base);
  });
  it("leaves auto-talk out of the fixed-point-breaker-v1 experiment, which measures stages 1 and 2",()=>{
-  const raw=JSON.parse(readFileSync(new URL("../../../experiments/fixed-point-breaker-v1.json",import.meta.url),"utf8")) as unknown;
-  const {candidate}=experimentArms(parseExperiment(raw));
-  expect(candidate.features["fixed-point-breaker-v1"]).toBe(true);
-  expect(candidate.features["auto-talk-v1"]).toBe(false);
   expect(featureInfo("fixed-point-breaker-v1").description).not.toContain("walks with navigate_to");
  });
  it("is the base transform when either switch is off",()=>{

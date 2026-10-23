@@ -75,15 +75,3 @@ it("a v2 preset with the switch reaches the production prompt (factory path)",()
  const off=parsePlayPreset({...preset,features:with_(BUNDLE,false)});
  expect(playSystemPrompt(presetFeatures(off),null)).not.toContain("Trainer battles and your rival");
 });
-
-it("both pending experiments list every registered switch in their raw incumbent, in registry order, and flip only their own",()=>{
- for(const [file,id] of [["trainer-heal-guidance.json",ID],["low-hp-trainer-warning.json","low-hp-trainer-warning-v1"]] as const){
-  const raw=JSON.parse(readFileSync(new URL(`../../../experiments/${file}`,import.meta.url),"utf8")) as {changedFeature:string;queuePosition?:number;incumbent:{features:Record<string,boolean>}};
-  // Every switch registered up to and including these two (later switches are not part of these entries).
-  const historical=SWITCHABLE_FEATURES.filter(feature=>feature!=="scripted-place-guidance-v1"&&feature!=="trigger-script-loop-v1");
-  expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("low-hp-trainer-warning-v1")+1));
-  expect(raw.changedFeature).toBe(id);
-  expect(raw.incumbent.features[id]).toBe(false);
-  expect(raw.queuePosition).toBeUndefined();
- }
-});

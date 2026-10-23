@@ -680,7 +680,7 @@ describe("instruction ledger delivery",()=>{
 it("names the experiment, arm and trial, or the preset, in the run header",()=>{
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
  const withExperiment=new Log();withExperiment.add(0,{...START,evaluation:{preset_id:"factorial-both",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-think-fast",arm:"both",trial:5,of:32}}});
- expect(brand(view(withExperiment))).toBe(`POKéNAV · ${RUN} · EXPERIMENT factorial-2x2-think-fast · ARM both · TRIAL 5/32`);
+ expect(brand(view(withExperiment))).toBe(`POKéNAV · ${RUN} · PRESET factorial-both`);
  const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
  expect(brand(view(presetOnly))).toBe(`POKéNAV · ${RUN} · PRESET checkpoint-clock-set`);
 });
@@ -744,9 +744,9 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
  const cells=(html:string)=>{const w=new Window();const root=w.document.createElement("div");root.innerHTML=html;const out=[...root.querySelectorAll(".id-cell")].map(c=>`${c.querySelector("small")?.textContent??""}=${c.querySelector("span")?.textContent??""}`);void w.happyDOM.abort();return{out,root};};
  const withExperiment=new Log();withExperiment.add(0,{...START,evaluation:{preset_id:"factorial-both",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-<think>",arm:"both",trial:5,of:8}}});
  const exp=cells(runIdentity(view(withExperiment)));
- expect(exp.out).toEqual(["EXPERIMENT=factorial-2x2-<think>","ARM=both","TRIAL=5 of 8","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
- expect(exp.root.querySelectorAll(".trial-dots i.done")).toHaveLength(4);
- expect(exp.root.querySelectorAll(".trial-dots i.now")).toHaveLength(1);
+ expect(exp.out).toEqual(["PRESET=factorial-both","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(exp.root.querySelectorAll(".trial-dots i.done")).toHaveLength(0);
+ expect(exp.root.querySelectorAll(".trial-dots i.now")).toHaveLength(0);
  expect(exp.root.querySelector("think")).toBeNull();
  const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
  expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);

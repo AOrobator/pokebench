@@ -1,4 +1,4 @@
-import {mkdtempSync,readFileSync} from "node:fs";
+import {mkdtempSync,readFileSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {gunzipSync} from "node:zlib";
@@ -15,6 +15,8 @@ import {RunLog} from "./run-log.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {featuresOf,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {contextTools,playGameTools} from "./play-wiring.js";
+import {JitContext} from "./jit-context.js";
+import {StableJitContext} from "./jit-v2-context.js";
 import {toolSwitches} from "./play-config.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {pressTool,observeTool} from "./game-tools.js";
@@ -123,4 +125,29 @@ it("delivers actual ea04 historical upstairs evidence through production context
   expect(requests[i]).toContain(event.text);expect(event.text).toContain("Our daughter is upstairs, I think.");expect(event.text).toContain("WOMAN_4");expect(event.text).toContain("state_event");expect(event.text).toContain("historical");expect(event.text).not.toContain("MAY is upstairs");
  }
  expect(events.filter(e=>e.type==="button_press"||e.type==="native_action")).toEqual([]);
+});
+
+it.each(["full","jit","jit-v2"] as const)("puts native7030 loss in the FIRST pinned-pi %s request outside the gym, before another tool choice",async mode=>{
+ const historical=gunzipSync(readFileSync(new URL("./fixtures/battle-history-7030.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ const features={...featuresOf([]),"leader-loss-comparison-v1":true,"leader-loss-immediate-v1":true,"battle-action-history-v1":true,"leader-preparation-comparison-v1":true,"just-in-time-prompt-v1":mode==="jit","just-in-time-prompt-v2":mode==="jit-v2"};
+ const r=recording(()=>IN_GAME,"immediate-native-loss"),subscribers:((e:RunEvent)=>void)[]=[];
+ const subscribe=r.recorder.subscribe.bind(r.recorder);r.recorder.subscribe=fn=>{subscribers.push(fn);subscribe(fn);};
+ const wiring=contextTools(features,r.recorder,r.recorder.transformContext),presentation=mode==="jit-v2"?new StableJitContext(features,null):new JitContext(features,null);
+ r.recorder.subscribe(e=>{if(e.type==="state")presentation.observe(e);});
+ for(const e of historical)if(e.seq<=1744)for(const fn of subscribers)fn(e);
+ await r.recorder.start({...RUN_START_META,harness_features:SWITCHABLE_FEATURES.filter(id=>features[id]),system_prompt:"Original7030 loss transported offline; no inference or emulator."});
+ const governor=new Governor({limits:{maxTurns:1,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});let request="";
+ const streamFn:StreamFn=(_model,context)=>{
+  request=context.messages.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:text({content:m.content})).join("\n");
+  expect(request).toContain("Preparation since last completed ROXANNE attempt");expect(request).toContain("EXP unchanged");expect(request).toContain("Foe GEODUDE used ROCK TOMB");
+  writeFileSync(join(r.root,"first-model-request.json"),JSON.stringify({mode,messages:context.messages,systemPrompt:context.systemPrompt},null,2));
+  const message=assistant({text:"offline decision boundary reached"}),stream=createAssistantMessageEventStream();stream.push({type:"done",reason:"stop",message});return stream;
+ };
+ const tools=playGameTools([],features,{read:()=>Promise.resolve(IN_GAME)},r.recorder,undefined,wiring.tools,wiring.training);
+ const loop=piLoop({systemPrompt:"Offline delivery proof",requestContext:c=>presentation.context(c),tools,base:{model,convertToLlm:messages=>messages as Message[]},governor,transformContext:wiring.transformContext,emit:r.recorder.emit,streamFn,signal:new AbortController().signal});
+ expect(await play(userText("Fixture"),governor,loop)).toBe("budget");r.recorder.end("budget");
+ const events=readFileSync(r.log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line))),ledger=events.filter(e=>e.type==="ledger_context");
+ expect(ledger).toHaveLength(1);expect(request).toContain(ledger[0]?.text??"missing ledger");expect(ledger[0]?.evidence).toContain(1744);
+ expect(events.filter(e=>["tool_call","button_press","native_action"].includes(e.type))).toEqual([]);
+ console.log(`Immediate native loss delivery proof: ${r.log.eventsPath}`);
 });

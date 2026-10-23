@@ -1,0 +1,8 @@
+{
+  "source_run": "2026-10-23T11-15-17_qwen36-gpu0_4637",
+  "source_sha": "d4bda4eb0cd64aa4df8239b44467cb4629e806c7",
+  "source_file_sha256": "b0d7d7031371e210a6c8eb592d14ffb625acc3b488b77b6859d41a0e94690ca9",
+  "selection": "Original state/dialogue_auto_advance/tool_result rows, seq5620..6295; unchanged",
+  "event_count": 157,
+  "fixture_sha256": "1465a93538d7fb4945d54291907d9f63f3dd4586432f29773b11cb7ef32d1b3a"
+}

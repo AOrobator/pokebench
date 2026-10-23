@@ -251,6 +251,10 @@ export const SWITCHABLE_FEATURES = [
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
   "roxanne-campaign-reminder-v1",
+  "leader-loss-immediate-v1",
+  "battle-action-history-v1",
+  "leader-preparation-comparison-v1",
+
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -623,6 +627,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("move-learn-offer-identity-v1", "guard", "NAMED MOVE DECLINE", "move-learn-tool-v1", "Requires the offered move name for learn_move declines. Checks the native offer after waiting and before each input; mismatches return the current observation for a fresh choice. Matching declines remain allowed. Off: previous learn_move arguments and execution unchanged."),
   on("campaign-progress-clock-v1", "guard", "EARNED CAMPAIGN PROGRESS CLOCK", "stall-briefing-v1", "Default off. Earned campaign arrivals and completed story milestones reset drought time and action counts once. Checkpoint baselines and optional achievements do not reset it. Off: extended measurement milestones remain excluded from supervisor clocks."),
   on("roxanne-campaign-reminder-v1", "guidance", "ROXANNE CAMPAIGN REMINDER", null, "Default off. A qualified historical continuation may append its frozen candidate reminder once before the first decision. No recurring coaching, selected route or blocked rematch. Off: restored conversation bytes are unchanged."),
+  on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
+  on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
+  on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -934,6 +941,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("move-learn-offer-identity-v1"),
     ...when("campaign-progress-clock-v1"),
     ...when("roxanne-campaign-reminder-v1"),
+    ...when("leader-loss-immediate-v1"),
+    ...when("battle-action-history-v1"),
+    ...when("leader-preparation-comparison-v1"),
+
   ];
 }
 

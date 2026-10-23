@@ -74,7 +74,7 @@ describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-127)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-130)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-22)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
@@ -380,7 +380,7 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
  }
 
  it("is last, default off, and depends on v1",()=>{
-  expect(SWITCHABLE_FEATURES.at(-114)).toBe(ID2);
+  expect(SWITCHABLE_FEATURES.at(-117)).toBe(ID2);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"battle-decision-ready-v1":false,[ID2]:true}),null).at(-8)).toBe(ID2);
   expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
   expect(featureInfo(ID2).description).toContain(" Off: ");

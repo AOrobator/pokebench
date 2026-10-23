@@ -27,7 +27,7 @@ import {withPeopleLedger} from "./people-ledger.js";
 import {withEffectivenessHeard} from "./effectiveness-heard.js";
 import {withGameSaidGoals} from "./game-said-goals.js";
 import {withGymReadiness,withGymProgress} from "./gym-readiness.js";
-import {withTrainingBlock} from "./training-block.js";
+import {withTrainingBlock,trainingContext,type TrainingBlock} from "./training-block.js";
 import {withCatchingBlocks} from "./catching-block.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
@@ -55,7 +55,7 @@ type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock}{
  const tools:AgentTool[]=[];
  const observedBase=observedInstructions(features,recorder,base);
  const memory=navigationMemory(features,recorder,observedBase);
@@ -73,7 +73,8 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  // fixed-point-breaker-v1 alone ends the request with its note.
  const breaker=fixedPointBreaker(features,recorder);
  const note=features["fixed-point-breaker-v1"];
- return {tools,transformContext:moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),window:contextWindow(features),breaker};
+ const history=trainingContext(features,recorder,moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}));
+ return {tools,transformContext:history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
@@ -163,14 +164,14 @@ function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder
  if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
  return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record},progressAware);
 }
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
  const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
  const arm=features["story-battle-heal-gate-v1"]&&!features["factual-healing-guidance-v1"]?healArm(features,state):undefined;
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const progress=withGymProgress(facts,features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"]});

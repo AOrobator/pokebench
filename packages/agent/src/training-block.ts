@@ -7,6 +7,8 @@
 // - leader-attempt-ledger-v1: each battle with a GYM LEADER (trainer class LEADER) this run, side by side.
 // - seen-trainers-ledger-v1: the trainers heal-before-trainers-v2 listed on each map the player stood on, with
 //   the game's trainer flag.
+import {BattleActionHistory} from "./battle-action-history.js";
+import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
 import {battleDecision,withAppendedBlock} from "./effectiveness-heard.js";
 import type {RunEvent} from "./events.js";
@@ -23,12 +25,13 @@ const STATE_MEMORY=512;
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export type Snapshot=Pick<GameStateSnapshot,"started"|"in_battle"|"screen"|"location"|"map_id"|"party"|"battle"|"trainer_opponent"|"money"|"resources"|"heal_before_trainers"|"party_next_level">;
 type Party=Snapshot["party"];
+type Bag=NonNullable<Snapshot["resources"]>["bag"];
 
 interface Source {readonly battle:number;readonly wild:string;readonly place:string}
 interface Earned {readonly battle:number;label:string;readonly place:string;trainer:boolean;readonly turn:number;readonly amounts:string[];readonly values:number[]}
-interface LeaderFoe {readonly species:string;readonly level:number;hp:number;maxHp:number}
+interface LeaderFoe {readonly species:string;readonly level:number;hp:number;maxHp:number;seq:number}
 interface LeaderBattle {
- readonly effectiveness:string[];readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
+ readonly messageSources:Map<string,number>;readonly effectivenessSources:Map<string,number>;readonly startSeq:number;endSeq:number|null;readonly startBag:Bag|null;readonly effectiveness:string[];readonly messages:string[];readonly startParty:Party;readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
  readonly foes:Map<number,LeaderFoe>;outcome:string|null;moneyAfter:number|null;done:boolean;
 }
 interface LossPages {readonly battle:LeaderBattle;readonly messages:string[];readonly effectiveness:string[]}
@@ -50,6 +53,11 @@ const leaderActive=(s:Pick<Snapshot,"trainer_opponent">)=>s.trainer_opponent?.ba
 
 export class TrainingBlock {
  // EXP pages are attributed through the state their page names; states are kept as the battle they belong to.
+ private readonly actions=new BattleActionHistory();
+ private latest:State|null=null;
+ private receipt:number|null=null;
+ private offeredLoss:number|null=null;
+ private consumedLoss:number|null=null;
  private readonly sources=new Map<number,Source>();
  // Per battle: the trainer's name once a state showed it, and battles the battle type marks as a trainer's.
  private readonly trainerLabels=new Map<number,string>();
@@ -67,6 +75,10 @@ export class TrainingBlock {
  constructor(private readonly features:FeatureSet){}
 
  observe(event:RunEvent):void {
+  if(this.features["battle-action-history-v1"])this.actions.observe(event);
+  if(event.type==="assistant"&&event.stop_reason!=="error"&&event.error===undefined&&this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
+  if(event.type==="state"){this.latest="started" in event?event:null;this.receipt=null;}
+  if(event.type==="tool_result"||event.type==="decision_input")this.receipt=(event.type==="decision_input"||!event.is_error)&&this.latest!==null&&event.state_seq===this.latest.seq?event.seq:null;
   if(event.type==="state"&&"started" in event){this.state(event);return;}
   if(this.features["leader-loss-comparison-v1"])this.lossDelivery(event);
   if(event.type!=="dialogue_auto_advance"||!this.features["exp-earned-ledger-v1"])return;
@@ -122,6 +134,10 @@ export class TrainingBlock {
    for(const text of entry.effectiveness)if(!entry.battle.effectiveness.includes(text))entry.battle.effectiveness.push(text);
    entry.battle.messages.splice(0,Math.max(0,entry.battle.messages.length-4));
    entry.battle.effectiveness.splice(0,Math.max(0,entry.battle.effectiveness.length-4));
+   for(const text of entry.messages)entry.battle.messageSources.set(text,event.seq);
+   for(const text of entry.effectiveness)entry.battle.effectivenessSources.set(text,event.seq);
+   for(const text of entry.battle.messageSources.keys())if(!entry.battle.messages.includes(text))entry.battle.messageSources.delete(text);
+   for(const text of entry.battle.effectivenessSources.keys())if(!entry.battle.effectiveness.includes(text))entry.battle.effectivenessSources.delete(text);
   }
  }
 
@@ -160,14 +176,14 @@ export class TrainingBlock {
   if(battling&&leaderActive(s)){
    const name=s.trainer_opponent?.name??"GYM LEADER";
    if(this.leaderRunning===null){
-    const battle:LeaderBattle={effectiveness:[],messages:[],startParty:structuredClone(s.party),turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
+    const battle:LeaderBattle={messageSources:new Map(),effectivenessSources:new Map(),startSeq:s.seq,endSeq:null,startBag:s.resources?.bag==null?null:structuredClone(s.resources.bag),effectiveness:[],messages:[],startParty:structuredClone(s.party),turn:s.turn,party:partyExp(s.party),bag:bagText(s),money:s.money,foes:new Map(),outcome:null,moneyAfter:null,done:false};
     this.leaderRunning={name,battle};
     this.leaders.set(name,[...(this.leaders.get(name)??[]),battle]);
    }
    const battle=this.leaderRunning.battle;
    for(const b of s.battle?.battlers??[]){
     if(b.position%2!==1)continue;
-    battle.foes.set(b.party_slot,{species:b.species,level:b.level,hp:b.hp,maxHp:b.max_hp});
+    battle.foes.set(b.party_slot,{species:b.species,level:b.level,hp:b.hp,maxHp:b.max_hp,seq:s.seq});
    }
    const outcome=s.battle?.outcome;
    if(outcome!=null&&outcome!=="ongoing")battle.outcome=outcome;
@@ -176,6 +192,7 @@ export class TrainingBlock {
   if(this.leaderRunning!==null&&field(s)){
    this.leaderRunning.battle.moneyAfter=s.money;
    this.leaderRunning.battle.done=true;
+   this.leaderRunning.battle.endSeq=s.seq;
    this.leaderRunning=null;
   }
  }
@@ -226,12 +243,14 @@ export class TrainingBlock {
   });
  }
 
- private lossPart(s:Snapshot):string[] {
+ private lossPart(s:Snapshot,immediate=false):string[] {
   if(!this.features["leader-loss-comparison-v1"])return [];
   const current=leaderActive(s)?s.trainer_opponent?.name??null:null;
-  if(current===null&&!(field(s)&&s.location?.endsWith(" GYM")===true))return [];
+  if(!immediate&&current===null&&!(field(s)&&s.location?.endsWith(" GYM")===true))return [];
   return [...this.leaders].filter(([name])=>current===null||name===current).flatMap(([name,battles])=>{
-   const loss=battles.findLast(b=>b.done&&b.outcome==="lost");if(loss===undefined)return [];
+   const loss=this.features["leader-preparation-comparison-v1"]?battles.findLast(b=>b.done):battles.findLast(b=>b.done&&b.outcome==="lost");if(loss===undefined)return [];
+   if(immediate&&[...this.leaders.values()].flat().some(b=>b.done&&(b.endSeq??0)>(loss.endSeq??0)))return [];
+   if(this.features["leader-preparation-comparison-v1"])return this.preparation(name,loss,s);
    const before=loss.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
    const unique=(p:Party)=>p.length>0&&p.every(m=>m.identity!=null)&&new Set(p.map(m=>m.identity)).size===p.length;
    const complete=unique(before)&&unique(now);
@@ -256,6 +275,50 @@ export class TrainingBlock {
   });
  }
 
+
+ private preparation(name:string,last:LeaderBattle,s:Snapshot):string[] {
+  const before=last.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
+  const unique=(p:Party)=>p.length>0&&p.every(m=>m.identity!=null)&&new Set(p.map(m=>m.identity)).size===p.length;
+  const complete=unique(before)&&unique(now),byId=new Map(now.map(m=>[m.identity,m]));
+  const same=complete&&before.length===now.length&&before.every(m=>byId.has(m.identity));
+  const rows=[`- Preparation since last completed ${name} attempt (${last.outcome??"outcome unknown"}; battle-start state ${String(last.startSeq)}, completion state ${String(last.endSeq??"unknown")}; compared with current observation): party membership ${complete?(same?"unchanged":"changed"):"unknown"}.`];
+  if(!complete)rows.push("  Party species, levels, EXP, moves and HP comparison unknown (missing or duplicated identities).");
+  if(complete)for(const b of before){
+   const n=byId.get(b.identity);if(n===undefined){rows.push(`  ${String(b.species)}: no longer in observed party.`);continue;}
+   const compare=(label:string,a:string|number|null|undefined,z:string|number|null|undefined)=>`${label} ${a==null||z==null?"unknown":JSON.stringify(a)===JSON.stringify(z)?"unchanged":`${String(a)} → ${String(z)}`}`;
+   rows.push(`  ${String(b.species)}: ${compare("species",b.species,n.species)}; ${compare("level",b.level,n.level)}; ${compare("EXP",b.experience,n.experience)}; ${compare("moves",b.moves?.map(m=>m.name??m.move_id).join(", "),n.moves?.map(m=>m.name??m.move_id).join(", "))}; HP ${b.hp==null?"unknown":String(b.hp)}/${b.max_hp==null?"unknown":String(b.max_hp)} → ${n.hp==null?"unknown":String(n.hp)}/${n.max_hp==null?"unknown":String(n.max_hp)} (battle start → now).`);
+  }
+  if(complete)for(const n of now)if(!before.some(b=>b.identity===n.identity))rows.push(`  Added observed party member: ${String(n.species)} Lv${String(n.level)}.`);
+  const bag=(items:Bag|null|undefined)=>{
+   if(items==null)return null;
+   const quantities=new Map<number,{name:string|null;quantity:number}>();
+   for(const item of items){const previous=quantities.get(item.item_id);quantities.set(item.item_id,{name:item.name??previous?.name??null,quantity:(previous?.quantity??0)+item.quantity});}
+   return quantities;
+  };
+  const a=bag(last.startBag),b=bag(s.resources?.bag);
+  if(a===null||b===null)rows.push("  BAG quantities: unknown (incomplete read).");
+  else {
+   const changes=[...new Set([...a.keys(),...b.keys()])].flatMap(id=>{const x=a.get(id),y=b.get(id);return (x?.quantity??0)===(y?.quantity??0)?[]:[`${y?.name??x?.name??`item ${String(id)}`} ×${String(x?.quantity??0)} → ×${String(y?.quantity??0)}`];});
+   rows.push(`  BAG quantities ${changes.length===0?"unchanged":changes.slice(0,12).join("; ")}${changes.length>12?`; ${String(changes.length-12)} more changed item quantities`:""}.`);
+  }
+  rows.push(`  Opponents last observed during that attempt: ${[...last.foes.values()].map(f=>`${f.species} Lv${String(f.level)} HP ${String(f.hp)}/${String(f.maxHp)}`).join(", ")||"unknown"}. Damage attribution: unknown.`);
+  return rows;
+ }
+
+ context():{text:string;evidence:number[]}|null {
+  const state=this.latest;
+  if(state===null||this.receipt===null)return null;
+  const parts:string[]=[],evidence:number[]=[state.seq,this.receipt];
+  const latest=[...this.leaders.values()].flat().filter(b=>b.done).sort((a,b)=>(b.endSeq??0)-(a.endSeq??0))[0];
+  if(this.features["leader-loss-immediate-v1"]&&latest?.outcome==="lost"&&latest.endSeq!==this.consumedLoss&&field(state)){
+   parts.push(...this.lossPart(state,true));this.offeredLoss=latest.endSeq;
+   evidence.push(latest.startSeq,...(latest.endSeq===null?[]:[latest.endSeq]),...[...latest.foes.values()].map(f=>f.seq),...latest.messageSources.values(),...latest.effectivenessSources.values());
+  }
+  const actions=this.features["battle-action-history-v1"]?this.actions.context(64-new Set(evidence).size):null;
+  if(actions!==null){parts.push(actions.text);evidence.push(...actions.evidence);}
+  return parts.length===0?null:{text:parts.join("\n"),evidence:[...new Set(evidence)]};
+ }
+
  private seenPart():string[] {
   if(!this.features["seen-trainers-ledger-v1"])return [];
   const lines=[...this.maps.entries()].flatMap(([location,trainers])=>{
@@ -270,14 +333,21 @@ export class TrainingBlock {
   return lines.length===0?[]:["- Trainers the readout listed on maps you stood on this run (the game's trainer flags):",...lines];
  }
 
+ private toolLoss(s:Snapshot):string[] {
+  const last=[...this.leaders.values()].flat().filter(b=>b.done).sort((a,b)=>(b.endSeq??0)-(a.endSeq??0))[0];
+  // The context path supplies this same comparison once before the first post-loss decision.
+  if(this.features["leader-loss-immediate-v1"]&&last?.outcome==="lost"&&last.endSeq!==this.consumedLoss)return [];
+  return this.lossPart(s);
+ }
+
  block(s:Snapshot):string|null {
   if(!s.started)return null;
   let parts:string[];
   if(field(s)){
    const party=this.partyPart(s);
-   parts=[...(party===null?[]:[party]),...this.earnedPart(),...this.leaderPart(s),...this.lossPart(s),...this.seenPart()];
+   parts=[...(party===null?[]:[party]),...this.earnedPart(),...this.leaderPart(s),...this.toolLoss(s),...this.seenPart()];
   }else if(battleDecision(s)&&leaderActive(s)){
-   parts=[...this.leaderPart(s),...this.lossPart(s)];
+   parts=[...this.leaderPart(s),...this.toolLoss(s)];
   }else return null;
   return parts.length===0?null:[TRAINING_HEADER,...parts].join("\n");
  }
@@ -285,9 +355,15 @@ export class TrainingBlock {
 
 const TRAINING_SWITCHES=["leader-loss-comparison-v1","exp-next-level-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1"] as const;
 
-export function withTrainingBlock(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void):void}):AgentTool[] {
+export function withTrainingBlock(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void):void},shared?:TrainingBlock):AgentTool[] {
  if(!TRAINING_SWITCHES.some(id=>features[id]))return [...tools];
- const training=new TrainingBlock(features);
- recorder.subscribe(event=>{training.observe(event);});
+ const training=shared??new TrainingBlock(features);
+ if(shared===undefined)recorder.subscribe(event=>{training.observe(event);});
  return withAppendedBlock(tools,features,state=>training.block(state as unknown as Snapshot));
+}
+
+export function trainingContext(features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void,replay?:boolean):void;recordLedgerContext(note:{text:string;evidence:number[]}):void},base:(messages:AgentMessage[])=>Promise<AgentMessage[]>):{transform:(messages:AgentMessage[])=>Promise<AgentMessage[]>;training?:TrainingBlock}{
+ if(!["leader-loss-immediate-v1","battle-action-history-v1","leader-preparation-comparison-v1"].some(id=>features[id as keyof FeatureSet]))return {transform:base};
+ const training=new TrainingBlock(features);recorder.subscribe(e=>{training.observe(e);},true);
+ return {training,transform:async messages=>{const out=await base(messages),note=training.context();if(note===null||out.some(m=>m.role==="user"&&m.content===note.text))return out;recorder.recordLedgerContext(note);return [...out,{role:"user",content:note.text,timestamp:Date.now()}];}};
 }

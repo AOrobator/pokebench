@@ -5,7 +5,7 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, type FeatureSet } from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false,"leader-loss-comparison-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false,"leader-loss-immediate-v1":false,"battle-action-history-v1":false,"leader-preparation-comparison-v1":false,"leader-loss-comparison-v1":false};
 import type { GameStateSnapshot } from "./game-state.js";
 import { playGameTools } from "./play-wiring.js";
 import { withDialogueAutoAdvance, type AutoAdvanceRecorder } from "./dialogue-auto-advance.js";

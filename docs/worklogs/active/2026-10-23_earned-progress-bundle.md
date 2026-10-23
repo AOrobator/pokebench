@@ -20,3 +20,5 @@ RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run ch
 
 ## Session log
 - Main base ec19227bc; reuse owned clean campaign worktree on new branch. Direct user approval covers activation; no further permission requested.
+
+- RED41-case fixed-design suite observed7new bundle activation cases fail. GREEN41pass after seven recipe-only appends; controlsfalse. Changes preserve formatting and unrelated fields. No currentrun files touched. Campaign runtime owner has next integration window; offering this bounded delta before their freeze, otherwise defer source freeze/landing until release.

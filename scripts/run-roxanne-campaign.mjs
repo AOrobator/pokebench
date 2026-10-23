@@ -15,7 +15,7 @@ if(config.reuse!==undefined){verifyCampaignLaunchSource(git,config.controllerCom
 else verifyCampaignLaunchSource(git,config.sourceCommit);
 const verifiedJson=(file,hash)=>{const b=readFileSync(file);if(sha(b)!==hash)throw Error(`changed approval receipt: ${file}`);return JSON.parse(b);};
 const clearance=verifiedJson(config.window.clearanceFile,config.window.clearanceSha256),review=verifiedJson(config.authorization.reviewFile,config.authorization.reviewSha256);
-if(clearance.status!=='cleared'||clearance.sourceCommit!==(config.controllerCommit??config.sourceCommit)||clearance.from!==config.window.from||clearance.until!==config.window.until||digest([...clearance.endpoints].sort())!==digest(config.lanes.map(l=>l.endpoint).sort())||!Array.isArray(clearance.owners)||clearance.owners.length<1||clearance.owners.some(o=>o.acknowledged!==true||typeof o.receipt!=='string'||!o.receipt))throw Error('explicit affected-owner window clearance missing');
+if(clearance.status!=='cleared'||clearance.sourceCommit!==(config.controllerCommit??config.sourceCommit)||(config.reuse!==undefined&&clearance.gameSourceCommit!==config.sourceCommit)||clearance.from!==config.window.from||clearance.until!==config.window.until||digest([...clearance.endpoints].sort())!==digest(config.lanes.map(l=>l.endpoint).sort())||!Array.isArray(clearance.owners)||clearance.owners.length<1||clearance.owners.some(o=>o.acknowledged!==true||typeof o.receipt!=='string'||!o.receipt))throw Error('explicit affected-owner window clearance missing');
 verifyCampaignReviews(review,config.controllerCommit??config.sourceCommit,config.id);
 const prior=verifyPriorAccounting(config.priorAccounting,readFileSync);
 if(!process.env.POKEBENCH_ROM)throw Error('POKEBENCH_ROM missing; launch through just');

@@ -23,7 +23,7 @@ Pure recorded-data presentation. No network additions, emulator inputs, RAM writ
 **M1 — Repair and verify party health**
 - [x] RED regression tests, commit 7dcfd12ea; 11 expected failures before implementation
 - [x] GREEN implementation
-- [ ] Tests, lint, build and coverage
+- [x] Tests, lint, build and coverage
 - [x] Read-only real-log before/after evidence: all seven missing-party samples recovered
 - [x] Background browser verification at desktop and phone widths
 - [ ] Independent cloud review and coordinated landing
@@ -52,3 +52,5 @@ None.
 - Read-only full-log before/after HP: 18041 39→39; 18175 and 18177 39→22; 18255 and 18257 22→6; 19346 and 19348 39→39. All seven now carry same-sample battle health source, with zero original event mutation.
 - Headless Chrome preview at 127.0.0.1:8798 against a scratch recording prefix proves party list and summary show 22/39. Profile and Stats screenshots inspected at 1280×900, 1440×900 and 375×812; no new layout overflow. Real event-tail streaming in a separate scratch run updates an already-open Stats panel 39→22→6 and preserves the selected tab, with no page errors, across multiple poll cycles. Screenshots: canonical runs/mockups/party-health-live/shots; before-after.json retains table. Scratch metadata uses an unused server port and a synthetic terminal event; no real game is controlled.
 - Limits: this repairs recorded-sample presentation, not 60 FPS health capture. The existing video stream has a separate cadence. Reserve members without fresh data stay explicitly labeled; unknown identity never becomes a guessed match.
+
+- Final native gate: 4050 Python tests passed, no skips, coverage 97.37% lines / 93.30% branches / 100% functions. Complete `just coverage` passed all three stacks on the candidate. GREEN commit 09f8074f9. Full lint was reconstituted from passing TS lint, ruff checks/format and corrected-environment mypy (120 source files).

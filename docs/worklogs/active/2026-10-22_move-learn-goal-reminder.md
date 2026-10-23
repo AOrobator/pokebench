@@ -40,6 +40,6 @@ Offline proof: 5438 original80cb events schema-validated through#5437; with and 
 - Headless browser card→explainer→expanded reminder passed1280/1440/375, screenshots opened. Preview historical status correctly NOTRECORDED. Current main has not moved and shared8790not restarted.
 - `experiments-check` finds exactly150pre-existing malformed starter-decision-salience ledger rows on baseline and branch, zero new problems; reminder definition individually parses, is pending, not queued, flips only its flag.
 
-### STOP — unresolved operator recipe choice
+### Operator recipe choice resolved
 
-Coordinator20:05hold: two2h controls already had settle/question/comparison ON. Await operator decision to preserve those three or turn themOFF. The threeOFF variant is concrete in this branch; preserving existing requires restoring only those two recipe bases/switch memberships and adjusting the factory test. Primary chat async question also presents both choices. No inference or landing while held. Requested temporary global main hold was released so other branches can proceed. Review principles PB9 staysFAIL and external review has not started; remove this STOP only on explicit operator answer.
+Operator answered the primary chat question explicitly: "Turn those three OFF in control". The prepared threeOFF variant is approved. All five move-learning switches are OFF in each canonical control and ON in bundle; the exact reminder is ON in both. The coordinator was notified and the hold is resolved. No code changes needed after the passing final gates; review can proceed. Active frozen two-hour run and gym holds remain unchanged.

@@ -43,8 +43,8 @@ function gated(features:FeatureSet){
 
 describe(`${ID} registry`,()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-12)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-14)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true,title:"TURN DROUGHT CLOCK"});

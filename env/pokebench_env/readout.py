@@ -19,6 +19,8 @@ from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
+from pokebench_env.elevation_view import SWITCH as ELEVATION_MAP
+from pokebench_env.elevation_view import elevation_view
 from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
@@ -48,6 +50,8 @@ from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
 from pokebench_env.respawn import SWITCH as RESPAWN
 from pokebench_env.respawn import RespawnMemory, respawn_line
+from pokebench_env.screen_center import SWITCH as SCREEN_CENTER
+from pokebench_env.screen_center import cover_line
 from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
 from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
@@ -167,6 +171,8 @@ SERVER_FEATURES = (
     "static-npc-template-approach-v1",
     "coherent-battle-observation-v1",
     "window-escape-route-v1",
+    ELEVATION_MAP,
+    SCREEN_CENTER,
     "blackout-transition-v1",
 )
 
@@ -196,7 +202,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
-        "window-escape-route-v1,blackout-transition-v1",
+        "window-escape-route-v1,"
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1",
     )
     if raw == "":
         return frozenset()
@@ -646,6 +653,15 @@ def format_readout(
             from pokebench_env.terrain_visibility import terrain_view
 
             shown, terrain_note = terrain_view(shown, state.field_obstacles)
+        # elevation-aware-map-v1: tiles the player cannot step onto from this elevation draw L.
+        elevation_note = ""
+        elevation = ELEVATION_MAP not in off and shown is not None
+        if elevation and shown is not None:
+            shown, elevation_note = elevation_view(
+                shown,
+                state.player_elevation,
+                None if state.running is None else state.running.avatar_flags,
+            )
         # adjacent-tiles-v1: the four neighbours in words, from the same cells the map draws.
         neighbours = (
             next_tiles(
@@ -661,6 +677,7 @@ def format_readout(
                 else None,
                 on_foot=walking(None if state.running is None else state.running.avatar_flags),
                 terrain=terrain,
+                elevation=state.player_elevation if elevation_note else None,
             )
             if shown is not None and adjacent_tiles and "adjacent-tiles-v1" not in off
             else None
@@ -684,6 +701,11 @@ def format_readout(
         )
         if terrain_note:
             lines.append(terrain_note)
+        if elevation_note:
+            lines.append(elevation_note)
+    # screen-center-player-v1: the map's top layer hides the sprite at the screen's center.
+    if state.overhead_cover is not None and state.overhead_cover.tiles and SCREEN_CENTER not in off:
+        lines.append(cover_line(state.overhead_cover))
     if sections is not None:
         lines.append(
             "Terrain sections distinguish areas of the same map; "
@@ -931,11 +953,33 @@ def _location_display(state: GameState) -> dict[str, str]:
     return {} if shown is None else {"location_display": shown}
 
 
+def _grid_objects(
+    state: GameState, objects: tuple[tuple[int, int, int], ...], radius: int | None
+) -> list[dict[str, int]]:
+    """elevation-aware-map-v1: one entry per occupied tile and object, with its elevation.
+
+    Off (no elevations read): the listed objects' current tiles, as before.
+    """
+    if state.object_elevations is None or state.position is None:
+        return [{"x": x, "y": y} for _, x, y in objects]
+    px, py = state.position
+    return [
+        {"x": x, "y": y, "elevation": e}
+        for x, y, e in state.object_elevations
+        if radius is None or (abs(x - px) <= radius and abs(y - py) <= radius)
+    ]
+
+
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1 or window-escape-route-v1,
     # so switch-off state is unchanged.
     full: dict[str, object] = (
-        {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
+        {}
+        if state.full_map is None
+        else {
+            "map_grid": state.full_map.json(state.player_elevation)
+            | {"objects": _grid_objects(state, state.full_map.objects, None)}
+        }
     )
     # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
     if state.party_next_level is not None:
@@ -969,7 +1013,7 @@ def state_json(state: GameState) -> dict[str, object]:
                 }
                 for t in state.nearby.tiles
             ],
-            "objects": [{"x": x, "y": y} for _, x, y in state.nearby.objects],
+            "objects": _grid_objects(state, state.nearby.objects, 7),
             "warps": [{"x": x, "y": y} for x, y, _, _ in state.nearby.warps],
         },
         "interaction_targets": None

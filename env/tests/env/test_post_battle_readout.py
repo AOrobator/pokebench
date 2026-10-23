@@ -118,7 +118,7 @@ def readout(state: object, off: frozenset[str]) -> str:
 
 
 def test_registered_server_feature_default_off() -> None:
-    assert SERVER_FEATURES[-9] == SWITCH
+    assert SERVER_FEATURES[-11] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

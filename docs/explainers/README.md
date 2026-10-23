@@ -258,6 +258,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Away note in town buildings](away-note-buildings-v1.html): Default off; bundle treatment. The SUPERVISOR walk-away note stops counting moves inside a building of the place the Story goal names.
 - [One name for the current map](current-map-display-name-v1.html): Default off; bundle treatment. navigate_to_target's "Current map:" line uses the Location line's name.
 - [Window escape route](window-escape-route-v1.html): Default off; bundle treatment. When no route lies inside the 15x15 local map, navigate_to plans over the whole current map for the rest of that call.
+- [Elevation-aware map](elevation-aware-map-v1.html): Default off; bundle treatment. Tiles the player cannot step onto from its elevation draw L, refused presses name the elevation or slope, and objects on another level no longer block navigate_to.
+- [Screen-center player](screen-center-player-v1.html): Default off; bundle treatment. The system prompt says the player is the sprite at the screen's center tile, and the readout says when the map's top layer hides it.
 - [Map-cycle recovery briefing](map-cycle-recovery-v1.html): an unresolved map-cycle episode briefs once and resets the cycle count instead of stopping the run.
 - [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.
 

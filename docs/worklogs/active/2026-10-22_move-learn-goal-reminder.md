@@ -9,8 +9,8 @@ Invariants: OFF context byte-identical; ON preserves every prior message and add
 ## Milestone
 - [x] RED: production factory tests fail (2 failed,9 passed) before wiring
 - [x] GREEN implementation; wiring deletion v3 causes delivery assertions to fail and restoration passes14tests. Earlier failed/incomplete mutation receipts retained under /tmp, not claimed as proof. Focused learn-move + reminder tests38pass.
-- [ ] Full gates and principles review
-- [ ] Independent cloud reviews and synthesis
+- [x] Full gates and principles review
+- [x] Independent cloud reviews and synthesis
 - [ ] Landing board, fast-forward main, live viewer/config proof
 
 ## Evidence
@@ -43,3 +43,11 @@ Offline proof: 5438 original80cb events schema-validated through#5437; with and 
 ### Operator recipe choice resolved
 
 Operator answered the primary chat question explicitly: "Turn those three OFF in control". The prepared threeOFF variant is approved. All five move-learning switches are OFF in each canonical control and ON in bundle; the exact reminder is ON in both. The coordinator was notified and the hold is resolved. No code changes needed after the passing final gates; review can proceed. Active frozen two-hour run and gym holds remain unchanged.
+
+## Landing evidence — 2026-10-22
+
+Fast-forward main merge: 843b99dcb00a9c9e512fbb5075c1ddeedf8078b0, identical to reviewed head. Frozen base a559a95925df2633106f05092ba4cdab11159fee; binary diff SHA256 0592b12dddc19ca57d117f0c051054b4ab7fab18f70dd57a3ddaeb79a5caded6. Claude Opus, independent fresh GPT Codex subagent, and distinct Claude Sonnet each returned VERDICT: LGTM after pre/post identity checks. Operator standing Grok outage authorization retained; reduced vendor diversity acknowledged. PB1–PB13 zero FAIL, all nine test quality checks assessed. No blocking findings; optional fixture reuse, more claim phrasings, in-battle eligibility, and claim expiry remain separate follow-ups. Receipts and synthesis: runs/reviews/move-learn-goal-reminder/.
+
+Required main tests initially saw stale ignored agent dist and rejected the new flag in viewer tests. Rebuilt local artifacts without source changes, then full just test passed: agent4889, viewer1811, native Python4013. Initial failure and successful rerun retained at /tmp/move-goal-main-test.log and /tmp/move-goal-main-test-built.log. Build passed. All five landed canonical recipes independently verified: reminder ON both arms; all other five move-learning flags OFF control and ON bundle. Experiment remains pending, not queued; reviewed implementation source pin retained unchanged.
+
+Board #1 entry verified actual chat 00000000-0000-4000-8000-ba8b017cb1b7. This evidence-only commit changes docs/worklogs only. Final single viewer-main refresh and headless canonical click-through receipt follow at this commit; current check status is recorded in ignored runs/reviews/move-learn-goal-reminder/canonical/receipt.json and live-proof.json after execution. Existing frozen gameplay and gym hold are unchanged; no launch or GPU sampling.

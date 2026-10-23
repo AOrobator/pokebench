@@ -1,0 +1,1380 @@
+[
+  {
+    "v": 1,
+    "run": "roxanne-autonomous-16gpuh-20261023_gpu0_explore-1",
+    "seq": 18174,
+    "t": "2026-10-23T13:06:15.343-04:00",
+    "type": "state",
+    "turn": 499,
+    "screen": "battle",
+    "started": true,
+    "name": "AHS",
+    "location": "RUSTBORO CITY GYM",
+    "map_id": [
+      11,
+      3
+    ],
+    "position": {
+      "x": 4,
+      "y": 2
+    },
+    "facing": "right",
+    "in_battle": true,
+    "party_owner": "player",
+    "party": [
+      {
+        "species": "TORCHIC",
+        "level": 14,
+        "hp": 39,
+        "max_hp": 39,
+        "identity": "67fbaf13:d1af1215",
+        "species_id": 280,
+        "personality": 1744547603,
+        "ot_id": 3517911573,
+        "is_egg": false,
+        "status": 0,
+        "held_item": 0,
+        "experience": 1764,
+        "moves": [
+          {
+            "move_id": 10,
+            "pp": 35,
+            "pp_bonus": 0,
+            "name": "SCRATCH",
+            "max_pp": 35
+          },
+          {
+            "move_id": 45,
+            "pp": 40,
+            "pp_bonus": 0,
+            "name": "GROWL",
+            "max_pp": 40
+          },
+          {
+            "move_id": 116,
+            "pp": 30,
+            "pp_bonus": 0,
+            "name": "FOCUS ENERGY",
+            "max_pp": 30
+          },
+          {
+            "move_id": 52,
+            "pp": 24,
+            "pp_bonus": 0,
+            "name": "EMBER",
+            "max_pp": 25
+          }
+        ],
+        "decode_mode": "encrypted",
+        "diagnostic": null,
+        "raw_hex": null,
+        "held_item_name": null,
+        "cpu_context": null,
+        "language": 2,
+        "nickname": "TORCHIC",
+        "nickname_diagnostic": null,
+        "attack": 25,
+        "defense": 18,
+        "speed": 19,
+        "sp_attack": 24,
+        "sp_defense": 22,
+        "ability_num": 0,
+        "ability_id": 66,
+        "met_location": 16,
+        "met_location_name": "ROUTE 101",
+        "met_level": 5,
+        "met_game": 3,
+        "ball": 4,
+        "ball_name": "POK\u00e9 BALL",
+        "ot_name": "AHS",
+        "ot_gender": "male"
+      }
+    ],
+    "battle": {
+      "active": true,
+      "initialized": true,
+      "phase": "resolving",
+      "ready": false,
+      "main_func": 134469657,
+      "script_pc": 137202229,
+      "battle_type": 12,
+      "turn": 1,
+      "outcome_code": 0,
+      "outcome": "ongoing",
+      "battlers": [
+        {
+          "battler": 0,
+          "position": 0,
+          "party_slot": 0,
+          "identity": "67fbaf13:d1af1215",
+          "species_id": 280,
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 39,
+          "max_hp": 39,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            18,
+            19,
+            24,
+            22
+          ],
+          "types": [
+            10,
+            10
+          ],
+          "ability": 66,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 10,
+              "name": "SCRATCH",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 45,
+              "name": "GROWL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 100,
+              "effect": 18,
+              "target": 8
+            },
+            {
+              "slot": 2,
+              "move_id": 116,
+              "name": "FOCUS ENERGY",
+              "pp": 30,
+              "max_pp": 30,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 47,
+              "target": 16
+            },
+            {
+              "slot": 3,
+              "move_id": 52,
+              "name": "EMBER",
+              "pp": 24,
+              "max_pp": 25,
+              "move_type": 10,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 4,
+              "target": 0
+            }
+          ],
+          "absent": false
+        },
+        {
+          "battler": 1,
+          "position": 1,
+          "party_slot": 0,
+          "identity": "000ac478:c9aad60c",
+          "species_id": 74,
+          "species": "GEODUDE",
+          "level": 12,
+          "hp": 33,
+          "max_hp": 33,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            30,
+            11,
+            13,
+            13
+          ],
+          "types": [
+            5,
+            4
+          ],
+          "ability": 69,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 33,
+              "name": "TACKLE",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 35,
+              "accuracy": 95,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 111,
+              "name": "DEFENSE CURL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 156,
+              "target": 16
+            },
+            {
+              "slot": 2,
+              "move_id": 88,
+              "name": "ROCK THROW",
+              "pp": 15,
+              "max_pp": 15,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 90,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 3,
+              "move_id": 317,
+              "name": "ROCK TOMB",
+              "pp": 10,
+              "max_pp": 10,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 80,
+              "effect": 70,
+              "target": 0
+            }
+          ],
+          "absent": false
+        }
+      ],
+      "player_inputs": [
+        {
+          "battler": 0,
+          "controller": 134594045,
+          "phase": "controller_busy",
+          "ready": false,
+          "action_cursor": null,
+          "move_cursor": null,
+          "target_cursor": null,
+          "selected": null,
+          "selected_move_id": null,
+          "displayed_pp": null,
+          "displayed_max_pp": null,
+          "communication": 5
+        }
+      ],
+      "controller_exec_flags": 1,
+      "signals": [],
+      "current_execution": null,
+      "non_pokemon_battlers": [],
+      "playback": null,
+      "diagnostic": null,
+      "raw_hex": null,
+      "message": {
+        "state": "idle",
+        "render_state": null,
+        "text": null,
+        "cursor": null,
+        "identity": null,
+        "diagnostic": null,
+        "page": null
+      },
+      "prompt": null,
+      "text_phase": "busy",
+      "levelup_box": null
+    },
+    "money": 3540,
+    "badges": [],
+    "play_time_s": 5270
+  },
+  {
+    "v": 1,
+    "run": "roxanne-autonomous-16gpuh-20261023_gpu0_explore-1",
+    "seq": 18175,
+    "t": "2026-10-23T13:06:33.036-04:00",
+    "type": "state",
+    "turn": 499,
+    "screen": "battle",
+    "started": true,
+    "name": null,
+    "location": null,
+    "map_id": null,
+    "position": null,
+    "facing": null,
+    "in_battle": true,
+    "party_owner": "player",
+    "party": [],
+    "battle": {
+      "active": true,
+      "initialized": true,
+      "phase": "input",
+      "ready": true,
+      "main_func": 134463093,
+      "script_pc": 137212510,
+      "battle_type": 12,
+      "turn": 2,
+      "outcome_code": 0,
+      "outcome": "ongoing",
+      "battlers": [
+        {
+          "battler": 0,
+          "position": 0,
+          "party_slot": 0,
+          "identity": "67fbaf13:d1af1215",
+          "species_id": 280,
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 22,
+          "max_hp": 39,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            5,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            18,
+            19,
+            24,
+            22
+          ],
+          "types": [
+            10,
+            10
+          ],
+          "ability": 66,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 10,
+              "name": "SCRATCH",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 45,
+              "name": "GROWL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 100,
+              "effect": 18,
+              "target": 8
+            },
+            {
+              "slot": 2,
+              "move_id": 116,
+              "name": "FOCUS ENERGY",
+              "pp": 30,
+              "max_pp": 30,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 47,
+              "target": 16
+            },
+            {
+              "slot": 3,
+              "move_id": 52,
+              "name": "EMBER",
+              "pp": 24,
+              "max_pp": 25,
+              "move_type": 10,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 4,
+              "target": 0
+            }
+          ],
+          "absent": false
+        },
+        {
+          "battler": 1,
+          "position": 1,
+          "party_slot": 0,
+          "identity": "000ac478:c9aad60c",
+          "species_id": 74,
+          "species": "GEODUDE",
+          "level": 12,
+          "hp": 22,
+          "max_hp": 33,
+          "status1": 16,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            30,
+            11,
+            13,
+            13
+          ],
+          "types": [
+            5,
+            4
+          ],
+          "ability": 69,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 33,
+              "name": "TACKLE",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 35,
+              "accuracy": 95,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 111,
+              "name": "DEFENSE CURL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 156,
+              "target": 16
+            },
+            {
+              "slot": 2,
+              "move_id": 88,
+              "name": "ROCK THROW",
+              "pp": 15,
+              "max_pp": 15,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 90,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 3,
+              "move_id": 317,
+              "name": "ROCK TOMB",
+              "pp": 9,
+              "max_pp": 10,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 80,
+              "effect": 70,
+              "target": 0
+            }
+          ],
+          "absent": false
+        }
+      ],
+      "player_inputs": [
+        {
+          "battler": 0,
+          "controller": 134575497,
+          "phase": "action",
+          "ready": true,
+          "action_cursor": 0,
+          "move_cursor": null,
+          "target_cursor": null,
+          "selected": "FIGHT",
+          "selected_move_id": null,
+          "displayed_pp": null,
+          "displayed_max_pp": null,
+          "communication": 2
+        }
+      ],
+      "controller_exec_flags": 3,
+      "signals": [],
+      "current_execution": null,
+      "non_pokemon_battlers": [],
+      "playback": null,
+      "diagnostic": null,
+      "raw_hex": null,
+      "message": {
+        "state": "idle",
+        "render_state": null,
+        "text": null,
+        "cursor": null,
+        "identity": null,
+        "diagnostic": null,
+        "page": null
+      },
+      "prompt": null,
+      "text_phase": "input",
+      "levelup_box": null
+    },
+    "money": null,
+    "badges": [],
+    "play_time_s": null
+  },
+  {
+    "v": 1,
+    "run": "roxanne-autonomous-16gpuh-20261023_gpu0_explore-1",
+    "seq": 18177,
+    "t": "2026-10-23T13:06:33.064-04:00",
+    "type": "state",
+    "turn": 499,
+    "screen": "battle",
+    "started": true,
+    "name": null,
+    "location": null,
+    "map_id": null,
+    "position": null,
+    "facing": null,
+    "in_battle": true,
+    "party_owner": "player",
+    "party": [],
+    "battle": {
+      "active": true,
+      "initialized": true,
+      "phase": "input",
+      "ready": true,
+      "main_func": 134463093,
+      "script_pc": 137212510,
+      "battle_type": 12,
+      "turn": 2,
+      "outcome_code": 0,
+      "outcome": "ongoing",
+      "battlers": [
+        {
+          "battler": 0,
+          "position": 0,
+          "party_slot": 0,
+          "identity": "67fbaf13:d1af1215",
+          "species_id": 280,
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 22,
+          "max_hp": 39,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            5,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            18,
+            19,
+            24,
+            22
+          ],
+          "types": [
+            10,
+            10
+          ],
+          "ability": 66,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 10,
+              "name": "SCRATCH",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 45,
+              "name": "GROWL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 100,
+              "effect": 18,
+              "target": 8
+            },
+            {
+              "slot": 2,
+              "move_id": 116,
+              "name": "FOCUS ENERGY",
+              "pp": 30,
+              "max_pp": 30,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 47,
+              "target": 16
+            },
+            {
+              "slot": 3,
+              "move_id": 52,
+              "name": "EMBER",
+              "pp": 24,
+              "max_pp": 25,
+              "move_type": 10,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 4,
+              "target": 0
+            }
+          ],
+          "absent": false
+        },
+        {
+          "battler": 1,
+          "position": 1,
+          "party_slot": 0,
+          "identity": "000ac478:c9aad60c",
+          "species_id": 74,
+          "species": "GEODUDE",
+          "level": 12,
+          "hp": 22,
+          "max_hp": 33,
+          "status1": 16,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            30,
+            11,
+            13,
+            13
+          ],
+          "types": [
+            5,
+            4
+          ],
+          "ability": 69,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 33,
+              "name": "TACKLE",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 35,
+              "accuracy": 95,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 111,
+              "name": "DEFENSE CURL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 156,
+              "target": 16
+            },
+            {
+              "slot": 2,
+              "move_id": 88,
+              "name": "ROCK THROW",
+              "pp": 15,
+              "max_pp": 15,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 90,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 3,
+              "move_id": 317,
+              "name": "ROCK TOMB",
+              "pp": 9,
+              "max_pp": 10,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 80,
+              "effect": 70,
+              "target": 0
+            }
+          ],
+          "absent": false
+        }
+      ],
+      "player_inputs": [
+        {
+          "battler": 0,
+          "controller": 134575497,
+          "phase": "action",
+          "ready": true,
+          "action_cursor": 0,
+          "move_cursor": null,
+          "target_cursor": null,
+          "selected": "FIGHT",
+          "selected_move_id": null,
+          "displayed_pp": null,
+          "displayed_max_pp": null,
+          "communication": 2
+        }
+      ],
+      "controller_exec_flags": 3,
+      "signals": [],
+      "current_execution": null,
+      "non_pokemon_battlers": [],
+      "playback": null,
+      "diagnostic": null,
+      "raw_hex": null,
+      "message": {
+        "state": "idle",
+        "render_state": null,
+        "text": null,
+        "cursor": null,
+        "identity": null,
+        "diagnostic": null,
+        "page": null
+      },
+      "prompt": null,
+      "text_phase": "input",
+      "levelup_box": null
+    },
+    "money": null,
+    "badges": [],
+    "play_time_s": null
+  },
+  {
+    "v": 1,
+    "run": "roxanne-autonomous-16gpuh-20261023_gpu0_explore-1",
+    "seq": 18254,
+    "t": "2026-10-23T13:06:46.746-04:00",
+    "type": "state",
+    "turn": 500,
+    "screen": "battle",
+    "started": true,
+    "name": "AHS",
+    "location": "RUSTBORO CITY GYM",
+    "map_id": [
+      11,
+      3
+    ],
+    "position": {
+      "x": 4,
+      "y": 2
+    },
+    "facing": "right",
+    "in_battle": true,
+    "party_owner": "player",
+    "party": [
+      {
+        "species": "TORCHIC",
+        "level": 14,
+        "hp": 22,
+        "max_hp": 39,
+        "identity": "67fbaf13:d1af1215",
+        "species_id": 280,
+        "personality": 1744547603,
+        "ot_id": 3517911573,
+        "is_egg": false,
+        "status": 0,
+        "held_item": 0,
+        "experience": 1764,
+        "moves": [
+          {
+            "move_id": 10,
+            "pp": 34,
+            "pp_bonus": 0,
+            "name": "SCRATCH",
+            "max_pp": 35
+          },
+          {
+            "move_id": 45,
+            "pp": 40,
+            "pp_bonus": 0,
+            "name": "GROWL",
+            "max_pp": 40
+          },
+          {
+            "move_id": 116,
+            "pp": 30,
+            "pp_bonus": 0,
+            "name": "FOCUS ENERGY",
+            "max_pp": 30
+          },
+          {
+            "move_id": 52,
+            "pp": 24,
+            "pp_bonus": 0,
+            "name": "EMBER",
+            "max_pp": 25
+          }
+        ],
+        "decode_mode": "encrypted",
+        "diagnostic": null,
+        "raw_hex": null,
+        "held_item_name": null,
+        "cpu_context": null,
+        "language": 2,
+        "nickname": "TORCHIC",
+        "nickname_diagnostic": null,
+        "attack": 25,
+        "defense": 18,
+        "speed": 19,
+        "sp_attack": 24,
+        "sp_defense": 22,
+        "ability_num": 0,
+        "ability_id": 66,
+        "met_location": 16,
+        "met_location_name": "ROUTE 101",
+        "met_level": 5,
+        "met_game": 3,
+        "ball": 4,
+        "ball_name": "POK\u00e9 BALL",
+        "ot_name": "AHS",
+        "ot_gender": "male"
+      }
+    ],
+    "battle": {
+      "active": true,
+      "initialized": true,
+      "phase": "resolving",
+      "ready": false,
+      "main_func": 134469657,
+      "script_pc": 137202229,
+      "battle_type": 12,
+      "turn": 2,
+      "outcome_code": 0,
+      "outcome": "ongoing",
+      "battlers": [
+        {
+          "battler": 0,
+          "position": 0,
+          "party_slot": 0,
+          "identity": "67fbaf13:d1af1215",
+          "species_id": 280,
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 22,
+          "max_hp": 39,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            5,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            18,
+            19,
+            24,
+            22
+          ],
+          "types": [
+            10,
+            10
+          ],
+          "ability": 66,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 10,
+              "name": "SCRATCH",
+              "pp": 34,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 45,
+              "name": "GROWL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 100,
+              "effect": 18,
+              "target": 8
+            },
+            {
+              "slot": 2,
+              "move_id": 116,
+              "name": "FOCUS ENERGY",
+              "pp": 30,
+              "max_pp": 30,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 47,
+              "target": 16
+            },
+            {
+              "slot": 3,
+              "move_id": 52,
+              "name": "EMBER",
+              "pp": 24,
+              "max_pp": 25,
+              "move_type": 10,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 4,
+              "target": 0
+            }
+          ],
+          "absent": false
+        },
+        {
+          "battler": 1,
+          "position": 1,
+          "party_slot": 0,
+          "identity": "000ac478:c9aad60c",
+          "species_id": 74,
+          "species": "GEODUDE",
+          "level": 12,
+          "hp": 22,
+          "max_hp": 33,
+          "status1": 16,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            30,
+            11,
+            13,
+            13
+          ],
+          "types": [
+            5,
+            4
+          ],
+          "ability": 69,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 33,
+              "name": "TACKLE",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 35,
+              "accuracy": 95,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 111,
+              "name": "DEFENSE CURL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 156,
+              "target": 16
+            },
+            {
+              "slot": 2,
+              "move_id": 88,
+              "name": "ROCK THROW",
+              "pp": 15,
+              "max_pp": 15,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 90,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 3,
+              "move_id": 317,
+              "name": "ROCK TOMB",
+              "pp": 9,
+              "max_pp": 10,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 80,
+              "effect": 70,
+              "target": 0
+            }
+          ],
+          "absent": false
+        }
+      ],
+      "player_inputs": [
+        {
+          "battler": 0,
+          "controller": 134594045,
+          "phase": "controller_busy",
+          "ready": false,
+          "action_cursor": null,
+          "move_cursor": null,
+          "target_cursor": null,
+          "selected": null,
+          "selected_move_id": null,
+          "displayed_pp": null,
+          "displayed_max_pp": null,
+          "communication": 5
+        }
+      ],
+      "controller_exec_flags": 1,
+      "signals": [],
+      "current_execution": null,
+      "non_pokemon_battlers": [],
+      "playback": null,
+      "diagnostic": null,
+      "raw_hex": null,
+      "message": {
+        "state": "idle",
+        "render_state": null,
+        "text": null,
+        "cursor": null,
+        "identity": null,
+        "diagnostic": null,
+        "page": null
+      },
+      "prompt": null,
+      "text_phase": "busy",
+      "levelup_box": null
+    },
+    "money": 3540,
+    "badges": [],
+    "play_time_s": 5301
+  },
+  {
+    "v": 1,
+    "run": "roxanne-autonomous-16gpuh-20261023_gpu0_explore-1",
+    "seq": 18255,
+    "t": "2026-10-23T13:07:01.398-04:00",
+    "type": "state",
+    "turn": 500,
+    "screen": "battle",
+    "started": true,
+    "name": null,
+    "location": null,
+    "map_id": null,
+    "position": null,
+    "facing": null,
+    "in_battle": true,
+    "party_owner": "player",
+    "party": [],
+    "battle": {
+      "active": true,
+      "initialized": true,
+      "phase": "input",
+      "ready": true,
+      "main_func": 134463093,
+      "script_pc": 137212510,
+      "battle_type": 12,
+      "turn": 3,
+      "outcome_code": 0,
+      "outcome": "ongoing",
+      "battlers": [
+        {
+          "battler": 0,
+          "position": 0,
+          "party_slot": 0,
+          "identity": "67fbaf13:d1af1215",
+          "species_id": 280,
+          "species": "TORCHIC",
+          "level": 14,
+          "hp": 6,
+          "max_hp": 39,
+          "status1": 0,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            4,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            18,
+            19,
+            24,
+            22
+          ],
+          "types": [
+            10,
+            10
+          ],
+          "ability": 66,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 10,
+              "name": "SCRATCH",
+              "pp": 34,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 45,
+              "name": "GROWL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 100,
+              "effect": 18,
+              "target": 8
+            },
+            {
+              "slot": 2,
+              "move_id": 116,
+              "name": "FOCUS ENERGY",
+              "pp": 30,
+              "max_pp": 30,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 47,
+              "target": 16
+            },
+            {
+              "slot": 3,
+              "move_id": 52,
+              "name": "EMBER",
+              "pp": 24,
+              "max_pp": 25,
+              "move_type": 10,
+              "power": 40,
+              "accuracy": 100,
+              "effect": 4,
+              "target": 0
+            }
+          ],
+          "absent": false
+        },
+        {
+          "battler": 1,
+          "position": 1,
+          "party_slot": 0,
+          "identity": "000ac478:c9aad60c",
+          "species_id": 74,
+          "species": "GEODUDE",
+          "level": 12,
+          "hp": 16,
+          "max_hp": 33,
+          "status1": 16,
+          "status2": 0,
+          "status3": 0,
+          "stat_stages": [
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ],
+          "stats": [
+            25,
+            30,
+            11,
+            13,
+            13
+          ],
+          "types": [
+            5,
+            4
+          ],
+          "ability": 69,
+          "held_item": 0,
+          "moves": [
+            {
+              "slot": 0,
+              "move_id": 33,
+              "name": "TACKLE",
+              "pp": 35,
+              "max_pp": 35,
+              "move_type": 0,
+              "power": 35,
+              "accuracy": 95,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 1,
+              "move_id": 111,
+              "name": "DEFENSE CURL",
+              "pp": 40,
+              "max_pp": 40,
+              "move_type": 0,
+              "power": 0,
+              "accuracy": 0,
+              "effect": 156,
+              "target": 16
+            },
+            {
+              "slot": 2,
+              "move_id": 88,
+              "name": "ROCK THROW",
+              "pp": 15,
+              "max_pp": 15,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 90,
+              "effect": 0,
+              "target": 0
+            },
+            {
+              "slot": 3,
+              "move_id": 317,
+              "name": "ROCK TOMB",
+              "pp": 8,
+              "max_pp": 10,
+              "move_type": 5,
+              "power": 50,
+              "accuracy": 80,
+              "effect": 70,
+              "target": 0
+            }
+          ],
+          "absent": false
+        }
+      ],
+      "player_inputs": [
+        {
+          "battler": 0,
+          "controller": 134575497,
+          "phase": "action",
+          "ready": true,
+          "action_cursor": 0,
+          "move_cursor": null,
+          "target_cursor": null,
+          "selected": "FIGHT",
+          "selected_move_id": null,
+          "displayed_pp": null,
+          "displayed_max_pp": null,
+          "communication": 2
+        }
+      ],
+      "controller_exec_flags": 3,
+      "signals": [],
+      "current_execution": null,
+      "non_pokemon_battlers": [],
+      "playback": null,
+      "diagnostic": null,
+      "raw_hex": null,
+      "message": {
+        "state": "idle",
+        "render_state": null,
+        "text": null,
+        "cursor": null,
+        "identity": null,
+        "diagnostic": null,
+        "page": null
+      },
+      "prompt": null,
+      "text_phase": "input",
+      "levelup_box": null
+    },
+    "money": null,
+    "badges": [],
+    "play_time_s": null
+  }
+]

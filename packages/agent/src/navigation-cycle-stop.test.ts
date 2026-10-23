@@ -5,7 +5,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {featuresOf} from "./features.js";
-import {withNavigation,planNavigation} from "./navigation.js";
+import {withNavigation,planNavigation,matchingTriggers} from "./navigation.js";
 
 const ID="navigation-cycle-stop-v1";
 interface Fixture {
@@ -20,7 +20,7 @@ const snapshot=(seq:number):GameStateSnapshot=>parseGameState(fixture.states[Str
 const options={ledges:true,oneWay:true,floor:true,elevation:"game" as const};
 const features=featuresOf(["bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","walkable-floor-v1","elevation-transitions-v1","navigation-truth-v1","navigation-refusal-reasons-v1","navigation-refusal-reasons-v2","exit-reachability-v1","coordinate-script-conditions-v1"]);
 const result=(state:GameStateSnapshot):AgentToolResult<unknown>=>({content:[{type:"text",text:"Recorded observation"}],details:{state}});
-function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attempt:number)=>GameStateSnapshot=s=>s){
+function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attempt:number)=>GameStateSnapshot=s=>s,boundary=false,goal:Fixture["goal"]=fixture.goal){
  const before=fixture.before[turn],after=fixture.results[turn];if(before===undefined||after===undefined)throw new Error("missing recorded turn");
  let state=change(snapshot(before[0]??0),0),attempt=0;const buttons:string[][]=[];
  const press=(_id:string,args:{buttons:string[]},_signal?:AbortSignal,check?:(s:GameStateSnapshot|undefined)=>void)=>{
@@ -29,8 +29,8 @@ function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attemp
  };
  const observe={name:"observe",label:"observe",description:"offline",parameters:{},execute:()=>Promise.resolve(result(state))} as unknown as AgentTool;
  const tool={name:"press",label:"press",description:"offline",parameters:{},execute:press,executeChecked:press} as unknown as CheckedPressTool;
- const nav=withNavigation([observe,tool],{...features,[ID]:enabled},{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("navigation missing");
- return {buttons,description:nav.description,call:()=>nav.execute("recorded",fixture.goal)};
+ const nav=withNavigation([observe,tool],{...features,[ID]:enabled,"trigger-navigation-boundary-v1":boundary},{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("navigation missing");
+ return {buttons,description:nav.description,call:()=>nav.execute("recorded",goal)};
 }
 for(const turn of ["1031","1032"]){
  it(`OFF preserves 0d5d turn ${turn}'s eight native inputs and exact delivered status`,async()=>{
@@ -66,6 +66,22 @@ for(const changed of ["warp","trigger"] as const)it(`a changed off-route ${chang
   return changed==="warp"?{...s,navigation_grid:{...s.navigation_grid,warps:[...s.navigation_grid.warps,point]}}:{...s,world_context:{...s.world_context,objects:s.world_context?.objects??[],dialogue:null,triggers:[{...point,elevation:3,variable:0x4002,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000}]}};
  });
  const r=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);expect(r.details).toMatchObject({navigation:{commands:4}});
+});
+it("a changed matching trigger remains distinct when trigger-boundary planning falls back",async()=>{
+ const goal:Fixture["goal"]={x:8,y:5,map_id:[9,0]};
+ const trigger=(x:number,y:number)=>({x,y,elevation:3,variable:0x4002,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000});
+ const change=(s:GameStateSnapshot,attempt:number):GameStateSnapshot=>{
+  if(s.navigation_grid==null)throw new Error("missing grid");
+  return {...s,navigation_grid:{...s.navigation_grid,tiles:s.navigation_grid.tiles.map(t=>t.x===8&&t.y===5?{...t,collision:0,behavior:0,elevation:3}:t)},world_context:{...s.world_context,objects:s.world_context?.objects??[],dialogue:null,triggers:[trigger(16,4),trigger(17,4),trigger(18,4),...(attempt>=2?[trigger(20,0)]:[])]}};
+ };
+ const seq=fixture.before["1031"]?.[0];if(seq===undefined)throw new Error("missing state");
+ const before=change(snapshot(seq),0),changed=change(snapshot(seq),2);
+ for(const state of [before,changed])expect(planNavigation(state,goal,{...options,triggers:matchingTriggers(state)})).toBeNull();
+ const fallback=planNavigation(before,goal,{...options,triggers:[]});
+ expect(fallback?.[0]).toBe("RIGHT");expect(planNavigation(changed,goal,{...options,triggers:[]})).toEqual(fallback);
+ const h=recorded("1031",true,change,true,goal);const r=await h.call();
+ expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);
+ expect(r.details).toMatchObject({state:{position:{x:15,y:3}},navigation:{commands:4}});
 });
 it("an off-route moving NPC does not hide the recorded cycle",async()=>{
  const h=recorded("1032",true);await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"]]);

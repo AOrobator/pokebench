@@ -29,3 +29,6 @@ RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run ch
 - Full preflight correctly caught older bundle-list positional assertions after appending the new switch. Shifted only the3affected existing expectations by one; feature/order semantics retained. No runtime code/testthreshold changes.
 
 - Broader viewer preflight also caught two legacy-order filters that already exclude later treatments. Added clock to those filters, preserving their original feature-order assertions. Current recipe activation remains the sole configuration delta.
+
+- Fake-host production fixed-cli.main rehearsal passes Mac glm53-flash-4h and GPU gym-rustboro-torchic-healed with feature-recipe bundle-v-control-2h, normal dry/solo argv, capturedrun definitionclockON, identicalmodel lane and zero hostmethod accesses. Injected ROM/checkpoint hashes are declared config fixtures, not nativevalidation; no ROM/save file copied or read and no realrun started. Setup needed CLIminimumwall60000 and both declared controlbase/start-hash fixtures. Receipt fake-cli-receipt.json.
+- Direct agreed order: campaign actualrelease → this small activation gate/review/landing → cycle-stop stablecompletionwindow. No new sourcefreeze/main/8790 move before campaign release.

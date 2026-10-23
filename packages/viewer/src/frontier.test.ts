@@ -527,3 +527,11 @@ describe("operator-stopped frontier", () => {
     expect(frontierLabel(stopped, null, frontierVersions([stopped]))).toContain("stopped early");
   });
 });
+
+it("thins dense phone labels while retaining every recorded point and checkpoint details",()=>{
+ const dense=human();dense.splits=FRONTIER_MILESTONES.map((m,i)=>({name:m.id,elapsedMs:(i+1)*1000,segmentMs:1000,seq:i,turn:0,inputTokens:0,outputTokens:0}));
+ document.body.innerHTML=frontierPlot({human:dense,best:null},[],375);
+ const labels=[...document.querySelectorAll('text[transform]')].map(n=>Number(n.getAttribute('transform')?.match(/translate\(([0-9.]+)/)?.[1]));
+ expect(labels.length).toBeLessThan(16);for(let i=1;i<labels.length;i++)expect((labels[i]??0)-(labels[i-1]??0)).toBeGreaterThanOrEqual(25);
+ for(const m of FRONTIER_MILESTONES)expect(document.querySelector(`[data-split="${m.id}"]`)).not.toBeNull();
+});

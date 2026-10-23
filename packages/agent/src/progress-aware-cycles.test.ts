@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 // Exact records retained from fd95 turns 214-239 and 0ced turns 245-255 and 395-410, plus run_start.
 // State bodies, text, frame references and sequence numbers are unchanged. Other event types are omitted.
 // Rehearsal routes are added in memory using the separately recorded game map table; source logs stay unchanged.
@@ -144,4 +145,8 @@ it("keeps the trigger-script guard active during a bounded healing trip",()=>{
   expect(notices.filter(n=>n.kind==="trigger_script"&&n.phase==="warning"),String(on)).toHaveLength(1);
   if(on)expect(detector.cycleHold()?.reason).toBe("heal_trip");
  }
+});
+
+it("all newly added story measurements leave native cycle holds unchanged",()=>{
+ for(const name of EXTENDED_PROGRESS_NAMES){const r=rig();r.emit({type:"milestone",name,kind:"story",origin:"observed",server_timestamp:0});expect(r.tracker.hold()).toBeNull();}
 });

@@ -164,7 +164,10 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   }
   const origins = [...new Set(series.filter(s => s.resumed).map(s => s.run.config?.resume))];
   for (const id of origins) { const origin = milestones.findIndex(m => m.id === id); if (origin >= 0) mustLabel.add(origin); }
-  milestones.forEach((m, i) => { if (i % labelEvery !== 0 && !mustLabel.has(i)) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},${String(bottom + 23)}) rotate(-60)" text-anchor="end">${m.label}</text>`; });
+  const labels=new Set<number>([0,milestones.length-1]);
+  const labelSpacing=width<600?26:18;let previousLabel=0;
+  for(let i=1;i<milestones.length-1;i++)if((i%labelEvery===0||mustLabel.has(i))&&x(i)-x(previousLabel)>=labelSpacing&&x(milestones.length-1)-x(i)>=labelSpacing){labels.add(i);previousLabel=i;}
+  milestones.forEach((m, i) => { if (!labels.has(i)) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},${String(bottom + 23)}) rotate(-60)" text-anchor="end">${m.label}</text>`; });
   for (const id of origins) {
     const origin = milestones.findIndex(m => m.id === id);
     if (origin >= 0) {

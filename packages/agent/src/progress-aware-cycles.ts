@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import type {RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {Place} from "./story-destinations.js";
@@ -37,6 +38,7 @@ export class ProgressAwareCycles {
  private turn=0;
  private held:CycleHold|null=null;
  observe(e:RunEvent):void {
+  if(e.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(e.name))return;
   this.turn=e.turn;
   if(e.type==="milestone"&&e.origin!=="present_at_start"&&e.name!=="GAME_RUNNING"&&e.name!=="ROXANNE_FIRST_INTERACTION")this.progress={turn:e.turn,seq:e.seq};
   if(e.type==="story_battle_heal_gate"){

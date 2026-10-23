@@ -74,7 +74,7 @@ def test_production_run_selects_explicit_deadline_clock_and_preserves_conditiona
 
 
 def test_default_python_server_selection_is_off_and_transport_rejects_unknown_ids():
-    assert SERVER_FEATURES[-31] == ID
+    assert SERVER_FEATURES[-32] == ID
     assert ID in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ID}) == frozenset({ID})
     assert ID not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})

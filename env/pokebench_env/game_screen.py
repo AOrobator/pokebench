@@ -150,7 +150,7 @@ class Screen:
         return self.kind
 
 
-def read_screen(read: ReadMemory) -> Screen:
+def read_screen(read: ReadMemory, *, blackout_transition: bool = False) -> Screen:
     raw = read(GMAIN, 8)
     if len(raw) != 8:
         raise ValueError(f"short read of gMain callbacks: {len(raw)} bytes")
@@ -162,6 +162,8 @@ def read_screen(read: ReadMemory) -> Screen:
         if read_boot_ui(read) is not None:
             return Screen(kind="boot", callback1=callback1, callback2=callback2)
     kind = SCREENS.get(callback2, "unknown")
+    if blackout_transition and callback2 == 0x08085F59:
+        kind = "field_transition"
     if kind == "menu_program":
         tasks = read(TASKS, 16 * 0x28)
         if len(tasks) != 16 * 0x28:

@@ -72,3 +72,5 @@ None.
 - Party-health moved main to c249f81ee immediately before R2 sealing. Initial R2 Claude dispatch was invalidated/stopped without a verdict because it compared an unmerged main. Syncing party-health before resealing; its viewer-only change adds no registry switch and does not alter this feature boundary.
 
 - Resumed on explicit human fallback-landing approval. Current main 33802790c includes cycle/recovery and party loading; another owner holds main/8790. Only isolated branch integration until its release.
+
+- Integrated current main 33802790c: kept cycle/recovery/blackout switches and party-loading changes. Appended trainer-observed-party-v1 last. Registry tail assertions rebased onto main; BattleOutcomes implementation and its 14 regression tests unchanged from approved reviewed source.

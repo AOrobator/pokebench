@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { partyPage } from "./party-view.js";
 import { RunView, foldUntil, isRunEvent, type StateEvent } from "./model.js";
-import { partyNotice, party } from "./panels.js";
+import { partyNotice } from "./panels.js";
 
 // Native recorded states, reduced to party/battle and required state fields.
 // roxanne-autonomous-16gpuh-20261023_gpu0_explore-1, 2026-10-23.
@@ -15,7 +16,7 @@ it("updates 39 → 22 → 6 HP from the same native samples whose party was omit
   const v = fold(at(0), at(1));
   expect(v.partyState).toBe(at(0)); // Raw source retains its original provenance.
   expect(v.partyMembers[0]?.hp).toBe(22);
-  expect(party(v)).toContain("22/39");
+  expect(partyPage(v.partyMembers, null, { slot: 0, tab: 0, move: null })).toContain('aria-label="HP 22 of 39"');
   expect(partyNotice(v)).toContain("battle RAM");
   expect(partyNotice(v)).toContain("#18175");
   expect(partyNotice(v)).not.toContain("Party unavailable");

@@ -265,9 +265,9 @@ describe("no-exit-here-v1 through playGameTools",()=>{
 
 describe("no-exit-here-v1 registry",()=>{
  it("is appended last, a guidance switch that needs world destinations, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-134)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-137)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-26)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-134)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-137)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"world-destinations-v1",switchable:true,title:"NO EXIT HERE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -> ROUTE103 (map 0/18)");

@@ -2,7 +2,7 @@ import {it,expect} from "vitest";
 import {gzipSync} from "node:zlib";
 import {createHash} from "node:crypto";
 import type {Message} from "@mariozechner/pi-ai";
-import {buildGradeWindows,blindGradeWindows,parseCapturedContext,aggregateJudgments,gradingJson,contextDelta,applyContextDelta} from "./roxanne-grading.js";
+import {buildGradeWindows,blindGradeWindows,parseCapturedContext,aggregateJudgments,gradingJson,packNativeEvents,contextDelta,applyContextDelta} from "./roxanne-grading.js";
 import {digest} from "./roxanne-campaign.js";
 import {checkEvent} from "./events.js";
 const user=(content:string):Message=>({role:"user",content,timestamp:0});
@@ -15,7 +15,7 @@ function fixture(){
 }
 it("covers every message and native turn once with exact contexts and no discarded historical prefix",()=>{
  const f=fixture(),all=buildGradeWindows(f);expect(all).toHaveLength(1);expect(all[0]).toMatchObject({fromMessage:1,toMessage:4,fromTurn:0,toTurn:5});expect(all[0]?.context.messages[0]?.["content"]).toBe("actual context at first request");
- const firstBytes=Buffer.byteLength(gradingJson({window:{...all[0],updates:[],toMessage:2,toTurn:3},messages:f.messages.slice(1,2),events:f.events.slice(0,1)}));
+ const firstBytes=Buffer.byteLength(gradingJson({window:{...all[0],updates:[],toMessage:2,toTurn:3},messages:f.messages.slice(1,2),events:packNativeEvents(f.events.slice(0,1))}));
  const split=buildGradeWindows(f,firstBytes+10);expect(split).toHaveLength(3);expect(split.flatMap(w=>f.messages.slice(w.fromMessage,w.toMessage))).toEqual(f.messages.slice(1));expect(split.flatMap(w=>f.events.filter(e=>e.turn>=w.fromTurn&&e.turn<w.toTurn))).toEqual(f.events);expect(split[1]?.context.messages[0]?.["content"]).toBe("actual context at second request");
  const blinded=blindGradeWindows(split,1,null);expect(blinded.map(w=>[w.fromMessage,w.toMessage])).toEqual([[0,1],[1,2],[2,3]]);expect(gradingJson(blinded)).not.toContain("old omitted history");expect(gradingJson(blinded)).not.toContain("secret-model");expect(blinded[0]?.requestSha256).toBe("withheld");
 });

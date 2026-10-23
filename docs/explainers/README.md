@@ -271,4 +271,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Named move decline](move-learn-offer-identity-v1.html): verifies the offered move before executing a decline.
 - [Campaign milestones and earned progress](campaign-progress-clock-v1.html)
 
+- [Navigation cycle stop](navigation-cycle-stop-v1.html): stop repeated internal local steps and report the cycle.
+- [Restored live memory](restored-memory-run-v1.html): continuation memory namespaces and fresh observations.
+- [Blackout transition](blackout-transition-v1.html): exact known whiteout ownership and conservative unknown-state checks.
+
 - [Observed trainer Pokémon](trainer-observed-party-v1.html): delivered opponents remembered across retries for every trainer class.

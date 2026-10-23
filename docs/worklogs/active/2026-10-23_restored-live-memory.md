@@ -10,7 +10,7 @@ Initial M1 scope: one default-OFF restored-memory-run-v1 switch, applied only to
 - [x] Commit RED production restoration/supervisor+instruction regressions and OFF invariant.
 - [x] Implement bounded namespace repair + production/future-runtime wiring, registered switch/explainer.
 - [x] CPU-only production multi-turn private-stub proof follows a fresh location and expires old supervisor; exact source prefix/conversation provenance preserved (rehearsal-recovery-memory-2, source30b185c8a).
-- [ ] Performed wiring mutation fails; full default tests/coverage/lint/build/vendor pass with90% floors.
+- [x] Performed wiring mutation fails; full default tests/coverage/lint/build/vendor pass with90% floors.
 - [ ] Frozen principles and independent cloud reviews approve exact integrated source.
 - [ ] Normal landing board FF main/postmain tests/evidence/viewer check; prove future configuration ON separately from any launch.
 
@@ -66,3 +66,5 @@ M2 therefore also owns bounded lossless grading of oversized native decisions, i
 - Syncparty-healthevidence6d4ab9818(worklogonly) intoownedbranch; sourcec249previouslymerged. No otherincomingbehavior orcampaignactivation; pendingactualownerrelease/finiteCPUhandoff retained.
 
 - Finalparty-integrateddefaulttest proves4097agentPASS; viewer123failureswerecompiled-agentregistryf19stillmissingincomingelevationflags, notcreditedaspass. Normalbuildfirstthenexposedmapped-keyTypeScriptduplicateoptionalfielderrorat9d27: runtimefilterexcludedincoming2flagsbutitsRecord<Exclude>castlostthem. Restoredexactincomingelevation/screencenterexclusionsalongsideown2; build-2PASS. No runtimepolicy/test/gatethresholdchange. Retainfirstbuild/testerrors; rebuildbeforefreshfulltest/coverage/lint/vendor. FiniteCPUwindowcoordinatornotified.
+
+- Finalintegratedrebuiltdefaulttest-2ALLPASS4097agent/1786viewer/4068Python; coverageALLPASSagent99.12lines/92.90branches/97.60functions, viewer98.04/91.62/95.18, Python97.36/93.28/100;90floorsunchanged. TS+ESLintbothpassnormal lint; nativeRuffcaughtone124charmergedlegacyfixturesetline, formattedONLYthattestfile thenexactRuffcheck/format/mypyallPASS(122sourcefiles). Nativeformat-onlyrepairreceiptretained, no test/timeout/coverage/workerweakening. PinnedvendorPASS. Normalbuild-2PASS; finalcleanbuild/stampafterthiscommitthenall4source-boundruntime/native/privateHTTPproofsandindependentfrozenreviews. GPUcallsremain0; currentMacrununtouched. Artifacts recovery-party-default-* and recovery-party-native-lint-receipt.json.

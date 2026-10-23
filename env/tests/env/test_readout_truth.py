@@ -151,7 +151,12 @@ def recorded_off(seq: int) -> frozenset[str]:
         frozenset(frame(seq)["recorded_off"])
         | NEW
         | TRAINING
-        | {"static-npc-template-approach-v1", "elevation-aware-map-v1", "screen-center-player-v1", "blackout-transition-v1"}
+        | {
+            "static-npc-template-approach-v1",
+            "elevation-aware-map-v1",
+            "screen-center-player-v1",
+            "blackout-transition-v1",
+        }
     )  # type: ignore[arg-type]
 
 

@@ -250,18 +250,25 @@ it("keeps the event loop responsive through a chunk of many tiny malformed lines
   roots.push(base);
   const runsRoot = join(base, "runs");
   mkdirSync(join(runsRoot, "junk"), { recursive: true });
-  writeFileSync(join(runsRoot, "junk", "events.jsonl"), "x\n".repeat(100_000));
+  writeFileSync(join(runsRoot, "junk", "events.jsonl"), "x\n".repeat(48));
   const viewer = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, pollMs: 10, streamChunkBytes: 1 << 20 });
   viewers.push(viewer);
-  let last = performance.now(), worst = 0, running = true;
-  const tick = (): void => { const now = performance.now(); worst = Math.max(worst, now - last); last = now; if (running) setImmediate(tick); };
+  let ticks = 0, running = true;
+  const batches: { tick: number; lines: number; limit: number }[] = [];
+  const next = LogReader.prototype.next;
+  vi.spyOn(LogReader.prototype, "next").mockImplementation(function(this: LogReader, limit: number) {
+    const result = next.call(this, limit);
+    if (result.lines > 0) batches.push({ tick: ticks, lines: result.lines, limit });
+    return result;
+  });
+  const tick = (): void => { ticks += 1; if (running) setImmediate(tick); };
   setImmediate(tick);
   const abort = new AbortController();
   const reply = await fetch(new URL("api/runs/junk/events", viewer.url), { signal: abort.signal });
   const reader = reply.body?.getReader();
   let problems = 0, tail = "";
   const decoder = new TextDecoder();
-  while (problems < 100_000) {
+  while (problems < 48) {
     const chunk = await reader?.read();
     if (chunk === undefined || chunk.done) break;
     const text = tail + decoder.decode(chunk.value, { stream: true });
@@ -272,8 +279,9 @@ it("keeps the event loop responsive through a chunk of many tiny malformed lines
   }
   running = false;
   abort.abort();
-  expect(problems).toBe(100_000);
-  expect(worst).toBeLessThan(250);
+  expect(problems).toBe(48);
+  expect(batches.map(({ lines, limit }) => ({ lines, limit }))).toEqual(Array.from({ length: 3 }, () => ({ lines: 16, limit: 16 })));
+  expect(batches.map(({ tick }) => tick), JSON.stringify(batches)).toEqual([...new Set(batches.map(({ tick }) => tick))]);
 });
 
 it.each([

@@ -18,3 +18,14 @@ def test_region_equality_never_falls_back_to_a_similar_party():
     with pytest.raises(ValueError):
         check_replay_regions({"ewram": b"a"}, {})
     assert check_replay_regions({"ewram": b"a"}, {"ewram": b"b"}) == {"ewram": False}
+
+
+def test_recorded_wall_clock_interpolates_source_milliseconds_not_host_date():
+    from pokebench_env.campaign_checkpoint import wall_clock_at
+    assert wall_clock_at(15, [{"frame": 10, "unix_ms": 1000}, {"frame": 20, "unix_ms": 3000}]) == 2000
+    assert wall_clock_at(5, [{"frame": 10, "unix_ms": 1000}]) == 1000
+    assert wall_clock_at(30, [{"frame": 10, "unix_ms": 1000}, {"frame": 20, "unix_ms": 3000}]) == 3000
+    with pytest.raises(ValueError):
+        wall_clock_at(1, [])
+    with pytest.raises(ValueError):
+        wall_clock_at(1, [{"frame": 2, "unix_ms": 5}, {"frame": 1, "unix_ms": 4}])

@@ -24,7 +24,7 @@ No remote services or new dependencies. ROM stays external, read-only and untrac
 ## Milestones
 **M1 — Controller and native trace scorer**
 - [x] RED tests: controller/scorer modules absent; both new suites fail importing their production owners. Budget/concurrency, frozen batches, uncertain restart, grade locks, recovery and winner assertions committed before implementation.
-- [ ] GREEN controller and scoring; meaningful mutation checks
+- [ ] GREEN initial controller/scorer24focusedtests; remaining full rehearsal, adversarial mutations and review pending.
 **M2 — Checkpoint and history qualification**
 - [x] RED restore integrity/ownership/hash and native replay tests: missing production modules fail TS/Python collection. M1 first GREEN17tests; types checked after optional milestone evidence repair. RED commit45c544640.
 - [ ] GREEN restore builder; CPU-only native replay/load receipts for actual development/control starts; protected qualification via sealed metadata-only path
@@ -41,6 +41,8 @@ No launch. Prove native load+context restoration independently from fake rehears
 
 ## Session Log
 - 2026-10-23: authorization is the operator's explicit implementation/qualification/scoring/rehearsal request. Reusing isolated codex/roxanne-campaign-plan worktree at e3da528c2, with its existing planning document. Main pointer belongs to Birch and remains untouched.
+
+- Native reconstruction: d548T488 and2e93T637 now reproduce all7native regions and CPU registers exactly and reload through the one-frame vendor load step. Both have zero mismatched decision checkpoints. Must preserve source RTC epoch; mGBA RTC_FIXED value is milliseconds (source interface.c). No GPU calls.
 
 ## Surprises
 - Historical development/control runs checked have no native run-level checkpoints; vendor milestone ZIPs inspected contain metrics/maps/logs, not emulator saves. Complete native_input journals may permit deterministic CPU reconstruction; must prove matching RAM.

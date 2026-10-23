@@ -64,3 +64,8 @@ Frozen base 74590b432, head bff18db2f, packet fbc596b677aea928d1a58f373d8b74d6b2
 - Separate scratch viewer with copied native events, no outbound probes, opens Harness Config → READ EXPLAINER correctly in a standalone headless context. The deliberately partial scratch recording shows NOT RECORDED, so this check proves the link, not the historical feature-status rendering. Shared 8790 was not touched.
 
 - Review fix verification: agent coverage 3914 tests pass (lines 99.20%, branches 93.39%, functions 97.78%); focused viewer 186 pass. Source build passes. All six final explainer screenshots inspected; caption fits desktop and phone. Main advanced with independent story-measurement work; sync before final review.
+
+- Review fix commit bf8ea8012. Synced main d23155ba6 into the isolated branch (story measurement work); automatic merges only in docs index, readout and features. Final packet will use that main as base, so unrelated measurement work is excluded. Full gates rerun on the synced tree.
+
+- Final synced gates: Python 4042 pass, coverage lines/branches/functions 97.38/93.34/100.00; agent 3922 pass, 99.20/93.38/97.78; viewer 1736 pass, 98.01/91.52/95.09. Build, TypeScript lint, ruff/format and mypy pass. The first viewer pass after sync lacked the newly added main story-progress build output; built that dependency and reran the complete viewer coverage successfully (initial failure receipt retained).
+- Additional read-only broad scan recorded in audit: 3 collision-free 0xC0 axis barriers still drawn clear (Littleroot bedrooms and Wanda house), plus specialized warp behavior counts. These are follow-ups inside the disclosed incomplete activation/geometry audit; no new runtime behavior added.

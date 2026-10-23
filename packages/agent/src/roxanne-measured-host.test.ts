@@ -9,7 +9,7 @@ import {checkEvent} from "./events.js";
 import {buildRestoreBundle} from "./roxanne-restore.js";
 import {digest,type CampaignJob} from "./roxanne-campaign.js";
 import {candidate,verifyEpisodeOutcome} from "./roxanne-campaign-runner.js";
-import {measuredCampaignHost,blindedGradingPrompt,eligibleHeldoutTurns,type MeasuredPorts,type MeasuredCommand} from "./roxanne-measured-host.js";
+import {measuredCampaignHost,boundedGradeViews,blindedGradingPrompt,eligibleHeldoutTurns,type MeasuredPorts,type MeasuredCommand} from "./roxanne-measured-host.js";
 function fixture(){
  const json:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(json))throw Error("fixture");
  const first=json.map(checkEvent).find(e=>e.type==="state"&&"started"in e&&e.map_id?.[0]===11&&e.map_id[1]===3&&!e.in_battle);if(first?.type!=="state"||!("started"in first)||!first.raw_ram)throw Error("fixture");
@@ -120,4 +120,11 @@ it("recovers hash-bound terminal originals without acquiring or launching and re
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,eventsSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/evidence/);
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,releasedAt:111}]},noGPU).recover?.(f.job)).rejects.toThrow(/occupancy/);
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,launchSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/launch receipt/);
+});
+
+it("bounds the final envelope rather than trusting a window-size reserve",()=>{
+ const events=Array.from({length:8},(_,i)=>checkEvent({v:1,run:"r",seq:i+1,t:"2026-10-23T00:00:00.000-04:00",type:"loop_guard",turn:2,kind:"planning",calls:1,evidence:[1],phase:"warning",message:Array.from({length:9000},(_,j)=>String((i*10000+j)*997)).join("-")}));
+ const context={messages:[{role:"user",content:"whole decision"}],tools:[]};const window={fromMessage:0,toMessage:1,fromTurn:0,toTurn:3,requestSha256:"withheld",context};
+ const row={id:"e",messages:[{role:"user" as const,content:"whole decision",timestamp:0}],nativeScore:{verified:true,departed:true,strictRecovery:false,eventualRecovery:false,unchangedRematches:0,recoverySeq:null,victory:false,changes:[],evidence:[]},traceHash:"hash",trace:{kind:"native" as const,events,startSeq:0,startedAtMs:0,gradeWindows:[window]}};
+ const views=boundedGradeViews(row);expect(views.length).toBeGreaterThan(1);expect(views.flatMap(v=>v.trace.kind==="native"?v.trace.events:[])).toEqual(events);for(const view of views)expect(Buffer.byteLength(blindedGradingPrompt(view))).toBeLessThanOrEqual(600000);
 });

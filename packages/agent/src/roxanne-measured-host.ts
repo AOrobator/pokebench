@@ -55,7 +55,7 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
   freezeCandidate:c=>{if(digest(c.text)!==c.hash||candidates.has(c.hash)&&digest(candidates.get(c.hash))!==digest(c))throw new Error("changed frozen prompt");candidates.set(c.hash,c);save(`candidate-${c.hash}`,c);return Promise.resolve();},
   freezeFinalist:c=>{if(!candidates.has(c.hash))throw new Error("unfrozen finalist");save("frozen-finalist",c);return Promise.resolve();},
   qualifyHeldout:async c=>{const rows=await ports.qualifyHeldout(c);if(rows.length!==2)throw new Error("two qualified heldout families required");if(config.starts.some(s=>s.runtimeBaselineSha256!==undefined)&&rows.some(s=>s.runtimeBaselineSha256===undefined))throw new Error("heldout runtime baseline qualification missing");const a=rows[0],b=rows[1];if(a===undefined||b===undefined)throw new Error("missing heldout restore");return [addStart(a),addStart(b)];},
-  recover:async job=>{
+  recover:job=>Promise.resolve().then(()=>{
    const reuse=config.reuse?.find(r=>r.jobId===job.id);if(reuse===undefined)return null;
    const bytes=ports.read(join(reuse.output,`${job.id}-launch.json`));
    if(createHash("sha256").update(bytes).digest("hex")!==reuse.launchSha256)throw new Error("changed reuse launch receipt");
@@ -69,7 +69,7 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
    if(!Number.isSafeInteger(reuse.acquiredAt)||!Number.isSafeInteger(reuse.releasedAt)||reuse.releasedAt<reuse.acquiredAt||reuse.releasedAt-reuse.acquiredAt>job.capMs)throw new Error("invalid reused physical occupancy");
    const presetSchema=Type.Object({version:Type.Literal(2),features:Type.Record(Type.String(),Type.Boolean())});if(!Value.Check(presetSchema,raw.definition))throw new Error("missing frozen feature contract");
    return {outcome:collect(job,raw.runId,source.loaded,parsePlayPreset(raw.definition),process,raw.definition.features),startedAt:reuse.acquiredAt,finishedAt:reuse.releasedAt};
-  },
+  }),
   episode:async(job,signal,deadline):Promise<EpisodeOutcome>=>{
    const source=starts.get(job.restoreHash),lane=config.lanes.find(l=>l.id===job.endpoint),prompt=job.arm==="baseline"?"":candidates.get(job.promptHash)?.text;
    if(source===undefined||source.family!==job.family||lane===undefined||prompt===undefined||digest(prompt)!==job.promptHash||signal.aborted)throw new Error("unknown or invalid measured job binding");
@@ -87,10 +87,24 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
   record:(id,o)=>{save(`${id}-outcome`,o);return Promise.resolve();},
   grade:async rows=>{const judgments:BlindJudgment[]=[],segments:unknown[]=[];for(const row of rows){
    const windows=row.trace.kind==="native"?row.trace.gradeWindows:undefined,views=windows===undefined?[row]:windows.map(w=>{if(row.trace.kind!=="native")throw new Error("native grading required");const view={...row,messages:row.messages.slice(w.fromMessage,w.toMessage),trace:{...row.trace,gradeWindows:[w],events:eventsForGradeWindow(row.trace.events,w)}};return {...view,traceHash:digest(view)};});
-   const parts:BlindJudgment[]=[];for(const view of views){const value=await ports.grade(view);if(!Value.Check(BlindJudgmentSchema,value)||value.id!==row.id)throw new Error("invalid blinded judgment");parts.push(value);segments.push({row:view,judgment:value});}judgments.push(aggregateJudgments(row.id,parts));
+   const parts:BlindJudgment[]=[];for(const view of views.flatMap(boundedGradeViews)){const value=await ports.grade(view);if(!Value.Check(BlindJudgmentSchema,value)||value.id!==row.id)throw new Error("invalid blinded judgment");parts.push(value);segments.push({row:view,judgment:value});}judgments.push(aggregateJudgments(row.id,parts));
   }save(`grades-${digest(rows.map(r=>r.id))}`,{rows,segments,judgments});return {ids:rows.map(r=>r.id),judgments,hash:gradeDigest(rows.map(r=>r.id),judgments)};},
   report:r=>{save("result",r);return Promise.resolve();},
  };
+}
+
+/** Enforce the bound on the actual blinded envelope, including initial snapshot and instructions. */
+export function boundedGradeViews(row:Parameters<EpisodeHost["grade"]>[0][number]):(typeof row)[]{
+ try{blindedGradingPrompt(row);return [row];}catch(error){if(!(error instanceof Error)||error.message!=="grading prompt exceeds qualified size")throw error;}
+ if(row.trace.kind!=="native")throw new Error("one grading context exceeds qualified size");
+ const window=row.trace.gradeWindows?.[0],events=row.trace.events;
+ if(window===undefined||events.length<2)throw new Error("one grading context or event exceeds qualified size");
+ const middle=Math.floor(events.length/2),parts=[events.slice(0,middle),events.slice(middle)];
+ return parts.flatMap(selected=>{
+  const first=selected[0],last=selected.at(-1);if(first===undefined||last===undefined)throw new Error("empty grading shard");
+  const view={...row,trace:{...row.trace,gradeWindows:[{...window,fromSeq:first.seq,toSeq:last.seq+1}],events:selected}};
+  return boundedGradeViews({...view,traceHash:digest(view)});
+ });
 }
 
 /** Preserve every textual decision/tool result. Images stay in the original trace;

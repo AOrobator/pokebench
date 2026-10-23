@@ -122,11 +122,13 @@ function shardDecision(window:GradeWindow,messages:readonly Message[],events:rea
  let offset=0;
  while(offset<selected.length){
   let chosen:GradeWindow|undefined,next=offset;
-  for(let end=offset+1;end<=selected.length;end++){
+  let low=offset+1,high=selected.length;
+  while(low<=high){
+   const end=Math.floor((low+high)/2);
    const first=selected[offset],last=selected[end-1];if(first===undefined||last===undefined)throw new Error("missing native shard event");
    const shard={...window,fromSeq:first.seq,toSeq:last.seq+1};
    const bytes=Buffer.byteLength(gradingJson({window:shard,messages:messages.slice(window.fromMessage,window.toMessage),events:packNativeEvents(selected.slice(offset,end))}));
-   if(bytes>limit)break;chosen=shard;next=end;
+   if(bytes>limit){high=end-1;}else{chosen=shard;next=end;low=end+1;}
   }
   if(chosen===undefined)throw new Error("one grading decision context or native event exceeds bounded context");
   out.push(chosen);offset=next;

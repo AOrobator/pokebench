@@ -77,3 +77,10 @@ it("rehearses a complete frozen batch through the measured binding with fake pro
 it("charges physical occupancy even when an invalid draw cannot get a verified score",async()=>{
  const {physicalGpuOccupancy}=await import("./roxanne-measured-host.js");expect(physicalGpuOccupancy([{lane:"gpu0",acquiredAt:0,releasedAt:100},{lane:"gpu1",acquiredAt:0,releasedAt:200},{lane:"gpu0",acquiredAt:100,releasedAt:300}])).toBe(500);expect(()=>physicalGpuOccupancy([{lane:"gpu0",acquiredAt:5,releasedAt:4}])).toThrow();expect(()=>physicalGpuOccupancy([{lane:"gpu0",acquiredAt:0,releasedAt:10},{lane:"gpu0",acquiredAt:9,releasedAt:11}])).toThrow();expect(()=>physicalGpuOccupancy(null)).toThrow();
 });
+it("binds executing campaign launch owners as well as the agent build to the reviewed pin",async()=>{
+ const {verifyCampaignLaunchSource}=await import("./roxanne-measured-host.js");
+ const calls:(readonly string[])[]=[];const git=(args:readonly string[])=>{calls.push(args);return args[0]==="ls-tree"?"same-source-tree":"";};
+ expect(()=>verifyCampaignLaunchSource(git,"a".repeat(40))).not.toThrow();
+ expect(calls).toEqual([["merge-base","--is-ancestor","a".repeat(40),"HEAD"],["ls-tree","--full-tree","a".repeat(40),"--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"],["ls-tree","--full-tree","HEAD","--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"]]);
+ expect(()=>verifyCampaignLaunchSource(args=>args[0]==="ls-tree"&&args[2]==="HEAD"?"changed-launch-owner":"reviewed-source", "a".repeat(40))).toThrow(/reviewed campaign launch sources/);
+});

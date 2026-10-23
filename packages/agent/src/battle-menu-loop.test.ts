@@ -245,7 +245,7 @@ describe("battle-menu-loop-v1 registry", () => {
   it("is a default-off guard with no dependency, recorded third to last", () => {
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true});
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(SWITCHABLE_FEATURES.at(-128)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-129)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-24)).toBe(ID);
     expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, [ID]: false}, null)).not.toContain(ID);
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true})[ID]).toBe(false);

@@ -109,8 +109,8 @@ it("reaches the model through the production preset path",()=>{
 it("is a default-off standalone guidance switch, recorded third to last (before ineffective-loops-v1 and people-id-cards-v1), that state-only mode refuses",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE V2"});
  expect(featureInfo(ID).description).toContain(" Off: ");
- expect(SWITCHABLE_FEATURES.at(-148)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-148)?.id).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-149)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-149)?.id).toBe(ID);
  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-44)).toBe(ID);
  expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":true,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1");
  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
@@ -122,6 +122,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-148)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-149)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

@@ -161,9 +161,28 @@ it("uses a prior native nickname in fast snapshots and keeps foe-like player nic
  }
 });
 
-it("missing player names leave a printed foe-like actor uncertain while native player species remains identifiable",()=>{
- const h=new BattleActionHistory();h.observe(eventAt(2063));h.observe(eventAt(2064));h.observe(eventAt(2065));h.observe(eventAt(2066));
- expect(h.context()?.text).toContain("Player TORCHIC used SCRATCH");expect(h.context()?.text).toContain("Unknown side Foe GEODUDE used DEFENSE CURL");
+it.each([false,true])("retains the consulted native actor state even with missing names and a later replacement=%s",replacement=>{
+ const after=eventAt(2065);if(after.type!=="state"||!("started"in after)||after.battle?.battlers==null)throw new Error("native attribution end");
+ // Replacement is a structural counterfactual, not an observed native party change.
+ const end=replacement?{...after,battle:{...after.battle,battlers:after.battle.battlers.map(b=>b.position%2===0?{...b,identity:"synthetic-replacement",species:"MUDKIP"}:b)}}:after;
+ const h=new BattleActionHistory();h.observe(eventAt(2063));h.observe(eventAt(2064));h.observe(end);h.observe(eventAt(2066));
+ expect(h.context()?.text).toContain("Player TORCHIC used SCRATCH");expect(h.context()?.text).toContain("Unknown side Foe GEODUDE used DEFENSE CURL");expect(h.context()?.evidence).toEqual([2064,2063,2065,2066]);
+});
+it("a caller's larger remaining budget cannot override the action owner's smaller source cap",()=>{
+ const h=new BattleActionHistory({intervals:2,memory:32,pages:8,sources:1});for(const seq of [2063,2064,2065,2066])h.observe(eventAt(seq));
+ expect(h.context(100)).toBeNull();
+});
+it("preserves the last current native receipt through a successful registered stateless context tool",async()=>{
+ const s=setup({"leader-loss-immediate-v1":true,"dialogue-log-v1":true});s.feed(1744);expect(s.wired.tools.map(t=>t.name)).toEqual(["recall_dialogue"]);const recall=s.wired.tools[0];if(recall===undefined)throw new Error("owned context tool");
+ const result=await recall.execute("post-loss-recall",{});expect(result.details).toBeUndefined();
+ const receipt=eventAt(1744);if(receipt.type!=="tool_result")throw new Error("native receipt");s.emit(checkEvent({...receipt,seq:1747,id:"post-loss-recall",name:recall.name,state_seq:undefined,frames:[],text:result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n")}));
+ expect(last(await s.wired.transformContext(before))).toContain("Last observed loss to GYM LEADER ROXANNE");expect(s.notes[0]?.evidence).toContain(1744);expect(s.notes[0]?.evidence).not.toContain(1747);
+});
+it.each(["missing-game-observation","failed-context","stale-context","new-state-without-receipt"] as const)("stateless ownership never authorizes invalid native evidence: %s",async kind=>{
+ const s=setup({"leader-loss-immediate-v1":true,"dialogue-log-v1":true});s.feed(1744);expect(s.wired.tools.map(t=>t.name)).toEqual(["recall_dialogue"]);const recall=s.wired.tools[0];if(recall===undefined)throw new Error("owned context tool");
+ const state=eventAt(1742),receipt=eventAt(1744);if(state.type!=="state"||!("started"in state)||receipt.type!=="tool_result")throw new Error("native evidence");if(kind==="new-state-without-receipt")s.emit({...state,seq:1746});
+ s.emit(checkEvent({...receipt,seq:1747,id:"post-loss-result",name:kind==="missing-game-observation"?"press":recall.name,is_error:kind==="failed-context",state_seq:kind==="stale-context"?1:undefined,frames:[],text:"Structural receipt negative case"}));
+ expect(await s.wired.transformContext(before)).toBe(before);expect(s.notes).toEqual([]);
 });
 
 it("unchanged native move IDs remain unchanged when a current move display name is missing",async()=>{

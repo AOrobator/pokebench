@@ -33,7 +33,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["visual-split-view", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
+export const BROWSER_MODULES = ["visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -536,8 +536,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
   }
-  if(parts.length===2 && head==="app" && second==="story-progress.js") {
-    sendFile(res,join(options.appDir,"../../agent/dist/story-progress.js"),"text/javascript; charset=utf-8");return;
+  if(parts.length===2 && head==="app" && (second==="story-progress.js"||second==="campaign-catalog.js")) {
+    sendFile(res,join(options.appDir,"../../agent/dist/",second),"text/javascript; charset=utf-8");return;
   }
   if(parts.length===2 && head==="app" && second==="roxanne-interaction.js") {
     sendFile(res,join(options.appDir,"../../agent/dist/roxanne-interaction.js"),"text/javascript; charset=utf-8");return;

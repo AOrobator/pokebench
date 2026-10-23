@@ -12,9 +12,15 @@ class StoryProgress:
     rustboro_stage: int | None
     devon_stage: int | None
     letter: bool | None
+    variables: str | None = None
+    avatar_flags: int | None = None
 
     def json(self) -> dict[str, object]:
-        return asdict(self)
+        return {
+            key: value
+            for key, value in asdict(self).items()
+            if key not in ("variables", "avatar_flags") or value is not None
+        }
 
 
 def read_story_progress(
@@ -37,6 +43,15 @@ def read_story_progress(
         value = int.from_bytes(variables[offset : offset + 2], "little")
         return value if value <= maximum else None
 
+    try:
+        avatar_body = read(0x02037590, 1)
+    except (KeyError, ValueError):
+        avatar_flags = None
+    else:
+        if len(avatar_body) != 1:
+            raise ValueError("short campaign avatar read")
+        avatar_flags = avatar_body[0]
+
     return StoryProgress(
         flags.hex(),
         stage(0x405A, 8),
@@ -44,4 +59,6 @@ def read_story_progress(
         None
         if resources is None or resources.bag is None
         else any(item.item_id == 274 and item.quantity > 0 for item in resources.bag),
+        variables.hex(),
+        avatar_flags,
     )

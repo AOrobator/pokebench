@@ -316,3 +316,13 @@ it("operator promotion enables only the reminder in both canonical comparison ar
 });
 
 it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});
+
+it("normal bundle recipes enable named declines while control retains its previous contract",()=>{
+ for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
+  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  expect(definitionProblems(d),name).toEqual([]);
+  expect(armFeatures(d,"bundle")["move-learn-offer-identity-v1"],name).toBe(true);
+  expect(armFeatures(d,"bundle")["move-learn-tool-v1"],name).toBe(true);
+  expect(armFeatures(d,"control")["move-learn-offer-identity-v1"],name).toBe(false);
+ }
+});

@@ -258,7 +258,8 @@
    "current-map-display-name-v1": false,
    "window-escape-route-v1": false,
    "map-cycle-recovery-v1": false,
-   "move-learn-goal-reminder-v1": true
+   "move-learn-goal-reminder-v1": true,
+   "move-learn-offer-identity-v1": false
   }
  },
  "switches": [
@@ -318,7 +319,8 @@
   "away-note-buildings-v1",
   "current-map-display-name-v1",
   "window-escape-route-v1",
-  "map-cycle-recovery-v1"
+  "map-cycle-recovery-v1",
+  "move-learn-offer-identity-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

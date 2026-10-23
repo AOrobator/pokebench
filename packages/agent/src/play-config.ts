@@ -2,7 +2,7 @@
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
 import { NPC_TEMPLATE_APPROACH_SENTENCE, STATIC_NPC_APPROACH_SENTENCE } from "./semantic-navigation.js";
-import { LEARN_MOVE_SECTION } from "./learn-move.js";
+import { LEARN_MOVE_SECTION, GUARDED_LEARN_MOVE_SECTION } from "./learn-move.js";
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
@@ -256,7 +256,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
     }
   }
   // move-learn-tool-v1 (tool-prompt-sync): learn_move is offered in every scene, so its section is too.
-  if (features["move-learn-tool-v1"]) prompt += `\n\n${LEARN_MOVE_SECTION}`;
+  if (features["move-learn-tool-v1"]) prompt += `\n\n${features["move-learn-offer-identity-v1"]?GUARDED_LEARN_MOVE_SECTION:LEARN_MOVE_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";

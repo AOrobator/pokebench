@@ -31,6 +31,9 @@ const SCENES:readonly PromptScene[]=["overworld","battle","naming","clock","menu
 
 describe("tool-prompt-docs-v1",()=>{
  const sets=featureSets();
+ it("covers the default flags, every fixed arm and every control base",()=>{
+  expect(sets.filter(([name])=>name.startsWith("fixed ")).length).toBeGreaterThanOrEqual(40);
+ });
 
  it.each(sets)("names every tool from playTools in playSystemPrompt: %s",(_name,features)=>{
   const on={...features,"coherent-battle-observation-v1":false,[ID]:true};
@@ -82,6 +85,9 @@ describe("tool-prompt-docs-v1",()=>{
   expect(hash({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true}),[ID]:false})).toBe("5afd9eb7df56df30a50292e9daabe32b64924d9e699e5078e5e9b2db603853fe");
   expect(hash({...base,[ID]:false})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
   expect(hash({...base,[ID]:false,"evolution-decision-v1":true,"battle-move-tool-v1":true})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
+ });
+ it("keeps choose_evolution documentation absent with the switch OFF in every fixed configuration",()=>{
+  for(const [,features] of sets)expect(playSystemPrompt({...features,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain("- choose_evolution:");
  });
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true});

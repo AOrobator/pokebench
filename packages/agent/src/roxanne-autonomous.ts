@@ -34,7 +34,7 @@ export async function runAutonomousCampaign(controller:CampaignController,inputs
   const jobs=devJobs(phase,arms,starts,inputs.endpoints);const batch=await runFrozenBatch(controller,phase,jobs,host);
   for(const job of jobs){if(job.arm==="baseline")continue;const arm=arms.find(a=>a.id===job.arm),outcome=batch.outcomes.get(job.id),judgment=batch.judgments.get(job.id);const controlJob=jobs.find(j=>j.arm==="baseline"&&j.family===job.family),control=controlJob===undefined?undefined:batch.outcomes.get(controlJob.id),controlJudgment=controlJob===undefined?undefined:batch.judgments.get(controlJob.id);
    if(arm===undefined||outcome===undefined||judgment===undefined||control===undefined||!judgment.verified||!outcome.nativeScore.verified||!control.nativeScore.verified||controlJudgment?.verified!==true)throw new Error("complete locked trace judgments required before adaptation");
-   rows.push({candidate:arm,family:job.family,recovered:outcome.nativeScore.strictRecovery,baselineRecovered:control.nativeScore.strictRecovery,unchanged:outcome.nativeScore.unchangedRematches,wins:Number(outcome.nativeScore.victory),tokens:judgment.tokens,factualError:judgment.factualError,evidence:judgment.evidence.join(";"),diagnosis:judgment.diagnosis});
+   rows.push({candidate:arm,family:job.family,recovered:outcome.nativeScore.strictRecovery,baselineRecovered:control.nativeScore.strictRecovery,unchanged:outcome.nativeScore.unchangedRematches,wins:Number(outcome.nativeScore.victory),tokens:outcome.messages.reduce((n,m)=>n+(m.role==="assistant"?m.usage.totalTokens:0),0),factualError:judgment.factualError,evidence:judgment.evidence.join(";"),diagnosis:judgment.diagnosis});
   }
  };
  try{

@@ -41,8 +41,22 @@ export function verifyEpisodeOutcome(job:CampaignJob,outcome:EpisodeOutcome,mode
  if(outcome.traceHash!==episodeTraceHash(outcome)||digest(score)!==digest(outcome.nativeScore)||job.capMs===600_000&&outcome.readinessPassed!==scoreReadiness(frames))throw new Error("trace hash or independently recomputed score mismatch");
  if(job.arm==="baseline"?outcome.reminder!==null:outcome.reminder?.sha256!==job.promptHash)throw new Error("delivered reminder does not match frozen arm");
 }
+/** Grading is behavioral: prompt/context/usage telemetry stays only in the original record. */
+function anonymousMessages(messages:readonly Message[],receipt:ReminderReceipt|null):readonly Message[]{
+ return maskIntervention(messages,receipt).map(m=>m.role!=="assistant"?{...m,timestamp:0}:{...m,timestamp:0,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}});
+}
 function anonymousTrace(trace:EpisodeTrace,id:string):EpisodeTrace{
- return trace.kind==="fixture"?trace:{...trace,events:trace.events.filter(e=>e.type!=="run_start").map(e=>({...e,run:id}))};
+ if(trace.kind==="fixture")return trace;
+ return {...trace,startedAtMs:0,events:trace.events.filter(e=>e.type!=="run_start").map(event=>{
+  const e={...event,run:id,t:new Date(Date.parse(event.t)-trace.startedAtMs).toISOString()};
+  switch(e.type){
+   case "turn_start":return {...e,context:{messages:0,images:0,est_tokens:0}};
+   case "assistant":{const behavior={...e};delete behavior.request_context;return {...behavior,usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null};}
+   case "compaction":return {...e,from_tokens:0,to_tokens:0};
+   case "run_end":return {...e,tokens:{input:0,output:0},wall_ms:0};
+   default:return e;
+  }
+ })};
 }
 /** No transport/discovery imports. A launch-capable host must be authorized separately. */
 function assertActive(controller:CampaignController):void{if(controller.state.stopped!==null)throw new Error(controller.state.stopped);}
@@ -72,7 +86,7 @@ export async function runFrozenBatch(controller:CampaignController,phase:Campaig
  if(failed!==undefined){controller.stop(`incomplete frozen batch: ${failed.message}`);throw failed;}
  if(outcomes.size!==jobs.length){controller.stop("incomplete frozen batch");throw new Error("not all frozen episodes terminated");}
  // Treatment mapping never goes to the grader. Full originals were recorded above.
- const mapping=new Map<string,string>();const projected=jobs.map(job=>{const id=`E${randomUUID()}`;mapping.set(id,job.id);const o=outcomes.get(job.id);if(o===undefined)throw new Error("missing terminal trace");return {id,messages:maskIntervention(o.messages,o.reminder),nativeScore:o.nativeScore,traceHash:o.traceHash,trace:anonymousTrace(o.trace,id)};});
+ const mapping=new Map<string,string>();const projected=jobs.map(job=>{const id=`E${randomUUID()}`;mapping.set(id,job.id);const o=outcomes.get(job.id);if(o===undefined)throw new Error("missing terminal trace");const view={messages:anonymousMessages(o.messages,o.reminder),nativeScore:o.nativeScore,trace:anonymousTrace(o.trace,id)};return {id,...view,traceHash:digest(view)};});
  projected.sort((a,b)=>a.id.localeCompare(b.id));
  controller.bindBlinding(Object.fromEntries(mapping));
  const grades=await host.grade(projected);

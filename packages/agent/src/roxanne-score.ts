@@ -12,11 +12,23 @@ function index(party:readonly CapabilityMon[]):Map<string,CapabilityMon>{
  }
  return out;
 }
-const moveSet=(p:CapabilityMon)=>[...p.moves].sort((a,b)=>a-b).join(",");
 export function capabilityChanges(before:readonly CapabilityMon[],after:readonly CapabilityMon[]):CapabilityChange[]{
  const a=index(before),b=index(after),changes=new Set<CapabilityChange>();
- for(const [id,p]of b){const old=a.get(id);if(old===undefined){changes.add("member");continue;}if(p.level>old.level)changes.add("level");if(p.species!==old.species)changes.add("evolution");if(moveSet(p)!==moveSet(old))changes.add("moves");}
+ for(const [id,p]of b){const old=a.get(id);if(old===undefined){changes.add("member");continue;}if(p.level>old.level)changes.add("level");if(p.species!==old.species)changes.add("evolution");if(p.moves.some(m=>m!==0&&!old.moves.includes(m)))changes.add("moves");}
  return (["level","evolution","moves","member"] as const).filter(k=>changes.has(k));
+}
+/** Attribute each retained gain to the outside transition that actually acquired it. */
+function retainedGain(initial:readonly CapabilityMon[],before:readonly CapabilityMon[],outside:readonly CapabilityMon[],current:readonly CapabilityMon[]):boolean{
+ const base=index(initial),prior=index(before),now=index(current);
+ return outside.some(p=>{
+  const old=base.get(p.identity),previous=prior.get(p.identity),held=now.get(p.identity);
+  if(held===undefined)return false;
+  if(old===undefined)return previous===undefined;
+  if(previous===undefined)return false;
+  return p.level>old.level&&p.level>previous.level&&held.level>=p.level
+   ||p.species!==old.species&&p.species!==previous.species&&held.species===p.species
+   ||p.moves.some(m=>m!==0&&!old.moves.includes(m)&&!previous.moves.includes(m)&&held.moves.includes(m));
+ });
 }
 export interface RecoveryScore {readonly verified:boolean;readonly departed:boolean;readonly strictRecovery:boolean;readonly eventualRecovery:boolean;readonly unchangedRematches:number;readonly recoverySeq:number|null;readonly victory:boolean;readonly changes:readonly CapabilityChange[];readonly evidence:readonly number[]}
 const gym=(s:RecoveryFrame)=>s.map.length===2&&s.map[0]===11&&s.map[1]===3;
@@ -24,20 +36,20 @@ export function scoreRecovery(frames:readonly RecoveryFrame[],cap:{readonly turn
  const first=frames[0];if(first===undefined||!gym(first)||first.roxanneBattle||first.victory)throw new Error("episode must start inside gym before the rematch, without prior victory");
  index(first.party);
  let verified=true,departed=false,recovered=false,unchanged=0,recoverySeq:number|null=null,wasBattle=false,lastSeq=-1,lastMs=-1,lastTurn=-1,victory=false;
- let gainedOutside=false;let previousParty:readonly CapabilityMon[]=first.party;let changes:CapabilityChange[]=[];const evidence:number[]=[first.seq];
+ const outsideGains:{before:readonly CapabilityMon[];after:readonly CapabilityMon[]}[]=[];let previousParty:readonly CapabilityMon[]=first.party;let changes:CapabilityChange[]=[];const evidence:number[]=[first.seq];
  for(const f of frames){
   if(f.turn>cap.turns||f.elapsedMs>cap.ms)break;
   if(!Number.isSafeInteger(f.seq)||f.seq<=lastSeq||f.elapsedMs<lastMs||f.turn<lastTurn||!Number.isFinite(f.elapsedMs)||f.elapsedMs<0)throw new Error("nonmonotone recovery evidence");lastSeq=f.seq;lastMs=f.elapsedMs;lastTurn=f.turn;
+  if(f.victory){victory=true;evidence.push(f.seq);}
   if(!f.coherent){verified=false;continue;}
   if(f.map.length!==2||f.map.some(v=>!Number.isSafeInteger(v)||v<0)){verified=false;continue;}
   const changed=capabilityChanges(first.party,f.party);
-  if(!gym(f)){if(!departed)evidence.push(f.seq);departed=true;if(!wasBattle&&capabilityChanges(previousParty,f.party).length>0)gainedOutside=true;}
+  if(!gym(f)){if(!departed)evidence.push(f.seq);departed=true;if(!wasBattle&&capabilityChanges(previousParty,f.party).length>0)outsideGains.push({before:previousParty,after:f.party});}
   if(f.roxanneBattle&&!wasBattle){
    if(changed.length===0){unchanged++;evidence.push(f.seq);}
-   else if(departed&&gainedOutside&&!recovered){recovered=true;recoverySeq=f.seq;changes=changed;evidence.push(f.seq);}
+   else if(departed&&outsideGains.some(g=>retainedGain(first.party,g.before,g.after,f.party))&&!recovered){recovered=true;recoverySeq=f.seq;changes=changed;evidence.push(f.seq);}
   }
   previousParty=f.party;wasBattle=f.roxanneBattle;
-  if(f.victory){victory=true;evidence.push(f.seq);}
  }
  return {verified,departed,strictRecovery:verified&&recovered&&unchanged===0,eventualRecovery:verified&&recovered,unchangedRematches:unchanged,recoverySeq,victory,changes,evidence};
 }
@@ -67,12 +79,11 @@ export function recoveryFrames(events:readonly RunEvent[],afterSeq:number,episod
   if(event.type!=="state"||!("started" in event))continue;
   const s=event,party:CapabilityMon[]=[];let coherent=s.started&&s.raw_ram!==undefined&&s.map_id!==null&&s.party.length>0;
   for(const p of s.party){if(p.identity===undefined||p.identity===null||p.species_id===undefined||p.species_id===null||p.level===null||p.moves===undefined||p.moves===null||p.diagnostic){coherent=false;continue;}party.push({identity:p.identity,species:p.species_id,level:p.level,moves:p.moves.map(m=>m.move_id)});}
-  if(!coherent)continue;
-  if(battlePending&&s.in_battle&&s.battle?.initialized===true){
+  if(coherent&&battlePending&&s.in_battle&&s.battle?.initialized===true){
    if(s.trainer_opponent?.battle_active===true){roxanne=s.trainer_opponent.trainer_id===265;battlePending=false;}
    else if(s.battle.battle_type!==null&&(s.battle.battle_type&8)===0)battlePending=false;
   }
-  out.push({seq:s.seq,turn:s.turn-started.turn,elapsedMs:Date.parse(s.t)-t0,map:s.map_id??[],party,roxanneBattle:roxanne,victory:victories.has(s.seq),coherent:coverage});
+  out.push({seq:s.seq,turn:s.turn-started.turn,elapsedMs:Date.parse(s.t)-t0,map:s.map_id??[],party,roxanneBattle:roxanne,victory:victories.has(s.seq),coherent:coverage&&coherent});
  }
  if(battlePending||lastNativeId===null){const last=out.at(-1);if(last!==undefined)out[out.length-1]={...last,coherent:false};}
  return out;

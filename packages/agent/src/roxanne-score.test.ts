@@ -27,11 +27,30 @@ it("keeps the predeclared held-out winner thresholds and control veto",()=>{
 it("does not count a level earned inside the losing gym battle as outside preparation",()=>{const frames=[frame(1),frame(2,{roxanneBattle:true}),frame(3,{roxanneBattle:true,party:[mon({level:16})]}),frame(4,{map:[0,3],party:[mon({level:16})]}),frame(5,{party:[mon({level:16})],roxanneBattle:true})];expect(scoreRecovery(frames).eventualRecovery).toBe(false);});
 
 it("censors recovery and victory outside the equal declared episode caps",()=>{const fs=trace().map(f=>({...f,elapsedMs:f.seq>=4?1_800_001:f.elapsedMs}));expect(scoreRecovery(fs)).toMatchObject({eventualRecovery:false,victory:false});expect(scoreRecovery(trace(),{turns:3,ms:1_800_000}).eventualRecovery).toBe(false);expect(scoreRecovery(trace(),{turns:5,ms:50}).victory).toBe(true);});
-it("grades the recorded ea04 recovery and native win without erasing its earlier unchanged rematch",async()=>{
+it("reports native ea04 victory but vetoes recovery qualification across its archived evidence gaps",async()=>{
  const {readFileSync}=await import("node:fs");const {gunzipSync}=await import("node:zlib");const {checkEvent}=await import("./events.js");const {recoveryFrames}=await import("./roxanne-score.js");
  const json:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(json))throw new Error("invalid recording fixture");
  const events=json.map(checkEvent),frames=recoveryFrames(events,17303);
- expect(scoreRecovery(frames,{turns:1000,ms:4_000_000})).toMatchObject({verified:true,strictRecovery:false,eventualRecovery:true,unchangedRematches:1,recoverySeq:22229,victory:true});
+ expect(scoreRecovery(frames,{turns:1000,ms:4_000_000})).toMatchObject({verified:false,strictRecovery:false,eventualRecovery:false,unchangedRematches:1,recoverySeq:22229,victory:true});
  expect(scoreRecovery(frames)).toMatchObject({strictRecovery:false,victory:false});
 });
 it("retains native victory even when preparation evidence is unavailable",()=>{expect(scoreRecovery([frame(1),frame(2,{coherent:false}),frame(3,{victory:true})])).toMatchObject({verified:false,eventualRecovery:false,victory:true});});
+it("requires an acquired nonzero move, not deletion alone",()=>{
+ expect(capabilityChanges([mon()],[mon({moves:[0,45,116,52]})])).toEqual([]);
+ expect(scoreRecovery([frame(1),frame(2,{map:[0,3],party:[mon({moves:[0,45,116,52]})]}),frame(3,{roxanneBattle:true,party:[mon({moves:[0,45,116,52]})]})])).toMatchObject({strictRecovery:false,eventualRecovery:false,changes:[]});
+});
+it("ties outside preparation to the particular capability retained at rematch",()=>{
+ const a=mon(),b=mon({identity:"b"}),inside=mon({moves:[24,45,116,52]});
+ const fs=[frame(1),frame(2,{map:[0,3],party:[a,b]}),frame(3,{map:[0,3],party:[a]}),frame(4,{party:[inside]}),frame(5,{party:[inside],roxanneBattle:true})];
+ expect(scoreRecovery(fs)).toMatchObject({verified:true,strictRecovery:false,eventualRecovery:false});
+ // Changing A outside does count even if B was removed, and level gains survive further levels.
+ expect(scoreRecovery([...fs.slice(0,3),frame(4,{map:[0,3],party:[inside]}),frame(5,{party:[inside],roxanneBattle:true})])).toMatchObject({strictRecovery:true,changes:["moves"]});
+ expect(scoreRecovery([frame(1),frame(2,{map:[0,3],party:[mon({level:16})]}),frame(3,{party:[mon({level:17})],roxanneBattle:true})])).toMatchObject({strictRecovery:true});
+ // An unrelated inside level gain cannot borrow another member's discarded outside level gain.
+ expect(scoreRecovery([frame(1,{party:[a,b]}),frame(2,{map:[0,3],party:[a,mon({identity:"b",level:16})]}),frame(3,{map:[0,3],party:[a]}),frame(4,{party:[mon({level:16})],roxanneBattle:true})])).toMatchObject({strictRecovery:false});
+});
+
+it("does not relabel an inside level gain as outside preparation when a different member is acquired",()=>{
+ const leveled=mon({level:16}),b=mon({identity:"b"});
+ expect(scoreRecovery([frame(1),frame(2,{party:[leveled],roxanneBattle:true}),frame(3,{map:[0,3],party:[leveled]}),frame(4,{map:[0,3],party:[leveled,b]}),frame(5,{map:[0,3],party:[leveled]}),frame(6,{party:[leveled],roxanneBattle:true})])).toMatchObject({verified:true,eventualRecovery:false});
+});

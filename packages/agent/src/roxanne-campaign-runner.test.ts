@@ -45,3 +45,40 @@ it("the batch path rejects a false score after retaining the original evidence a
  const host:EpisodeHost={mode:"offline-fixture",now:()=>0,acquire:()=>Promise.resolve(()=>Promise.resolve()),deadline:()=>()=>undefined,episode:()=>Promise.resolve(bad),record:()=>{recorded=true;return Promise.resolve();},grade:rows=>Promise.resolve({hash:gradeDigest(rows.map(r=>r.id)),ids:rows.map(r=>r.id)})};
  await expect(runFrozenBatch(c,"explore",[job("b")],host)).rejects.toThrow(/recomputed score/);expect(recorded).toBe(true);expect(c.state.jobs[0]?.status).toBe("complete");expect(c.state.stopped).toContain("incomplete");
 });
+it.each(["ram","identity","moves","diagnostic","map"] as const)("preserves a schema-valid native %s gap through verification instead of silently grading recovery",async defect=>{
+ const {readFileSync}=await import("node:fs"),{gunzipSync}=await import("node:zlib"),{checkEvent}=await import("./events.js"),{recoveryFrames,scoreReadiness}=await import("./roxanne-score.js");
+ const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(raw))throw new Error("invalid recording");
+ const events=raw.map(checkEvent);const i=events.findIndex(e=>e.type==="state"&&e.seq===17751),s=events[i];if(s?.type!=="state"||!("started"in s))throw new Error("missing test-owned state");
+ const corrupt={...s,...(defect==="map"?{map_id:null}:{}),party:s.party.map((p,j)=>j!==0?p:{...p,...(defect==="identity"?{identity:null}:{}),...(defect==="moves"?{moves:null}:{}),...(defect==="diagnostic"?{diagnostic:"unqualified native party"}:{})})};
+ if(defect==="ram")delete corrupt.raw_ram;events[i]=checkEvent(corrupt);
+ const fs=recoveryFrames(events,17303),gap=fs.filter(f=>f.seq===17751);
+ expect(gap).toHaveLength(1);expect(gap[0]).toMatchObject({coherent:false});expect(scoreReadiness(fs.filter(f=>f.seq>=17751))).toBe(false);
+ const honest=scoreRecovery(fs,{turns:1000,ms:4_000_000});expect(honest).toMatchObject({verified:false,eventualRecovery:false,victory:true});
+ const first=events.find(e=>e.seq===17303);if(first===undefined)throw new Error("missing start");
+ const o={reason:"budget",messages:[],reminder:null,trace:{kind:"native" as const,events,startSeq:17303,startedAtMs:Date.parse(first.t)},nativeScore:{...scoreRecovery(fs),verified:true}};
+ expect(()=> {verifyEpisodeOutcome({...job("b"),capMs:1_800_000},{...o,traceHash:episodeTraceHash(o)},"measured");}).toThrow(/recomputed/);
+});
+it("blinds realistic usage and actual recorder context telemetry at the grade consumer while retaining originals",async()=>{
+ const {mkdtempSync,readFileSync,rmSync}=await import("node:fs"),{tmpdir}=await import("node:os"),{join}=await import("node:path"),{gunzipSync}=await import("node:zlib"),{checkEvent,parseEvent}=await import("./events.js"),{recoveryFrames}=await import("./roxanne-score.js"),{RunLog}=await import("./run-log.js"),{RunRecorder}=await import("./recorder.js"),{FrameStore}=await import("./frames.js"),{RUN_START_META}=await import("../test-support/events.js"),{assistant}=await import("../test-support/pi.js");
+ const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(raw))throw new Error("invalid recording");const archived=raw.map(checkEvent),first=archived.find(e=>e.seq===17303);if(first===undefined)throw new Error("missing start");
+ const dir=mkdtempSync(join(tmpdir(),"roxanne-blind-")),originals:import("./roxanne-campaign-runner.js").EpisodeOutcome[]=[];
+ try{
+ const c=new CampaignController(new MemoryCampaignStore(createCampaign("blind-seam",0)));
+ const host:EpisodeHost={mode:"measured",now:()=>0,acquire:()=>Promise.resolve(()=>Promise.resolve()),deadline:()=>()=>undefined,episode:async j=>{
+  const delivered=insertReminder([{role:"user",content:"original history",timestamp:123}],j.arm!=="baseline","secret reminder");
+  const reply=assistant({text:"same action",input:j.arm==="baseline"?100:104,output:10});
+  const log=RunLog.create(dir,`2026-10-11T22-00-00_blind_${j.id}`),rec=new RunRecorder({log,frames:new FrameStore(dir,1000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.reject(new Error("no game calls"))},now:()=>0});
+  log.append({type:"run_start",turn:0,...RUN_START_META});await rec.transformContext([...delivered.messages]);rec.recordRequestContext({mode:"full",scene:"overworld",state_seq:null,system_prompt:"same core",prompt_sha256:digest(j.arm),tools:[],tools_sha256:digest([]),component_chars:{core_text:9,guidance_text:0,canonical_history_json:j.arm==="baseline"?100:116}});await rec.emit({type:"message_end",message:reply});
+  const telemetry=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).filter(e=>e.type==="turn_start"||e.type==="assistant").map(e=>({...e,t:first.t}));
+  const trace={kind:"native" as const,events:[...telemetry,...archived],startSeq:17303,startedAtMs:Date.parse(first.t)};
+  const o={reason:"budget",messages:[...delivered.messages,reply],reminder:delivered.receipt,trace,nativeScore:scoreRecovery(recoveryFrames(trace.events,17303))};return {...o,traceHash:episodeTraceHash(o)};
+ },record:(_id,o)=>{originals.push(o);return Promise.resolve();},grade:rows=>{
+  const comparable=rows.map(r=>({...r,id:"anonymous",traceHash:"projection",trace:r.trace.kind==="native"?{...r.trace,events:r.trace.events.map(e=>({...e,run:"anonymous"}))}:r.trace}));
+  expect(comparable[0]).toEqual(comparable[1]);expect(rows.every(r=>r.traceHash!==originals[0]?.traceHash&&r.traceHash!==originals[1]?.traceHash)).toBe(true);
+  return Promise.resolve({hash:gradeDigest(rows.map(r=>r.id)),ids:rows.map(r=>r.id)});
+ }};
+ await runFrozenBatch(c,"explore",[{...job("a"),capMs:1_800_000},{...job("b"),capMs:1_800_000}],host);
+ expect(originals.map(o=>o.messages.length)).toEqual([3,2]);expect(originals.map(o=>o.messages.at(-1)).map(m=>m?.role==="assistant"?m.usage.input:null)).toEqual([104,100]);
+ expect(originals.map(o=>o.trace.kind==="native"?o.trace.events.filter(e=>e.type==="turn_start")[0]?.context.messages:null)).toEqual([2,1]);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

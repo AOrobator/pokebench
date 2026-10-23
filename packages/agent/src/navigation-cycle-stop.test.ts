@@ -55,6 +55,10 @@ it("changed local terrain does not trigger a stale cycle, even when positions re
  const h=recorded("1031",true,(s,attempt)=>({...s,navigation_grid:s.navigation_grid==null?null:{...s.navigation_grid,tiles:s.navigation_grid.tiles.map((t,i)=>i===0?{...t,elevation:attempt+1}:t)}}));
  const r=await h.call();expect(h.buttons).toEqual(fixture.presses["1031"]);expect(r.details).toMatchObject({navigation:{commands:8}});
 });
+it("a changed player elevation is not the same cycle state",async()=>{
+ const h=recorded("1031",true,(s,attempt)=>attempt<2||s.navigation_grid==null?s:{...s,navigation_grid:{...s.navigation_grid,elevation:0}});
+ const r=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);expect(r.details).toMatchObject({navigation:{commands:4}});
+});
 it("an off-route moving NPC does not hide the recorded cycle",async()=>{
  const h=recorded("1032",true);await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"]]);
 });

@@ -105,6 +105,30 @@ describe("party", () => {
     expect(party(view(bare()))).toBe(`<p>${NO_DATA}</p>`);
   });
 
+  it("retains a labelled last party through unread save samples and refreshes or clears it", () => {
+    const log = bare();
+    const prior = log.add(1, state());
+    const unread = log.add(2, state({ screen: "battle", in_battle: true, party: [], name: null, location: null, money: null, play_time_s: null }));
+    const current = view(log);
+    expect(current.state).toEqual(unread);
+    expect(party(current)).toContain("TORCHIC");
+    expect(party(current)).toContain(`Last recorded party · state #${String(prior.seq)}`);
+    log.add(3, state({ party: [{ species: "TORCHIC", level: 6, hp: 7, max_hp: 22 }] }));
+    expect(party(view(log))).toContain("Lv6 · 7/22");
+    expect(party(view(log))).not.toContain("Last recorded party");
+    log.add(4, state({ party: [] }));
+    expect(party(view(log))).toBe('<p class="nodata">no Pokémon yet</p>');
+  });
+
+  it("does not call an unread party empty or retain a party across a game reset", () => {
+    const log = bare();
+    log.add(1, state({ party: [], play_time_s: null, name: null, money: null }));
+    expect(party(view(log))).toContain("Party unavailable in this sample");
+    log.add(2, state());
+    log.add(3, state({ started: false, screen: "title", party: [], play_time_s: null }));
+    expect(party(view(log))).toBe('<p class="nodata">no Pokémon yet</p>');
+  });
+
   it("escapes species names", () => {
     const log = bare();
     log.add(1, state({ party: [{ species: "<b>", level: 1, hp: 1, max_hp: 1 }] }));

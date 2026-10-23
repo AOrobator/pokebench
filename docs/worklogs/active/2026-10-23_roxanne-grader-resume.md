@@ -8,3 +8,7 @@ Validation: RED/GREEN bounded sharding and independent reconstruction, exact ful
 
 ## Session log
 - Created isolated branch from main 1a5970818. Offline work only; reviewed old failure and exact native outcomes.
+- RED fixture initially rejected by event schema; corrected to valid loop_guard, then reproduced actual bounded-context failure. GREEN 7/7 grading tests; 36/36 combined focused grader/runner/measured-host tests.
+- Added optional hash-bound archived episode recovery before any lease acquisition. Rechecks terminal native provenance, raw RAM/journal score, reminder, launch/trace/continuation/physical receipt hashes. Same frozen gameplay pin stays2335; repair controller pin recorded separately. Imported episodes count toward the same 38/16h budget exactly once.
+- Exact-trace offline replay in progress. Pure diagnostic script initially compared sequence order after grouping by turn; corrected audit to compare complete sequence membership sorted by native seq, while every individual segment retains source order. Historical late turn0 diagnostic events explain ordering; no evidence dropped.
+- Initial normal test attempt lacked worktree .env and skipped ROM tests; restored link to canonical .env and will rerun normally. No skip/budget weakening.

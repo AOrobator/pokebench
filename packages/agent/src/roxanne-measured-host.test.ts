@@ -109,3 +109,15 @@ it("requires guarded runtime source parity and emits its exact preset and restor
  expect(()=>measuredCampaignHost({...config,sourceCommit:"c".repeat(40)},ports)).toThrow(/runtime baseline source/);
  await host.freezeCandidate(candidate("a","hint"));await expect(measuredCampaignHost(config,{...ports,qualifyHeldout:()=>Promise.resolve([{family:"a",directory:"/a"},{family:"b",directory:"/b"}])}).qualifyHeldout(candidate("a","hint"))).rejects.toThrow(/runtime baseline/);
 });
+it("recovers hash-bound terminal originals without acquiring or launching and rejects changed provenance",async()=>{
+ const f=fixture(),host=measuredCampaignHost(f.config,f.ports);await host.episode(f.job,new AbortController().signal,1_800_000);
+ const launchPath="/output/explore-1-launch.json",launch=JSON.parse(f.ports.read(launchPath).toString()) as {runId:string};
+ const hash=(path:string)=>createHash("sha256").update(f.ports.read(path)).digest("hex");
+ f.ports.write("/old-lease.json",{lane:"gpu0",run:launch.runId,acquiredAt:10,releasedAt:110});
+ const reuse={jobId:f.job.id,output:"/output",launchSha256:hash(launchPath),eventsSha256:hash(`/runs/${launch.runId}/events.jsonl`),continuationSha256:hash(`/runs/${launch.runId}/campaign-continuation.json`),leaseFile:"/old-lease.json",leaseSha256:hash("/old-lease.json"),acquiredAt:10,releasedAt:110};
+ const noGPU={...f.ports,acquire:()=>{throw Error("forbidden lease");},launch:()=>{throw Error("forbidden launch");}};
+ const recovered=await measuredCampaignHost({...f.config,reuse:[reuse]},noGPU).recover?.(f.job);expect(recovered?.outcome.nativeScore.verified).toBe(true);expect(recovered?.finishedAt).toBe(110);expect(f.commands).toHaveLength(1);
+ await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,eventsSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/evidence/);
+ await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,releasedAt:111}]},noGPU).recover?.(f.job)).rejects.toThrow(/occupancy/);
+ await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,launchSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/launch receipt/);
+});

@@ -44,7 +44,7 @@ it("losslessly records every changed request context including tool and system c
 
 it("shards a large decision's native events losslessly with its whole decision context repeated",()=>{
  const f=fixture();
- const events=Array.from({length:8},(_,i)=>checkEvent({v:1,run:"r",seq:i+1,t:"2026-10-23T00:00:00.000-04:00",type:"activity",turn:2,category:"test",message:Array.from({length:600},(_,j)=>String((i*700+j)*997)).join("-")}));
+ const events=Array.from({length:8},(_,i)=>checkEvent({v:1,run:"r",seq:i+1,t:"2026-10-23T00:00:00.000-04:00",type:"loop_guard",turn:2,kind:"planning",calls:1,evidence:[1],phase:"warning",message:Array.from({length:600},(_,j)=>String((i*700+j)*997)).join("-")}));
  const input={...f,receipts:[f.receipts[0]],messages:f.messages.slice(0,2),events};
  const windows=buildGradeWindows(input,9000);expect(windows.length).toBeGreaterThan(1);
  expect(windows.every(w=>w.fromMessage===1&&w.toMessage===2&&w.fromTurn===0&&w.toTurn===3)).toBe(true);

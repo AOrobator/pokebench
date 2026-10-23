@@ -27,6 +27,7 @@ export interface BlindJudgment{readonly id:string;readonly diagnosis:Diagnosis;r
 export const gradeDigest=(ids:readonly string[],judgments:readonly BlindJudgment[]=[]):string=>digest({ids:[...ids].sort(),judgments:[...judgments].sort((a,b)=>a.id.localeCompare(b.id))});
 export interface EpisodeHost{
  readonly mode:"measured"|"offline-fixture";
+ recover?(job:CampaignJob):Promise<{readonly outcome:EpisodeOutcome;readonly startedAt:number;readonly finishedAt:number}|null>;
  now():number;
  acquire(endpoint:string):Promise<()=>Promise<void>>;
  /** Must honor the signal/deadline, record terminal evidence and return only after teardown. */
@@ -77,11 +78,21 @@ function anonymousTrace(trace:EpisodeTrace,id:string,reminder:ReminderReceipt|nu
 function assertActive(controller:CampaignController):void{if(controller.state.stopped!==null)throw new Error(controller.state.stopped);}
 export async function runFrozenBatch(controller:CampaignController,phase:CampaignPhase,jobs:readonly CampaignJob[],host:EpisodeHost):Promise<{outcomes:ReadonlyMap<string,EpisodeOutcome>;judgments:ReadonlyMap<string,BlindJudgment>}>{
  controller.freeze(freezeBatch(phase,jobs));const outcomes=new Map<string,EpisodeOutcome>();
+ // Reconstruct and score every reusable trace before any lane can acquire compute.
+ const recovered=new Map<string,NonNullable<Awaited<ReturnType<NonNullable<EpisodeHost["recover"]>>>>>();
+ for(const job of jobs){const prior=await host.recover?.(job);if(prior!==undefined&&prior!==null){verifyEpisodeOutcome(job,prior.outcome,host.mode);recovered.set(job.id,prior);}}
  const endpoints=[...new Set(jobs.map(j=>j.endpoint))];let failed:Error|undefined;
  const settled=await Promise.allSettled(endpoints.map(async endpoint=>{
   try{
    for(const job of jobs.filter(j=>j.endpoint===endpoint)){
     if(controller.state.stopped!==null)break;
+    const prior=recovered.get(job.id);
+    if(prior!==undefined){
+     verifyEpisodeOutcome(job,prior.outcome,host.mode);
+     await host.record(job.id,prior.outcome);
+     controller.start(job.id,prior.startedAt);controller.finish(job.id,prior.finishedAt,prior.outcome.reason,episodeTraceHash(prior.outcome));
+     outcomes.set(job.id,prior.outcome);assertActive(controller);continue;
+    }
     const release=await host.acquire(endpoint);
     let released=false;const signal=new AbortController();let cancel:()=>void=()=>undefined;
     try{

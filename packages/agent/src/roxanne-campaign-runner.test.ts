@@ -111,3 +111,14 @@ it("drains a healthy peer to its original terminal after grading preparation fai
  try{expect(healthySignal?.aborted).toBe(false);}finally{finish();await rejected;}
  expect(recorded).toEqual(["healthy"]);expect(called).toEqual(["bad","healthy"]);expect(c.state.jobs.find(j=>j.id==="healthy")).toMatchObject({status:"complete",reason:"budget"});expect(c.state.jobs.find(j=>j.id==="bad")?.status).toBe("running");expect(c.state.stopped).toContain("incomplete");
 });
+it("reuses completed gameplay before acquiring any lease and charges its recorded occupancy once",async()=>{
+ let acquired=0,launched=0,now=300;const controller=new CampaignController(new MemoryCampaignStore(createCampaign("reuse",0,{gpuMs:200,episodes:2})));
+ const host:EpisodeHost={mode:"offline-fixture",now:()=>now,recover:j=>Promise.resolve(j.id==="old"?{outcome:outcome(),startedAt:10,finishedAt:110}:null),acquire:()=>{acquired++;return Promise.resolve(()=>Promise.resolve());},deadline:()=>()=>undefined,episode:()=>{launched++;now+=50;return Promise.resolve(outcome());},record:()=>Promise.resolve(),grade:rows=>Promise.resolve({ids:rows.map(r=>r.id),hash:gradeDigest(rows.map(r=>r.id))})};
+ await runFrozenBatch(controller,"explore",[job("old"),job("new")],host);
+ expect(acquired).toBe(1);expect(launched).toBe(1);expect(controller.state.spentMs).toBe(350);expect(controller.state.priorEpisodes+controller.state.jobs.length).toBe(4);expect(controller.state.jobs[0]).toMatchObject({status:"complete",startedAt:10,finishedAt:110});
+});
+it("a rejected archived score cannot fall back to new gameplay",async()=>{
+ let calls=0;const controller=new CampaignController(new MemoryCampaignStore(createCampaign("bad-reuse",0)));
+ const host:EpisodeHost={mode:"offline-fixture",now:()=>0,recover:()=>Promise.resolve({outcome:{...outcome(),traceHash:"0".repeat(64)},startedAt:1,finishedAt:2}),acquire:()=>{calls++;throw Error("forbidden");},deadline:()=>()=>undefined,episode:()=>{calls++;throw Error("forbidden");},record:()=>Promise.resolve(),grade:()=>{throw Error("forbidden");}};
+ await expect(runFrozenBatch(controller,"explore",[job("old")],host)).rejects.toThrow(/trace hash/);expect(calls).toBe(0);
+});

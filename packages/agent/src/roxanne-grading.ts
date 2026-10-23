@@ -9,7 +9,7 @@ import type {ReminderReceipt} from "./roxanne-restore.js";
 import type {BlindJudgment} from "./roxanne-campaign-runner.js";
 export interface CapturedContext{readonly messages:readonly Record<string,unknown>[];readonly tools:readonly unknown[]}
 export interface ContextUpdate{readonly offset:number;readonly turn:number;readonly prefix:number;readonly remove:number;readonly insert:readonly Record<string,unknown>[];readonly tools?:readonly unknown[];readonly requestSha256:string}
-export interface GradeWindow{readonly updates?:readonly ContextUpdate[];readonly fromMessage:number;readonly toMessage:number;readonly fromTurn:number;readonly toTurn:number;readonly context:CapturedContext;readonly requestSha256:string}
+export interface GradeWindow{readonly fromSeq?:number;readonly toSeq?:number;readonly updates?:readonly ContextUpdate[];readonly fromMessage:number;readonly toMessage:number;readonly fromTurn:number;readonly toTurn:number;readonly context:CapturedContext;readonly requestSha256:string}
 const Integer=Type.Integer({minimum:0,maximum:Number.MAX_SAFE_INTEGER});
 const Receipt=Type.Object({index:Integer,turn:Integer,offset:Integer,sha256:Type.String({pattern:"^[a-f0-9]{64}$"})},{additionalProperties:false});
 export const MAX_GRADING_BYTES=600_000;
@@ -113,8 +113,29 @@ export function unpackNativeEvents(records:readonly unknown[]):RunEvent[]{
  }
  return values;
 }
+/** Sequence shards repeat the complete decision/context but partition native evidence. */
+export function eventsForGradeWindow(events:readonly RunEvent[],window:GradeWindow):RunEvent[]{
+ return events.filter(e=>e.turn>=window.fromTurn&&e.turn<window.toTurn&&e.type!=="run_start"&&(window.fromSeq===undefined||e.seq>=window.fromSeq)&&(window.toSeq===undefined||e.seq<window.toSeq));
+}
+function shardDecision(window:GradeWindow,messages:readonly Message[],events:readonly RunEvent[],limit:number):GradeWindow[]{
+ const selected=eventsForGradeWindow(events,window),out:GradeWindow[]=[];
+ let offset=0;
+ while(offset<selected.length){
+  let chosen:GradeWindow|undefined,next=offset;
+  for(let end=offset+1;end<=selected.length;end++){
+   const first=selected[offset],last=selected[end-1];if(first===undefined||last===undefined)throw new Error("missing native shard event");
+   const shard={...window,fromSeq:first.seq,toSeq:last.seq+1};
+   const bytes=Buffer.byteLength(gradingJson({window:shard,messages:messages.slice(window.fromMessage,window.toMessage),events:packNativeEvents(selected.slice(offset,end))}));
+   if(bytes>limit)break;chosen=shard;next=end;
+  }
+  if(chosen===undefined)throw new Error("one grading decision context or native event exceeds bounded context");
+  out.push(chosen);offset=next;
+ }
+ if(out.length===0)throw new Error("one grading decision exceeds bounded context");
+ return out;
+}
 /** Greedy contiguous segments begin at an actual outgoing request. Every new
- * message and every native event is covered; an oversized single decision fails closed. */
+ * message and native event is retained; large native journals shard within a decision. */
 export function contextDelta(before:CapturedContext,after:CapturedContext,offset:number,turn:number,requestSha256:string):ContextUpdate{
  let prefix=0,suffix=0;
  while(prefix<before.messages.length&&prefix<after.messages.length&&digest(before.messages[prefix])===digest(after.messages[prefix]))prefix++;
@@ -142,9 +163,9 @@ export function buildGradeWindows(input:{receipts:readonly unknown[];read:(index
    if(boundary!==undefined&&(boundary.offset===start.offset||boundary.turn===start.turn))continue;
    const window={fromMessage:start.offset,toMessage:boundary?.offset??messages.length,fromTurn:i===0?0:start.turn,toTurn:boundary?.turn??endTurn,context,updates:[...updates],requestSha256:start.sha256};
    const bytes=Buffer.byteLength(gradingJson({window,messages:messages.slice(window.fromMessage,window.toMessage),events:packNativeEvents(events.filter(e=>e.turn>=window.fromTurn&&e.turn<window.toTurn&&e.type!=="run_start"))}));
-   if(bytes>limit)break;chosen=window;next=j;
+   if(bytes>limit){if(chosen===undefined){out.push(...shardDecision(window,messages,events,limit));next=j;}break;}chosen=window;next=j;
   }
-  if(chosen===undefined)throw new Error("one grading decision exceeds bounded context");out.push(chosen);i=next;
+  if(chosen!==undefined)out.push(chosen);i=next;
  }
  return out;
 }

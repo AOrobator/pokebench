@@ -101,3 +101,13 @@ it("scores from a separately retained pre-decision native observation",async()=>
  const wrong={...o,trace:{...native,initialObservation:{...native.initialObservation,restoreHash:"c".repeat(64)}}};expect(()=> { verifyEpisodeOutcome({...job("b"),capMs:1_800_000},{...wrong,traceHash:episodeTraceHash(wrong)},"measured"); }).toThrow(/restore bundle/);
  expect(()=>nativeEpisodeFrames({...native,initialObservation:{...native.initialObservation,stateSha1:"f".repeat(40)}})).toThrow(/provenance/);
 });
+
+it("drains a healthy peer to its original terminal after grading preparation fails, without starting another draw",async()=>{
+ const c=new CampaignController(new MemoryCampaignStore(createCampaign("peer-isolation",0))),recorded:string[]=[],called:string[]=[];let healthySignal:AbortSignal|undefined;
+ let ready:()=>void=()=>undefined,finish:()=>void=()=>undefined;const started=new Promise<void>(resolve=>{ready=resolve;}),finished=new Promise<void>(resolve=>{finish=resolve;});
+ const host:EpisodeHost={mode:"offline-fixture",now:()=>0,acquire:()=>Promise.resolve(()=>Promise.resolve()),deadline:()=>()=>undefined,episode:async(j,signal)=>{called.push(j.id);if(j.id==="bad"){await started;throw Error("grading preparation failed");}healthySignal=signal;ready();await finished;return outcome();},record:(id)=>{recorded.push(id);return Promise.resolve();},grade:()=>Promise.reject(Error("incomplete batch must not grade"))};
+ const batch=runFrozenBatch(c,"explore",[job("bad","gpu0"),job("healthy","gpu1"),job("never-start","gpu1")],host),rejected=expect(batch).rejects.toThrow(/grading preparation failed/);
+ await started;await new Promise<void>(resolve=>{setImmediate(resolve);});
+ try{expect(healthySignal?.aborted).toBe(false);}finally{finish();await rejected;}
+ expect(recorded).toEqual(["healthy"]);expect(called).toEqual(["bad","healthy"]);expect(c.state.jobs.find(j=>j.id==="healthy")).toMatchObject({status:"complete",reason:"budget"});expect(c.state.jobs.find(j=>j.id==="bad")?.status).toBe("running");expect(c.state.stopped).toContain("incomplete");
+});

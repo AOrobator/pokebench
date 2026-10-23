@@ -258,7 +258,7 @@ export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recor
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop" && recorder.isRestoring?.()!==true) governor.abort("stuck");
   }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["progress-aware-cycles-v1"]??false,features?.["move-learn-loop-fingerprint-v1"]??false,features?.["navigation-recovery-v1"]??false,semanticNavigation({"semantic-navigation-v1":features?.["semantic-navigation-v1"]??false,"semantic-navigation-v2":features?.["semantic-navigation-v2"]??false}),features?.["map-cycle-recovery-v1"]??false);
-  recorder.subscribe((event) => { if(recorder.isRestoring?.()===true&&event.type==="turn_start")detector.context();detector.observe(event); });
+  recorder.subscribe((event) => { if(recorder.isRestoring?.()===true&&event.type==="turn_start")detector.context();detector.observe(event); },false,false,true);
   return detector;
 }
 

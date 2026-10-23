@@ -34,6 +34,7 @@ export interface RecorderDeps {
   readonly now?: () => number;
   readonly history?: readonly RunEvent[];
   readonly turnBase?: number;
+  readonly restoreRunIdentity?: boolean;
 }
 
 export interface PressTiming {
@@ -109,6 +110,7 @@ export class RunRecorder {
   private turn = 0;
   private readonly turnBase:number;
   private readonly prior:readonly RunEvent[];
+  private readonly restoreRunIdentity:boolean;
   private restoring=false;
   private historyRestored=false;
   isRestoring=():boolean=>this.restoring;
@@ -150,7 +152,7 @@ export class RunRecorder {
 
   constructor(deps: RecorderDeps) {
     this.log = deps.log;
-    this.prior=deps.history??[];this.turnBase=deps.turnBase??0;this.turn=this.turnBase;
+    this.restoreRunIdentity=deps.restoreRunIdentity??false;this.prior=deps.history??[];this.turnBase=deps.turnBase??0;this.turn=this.turnBase;
     this.frames = deps.frames;
     this.milestones = deps.milestones;
     this.gameState = deps.gameState;
@@ -161,7 +163,10 @@ export class RunRecorder {
   private readonly milestoneEvents: RunEvent[] = [];
   private latestStateEvent: Extract<RunEvent,{type:"state"}> | null = null;
   // Replay is opt-in: milestones at checkpoint start, or the latest recorded state for a late request observer.
-  subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); if(replayLatestState&&this.latestStateEvent!==null)observer(this.latestStateEvent); }
+  subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false, continuationMemory = false): void {
+    const receive=(event:RunEvent):void=>{observer(this.restoreRunIdentity&&continuationMemory&&event.run!==this.log.runId?{...event,run:this.log.runId}:event);};
+    this.observers.push(receive); if (replayMilestones) for (const event of this.milestoneEvents) receive(event); if(replayLatestState&&this.latestStateEvent!==null)receive(this.latestStateEvent);
+  }
   /** Attach all production memory consumers first, then replay once in event order. No old side effects. */
   async restoreHistory(beforeTurn:(turn:number)=>Promise<void>):Promise<void>{
     if(this.historyRestored)throw new RecorderError("history already restored");

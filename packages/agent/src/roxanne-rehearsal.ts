@@ -31,9 +31,10 @@ function frame(seq:number,extra:Partial<RecoveryFrame>={}):RecoveryFrame{return 
 const history:Message[]=[{role:"user",content:"REHEARSAL ONLY: the recorded full-health team lost. Continue playing.",timestamp:0}];
 const bytes=Buffer.from("REHEARSAL ONLY; NOT A NATIVE SAVE");
 const fixtureBundle=buildRestoreBundle({sourceRun:"rehearsal-source",sourceCommit:"0".repeat(40),turn:1,stateSeq:1,stateBytes:bytes,nativeReceipt:{passed:true,frame:1,ewram:"0".repeat(64),iwram:"0".repeat(64),registers:true,restored:true,inputReady:true,insideGym:true},history,eventsPrefix:"REHEARSAL PREFIX",systemPrompt:"Offline fixture.",toolsHash:digest([]),rtcUnixMs:1792600000000});
-export interface RehearsalReceipt{readonly mode:"fake-clock-scripted-model";readonly gpuCalls:0;readonly modelResponses:number;readonly episodes:number;readonly spentMs:number;readonly wallMs:number;readonly leasesReleased:boolean;readonly result:AutonomousResult}
+export interface RehearsalReceipt{readonly mode:"fake-clock-scripted-model";readonly gpuCalls:0;readonly finishEarlyMs:number;readonly modelResponses:number;readonly episodes:number;readonly spentMs:number;readonly wallMs:number;readonly leasesReleased:boolean;readonly result:AutonomousResult}
 /** Runs the production agent loop, controller and scorer; only model responses/game actions/clock are fixtures. */
-export async function rehearseCampaign(controller:CampaignController,write:(id:string,value:unknown)=>void,scenario:"revision_wins"|"no_nominee"="revision_wins"):Promise<RehearsalReceipt>{
+export async function rehearseCampaign(controller:CampaignController,write:(id:string,value:unknown)=>void,scenario:"revision_wins"|"no_nominee"="revision_wins",finishEarlyMs=0):Promise<RehearsalReceipt>{
+ if(!Number.isSafeInteger(finishEarlyMs)||finishEarlyMs<0||finishEarlyMs>=600_000)throw new Error("invalid fixture completion timing");
  const clock=new VirtualClock(),held=new Set<string>();let responses=0,episodes=0;
  const prefixes=new Map<string,EpisodeOutcome>();const prompts=new Map<string,string>();
  const inputs:AutonomousInputs={development:[{id:"development-one",family:"dev-one",restoreHash:"1".repeat(64),qualified:true},{id:"development-two",family:"dev-two",restoreHash:"2".repeat(64),qualified:true}],readiness:[{id:"ready-one",family:"ready-one",restoreHash:"3".repeat(64),qualified:true},{id:"ready-two",family:"ready-two",restoreHash:"4".repeat(64),qualified:true}],endpoints:["fixture-gpu0","fixture-gpu1"],seed:20261023};
@@ -55,7 +56,7 @@ export async function rehearseCampaign(controller:CampaignController,write:(id:s
    const loop=piLoop({systemPrompt:"REHEARSAL ONLY",tools,base:{model:FIXTURE_MODEL,convertToLlm:rows=>rows as Message[]},governor,transformContext:m=>Promise.resolve(m),emit:event=>{if(event.type==="message_end"&&"role"in event.message)messages.push(event.message as Message);},signal:signal.signal,
     streamFn:()=>{responses++;const stream=createAssistantMessageEventStream();const response:AssistantMessage={role:"assistant",content:[{type:"toolCall",id:`fixture-${String(responses)}`,name:"fixture_step",arguments:{}}],api:"openai-completions",provider:"offline",model:FIXTURE_MODEL.id,usage:{input:10,output:5,cacheRead:0,cacheWrite:0,totalTokens:15,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},stopReason:"toolUse",timestamp:0};stream.push({type:"done",reason:"toolUse",message:response});return stream;}});
    await playFromHistory(prepared.messages,governor,loop);
-   await clock.wait(deadline);
+   await clock.wait(deadline-finishEarlyMs);
    const outcome={reason:"budget",messages,reminder:prepared.receipt,trace:{kind:"fixture" as const,frames},nativeScore:scoreRecovery(frames),...(ready?{readinessPassed:scoreReadiness(frames)}:{})};return {...outcome,traceHash:episodeTraceHash(outcome)};
   },
   record:(id,outcome)=>{prefixes.set(id,outcome);write(id,{mode:"fixture",...outcome});return Promise.resolve();},
@@ -66,5 +67,5 @@ export async function rehearseCampaign(controller:CampaignController,write:(id:s
   report:r=>{write("report",r);return Promise.resolve();},
  };
  const result=await runAutonomousCampaign(controller,inputs,host);
- const receipt:RehearsalReceipt={mode:"fake-clock-scripted-model",gpuCalls:0,modelResponses:responses,episodes,spentMs:controller.state.spentMs,wallMs:clock.now,leasesReleased:held.size===0,result};write("rehearsal-receipt",receipt);return receipt;
+ const receipt:RehearsalReceipt={mode:"fake-clock-scripted-model",gpuCalls:0,finishEarlyMs,modelResponses:responses,episodes,spentMs:controller.state.spentMs,wallMs:clock.now,leasesReleased:held.size===0,result};write("rehearsal-receipt",receipt);return receipt;
 }

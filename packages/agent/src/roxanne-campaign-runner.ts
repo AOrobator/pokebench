@@ -77,7 +77,7 @@ function anonymousTrace(trace:EpisodeTrace,id:string,reminder:ReminderReceipt|nu
 function assertActive(controller:CampaignController):void{if(controller.state.stopped!==null)throw new Error(controller.state.stopped);}
 export async function runFrozenBatch(controller:CampaignController,phase:CampaignPhase,jobs:readonly CampaignJob[],host:EpisodeHost):Promise<{outcomes:ReadonlyMap<string,EpisodeOutcome>;judgments:ReadonlyMap<string,BlindJudgment>}>{
  controller.freeze(freezeBatch(phase,jobs));const outcomes=new Map<string,EpisodeOutcome>();
- const endpoints=[...new Set(jobs.map(j=>j.endpoint))];let failed:Error|undefined;const active=new Set<AbortController>();
+ const endpoints=[...new Set(jobs.map(j=>j.endpoint))];let failed:Error|undefined;
  const settled=await Promise.allSettled(endpoints.map(async endpoint=>{
   try{
    for(const job of jobs.filter(j=>j.endpoint===endpoint)){
@@ -85,7 +85,7 @@ export async function runFrozenBatch(controller:CampaignController,phase:Campaig
     const release=await host.acquire(endpoint);
     let released=false;const signal=new AbortController();let cancel:()=>void=()=>undefined;
     try{
-     active.add(signal);const start=host.now();controller.start(job.id,start);
+     const start=host.now();controller.start(job.id,start);
      cancel=host.deadline(start+job.capMs,()=> { signal.abort(); });
      let outcome:EpisodeOutcome;
      try{outcome=await host.episode(job,signal.signal,start+job.capMs);await host.record(job.id,outcome);}
@@ -93,9 +93,9 @@ export async function runFrozenBatch(controller:CampaignController,phase:Campaig
      controller.finish(job.id,host.now(),outcome.reason,episodeTraceHash(outcome));
      verifyEpisodeOutcome(job,outcome,host.mode);outcomes.set(job.id,outcome);
      assertActive(controller);
-    }finally{active.delete(signal);cancel();if(!released)await release();}
+    }finally{cancel();if(!released)await release();}
    }
-  }catch(error){controller.stop(error instanceof Error?error.message:"episode host failed");for(const owned of active)owned.abort();throw error;}
+  }catch(error){controller.stop(error instanceof Error?error.message:"episode host failed");throw error;}
  }));
  for(const result of settled)if(result.status==="rejected"){failed=result.reason instanceof Error?result.reason:new Error("episode host rejected without an Error");break;}
  if(failed!==undefined){controller.stop(`incomplete frozen batch: ${failed.message}`);throw failed;}

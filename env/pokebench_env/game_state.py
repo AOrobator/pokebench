@@ -355,6 +355,7 @@ def read_game_state(
     offscreen_objects_enabled: bool = False,
     static_npc_templates_enabled: bool = False,
     transition_coherence_enabled: bool = False,
+    blackout_transition_enabled: bool = False,
     readout_truth_enabled: bool = False,
     # map-wide-triggers-v1: every coordinate trigger on the map in the state;
     # the text keeps the nearby ones.
@@ -389,7 +390,7 @@ def read_game_state(
     pokedex_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
-    screen = read_screen(read)
+    screen = read_screen(read, blackout_transition=blackout_transition_enabled)
     coherent = transition_coherence_enabled
     # transition-coherence-v1: CB2_HandleStartBattle is the battle start, not an unknown screen.
     label = (
@@ -420,6 +421,7 @@ def read_game_state(
         birch_pages=birch_pages_enabled,
         birch_intro_pages=birch_intro_pages_enabled,
         transition_coherence=coherent,
+        blackout_transition=blackout_transition_enabled,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
     if (

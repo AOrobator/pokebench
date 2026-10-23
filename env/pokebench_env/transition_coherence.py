@@ -42,6 +42,8 @@ THUMB = 0x20
 # Frames in a row with the main loop never idle before the journal says it is blind.
 BUSY_LIMIT = 600
 
+# pret731ad5bf overworld.c:1550; ROM-verified Thumb callback, 120-frame input-free wait.
+CB2_WHITE_OUT = 0x08085F59
 CB2_HANDLE_START_BATTLE = 0x08036FAD
 FIELD_RETURN = "Returning to the field; field input is not active yet"
 HANDOFF_CALLBACKS: dict[int, tuple[str, str]] = {

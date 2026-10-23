@@ -3,7 +3,7 @@ import {gunzipSync} from "node:zlib";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import type {Message} from "@mariozechner/pi-ai";
-import type {RunEvent} from "./events.js";
+import {checkEvent,type RunEvent} from "./events.js";
 import {digest} from "./roxanne-campaign.js";
 import type {ReminderReceipt} from "./roxanne-restore.js";
 import type {BlindJudgment} from "./roxanne-campaign-runner.js";
@@ -25,6 +25,94 @@ export function parseCapturedContext(bytes:Buffer,sha256:string):CapturedContext
  if(!Value.Check(Schema,value)||value.messages.length===0||value.messages.some(m=>!["system","developer","user","assistant","tool"].includes(String(m["role"]))))throw new Error("invalid captured request context");
  return {messages:value.messages,tools:value.tools??[]};
 }
+const NativePath=Type.Array(Type.Union([Type.String(),Integer]),{minItems:1});
+const NativeSet=Type.Object({path:NativePath,value:Type.Unknown()},{additionalProperties:false});
+const NativeText=Type.Object({path:NativePath,prefix:Integer,remove:Integer,insert:Type.String()},{additionalProperties:false});
+const NativeArray=Type.Object({path:NativePath,items:Type.Array(Type.Union([Integer,Type.Object({value:Type.Unknown()},{additionalProperties:false})]))},{additionalProperties:false});
+const PackedNative=Type.Union([
+ Type.Object({kind:Type.Literal("full"),event:Type.Unknown(),sha256:Type.String({pattern:"^[a-f0-9]{64}$"})},{additionalProperties:false}),
+ Type.Object({kind:Type.Literal("delta"),base:Integer,set:Type.Array(NativeSet),remove:Type.Array(NativePath,{uniqueItems:true}),text:Type.Array(NativeText),arrays:Type.Array(NativeArray),sha256:Type.String({pattern:"^[a-f0-9]{64}$"})},{additionalProperties:false}),
+]);
+export type PackedNativeEvent=import("typebox").Static<typeof PackedNative>;
+type NativePatch={set:import("typebox").Static<typeof NativeSet>[];remove:import("typebox").Static<typeof NativePath>[];text:import("typebox").Static<typeof NativeText>[];arrays:import("typebox").Static<typeof NativeArray>[]};
+const record=(value:unknown):value is Record<string,unknown>=>typeof value==="object"&&value!==null&&!Array.isArray(value);
+function canonical(value:unknown):unknown{
+ if(Array.isArray(value))return value.map(canonical);
+ if(record(value))return Object.fromEntries(Object.entries(value).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([key,v])=>[key,canonical(v)]));
+ return value;
+}
+const nativeHash=(event:RunEvent):string=>digest(canonical(event));
+function nativePatch(before:unknown,after:unknown,path:readonly (string|number)[]=[]):NativePatch{
+ if(JSON.stringify(before)===JSON.stringify(after))return {set:[],remove:[],text:[],arrays:[]};
+ const whole:NativePatch={set:[{path:[...path],value:after}],remove:[],text:[],arrays:[]},parts:NativePatch={set:[],remove:[],text:[],arrays:[]};
+ const add=(patch:NativePatch)=>{parts.set.push(...patch.set);parts.remove.push(...patch.remove);parts.text.push(...patch.text);parts.arrays.push(...patch.arrays);};
+ if(record(before)&&record(after)){
+  for(const key of Object.keys(before))if(!Object.hasOwn(after,key))parts.remove.push([...path,key]);
+  for(const [key,value]of Object.entries(after))add(Object.hasOwn(before,key)?nativePatch(before[key],value,[...path,key]):{set:[{path:[...path,key],value}],remove:[],text:[],arrays:[]});
+ }else if(typeof before==="string"&&typeof after==="string"){
+  let prefix=0,suffix=0;while(prefix<before.length&&prefix<after.length&&before.charCodeAt(prefix)===after.charCodeAt(prefix))prefix++;
+  while(suffix<before.length-prefix&&suffix<after.length-prefix&&before.charCodeAt(before.length-1-suffix)===after.charCodeAt(after.length-1-suffix))suffix++;
+  parts.text.push({path:[...path],prefix,remove:before.length-prefix-suffix,insert:after.slice(prefix,after.length-suffix)});
+ }else if(Array.isArray(before)&&Array.isArray(after)){
+  const earlier:readonly unknown[]=before,later:readonly unknown[]=after;
+  const indexes=new Map(earlier.map((value,index)=>[JSON.stringify(value),index]));
+  const reused:NativePatch={set:[],remove:[],text:[],arrays:[{path:[...path],items:later.map(value=>indexes.get(JSON.stringify(value))??{value})}]};
+  if(before.length===after.length){for(const [i,value]of after.entries())add(nativePatch(before[i],value,[...path,i]));}
+  else Object.assign(parts,whole);
+  if(JSON.stringify(reused).length<JSON.stringify(parts).length)Object.assign(parts,reused);
+ }
+ else return whole;
+ return path.length===0||JSON.stringify(parts).length<JSON.stringify(whole).length?parts:whole;
+}
+function nativeParent(value:unknown,path:readonly (string|number)[]):{parent:Record<string,unknown>|unknown[];key:string|number}{
+ let parent:unknown=value;
+ for(const key of path.slice(0,-1)){
+  if(Array.isArray(parent)&&typeof key==="number"&&key<parent.length)parent=parent[key];
+  else if(record(parent)&&typeof key==="string"&&Object.hasOwn(parent,key))parent=parent[key];
+  else throw new Error("invalid packed native path");
+ }
+ const key=path.at(-1);
+ if(Array.isArray(parent)&&typeof key==="number"&&key<parent.length||record(parent)&&typeof key==="string")return {parent,key};
+ throw new Error("invalid packed native path");
+}
+/** Lossless field deltas remove repeated map structure, never evidence. */
+export function packNativeEvents(events:readonly RunEvent[]):PackedNativeEvent[]{
+ const values:RunEvent[]=[],latest=new Map<RunEvent["type"],number>();
+ return events.map(event=>{
+  const value=checkEvent(JSON.parse(gradingJson(event))),sha256=nativeHash(value),full:PackedNativeEvent={kind:"full",event:value,sha256};
+  const base=latest.get(value.type);let selected:PackedNativeEvent=full;
+  if(base!==undefined){const previous=values[base];if(previous===undefined)throw new Error("missing native event base");
+   const delta:PackedNativeEvent={kind:"delta",base,...nativePatch(previous,value),sha256};
+   if(Buffer.byteLength(JSON.stringify(delta))<Buffer.byteLength(JSON.stringify(full)))selected=delta;
+  }
+  latest.set(value.type,values.length);values.push(value);return selected;
+ });
+}
+export function unpackNativeEvents(records:readonly unknown[]):RunEvent[]{
+ const values:RunEvent[]=[];
+ for(const row of records){
+  if(!Value.Check(PackedNative,row))throw new Error("invalid packed native event");
+  let value:RunEvent;
+  if(row.kind==="full")value=checkEvent(row.event);
+  else{const base=values[row.base];if(base===undefined)throw new Error("invalid packed native base");const restored:unknown=structuredClone(base);
+   for(const path of row.remove){const {parent,key}=nativeParent(restored,path);if(!record(parent)||typeof key!=="string"||!Object.hasOwn(parent,key))throw new Error("invalid packed native removal");Reflect.deleteProperty(parent,key);}
+   for(const change of row.set){const {parent,key}=nativeParent(restored,change.path);if(Array.isArray(parent)&&typeof key==="number")parent[key]=change.value;else if(record(parent)&&typeof key==="string")Object.defineProperty(parent,key,{value:change.value,writable:true,enumerable:true,configurable:true});}
+   for(const change of row.arrays){const {parent,key}=nativeParent(restored,change.path);const before=Array.isArray(parent)&&typeof key==="number"?parent[key]:record(parent)&&typeof key==="string"?parent[key]:undefined;
+    if(!Array.isArray(before))throw new Error("invalid packed native array");
+    const elements:readonly unknown[]=before;
+    const next=change.items.map(item=>{if(typeof item!=="number")return item.value;if(item>=before.length)throw new Error("invalid packed native array index");return structuredClone(elements[item]);});
+    Object.defineProperty(parent,key,{value:next,writable:true,enumerable:true,configurable:true});
+   }
+   for(const change of row.text){const {parent,key}=nativeParent(restored,change.path);const before=Array.isArray(parent)&&typeof key==="number"?parent[key]:record(parent)&&typeof key==="string"?parent[key]:undefined;
+    if(typeof before!=="string"||change.prefix+change.remove>before.length)throw new Error("invalid packed native text range");const text=before.slice(0,change.prefix)+change.insert+before.slice(change.prefix+change.remove);
+    Object.defineProperty(parent,key,{value:text,writable:true,enumerable:true,configurable:true});
+   }
+   value=checkEvent(restored);
+  }
+  if(nativeHash(value)!==row.sha256)throw new Error("packed native event hash mismatch");values.push(value);
+ }
+ return values;
+}
 /** Greedy contiguous segments begin at an actual outgoing request. Every new
  * message and every native event is covered; an oversized single decision fails closed. */
 export function contextDelta(before:CapturedContext,after:CapturedContext,offset:number,turn:number,requestSha256:string):ContextUpdate{
@@ -37,7 +125,7 @@ export function applyContextDelta(context:CapturedContext,update:ContextUpdate):
  if(update.prefix<0||update.remove<0||update.prefix+update.remove>context.messages.length)throw new Error("invalid captured context delta");
  return {messages:[...context.messages.slice(0,update.prefix),...update.insert,...context.messages.slice(update.prefix+update.remove)],tools:update.tools??context.tools};
 }
-export function buildGradeWindows(input:{receipts:readonly unknown[];read:(index:number)=>Buffer;messages:readonly Message[];events:readonly RunEvent[];historyMessages:number;reminder:ReminderReceipt|null},limit=MAX_GRADING_BYTES):GradeWindow[]{
+export function buildGradeWindows(input:{receipts:readonly unknown[];read:(index:number)=>Buffer;messages:readonly Message[];events:readonly RunEvent[];historyMessages:number;reminder:ReminderReceipt|null},limit=MAX_GRADING_BYTES-40_000):GradeWindow[]{
  const {receipts,messages,events,historyMessages,reminder}=input;
  if(receipts.length===0||!receipts.every(r=>Value.Check(Receipt,r)))throw new Error("missing captured request receipts");
  const rs=receipts.filter(r=>Value.Check(Receipt,r));
@@ -53,7 +141,7 @@ export function buildGradeWindows(input:{receipts:readonly unknown[];read:(index
    // Retries may share a message offset or turn; never split that decision.
    if(boundary!==undefined&&(boundary.offset===start.offset||boundary.turn===start.turn))continue;
    const window={fromMessage:start.offset,toMessage:boundary?.offset??messages.length,fromTurn:i===0?0:start.turn,toTurn:boundary?.turn??endTurn,context,updates:[...updates],requestSha256:start.sha256};
-   const bytes=Buffer.byteLength(gradingJson({window,messages:messages.slice(window.fromMessage,window.toMessage),events:events.filter(e=>e.turn>=window.fromTurn&&e.turn<window.toTurn&&e.type!=="run_start")}));
+   const bytes=Buffer.byteLength(gradingJson({window,messages:messages.slice(window.fromMessage,window.toMessage),events:packNativeEvents(events.filter(e=>e.turn>=window.fromTurn&&e.turn<window.toTurn&&e.type!=="run_start"))}));
    if(bytes>limit)break;chosen=window;next=j;
   }
   if(chosen===undefined)throw new Error("one grading decision exceeds bounded context");out.push(chosen);i=next;

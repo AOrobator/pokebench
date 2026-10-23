@@ -2052,6 +2052,23 @@ describe("POKéMON PARTY page", () => {
     expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
   });
 
+  it("renders projected battle health through the app instead of the retained roster HP", async () => {
+    const native: unknown = JSON.parse(readFileSync(join(import.meta.dirname, "../test-support/party-health-recorded.json"), "utf8"));
+    if (!Array.isArray(native)) throw new Error("native party fixture missing");
+    const samples = native.map((event: unknown) => parseEvent(JSON.stringify(event)));
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, [must(samples[0])]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await app.loadPartyArt();
+    expect(ui("party").querySelector('[data-pv-slot="0"] [aria-label="HP 39 of 39"]')).not.toBeNull();
+    feed(stream, [must(samples[1])]);
+    app.render();
+    expect(ui("party").querySelector('[data-pv-slot="0"] [aria-label="HP 22 of 39"]')).not.toBeNull();
+    expect(ui("party").querySelector('[data-pv-slot="0"] [aria-label="HP 39 of 39"]')).toBeNull();
+    expect(ui("party").textContent).toContain("battle RAM");
+  });
+
   it("keeps six empty current-style slots until art arrives, then fills the same party screen", async () => {
     let finish: (value: unknown) => void = () => { throw new Error("resolver missing"); };
     const pending = new Promise<unknown>(resolve => { finish = resolve; });

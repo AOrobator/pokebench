@@ -84,3 +84,13 @@ it("binds executing campaign launch owners as well as the agent build to the rev
  expect(calls).toEqual([["merge-base","--is-ancestor","a".repeat(40),"HEAD"],["ls-tree","--full-tree","a".repeat(40),"--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"],["ls-tree","--full-tree","HEAD","--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"]]);
  expect(()=>{verifyCampaignLaunchSource(args=>args[0]==="ls-tree"&&args[2]==="HEAD"?"changed-launch-owner":"reviewed-source", "a".repeat(40));}).toThrow(/reviewed campaign launch sources/);
 });
+it("requires actual review lanes or the specifically authorized missing-Grok exception",async()=>{
+ const {verifyCampaignReviews}=await import("./roxanne-measured-host.js"),head="a".repeat(40),campaign="roxanne-autonomous";
+ const lanes=[{family:"claude",model:"claude",cloud:true,verdict:"LGTM"},{family:"gpt",model:"gpt",cloud:true,verdict:"LGTM"}],fallback=[{family:"fallback",model:"sol",cloud:true,verdict:"LGTM"},{family:"fallback",model:"astra",cloud:true,verdict:"LGTM"}];
+ const approval={missingFamily:"grok",campaign,quote:"Tell autoresearch I approve proceeding without Grok. Finish landing and preflight, then coordinate taking over both GPUs. Keep the Double Kick investigation moving too.",sourceThread:"00000000-0000-4000-8000-f5efe0494f81",sourceMessage:"00000000-0000-4000-8000-fc6902fdcccf"};
+ const receipt={status:"LGTM",head,campaign,lanes};
+ expect(()=>{verifyCampaignReviews({...receipt,lanes:[...lanes,{family:"grok",model:"grok",cloud:true,verdict:"LGTM"}]},head,campaign);}).not.toThrow();
+ expect(()=>{verifyCampaignReviews({...receipt,lanes:[...lanes,...fallback],operatorException:approval},head,campaign);}).not.toThrow();
+ for(const value of [receipt,{...receipt,lanes:[...lanes,...fallback]},{...receipt,lanes:[lanes[0],...fallback],operatorException:approval},{...receipt,lanes:[...lanes,fallback[0],fallback[0]],operatorException:approval},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,quote:"go ahead"}},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,campaign:"other"}}])expect(()=>{verifyCampaignReviews(value,head,campaign);}).toThrow(/review/);
+ expect(()=>{verifyCampaignReviews({...receipt,head:"b".repeat(40)},head,campaign);}).toThrow(/review/);
+});

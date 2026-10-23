@@ -94,7 +94,7 @@ describe("elevation-aware-map-v1: an object on another level does not occupy the
         check?.(current); presses.push(params.buttons);
         const [dx, dy] = step[params.buttons[0] as keyof typeof step];
         const p = current.position;
-        if (p !== null) current = { ...current, position: { x: p.x + dx, y: p.y + dy }, facing: (params.buttons[0] ?? "down").toLowerCase() as GameStateSnapshot["facing"] };
+        if (p !== null) current = { ...current, position: { x: p.x + dx, y: p.y + dy }, facing: (params.buttons[0] ?? "down").toLowerCase() };
         return Promise.resolve({ content: [{ type: "text", text: "observed" }], details: { state: current } });
       };
       const observe = { name: "observe", label: "observe", description: "observe", parameters: {}, execute: () => Promise.resolve({ content: [{ type: "text", text: "observed" }], details: { state: current } }) } as unknown as AgentTool;

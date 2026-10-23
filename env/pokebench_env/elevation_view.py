@@ -7,9 +7,11 @@ While surfing, field_player_avatar.c turns that refusal into a dismount (CanStop
 so the view applies only off the water, and only when the avatar flags were read.
 """
 
+import struct
 from dataclasses import replace
 
-from pokebench_env.live_map import FullMap, LocalMap
+from pokebench_env.game_screen import ReadMemory
+from pokebench_env.live_map import MAP_OFFSET, OBJECT_EVENTS, FullMap, LocalMap
 
 SWITCH = "elevation-aware-map-v1"
 GLYPH = "L"
@@ -47,3 +49,23 @@ def elevation_view(
         " yours; tiles at elevation 0 or 15 accept any elevation."
     )
     return replace(shown, rows=tuple("".join(row) for row in rows)), note
+
+
+def read_object_elevations(
+    read: ReadMemory, map_id: tuple[int, int]
+) -> tuple[tuple[int, int, int], ...]:
+    """(x, y, currentElevation) of each object live_map lists on this map.
+
+    pokeemerald DoesObjectCollideWithObjectAt: an object blocks a walker only when
+    AreElevationsCompatible (either elevation 0, or both equal), so navigation needs both.
+    """
+    raw = read(OBJECT_EVENTS, 16 * 0x24)
+    found = []
+    for slot in range(16):
+        body = raw[slot * 0x24 : (slot + 1) * 0x24]
+        # The same objects live_map._objects lists: active, not hidden, not the player's slot flag.
+        if not body[0] & 1 or body[1] & 0x20 or body[2] & 1 or (body[10], body[9]) != map_id:
+            continue
+        x, y = struct.unpack_from("<hh", body, 0x10)
+        found.append((x - MAP_OFFSET, y - MAP_OFFSET, body[0x0B] & 15))
+    return tuple(found)

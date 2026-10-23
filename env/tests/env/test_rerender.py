@@ -167,6 +167,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "mart_stock_enabled": False,
         "berry_readout_enabled": False,
         "overhead_cover_enabled": False,
+        "object_elevations_enabled": False,
         "shop_interface_enabled": False,
         "exp_next_enabled": False,
         "pokedex_enabled": False,

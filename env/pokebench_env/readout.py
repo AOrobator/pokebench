@@ -952,11 +952,29 @@ def _location_display(state: GameState) -> dict[str, str]:
     return {} if shown is None else {"location_display": shown}
 
 
+def _grid_objects(
+    state: GameState, objects: tuple[tuple[int, int, int], ...]
+) -> list[dict[str, int]]:
+    # elevation-aware-map-v1: each object's elevation, only when the server read them.
+    if state.object_elevations is None:
+        return [{"x": x, "y": y} for _, x, y in objects]
+    levels = {(x, y): e for x, y, e in state.object_elevations}
+    return [
+        {"x": x, "y": y} | ({} if (x, y) not in levels else {"elevation": levels[(x, y)]})
+        for _, x, y in objects
+    ]
+
+
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1 or window-escape-route-v1,
     # so switch-off state is unchanged.
     full: dict[str, object] = (
-        {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
+        {}
+        if state.full_map is None
+        else {
+            "map_grid": state.full_map.json(state.player_elevation)
+            | {"objects": _grid_objects(state, state.full_map.objects)}
+        }
     )
     # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
     if state.party_next_level is not None:
@@ -990,7 +1008,7 @@ def state_json(state: GameState) -> dict[str, object]:
                 }
                 for t in state.nearby.tiles
             ],
-            "objects": [{"x": x, "y": y} for _, x, y in state.nearby.objects],
+            "objects": _grid_objects(state, state.nearby.objects),
             "warps": [{"x": x, "y": y} for x, y, _, _ in state.nearby.warps],
         },
         "interaction_targets": None

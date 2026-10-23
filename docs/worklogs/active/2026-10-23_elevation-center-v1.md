@@ -35,7 +35,8 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 **M1b — cross-level occupancy (elevation-aware-map-v1)**
 - COMMIT: `feat(screen-center-player): ...` (0c7235456)
 - [x] RED: state 127085, goal (16,71) under the layer-4 cyclist: ON plans DOWN DOWN LEFT, OFF keeps the refusal (TS 2 fail, Python 2 fail)
-- [ ] GREEN: server object elevations; planner uses AreElevationsCompatible at the walker's planned elevation
+- COMMIT: `test(elevation-aware-map): an object on another level blocks navigate_to (RED)` (bf148b34e)
+- [x] GREEN: server object elevations (navigation_grid and map_grid, only when the switch reads them); planner uses AreElevationsCompatible at the walker's elevation before each step; unknown elevations still block. Agent 4067 (+1 known-flaky serial-comparison timing test that passes alone), viewer 1752, Python 4063 pass. schemas/events.v1.json regenerated. Deleting `actorElevation` from withNavigation fails the factory test; restored.
 **M2 — screen-center-player-v1**
 - [x] RED tests (prompt sentence, cover note from archive 21953 layer facts, OFF invariance): TS 2 fail / 1 pass (registry already in), Python collection error
 - COMMIT: `test(screen-center-player): the player's screen position and hidden sprite (RED)` (3dfe06c38)

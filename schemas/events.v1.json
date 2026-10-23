@@ -10964,6 +10964,11 @@
                       },
                       "y": {
                         "type": "integer"
+                      },
+                      "elevation": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 15
                       }
                     },
                     "additionalProperties": false
@@ -11050,6 +11055,11 @@
                       },
                       "y": {
                         "type": "integer"
+                      },
+                      "elevation": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 15
                       }
                     },
                     "additionalProperties": false

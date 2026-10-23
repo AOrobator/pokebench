@@ -132,7 +132,7 @@ export class SupervisorBriefing {
  observe(event:RunEvent):void {
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
-    if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed")this.progress={turn:event.turn,name:event.name};
+    if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();}
     return;
    }
   this.gate?.observe(event);

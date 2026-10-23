@@ -222,3 +222,19 @@ it("names the next milestone in the briefing only when the hint switch is on",()
  const off=new SupervisorBriefing({...ALL_ON,"next-milestone-hint-v1":false});delivered(off,1);
  expect(off.text("cycle",2)).not.toContain("Next milestone");
 });
+
+
+it("resets the briefing's since-progress map history for earned campaign milestones only when ON",()=>{
+ for(const enabled of [false,true]){
+  const b=new SupervisorBriefing({...ALL_ON,"campaign-progress-clock-v1":enabled,"positive-supervisor-v1":false,"supervisor-briefing-v2":false});
+  delivered(b,1,{location:"OLD ROOM",map_id:[1,0]});
+  b.observe(ev({type:"milestone",name:"ROUTE_109_BEACH_REACHED",kind:"story",origin:"observed",server_timestamp:1,evidence:[1]},3,2));
+  delivered(b,4,{location:"NEW ROOM",map_id:[1,1],interaction_targets:[{...DOOR,name:"RETURN DOOR",destination:[1,0,0]}]});
+  const text=b.stallText({kind:"milestone_drought",minutes:5},30);
+  expect(text.includes("OLD ROOM")).toBe(!enabled);
+  expect(text.includes("route 109 beach")).toBe(enabled);
+  expect(text).toContain("NEW ROOM");
+  const exits=text.split("\n").find(line=>line.startsWith("- Exits to maps"));
+  expect(exits?.includes("RETURN DOOR")||exits?.includes("Warp to OLD ROOM")).toBe(enabled);
+ }
+});

@@ -43,7 +43,9 @@ Use retained raw RAM read-only, production detector/recorder/clock tests, schema
 - Space Center partner battles use special battle ownership, so stable saved stage 3 proves the win upper bound; ordinary trainer bits are not assumed.
 
 ## Multi-Model Review Log
-Pending. Required cloud lanes cannot be replaced for self-merge without user approval.
+Round1: Claude and independent runtime/semantics reviewers BLOCKING on one shared P2: campaign last-progress label retained old since-progress map history. Integrity reviewer LGTM. Grok cursor grok-4.7-high unavailable, exit1 usage exhausted (receipt in runs/reviews/campaign-milestones-r1/grok.stderr). Required cloud lanes cannot be replaced for self-merge without user approval.
+
+Accepted bounded fix: clear path and entered with campaign progress. Production observe/stallText regression covers both ON and OFF, former room exclusion and return-door eligibility. RED confirmed, both individual deletion mutations fail, restored test passes. No new production owner/domain. Round2 cumulative review pending; no landing or activation.
 
 ## Boy Scout Log
 None.
@@ -64,3 +66,5 @@ None.
 - Final full gates: 3935 agent +1738 viewer +4044 Python tests; justlint/build/schema/vendor pass. All coverage stacks exceed90.
 - Headless preview: desktop1280/1440 and phone375, campaign/full-baseline toggle, beach point visible once and no document overflow or console errors; explainer opened/collapsed at all three widths and inspected. Historical run is isolated offline replay; no live-run proof claimed.
 - Principles PB1-PB13 self-review PASS with evidence in runs/reviews/campaign-milestones-r1/principles.md. Frozen scope in boundary.md.
+
+- Round2 gates:3936 agent+1738 viewer+4044 Python tests; build pass; lint completion recorded in review packet. Additional optional-splits headless UI screenshot verified; no console errors. Offline replay header remains LOADING because the original run prefix has no terminal event; no live/complete-run claim.

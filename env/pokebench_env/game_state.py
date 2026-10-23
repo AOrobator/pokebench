@@ -43,6 +43,7 @@ from pokebench_env.resources import Resources, read_resources
 from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
+from pokebench_env.screen_center import Cover, overhead_cover
 from pokebench_env.static_npc_templates import StaticNpcTemplates, read_static_npc_templates
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.story_progress import StoryProgress, read_story_progress
@@ -139,6 +140,8 @@ class GameState:
     full_map: FullMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
+    # screen-center-player-v1: where the map's top layer is drawn over the player's sprite.
+    overhead_cover: Cover | None = None
     # tutorial-party-owner-v1: None when ownership cannot be established (state JSON omits it).
     party_owner: str | None = "player"
     party_ownership: PartyOwnership | None = None
@@ -374,6 +377,7 @@ def read_game_state(
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
     berry_readout_enabled: bool = False,
+    overhead_cover_enabled: bool = False,
     battle_move_learn_input_enabled: bool = False,
     mart_stock_enabled: bool = False,
     shop_interface_enabled: bool = False,
@@ -631,6 +635,9 @@ def read_game_state(
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
+        overhead_cover=overhead_cover(read, (x, y), body[0x0B] >> 4)
+        if overhead_cover_enabled and screen.kind == "overworld" and not in_battle
+        else None,
         topology=topology,
         destination_names=tuple(
             (

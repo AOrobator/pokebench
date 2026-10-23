@@ -50,7 +50,7 @@ BRIDGE_COLUMN = {(2, y): BRIDGE for y in range(5)} | {(1, y): GROUND for y in ra
 
 def test_a_bridge_over_the_player_covers_the_tile_and_the_tile_above_at_elevation_3():
     cover = overhead_cover(memory(BRIDGE_COLUMN).read, (2, 3), 3)
-    assert cover == Cover(((2, 3), (2, 2)), 3)
+    assert cover == Cover(((2, 3), (2, 2)), 3, (2, 3))
     assert cover_line(cover) == (
         "Your character is drawn under the map's top layer here: (2,3), your tile, and (2,2),"
         " the tile above, are drawn over your sprite at elevation 3, so the screenshot's center"
@@ -59,15 +59,15 @@ def test_a_bridge_over_the_player_covers_the_tile_and_the_tile_above_at_elevatio
 
 
 def test_priority_from_elevation_4_draws_the_sprite_above_the_top_layer():
-    assert overhead_cover(memory(BRIDGE_COLUMN).read, (2, 3), 4) == Cover((), 4)
+    assert overhead_cover(memory(BRIDGE_COLUMN).read, (2, 3), 4) == Cover((), 4, (2, 3))
 
 
 def test_blank_and_covered_layer_types_do_not_cover_the_sprite():
     grid = {(2, 3): GROUND, (2, 2): COVERED_ROOF}
-    assert overhead_cover(memory(grid).read, (2, 3), 3) == Cover((), 3)
+    assert overhead_cover(memory(grid).read, (2, 3), 3) == Cover((), 3, (2, 3))
     only_above = {(2, 3): GROUND, (2, 2): BRIDGE}
     cover = overhead_cover(memory(only_above).read, (2, 3), 3)
-    assert cover == Cover(((2, 2),), 3)
+    assert cover == Cover(((2, 2),), 3, (2, 3))
     assert "(2,2), the tile above, is drawn over your sprite" in cover_line(cover)
 
 
@@ -76,13 +76,13 @@ def test_an_unreadable_layout_reads_nothing():
 
 
 def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
-    s = replace(IN_GAME, overhead_cover=Cover(((7, 9),), 3))
+    s = replace(IN_GAME, overhead_cover=Cover(((7, 9),), 3, (7, 9)))
     off = format_readout(s, off=frozenset({SWITCH}))
     on = format_readout(s)
     assert "drawn under the map's top layer" not in off
     assert off == format_readout(replace(IN_GAME, overhead_cover=None))
     assert "Your character is drawn under the map's top layer here: (7,9), your tile, is" in on
-    assert format_readout(replace(s, overhead_cover=Cover((), 3))) == off
+    assert format_readout(replace(s, overhead_cover=Cover((), 3, (7, 9)))) == off
 
 
 def test_switch_is_registered_server_side_and_default_off():

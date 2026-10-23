@@ -134,7 +134,7 @@ def all_off(frame: dict[str, Any]) -> frozenset[str]:
         | LATER
         | TRAINING
         | {"poison-readout-v1", "berry-readout-v1", "static-npc-template-approach-v1"}
-        | {"window-escape-route-v1"}
+        | {"window-escape-route-v1", "elevation-aware-map-v1", "screen-center-player-v1"}
     )
 
 

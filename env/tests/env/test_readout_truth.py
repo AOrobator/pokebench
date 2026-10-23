@@ -148,7 +148,10 @@ TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1"})
 
 def recorded_off(seq: int) -> frozenset[str]:
     return (
-        frozenset(frame(seq)["recorded_off"]) | NEW | TRAINING | {"static-npc-template-approach-v1"}
+        frozenset(frame(seq)["recorded_off"])
+        | NEW
+        | TRAINING
+        | {"static-npc-template-approach-v1", "elevation-aware-map-v1", "screen-center-player-v1"}
     )  # type: ignore[arg-type]
 
 

@@ -50,6 +50,8 @@ from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
 from pokebench_env.respawn import SWITCH as RESPAWN
 from pokebench_env.respawn import RespawnMemory, respawn_line
+from pokebench_env.screen_center import SWITCH as SCREEN_CENTER
+from pokebench_env.screen_center import cover_line
 from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
 from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
@@ -170,7 +172,7 @@ SERVER_FEATURES = (
     "coherent-battle-observation-v1",
     "window-escape-route-v1",
     ELEVATION_MAP,
-    "screen-center-player-v1",
+    SCREEN_CENTER,
 )
 
 
@@ -700,6 +702,9 @@ def format_readout(
             lines.append(terrain_note)
         if elevation_note:
             lines.append(elevation_note)
+    # screen-center-player-v1: the map's top layer hides the sprite at the screen's center.
+    if state.overhead_cover is not None and state.overhead_cover.tiles and SCREEN_CENTER not in off:
+        lines.append(cover_line(state.overhead_cover))
     if sections is not None:
         lines.append(
             "Terrain sections distinguish areas of the same map; "

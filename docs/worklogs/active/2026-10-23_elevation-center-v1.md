@@ -32,9 +32,15 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 - COMMIT: `feat(elevation-aware-map): draw other levels as L and name elevation and slope refusals` (87287d4e1)
 - [x] GREEN implementation, registry, presets, bundle-arm definitions (both switches registered and added to the bundle arm of the 7 current definitions; screen-center has no behavior until M2). Agent 4062 pass, viewer 1752 pass, Python 4055 pass (worktree venv needed the main venv's mgba package copied in for test_view and mypy). Wiring deletions: removing `elevation` from toolSwitches fails 4/9 TS tests; forcing the readout gate off fails 1/5 Python tests; both restored green. Registry-position tests shifted by two.
 - Not covered (sent to coordinator for Codex): navigate_to occupancy across layers (AreElevationsCompatible); state objects carry no elevation.
+**M1b — cross-level occupancy (elevation-aware-map-v1)**
+- [ ] RED: state 127085, goal (16,71) under the layer-4 cyclist: ON plans DOWN DOWN LEFT, OFF keeps the refusal
+- [ ] GREEN: server object elevations; planner uses AreElevationsCompatible at the walker's planned elevation
 **M2 — screen-center-player-v1**
 - [x] RED tests (prompt sentence, cover note from archive 21953 layer facts, OFF invariance): TS 2 fail / 1 pass (registry already in), Python collection error
-- [ ] GREEN implementation
+- COMMIT: `test(screen-center-player): the player's screen position and hidden sprite (RED)` (3dfe06c38)
+- [x] GREEN implementation: prompt section (overworld scenes only) + server cover line. Agent 4065, viewer 1752, Python 4061 pass. Wiring deletions: prompt line removed fails 2/3 TS; rerender flag forced off fails the pass-through test; restored green. Historical rerender tests list both new switches as off (recorded before them).
+- Live-RAM proof: archive 21953 (seq 129029) re-rendered through `python -m pokebench_env.rerender` with the run's own switches: OFF unchanged; ON draws L over the road (x=16-18, rows 62-68, and the bridge-level tiles south of row 71), Next tiles names up (16,68) as another level, and the cover line names (16,69) and (16,68) at elevation 3.
+- Scope added 2:00 PM (the operator via Codex/coordinator): navigate_to occupancy across layers goes in elevation-aware-map-v1 (M1b below).
 **M3 — explainers, gates, review, landing**
 - [ ] Explainers with diagrams, FEATURE_EXPLAINERS links
 - [ ] `just test`, `just lint`, `just build`, `just coverage` (>=90)

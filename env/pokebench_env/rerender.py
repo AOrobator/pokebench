@@ -36,6 +36,7 @@ from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
 from pokebench_env.respawn import SWITCH as RESPAWN
 from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import resolve_rom
+from pokebench_env.screen_center import SWITCH as SCREEN_CENTER
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.training_readout import SWITCH as EXP_NEXT
@@ -104,6 +105,7 @@ def read_state(
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
         move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
         berry_readout_enabled="berry-readout-v1" not in off,
+        overhead_cover_enabled=SCREEN_CENTER not in off,
         battle_move_learn_input_enabled="battle-move-learn-input-v1" not in off,
         mart_stock_enabled=MART_STOCK not in off,
         shop_interface_enabled="shop-interface-v1" not in off,

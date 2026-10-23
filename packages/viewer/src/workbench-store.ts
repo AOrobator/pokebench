@@ -1,3 +1,4 @@
+import { restorationSignature } from "./restoration-prefix.js";
 import { visualEvidenceSignature } from "./frontier-visual.js";
 import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
@@ -61,7 +62,7 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
 // The log's identity for caching: size, modification/change times, device/inode and verified evidence.
 function runSignature(path: string): string {
   const stat = statSync(path);
-  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
+  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path)) + restorationSignature(path);
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
 // same verified evidence. A rewrite, truncation or replacement is not.
@@ -122,7 +123,7 @@ export function createIncrementalRunLoader(options: { observeRead?: (path: strin
       for (const [key, tail] of tails) if (tail.path === requested && (tail.dev !== now.dev || tail.ino !== now.ino || now.size < tail.size || (now.size === tail.size && (now.mtimeMs !== tail.mtimeMs || now.ctimeMs !== tail.ctimeMs)))) tails.delete(key);
     } catch { for (const [key, tail] of tails) if (tail.path === requested) tails.delete(key); }
     return loadRunWith(root, id, viewer, (path, run, tolerate) => {
-    const stat = statSync(path), evidence = visualEvidenceSignature(path) + recoveredSignature(dirname(path));
+    const stat = statSync(path), evidence = visualEvidenceSignature(path) + recoveredSignature(dirname(path)) + restorationSignature(path);
     const key = `${path}\0${viewer === null ? "unknown" : `${viewer.commit}:${String(viewer.dirty)}`}\0${String(tolerate)}`;
     let tail = tails.get(key);
     const append = tail !== undefined && tail.dev === stat.dev && tail.ino === stat.ino && stat.size >= tail.size && (stat.size > tail.size || (stat.mtimeMs === tail.mtimeMs && stat.ctimeMs === tail.ctimeMs)) && tail.evidence === evidence;

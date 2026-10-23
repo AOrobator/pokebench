@@ -1,0 +1,22 @@
+# Earned campaign progress in future bundle runs
+
+## Problem and authorization
+User: "Enable the earned-progress clock in the bundle for future runs, but leave the current runs alone."
+Activate the already-reviewed campaign-progress-clock-v1 only in the maintained bundle recipe arms. Controls, global defaults, current frozen presets/controllers/gameplay and runtime services remain unchanged. No new launch or restart of runs is authorized.
+
+## Scope
+Seven maintained definitions matching the existing named-move guard contract: bundle-v-control, bundle-v-control-2h, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, gym-rustboro-torchic, gym-rustboro-torchic-healed. Add false to each base, append the switch to each bundle list. Preserve historical/versioned definitions and all other fields. No production runtime change.
+
+## Skills
+feature-switch, execute-worklog, talk-to-claude, close-the-loop; review contract and PB1-PB13 apply. Existing feature explainer and clock wiring need no redesign. Operator approval supersedes initial default-OFF activation hold for bundle recipes only.
+
+## Proof
+RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run checks; compare all unrelated definition fields and controls, retain current run preset/config hashes and process starts. No GPU/model/emulator calls. Deterministic gates and frozen cloud/fallback review, serialized landing. A later run_start is required before claiming the feature ran; no run launch is part of this task.
+
+## Status
+- [ ] RED/GREEN recipe proof
+- [ ] Gates and review
+- [ ] Landing and future-run configuration proof
+
+## Session log
+- Main base ec19227bc; reuse owned clean campaign worktree on new branch. Direct user approval covers activation; no further permission requested.

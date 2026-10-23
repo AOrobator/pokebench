@@ -44,20 +44,27 @@ export class BattleActionHistory {
   const actions=pages.filter(p=>/ used .+!$/.test(p.text));
   if(actions.length>0||pages.some(p=>/burn|poison|restored|regained|healed|fainted/i.test(p.text))){
    const lines:string[]=[],nameSources=new Set<number>();
-   let lastSide="unknown side";
+   const side=(actor:string,stateSeq:number,printed:string):string=>{
+    const source=this.states.get(stateSeq);
+    // Fast snapshots omit names: use only a preceding native party read in this battle.
+    const partyRead=source!==undefined&&source.party.length>0?source:[...this.states.values()].findLast(s=>s.battle===source?.battle&&s.seq<=stateSeq&&s.party.length>0);
+    const player=partyRead?.party.some(m=>m.species===actor||m.nickname===actor)===true||source?.battlers?.some(b=>b.position%2===0&&b.species===actor)===true;
+    const prefixed=/^(?:Foe|Wild) /.test(actor),completeNames=partyRead!==undefined&&partyRead.party.every(m=>m.species!==null&&m.nickname!=null);
+    const prefixCollision=prefixed&&partyRead?.party.some(m=>[m.species,m.nickname].some(name=>name!=null&&(printed.startsWith(`${name} `)||printed.startsWith(`${name}'s `))))===true;
+    if(partyRead!==undefined&&(prefixed||player))nameSources.add(partyRead.seq);
+    return prefixed?(player||prefixCollision||!completeNames?"Unknown side":"Foe"):player?"Player":"Unknown side";
+   };
+   let lastSide="Unknown side";
    for(const p of pages){
     if(/ used .+!$/.test(p.text)){
-     const actor=p.text.split(" used ")[0]??"",source=this.states.get(p.stateSeq);
-     // Names can be omitted from fast snapshots. Reuse only a preceding party read in
-     // this battle, never a later read after a capture/rename or an earlier battle's party.
-     const partyRead=source!==undefined&&source.party.length>0?source:[...this.states.values()].findLast(s=>s.battle===source?.battle&&s.seq<=p.stateSeq&&s.party.length>0);
-     const player=partyRead?.party.some(m=>m.species===actor||m.nickname===actor)===true||source?.battlers?.some(b=>b.position%2===0&&b.species===actor)===true;
-     const prefixed=/^(?:Foe|Wild) /.test(actor),completeNames=partyRead!==undefined&&partyRead.party.every(m=>m.species!==null&&m.nickname!=null);
-     if(partyRead!==undefined&&(prefixed||player))nameSources.add(partyRead.seq);
-     lastSide=prefixed?(player||!completeNames?"Unknown side":"Foe"):player?"Player":"Unknown side";
+     lastSide=side(p.text.split(" used ")[0]??"",p.stateSeq,p.text);
      lines.push(`${lastSide} ${lastSide==="Foe"?p.text.replace(/^(?:Foe|Wild) /,""):p.text}`);
     }else if(/critical hit/i.test(p.text))lines.push(`${lastSide} move page: ${p.text}`);
-    else if(/burn|poison|restored|regained|healed|fainted/i.test(p.text))lines.push(`Game page (side as printed; otherwise unknown): ${p.text}`);
+    else if(/burn|poison|restored|regained|healed|fainted/i.test(p.text)){
+     // Source-owned battle strings: direct target name, or target's item/ability.
+     const actor=/^(.+?)'s .+? (?:restored|healed)/.exec(p.text)?.[1]??/^(.+?) (?:is hurt|was (?:burned|poisoned)|regained|restored|fainted)/.exec(p.text)?.[1]??"";
+     lines.push(`${side(actor,p.stateSeq,p.text)} game page: ${p.text}`);
+    }
    }
    const before=this.previous;
    // A whiteout/result can end on the field. Keep HP through a delivered battle-page snapshot,

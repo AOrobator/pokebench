@@ -82,7 +82,7 @@ it("held-out4637 critical-hit and burn pages keep the move's player/foe side",as
   const s=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});for(const e of events)if(e.seq<=through)s.emit(e);
   const out=last(await s.wired.transformContext(before));expect(out).toContain(expected);expect(out).toContain("attribution to individual moves is unknown");
   if(through===5762)expect(out).toContain("Foe game page: Foe GEODUDE is hurt by its burn!");
-  if(through===5966)expect(out).toContain("Foe game page: Foe NOSEPASS\'s ORAN BERRY restored health!");
+  if(through===5966)expect(out).toContain("Foe game page: Foe NOSEPASS's ORAN BERRY restored health!");
  }
 });
 
@@ -138,13 +138,13 @@ it("held-out native wild MUDKIP/ZIGZAGOON pages retain player and foe sides",asy
 });
 
 it("uses a prior native nickname in fast snapshots and keeps foe-like player nicknames ambiguous",()=>{
- for(const [nickname,side]of [["PEBBLE","Player"],["Foe RALTS","Unknown side"]] as const){
-  // Explicit synthetic nickname-only edge: valid Emerald names and TORCHIC's observed SCRATCH.
+ for(const [nickname,side]of [["PEBBLE","Player"],["Foe RALTS","Unknown side"],["Foe A's B","Unknown side"]] as const){
+  // Explicit synthetic nickname/effect parser edges: source-owned Emerald strings, not observed battle effects.
   const state=eventAt(2062),pages=eventAt(2064);if(state.type!=="state"||!("started"in state)||pages.type!=="dialogue_auto_advance")throw new Error("native nickname base");
   const h=new BattleActionHistory();h.observe({...state,party:state.party.map((p,i)=>i===0?{...p,nickname}:p)});h.observe(eventAt(2063));
   const used=pages.pages.find(p=>p.text.includes("used"));if(used===undefined)throw new Error("native used page");
-  h.observe({...pages,pages:[{...used,text:`${nickname} used\nSCRATCH!`}]});h.observe(eventAt(2065));h.observe(eventAt(2066));
-  expect(h.context()?.text).toContain(`${side} ${nickname} used SCRATCH!`);expect(h.context()?.evidence).toContain(2062);
+  h.observe({...pages,pages:[{...used,text:`${nickname} used\nSCRATCH!`},{...used,text:`${nickname} is hurt by its burn!`},{...used,text:`${nickname}'s POTION restored health!`}]});h.observe(eventAt(2065));h.observe(eventAt(2066));
+  expect(h.context()?.text).toContain(`${side} ${nickname} used SCRATCH!`);expect(h.context()?.text).toContain(`${side} game page: ${nickname} is hurt by its burn!`);expect(h.context()?.text).toContain(`${side} game page: ${nickname}'s POTION restored health!`);expect(h.context()?.evidence).toContain(2062);
  }
 });
 

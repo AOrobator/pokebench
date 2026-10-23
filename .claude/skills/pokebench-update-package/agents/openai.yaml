@@ -1,0 +1,4 @@
+interface:
+  display_name: "PokeBench Update Package"
+  short_description: "Build evidence-rich PokeBench review ZIPs"
+  default_prompt: "Use $pokebench-update-package to prepare a local evidence ZIP and show me the open questions before sharing."

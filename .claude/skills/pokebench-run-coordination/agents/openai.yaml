@@ -1,0 +1,4 @@
+interface:
+  display_name: "PokeBench Run Coordination"
+  short_description: "Coordinate shared compute before PokeBench runs"
+  default_prompt: "Use $pokebench-run-coordination before starting PokeBench probes or gameplay runs."

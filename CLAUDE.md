@@ -2,6 +2,10 @@
 
 Project rules for PokeBench. Inherits `~/.claude/CLAUDE.md` (global). Where they differ, this file wins.
 
+## Project skills
+
+PokeBench-specific skills live in this repository under `.claude/skills/`; `.agents/skills/` provides repository-relative discovery links for Codex. Create and update project skills here, including their scripts and references, rather than in a personal global skills folder.
+
 ## What this is
 
 A benchmark harness that measures how far local vision-language models get in Pokémon Emerald when given a specialized harness: first gym quickly, then the full game.

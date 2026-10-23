@@ -275,6 +275,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Restored live memory](restored-memory-run-v1.html): continuation memory namespaces and fresh observations.
 - [Blackout transition](blackout-transition-v1.html): exact known whiteout ownership and conservative unknown-state checks.
 
+- [Observed trainer Pokémon](trainer-observed-party-v1.html): delivered opponents remembered across retries for every trainer class.
+
 - [Immediate leader loss comparison](leader-loss-immediate-v1.html) — A verified loss reaches the very next decision, including outside the gym.
 - [Observed battle action history](battle-action-history-v1.html) — Keep what the game printed beside what the next observation measured.
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.

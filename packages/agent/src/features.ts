@@ -256,6 +256,7 @@ export const SWITCHABLE_FEATURES = [
   "navigation-cycle-stop-v1",
   "restored-memory-run-v1",
   "blackout-transition-v1",
+  "trainer-observed-party-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
@@ -637,6 +638,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("navigation-cycle-stop-v1", "guard", "NAVIGATION CYCLE STOP", "bounded-navigation-v1", "Default off; bundle only. Within one local navigate_to call, stops before repeating the same directional step at the same position, facing, local terrain, planned route and matching triggers. The result names the repeated step and says no onward route was verified. It returns a fresh observation without choosing a destination or ending the run. Evidence: GLM 0d5d turns 1031/1032 alternated RIGHT and LEFT eight times per call. Off: the previous bounded navigation, command-limit feedback and prompt remain unchanged."),
   on("restored-memory-run-v1", "guidance", "RESTORED LIVE MEMORY", null, "Default off. Historical event envelopes are replayed into the continuation run memory namespace so fresh observations can update supervisor and instruction memories. Saved source history is preserved. Off: replay original source run identities unchanged."),
   on("blackout-transition-v1", "observation", "BLACKOUT TRANSITION", null, "Default off. Recognizes the verified whiteout callback as an input-not-ready transition. Unknown callbacks remain coverage errors. Native measurement recognizes the known callback independently. Off: previous screen and UI readout unchanged."),
+  on("trainer-observed-party-v1", "observation", "OBSERVED TRAINER POKÉMON", "battle-loss-recap-v1", "Default off; bundle treatment. Remembers opponent species and levels actually delivered to the model, by trainer ID and party slot, for every trainer class. Retry recaps and active trainer battles list these historical observations across attempts and story milestones. Delivered faint pages update already observed Pokémon. Internal state polls, failed results, unseen party members and ambiguous two-trainer battles teach nothing. Never claims the complete party is known. Off: battle recaps and results are unchanged."),
   on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
@@ -959,6 +961,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-cycle-stop-v1"),
     ...when("restored-memory-run-v1"),
     ...when("blackout-transition-v1"),
+    ...when("trainer-observed-party-v1"),
     ...when("leader-loss-immediate-v1"),
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
@@ -973,5 +976,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

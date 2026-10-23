@@ -39,13 +39,23 @@ const inBattle=(s:Snapshot):boolean=>s.started&&(s.in_battle||s.screen==="battle
 const overworld=(s:Snapshot):boolean=>s.started&&!s.in_battle&&s.screen==="overworld"&&s.map_id!==null;
 const counted=(e:Extract<RunEvent,{type:"milestone"}>):boolean=>e.kind==="story"&&e.origin!=="present_at_start"&&e.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(e.name);
 
+interface ObservedFoe {readonly battler:number;readonly slot:number;readonly species:string;readonly level:number;readonly fainted:boolean;readonly seq:number}
+interface TrainerObservation {readonly id:number;readonly name:string|null;readonly foes:readonly ObservedFoe[]}
+// Bounded correlation only; retained knowledge has at most six slots per encountered trainer.
+const OBSERVATION_MEMORY=512;
+const oneLine=(text:string):string=>text.replace(/\s+/g," ").trim();
+
 export class BattleOutcomes {
  private running:Running|null=null;
  private readonly done:Battle[]=[];
  private storySeq=-1;
+ private readonly observations=new Map<number,TrainerObservation>();
+ private readonly deliveredFoes=new Map<number,Map<number,ObservedFoe>>();
+ private readonly pendingFaints=new Map<string,{readonly tool:string;readonly pages:readonly {readonly observation:TrainerObservation;readonly text:string}[]}>();
  constructor(private readonly features:FeatureSet){}
 
  observe(event:RunEvent):void {
+  if(this.features["trainer-observed-party-v1"])this.rememberDelivered(event);
   if(event.type==="milestone"){if(counted(event))this.storySeq=event.seq;return;}
   if(event.type!=="state"||!("started" in event))return;
   const finished=this.step(event,event.turn,event.seq);
@@ -86,6 +96,74 @@ export class BattleOutcomes {
   return {trainerBattle:run.trainerBattle,trainer:run.trainer,foe:run.foe,place:run.place,turn:run.turn,seq,outcome,whiteout};
  }
 
+ // A state poll is only a candidate. Knowledge commits after matching delivery evidence.
+ private rememberDelivered(event:RunEvent):void {
+  if(event.type==="state"&&"started" in event){
+   const opponent=event.trainer_opponent,b=event.battle;
+   const trainer=opponent?.battle_active===true?{id:opponent.trainer_id,name:opponent.name}:this.running?.trainer;
+   // pret battle.h: MULTI and TWO_OPPONENTS need per-trainer ownership not exposed here.
+   if(!inBattle(event)||trainer==null||b?.active!==true||((b.battle_type??0)&BATTLE_TYPE_TRAINER)===0||((b.battle_type??0)&((1<<6)|(1<<15)))!==0)return;
+   const foes=(b.battlers??[]).filter(f=>f.position%2===1&&!f.absent&&f.party_slot>=0&&f.party_slot<6&&f.level>0&&f.species!=="").map(f=>({battler:f.battler,slot:f.party_slot,species:f.species,level:f.level,fainted:f.hp===0,seq:event.seq}));
+   this.observations.set(event.seq,{id:trainer.id,name:trainer.name,foes});
+   this.trim(this.observations);
+   return;
+  }
+  if(event.type==="dialogue_auto_advance"){
+   const previous=this.pendingFaints.get(event.tool_call_id);
+   const pages=previous?.tool===event.tool?[...previous.pages]:[];
+   for(const page of event.pages){
+    const observation=page.state_seq===null?undefined:this.observations.get(page.state_seq);
+    if(page.battle_message_id!==undefined&&observation!==undefined)pages.push({observation,text:oneLine(page.text)});
+   }
+   this.pendingFaints.set(event.tool_call_id,{tool:event.tool,pages:pages.slice(-OBSERVATION_MEMORY)});
+   this.trim(this.pendingFaints);
+   return;
+  }
+  if(event.type!=="tool_result"&&event.type!=="decision_input")return;
+  if(event.type==="tool_result"){
+   const pending=this.pendingFaints.get(event.id);
+   this.pendingFaints.delete(event.id);
+   if(event.is_error)return;
+   if(pending?.tool===event.name){
+    const delivered=oneLine(event.text);
+    for(const page of pending.pages){
+     if(!delivered.includes(page.text))continue;
+     for(const foe of page.observation.foes){
+      const known=this.deliveredFoes.get(page.observation.id)?.get(foe.slot);
+      // sText_PkmnFainted: only update a species/level already delivered; never learn a
+      // hidden level from the page's internal RAM state. The page itself establishes fainting.
+      if(foe.fainted&&known?.species===foe.species&&known.seq<=foe.seq&&page.text===`Foe ${foe.species} fainted!`)this.keep(page.observation.id,{...known,fainted:true,seq:foe.seq});
+     }
+    }
+   }
+  }
+  const observation=event.state_seq===undefined?undefined:this.observations.get(event.state_seq);
+  if(observation===undefined)return;
+  for(const foe of observation.foes){
+   // Both the compact Foe line and expanded Battler line print this exact phrase.
+   const label=`${foe.species} Lv${String(foe.level)} `;
+   // An unnumbered Foe line identifies a slot only when species/level is unique on this side.
+   const unique=observation.foes.filter(f=>f.species===foe.species&&f.level===foe.level).length===1;
+   if(event.text.split("\n").some(line=>(unique&&line.startsWith(`Foe ${label}`))||line.startsWith(`Battler ${String(foe.battler)} ${label}`)))this.keep(observation.id,foe);
+  }
+ }
+ private trim<T>(map:Map<number|string,T>):void {
+  if(map.size>OBSERVATION_MEMORY){const first=map.keys().next().value;if(first!==undefined)map.delete(first);}
+ }
+ private keep(id:number,foe:ObservedFoe):void {
+  const known=this.deliveredFoes.get(id)??new Map<number,ObservedFoe>();
+  if((known.get(foe.slot)?.seq??-1)<=foe.seq)known.set(foe.slot,foe);
+  this.deliveredFoes.set(id,known);
+ }
+ private remembered(trainer:Battle["trainer"]):string|null {
+  if(!this.features["trainer-observed-party-v1"]||trainer===null)return null;
+  const foes=this.deliveredFoes.get(trainer.id);
+  if(foes===undefined)return null;
+  const who=trainer.name===null?`trainer ${String(trainer.id)}`:`${trainer.name} (trainer ${String(trainer.id)})`;
+  const list=[...foes.values()].sort((a,b)=>a.slot-b.slot).map(f=>`${f.species} Lv${String(f.level)}${f.fainted?" (last observed fainted)":""}`).join(", ");
+  return `Previously observed against ${who}: ${list}. Full party not established by these observations.`;
+ }
+
  battles():readonly Battle[] {return this.done;}
 
  // briefing-battle-outcomes-v1: two lines for the supervisor briefings.
@@ -101,11 +179,14 @@ export class BattleOutcomes {
   const pending=now===null||this.running===null?null:this.step(now,this.running.turn,Infinity,false);
   const all=pending===null?this.done:[...this.done,pending];
   const lost=all.findLast(b=>b.whiteout!==null||(b.trainerBattle&&(b.outcome==="lost"||b.outcome==="drew")));
-  if(lost===undefined||lost.seq<=this.storySeq)return null;
+  const active=now!==null&&inBattle(now)?(now.trainer_opponent?.battle_active===true?{id:now.trainer_opponent.trainer_id,name:now.trainer_opponent.name}:this.running?.trainer??null):null;
+  const memory=this.remembered(active??lost?.trainer??null);
+  if(lost===undefined||lost.seq<=this.storySeq)return active===null?null:memory;
   const head=`Battle recap: you ${lost.outcome==="drew"?"drew with":"lost to"} ${opponentOf(lost)} on ${lost.place} at turn ${String(lost.turn)}${lost.whiteout===null?"":` and whited out; the game returned you to ${lost.whiteout.place}`}.`;
   const t=lost.trainer,o=now?.trainer_opponent;
   const line=t===null||o==null||o.trainer_id!==t.id?head:`${head} ${o.defeated?`The game now shows ${opponentOf(lost)} defeated.`:`The game shows ${opponentOf(lost)} has not been defeated.`}`;
-  return this.features["whiteout-healed-v1"]&&lost.whiteout!==null&&lost.whiteout.party.length>0?`${line} ${healedParty(lost.whiteout.party)}`:line;
+  const recap=this.features["whiteout-healed-v1"]&&lost.whiteout!==null&&lost.whiteout.party.length>0?`${line} ${healedParty(lost.whiteout.party)}`:line;
+  return memory===null?recap:`${recap} ${memory}`;
  }
 
  private describe(b:Battle):string {

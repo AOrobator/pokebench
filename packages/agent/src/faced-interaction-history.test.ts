@@ -62,7 +62,7 @@ const untried=(text:string):string=>text.split("\n").find(line=>line.startsWith(
 
 describe("faced-interaction-history-v1",()=>{
  it("is registered without disturbing historical ordering, defaults off, remains off in control, and is flipped only by the bundle arm",()=>{
-  expect(SWITCHABLE_FEATURES.at(-128)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-129)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-15)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,title:"FACED INTERACTION HISTORY"});
   expect(featureInfo(ID).description).toContain(" Off: ");

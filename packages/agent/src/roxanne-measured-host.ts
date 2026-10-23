@@ -150,6 +150,6 @@ export function verifyCampaignReviews(value:unknown,head:string,campaign:string)
  const Schema=Type.Object({status:Type.Literal("LGTM"),head:text,campaign:text,lanes:Type.Array(Type.Object({family:text,model:text,cloud:Type.Boolean(),verdict:Type.Enum(["LGTM","UNAVAILABLE"])})),operatorException:Type.Optional(Type.Object({missingFamily:Type.Literal("grok"),campaign:text,quote:Type.Literal("Tell autoresearch I approve proceeding without Grok. Finish landing and preflight, then coordinate taking over both GPUs. Keep the Double Kick investigation moving too."),sourceThread:Type.Literal("00000000-0000-4000-8000-f5efe0494f81"),sourceMessage:Type.Literal("00000000-0000-4000-8000-fc6902fdcccf")}))});
  if(!Value.Check(Schema,value)||value.head!==head||value.campaign!==campaign)throw new Error("invalid campaign review binding");
  const approved=(family:string)=>value.lanes.some(l=>l.family===family&&l.cloud&&l.verdict==="LGTM");
- const fallbacks=new Set(value.lanes.filter(l=>l.family==="fallback"&&l.verdict==="LGTM").map(l=>l.model));
+ const fallbacks=new Set(value.lanes.filter(l=>l.family==="fallback"&&l.cloud&&l.verdict==="LGTM").map(l=>l.model));
  if(!approved("claude")||!approved("gpt")||!approved("grok")&&(value.operatorException?.campaign!==campaign||fallbacks.size<2))throw new Error("mandatory campaign reviews or explicit operator exception missing");
 }

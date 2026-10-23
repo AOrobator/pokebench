@@ -244,3 +244,21 @@ describe("terrain gate corrections",()=>{
   expect(planNavigation(gatedState(storm),{x:6,y:0},PLAN)).toBeNull();
  });
 });
+
+describe("closed terrain identity",()=>{
+ const terrainState=(behavior:number,gate:string,name:string):GameStateSnapshot=>{
+  const state=field([".r."],{x:0,y:0},["100"]),f=state.field_obstacles;if(f==null)throw new Error("no field");
+  return {...state,navigation_grid:{...grid(state),tiles:grid(state).tiles.map(t=>t.x===1?{...t,behavior}:t)},field_obstacles:{...f,obstacles:f.obstacles.map(o=>({...o,kind:"terrain",local_id:null,gate,name,only:null,needs:"special movement that walking navigation does not perform",text:null}))}};
+ };
+ for(const [behavior,gate,name] of [[0xd1,"acro_bike","bumpy slope"],[0xd2,"mach_bike","cracked floor"],[0xd5,"acro_bike","rail"],[0,"go_goggles","sandstorm tiles"]] as const)it(`names ${name} instead of inventing an object`,async()=>{
+  const state=terrainState(behavior,gate,name);
+  const on=await navigate({...NAV,[ID]:true},state,{x:1,y:0},"stay");
+  expect(on.presses).toBe(0);expect(on.status).toContain(name);expect(on.status).not.toContain("person or object");expect(on.status).not.toContain("talk to");
+ });
+ it("preserves actual object identity when an object stands on special terrain",async()=>{
+  const state=terrainState(0xd2,"mach_bike","cracked floor");
+  const actual={...state,navigation_grid:{...grid(state),objects:[{x:1,y:0}]}};
+  const on=await navigate({...NAV,[ID]:true},actual,{x:1,y:0},"stay");
+  expect(on.presses).toBe(0);expect(on.status).toContain("person or object");
+ });
+});

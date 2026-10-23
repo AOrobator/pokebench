@@ -172,7 +172,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null,advice:WaypointAdvice|null=null):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null,advice:WaypointAdvice|null=null,observed:GameStateSnapshot=state):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
@@ -192,7 +192,9 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const scripted=truth&&state.interaction_targets!=null?targets.filter(t=>t.kind==="object"):null;
  const talker=(p:Point):typeof person=>{if(scripted===null)return person;const elevation=arrival(p);return elevation===null?undefined:scripted.find(t=>elevationsMatch(t.elevation,elevation));};
  const live=(state.world_context?.objects??[]).find(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
- const occupied=geometry.objects.some(same)||person!==undefined||live!==undefined;
+ const nativeGeometry=options.mode==="full"?fullGeometry(observed):localGeometry(observed);
+ const obstacleObject=options.slopes===true&&(state.field_obstacles?.obstacles.some(o=>o.kind==="object"&&o.open===false&&o.tiles.some(same))??false);
+ const occupied=(nativeGeometry?.objects.some(same)??false)||obstacleObject||person!==undefined||live!==undefined;
  const thing=person??(standable(tile)?undefined:targets.find(t=>t.activation==="A"&&t.kind!=="warp"));
  if(occupied||thing!==undefined){
   const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
@@ -221,8 +223,9 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   if(cut!==null)return `${at(goal)} is ${label}, which navigate_to cannot stand on${cut}`;
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
- if(standable(tile))return null;
- const special=options.slopes===true?terrainObstacle(tile.behavior):null;
+ const closedTerrain=options.slopes===true?state.field_obstacles?.obstacles.find(o=>o.kind==="terrain"&&o.open===false&&o.tiles.some(same)):undefined;
+ if(standable(tile)&&closedTerrain===undefined)return null;
+ const special=options.slopes===true?(terrainObstacle(tile.behavior)??(closedTerrain===undefined?null:`${closedTerrain.name}, closed to walking navigation: it needs ${closedTerrain.needs}${closedTerrain.text===null?"":`; the game says: "${closedTerrain.text}"`}`)):null;
  const what=special??(LEDGES.has(tile.behavior)?"a ledge, which you can only hop over in its arrow direction":WATER.has(tile.behavior)?"water":tile.collision!==0?"a wall or other solid tile":`terrain navigate_to does not walk on (metatile behavior 0x${tile.behavior.toString(16).padStart(2,"0")})`);
  const candidates:Point[]=[];
  for(let d=1;d<=NEAREST_RADIUS;d++)for(let dy=-d;dy<=d;dy++)for(const dx of new Set([-(d-Math.abs(dy)),d-Math.abs(dy)]))candidates.push({x:goal.x+dx,y:goal.y+dy});
@@ -797,6 +800,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
    advice?.observeMap(state);
+   const observed=state;
    if(ports.fieldMoveGates===true)state=gatedState(state);
    const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
@@ -819,7 +823,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     if(escape!==null){active="full";options=whole;path=escape;}
    }
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice):null)??(truth?triggerReason(state,goal,options):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice,observed):null)??(truth?triggerReason(state,goal,options):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     if(ports.sectionAlternatives===true){const alternatives=reachableSectionAlternatives(state,goal);if(alternatives!==null)status+=`; ${alternatives}`;}
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;

@@ -1,0 +1,11 @@
+# Viewer restored continuation reading
+
+Scope: campaign owner and coordinator requested a minimal launch-surface repair for current restored runs. Viewer only; no harness, scoring, prompt, trace, model, GPU or worker changes. Protect campaign controller59608, live59717/59718 games8064/8065 and Mac live53193/game8077/serve53718. Refresh8790 only coordinated with campaign and clock owners, after tested/reviewed landing through board.
+
+Contract: current run_start seq0 binds adjacent immutable restoration-prefix.jsonl by SHA256, source run/turn and prefix last sequence. Validate bounded prefix stream and source identity/order, reject changed/missing/symlinked proof, then expect prefix_last_seq+1. Never apply prefix as current gameplay, splits/tokens/time remain current run only. Ordinary contiguous sequencing unchanged. Cached summaries/tailers must invalidate on prefix metadata changes. Current source prefix204,963,448bytes,17729events,seq0..17728; continuation begins17729. Tests use tiny discriminating fixtures, real-data checks read-only. Original tab untouched, headless browser only.
+
+Production boundary: one prefix validation helper, frontier-recording and workbench-store integration only. No new runtime owner, workers or caches. RED→GREEN→gates→frozen Claude/Grok/freshGPT review→board landing→main tests→coordinated viewer refresh/headless proof. Clock lands before viewer freeze, viewer before cycle final review. No board slot until ready.
+
+Progress: initial read-only diagnosis confirmed viewer rejection and producer contract. RED tests pending. Main base7d550557d. Full actual prefix SHA256 matches both headers. No service actions.
+
+RED: two new assertions failed on unchanged reader (valid restored reduction and loader status); rejection cases already green. Focused baseline run4 tests2failed2passed. Initial dependency-only import failure was resolved by building agent exports and is not the RED claim. Tiny fixture has two source events; no per-row service/I/O. Production changes kept unstaged for RED commit.

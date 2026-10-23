@@ -81,7 +81,8 @@ it("held-out4637 critical-hit and burn pages keep the move's player/foe side",as
  for(const [through,expected]of [[5762,"Player move page: A critical hit!"],[5966,"Player move page: A critical hit!"],[6256,"Foe move page: A critical hit!"]] as const){
   const s=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});for(const e of events)if(e.seq<=through)s.emit(e);
   const out=last(await s.wired.transformContext(before));expect(out).toContain(expected);expect(out).toContain("attribution to individual moves is unknown");
-  if(through===5762)expect(out).toContain("burn");
+  if(through===5762)expect(out).toContain("Foe game page: Foe GEODUDE is hurt by its burn!");
+  if(through===5966)expect(out).toContain("Foe game page: Foe NOSEPASS\'s ORAN BERRY restored health!");
  }
 });
 

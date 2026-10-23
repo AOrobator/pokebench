@@ -22,7 +22,7 @@ Read-only recorded game state and delivered text. No raw enemy party decoding, e
 ## Milestones
 - [x] M1: failing regressions and RED commit
 - [x] M2: implementation, switch, bundle, explainer, full gates and GREEN commit
-- [ ] M3: frozen cloud review, landing-board coordination, local merge and viewer proof if all required lanes approve
+- [x] M3: frozen review, human-approved fallback landing, local merge and viewer proof
 
 ## Closing the Loop
 Production playGameTools seam; historical May trace replay read-only; delete/restore wiring; themed explainer/card tests and background browser proof. No gameplay/inference launches authorized or needed.
@@ -74,3 +74,15 @@ None.
 - Resumed on explicit human fallback-landing approval. Current main 33802790c includes cycle/recovery and party loading; another owner holds main/8790. Only isolated branch integration until its release.
 
 - Integrated current main 33802790c: kept cycle/recovery/blackout switches and party-loading changes. Appended trainer-observed-party-v1 last. Registry tail assertions rebased onto main; BattleOutcomes implementation and its 14 regression tests unchanged from approved reviewed source.
+
+## Final landing receipt
+- Human directly approved: “Approve landing with fallback.” All four selected reviewers returned LGTM after final main integration; Grok usage exhaustion is retained as an unavailable lane, never reported as approval.
+- Final frozen BASE 6eacaea86812a33676a115764ef8aa724cea93e3; HEAD/source 7f4095ab24a54492f77e2637349ca7dbbcaeea79; canonical binary diff SHA256 a31c093c5bb14a7e1d1db5978682edb95cb918b5c3c23e26605ea5fac17a3e4d. Runtime implementation and 14 feature regressions remain byte-identical to R2-approved e20f96f86.
+- All normal integrated gates passed: just build, default just test (4134 agent / 1791 viewer / 4068 Python), default just coverage, just lint, pinned vendor and pages checks. Coverage lines/branches/functions: agent 99.12/92.89/97.61%, viewer 98.04/91.63/95.17%, Python 97.36/93.28/100%; floor unchanged at 90.
+- Joined landing board with exact CODEX_THREAD_ID 00000000-0000-4000-8000-ba4cf082f31a; verified #1. Canonical main clean and reviewed diff identity matched immediately before fast-forward to source 7f4095ab2.
+- Initial canonical post-merge just test was started before rebuilding stale package exports and rejected the new switch in viewer tests. Retained /tmp/trainer-main-test.log. Rebuilt canonical exports, then unchanged default just test passed 4134/1791/4068; no assertions, deadlines, exclusions or source changed.
+- Exactly one just viewer-main refresh completed at 2026-10-23 05:18:30 PM EDT: listener 78402, PPID 1, clean served stamp 7f4095ab2. All 42 served browser modules byte-match the detached built files; no older-build warnings.
+- Agent-owned headless Chrome (operator focus untouched): actual live Mac run remains RUNNING/live with decoded 240×160 blob frame; actual Harness Config search finds the feature and READ EXPLAINER opens its exact canonical document. Historical run correctly says NOT RECORDED. Desktop/phone card and 1280/1440/375 explainer screenshots opened and inspected; zero page errors, card stable over multiple polls. Source run headers unchanged. Protected process identities unchanged, including Mac controller 52860/agent 53193/game 53718. Unrelated ChatGPT CUA worker exits were identified separately and are not gameplay losses.
+- Durable curated receipts: runs/reviews/trainer-observed-party-v1/; browser proof: runs/mockups/trainer-observed-party-v1/live/. Original run logs untouched; offline reconstruction stayed isolated. No new gameplay/model/GPU launch, no game input and no run restart.
+- Activation: switch defaults OFF and is enabled only in the eight current bundle arms, control OFF. Already running/frozen runs keep their recorded source/settings; this landing does not retroactively add memory to the live Mac run.
+- This final evidence commit touches only this worklog, under the evidence-only landing exception. Archive remains user-gated and has not been performed.

@@ -8,7 +8,7 @@
  "primaryMilestone": "STONE_BADGE",
  "source": {
   "checkout": "main",
-  "commit": "751570f9de72e52ce3779da034033e2103b3fcb5"
+  "commit": "ae11af5813b25f71c6bfc08c4ea016bea5e74c69"
  },
  "incumbent": {
   "version": 2,
@@ -264,6 +264,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Operator enabled in both arms after86/100 fresh native Double Kick acquisitions;14 declines,no errors. Separate from older30/32vs4/32 and mixed broader held-out findings. No cohort approval, queue position or automatic launch. Activation additionally requires a ready choice and an earlier explicit assistant skip statement; neutral histories remain unchanged. Existing pinned runs are not changed.",
+ "notes": "Operator enabled in both arms after86/100 fresh native Double Kick acquisitions;14 declines,no errors. Separate from older30/32vs4/32 and mixed broader held-out findings. No cohort approval, queue position or automatic launch. Activation additionally requires a ready choice and an earlier explicit assistant skip statement; neutral histories remain unchanged. Existing pinned runs are not changed. Operator19:55clarification: only reminder shared; five existing switches stay bundle-only. Reminder also reaches native control choices without a comparison; exact tested wording unchanged, no extra comparison data. Effect under control tools/readouts not separately measured.",
  "blocked": "Pending exposure-qualified full gameplay evaluation; single-context native decision evidence is not endgame benefit proof."
 }

@@ -62,7 +62,7 @@ const terrainStepCost=(tile:Tile,options:NavigationOptions):number=>options.gras
 export interface MatchingTrigger {readonly x:number;readonly y:number;readonly elevation:number;readonly variable:number;readonly required:number;readonly current:number|null}
 // field-move-gates-v1 slopes: a slope tile (MB_MUDDY_SLOPE) is stepped onto only moving down, and the walker slides south to
 // the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean}
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean}
 export const SLOPE=0xd0;
 // Describes unsupported movement; no bike action, destination or puzzle solution is chosen.
 function terrainObstacle(behavior:number):string|null {
@@ -97,7 +97,7 @@ const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16
 const triggerText=(t:MatchingTrigger):string=>`(${String(t.x)},${String(t.y)}), a script-trigger tile whose condition matches now (${condition(t)})`;
 // Every route crosses some matching trigger (the planner found none without one); the first on one such route is named.
 const crossingText=(t:MatchingTrigger):string=>`a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (${String(t.x)},${String(t.y)}) (${condition(t)})`;
-interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
+interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly (Point&{readonly elevation?:number})[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
  const grid=state.navigation_grid;if(grid==null)return null;
@@ -494,8 +494,13 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height||goal.x<0||goal.y<0))return null;
  const goalKnown=geometry.tile(goal)!==undefined;
  if(!goalKnown&&bounds===null)return null;
- const occupied=new Set(geometry.objects.map(key)),warps=new Set(geometry.warps.map(key));
- if(occupied.has(key(goal)))return null;
+ const warps=new Set(geometry.warps.map(key));
+ // elevation-aware-map-v1: pokeemerald DoesObjectCollideWithObjectAt blocks only an object whose elevation
+ // AreElevationsCompatible with the walker's (either is 0, or they are equal); an object of unknown elevation blocks.
+ const layered=options.actorElevation===true,levels=new Map<string,(number|undefined)[]>();
+ for(const o of geometry.objects)levels.set(key(o),[...(levels.get(key(o))??[]),layered?o.elevation:undefined]);
+ const occupiedFor=(walker:number)=>(p:Point):boolean=>levels.get(key(p))?.some(e=>e===undefined||e===0||walker===0||e===walker)??false;
+ if(!layered&&levels.has(key(goal)))return null;
  type Node={p:Point;here:number;elevation:number;cost:number;parent:Node|null;direction:Direction|null};
  const route=(node:Node):Direction[]=>{const path:Direction[]=[];for(let n:Node|null=node;n!==null&&n.direction!==null;n=n.parent)path.push(n.direction);return path.reverse();};
  const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null};
@@ -508,15 +513,16 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
   if((costs.get(identity)??Infinity)<=node.cost)continue;costs.set(identity,node.cost);
   if(distance(node.p,goal)<distance(best.p,goal)||(distance(node.p,goal)===distance(best.p,goal)&&node.cost<best.cost))best=node;
   if(distance(node.p,goal)===0)return route(node);
+  const occupied=occupiedFor(node.elevation);
   for(const [direction,dx,dy] of DIRECTIONS){
    const next={x:node.p.x+dx,y:node.p.y+dy},tile=geometry.tile(next);
-   if(tile===undefined||occupied.has(key(next)))continue;
+   if(tile===undefined||occupied(next))continue;
    if(options.slopes===true&&tile.behavior===SLOPE){
     // A slope is entered only moving down, slides to the first tile below it, and is never a goal.
     const slid=slideEnd(geometry,next,direction,options);
     if(slid===null||tile.collision!==0||warps.has(key(next)))continue;
     const land=geometry.tile(slid);
-    if(land===undefined||occupied.has(key(slid))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
+    if(land===undefined||occupied(slid)||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
     if(warps.has(key(slid))&&distance(slid,goal)!==0)continue;
     if(mismatch(node.elevation,land.elevation))continue;
     const arrived=entered(node.elevation,land.elevation),cost=node.cost+slid.y-next.y+step(land);
@@ -525,7 +531,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    }
    if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
-    if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
+    if(land===undefined||occupied(landing)||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
     if(mismatch(node.elevation,land.elevation))continue;
     const landed=jumped(node.elevation,node.here,tile.elevation,land.elevation);
     if(distance(landing,goal)!==0&&triggerAt(options.triggers,landing,landed)!==undefined)continue;
@@ -636,6 +642,8 @@ export interface NavigationPorts {
  readonly fullMap?:boolean;
  // window-escape-route-v1: with the server's map_grid, plan over the whole current map when the local window has no route.
  readonly windowEscape?:boolean;
+ // elevation-aware-map-v1: objects on another level do not occupy the walker's tile.
+ readonly actorElevation?:boolean;
  // Plan only over local cells already delivered to the model this run (visited-terrain-navigation-v1).
  readonly visitedTerrain?:boolean;
  readonly ledges?:boolean;
@@ -811,7 +819,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,active)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
-   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...((truth&&ports.triggers===true)||ports.triggerBoundary===true?{triggers:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{})};
+   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...((truth&&ports.triggers===true)||ports.triggerBoundary===true?{triggers:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{})};
    let options:NavigationOptions=ports.triggerBoundary===true&&planNavigation(state,goal,guardedOptions)===null?{...guardedOptions,triggers:[]}:guardedOptions;
    // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
    const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
@@ -958,5 +966,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

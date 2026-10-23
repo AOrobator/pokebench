@@ -151,3 +151,10 @@ it("missing player names leave a printed foe-like actor uncertain while native p
  const h=new BattleActionHistory();h.observe(eventAt(2063));h.observe(eventAt(2064));h.observe(eventAt(2065));h.observe(eventAt(2066));
  expect(h.context()?.text).toContain("Player TORCHIC used SCRATCH");expect(h.context()?.text).toContain("Unknown side Foe GEODUDE used DEFENSE CURL");
 });
+
+it("unchanged native move IDs remain unchanged when a current move display name is missing",async()=>{
+ const s=setup({"leader-loss-immediate-v1":true,"leader-preparation-comparison-v1":true});s.feed(1744);
+ const state=eventAt(1742),receipt=eventAt(1744);if(state.type!=="state"||!("started"in state)||receipt.type!=="tool_result")throw new Error("native state");
+ s.emit({...state,seq:1746,party:state.party.map(p=>({...p,moves:p.moves?.map(m=>({...m,name:null}))??null}))});s.emit({...receipt,seq:1747,state_seq:1746});
+ expect(last(await s.wired.transformContext(before))).toContain("moves unchanged");
+});

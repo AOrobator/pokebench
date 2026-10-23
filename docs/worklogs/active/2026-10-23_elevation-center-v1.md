@@ -45,8 +45,9 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 - Live-RAM proof: archive 21953 (seq 129029) re-rendered through `python -m pokebench_env.rerender` with the run's own switches: OFF unchanged; ON draws L over the road (x=16-18, rows 62-68, and the bridge-level tiles south of row 71), Next tiles names up (16,68) as another level, and the cover line names (16,69) and (16,68) at elevation 3.
 - Scope added 2:00 PM (the operator via Codex/coordinator): navigate_to occupancy across layers goes in elevation-aware-map-v1 (M1b below).
 **M3 — explainers, gates, review, landing**
-- [ ] Explainers with diagrams, FEATURE_EXPLAINERS links
-- [x] `just lint` pass; `just coverage` pass at adc942e54 (after syncing main 24d71e151): agent 4071 (lines 99.13 / branches 92.94 / functions 97.61), viewer 1763 (98.03 / 91.61 / 95.16), Python 4063 (97.37 / 93.30 / 100). Build ran inside the test steps.
+- [x] Explainers with diagrams, FEATURE_EXPLAINERS links
+- [x] Final gates at code tip f58cb6c04 (main 24d71e151 merged; this worklog-only commit follows): `just lint` EXIT 0; `just test` EXIT 0 (agent 4072, viewer 1763, Python 4065); `just build` EXIT 0 (at 00429824b, no code change since but a test comment); `just coverage` EXIT 0 on the third pass: agent 4072 (lines 99.13 / branches 92.93 / functions 97.61), viewer 1763 (98.03 / 91.60 / 95.16), Python 4065 (97.37 / 93.30 / 100). The two earlier coverage passes failed only on timing tests unrelated to this change, with machine load average about 34 (viewer server-stream 260 ms > 250 ms and app-controls timeout; agent live-human timeout); each passes alone. `just verify-vendor` EXIT 0 (bbab97ad, clean); `just pages-check` on both explainers prints nothing. Headless Chrome screenshots at 1280 checked; the 375 px capture clips every existing explainer equally (headless minimum window width), so phone layout is not proven by it.
+- [x] (earlier) `just lint` pass; `just coverage` pass at adc942e54 (after syncing main 24d71e151): agent 4071 (lines 99.13 / branches 92.94 / functions 97.61), viewer 1763 (98.03 / 91.61 / 95.16), Python 4063 (97.37 / 93.30 / 100). Build ran inside the test steps.
 - [ ] Multi-model review: Claude + GPT + fallback cloud lane, LGTM on the frozen packet
 - [ ] Land via landing board, `just viewer-main`, live check
 

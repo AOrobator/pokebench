@@ -45,7 +45,7 @@ Never put backticks or `$(...)` inside an unquoted heredoc or a double-quoted sh
    - Read only the first line of `runs/<id>/events.jsonl` (`run_start`). Files run to ~150 MB: always stream (`head -n 1`, `tail`, `grep`), never load whole.
    - From it: `evaluation.features` (each switch on or off), `evaluation.experiment` (id, arm, trial), sampling, model and preset. The workbench `config.source` is the pinned commit.
    - `evaluation` and `evaluation.features` are optional; older runs lack them even with a preset. When `evaluation.features` is absent, take switch states from the workbench `config.features` (its `on` is true, false or null). Keep null as unknown and never infer OFF.
-   - Describe each switch from `experiments/fixed/<id>.json` and its experiment file: try `experiments/<switch id>.json`, then the id without its `-vN` suffix, then the registry in `packages/agent/src/features.ts`.
+   - Describe each switch from the matching fixed-run definition under `experiments/fixed/`, the registry in `packages/agent/src/features.ts`, and its linked explainer. Read the compared source pin when describing historical behavior; deleted queue-definition files are not required inputs.
    - Build a round-to-round switch diff for each arm, and the bundle-minus-control diff.
    - Run `git log --oneline A..B` between consecutive pins, so behavior changes outside switches are visible.
 

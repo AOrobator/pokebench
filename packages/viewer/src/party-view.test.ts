@@ -280,6 +280,10 @@ describe("partyPage", () => {
     expect(moves.querySelector('[data-pv-move="0"] .pp .gtx')?.getAttribute("data-c")).toBe("pv-dark");
   });
   it("says so when the party is empty", () => {
-    expect(partyPage([], DATA, { slot: 0, tab: 0, move: null })).toContain("no Pokémon yet");
+    const empty = dom(partyPage([], DATA, { slot: 0, tab: 0, move: null }));
+    expect(empty.querySelectorAll(".pv-empty")).toHaveLength(6);
+    expect(empty.querySelector(".pv-scr")).not.toBeNull();
+    expect(empty.querySelector("button")).toBeNull();
+    expect(empty.body.textContent).not.toContain("no Pokémon yet");
   });
 });

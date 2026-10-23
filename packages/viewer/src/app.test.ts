@@ -2053,14 +2053,44 @@ describe("POKéMON PARTY page", () => {
     expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
   });
 
-  it("shows the plain list when the party art was never built", async () => {
+  it("keeps six empty current-style slots until art arrives, then fills the same party screen", async () => {
+    let finish: (value: unknown) => void = () => { throw new Error("resolver missing"); };
+    const pending = new Promise<unknown>(resolve => { finish = resolve; });
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { ...ART, "/sprites/party/data.json": pending });
+    feed(must(streams[0]), partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    app.render();
+    expect(ui("party").querySelector(".pv-scr")).not.toBeNull();
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
+    expect(ui("party").querySelector(".party, .hpbar, [data-pv-slot]")).toBeNull();
+    finish(DATA);
+    await app.loadPartyArt();
+    expect(ui("party").querySelectorAll("[data-pv-slot]")).toHaveLength(2);
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(4);
+    expect(ui("party").querySelector(".hpbar")).toBeNull();
+  });
+
+  it("keeps all six current-style slots empty for a genuinely empty party", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const log = new Log(); log.add(0, START); log.add(1, state({ party: [] }));
+    feed(must(streams[0]), log.events);
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await app.loadPartyArt();
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
+    expect(ui("party").querySelector("button")).toBeNull();
+    expect(ui("party").textContent).not.toContain("no Pokémon yet");
+  });
+
+  it("uses the current party layout and recorded facts when art tables are unavailable", async () => {
     const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
     feed(must(streams[0]), partyRun());
     must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
     await flush();
     app.render();
     expect(fetched).toContain("/sprites/party/data.json");
-    expect(ui("party").querySelector(".pv")).toBeNull();
+    expect(ui("party").querySelector(".pv")).not.toBeNull();
+    expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(4);
+    expect(ui("party").querySelector(".party, .hpbar")).toBeNull();
     expect(ui("party").textContent).toContain("ZIGZAGOON");
   });
 });

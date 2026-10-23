@@ -18,7 +18,7 @@ interface Fixture {
 const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/navigation-cycle-0d5d.json.gz",import.meta.url))).toString()) as Fixture;
 const snapshot=(seq:number):GameStateSnapshot=>parseGameState(fixture.states[String(seq)]);
 const options={ledges:true,oneWay:true,floor:true,elevation:"game" as const};
-const features=featuresOf(["bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","walkable-floor-v1","elevation-transitions-v1","navigation-truth-v1","navigation-refusal-reasons-v1","navigation-refusal-reasons-v2","exit-reachability-v1"]);
+const features=featuresOf(["bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","walkable-floor-v1","elevation-transitions-v1","navigation-truth-v1","navigation-refusal-reasons-v1","navigation-refusal-reasons-v2","exit-reachability-v1","coordinate-script-conditions-v1"]);
 const result=(state:GameStateSnapshot):AgentToolResult<unknown>=>({content:[{type:"text",text:"Recorded observation"}],details:{state}});
 function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attempt:number)=>GameStateSnapshot=s=>s){
  const before=fixture.before[turn],after=fixture.results[turn];if(before===undefined||after===undefined)throw new Error("missing recorded turn");
@@ -59,12 +59,20 @@ it("a changed player elevation is not the same cycle state",async()=>{
  const h=recorded("1031",true,(s,attempt)=>attempt<2||s.navigation_grid==null?s:{...s,navigation_grid:{...s.navigation_grid,elevation:0}});
  const r=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);expect(r.details).toMatchObject({navigation:{commands:4}});
 });
+for(const changed of ["warp","trigger"] as const)it(`a changed off-route ${changed} is not the same cycle state`,async()=>{
+ const h=recorded("1031",true,(s,attempt)=>{
+  if(attempt<2||s.navigation_grid==null)return s;
+  const point={x:20,y:0};
+  return changed==="warp"?{...s,navigation_grid:{...s.navigation_grid,warps:[...s.navigation_grid.warps,point]}}:{...s,world_context:{...s.world_context,objects:s.world_context?.objects??[],dialogue:null,triggers:[{...point,elevation:3,variable:0x4002,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000}]}};
+ });
+ const r=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);expect(r.details).toMatchObject({navigation:{commands:4}});
+});
 it("an off-route moving NPC does not hide the recorded cycle",async()=>{
  const h=recorded("1032",true);await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"]]);
 });
 it("a changed planned route can revisit a position without the stale-cycle stop",async()=>{
  const h=recorded("1031",true,(s,attempt)=>attempt<2||s.navigation_grid==null?s:{...s,navigation_grid:{...s.navigation_grid,objects:[...s.navigation_grid.objects,{x:16,y:5}]}});
- const r=await h.call();expect(h.buttons.length).toBeGreaterThan(2);expect(r.details).toMatchObject({navigation:{commands:3}});
+ const r=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"]]);expect(r.details).toMatchObject({navigation:{commands:3}});
 });
 it("later model calls have independent cycle state",async()=>{
  const h=recorded("1031",true);await h.call();const again=await h.call();expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);expect(again.details).toMatchObject({navigation:{commands:2}});
@@ -73,6 +81,31 @@ it("later model calls have independent cycle state",async()=>{
 import {navigationTool} from "./navigation.js";
 import {IN_GAME,RUN_START_META} from "../test-support/events.js";
 const corridor=():GameStateSnapshot=>({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"left",field_controls_locked:false,navigation_grid:{elevation:3,tiles:[0,1,2,3].map(x=>({x,y:0,collision:0,behavior:0,elevation:3})),objects:[],warps:[]}});
+it("a different position with the same facing, terrain and route is not a cycle",async()=>{
+ const tiles=[0,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:0,behavior:0,elevation:3})));
+ let state:GameStateSnapshot={...corridor(),position:{x:0,y:0},facing:"right",navigation_grid:{elevation:3,tiles,objects:[],warps:[]},topology:{width:10,height:3,connections:[]}};
+ let pending=false;const presses:string[][]=[];
+ const goal={x:9,y:1,map_id:[0,9] as [number,number]};
+ expect(planNavigation(state,goal,options)).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation({...state,position:{x:0,y:2}},goal,options)).toEqual(["RIGHT","RIGHT"]);
+ const nav=navigationTool({cycleStop:true,...options,truth:true,read:()=>{
+  if(pending){state={...state,position:{x:0,y:2}};pending=false;}return Promise.resolve(state);
+ },observe:()=>Promise.resolve(result(state)),press:(_id,args)=>{
+  presses.push([...args.buttons]);state={...state,position:{x:(state.position?.x??0)+1,y:state.position?.y??0}};
+  if(presses.length===1)pending=true;return Promise.resolve(result(state));
+ }});
+ const r=await nav.execute("position",goal);expect(presses).toEqual([["RIGHT"],["RIGHT"],["RIGHT"]]);expect(r.details).toMatchObject({navigation:{commands:3}});expect(JSON.stringify(r)).not.toContain("route cycle");
+});
+for(const mode of ["full","visited"] as const)it(`${mode} mode retains its existing bounded inputs`,async()=>{
+ let state=corridor();const presses:string[][]=[];
+ const row="0300".repeat(4);
+ state={...state,facing:"right",map_grid:{width:4,height:1,elevation:3,rows:[row],objects:[],warps:[]}};
+ const initial=state;let restore=false;
+ const nav=navigationTool({cycleStop:true,maxCommands:3,...options,truth:true,...(mode==="full"?{fullMap:true}:{visitedTerrain:true}),read:()=>{if(restore){state=initial;restore=false;}return Promise.resolve(state);},observe:()=>Promise.resolve(result(state)),press:(_id,args)=>{
+  presses.push([...args.buttons]);state={...state,position:{x:1,y:0}};restore=true;return Promise.resolve(result(state));
+ }});
+ const r=await nav.execute("other-mode",{x:3,y:0,map_id:[0,9]});expect(presses).toEqual(Array.from({length:3},()=>["RIGHT"]));expect(r.details).toMatchObject({navigation:{commands:3,status:"command limit: stopped at (1,0) after 3 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (3,0)"}});
+});
 it("useful movement and an initial turn complete normally",async()=>{
  let state=corridor(),turn=true;const presses:string[][]=[];
  const nav=navigationTool({cycleStop:true,...options,truth:true,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result(state)),press:(_id,args)=>{

@@ -14,6 +14,7 @@ const roots:string[]=[];
 afterEach(()=>{for(const root of roots.splice(0))rmSync(root,{recursive:true,force:true});});
 function fixture() {
  const source=new Log(),first=source.add(0,START),second=source.add(10,state());
+ if(second.type!=="state"||!("started" in second))throw new Error("fixture state missing");
  const prefix=source.events.map(e=>JSON.stringify(e)).join("\n")+"\n",root=mkdtempSync(join(tmpdir(),"restored-viewer-")),id="restored",folder=join(root,id);roots.push(root);
  const bound={source_run:first.run,source_turn:2,prefix_last_seq:1,prefix_sha256:createHash("sha256").update(prefix).digest("hex")};
  const start:RunEvent={...first,run:id,t:"2026-10-12T22:00:00.000-04:00",...START,start_state:{kind:"save_state",path:"/owned/source.state",sha1:"a".repeat(40)},restoration:bound};

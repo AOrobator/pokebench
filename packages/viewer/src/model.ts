@@ -226,6 +226,7 @@ export class RunView {
   frame: string | null = null;
   humanFrame: number | null = null;
   state: StateEvent | null = null;
+  partyState: StateEvent | null = null;
   legacyState = false;
   context: Of<"turn_start">["context"] | null = null;
   // Prompt tokens the server reported for the latest answered request; the
@@ -441,6 +442,8 @@ export class RunView {
     if (event.story === undefined && event.started && event.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) && !this.milestones.some((m) => m.name === "CLOCK_SET")) {
       this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true });
     }
+    // game_state.py PRE_GAME: an unread field transition can also have started=false.
+    if ((!event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen)) || event.play_time_s !== null || event.party.length > 0) this.partyState = event;
     const previous = this.state;
     // Recover the old route-label mismatch only from a confirmed field map.
     // Retain the state receipt and first observation time without editing logs.

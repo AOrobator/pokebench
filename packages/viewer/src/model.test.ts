@@ -408,3 +408,24 @@ it("modern human headers suppress recovery of missing new measurement events",()
  expect(view.milestones.filter(m=>m.name==="DEVON_GOODS_RECOVERED")).toEqual([]);
  expect(view.start?.harness_features).toContain("all-gym-story-milestones-v1");
 });
+
+describe("party sample lifetime", () => {
+  it("uses populated historical samples even without a play clock and never reads ahead in replay", () => {
+    const log = new Log();
+    log.add(0, START);
+    const populated = log.add(1, state({ play_time_s: null }));
+    log.add(2, state({ party: [], play_time_s: null, name: null, money: null }));
+    log.add(3, state({ party: [] }));
+    expect(foldUntil(log.events, BASE_MS).partyState).toBeNull();
+    expect(foldUntil(log.events, BASE_MS + 2).partyState).toEqual(populated);
+    expect(foldUntil(log.events, BASE_MS + 3).partyState?.party).toEqual([]);
+    expect(new RunView().partyState).toBeNull();
+  });
+});
+
+it("does not mistake an uninitialized field transition for a new game", () => {
+  const log = new Log();
+  const prior = log.add(1, state());
+  log.add(2, state({ started: false, screen: "field_transition", party: [], play_time_s: null }));
+  expect(fold(log).partyState).toEqual(prior);
+});

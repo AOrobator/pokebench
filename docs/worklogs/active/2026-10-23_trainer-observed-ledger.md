@@ -34,7 +34,10 @@ Production playGameTools seam; historical May trace replay read-only; delete/res
 - Detailed existing attempt memory only covers Gym Leaders and was OFF in the failing run.
 
 ## Multi-Model Review Log
-Pending.
+- R1: Claude LGTM; GPT, Sol and Astra BLOCKING on duplicate-species faint attribution. Fixed in 777e63a34 with paired native fainted slot and unique compact candidate; 2 new RED/GREEN regressions, six operand mutation receipts, restored 14/14.
+- R2 frozen HEAD e20f96f86, BASE c249f81ee, diff SHA256 2504af2b03519c0a09d3b433d15b552fbca9d40089e28b339c935d81b1f1358d: Claude, independent GPT, Sol and Astra all LGTM. Grok Cursor account usage exhausted; source/error receipts retained under runs/trainer-observed-preview/.
+- Final R2 gates: agent 4086 / viewer 1785 / Python 4065 passed. Lint and build passed. Coverage: agent lines 99.13%, branches 92.92%, functions 97.62%; viewer 98.04/91.61/95.18%; Python 97.37/93.30/100%.
+- Human explicitly approved landing with fallback reviews via the pending approval question. No further Grok waiver needed for this change. Syncing current main before final integration review/gates; no new gameplay launches.
 
 ## Boy Scout Log
 None.
@@ -67,3 +70,5 @@ None.
 - Final Python coverage after main sync: 4065 passed, lines 97.37%, branches 93.30%, functions 100%. Final full TS gates rerun after the bounded review fix.
 
 - Party-health moved main to c249f81ee immediately before R2 sealing. Initial R2 Claude dispatch was invalidated/stopped without a verdict because it compared an unmerged main. Syncing party-health before resealing; its viewer-only change adds no registry switch and does not alter this feature boundary.
+
+- Resumed on explicit human fallback-landing approval. Current main 33802790c includes cycle/recovery and party loading; another owner holds main/8790. Only isolated branch integration until its release.

@@ -26,7 +26,7 @@ No remote services or new dependencies. ROM stays external, read-only and untrac
 - [x] RED tests: controller/scorer modules absent; both new suites fail importing their production owners. Budget/concurrency, frozen batches, uncertain restart, grade locks, recovery and winner assertions committed before implementation.
 - [ ] GREEN controller and scoring; meaningful mutation checks
 **M2 — Checkpoint and history qualification**
-- [ ] RED restore integrity/ownership/hash and native replay tests
+- [x] RED restore integrity/ownership/hash and native replay tests: missing production modules fail TS/Python collection. M1 first GREEN17tests; types checked after optional milestone evidence repair. RED commit45c544640.
 - [ ] GREEN restore builder; CPU-only native replay/load receipts for actual development/control starts; protected qualification via sealed metadata-only path
 - [ ] Record any genuinely unrecoverable starts explicitly
 **M3 — Delivery, rehearsal and review**

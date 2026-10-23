@@ -107,7 +107,7 @@ def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
     assert "Other levels" not in off and " L " not in off
     assert "up (17,68) another level (L)" in on
     assert "Other levels (L): tiles at elevation 4" in on
-    # OFF ignores the state the switch reads: no player elevation or avatar flags gives the same bytes.
+    # OFF ignores what the switch reads: no player elevation or avatar flags, same bytes.
     plain = replace(s, player_elevation=0, running=None)
     assert off == format_readout(plain, adjacent_tiles=True, off=base | {SWITCH})
 

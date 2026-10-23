@@ -51,3 +51,6 @@ None.
 - Coordinator reports ELEVATION then party-health own the next landing windows. No hold granted. Sync after their main moves; when number 1, this branch owns one viewer restart.
 
 - GREEN commit c607081bc. Lint passed (TypeScript/ESLint, ruff, mypy). Initial standalone Python coverage command lacked POKEBENCH_ROM and failed fixture reads; rerunning with the same configured ROM used by just test, not changing tests.
+
+- Browser proof: agent-owned headless Chrome, isolated scratch run root (original logs untouched), candidate viewer random port 65086. Harness Config card ON → READ EXPLAINER worked; desktop 1280/1440 and phone 375 screenshots inspected. Agent trace tool result and raw inspector contain reconstructed observed-opponent recap; original recorded frame displayed. No browser page errors; trainer-card art absent in scratch root. Phone source-revision overflow corrected and diagram made internally scrollable. Preview clearly labels reconstructed text, not a new measured run.
+- Synced main favicon landing 1acc73468 into ecc9e426c; behavior delta unchanged.

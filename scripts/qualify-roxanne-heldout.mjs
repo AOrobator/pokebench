@@ -11,7 +11,9 @@ const finalist=JSON.parse(readFileSync(join(campaign,'frozen-finalist.json'),'ut
 const root=join(campaign,'protected-qualification');mkdirSync(root,{recursive:false});
 const rom=process.env.POKEBENCH_ROM;if(!rom)throw Error("POKEBENCH_ROM is required");
 const qualified=[],attempts=[];
-for(const family of ['e8b4','35df','7c9f']){
+// Reserve 7c9f is ineligible: its existing map-cycle test fixture was exposed
+// during launch-gate timeout diagnosis. Never substitute exposed data.
+for(const family of ['e8b4','35df']){
  const ids=readdirSync(runsRoot).filter(name=>name.endsWith(`_${family}`));if(ids.length!==1){attempts.push({family,eligible:false,reason:'source identity unavailable or ambiguous'});continue;}
  const id=ids[0],runDir=join(runsRoot,id),run=parseRun(readFileSync(join(runDir,'events.jsonl'),'utf8')),turns=eligibleHeldoutTurns(run);
  for(const turn of turns){

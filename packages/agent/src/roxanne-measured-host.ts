@@ -132,3 +132,13 @@ export function physicalGpuOccupancy(value:unknown):number{
  }
  if(!Number.isSafeInteger(total))throw new Error("physical occupancy overflow");return total;
 }
+
+/** The campaign executes host scripts and viewer lease/build helpers as well as
+ * the pinned agent. Documentation-only evidence commits may follow the review;
+ * every executable owner must still have the exact reviewed tree identity. */
+export function verifyCampaignLaunchSource(git:(args:readonly string[])=>string,pin:string):void{
+ git(["merge-base","--is-ancestor",pin,"HEAD"]);
+ const owners=["packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"];
+ const identity=(rev:string)=>digest(git(["ls-tree","--full-tree",rev,"--",...owners]));
+ if(identity(pin)!==identity("HEAD"))throw new Error("executing sources differ from reviewed campaign launch sources");
+}

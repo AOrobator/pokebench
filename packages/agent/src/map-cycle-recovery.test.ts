@@ -94,7 +94,10 @@ const latestState=recorded.filter(e=>e.type==="state"&&"started" in e&&e.started
 const body=(event:unknown):GameStateSnapshot=>parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([k])=>!["v","run","seq","t","type","turn"].includes(k))));
 function latestField():GameStateSnapshot {return body(latestState);}
 const call=(s:GameStateSnapshot|undefined,patch:Partial<CompletedCall>={}):CompletedCall=>({name:"observe",args:{},isError:false,text:"",state:s,seq:100,...patch});
-const at=(map:[number,number],extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>parseGameState({...body(latestState),map_id:map,exit_reach:undefined,exit_sections:undefined,...extra});
+// Validate the unchanged recorded base once; each synthetic state still gets
+// its own validation and object, without repeating the full base validation.
+const atBase=body(latestState);
+const at=(map:[number,number],extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>parseGameState({...atBase,map_id:map,exit_reach:undefined,exit_sections:undefined,...extra});
 
 describe("NavigationRecovery map-cycle briefing",()=>{
  function direct(on:boolean,semantic=false){

@@ -80,7 +80,7 @@ it("charges physical occupancy even when an invalid draw cannot get a verified s
 it("binds executing campaign launch owners as well as the agent build to the reviewed pin",async()=>{
  const {verifyCampaignLaunchSource}=await import("./roxanne-measured-host.js");
  const calls:(readonly string[])[]=[];const git=(args:readonly string[])=>{calls.push(args);return args[0]==="ls-tree"?"same-source-tree":"";};
- expect(()=>verifyCampaignLaunchSource(git,"a".repeat(40))).not.toThrow();
+ expect(()=>{verifyCampaignLaunchSource(git,"a".repeat(40));}).not.toThrow();
  expect(calls).toEqual([["merge-base","--is-ancestor","a".repeat(40),"HEAD"],["ls-tree","--full-tree","a".repeat(40),"--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"],["ls-tree","--full-tree","HEAD","--","packages/agent","packages/viewer","env","scripts","justfile","package.json","pnpm-lock.yaml","pnpm-workspace.yaml"]]);
- expect(()=>verifyCampaignLaunchSource(args=>args[0]==="ls-tree"&&args[2]==="HEAD"?"changed-launch-owner":"reviewed-source", "a".repeat(40))).toThrow(/reviewed campaign launch sources/);
+ expect(()=>{verifyCampaignLaunchSource(args=>args[0]==="ls-tree"&&args[2]==="HEAD"?"changed-launch-owner":"reviewed-source", "a".repeat(40));}).toThrow(/reviewed campaign launch sources/);
 });

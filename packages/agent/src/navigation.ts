@@ -611,6 +611,7 @@ export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonl
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
+ readonly cycleStop?:boolean;
  readonly safeStrides?:boolean;
  readonly automaticRunning?:boolean;
  readonly counters?:boolean;
@@ -681,6 +682,7 @@ function crossMapReason(state:GameStateSnapshot,here:readonly [number,number],go
 // semantic-navigation-v2: people, objects, warps and exits the readout lists go to navigate_to_target.
 export const SEMANTIC_NAVIGATE_RULES="It cannot walk while a message is open: dismiss the message with B first. To talk to a person, use an object, or go through a door, stairs, another warp or a map exit that the readout lists with a navigate_to_target target, call navigate_to_target with that target instead.";
 export const NAVIGATE_RULES="To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates.";
+export const CYCLE_STOP_SENTENCE="During local navigation it stops before repeating a directional step at the same position, facing, local terrain and planned route within one call; inspect the returned state and choose another waypoint when it reports a route cycle.";
 export const WINDOW_ESCAPE_SENTENCE="When no route lies inside the local map, it plans over the whole current map instead.";
 const LOCAL_DESCRIPTION="Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. "+NAVIGATE_RULES;
 const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing. "+NAVIGATE_RULES;
@@ -794,6 +796,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   const blackout=new BlackoutCarry();
   const strideReceipts:string[]=[],sightParts:string[]=[];let plannedSteps=0,sightChecked=false;
   let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false,goalEntryActivation:Direction|"step"|null=null;
+  const attemptedLocalSteps=new Set<string>();
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
@@ -867,6 +870,12 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     const text=await checkSight(sight,id,goal,state,path,options,signal,null,false,targetSight);
     if(text!==null){status=SIGHT_STATUS;sightParts.push(text);break;}
    }
+   if(ports.cycleStop===true&&active==="local"&&state.position!==null){
+    const grid=state.navigation_grid;
+    const identity=JSON.stringify([state.position,state.facing,grid?.elevation,grid?.tiles,grid?.warps,options.triggers??[],path]);
+    if(attemptedLocalSteps.has(identity)){status=`route cycle: returned to ${at(state.position)} with the same facing, local terrain and planned route; stopped before repeating ${direction}. No onward route to ${at(goal)} was verified; inspect the returned map and choose another waypoint`;break;}
+    attemptedLocalSteps.add(identity);
+   }
    if(active!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
@@ -931,7 +940,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  };
  const sightParameters=sight===undefined?(ports.automaticRunning===true?DeterministicRunningArgs:Args):ports.automaticRunning===true?SightRunningArgs:SightArgs;
  const parameters=healGate===undefined?sightParameters:Type.Object({...sightParameters.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
- const description=ports.windowEscape===true&&mode==="local"?`${bounded} ${WINDOW_ESCAPE_SENTENCE}`:bounded;
+ const escaped=ports.windowEscape===true&&mode==="local"?`${bounded} ${WINDOW_ESCAPE_SENTENCE}`:bounded;
+ const description=ports.cycleStop===true&&mode==="local"?`${escaped} ${CYCLE_STOP_SENTENCE}`:escaped;
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:parameters as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }
 
@@ -948,5 +958,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

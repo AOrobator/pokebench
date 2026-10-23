@@ -316,3 +316,13 @@ it("operator promotion enables only the reminder in both canonical comparison ar
 });
 
 it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});
+
+it("enables navigation cycle stopping only in the seven evolving bundle arms",()=>{
+ const id="navigation-cycle-stop-v1";
+ for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
+  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  expect(definitionProblems(d),name).toEqual([]);expect(d.base.features[id]).toBe(false);expect(d.switches.filter(s=>s===id)).toEqual([id]);
+  expect(armFeatures(d,"control")[id],name).toBe(false);expect(armFeatures(d,"bundle")[id],name).toBe(true);
+  expect(controlBaseProblems(d,readFileSync(new URL(`../../../${d.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
+ }
+});

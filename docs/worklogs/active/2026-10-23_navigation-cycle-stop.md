@@ -13,14 +13,14 @@ GLM run `2026-10-22T20-40-54_glm53-mac_0d5d`, source `5bec91dc`, shipyard turns 
 ## Invariants
 
 - INV-1 OFF has byte-identical eight native attempts, result, tools and prompt.
-- INV-2 ON stops before repeating an already attempted directional step at the same position/facing/local geometry/trigger state in this call, with truthful feedback and final observation.
+- INV-2 ON stops before repeating an already attempted directional step at the same position/facing/local terrain/planned route/trigger state in this call, with truthful feedback and final observation.
 - INV-3 Progress, turn-only input, changed geometry, map changes, locks, and later calls do not inherit stale cycle state. Full/visited navigation retains its existing convergence owner.
 - INV-4 Registry/default/metadata/production wiring, bundle-only activation and explainer link agree.
 
 ## Milestone
 
 - [x] RED recorded production-factory regressions
-- [ ] GREEN minimal guarded stop and switch wiring
+- [x] GREEN minimal guarded stop and switch wiring
 - [ ] Deletion/restoration proof, normal gates, offline recorder delivery
 - [ ] Frozen principles review, Claude/Grok/GPT independent verdicts, synthesis
 - [ ] Landing board, FF merge, main tests, evidence, viewer-only refresh coordinated
@@ -34,3 +34,8 @@ Activates on local navigation calls, no story milestone prerequisite. The record
 - Own managed worktree created from main; branch codex/navigation-cycle-stop. Current runs and services untouched.
 
 - RED: focused recorded replay 5 tests: 3 pass (OFF and pinned planner), 2 fail (ON still makes eight alternating attempts). Initial fixture conversion retained event type and was corrected before accepting RED evidence. Receipt /tmp/navigation-cycle-red-2.log.
+
+- RED commit `30faad23c`. First GREEN attempt found moving off-route NPC changed the whole grid object list in turn1032; identity now compares terrain plus the actual planned path. NPC occupancy remains authoritative in the planner, and an occupancy change that changes the route produces a different identity.
+
+- GREEN focused regressions: 14 pass; production factory ON stops both recorded cycles after 2 attempts, OFF preserves exact eight inputs/status. Registry subset 133 pass. Initial full agent gate now 3936 pass; viewer gate exposed four old recipe suffix assertions, mechanically updated. Build passes. First lint found owned venv lacked mGBA; linked the already built canonical Python binding into the owned venv, no service or source change. Full gates pending.
+- Standard bundle recipe set: bundle-v-control, bundle-v-control-2h, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, gym-rustboro-torchic, gym-rustboro-torchic-healed. Base false, switches entry true only in bundle; no source-pin rewrite.

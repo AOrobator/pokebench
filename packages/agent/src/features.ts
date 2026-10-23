@@ -248,6 +248,7 @@ export const SWITCHABLE_FEATURES = [
   "map-cycle-recovery-v1",
   "random-starter-v1",
   "move-learn-goal-reminder-v1",
+  "navigation-cycle-stop-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -615,6 +616,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("map-cycle-recovery-v1", "guard", "MAP-CYCLE RECOVERY BRIEFING", "navigation-recovery-v1", "Default off; bundle treatment (the operator 2026-10-22: \"yes recovery over stopping the run\" after gym-loop run 7c9f was stopped at turn 68). When navigation-recovery-v1's map-cycle episode spends its 12 calls without reaching a map not visited since the last native story progress, the run continues: instead of the stop, the model gets one NAVIGATION RECOVERY BRIEFING at its next call (a loop_guard map_cycle supervisor event with the exact text) stating where it is, every map visited since the last native story progress with its number of visits, and the walking exits of this map it has not taken since then (by map id; a map is named only if the run has stood on it). No destination, route or unseen place is named and no input is sent. The map-cycle count starts again: stall-briefing-v1 clears its map-pair counts, so a new cycle needs two fresh round trips, and that cycle gets the ordinary navigation-recovery-v1 episode and its stop. One briefing per story-progress window; native story progress re-arms it. The stale-map rejection episode is unchanged. Needs navigation-recovery-v1. Off: the unresolved map-cycle episode stops the run at its budget, as before."),
   on("random-starter-v1", "guard", "RANDOM STARTER PICK", null, "Default off in every arm; a data-collection switch, not a harness improvement (the operator 2026-10-22: \"we have like a lot of Torchic data\"). The first time the model presses a button while the starter bag is open and no starter has been received, the harness picks TREECKO or MUDKIP at random (50/50, once per run), presses LEFT or RIGHT one button at a time until the bag highlights it, presses A, answers YES with A, and returns the screen with the line \"Starter pick: the harness chose MUDKIP at random (TREECKO or MUDKIP, 50/50) and confirmed it. Your buttons were not sent. You have control again.\" The model's own buttons for that press are not sent. Each harness press is recorded as an ordinary button_press under the model's tool call. Bounded at 12 presses and a 10 s wait per bag transition; a stop says why and leaves the bag to the model. Nothing else changes, before or after the bag. Off: the model chooses its starter with its own presses, as before."),
   on("move-learn-goal-reminder-v1", "guidance", "MOVE-LEARN GOAL REMINDER", null, "Appends a task reminder at every delivered ready move-learning choice. Only mentions earlier skip reasoning when recorded. The original full wording acquired Double Kick in 86/100 checkpoint trials; the general wording is unmeasured. The model still chooses. Off: previous context unchanged."),
+  on("navigation-cycle-stop-v1", "guard", "NAVIGATION CYCLE STOP", "bounded-navigation-v1", "Default off; bundle only. Within one local navigate_to call, stops before repeating the same directional step at the same position, facing, local terrain, planned route and matching triggers. The result names the repeated step and says no onward route was verified. It returns a fresh observation without choosing a destination or ending the run. Evidence: GLM 0d5d turns 1031/1032 alternated RIGHT and LEFT eight times per call. Off: the previous bounded navigation, command-limit feedback and prompt remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -923,6 +925,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("map-cycle-recovery-v1"),
     ...when("random-starter-v1"),
     ...when("move-learn-goal-reminder-v1"),
+    ...when("navigation-cycle-stop-v1"),
   ];
 }
 

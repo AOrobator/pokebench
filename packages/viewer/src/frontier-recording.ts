@@ -1,3 +1,4 @@
+import { restorationNextSequence, restorationSignature } from "./restoration-prefix.js";
 import {EXTENDED_PROGRESS_NAMES,CAMPAIGN_PROGRESS_FEATURE,STORY_PROGRESS_FEATURE} from "@pokebench/agent/story-progress";
 import { createHash, type Hash } from "node:crypto";
 import { RUN_LOG_MAX_BYTES } from "./run-log.js";
@@ -72,6 +73,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   let progressSupported=false,campaignSupported=false;
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
+  const restoration = restorationSignature(path);
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
   visualEvidenceSignature(path);
@@ -81,7 +83,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
-    expected++; previousMs = ms; return ms;
+    expected = event.type === "run_start" ? restorationNextSequence(path, event as Extract<RunEvent, { type: "run_start" }>) : expected + 1; previousMs = ms; return ms;
   };
   const skip = (line: number, problem: string, value: unknown): void => {
     const envelope = eventEnvelope(value);
@@ -171,6 +173,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
   };
 
   return { fileIdentity: () => fileIdentity, read: (): NativeRecording => {
+    if (restoration !== restorationSignature(path)) throw new Error("Restoration prefix changed during reduction");
     append();
     if (view.start === null) throw new Error("No complete run_start yet");
     const digest = hash.copy().digest("hex"), outputSplits = splits.map(s => ({ ...s })), outputRaw = rawSplits.map(s => ({ ...s, evidence: [...s.evidence] }));

@@ -264,3 +264,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [move-learn-goal-reminder-v1](move-learn-goal-reminder-v1.html) — tested task reminder after an explicit skip plan; both-arm operator activation.
 
 - [All gym story milestones](all-gym-story-milestones-v1.html) — native story splits, all gym badges and immutable historical recovery.
+
+- [Named move decline](move-learn-offer-identity-v1.html): verifies the offered move before executing a decline.

@@ -20,10 +20,18 @@ type LearnWait=Static<typeof LearnWaitSchema>;
 export const LearnMoveArgs=Type.Object({
  forget:Type.String({minLength:1,description:'The move to forget for the new move, by its name as the game lists it among the four moves the POKéMON knows (for example SCRATCH), or "none" to keep the four moves and not learn the new one.'}),
 },{additionalProperties:false});
-type Args=Static<typeof LearnMoveArgs>;
+export const OFFER_IDENTITY_ID="move-learn-offer-identity-v1";
+export const GuardedLearnMoveArgs=Type.Object({
+ ...LearnMoveArgs.properties,
+ decline_move:Type.Optional(Type.String({minLength:1,description:'Required when forget is "none": the name of the offered move you are declining, as the game shows it. A mismatch refuses without declining.'})),
+},{additionalProperties:false});
+type Args=Static<typeof GuardedLearnMoveArgs>;
 
 export const LEARN_MOVE_DESCRIPTION='Answer the game\'s move-learning prompts in one call, only while one is open for the move being learned: "Delete a move to make room for …?", "Stop learning …?", the "… is trying to learn …" and "… can\'t learn more than four moves" pages before them, or the summary screen\'s list of moves to forget. forget is one of the four moves the POKéMON knows, as the game names it: the harness answers YES to deleting a move, moves the summary screen\'s highlight one step at a time to that move (checking the highlighted move after each press) and presses A. forget "none": it answers NO to deleting a move and YES to "Stop learning …?", so the POKéMON keeps the moves it knows. It then checks the party\'s moves and reports what the game printed. It refuses without pressing when no move-learning prompt is open or the move is not one of the four, and stops and says why if the screen changes unexpectedly. Neither choice is recommended. press still works on these prompts.';
 export const LEARN_MOVE_SECTION='- learn_move: when the game asks "Delete a move to make room for …?" or "Stop learning …?", or shows the pages before them or the summary screen\'s list of moves to forget, call learn_move with forget set to one of the four moves the POKéMON knows (as the game names them) or "none". With a move, the harness answers YES, moves the summary highlight to that move checking it after each press, and presses A; with none, it answers NO to deleting a move and YES to stopping, and the POKéMON keeps its moves. It reports what the game printed and the party\'s moves afterwards. No choice is recommended. It refuses, and presses nothing, when no move-learning prompt is open or the move is not one the POKéMON knows. press still works on these prompts.';
+
+export const OFFER_IDENTITY_INSTRUCTION=' When forget is "none", decline_move is required: name the offered move you intend to decline, as the game shows it. The harness checks the actual offered move after waiting and before every input; a different or unreadable offer stops the action and returns the current observation. Inspect it and make a fresh choice. A matching named decline remains allowed.';
+export const GUARDED_LEARN_MOVE_SECTION=LEARN_MOVE_SECTION+OFFER_IDENTITY_INSTRUCTION;
 
 export interface LearnMovePorts {
  wait(signal?:AbortSignal):Promise<LearnWait>;
@@ -128,11 +136,12 @@ const stateOf=(r:AgentToolResult<unknown>):GameStateSnapshot=>{
 
 class Stop extends Error {}
 
-export function learnMoveTool(ports:LearnMovePorts):AgentTool<typeof LearnMoveArgs> {
- return {name:"learn_move",label:"Learn a move",description:LEARN_MOVE_DESCRIPTION,parameters:LearnMoveArgs,
+export function learnMoveTool(ports:LearnMovePorts,offerIdentity=false):AgentTool<typeof LearnMoveArgs|typeof GuardedLearnMoveArgs> {
+ const parameters=offerIdentity?GuardedLearnMoveArgs:LearnMoveArgs;
+ return {name:"learn_move",label:"Learn a move",description:LEARN_MOVE_DESCRIPTION+(offerIdentity?OFFER_IDENTITY_INSTRUCTION:""),parameters,
  execute:async(id:string,args:Args,signal?:AbortSignal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
-  if(!Value.Check(LearnMoveArgs,args))throw new Error("Invalid learn_move arguments");
+  if(!Value.Check(parameters,args))throw new Error("Invalid learn_move arguments");
   const presses:Button[]=[],printed:string[]=[];
   let lastPage:string|null=null;
   const note=(s:GameStateSnapshot):void=>{
@@ -144,7 +153,7 @@ export function learnMoveTool(ports:LearnMovePorts):AgentTool<typeof LearnMoveAr
   const finish=async(status:string,refused:boolean,verified:boolean|null)=>{
    const seen=await ports.observe(id,signal);
    const said=printed.length===0?"":`\nThe game printed: ${printed.map(page=>`"${page}"`).join(" / ")}`;
-   return {content:[{type:"text" as const,text:`Learn move: ${status}${said}\n`},...seen.content],details:{state:stateOf(seen),learn_move:{forget:args.forget,presses:[...presses],refused,verified,status}}};
+   return {content:[{type:"text" as const,text:`Learn move: ${status}${said}\n`},...seen.content],details:{state:stateOf(seen),learn_move:{forget:args.forget,...(offerIdentity?{decline_move:args.decline_move??null}:{}),presses:[...presses],refused,verified,status}}};
   };
   let wait=await ports.wait(signal);
   let s=wait.state;
@@ -156,12 +165,21 @@ export function learnMoveTool(ports:LearnMovePorts):AgentTool<typeof LearnMoveAr
   const none=norm(wanted)==="NONE";
   const goal=none?null:learner.moves.find(move=>norm(move)===norm(wanted))??null;
   if(!none&&goal===null)return finish(`nothing pressed: ${wanted.toUpperCase()} is not one of ${learner.name}'s moves. The game shows ${learner.name}'s moves: ${learner.moves.join(", ")}. Use one of these names, or "none".`,true,null);
+  if(offerIdentity&&none&&(args.decline_move===undefined||norm(args.decline_move)!==norm(learner.newMove)))
+   return finish(`nothing pressed: ${learner.name} is trying to learn ${learner.newMove}; ${args.decline_move===undefined?'decline_move is required when forget is "none"':`decline_move ${args.decline_move} does not match the offered move`}. Inspect the current observation and choose again.`,true,null);
   note(s);
+  const learnerIdentity=s.party[learner.slot]?.identity;
+  const sameOffer=(current:GameStateSnapshot,battle:LearnWait["battle_learner"]):boolean=>{
+   const now=learnerOf(current,battle);
+   return now!==null&&now.slot===learner.slot&&now.name===learner.name&&current.party[now.slot]?.identity===learnerIdentity&&norm(now.newMove)===norm(learner.newMove);
+  };
   const pressed=():string=>presses.length===0?"stopped;":`stopped after pressing ${presses.join(", ")};`;
   const step=async(button:Button,planned:View):Promise<View>=>{
    if(presses.length>=MAX_PRESSES)throw new Stop(`${pressed()} ${String(MAX_PRESSES)} presses is the most one learn_move makes`);
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
+   if(offerIdentity&&none&&!sameOffer(s,wait.battle_learner))throw new Stop(`${pressed()} the move-learning offer changed; inspect the current observation and choose again`);
    await ports.press(id,{buttons:[button]},signal,before=>{
+    if(offerIdentity&&none&&(before===undefined||!sameOffer(before,wait.battle_learner)))throw new Stop(`${pressed()} the move-learning offer changed before the press, so no button was sent`);
     if(before===undefined||JSON.stringify(view(before))!==JSON.stringify(planned))throw new Stop(`${pressed()} the screen changed before the press, so no button was sent`);
    });
    presses.push(button);
@@ -235,5 +253,5 @@ export function withLearnMove(tools:readonly AgentTool[],features:FeatureSet,sta
   press:(id,params,signal,check)=>press.executeChecked(id,params,check,signal),
   observe:(id,signal)=>observe.execute(id,{},signal),
   ...(gate===undefined?{}:{gate}),
- })];
+ },features[OFFER_IDENTITY_ID])];
 }

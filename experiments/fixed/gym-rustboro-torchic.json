@@ -254,7 +254,8 @@
    "static-npc-template-approach-v1": false,
    "rejected-movement-prefix-v1": false,
    "map-cycle-recovery-v1": false,
-   "move-learn-goal-reminder-v1": true
+   "move-learn-goal-reminder-v1": true,
+   "move-learn-offer-identity-v1": false
   }
  },
  "switches": [
@@ -307,7 +308,8 @@
   "factual-healing-guidance-v1",
   "static-npc-template-approach-v1",
   "rejected-movement-prefix-v1",
-  "map-cycle-recovery-v1"
+  "map-cycle-recovery-v1",
+  "move-learn-offer-identity-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

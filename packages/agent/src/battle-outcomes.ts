@@ -132,7 +132,7 @@ export class BattleOutcomes {
       const known=this.deliveredFoes.get(page.observation.id)?.get(foe.slot);
       // sText_PkmnFainted: only update a species/level already delivered; never learn a
       // hidden level from the page's internal RAM state. The page itself establishes fainting.
-      if(known?.species===foe.species&&known.seq<=foe.seq&&page.text===`Foe ${foe.species} fainted!`)this.keep(page.observation.id,{...known,fainted:true,seq:foe.seq});
+      if(foe.fainted&&known?.species===foe.species&&known.seq<=foe.seq&&page.text===`Foe ${foe.species} fainted!`)this.keep(page.observation.id,{...known,fainted:true,seq:foe.seq});
      }
     }
    }
@@ -142,7 +142,9 @@ export class BattleOutcomes {
   for(const foe of observation.foes){
    // Both the compact Foe line and expanded Battler line print this exact phrase.
    const label=`${foe.species} Lv${String(foe.level)} `;
-   if(event.text.split("\n").some(line=>line.startsWith(`Foe ${label}`)||line.startsWith(`Battler ${String(foe.battler)} ${label}`)))this.keep(observation.id,foe);
+   // An unnumbered Foe line identifies a slot only when species/level is unique on this side.
+   const unique=observation.foes.filter(f=>f.species===foe.species&&f.level===foe.level).length===1;
+   if(event.text.split("\n").some(line=>(unique&&line.startsWith(`Foe ${label}`))||line.startsWith(`Battler ${String(foe.battler)} ${label}`)))this.keep(observation.id,foe);
   }
  }
  private trim<T>(map:Map<number|string,T>):void {

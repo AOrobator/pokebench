@@ -92,6 +92,28 @@ describe(ID,()=>{
   o.observe(wild);o.observe(result(wild,"Battler 1 SLUGMA Lv18 HP 43/43"));
   expect(o.recap(retry)).not.toContain("SLUGMA");
  });
+ it("uses the paired fainted slot when two observed opponents have the same species",()=>{
+  const o=new BattleOutcomes(flags());const foe=battlersOf(first).find(b=>b.position===1);
+  if(foe===undefined)throw new Error("fixture foe missing");
+  const doubles={...first,seq:200000,battle:{...battleOf(first),battle_type:9,battlers:[{...foe,battler:1,position:1,party_slot:0},{...foe,battler:3,position:3,party_slot:1}]}};
+  o.observe(doubles);o.observe(result(doubles,"Battler 1 WINGULL Lv18 HP 43/43\nBattler 3 WINGULL Lv18 HP 43/43"));
+  const faint={...doubles,seq:200002,battle:{...doubles.battle,battlers:doubles.battle.battlers.map(b=>b.party_slot===0?{...b,hp:0}:b)}};
+  o.observe(faint);
+  const pages=events.find(e=>e.type==="dialogue_auto_advance"&&e.seq===138709);
+  if(pages?.type!=="dialogue_auto_advance")throw new Error("fixture pages missing");
+  const page=pages.pages.find(p=>p.text.includes("fainted"));if(page===undefined)throw new Error("fixture faint page missing");
+  o.observe({...pages,seq:200003,tool:"press",tool_call_id:"doubles",pages:[{...page,text:"Foe WINGULL\nfainted!",state_seq:faint.seq}]});
+  o.observe({...result(faint,"Foe WINGULL\nfainted!"),seq:200004,id:"doubles"});
+  expect(o.recap(faint)).toBe("Previously observed against MAY (trainer 530): WINGULL Lv18 (last observed fainted), WINGULL Lv18. Full party not established by these observations.");
+ });
+ it("does not invent a second slot from one unnumbered same-species Foe line",()=>{
+  const o=new BattleOutcomes(flags());const foe=battlersOf(first).find(b=>b.position===1);
+  if(foe===undefined)throw new Error("fixture foe missing");
+  const doubles={...first,seq:200000,battle:{...battleOf(first),battle_type:9,battlers:[{...foe,battler:1,position:1,party_slot:0},{...foe,battler:3,position:3,party_slot:1}]}};
+  o.observe(doubles);o.observe(result(doubles,"Foe WINGULL Lv18 HP 43/43"));expect(o.recap(doubles)).toBeNull();
+  o.observe(result(doubles,"Battler 1 WINGULL Lv18 HP 43/43"));
+  expect(o.recap(doubles)).toBe("Previously observed against MAY (trainer 530): WINGULL Lv18. Full party not established by these observations.");
+ });
  it("OFF leaves historical recaps unchanged",()=>{
   expect(fold(false).recap(home)).not.toContain("Previously observed");
  });

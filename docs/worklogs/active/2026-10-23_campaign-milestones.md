@@ -22,13 +22,13 @@ Read-only memory under existing frame lock, typed bounded snapshot additions; no
 
 ## Milestones
 **M1 — Campaign catalog and clock integration**
-- [ ] RED tests committed before implementation
-- [ ] Native reader/catalog/consumer integration
-- [ ] Optional achievement separation
-- [ ] Default-OFF registry and explainer
-- [ ] Adversarial deletion/restoration and historical native proof
-- [ ] Gates: test, lint, build, coverage >=90, vendor
-- [ ] GREEN commit
+- [x] RED tests committed before implementation (`876d5005d`)
+- [x] Native reader/catalog/consumer integration
+- [x] Optional achievement separation
+- [x] Default-OFF registry and explainer
+- [x] Adversarial deletion/restoration and historical native proof
+- [x] Gates: test, lint, build, coverage >=90, vendor
+- [x] GREEN commit
 - [ ] Principles self-review and independent multi-model review
 - [ ] Serialized landing and viewer proof if review gates allow
 
@@ -39,7 +39,8 @@ Use retained raw RAM read-only, production detector/recorder/clock tests, schema
 - Authorized by user after the source-backed proposal; no additional design approval needed. Work in codex/campaign-milestones; canonical checkout and active runs untouched.
 
 ## Surprises
-None yet.
+- Interior arrival needs to count before automatic entry scenes finish; surface arrivals retain unlocked-control proof.
+- Space Center partner battles use special battle ownership, so stable saved stage 3 proves the win upper bound; ordinary trainer bits are not assumed.
 
 ## Multi-Model Review Log
 Pending. Required cloud lanes cannot be replaced for self-merge without user approval.
@@ -51,3 +52,15 @@ None.
 - [ ] ASK USER: archive worklog
 
 - RED: new campaign tests fail before implementation (missing optional catalog/predicates/switch and snapshot fields).
+
+- Implemented 94 campaign additions + eight separate optional acquisitions. Production readout remains byte-identical; new default-OFF behavior switch resets earned extended progress only.
+- Native proof: 13 hash-validated 0d5d archives through read_game_state/state_json; retained beach snapshot seq112822 turn976 at (21,23). Committed RAM fixture and parsed-state fixture cover native landing and cave arrivals.
+- Immutable original-prefix comparison: 80 old splits ->85 candidate splits, four new campaign arrivals and optional Flash; no duplicate, missing or changed original split. Prefix a514c85f1db36b94ff092333f0f8c34536800f047397ad8b7b42432051656cae. Scratch copy only; original active run unchanged.
+- Eight unique adversarial removals all fail; restoration passes: clock wiring, origin, optional exclusion, land-avatar check, raw variables, recorder claim, frontier optional filter, modern replay guard. Receipts: runs/reports/campaign-milestones/mutations.
+- Coverage gate passed: agent lines99.21 branches93.36 functions97.79; viewer lines98.01 branches91.50 functions95.10; Python lines97.37 branches93.32 functions100. No thresholds/excludes changed. Full coverage run 4044 Python tests.
+- Earlier setup failures were missing isolated ROM environment/native binding, resolved using known external ROM path and native-only mgba link. Sparse historical fixtures may omit avatar data; remains unknown rather than fabricated on-foot.
+- No gameplay/inference launched, no active run/source/config/service changed. Candidate browser preview is offline on8901 with copied event prefix and immutable raw/frame hardlinks.
+
+- Final full gates: 3935 agent +1738 viewer +4044 Python tests; justlint/build/schema/vendor pass. All coverage stacks exceed90.
+- Headless preview: desktop1280/1440 and phone375, campaign/full-baseline toggle, beach point visible once and no document overflow or console errors; explainer opened/collapsed at all three widths and inspected. Historical run is isolated offline replay; no live-run proof claimed.
+- Principles PB1-PB13 self-review PASS with evidence in runs/reviews/campaign-milestones-r1/principles.md. Frozen scope in boundary.md.

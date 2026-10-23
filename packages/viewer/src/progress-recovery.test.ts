@@ -30,7 +30,7 @@ it("backfills through the real recording reader with first-observation time, onc
  const f=fixture(),read=readNativeRecording(join(f.dir,"events.jsonl"),RUN,qualifiedNativeMilestone);
  expect(read.splits.filter(s=>s.name==="DEVON_GOODS_RECOVERED")).toEqual([expect.objectContaining({seq:2,elapsedMs:2000,derived:true})]);
  expect(read.measurement.features).not.toContain("all-gym-story-milestones-v1");
- expect(read.measurement.recoveredFeatures).toEqual(["all-gym-story-milestones-v1"]);
+ expect(read.measurement.recoveredFeatures).toEqual(["all-gym-story-milestones-v1","campaign-story-milestones-v1"]);
  expect(read.measurement.rawSplits.find(s=>s.name==="DEVON_GOODS_RECOVERED")?.evidence).toEqual([2]);
  expect(progressSignature(f.dir)).toMatch(/^:progress=[a-f0-9]{64}$/);
 });

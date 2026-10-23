@@ -348,8 +348,8 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
     expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
     expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
-    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 109 checkpoints");
-    expect(document.body.textContent).toContain("91 later checkpoints hidden");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 203 checkpoints");
+    expect(document.body.textContent).toContain("185 later checkpoints hidden");
     document.body.innerHTML = frontierPlot(refs, [], 2000);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(axis()).toContain("120"); expect(document.body.textContent).not.toContain("Zoomed");
@@ -361,18 +361,18 @@ describe("zoom to frontier", () => {
     const live = { ...measured("live", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]), status: "live" as const };
     document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [], 2000, undefined, [live], true);
     expect(document.querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
-    expect(document.body.textContent).toContain("49 of 109 checkpoints");
+    expect(document.body.textContent).toContain("49 of 203 checkpoints");
     document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
-    expect(document.body.textContent).toContain("2 of 109 checkpoints");
+    expect(document.body.textContent).toContain("2 of 203 checkpoints");
   });
   it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
     const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
-    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 109 checkpoints");
+    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 203 checkpoints");
     const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
-    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 109 checkpoints");
+    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 203 checkpoints");
     expect(document.body.textContent).toContain("all visible points remain plotted");
   });
   it("labels the checkpoint where lines stop between rival instruction and rival house", () => {

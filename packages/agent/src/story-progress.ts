@@ -1,9 +1,10 @@
+import {campaignCatalog,CAMPAIGN_ADDITIONS} from "./campaign-catalog.js";
 import type {GameStateSnapshot} from "./game-state.js";
 export const STORY_PROGRESS_FEATURE = "all-gym-story-milestones-v1";
-export interface ProgressDefinition { readonly name:string; readonly label:string; readonly flag?:number; readonly anyFlags?:readonly number[]; readonly map?:readonly number[]; readonly requiresBadge?:string; readonly field?:"letter"|"rustboro_stage"|"devon_stage"; readonly values?:readonly number[] }
+export interface ProgressDefinition { readonly name:string; readonly label:string; readonly flag?:number; readonly anyFlags?:readonly number[]; readonly allFlags?:readonly number[]; readonly optional?:boolean; readonly settled?:boolean; readonly land?:boolean; readonly bounds?:readonly number[]; readonly variable?:number; readonly maximum?:number; readonly requireVariable?:number; readonly requireValues?:readonly number[]; readonly requireMaximum?:number; readonly map?:readonly number[]; readonly requiresBadge?:string; readonly field?:"letter"|"rustboro_stage"|"devon_stage"; readonly values?:readonly number[] }
 // pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; exact US ROM f3ae0881.
 // Completion writers and address proof: docs/findings/all-gym-story-milestones.md.
-export const PROGRESS_CATALOG:readonly ProgressDefinition[] = [
+const BASE_PROGRESS_CATALOG:readonly ProgressDefinition[] = [
   {
     "name": "ROUTE_116",
     "label": "Route 116",
@@ -387,19 +388,36 @@ export const PROGRESS_CATALOG:readonly ProgressDefinition[] = [
     "flag": 172
   }
 ];
+export const CAMPAIGN_PROGRESS_FEATURE="campaign-story-milestones-v1";
+export const CAMPAIGN_ADDITION_NAMES:ReadonlySet<string>=new Set(CAMPAIGN_ADDITIONS.map(m=>m.name));
+export const OPTIONAL_PROGRESS_NAMES:ReadonlySet<string>=new Set([...CAMPAIGN_ADDITIONS.filter(m=>m.optional).map(m=>m.name),"FIRST_POKEMON_CAUGHT","FIRST_EVOLUTION","FIRST_POKECENTER_HEAL"]);
+export const PROGRESS_CATALOG=campaignCatalog(BASE_PROGRESS_CATALOG);
 export const EXTENDED_PROGRESS_NAMES:ReadonlySet<string> = new Set(PROGRESS_CATALOG.map(m=>m.name).filter(n=>n!=="ROUTE_116"&&n!=="RUSTURF_TUNNEL"));
+const PROGRESS_BY_NAME=new Map(PROGRESS_CATALOG.map(m=>[m.name,m]));
 export function progressReached(name:string,state:GameStateSnapshot):boolean|null {
  if(!state.started||state.screen==="field_transition"||state.screen==="unknown")return null;
- const m=PROGRESS_CATALOG.find(m=>m.name===name);if(m===undefined)return null;
+ const m=PROGRESS_BY_NAME.get(name);if(m===undefined)return null;
+ const variable=(n:number,maximum:number):number|null=>{
+  const raw=state.story_progress?.variables;if(raw===undefined)return null;
+  const at=4*(n-0x4000),value=Number.parseInt(raw.slice(at+2,at+4)+raw.slice(at,at+2),16);
+  return Number.isFinite(value)&&value<=maximum?value:null;
+ };
  if(m.map!==undefined) {
   if(state.map_id===null)return null;
   if(m.requiresBadge!==undefined&&!state.badges.includes(m.requiresBadge))return false;
-  return state.map_id[0]===m.map[0]&&state.map_id[1]===m.map[1];
+  if(state.map_id[0]!==m.map[0]||state.map_id[1]!==m.map[1])return false;
+  if(m.settled&&(state.in_battle||state.field_controls_locked!==false))return null;
+  if(m.land){const flags=state.story_progress?.avatar_flags;if(flags===undefined)return null;if((flags&7)===0||(flags&24)!==0)return false;}
+  if(m.bounds!==undefined){const p=state.position;if(p===null)return null;if(p.x<(m.bounds[0]??0)||p.y<(m.bounds[1]??0)||p.x>(m.bounds[2]??0)||p.y>(m.bounds[3]??0))return false;}
+  if(m.requireVariable!==undefined){const v=variable(m.requireVariable,m.requireMaximum??0);return v===null?null:(m.requireValues??[]).includes(v);}
+  return true;
  }
+ if(m.variable!==undefined){const v=variable(m.variable,m.maximum??0);return v===null?null:(m.values??[]).includes(v);}
  const p=state.story_progress;if(p==null)return null;
  const flag=(n:number):boolean=>(Number.parseInt(p.flags.slice(2*(n>>3),2*(n>>3)+2),16)&(1<<(n&7)))!==0;
  if(m.flag!==undefined)return flag(m.flag);
  if(m.anyFlags!==undefined)return m.anyFlags.some(flag);
+ if(m.allFlags!==undefined)return m.allFlags.every(flag);
  if(m.field===undefined)return null;
  const value=p[m.field];return value===null?null:typeof value==="boolean"?value:(m.values??[]).includes(value);
 }

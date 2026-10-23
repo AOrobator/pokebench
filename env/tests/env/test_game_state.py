@@ -113,7 +113,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
     state = read_game_state(memory.read, MAPS)
     assert state == GameState(
         screen="overworld",
-        story_progress=StoryProgress("00" * 268 + "8002" + "00" * 30, 0, 0, False),
+        story_progress=StoryProgress("00" * 268 + "8002" + "00" * 30, 0, 0, False, "00" * 512, 0),
         story=StoryState(
             **{field: False for field in INITIAL_TRAINER_FLAGS},
             name_confirmed=True,

@@ -189,7 +189,7 @@ async function closedPort(): Promise<number> {
 describe("browser modules", () => {
   it("import nothing at runtime but each other (the page has no bundler)", () => {
     for (const name of BROWSER_MODULES) {
-      const source = readFileSync(new URL(name==="story-progress"?"../../agent/src/story-progress.ts":`./${name}.ts`, import.meta.url), "utf8");
+      const source = readFileSync(new URL((name==="story-progress"||name==="campaign-catalog")?`../../agent/src/${name}.ts`:`./${name}.ts`, import.meta.url), "utf8");
       const runtimeImports = [...source.matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gm)].map((match) => match[1]);
       for (const specifier of runtimeImports) expect(BROWSER_MODULES.some(allowed => specifier === `./${allowed}.js`), `${name}.ts imports ${String(specifier)}`).toBe(true);
     }

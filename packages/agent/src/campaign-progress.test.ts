@@ -11,17 +11,18 @@ const ID="campaign-progress-clock-v1";
 function state(map:[number,number]=[0,24],x=21,y=25):GameStateSnapshot {
  return parseGameState({...IN_GAME,location:"ROUTE109",map_id:map,position:{x,y},in_battle:false,field_controls_locked:false,story_progress:{flags:"00".repeat(300),rustboro_stage:0,devon_stage:0,letter:false,variables:"00".repeat(512),avatar_flags:1}});
 }
+function progress(s:GameStateSnapshot){const p=s.story_progress;if(p==null)throw Error("missing native progress");return p;}
 function flag(s:GameStateSnapshot,n:number):GameStateSnapshot {
- const b=Buffer.from(s.story_progress!.flags,"hex");b[n>>3]=(b[n>>3]??0)|(1<<(n&7));return {...s,story_progress:{...s.story_progress!,flags:b.toString("hex")}};
+ const b=Buffer.from(progress(s).flags,"hex");b[n>>3]=(b[n>>3]??0)|(1<<(n&7));return {...s,story_progress:{...progress(s),flags:b.toString("hex")}};
 }
 function variable(s:GameStateSnapshot,n:number,value:number):GameStateSnapshot {
- const b=Buffer.from(s.story_progress!.variables!,"hex");b.writeUInt16LE(value,2*(n-0x4000));return {...s,story_progress:{...s.story_progress!,variables:b.toString("hex")}};
+ const b=Buffer.from(progress(s).variables??"","hex");b.writeUInt16LE(value,2*(n-0x4000));return {...s,story_progress:{...progress(s),variables:b.toString("hex")}};
 }
 describe("campaign native predicates",()=>{
  it("credits the beach after landing, excluding transit, water and absent evidence",()=>{
   const s=state();expect(progressReached("ROUTE_109_BEACH_REACHED",s)).toBe(true);
   expect(progressReached("ROUTE_109_BEACH_REACHED",{...s,field_controls_locked:true})).toBe(null);
-  expect(progressReached("ROUTE_109_BEACH_REACHED",{...s,story_progress:{...s.story_progress!,avatar_flags:8}})).toBe(false);
+  expect(progressReached("ROUTE_109_BEACH_REACHED",{...s,story_progress:{...progress(s),avatar_flags:8}})).toBe(false);
   expect(progressReached("ROUTE_109_BEACH_REACHED",{...s,story_progress:null})).toBe(null);
  });
  it("separates the Route118 banks and Ever Grande landings",()=>{
@@ -63,14 +64,15 @@ function clock(enabled:boolean,turns=false){
  const features={...ALL_ON,[ID]:enabled,"turn-drought-clock-v1":turns,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"drought-battle-heal-hold-v1":false,"milestone-drought-suppression-v1":false};
  const listeners:((e:RunEvent)=>void)[]=[];const notes:string[]=[];let seq=0,now=0;
  stallBriefing(features,{subscribe:(f:(e:RunEvent)=>void)=>listeners.push(f),recordLoopGuard:()=>undefined,recordStallGate:()=>undefined},{stall:(_k,text)=>{notes.push(text(1));return true;}},{pausedMs:()=>0},()=>now);
- const emit=(b:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"r",seq:++seq,turn:seq,t:"2026-10-23T12:00:00Z",...b});listeners.forEach(f=>f(e));};
- const milestone=(name:string,origin="observed")=>emit({type:"milestone",name,kind:"story",origin,server_timestamp:1,evidence:[1]});
- const act=()=>emit({type:"tool_result",id:"a",name:"press",text:"x",is_error:false,duration_ms:1,frames:[]});
+ const emit=(b:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"r",seq:++seq,turn:seq,t:"2026-10-23T12:00:00.000-04:00",...b});listeners.forEach(f=> { f(e); });};
+ const milestone=(name:string,origin="observed")=>{emit({type:"milestone",name,kind:"story",origin,server_timestamp:1,evidence:[1]});};
+ const act=()=>{emit({type:"tool_result",id:"a",name:"press",text:"x",is_error:false,duration_ms:1,frames:[]});};
  return {milestone,act,notes,time:(n:number)=>{now=n;}};
 }
 describe("campaign drought production wiring",()=>{
  it("defaults off in omitted presets and flags and records explicit activation",()=>{
-  expect(normalizeFeatures({...ALL_ON,[ID]:undefined})[ID]).toBe(false);
+  const {[ID]:omitted,...legacy}=ALL_ON;expect(omitted).toBe(true);
+  expect(normalizeFeatures(legacy)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:true},null))[ID]).toBe(true);
  });
@@ -80,6 +82,32 @@ describe("campaign drought production wiring",()=>{
   for(let i=0;i<29;i++)r.act();expect(r.notes).toHaveLength(1);
  });
  it("present-at-start and optional milestones never reset the campaign clock",()=>{
-  for(const [name,origin] of [["ROUTE_109_BEACH_REACHED","present_at_start"],["HM_FLASH_RECEIVED","observed"]]){const r=clock(true);r.time(290000);r.milestone(name!,origin);r.time(301000);r.act();expect(r.notes).toHaveLength(1);}
+  for(const [name,origin] of [["ROUTE_109_BEACH_REACHED","present_at_start"],["HM_FLASH_RECEIVED","observed"]] as const){const r=clock(true);r.time(290000);r.milestone(name,origin);r.time(301000);r.act();expect(r.notes).toHaveLength(1);}
  });
+});
+
+it("credits the real 0d5d beach and cave floors through native state parsing and the production tracker",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const fixture:unknown=JSON.parse(readFileSync(new URL("../test-support/fixtures/campaign-native-0d5d.json",import.meta.url),"utf8"));
+ if(typeof fixture!=="object"||fixture===null||!("rows" in fixture)||!Array.isArray(fixture.rows))throw Error("invalid native fixture");
+ const tracker=new StateMilestones({read:()=>Promise.resolve(state())});tracker.initialize("save_state");
+ const earned:string[]=[];
+ for(const row of fixture.rows as unknown[]){
+  if(typeof row!=="object"||row===null||!("state" in row)||!("seq" in row)||typeof row.seq!=="number")throw Error("invalid native row");
+  const s=parseGameState(row.state);earned.push(...tracker.observe(s,row.seq).filter(m=>m.origin==="observed").map(m=>m.name));
+  expect(tracker.observe(s,row.seq+1)).toEqual([]);
+ }
+ expect(earned.filter(n=>["ROUTE_106","GRANITE_CAVE_B1F","GRANITE_CAVE_B2F","ROUTE_109_BEACH_REACHED"].includes(n))).toEqual(["ROUTE_106","GRANITE_CAVE_B1F","GRANITE_CAVE_B2F","ROUTE_109_BEACH_REACHED"]);
+});
+
+it("an already credited campaign milestone cannot keep restarting the drought clock",()=>{
+ const r=clock(true);r.time(1000);r.milestone("DEVON_GOODS_RECOVERED");r.time(290000);r.milestone("DEVON_GOODS_RECOVERED");r.time(302000);r.act();expect(r.notes).toHaveLength(1);
+});
+
+it("credits automatic interior entry before the ensuing battle or Hall of Fame scene finishes",()=>{
+ const champion={...state([16,4]),field_controls_locked:true};
+ expect(progressReached("CHAMPION_ROOM_REACHED",champion)).toBe(true);
+ expect(progressReached("WALLACE_DEFEATED",champion)).toBe(false);
+ expect(progressReached("HALL_OF_FAME_ENTERED",{...champion,map_id:[16,11]})).toBe(true);
+ expect(progressReached("GAME_CLEAR_CONFIRMED",champion)).toBe(false);
 });

@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
+import {OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import { ACTIVITY_MILESTONES, DEPTH_ORDER, MILESTONE_ORDER, deeperMilestone } from "./milestones.js";
 
 it("ranks depth without the optional activities, keeping every other milestone in story order", () => {
-  expect([...ACTIVITY_MILESTONES]).toEqual(["FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL"]);
+  expect([...ACTIVITY_MILESTONES]).toEqual([...OPTIONAL_PROGRESS_NAMES]);
   expect(DEPTH_ORDER).toEqual(MILESTONE_ORDER.filter((name) => !ACTIVITY_MILESTONES.has(name)));
   expect(DEPTH_ORDER.indexOf("RUNNING_SHOES_RECEIVED")).toBeLessThan(DEPTH_ORDER.indexOf("ROUTE_102"));
 });

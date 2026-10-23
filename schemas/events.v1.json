@@ -10159,6 +10159,15 @@
                 "letter"
               ],
               "properties": {
+                "variables": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{1024}$"
+                },
+                "avatar_flags": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
                 "flags": {
                   "type": "string",
                   "pattern": "^[0-9a-f]{600}$"

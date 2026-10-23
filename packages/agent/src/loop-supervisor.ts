@@ -1,4 +1,4 @@
-import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
+import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
@@ -130,7 +130,11 @@ export class SupervisorBriefing {
  private readonly unfinished=new Map<number,string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
-   if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name))return;
+   if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
+   if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
+    if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed")this.progress={turn:event.turn,name:event.name};
+    return;
+   }
   this.gate?.observe(event);
   this.dialogue.observe(event);
   this.hint?.observe(event);

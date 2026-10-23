@@ -7,7 +7,7 @@ import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
-import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, party, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
@@ -252,6 +252,7 @@ export class App {
   // The POKéMON PARTY page: the cursor, open tab and move survive redraws; art from `just party-art`.
   private partyUi: PartyUi = { slot: 0, tab: 0, move: null };
   private partyData: PartyData | null = null;
+  private partyArtReady = false;
   private partyFonts: { readonly key: "s" | "n"; readonly font: GameFont; readonly sheet: GlyphSheet }[] = [];
   private partyArtLoad: Promise<void> | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
@@ -859,8 +860,7 @@ export class App {
     return this.bagArtLoad;
   }
 
-  // The party tables and the small and normal fonts `just party-art` builds; without the tables the
-  // page keeps the plain list, and without a font its text stays ordinary type.
+  // The current party screen remains visible while tables and fonts load.
   loadPartyArt(): Promise<void> {
     this.partyArtLoad ??= (async () => {
       try { this.partyData = parsePartyData(await this.deps.fetchJson("/sprites/party/data.json")); } catch { this.partyData = null; }
@@ -873,13 +873,14 @@ export class App {
         } catch { return []; }
       }));
       this.partyFonts = fonts.flat();
-    })().then(() => { this.html.delete(this.ui("party")); this.render(); });
+    })().then(() => { this.partyArtReady = true; this.html.delete(this.ui("party")); this.render(); });
     return this.partyArtLoad;
   }
 
   private renderParty(view: RunView): void {
     const root = this.ui("party"), state = view.partyState;
-    const html = this.partyData === null || state === null ? party(view) : partyNotice(view) + partyPage(view.partyMembers, this.partyData, this.partyUi, state.name ?? null);
+    root.setAttribute("aria-busy", String(!this.partyArtReady || state === null));
+    const html = partyNotice(view) + partyPage(this.partyArtReady ? view.partyMembers : [], this.partyData, this.partyUi, state?.name ?? null);
     if (this.html.get(root) === html) return;
     const active = this.doc.activeElement instanceof HTMLElement && root.contains(this.doc.activeElement) ? this.doc.activeElement : null;
     const refocus = active === null ? null : active.dataset.pvSlot !== undefined ? `[data-pv-slot="${String(this.partyUi.slot)}"]` : active.dataset.pvTab !== undefined ? `[data-pv-tab="${String(this.partyUi.tab)}"]` : active.dataset.pvMove !== undefined ? `[data-pv-move="${active.dataset.pvMove}"]` : null;

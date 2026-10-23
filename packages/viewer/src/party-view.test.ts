@@ -279,7 +279,11 @@ describe("partyPage", () => {
     const moves = dom(partyPage([{ ...COMBUSKEN, moves: [{ move_id: 999, name: null, pp: 5, pp_bonus: 0 }] }], DATA, { slot: 0, tab: 2, move: null }));
     expect(moves.querySelector('[data-pv-move="0"] .pp .gtx')?.getAttribute("data-c")).toBe("pv-dark");
   });
-  it("says so when the party is empty", () => {
-    expect(partyPage([], DATA, { slot: 0, tab: 0, move: null })).toContain("no Pokémon yet");
+  it("keeps six empty slots in the current screen when the party is empty", () => {
+    const empty = dom(partyPage([], DATA, { slot: 0, tab: 0, move: null }));
+    expect(empty.querySelectorAll(".pv-empty")).toHaveLength(6);
+    expect(empty.querySelector(".pv-scr")).not.toBeNull();
+    expect(empty.querySelector("button")).toBeNull();
+    expect(empty.body.textContent).not.toContain("no Pokémon yet");
   });
 });

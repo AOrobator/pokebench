@@ -255,8 +255,10 @@ function summary(mon: PartyMon, data: PartyData, ui: PartyUi, trainer: string | 
   return `<div class="pv-openb">${portrait(mon, data)}<section class="pv-sec t-${THEMES[ui.tab]}"><div class="pv-ribs" role="tablist">${([0, 1, 2] as const).map((i) => ribbon(i, ui.tab)).join("")}</div><div class="pv-body" role="tabpanel">${body}</div></section></div>`;
 }
 
-export function partyPage(party: readonly PartyMon[], data: PartyData, ui: PartyUi, trainer: string | null = null): string {
-  if (party.length === 0) return '<p class="nodata">no Pokémon yet</p>';
+const NO_PARTY_DATA: PartyData = { types: [], species: new Map(), moves: new Map(), abilities: new Map(), natures: [], experience: [] };
+
+export function partyPage(party: readonly PartyMon[], tables: PartyData | null, ui: PartyUi, trainer: string | null = null): string {
+  const data = tables ?? NO_PARTY_DATA;
   const slot = Math.min(Math.max(0, ui.slot), party.length - 1);
   const opened = party[slot];
   const move = opened !== undefined && ui.move !== null && (opened.moves ?? [])[ui.move] !== undefined ? ui.move : null;

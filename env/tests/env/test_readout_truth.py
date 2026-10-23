@@ -148,7 +148,10 @@ TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1"})
 
 def recorded_off(seq: int) -> frozenset[str]:
     return (
-        frozenset(frame(seq)["recorded_off"]) | NEW | TRAINING | {"static-npc-template-approach-v1"}
+        frozenset(frame(seq)["recorded_off"])
+        | NEW
+        | TRAINING
+        | {"static-npc-template-approach-v1", "elevation-aware-map-v1", "screen-center-player-v1"}
     )  # type: ignore[arg-type]
 
 
@@ -338,7 +341,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-43:-40] == (
+    assert SERVER_FEATURES[-45:-42] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

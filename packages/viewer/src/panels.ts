@@ -593,6 +593,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "away-note-buildings-v1":"away-note-buildings-v1.html",
  "current-map-display-name-v1":"current-map-display-name-v1.html",
  "window-escape-route-v1":"window-escape-route-v1.html",
+ "elevation-aware-map-v1":"elevation-aware-map-v1.html",
+ "screen-center-player-v1":"screen-center-player-v1.html",
  "mart-stock-readout-v1":"mart-stock-readout-v1.html",
  "exp-next-level-v1":"exp-next-level-v1.html",
  "pokedex-own-v1":"pokedex-own-v1.html",

@@ -15,6 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
+from pokebench_env.elevation_view import read_object_elevations
 from pokebench_env.exit_labels import ExitLabels, destination_name, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.field_moves import (
@@ -43,6 +44,7 @@ from pokebench_env.resources import Resources, read_resources
 from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
+from pokebench_env.screen_center import Cover, overhead_cover
 from pokebench_env.static_npc_templates import StaticNpcTemplates, read_static_npc_templates
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.story_progress import StoryProgress, read_story_progress
@@ -139,6 +141,10 @@ class GameState:
     full_map: FullMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
+    # screen-center-player-v1: where the map's top layer is drawn over the player's sprite.
+    overhead_cover: Cover | None = None
+    # elevation-aware-map-v1: (x, y, elevation) of loaded objects, for navigation occupancy.
+    object_elevations: tuple[tuple[int, int, int], ...] | None = None
     # tutorial-party-owner-v1: None when ownership cannot be established (state JSON omits it).
     party_owner: str | None = "player"
     party_ownership: PartyOwnership | None = None
@@ -374,6 +380,8 @@ def read_game_state(
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
     berry_readout_enabled: bool = False,
+    overhead_cover_enabled: bool = False,
+    object_elevations_enabled: bool = False,
     battle_move_learn_input_enabled: bool = False,
     mart_stock_enabled: bool = False,
     shop_interface_enabled: bool = False,
@@ -631,6 +639,12 @@ def read_game_state(
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
+        overhead_cover=overhead_cover(read, (x, y), body[0x0B] >> 4)
+        if overhead_cover_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        object_elevations=read_object_elevations(read, map_id)
+        if object_elevations_enabled and nearby is not None
+        else None,
         topology=topology,
         destination_names=tuple(
             (

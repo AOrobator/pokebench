@@ -91,6 +91,10 @@ An agent may merge its own branch into local `main` once cloud code review appro
 
 The rule never covers pushing, pull requests, approving or launching experiments, or merges the operator has said to hold.
 
+## Retired experiment queue
+
+The experiment queue was removed on 2026-10-22. Do not create pending queue entries, register switches in `experiments/*.json`, use the deleted queue skill or commands, or require an EXPERIMENT dropdown. Older worklogs and explainers may describe that retired workflow; those passages are historical records, not current agent instructions. Record evaluation plans and readiness in the matching worklog, and use operator-approved fixed-run definitions under `experiments/fixed/` with `.claude/skills/fixed-run-launch/SKILL.md`. Recorded experiment metadata and read-only legacy ledgers remain valid historical provenance.
+
 ## Feature switches
 
 Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested with fixed-run tooling. Use `.claude/skills/feature-switch/SKILL.md`.

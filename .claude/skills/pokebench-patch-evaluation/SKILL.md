@@ -19,9 +19,9 @@ A patch can only be measured where models actually arrive. The operator's rule (
 
 When reporting a newly landed patch, state its readiness verdict in one line.
 
-Measured comparisons use operator-approved fixed-run definitions under `experiments/fixed/`. Landing a switch does not register or launch a comparison.
+Measured comparisons use operator-approved fixed-run definitions under `experiments/fixed/`. Landing a switch does not launch a comparison.
 
-## Register one experimental difference
+## Predeclare one experimental difference
 
 Before trials, record patch ID/version, hypothesized failure mechanism, target native milestone, maximum budgets, meaningful speed/regression margins, tolerated completion change, downstream check and trial order. Compare the frozen incumbent to a candidate on the same reviewed build with exactly one effective behavioral patch flag differing. Reject unexpected differences, missing dependencies or invalid flag combinations before launch. Record complete effective flags, prompt/interface-document hashes, model/artifact/endpoint and serving configuration, sampling, source/build, ROM/vendor, start state and instrumentation identity. Do not use mutable defaults as provenance.
 

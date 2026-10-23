@@ -33,3 +33,8 @@ it("chooses the parent using original assistant tokens after locked equal-token 
  expect(result.development.filter(r=>r.candidate.id==="a").map(r=>r.tokens)).toEqual([100,100]);expect(result.development.filter(r=>r.candidate.id==="b").map(r=>r.tokens)).toEqual([10,10]);
  expect(c.state.batches.every(b=>b.gradeHash!==null)).toBe(true);expect(frozen[2]).toMatchObject({parent:"b"});
 });
+it("can complete every unchanged confirmation phase after two charged failures when episodes naturally finish early",async()=>{
+ const c=new CampaignController(new MemoryCampaignStore(createCampaign("approved-recovery",0,{gpuMs:2_460_992,episodes:2})));
+ const receipt=await rehearseCampaign(c,()=>{},"revision_wins",60_000);
+ expect(receipt.result.status).toBe("provisional_winner");expect(receipt.episodes).toBe(36);expect(c.state.priorEpisodes+c.state.jobs.length).toBe(38);expect(receipt.spentMs).toBeLessThan(57_600_000);expect(receipt.leasesReleased).toBe(true);expect(c.state.batches.map(b=>b.phase)).toEqual(["explore","revise","replicate","validate","controls"]);
+});

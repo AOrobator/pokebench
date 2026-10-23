@@ -39,3 +39,5 @@ Activates on local navigation calls, no story milestone prerequisite. The record
 
 - GREEN focused regressions: 14 pass; production factory ON stops both recorded cycles after 2 attempts, OFF preserves exact eight inputs/status. Registry subset 133 pass. Initial full agent gate now 3936 pass; viewer gate exposed four old recipe suffix assertions, mechanically updated. Build passes. First lint found owned venv lacked mGBA; linked the already built canonical Python binding into the owned venv, no service or source change. Full gates pending.
 - Standard bundle recipe set: bundle-v-control, bundle-v-control-2h, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, gym-rustboro-torchic, gym-rustboro-torchic-healed. Base false, switches entry true only in bundle; no source-pin rewrite.
+
+- Synced landed move-learn-offer-identity-v1 main c69ad74a5 before review; retained its independent switch, tests and bundle settings. Mechanical registry suffix assertions rebuilt from current main plus one appended navigation switch. No active run pin changed.

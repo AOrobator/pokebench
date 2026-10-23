@@ -291,7 +291,7 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-42)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

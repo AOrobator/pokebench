@@ -11,7 +11,7 @@ describe("rejected movement prefix bundle activation", () => {
   for (const name of RECIPES) {
     it(`${name} enables it only in the normalized bundle arm, where the navigation guard it needs is on`, () => {
       const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
-      expect(definition.switches.filter((id) => id !== "map-cycle-recovery-v1").at(definition.switches.includes("turn-drought-clock-v1") ? -5 : -4)).toBe(ID);
+      expect(definition.switches.filter((id) => id !== "navigation-cycle-stop-v1" && id !== "move-learn-offer-identity-v1" && id !== "map-cycle-recovery-v1").at(definition.switches.includes("turn-drought-clock-v1") ? -5 : -4)).toBe(ID);
       expect(definition.base.features[ID]).toBe(false);
       expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
       for (const phase of definition.phases) {

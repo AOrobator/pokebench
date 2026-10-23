@@ -22,7 +22,7 @@ describe("frontier report fixes bundle activation", () => {
       const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
       expect(controlBaseProblems(definition, read(definition.controlBase.path))).toEqual([]);
       // map-cycle-recovery-v1 is appended after them where its dependency is on in the bundle arm.
-      expect(definition.switches.filter((id) => id !== "elevation-aware-map-v1" && id !== "screen-center-player-v1" && id !== "campaign-progress-clock-v1" && id !== "move-learn-offer-identity-v1" && id !== "map-cycle-recovery-v1").slice(-3)).toEqual(SWITCHES.map(([id]) => id));
+      expect(definition.switches.filter((id) => id !== "navigation-cycle-stop-v1" && id !== "elevation-aware-map-v1" && id !== "screen-center-player-v1" && id !== "campaign-progress-clock-v1" && id !== "move-learn-offer-identity-v1" && id !== "map-cycle-recovery-v1").slice(-3)).toEqual(SWITCHES.map(([id]) => id));
       for (const [id] of SWITCHES) expect(definition.base.features[id]).toBe(false);
       for (const phase of definition.phases) {
         const control = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")));

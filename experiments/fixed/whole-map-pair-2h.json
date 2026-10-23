@@ -259,7 +259,8 @@
    "move-learn-offer-identity-v1": false,
    "campaign-progress-clock-v1": false,
    "elevation-aware-map-v1": false,
-   "screen-center-player-v1": false
+   "screen-center-player-v1": false,
+   "navigation-cycle-stop-v1": false
   }
  },
  "switches": [
@@ -320,7 +321,8 @@
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
   "elevation-aware-map-v1",
-  "screen-center-player-v1"
+  "screen-center-player-v1",
+  "navigation-cycle-stop-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

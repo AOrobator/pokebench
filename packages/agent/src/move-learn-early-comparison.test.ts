@@ -8,8 +8,8 @@ const ID="move-learn-early-comparison-v1";
 
 describe("move-learn-early-comparison-v1 (the operator 2026-10-22)",()=>{
  it("precedes the two later readout switches in every registry list as a default-off observation that needs the comparison",()=>{
-  expect(SWITCHABLE_FEATURES.at(-37)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-37)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-38)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-38)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-10)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"MOVE-LEARN EARLY COMPARISON",needs:"move-learn-comparison-v1"});

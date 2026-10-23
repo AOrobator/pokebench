@@ -285,7 +285,7 @@ describe("registry, presets and experiment",()=>{
   const on=["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","gym-rustboro-torchic"];
   for(const name of on){
    const f=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
-   expect(f.base.features[ID],name).toBe(false);expect(f.switches.at(-5),name).toBe(ID);expect(f.switches,name).toContain("navigation-recovery-v1");
+   expect(f.base.features[ID],name).toBe(false);expect(f.switches.at(-6),name).toBe(ID);expect(f.switches,name).toContain("navigation-recovery-v1");
    expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth,name).not.toContain(ID);
   }
   const glm=JSON.parse(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")) as {switches:string[]};

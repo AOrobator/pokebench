@@ -36,9 +36,11 @@ function whiteout(){
  const start=f.events[0],state=f.events[1];if(start?.type!=="run_start"||state?.type!=="state"||!("started"in state)||!state.raw_ram)throw Error("fixture");start.rom_sha1=rom;start.harness_features=["blackout-transition-v1"];state.raw_ram.sha256=sha(packed);state.active_ui={phase:"field_transition",selected:null,ready:false,controls:"Whiting out; input is not active yet",diagnostic:null};return f;
 }
 it("qualifies the exact ROM-bound declared whiteout wait even at an idle frame",()=>{const f=whiteout();expect([...verifiedTransitionSamples(f.events,f.proof)]).toEqual([1]);});
-it.each(["undeclared","unknown","rom","ready","phase","battle","blind","journal"] as const)("does not use the whiteout exception for %s evidence",defect=>{
+it.each(["undeclared","unknown","rom","screen","diagnostic","ready","phase","battle","blind","journal"] as const)("does not use the whiteout exception for %s evidence",defect=>{
  const f=whiteout(),start=f.events[0],state=f.events[1],native=f.events[2];if(start?.type!=="run_start"||state?.type!=="state"||!("started"in state)||!state.active_ui||!state.raw_ram||native?.type!=="native_action")throw Error("fixture");
  if(defect==="undeclared")start.harness_features=[];
+ if(defect==="screen")state.screen="unsupported";
+ if(defect==="diagnostic")state.active_ui.diagnostic="coverage failure";
  if(defect==="ready")state.active_ui.ready=true;
  if(defect==="phase")state.active_ui.phase="unsupported";
  if(defect==="battle")state.in_battle=true;

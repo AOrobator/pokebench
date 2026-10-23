@@ -182,10 +182,11 @@ export function followUpText(reply: { readonly seq: number; readonly stop_reason
   return reply.stop_reason === "length" && cutOff !== undefined ? cutOff : NUDGE;
 }
 
-function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string, cutOff: string | undefined): Message[] {
+function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string, cutOff: string | undefined, atTurn?:(turn:number,history:readonly Message[])=>void): Message[] {
   const history: Message[] = [{ role: "user", content: goal === null ? PLAY_TASK : `The game has just booted. ${targetGoal(goal)}`, timestamp: 0 }];
   let note = 0;
   for (const e of prior) {
+    if(e.type==="turn_start")atTurn?.(e.turn,[...history]);
     if (e.type !== "assistant" || e.stop_reason === "error" || e.stop_reason === "aborted") continue;
     const content: (TextContent | ThinkingContent | ToolCall)[] = [];
     if (e.thinking !== "") content.push({ type: "thinking", thinking: e.thinking, thinkingSignature: ports.thinkingSignature });
@@ -208,6 +209,15 @@ function conversation(prior: readonly RunEvent[], goal: string | null, byId: Rea
     }
   }
   return history;
+}
+
+/** Persistent conversation before request transforms/windowing, shared by checkpoint continuation qualification. */
+export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(turn:number,history:readonly Message[])=>void):Message[]{
+ const prior=run.events;const start=run.start;
+ const results=prior.filter((e):e is ToolResultEvent=>e.type==="tool_result");
+ const notes=prior.filter((e):e is Extract<RunEvent,{type:"text_only_supervisor"}>=>e.type==="text_only_supervisor");
+ const goal=start.evaluation?.goal_target??start.evaluation?.target??null;
+ return conversation(prior,goal,new Map(results.map(r=>[r.id,r])),notes,new Map(),ports,start.model.id,cutOffReplyNotice(recordedFeatures(run),start.sampling.max_tokens),atTurn);
 }
 
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */

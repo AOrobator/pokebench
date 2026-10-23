@@ -58,11 +58,20 @@ export function requestWeight(messages: readonly AgentMessage[]): number {
   return Math.ceil(chars / CHARS_PER_WEIGHT) + images * IMAGE_WEIGHT;
 }
 
+export interface ContextBudgetState{readonly limit:number;readonly sent:number|null;readonly anchor:{readonly weight:number;readonly tokens:number;readonly basis:"usage"|"overflow"}|null}
+
 export class ContextBudget {
   private sent: number | null = null;
   private anchor: { weight: number; tokens: number; basis: "usage" | "overflow" } | null = null;
 
   constructor(readonly limit: number) {}
+
+  snapshot():ContextBudgetState{return {limit:this.limit,sent:this.sent,anchor:this.anchor===null?null:{...this.anchor}};}
+  restore(state:ContextBudgetState):void{
+    const positive=(n:number)=>Number.isSafeInteger(n)&&n>=0;
+    if(state.limit!==this.limit||state.sent!==null&&!positive(state.sent)||state.anchor!==null&&(!positive(state.anchor.weight)||!positive(state.anchor.tokens)||!["usage","overflow"].includes(state.anchor.basis)))throw new Error("invalid context budget restoration");
+    this.sent=state.sent;this.anchor=state.anchor===null?null:{...state.anchor};
+  }
 
   private predict(weight: number): number {
     return this.anchor === null ? weight : this.anchor.tokens + weight - this.anchor.weight;

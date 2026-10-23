@@ -1,3 +1,6 @@
+import type {Model,Api} from "@mariozechner/pi-ai";
+import {gzipSync} from "node:zlib";
+import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,validateLiveContinuationFeatures,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
@@ -39,14 +42,14 @@ import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, control
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
-import { attachLoopGuard, Governor, TEXT_ONLY_REMINDER, piLoop, play } from "./harness.js";
+import { attachLoopGuard, Governor, TEXT_ONLY_REMINDER, piLoop, play, playFromHistory } from "./harness.js";
 import { autoTalkContext } from "./auto-talk.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig, playLoopBase } from "./provider.js";
 import { playSampling } from "./presence-penalty.js";
 import type { RunRecorder } from "./recorder.js";
 import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
-import {gameServerLauncherArgs} from "./server-launch.js";
+import {gameServerLauncherArgs,verifyCampaignListenerGroups} from "./server-launch.js";
 
 const HEALTH_TIMEOUT_MS = 180_000;
 const LOOP_TIMEOUT_MS = 420_000;
@@ -99,6 +102,7 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
         gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1),
         { env, cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
       );
+      if(env["POKEBENCH_CAMPAIGN_CONTINUATION"]!==undefined&&child.pid!==undefined)writeFileSync(join(runDir,"campaign-server-owner.json"),JSON.stringify({pid:child.pid,runId,port:serverPort}),{flag:"wx",mode:0o600});
       const exited = new Promise<void>((resolve) => {
         child.once("exit", () => {
           resolve();
@@ -110,6 +114,11 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
       };
       try {
         await waitForHealthy(url);
+        if(env["POKEBENCH_CAMPAIGN_CONTINUATION"]!==undefined){
+          const pids=[...new Set(execFileSync("lsof",["-nP","-t",`-iTCP:${String(serverPort)}`,"-sTCP:LISTEN"],{encoding:"utf8"}).trim().split(/\s+/))];
+          const groups=pids.map(pid=>Number(execFileSync("ps",["-p",pid,"-o","pgid="],{encoding:"utf8"}).trim()));
+          verifyCampaignListenerGroups(child.pid,groups);
+        }
       } catch (error) {
         await stop();
         throw error;
@@ -220,10 +229,12 @@ async function playAgent(): Promise<void> {
   const preset=presetPath===undefined?null:parsePlayPreset(JSON.parse(readFileSync(presetPath,"utf8")) as unknown);
   const assigned=process.env["POKEBENCH_RUN_ID"];
   if(assigned!==undefined&&!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error("POKEBENCH_RUN_ID is invalid");
+  const continuation=liveContinuationFromEnv(process.env);
   const limits=preset?.limits??PLAY_LIMITS;
   const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
-  const serverEnv={...process.env,...serverFeatureEnv(features)};
+  const serverEnv={...process.env,...serverFeatureEnv(features),...(continuation===null?{}:{POKEBENCH_RESTORE_RTC_MS:String(continuation.rtcMs)})};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
+  if(continuation!==null){validateLiveContinuationStart(continuation,start);validateLiveContinuationFeatures(continuation,features);}
   const captureMode=checkpointSelection(process.env);
   const experiment=experimentFromEnv(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();
@@ -231,6 +242,7 @@ async function playAgent(): Promise<void> {
   const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
   const maxTokens=preset?.sampling.maxTokens??Math.min(PLAY_MAX_TOKENS,model.maxTokens);
   const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
+  if(continuation!==null)validateLiveContinuationModel(continuation,model,{thinkingLevel:thinking,maxTokens});
   const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
   const target=terminationTarget(preset);
   const goalTarget=preset?.target??null;
@@ -244,6 +256,7 @@ async function playAgent(): Promise<void> {
   const reason = await withRun(
     {
       romSha1:romSha1(),
+      ...(continuation===null?{}:{continuation:{prior:continuation.source.events,sourceTurn:continuation.bundle.turn,sourceRun:continuation.bundle.sourceRun,prefix:continuation.prefix}}),
       runsRoot: RUNS_ROOT,
       runId,
       port,
@@ -260,7 +273,7 @@ async function playAgent(): Promise<void> {
       piVersion: piVersion(),
     },
     realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv),
-    new FrameStore(RUNS_ROOT),
+    new FrameStore(continuation?.frameRoot??RUNS_ROOT),
     async (recorder,gameServerUrl,startMeta,lifecycle) => {
       const controller = new AbortController();
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
@@ -323,6 +336,8 @@ async function playAgent(): Promise<void> {
         console.log(`operator abort (${signal}): finishing the run record`);
         governor.abort("operator_abort");
       });
+      const absoluteStop=continuation?.stopAt===undefined?null:setTimeout(()=>{governor.abort("budget");},Math.max(0,continuation.stopAt-Date.now()));
+      try {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
@@ -330,24 +345,39 @@ async function playAgent(): Promise<void> {
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
+      const budget=contextBudget(features, model, maxTokens, recorder);
+      const restored=continuation===null?null:await restoreLiveContinuation(continuation,features,recorder,context,{systemPrompt,tools:tools.map(({name,description,parameters})=>({name,description,parameters})),...(budget.budget===undefined?{}:{budget:budget.budget})});
+      const messages:AgentMessage[]=restored===null?[]:[...restored.messages];
+      let requestIndex=0;
+      if(continuation!==null){
+        const initialObservation=captureContinuationStart(continuation,await new StateWatcher(gameServerUrl).read());
+        lifecycle.beforeRunEnd(async()=>{
+          await freezeGame(gameServerUrl,true);
+          await recorder.afterPress();
+          const journal=recorder.nativeJournalReceipt();
+          writeFileSync(join(RUNS_ROOT,runId,"campaign-continuation.json"),JSON.stringify({initialObservation,messages,requests:requestIndex,reminder:restored?.receipt??null,journal}),{flag:"wx"});
+        });
+      }
+      const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features);
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
-        base: {...playLoopBase(model, thinking, apiKey, maxTokens, features),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
+        base: {...normalBase,...(continuation===null?{}:{onPayload:async(payload:unknown,currentModel:Model<Api>)=>{const next=await normalBase.onPayload?.(payload,currentModel)??payload;return continuationPayload(continuation.seed,next,body=>{const directory=join(RUNS_ROOT,runId,"campaign-requests");mkdirSync(directory,{recursive:true});const bytes=gzipSync(body),name=String(++requestIndex).padStart(5,"0");writeFileSync(join(directory,`${name}.json.gz`),bytes,{flag:"wx"});writeFileSync(join(directory,`${name}.receipt.json`),JSON.stringify({index:requestIndex,turn:recorder.currentTurn(),offset:messages.length,sha256:createHash("sha256").update(bytes).digest("hex")}),{flag:"wx"});});}}),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
         requestContext: context=>{const presentation=features["just-in-time-prompt-v2"]?stableJit:jit;const next=presentation.context(context);recorder.recordRequestContext(presentation.receipt());return next;},
         governor,
         transformContext: autoTalkContext(features,new StateWatcher(gameServerUrl),tools,battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),context.breaker,recorder,controller.signal),
         window: context.window,
-        ...contextBudget(features, model, maxTokens, recorder),
-        emit: recorder.emit,
+        ...budget,
+        emit: event=>{if(restored!==null&&event.type==="message_end")messages.push(event.message);return recorder.emit(event);},
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),
       });
-      try {
+        if(restored!==null)return await playFromHistory(restored.messages,governor,loop);
         if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
         return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop));
       } finally {
+        if(absoluteStop!==null)clearTimeout(absoluteStop);
         wall.clear();
         stall?.clear();
         stopWatching();

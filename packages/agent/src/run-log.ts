@@ -44,9 +44,11 @@ export class RunLog {
     readonly runId: string,
     readonly runDir: string,
     private readonly now: () => Date,
+    private readonly continuationSeq = 1,
   ) {}
 
-  static create(runsRoot: string, runId: string, now: () => Date = () => new Date()): RunLog {
+  static create(runsRoot: string, runId: string, now: () => Date = () => new Date(), continuationSeq = 1): RunLog {
+    if(!Number.isSafeInteger(continuationSeq)||continuationSeq<1)throw new RunLogError("invalid continuation sequence");
     const runDir = join(runsRoot, validateRunId(runId));
     mkdirSync(runsRoot, { recursive: true });
     try {
@@ -57,12 +59,14 @@ export class RunLog {
       }
       throw error;
     }
-    return new RunLog(runId, runDir, now);
+    return new RunLog(runId, runDir, now, continuationSeq);
   }
 
   get eventsPath(): string {
     return join(this.runDir, "events.jsonl");
   }
+
+  get continuationStartSeq():number{return this.continuationSeq;}
 
   get nextSeq(): number {
     return this.seq;
@@ -81,7 +85,7 @@ export class RunLog {
     if (problem !== null) throw new RunLogError(problem);
     const event = checkEvent(candidate);
     appendFileSync(this.eventsPath, `${JSON.stringify(event)}\n`);
-    this.seq += 1;
+    this.seq = body.type === "run_start" ? this.continuationSeq : this.seq + 1;
     this.started = true;
     if (event.type === "run_end") this.closed = true;
     return event;

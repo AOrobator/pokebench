@@ -223,3 +223,7 @@ verify-state: build
 # Human play at 1x, recorded on an isolated server; open printed /play URL.
 run-human: build
     node packages/agent/dist/live.js human
+
+# Operator-approved adaptive Roxanne campaign; check is read-only, run requires frozen clearance.
+roxanne-campaign *args: build
+    node scripts/run-roxanne-campaign.mjs {{args}}

@@ -136,7 +136,7 @@ describe("context-token-budget-v1 budget", () => {
 describe("context-token-budget-v1 registration", () => {
   const ID = "context-token-budget-v1";
   it("is registered just before original-speed-pacing-v1, a default-off guard with no dependency", () => {
-    expect(SWITCHABLE_FEATURES.at(-101)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-102)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: true }), null).at(-4)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: false }, null)).not.toContain(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "CONTEXT TOKEN BUDGET" });
@@ -146,4 +146,12 @@ describe("context-token-budget-v1 registration", () => {
   });
 
 
+});
+it("restores the learned usage anchor instead of cold-starting the context budget",()=>{
+ const userText=(content:string):AgentMessage=>({role:"user",content,timestamp:0});
+ const live=new ContextBudget(500);live.fit([userText("x".repeat(300))]);live.observe(assistant("fixture",450));
+ const restored=new ContextBudget(500);restored.restore(live.snapshot());expect(restored.snapshot()).toEqual(live.snapshot());
+ const messages=[userText("task"),assistant(""),userText("x".repeat(700)),assistant(""),userText("x".repeat(200))];expect(restored.fit(messages)).toEqual(live.fit(messages));
+ expect(()=>{restored.restore({...live.snapshot(),limit:1});}).toThrow(/restoration/);expect(()=>{restored.restore({limit:500,sent:-1,anchor:null});}).toThrow();expect(()=>{restored.restore({limit:500,sent:1,anchor:{weight:-1,tokens:1,basis:"usage"}});}).toThrow();
+ const cold=new ContextBudget(500);cold.restore({limit:500,sent:null,anchor:null});expect(cold.snapshot().anchor).toBe(null);
 });

@@ -1,4 +1,6 @@
-import { existsSync } from "node:fs";
+import {createHash} from "node:crypto";
+import {checkEvent,type RunEvent} from "./events.js";
+import { existsSync,writeFileSync } from "node:fs";
 import { RUN_ID_PATTERN } from "./events.js";
 import { dirname, join, resolve } from "node:path";
 import type { BodyOf, RunEndReason } from "./events.js";
@@ -17,6 +19,7 @@ export function humanLeasePath(repoRoot: string, commonDir: string): string {
 
 export interface RunPlan {
   readonly extend_run?: true;
+  readonly continuation?:{readonly prior:readonly RunEvent[];readonly sourceTurn:number;readonly sourceRun:string;readonly prefix:string};
   readonly runsRoot: string;
   readonly runId: string;
   readonly port: number;
@@ -77,6 +80,11 @@ export async function withRun(
   frames: FrameStore,
   body: (recorder: RunRecorder, gameServerUrl: string, start:RunStartMeta, lifecycle:RunLifecycle) => Promise<RunEndReason>,
 ): Promise<RunEndReason> {
+  if(plan.continuation!==undefined){
+    const c=plan.continuation;
+    const parsed=c.prefix.split("\n").filter(line=>line.trim()!=="").map(line=>checkEvent(JSON.parse(line) as unknown));
+    if(!Number.isSafeInteger(c.sourceTurn)||c.sourceTurn<1||parsed.length===0||JSON.stringify(parsed)!==JSON.stringify(c.prior)||c.prior.some((e,i)=>e.run!==c.sourceRun||e.type==="run_end"||e.seq<=(c.prior[i-1]?.seq??-1))||plan.startState.kind!=="save_state")throw new Error("invalid continuation provenance");
+  }
   frames.assertCanStart();
   const url = `http://127.0.0.1:${String(plan.port)}`;
   if (await host.serverHealthy(url)) {
@@ -84,14 +92,17 @@ export async function withRun(
   }
   const harness = host.harness();
   const vendorPin = host.vendorPin();
-  const log = RunLog.create(plan.runsRoot, plan.runId);
+  const prior=plan.continuation?.prior??[];
+  const log = RunLog.create(plan.runsRoot, plan.runId,()=>new Date(),(prior.at(-1)?.seq??0)+1);
+  if(plan.continuation!==undefined)writeFileSync(join(log.runDir,"restoration-prefix.jsonl"),plan.continuation.prefix,{flag:"wx"});
   let server: ServerHandle | undefined;
   const beforeRunEnd:(()=>Promise<void>)[]=[];
   if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
-  const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState });
+  const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState,...(plan.continuation===undefined?{}:{history:prior,turnBase:plan.continuation.sourceTurn-1}) });
   let reason: RunEndReason = "crash";
   try {
     const startMeta:RunStartMeta={
+      ...(plan.continuation===undefined?{}:{restoration:{source_run:plan.continuation.sourceRun,source_turn:plan.continuation.sourceTurn,prefix_sha256:createHash("sha256").update(plan.continuation.prefix).digest("hex"),prefix_last_seq:prior.at(-1)?.seq??0}}),
       ...(plan.romSha1 === undefined ? {} : {rom_sha1:plan.romSha1}),
       ...(plan.controller === undefined ? {} : {controller: plan.controller}),
       ...(plan.evaluation===undefined?{}:{evaluation:plan.evaluation}),
@@ -108,7 +119,7 @@ export async function withRun(
       budgets: plan.budgets,
       isolation: { server_dir: server?.serverDir ?? join(log.runDir, "server"), run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
     };
-    await recorder.start(startMeta, plan.controller === undefined);
+    await recorder.start(startMeta, plan.controller === undefined&&plan.continuation===undefined);
     if (plan.controller !== undefined) {
       server = await host.launchServer(log.runDir, plan.runId, plan.port);
       await recorder.checkMilestones();

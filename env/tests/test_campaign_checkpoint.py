@@ -1,0 +1,44 @@
+import pytest
+
+from pokebench_env.campaign_checkpoint import check_replay_regions, native_schedule
+
+
+def test_native_schedule_uses_load_frame_not_first_observation_latency():
+    entries = [{"frame": 1, "buttons": []}, {"frame": 456, "buttons": ["A"]}]
+    assert native_schedule(entries, loaded_frame=8850) == {8852: [], 9307: ["A"]}
+
+
+def test_schedule_refuses_missing_initial_input_bad_buttons_and_nonmonotone():
+    for entries in [
+        [],
+        [{"frame": 1, "buttons": ["PRIVATE"]}],
+        [{"frame": 2, "buttons": []}, {"frame": 1, "buttons": []}],
+    ]:
+        with pytest.raises(ValueError):
+            native_schedule(entries, loaded_frame=8850)
+
+
+def test_region_equality_never_falls_back_to_a_similar_party():
+    assert check_replay_regions({"ewram": b"a", "iwram": b"b"}, {"ewram": b"a", "iwram": b"b"}) == {
+        "ewram": True,
+        "iwram": True,
+    }
+    with pytest.raises(ValueError):
+        check_replay_regions({"ewram": b"a"}, {})
+    assert check_replay_regions({"ewram": b"a"}, {"ewram": b"b"}) == {"ewram": False}
+
+
+def test_recorded_wall_clock_interpolates_source_milliseconds_not_host_date():
+    from pokebench_env.campaign_checkpoint import wall_clock_at
+
+    assert (
+        wall_clock_at(15, [{"frame": 10, "unix_ms": 1000}, {"frame": 20, "unix_ms": 3000}]) == 2000
+    )
+    assert wall_clock_at(5, [{"frame": 10, "unix_ms": 1000}]) == 1000
+    assert (
+        wall_clock_at(30, [{"frame": 10, "unix_ms": 1000}, {"frame": 20, "unix_ms": 3000}]) == 3000
+    )
+    with pytest.raises(ValueError):
+        wall_clock_at(1, [])
+    with pytest.raises(ValueError):
+        wall_clock_at(1, [{"frame": 2, "unix_ms": 5}, {"frame": 1, "unix_ms": 4}])

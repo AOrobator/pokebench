@@ -2,7 +2,7 @@ import {it,expect} from "vitest";
 import {gzipSync} from "node:zlib";
 import {createHash} from "node:crypto";
 import type {Message} from "@mariozechner/pi-ai";
-import {buildGradeWindows,blindGradeWindows,parseCapturedContext,aggregateJudgments,gradingJson,packNativeEvents,contextDelta,applyContextDelta} from "./roxanne-grading.js";
+import {buildGradeWindows,blindGradeWindows,parseCapturedContext,aggregateJudgments,gradingJson,packNativeEvents,contextDelta,applyContextDelta,eventsForGradeWindow,unpackNativeEvents} from "./roxanne-grading.js";
 import {digest} from "./roxanne-campaign.js";
 import {checkEvent} from "./events.js";
 const user=(content:string):Message=>({role:"user",content,timestamp:0});
@@ -40,4 +40,16 @@ it("losslessly records every changed request context including tool and system c
  const a={messages:[{role:"system",content:"old"},{role:"user",content:"same"},{role:"assistant",content:"tail"}],tools:["old"]},b={messages:[{role:"system",content:"new"},{role:"user",content:"same"},{role:"assistant",content:"tail"}],tools:["new"]};
  const delta=contextDelta(a,b,2,3,"hash");expect(applyContextDelta(a,delta)).toEqual(b);expect(delta.insert).toHaveLength(1);expect(applyContextDelta(b,contextDelta(b,b,2,3,"hash"))).toEqual(b);expect(()=>applyContextDelta(a,{...delta,prefix:10})).toThrow();
  const f=fixture(),w=buildGradeWindows(f)[0];expect(w?.updates).toHaveLength(2);let context=w?.context;if(!context)throw Error("fixture");for(const u of w?.updates??[])context=applyContextDelta(context,u);expect(context.messages[0]?.["content"]).toBe("actual context at third request");
+});
+
+it("shards a large decision's native events losslessly with its whole decision context repeated",()=>{
+ const f=fixture();
+ const events=Array.from({length:8},(_,i)=>checkEvent({v:1,run:"r",seq:i+1,t:"2026-10-23T00:00:00.000-04:00",type:"activity",turn:2,category:"test",message:Array.from({length:600},(_,j)=>String((i*700+j)*997)).join("-")}));
+ const input={...f,receipts:[f.receipts[0]],messages:f.messages.slice(0,2),events};
+ const windows=buildGradeWindows(input,9000);expect(windows.length).toBeGreaterThan(1);
+ expect(windows.every(w=>w.fromMessage===1&&w.toMessage===2&&w.fromTurn===0&&w.toTurn===3)).toBe(true);
+ expect(windows.flatMap(w=>eventsForGradeWindow(events,w))).toEqual(events);
+ for(const w of windows){const encoded=gradingJson({window:w,messages:input.messages.slice(w.fromMessage,w.toMessage),events:packNativeEvents(eventsForGradeWindow(events,w))});expect(Buffer.byteLength(encoded)).toBeLessThanOrEqual(9000);expect(unpackNativeEvents(packNativeEvents(eventsForGradeWindow(events,w)))).toEqual(eventsForGradeWindow(events,w));}
+ expect(blindGradeWindows(windows,1,null).map(w=>[w.fromSeq,w.toSeq])).toEqual(windows.map(w=>[w.fromSeq,w.toSeq]));
+ expect(()=>buildGradeWindows({...input,read:()=>gzipSync(Buffer.alloc(1))},1)).toThrow();
 });

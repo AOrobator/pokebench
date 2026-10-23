@@ -27,3 +27,25 @@ it.each(["hash","cpu","region","frame","rom","partial","journal","blind"] as con
  expect(()=>verifiedTransitionSamples(events,proof)).toThrow();
 });
 it("leaves absent evidence unqualified and rejects duplicate receipts",()=>{const {events,proof}=fixture();expect(verifiedTransitionSamples(events).size).toBe(0);const first=proof.archives[0];if(first===undefined)throw Error("fixture");proof.archives.push(first);expect(()=>verifiedTransitionSamples(events,proof)).toThrow();});
+
+function whiteout(){
+ const f=fixture(),rom="f3ae088181bf583e55daf962a92bb46f4f1d07b7";
+ f.ram.cpsr=0x3f;f.ram.gprs[15]=0x080008c8;f.ram.rom_sha1=rom;
+ const iwram=f.ram.regions[1];if(!iwram)throw Error("fixture");const bytes=Buffer.from(iwram.data_base64,"base64");bytes.writeUInt32LE(0x08085f59,0x22c4);iwram.data_base64=bytes.toString("base64");iwram.sha256=sha(bytes);
+ const packed=gzipSync(JSON.stringify(f.ram));f.proof.archives[0]={seq:1,base64:packed.toString("base64")};
+ const start=f.events[0],state=f.events[1];if(start?.type!=="run_start"||state?.type!=="state"||!("started"in state)||!state.raw_ram)throw Error("fixture");start.rom_sha1=rom;start.harness_features=["blackout-transition-v1"];state.raw_ram.sha256=sha(packed);state.active_ui={phase:"field_transition",selected:null,ready:false,controls:"Whiting out; input is not active yet",diagnostic:null};return f;
+}
+it("qualifies the exact ROM-bound declared whiteout wait even at an idle frame",()=>{const f=whiteout();expect([...verifiedTransitionSamples(f.events,f.proof)]).toEqual([1]);});
+it.each(["undeclared","unknown","rom","ready","phase","battle","blind","journal"] as const)("does not use the whiteout exception for %s evidence",defect=>{
+ const f=whiteout(),start=f.events[0],state=f.events[1],native=f.events[2];if(start?.type!=="run_start"||state?.type!=="state"||!("started"in state)||!state.active_ui||!state.raw_ram||native?.type!=="native_action")throw Error("fixture");
+ if(defect==="undeclared")start.harness_features=[];
+ if(defect==="ready")state.active_ui.ready=true;
+ if(defect==="phase")state.active_ui.phase="unsupported";
+ if(defect==="battle")state.in_battle=true;
+ if(defect==="blind")native.kind="harness_bug";
+ if(defect==="journal")f.proof.journal.lastId=2;
+ if(defect==="unknown"){const r=f.ram.regions[1];if(!r)throw Error("fixture");const b=Buffer.from(r.data_base64,"base64");b.writeUInt32LE(0x08085f5b,0x22c4);r.data_base64=b.toString("base64");r.sha256=sha(b);}
+ if(defect==="rom"){f.ram.rom_sha1="b".repeat(40);start.rom_sha1=f.ram.rom_sha1;}
+ if(defect==="unknown"||defect==="rom"){const b=gzipSync(JSON.stringify(f.ram));f.proof.archives[0]={seq:1,base64:b.toString("base64")};state.raw_ram.sha256=sha(b);}
+ expect(()=>verifiedTransitionSamples(f.events,f.proof)).toThrow();
+});

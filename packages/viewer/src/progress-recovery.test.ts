@@ -60,3 +60,11 @@ it("continues archived native recovery after the backfilled live prefix",()=>{
  const appended={...previous,seq:4};
  expect(attach(appended)).toMatchObject({story_progress:f.rows[2]?.story_progress});
 });
+
+it("missing row with a correct count stops later attachment",()=>{
+ const f=fixture();f.rows.splice(1,1);f.footer.rows=2;f.save();
+ const events=f.log.events.map(progressAttacher(f.dir));
+ expect(events[1]).toMatchObject({story_progress:f.rows[0]?.story_progress});
+ expect(events[2]).toEqual(f.log.events[2]);
+ expect(events[3]).toEqual(f.log.events[3]);
+});

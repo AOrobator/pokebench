@@ -124,9 +124,9 @@
    "menu-refusal-recovery-v1": false,
    "mid-frame-readout-v1": true,
    "milestone-stall-stop-v1": false,
-   "move-learn-comparison-v1": true,
-   "move-learn-question-v1": true,
-   "move-learn-settle-v1": true,
+   "move-learn-comparison-v1": false,
+   "move-learn-question-v1": false,
+   "move-learn-settle-v1": false,
    "named-interactions-v1": true,
    "named-warp-destinations-v1": true,
    "naming-cursor-v1": true,
@@ -257,7 +257,8 @@
    "away-note-buildings-v1": false,
    "current-map-display-name-v1": false,
    "window-escape-route-v1": false,
-   "map-cycle-recovery-v1": false
+   "map-cycle-recovery-v1": false,
+   "move-learn-goal-reminder-v1": true
   }
  },
  "switches": [
@@ -289,6 +290,9 @@
   "move-learn-loop-fingerprint-v1",
   "stale-plan-fact-v1",
   "post-battle-readout-v1",
+  "move-learn-settle-v1",
+  "move-learn-question-v1",
+  "move-learn-comparison-v1",
   "move-learn-tool-v1",
   "move-learn-early-comparison-v1",
   "poison-readout-v1",
@@ -350,7 +354,8 @@
   "counter-talk-v1",
   "story-battle-heal-first-v1",
   "tool-prompt-docs-v1",
-  "field-ownership-feedback-v1"
+  "field-ownership-feedback-v1",
+  "move-learn-goal-reminder-v1"
  ],
  "phases": [
   {

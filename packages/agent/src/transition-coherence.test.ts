@@ -20,7 +20,7 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(description).toContain("field_transition");
   expect(description).toContain("Save-backed world state unavailable");
   expect(description).toContain("both arms");
-  expect(SWITCHABLE_FEATURES.at(-153)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-154)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-52)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);

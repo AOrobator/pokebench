@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
+import { armFeatures, armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -304,5 +304,13 @@ it("enables menu refusal recovery only in evolving bundle arms",()=>{
    expect(armPreset(def,phase.id,"bundle").features["menu-refusal-recovery-v1"]).toBe(true);
   }
   expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ }
+});
+
+it("operator promotion enables only the reminder in both canonical comparison arms",()=>{
+ for(const name of ["bundle-v-control","bundle-v-control-2h","whole-map-pair-2h","whole-map-cook-1h","bundle-cook-1h"]){
+  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);
+  for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);
+  for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){expect(d.switches).toContain(id);expect(armFeatures(d,"control")[id]).toBe(false);expect(armFeatures(d,"bundle")[id]).toBe(true);}
  }
 });

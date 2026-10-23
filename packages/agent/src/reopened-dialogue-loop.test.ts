@@ -32,7 +32,7 @@ function detector(on: boolean, messageTruth = false) {
 
 describe("reopened-dialogue-loop-v1", () => {
   it("is registered second to last, default off, and the bundle arm is the one that turns it on", () => {
-    expect(SWITCHABLE_FEATURES.at(-120)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-121)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-19)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true, title: "REOPENED DIALOGUE LOOP"});
     expect(featureInfo(ID).description).toContain(" Off: ");

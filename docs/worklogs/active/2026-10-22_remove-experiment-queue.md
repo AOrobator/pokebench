@@ -8,7 +8,7 @@ Delete queue runtime, endpoints, approval/promotion machinery, root definitions 
 ## Milestones
 - [x] RED removal contract tests: both fail on existing queue HTML/runtime wiring (2026-10-22).
 - [x] GREEN implementation, skill cleanup and fixed-run compatibility
-- [ ] Gates: test, lint, build, coverage >=90, vendor
+- [x] Gates on initial candidate: build/lint/vendor pass; full coverage runs all suites (agent 3881, viewer 1714, Python 4013), all above 90. Repeating after main sync.
 - [x] Background browser proof and read-only real-data check
 - [ ] Principles and three cloud review lanes
 - [ ] Landing board, merge, live verification
@@ -32,3 +32,5 @@ Implementation pending. Shared viewer and gameplay processes unchanged.
 
 ## Review boundary
 Explicit user scope: remove queue and all experiment UI on Stats/PokéNav, preserve fixed-run and historical recordings. No changes to gameplay policy, model prompts, evaluation horizons, live campaigns, or recorded events. Historical provenance fields and read-only ledger interpretation are compatibility, not queue runtime. New hardware-only endpoint replaces the deleted queue API dependency. Terminal condition: required checks + independent cloud reviews, coordinated local landing and verified served UI. New capabilities or reviewer infrastructure proposals are follow-ups.
+
+- Synced main 5bec91dcd, retaining move-learn-goal-reminder gameplay/prompt/fixed recipes. Resolved test conflicts by keeping current main feature assertions and removing obsolete queue registration checks; deleted its new pending entry and readiness file. No main edits made by this chat.

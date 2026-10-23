@@ -1,3 +1,4 @@
+import {moveLearnGoalReminder} from "./move-learn-goal-reminder.js";
 import {withMenuItemGuidance} from "./menu-item-guidance.js";
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {battleEngaged} from "./battle-text-auto-advance.js";
@@ -72,7 +73,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  // fixed-point-breaker-v1 alone ends the request with its note.
  const breaker=fixedPointBreaker(features,recorder);
  const note=features["fixed-point-breaker-v1"];
- return {tools,transformContext:breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;},window:contextWindow(features),breaker};
+ return {tools,transformContext:moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

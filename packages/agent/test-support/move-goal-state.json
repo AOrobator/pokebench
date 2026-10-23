@@ -1,0 +1,151 @@
+{
+  "screen": "evolution",
+  "active_ui": {
+    "phase": "evolution_move_learning",
+    "selected": null,
+    "ready": true,
+    "controls": "A or B advances the waiting move-learning text; inspect the next choice",
+    "diagnostic": null,
+    "value": null,
+    "details": {
+      "callback2": "0x0813E3A5",
+      "task_ids": [
+        0
+      ],
+      "task_functions": [
+        "0x0813E571"
+      ],
+      "task_data": [
+        22,
+        280,
+        281,
+        129,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pokemon_party_index": 0,
+      "pokemon_identity": "b7f7c224:c97e7432",
+      "pokemon_species": "COMBUSKEN",
+      "pokemon_species_id": 281,
+      "pokemon_level": 16,
+      "pokemon_is_egg": false,
+      "pokemon_language": 2,
+      "pokemon_nickname": "COMBUSKEN",
+      "owner_task": 0,
+      "evolution_state": 22,
+      "move_learning_state": 2,
+      "pre_species_id": 280,
+      "post_species_id": 281,
+      "pre_species": "TORCHIC",
+      "post_species": "COMBUSKEN",
+      "task_flags": 129,
+      "yes_next_state": 0,
+      "no_next_state": 0,
+      "evolution_was_stopped": false,
+      "trade_evolution": false,
+      "new_move_id": 24,
+      "new_move": "DOUBLE KICK"
+    }
+  },
+  "started": true,
+  "name": "AAA",
+  "location": "ROUTE102",
+  "map_id": [
+    0,
+    17
+  ],
+  "position": {
+    "x": 3,
+    "y": 6
+  },
+  "facing": "left",
+  "in_battle": true,
+  "party": [
+    {
+      "species": "COMBUSKEN",
+      "level": 16,
+      "hp": 48,
+      "max_hp": 48,
+      "identity": "b7f7c224:c97e7432",
+      "species_id": 281,
+      "personality": 3086467620,
+      "ot_id": 3380507698,
+      "is_egg": false,
+      "status": 0,
+      "held_item": 0,
+      "experience": 2568,
+      "moves": [
+        {
+          "move_id": 10,
+          "pp": 33,
+          "pp_bonus": 0,
+          "name": "SCRATCH",
+          "max_pp": 35
+        },
+        {
+          "move_id": 45,
+          "pp": 40,
+          "pp_bonus": 0,
+          "name": "GROWL",
+          "max_pp": 40
+        },
+        {
+          "move_id": 116,
+          "pp": 30,
+          "pp_bonus": 0,
+          "name": "FOCUS ENERGY",
+          "max_pp": 30
+        },
+        {
+          "move_id": 52,
+          "pp": 22,
+          "pp_bonus": 0,
+          "name": "EMBER",
+          "max_pp": 25
+        }
+      ],
+      "decode_mode": "encrypted",
+      "diagnostic": null,
+      "raw_hex": null,
+      "held_item_name": null,
+      "cpu_context": null,
+      "language": 2,
+      "nickname": "COMBUSKEN",
+      "nickname_diagnostic": null,
+      "attack": 29,
+      "defense": 28,
+      "speed": 26,
+      "sp_attack": 32,
+      "sp_defense": 28,
+      "ability_num": 0,
+      "ability_id": 66,
+      "met_location": 16,
+      "met_location_name": "ROUTE 101",
+      "met_level": 5,
+      "met_game": 3,
+      "ball": 4,
+      "ball_name": "POK\u00e9 BALL",
+      "ot_name": "AAA",
+      "ot_gender": "male"
+    }
+  ],
+  "money": 3878,
+  "badges": [],
+  "play_time_s": 4426,
+  "v": 1,
+  "run": "goal",
+  "seq": 2,
+  "turn": 1,
+  "t": "2026-10-22T19:00:00.000-04:00",
+  "type": "state"
+}

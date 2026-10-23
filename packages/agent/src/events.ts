@@ -641,12 +641,12 @@ export const StateBodySchema = Type.Object(
     },closed),{maxItems:16})),
     navigation_grid: Type.Optional(Type.Union([Type.Object({elevation:Type.Integer({minimum:0,maximum:15}),
       tiles:Type.Array(Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),collision:Type.Integer({minimum:0,maximum:3}),behavior:Type.Integer({minimum:0,maximum:255}),elevation:Type.Integer({minimum:0,maximum:15})},closed),{minItems:1,maxItems:225}),
-      objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
+      objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer(),elevation:Type.Optional(Type.Integer({minimum:0,maximum:15}))},closed),{maxItems:32}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
     // Whole current map, present only with full-map-navigation-v1. One 4-hex-digit
     // cell per tile: collision<<12 | elevation<<8 | behavior.
     map_grid: Type.Optional(Type.Union([Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),elevation:Type.Integer({minimum:0,maximum:15}),
       rows:Type.Array(Type.String({pattern:"^([0-9a-f]{4})+$",maxLength:1024}),{minItems:1,maxItems:256}),
-      objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
+      objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer(),elevation:Type.Optional(Type.Integer({minimum:0,maximum:15}))},closed),{maxItems:32}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
     topology: Type.Optional(Type.Union([Type.Object({
       width: Type.Integer({minimum:1}), height: Type.Integer({minimum:1}),
       // connection-edge-tiles-v1: the current-map edge tiles a player can walk off, present only with that switch.

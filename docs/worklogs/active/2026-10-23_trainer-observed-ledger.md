@@ -54,3 +54,5 @@ None.
 
 - Browser proof: agent-owned headless Chrome, isolated scratch run root (original logs untouched), candidate viewer random port 65086. Harness Config card ON → READ EXPLAINER worked; desktop 1280/1440 and phone 375 screenshots inspected. Agent trace tool result and raw inspector contain reconstructed observed-opponent recap; original recorded frame displayed. No browser page errors; trainer-card art absent in scratch root. Phone source-revision overflow corrected and diagram made internally scrollable. Preview clearly labels reconstructed text, not a new measured run.
 - Synced main favicon landing 1acc73468 into ecc9e426c; behavior delta unchanged.
+
+- Syncing elevation/center landing 1389e21a5: preserved its registry order and added the memory switch last, kept both treatments in bundle definitions, regenerated historical tail-index assertions against current main plus this append. Python coverage: 4050 passed, lines 97.37%, branches 93.30%, functions 100%.

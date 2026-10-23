@@ -69,7 +69,8 @@ def operator_rom() -> bytes:
 
 def env_with(off: list[str]) -> dict[str, str]:
     # The recorded run predates warp-arrival-settle-v1, semantic-navigation-v2,
-    # respawn-readout-v1, caught-nickname-prompt-v1 and field-move-gates-v1, so it ran with
+    # respawn-readout-v1, caught-nickname-prompt-v1, field-move-gates-v1, elevation-aware-map-v1
+    # and screen-center-player-v1, so it ran with
     # those switches off.
     off = [
         *off,
@@ -79,6 +80,8 @@ def env_with(off: list[str]) -> dict[str, str]:
         "respawn-readout-v1",
         "caught-nickname-prompt-v1",
         "field-move-gates-v1",
+        "elevation-aware-map-v1",
+        "screen-center-player-v1",
     ]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
@@ -163,6 +166,8 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "static_npc_templates_enabled": False,
         "mart_stock_enabled": False,
         "berry_readout_enabled": False,
+        "overhead_cover_enabled": False,
+        "object_elevations_enabled": False,
         "shop_interface_enabled": False,
         "exp_next_enabled": False,
         "pokedex_enabled": False,

@@ -171,7 +171,7 @@ describe("rejected-movement-prefix-v1 at the press boundary",()=>{
 
 describe("registry and pending experiment",()=>{
  it("is the last switch: a default-off guard that needs the navigation tool-use guard, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-13)).toBe("rejected-movement-prefix-v1");
+  expect(SWITCHABLE_FEATURES.at(-15)).toBe("rejected-movement-prefix-v1");
   expect(featureInfo("rejected-movement-prefix-v1")).toMatchObject({group:"guard",needs:"navigation-tool-use-guard-v1"});
   expect(featureInfo("rejected-movement-prefix-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["rejected-movement-prefix-v1"]).toBe(false);

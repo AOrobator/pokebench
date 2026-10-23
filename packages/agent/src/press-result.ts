@@ -1,6 +1,6 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
-import { blockedBatchResult } from "./blocked-batch.js";
+import { blockedBatchResult, refusedPressResult } from "./blocked-batch.js";
 import { scriptHeld } from "./loop-detection.js";
 
 
@@ -15,8 +15,9 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // input or that a temporary script lock did not occur between the snapshots.
 // Facts the run's observation switches hide from the model are left out here too.
 // blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
-// topology say which map facts the model is shown.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+// topology say which map facts the model is shown. elevation (elevation-aware-map-v1) names elevation and slope
+// refusals, and the terrain cause of a single refused direction press.
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -238,5 +239,6 @@ function basePressResult(before: GameStateSnapshot | undefined, after: GameState
     if (blocked !== null) return blocked;
     return "unchanged world position/facing (batch or non-direction input; intermediate effects unknown)";
   }
-  return "blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)";
+  const refused = show.elevation === true ? refusedPressResult(before, after, buttons, show) : null;
+  return refused ?? "blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)";
 }

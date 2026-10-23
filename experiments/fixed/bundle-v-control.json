@@ -257,6 +257,8 @@
    "move-learn-goal-reminder-v1": true,
    "move-learn-offer-identity-v1": false,
    "campaign-progress-clock-v1": false,
+   "elevation-aware-map-v1": false,
+   "screen-center-player-v1": false,
    "trainer-observed-party-v1": false
   }
  },
@@ -380,6 +382,8 @@
   "map-cycle-recovery-v1",
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
+  "elevation-aware-map-v1",
+  "screen-center-player-v1",
   "trainer-observed-party-v1"
  ],
  "offInBoth": [

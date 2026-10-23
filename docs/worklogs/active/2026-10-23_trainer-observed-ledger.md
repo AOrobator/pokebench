@@ -21,7 +21,7 @@ Read-only recorded game state and delivered text. No raw enemy party decoding, e
 
 ## Milestones
 - [x] M1: failing regressions and RED commit
-- [ ] M2: implementation, switch, bundle, explainer, full gates and GREEN commit
+- [x] M2: implementation, switch, bundle, explainer, full gates and GREEN commit
 - [ ] M3: frozen cloud review, landing-board coordination, local merge and viewer proof if all required lanes approve
 
 ## Closing the Loop
@@ -56,3 +56,5 @@ None.
 - Synced main favicon landing 1acc73468 into ecc9e426c; behavior delta unchanged.
 
 - Syncing elevation/center landing 1389e21a5: preserved its registry order and added the memory switch last, kept both treatments in bundle definitions, regenerated historical tail-index assertions against current main plus this append. Python coverage: 4050 passed, lines 97.37%, branches 93.30%, functions 100%.
+
+- Post-elevation agent tests: 4084 passed. First viewer rerun used pre-sync agent dist and rejected the two new main switches; rebuilt shared agent exports before rerunning viewer tests. This was build ordering, not a source fallback or test suppression.

@@ -239,7 +239,8 @@ def test_a_joint_line_names_mixed_needs_and_the_kinds_the_game_is_silent_at() ->
         HEADER,
         "- BREAKABLE_ROCK at (1,0) and slope tiles (metatile behavior 0xD0) at (3,0) (which you"
         " slide down to the south on foot) together close every way on foot to (5,0): they need a"
-        f' field move or an item you cannot use yet; the game says: "{ROCK}" at the'
+        " field move, an item, or special movement unavailable to walking navigation;"
+        f' the game says: "{ROCK}" at the'
         " BREAKABLE_ROCK; the game shows no message at the slope tiles (metatile behavior 0xD0)",
     ]
 

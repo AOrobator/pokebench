@@ -52,3 +52,7 @@ None.
 - TypeScript build/lint and Python ruff/mypy pass after isolated dependency install. Initial shared-node_modules symlinks resolved workspace types to main; replaced symlinks with an offline worktree-local install. No main source changed.
 - Inventory script reads all 518 maps (zero unreadable), emits count metadata only. Detailed audit and updated existing linked explainer prepared. Remaining defects are explicitly retained in the report; no forced-movement solver or runtime-layout simulator was added.
 - RED commit: 85779c569. Correction: that run had 16 failures, zero passes (earlier prose incorrectly said one pass).
+
+- Gate correction: full Python now passes 4031 tests. Lines/branches/functions 97.41/93.45/100.00 (floor 90). Agent coverage passes 3909 tests, 99.14/93.30/97.78. Viewer coverage initially caught the removed Rusturf explainer example; restored the meaningful example rather than weakening its test. Rerun passes all 1728 viewer tests, 98.02/91.61/95.04. Build/lint pass; vendor remains clean at bbab97ad.
+- One old mixed-needs wording assertion was still failing at implementation commit 54f195749; corrected it on the branch and reran the whole Python suite successfully. No production logic was changed to satisfy that old assertion.
+- Background browser: both local pages return 200, no page errors or page-level overflow at 1280, 1440 and 375, closed and expanded. Fixed the mobile table and diagram after inspecting screenshots. Browser is standalone headless Chrome; no desktop focus taken. Shared viewer remains untouched.

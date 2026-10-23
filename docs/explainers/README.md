@@ -271,6 +271,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Named move decline](move-learn-offer-identity-v1.html): verifies the offered move before executing a decline.
 - [Campaign milestones and earned progress](campaign-progress-clock-v1.html)
 
+- [Navigation cycle stop](navigation-cycle-stop-v1.html): stop repeated internal local steps and report the cycle.
+
 - [Immediate leader loss comparison](leader-loss-immediate-v1.html) — A verified loss reaches the very next decision, including outside the gym.
 - [Observed battle action history](battle-action-history-v1.html) — Keep what the game printed beside what the next observation measured.
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.

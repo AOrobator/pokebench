@@ -617,6 +617,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "map-cycle-recovery-v1":"map-cycle-recovery-v1.html",
  "move-learn-offer-identity-v1":"move-learn-offer-identity-v1.html",
  "move-learn-goal-reminder-v1":"move-learn-goal-reminder-v1.html",
+ "navigation-cycle-stop-v1":"navigation-cycle-stop-v1.html",
  "random-starter-v1":"random-starter-v1.html",
 });
 

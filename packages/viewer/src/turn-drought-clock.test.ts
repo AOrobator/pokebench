@@ -33,7 +33,7 @@ it("starts OFF for the next run and links its card to the tracked explainer", ()
 it("is on only in the bundle arm of the bundle-v-control recipes, appended last, with the control base unchanged", () => {
   for (const name of ["bundle-v-control", "bundle-v-control-2h"]) {
     const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
-    expect(definition.switches.at(-12), name).toBe(ID);
+    expect(definition.switches.at(-13), name).toBe(ID);
     expect(definition.base.features[ID], name).toBe(false);
     expect(definition.onInBoth, name).not.toContain(ID);
     expect(definition.offInBoth, name).not.toContain(ID);

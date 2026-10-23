@@ -1,0 +1,6021 @@
+{
+  "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+  "source_revision": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+  "scope": "All default ROM map headers. Runtime alternate layouts and mutations require native readback; this inventory is not executable reachability proof.",
+  "maps": [
+    {
+      "map_id": [
+        0,
+        0
+      ],
+      "name": "PETALBURG CITY",
+      "width": 30,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        1
+      ],
+      "name": "SLATEPORT CITY",
+      "width": 40,
+      "height": 60,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        2
+      ],
+      "name": "MAUVILLE CITY",
+      "width": 40,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        3
+      ],
+      "name": "RUSTBORO CITY",
+      "width": 40,
+      "height": 60,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        4
+      ],
+      "name": "FORTREE CITY",
+      "width": 40,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        5
+      ],
+      "name": "LILYCOVE CITY",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        6
+      ],
+      "name": "MOSSDEEP CITY",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        7
+      ],
+      "name": "SOOTOPOLIS CITY",
+      "width": 60,
+      "height": 60,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        8
+      ],
+      "name": "EVER GRANDE CITY",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {
+        "13": 96
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        9
+      ],
+      "name": "LITTLEROOT TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        10
+      ],
+      "name": "OLDALE TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        11
+      ],
+      "name": "DEWFORD TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        12
+      ],
+      "name": "LAVARIDGE TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        13
+      ],
+      "name": "FALLARBOR TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        14
+      ],
+      "name": "VERDANTURF TOWN",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        15
+      ],
+      "name": "PACIFIDLOG TOWN",
+      "width": 20,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        16
+      ],
+      "name": "ROUTE101",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        17
+      ],
+      "name": "ROUTE102",
+      "width": 50,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        18
+      ],
+      "name": "ROUTE103",
+      "width": 80,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        19
+      ],
+      "name": "ROUTE104",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        20
+      ],
+      "name": "ROUTE105",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        21
+      ],
+      "name": "ROUTE106",
+      "width": 80,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        22
+      ],
+      "name": "ROUTE107",
+      "width": 60,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        23
+      ],
+      "name": "ROUTE108",
+      "width": 60,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        24
+      ],
+      "name": "ROUTE109",
+      "width": 40,
+      "height": 63,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        25
+      ],
+      "name": "ROUTE110",
+      "width": 40,
+      "height": 100,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        26
+      ],
+      "name": "ROUTE111",
+      "width": 40,
+      "height": 140,
+      "special_tiles": {
+        "D0": 4
+      },
+      "legacy_special_drawn_clear": {
+        "D0": 4
+      }
+    },
+    {
+      "map_id": [
+        0,
+        27
+      ],
+      "name": "ROUTE112",
+      "width": 40,
+      "height": 60,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        28
+      ],
+      "name": "ROUTE113",
+      "width": 100,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        29
+      ],
+      "name": "ROUTE114",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {
+        "13": 12
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        30
+      ],
+      "name": "ROUTE115",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {
+        "D0": 2
+      },
+      "legacy_special_drawn_clear": {
+        "D0": 2
+      }
+    },
+    {
+      "map_id": [
+        0,
+        31
+      ],
+      "name": "ROUTE116",
+      "width": 100,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        32
+      ],
+      "name": "ROUTE117",
+      "width": 60,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        33
+      ],
+      "name": "ROUTE118",
+      "width": 80,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        34
+      ],
+      "name": "ROUTE119",
+      "width": 40,
+      "height": 140,
+      "special_tiles": {
+        "13": 12,
+        "D0": 2,
+        "D3": 3,
+        "D4": 4,
+        "D5": 10,
+        "D6": 34
+      },
+      "legacy_special_drawn_clear": {
+        "D0": 2,
+        "D3": 3,
+        "D4": 4,
+        "D5": 10,
+        "D6": 34
+      }
+    },
+    {
+      "map_id": [
+        0,
+        35
+      ],
+      "name": "ROUTE120",
+      "width": 40,
+      "height": 100,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        36
+      ],
+      "name": "ROUTE121",
+      "width": 80,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        37
+      ],
+      "name": "ROUTE122",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        38
+      ],
+      "name": "ROUTE123",
+      "width": 140,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        39
+      ],
+      "name": "ROUTE124",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        40
+      ],
+      "name": "ROUTE125",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        41
+      ],
+      "name": "ROUTE126",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        42
+      ],
+      "name": "ROUTE127",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        43
+      ],
+      "name": "ROUTE128",
+      "width": 120,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        44
+      ],
+      "name": "ROUTE129",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        45
+      ],
+      "name": "ROUTE130",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        46
+      ],
+      "name": "ROUTE131",
+      "width": 60,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        47
+      ],
+      "name": "ROUTE132",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {
+        "50": 5,
+        "51": 1201,
+        "52": 125,
+        "53": 14
+      },
+      "legacy_special_drawn_clear": {
+        "50": 5,
+        "51": 1201,
+        "52": 125,
+        "53": 14
+      }
+    },
+    {
+      "map_id": [
+        0,
+        48
+      ],
+      "name": "ROUTE133",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {
+        "51": 1384,
+        "52": 108,
+        "53": 60
+      },
+      "legacy_special_drawn_clear": {
+        "51": 1384,
+        "52": 108,
+        "53": 60
+      }
+    },
+    {
+      "map_id": [
+        0,
+        49
+      ],
+      "name": "ROUTE134",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {
+        "51": 1195,
+        "52": 34,
+        "53": 33
+      },
+      "legacy_special_drawn_clear": {
+        "51": 1195,
+        "52": 34,
+        "53": 33
+      }
+    },
+    {
+      "map_id": [
+        0,
+        50
+      ],
+      "name": "UNDERWATER ROUTE124",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        51
+      ],
+      "name": "UNDERWATER ROUTE126",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        52
+      ],
+      "name": "UNDERWATER ROUTE127",
+      "width": 80,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        53
+      ],
+      "name": "UNDERWATER ROUTE128",
+      "width": 120,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        54
+      ],
+      "name": "UNDERWATER ROUTE129",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        55
+      ],
+      "name": "UNDERWATER ROUTE105",
+      "width": 40,
+      "height": 80,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        0,
+        56
+      ],
+      "name": "UNDERWATER ROUTE125",
+      "width": 80,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        1,
+        0
+      ],
+      "name": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        1,
+        1
+      ],
+      "name": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        1,
+        2
+      ],
+      "name": "LITTLEROOT TOWN MAYS HOUSE 1F",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        1,
+        3
+      ],
+      "name": "LITTLEROOT TOWN MAYS HOUSE 2F",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        1,
+        4
+      ],
+      "name": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        2,
+        0
+      ],
+      "name": "OLDALE TOWN HOUSE1",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        2,
+        1
+      ],
+      "name": "OLDALE TOWN HOUSE2",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        2,
+        2
+      ],
+      "name": "OLDALE TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        2,
+        3
+      ],
+      "name": "OLDALE TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        2,
+        4
+      ],
+      "name": "OLDALE TOWN MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        0
+      ],
+      "name": "DEWFORD TOWN HOUSE1",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        1
+      ],
+      "name": "DEWFORD TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        2
+      ],
+      "name": "DEWFORD TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        3
+      ],
+      "name": "DEWFORD TOWN GYM",
+      "width": 18,
+      "height": 28,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        4
+      ],
+      "name": "DEWFORD TOWN HALL",
+      "width": 17,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        3,
+        5
+      ],
+      "name": "DEWFORD TOWN HOUSE2",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        0
+      ],
+      "name": "LAVARIDGE TOWN HERB SHOP",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        1
+      ],
+      "name": "LAVARIDGE TOWN GYM 1F",
+      "width": 17,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        2
+      ],
+      "name": "LAVARIDGE TOWN GYM B1F",
+      "width": 17,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        3
+      ],
+      "name": "LAVARIDGE TOWN HOUSE",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        4
+      ],
+      "name": "LAVARIDGE TOWN MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        5
+      ],
+      "name": "LAVARIDGE TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        4,
+        6
+      ],
+      "name": "LAVARIDGE TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        0
+      ],
+      "name": "FALLARBOR TOWN MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        1
+      ],
+      "name": "FALLARBOR TOWN BATTLE TENT LOBBY",
+      "width": 13,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        2
+      ],
+      "name": "FALLARBOR TOWN BATTLE TENT CORRIDOR",
+      "width": 5,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        3
+      ],
+      "name": "FALLARBOR TOWN BATTLE TENT BATTLE ROOM",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        4
+      ],
+      "name": "FALLARBOR TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        5
+      ],
+      "name": "FALLARBOR TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        6
+      ],
+      "name": "FALLARBOR TOWN COZMOS HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        5,
+        7
+      ],
+      "name": "FALLARBOR TOWN MOVE RELEARNERS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        0
+      ],
+      "name": "VERDANTURF TOWN BATTLE TENT LOBBY",
+      "width": 13,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        1
+      ],
+      "name": "VERDANTURF TOWN BATTLE TENT CORRIDOR",
+      "width": 5,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        2
+      ],
+      "name": "VERDANTURF TOWN BATTLE TENT BATTLE ROOM",
+      "width": 13,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        3
+      ],
+      "name": "VERDANTURF TOWN MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        4
+      ],
+      "name": "VERDANTURF TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        5
+      ],
+      "name": "VERDANTURF TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        6
+      ],
+      "name": "VERDANTURF TOWN WANDAS HOUSE",
+      "width": 17,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        7
+      ],
+      "name": "VERDANTURF TOWN FRIENDSHIP RATERS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        6,
+        8
+      ],
+      "name": "VERDANTURF TOWN HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        0
+      ],
+      "name": "PACIFIDLOG TOWN POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        1
+      ],
+      "name": "PACIFIDLOG TOWN POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        2
+      ],
+      "name": "PACIFIDLOG TOWN HOUSE1",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        3
+      ],
+      "name": "PACIFIDLOG TOWN HOUSE2",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        4
+      ],
+      "name": "PACIFIDLOG TOWN HOUSE3",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        5
+      ],
+      "name": "PACIFIDLOG TOWN HOUSE4",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        7,
+        6
+      ],
+      "name": "PACIFIDLOG TOWN HOUSE5",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        0
+      ],
+      "name": "PETALBURG CITY WALLYS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        1
+      ],
+      "name": "PETALBURG CITY GYM",
+      "width": 9,
+      "height": 112,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        2
+      ],
+      "name": "PETALBURG CITY HOUSE1",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        3
+      ],
+      "name": "PETALBURG CITY HOUSE2",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        4
+      ],
+      "name": "PETALBURG CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        5
+      ],
+      "name": "PETALBURG CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        8,
+        6
+      ],
+      "name": "PETALBURG CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        0
+      ],
+      "name": "SLATEPORT CITY STERNS SHIPYARD 1F",
+      "width": 21,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        1
+      ],
+      "name": "SLATEPORT CITY STERNS SHIPYARD 2F",
+      "width": 17,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        2
+      ],
+      "name": "SLATEPORT CITY BATTLE TENT LOBBY",
+      "width": 13,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        3
+      ],
+      "name": "SLATEPORT CITY BATTLE TENT CORRIDOR",
+      "width": 5,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        4
+      ],
+      "name": "SLATEPORT CITY BATTLE TENT BATTLE ROOM",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        5
+      ],
+      "name": "SLATEPORT CITY NAME RATERS HOUSE",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        6
+      ],
+      "name": "SLATEPORT CITY POKEMON FAN CLUB",
+      "width": 14,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        7
+      ],
+      "name": "SLATEPORT CITY OCEANIC MUSEUM 1F",
+      "width": 20,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        8
+      ],
+      "name": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+      "width": 20,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        9
+      ],
+      "name": "SLATEPORT CITY HARBOR",
+      "width": 24,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        10
+      ],
+      "name": "SLATEPORT CITY HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        11
+      ],
+      "name": "SLATEPORT CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        12
+      ],
+      "name": "SLATEPORT CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        9,
+        13
+      ],
+      "name": "SLATEPORT CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        0
+      ],
+      "name": "MAUVILLE CITY GYM",
+      "width": 10,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        1
+      ],
+      "name": "MAUVILLE CITY BIKE SHOP",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        2
+      ],
+      "name": "MAUVILLE CITY HOUSE1",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        3
+      ],
+      "name": "MAUVILLE CITY GAME CORNER",
+      "width": 22,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        4
+      ],
+      "name": "MAUVILLE CITY HOUSE2",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        5
+      ],
+      "name": "MAUVILLE CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        6
+      ],
+      "name": "MAUVILLE CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        10,
+        7
+      ],
+      "name": "MAUVILLE CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        0
+      ],
+      "name": "RUSTBORO CITY DEVON CORP 1F",
+      "width": 19,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        1
+      ],
+      "name": "RUSTBORO CITY DEVON CORP 2F",
+      "width": 19,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        2
+      ],
+      "name": "RUSTBORO CITY DEVON CORP 3F",
+      "width": 19,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        3
+      ],
+      "name": "RUSTBORO CITY GYM",
+      "width": 11,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        4
+      ],
+      "name": "RUSTBORO CITY POKEMON SCHOOL",
+      "width": 12,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        5
+      ],
+      "name": "RUSTBORO CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        6
+      ],
+      "name": "RUSTBORO CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        7
+      ],
+      "name": "RUSTBORO CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        8
+      ],
+      "name": "RUSTBORO CITY FLAT1 1F",
+      "width": 14,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        9
+      ],
+      "name": "RUSTBORO CITY FLAT1 2F",
+      "width": 14,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        10
+      ],
+      "name": "RUSTBORO CITY HOUSE1",
+      "width": 13,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        11
+      ],
+      "name": "RUSTBORO CITY CUTTERS HOUSE",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        12
+      ],
+      "name": "RUSTBORO CITY HOUSE2",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        13
+      ],
+      "name": "RUSTBORO CITY FLAT2 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        14
+      ],
+      "name": "RUSTBORO CITY FLAT2 2F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        15
+      ],
+      "name": "RUSTBORO CITY FLAT2 3F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        11,
+        16
+      ],
+      "name": "RUSTBORO CITY HOUSE3",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        0
+      ],
+      "name": "FORTREE CITY HOUSE1",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        1
+      ],
+      "name": "FORTREE CITY GYM",
+      "width": 20,
+      "height": 25,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        2
+      ],
+      "name": "FORTREE CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        3
+      ],
+      "name": "FORTREE CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        4
+      ],
+      "name": "FORTREE CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        5
+      ],
+      "name": "FORTREE CITY HOUSE2",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        6
+      ],
+      "name": "FORTREE CITY HOUSE3",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        7
+      ],
+      "name": "FORTREE CITY HOUSE4",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        8
+      ],
+      "name": "FORTREE CITY HOUSE5",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        12,
+        9
+      ],
+      "name": "FORTREE CITY DECORATION SHOP",
+      "width": 8,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        0
+      ],
+      "name": "LILYCOVE CITY COVE LILY MOTEL 1F",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        1
+      ],
+      "name": "LILYCOVE CITY COVE LILY MOTEL 2F",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        2
+      ],
+      "name": "LILYCOVE CITY LILYCOVE MUSEUM 1F",
+      "width": 21,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        3
+      ],
+      "name": "LILYCOVE CITY LILYCOVE MUSEUM 2F",
+      "width": 22,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        4
+      ],
+      "name": "LILYCOVE CITY CONTEST LOBBY",
+      "width": 31,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        5
+      ],
+      "name": "LILYCOVE CITY CONTEST HALL",
+      "width": 51,
+      "height": 33,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        6
+      ],
+      "name": "LILYCOVE CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        7
+      ],
+      "name": "LILYCOVE CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        8
+      ],
+      "name": "LILYCOVE CITY UNUSED MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        9
+      ],
+      "name": "LILYCOVE CITY POKEMON TRAINER FAN CLUB",
+      "width": 12,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        10
+      ],
+      "name": "LILYCOVE CITY HARBOR",
+      "width": 24,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        11
+      ],
+      "name": "LILYCOVE CITY MOVE DELETERS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        12
+      ],
+      "name": "LILYCOVE CITY HOUSE1",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        13
+      ],
+      "name": "LILYCOVE CITY HOUSE2",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        14
+      ],
+      "name": "LILYCOVE CITY HOUSE3",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        15
+      ],
+      "name": "LILYCOVE CITY HOUSE4",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        16
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE 1F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        17
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE 2F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        18
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE 3F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        19
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE 4F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        20
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE 5F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        21
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE ROOFTOP",
+      "width": 18,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        13,
+        22
+      ],
+      "name": "LILYCOVE CITY DEPARTMENT STORE ELEVATOR",
+      "width": 5,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        0
+      ],
+      "name": "MOSSDEEP CITY GYM",
+      "width": 26,
+      "height": 36,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        1
+      ],
+      "name": "MOSSDEEP CITY HOUSE1",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        2
+      ],
+      "name": "MOSSDEEP CITY HOUSE2",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        3
+      ],
+      "name": "MOSSDEEP CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        4
+      ],
+      "name": "MOSSDEEP CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        5
+      ],
+      "name": "MOSSDEEP CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        6
+      ],
+      "name": "MOSSDEEP CITY HOUSE3",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        7
+      ],
+      "name": "MOSSDEEP CITY STEVENS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        8
+      ],
+      "name": "MOSSDEEP CITY HOUSE4",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        9
+      ],
+      "name": "MOSSDEEP CITY SPACE CENTER 1F",
+      "width": 16,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        10
+      ],
+      "name": "MOSSDEEP CITY SPACE CENTER 2F",
+      "width": 16,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        11
+      ],
+      "name": "MOSSDEEP CITY GAME CORNER 1F",
+      "width": 12,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        14,
+        12
+      ],
+      "name": "MOSSDEEP CITY GAME CORNER B1F",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        0
+      ],
+      "name": "SOOTOPOLIS CITY GYM 1F",
+      "width": 17,
+      "height": 26,
+      "special_tiles": {
+        "26": 64,
+        "47": 6
+      },
+      "legacy_special_drawn_clear": {
+        "26": 64,
+        "47": 6
+      }
+    },
+    {
+      "map_id": [
+        15,
+        1
+      ],
+      "name": "SOOTOPOLIS CITY GYM B1F",
+      "width": 17,
+      "height": 26,
+      "special_tiles": {
+        "47": 6
+      },
+      "legacy_special_drawn_clear": {
+        "47": 6
+      }
+    },
+    {
+      "map_id": [
+        15,
+        2
+      ],
+      "name": "SOOTOPOLIS CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        3
+      ],
+      "name": "SOOTOPOLIS CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        4
+      ],
+      "name": "SOOTOPOLIS CITY MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        5
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE1",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        6
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE2",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        7
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE3",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        8
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE4",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        9
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE5",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        10
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE6",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        11
+      ],
+      "name": "SOOTOPOLIS CITY HOUSE7",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        12
+      ],
+      "name": "SOOTOPOLIS CITY LOTAD AND SEEDOT HOUSE",
+      "width": 8,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        13
+      ],
+      "name": "SOOTOPOLIS CITY MYSTERY EVENTS HOUSE 1F",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        15,
+        14
+      ],
+      "name": "SOOTOPOLIS CITY MYSTERY EVENTS HOUSE B1F",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        0
+      ],
+      "name": "EVER GRANDE CITY SIDNEYS ROOM",
+      "width": 13,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        1
+      ],
+      "name": "EVER GRANDE CITY PHOEBES ROOM",
+      "width": 13,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        2
+      ],
+      "name": "EVER GRANDE CITY GLACIAS ROOM",
+      "width": 13,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        3
+      ],
+      "name": "EVER GRANDE CITY DRAKES ROOM",
+      "width": 13,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        4
+      ],
+      "name": "EVER GRANDE CITY CHAMPIONS ROOM",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        5
+      ],
+      "name": "EVER GRANDE CITY HALL1",
+      "width": 11,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        6
+      ],
+      "name": "EVER GRANDE CITY HALL2",
+      "width": 11,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        7
+      ],
+      "name": "EVER GRANDE CITY HALL3",
+      "width": 11,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        8
+      ],
+      "name": "EVER GRANDE CITY HALL4",
+      "width": 11,
+      "height": 34,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        9
+      ],
+      "name": "EVER GRANDE CITY HALL5",
+      "width": 11,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        10
+      ],
+      "name": "EVER GRANDE CITY POKEMON LEAGUE 1F",
+      "width": 19,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        11
+      ],
+      "name": "EVER GRANDE CITY HALL OF FAME",
+      "width": 15,
+      "height": 17,
+      "special_tiles": {
+        "20": 170
+      },
+      "legacy_special_drawn_clear": {
+        "20": 170
+      }
+    },
+    {
+      "map_id": [
+        16,
+        12
+      ],
+      "name": "EVER GRANDE CITY POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        13
+      ],
+      "name": "EVER GRANDE CITY POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        16,
+        14
+      ],
+      "name": "EVER GRANDE CITY POKEMON LEAGUE 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        17,
+        0
+      ],
+      "name": "ROUTE104 MR BRINEYS HOUSE",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        17,
+        1
+      ],
+      "name": "ROUTE104 PRETTY PETAL FLOWER SHOP",
+      "width": 15,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        18,
+        0
+      ],
+      "name": "ROUTE111 WINSTRATE FAMILYS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        18,
+        1
+      ],
+      "name": "ROUTE111 OLD LADYS REST STOP",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        19,
+        0
+      ],
+      "name": "ROUTE112 CABLE CAR STATION",
+      "width": 13,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        19,
+        1
+      ],
+      "name": "MT CHIMNEY CABLE CAR STATION",
+      "width": 13,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        20,
+        0
+      ],
+      "name": "ROUTE114 FOSSIL MANIACS HOUSE",
+      "width": 10,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        20,
+        1
+      ],
+      "name": "ROUTE114 FOSSIL MANIACS TUNNEL",
+      "width": 13,
+      "height": 26,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        20,
+        2
+      ],
+      "name": "ROUTE114 LANETTES HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        21,
+        0
+      ],
+      "name": "ROUTE116 TUNNELERS REST HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        22,
+        0
+      ],
+      "name": "ROUTE117 POKEMON DAY CARE",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        23,
+        0
+      ],
+      "name": "ROUTE121 SAFARI ZONE ENTRANCE",
+      "width": 18,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        0
+      ],
+      "name": "METEOR FALLS 1F 1R",
+      "width": 30,
+      "height": 42,
+      "special_tiles": {
+        "13": 58
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        1
+      ],
+      "name": "METEOR FALLS 1F 2R",
+      "width": 30,
+      "height": 32,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        2
+      ],
+      "name": "METEOR FALLS B1F 1R",
+      "width": 29,
+      "height": 38,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        3
+      ],
+      "name": "METEOR FALLS B1F 2R",
+      "width": 11,
+      "height": 18,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        4
+      ],
+      "name": "RUSTURF TUNNEL",
+      "width": 36,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        5
+      ],
+      "name": "UNDERWATER SOOTOPOLIS CITY",
+      "width": 20,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        6
+      ],
+      "name": "DESERT RUINS",
+      "width": 17,
+      "height": 33,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        7
+      ],
+      "name": "GRANITE CAVE 1F",
+      "width": 42,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        8
+      ],
+      "name": "GRANITE CAVE B1F",
+      "width": 32,
+      "height": 26,
+      "special_tiles": {
+        "D0": 2,
+        "D2": 62
+      },
+      "legacy_special_drawn_clear": {
+        "D0": 2,
+        "D2": 62
+      }
+    },
+    {
+      "map_id": [
+        24,
+        9
+      ],
+      "name": "GRANITE CAVE B2F",
+      "width": 32,
+      "height": 26,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        10
+      ],
+      "name": "GRANITE CAVE STEVENS ROOM",
+      "width": 15,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        11
+      ],
+      "name": "PETALBURG WOODS",
+      "width": 48,
+      "height": 44,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        12
+      ],
+      "name": "MT CHIMNEY",
+      "width": 40,
+      "height": 47,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        13
+      ],
+      "name": "JAGGED PASS",
+      "width": 30,
+      "height": 46,
+      "special_tiles": {
+        "D1": 14
+      },
+      "legacy_special_drawn_clear": {
+        "D1": 14
+      }
+    },
+    {
+      "map_id": [
+        24,
+        14
+      ],
+      "name": "FIERY PATH",
+      "width": 35,
+      "height": 38,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        15
+      ],
+      "name": "MT PYRE 1F",
+      "width": 22,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        16
+      ],
+      "name": "MT PYRE 2F",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {
+        "0F": 1
+      },
+      "legacy_special_drawn_clear": {
+        "0F": 1
+      }
+    },
+    {
+      "map_id": [
+        24,
+        17
+      ],
+      "name": "MT PYRE 3F",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {
+        "0F": 2
+      },
+      "legacy_special_drawn_clear": {
+        "0F": 2
+      }
+    },
+    {
+      "map_id": [
+        24,
+        18
+      ],
+      "name": "MT PYRE 4F",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {
+        "0F": 2
+      },
+      "legacy_special_drawn_clear": {
+        "0F": 2
+      }
+    },
+    {
+      "map_id": [
+        24,
+        19
+      ],
+      "name": "MT PYRE 5F",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {
+        "0F": 2
+      },
+      "legacy_special_drawn_clear": {
+        "0F": 2
+      }
+    },
+    {
+      "map_id": [
+        24,
+        20
+      ],
+      "name": "MT PYRE 6F",
+      "width": 13,
+      "height": 13,
+      "special_tiles": {
+        "0F": 1
+      },
+      "legacy_special_drawn_clear": {
+        "0F": 1
+      }
+    },
+    {
+      "map_id": [
+        24,
+        21
+      ],
+      "name": "MT PYRE EXTERIOR",
+      "width": 38,
+      "height": 51,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        22
+      ],
+      "name": "MT PYRE SUMMIT",
+      "width": 50,
+      "height": 37,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        23
+      ],
+      "name": "AQUA HIDEOUT 1F",
+      "width": 28,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        24
+      ],
+      "name": "AQUA HIDEOUT B1F",
+      "width": 51,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        25
+      ],
+      "name": "AQUA HIDEOUT B2F",
+      "width": 34,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        26
+      ],
+      "name": "UNDERWATER SEAFLOOR CAVERN",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        27
+      ],
+      "name": "SEAFLOOR CAVERN ENTRANCE",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        28
+      ],
+      "name": "SEAFLOOR CAVERN ROOM1",
+      "width": 20,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        29
+      ],
+      "name": "SEAFLOOR CAVERN ROOM2",
+      "width": 18,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        30
+      ],
+      "name": "SEAFLOOR CAVERN ROOM3",
+      "width": 16,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        31
+      ],
+      "name": "SEAFLOOR CAVERN ROOM4",
+      "width": 18,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        32
+      ],
+      "name": "SEAFLOOR CAVERN ROOM5",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        33
+      ],
+      "name": "SEAFLOOR CAVERN ROOM6",
+      "width": 24,
+      "height": 23,
+      "special_tiles": {
+        "50": 26,
+        "51": 22,
+        "52": 34,
+        "53": 26
+      },
+      "legacy_special_drawn_clear": {
+        "50": 26,
+        "51": 22,
+        "52": 34,
+        "53": 26
+      }
+    },
+    {
+      "map_id": [
+        24,
+        34
+      ],
+      "name": "SEAFLOOR CAVERN ROOM7",
+      "width": 23,
+      "height": 25,
+      "special_tiles": {
+        "50": 25,
+        "51": 42,
+        "52": 18,
+        "53": 32
+      },
+      "legacy_special_drawn_clear": {
+        "50": 25,
+        "51": 42,
+        "52": 18,
+        "53": 32
+      }
+    },
+    {
+      "map_id": [
+        24,
+        35
+      ],
+      "name": "SEAFLOOR CAVERN ROOM8",
+      "width": 11,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        36
+      ],
+      "name": "SEAFLOOR CAVERN ROOM9",
+      "width": 27,
+      "height": 46,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        37
+      ],
+      "name": "CAVE OF ORIGIN ENTRANCE",
+      "width": 19,
+      "height": 26,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        38
+      ],
+      "name": "CAVE OF ORIGIN 1F",
+      "width": 23,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        39
+      ],
+      "name": "CAVE OF ORIGIN UNUSED RUBY SAPPHIRE MAP1",
+      "width": 23,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        40
+      ],
+      "name": "CAVE OF ORIGIN UNUSED RUBY SAPPHIRE MAP2",
+      "width": 21,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        41
+      ],
+      "name": "CAVE OF ORIGIN UNUSED RUBY SAPPHIRE MAP3",
+      "width": 19,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        42
+      ],
+      "name": "CAVE OF ORIGIN B1F",
+      "width": 19,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        43
+      ],
+      "name": "VICTORY ROAD 1F",
+      "width": 46,
+      "height": 45,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        44
+      ],
+      "name": "VICTORY ROAD B1F",
+      "width": 46,
+      "height": 31,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        45
+      ],
+      "name": "VICTORY ROAD B2F",
+      "width": 46,
+      "height": 31,
+      "special_tiles": {
+        "13": 18
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        46
+      ],
+      "name": "SHOAL CAVE LOW TIDE ENTRANCE ROOM",
+      "width": 35,
+      "height": 35,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        47
+      ],
+      "name": "SHOAL CAVE LOW TIDE INNER ROOM",
+      "width": 46,
+      "height": 38,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        48
+      ],
+      "name": "SHOAL CAVE LOW TIDE STAIRS ROOM",
+      "width": 21,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        49
+      ],
+      "name": "SHOAL CAVE LOW TIDE LOWER ROOM",
+      "width": 31,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        50
+      ],
+      "name": "SHOAL CAVE HIGH TIDE ENTRANCE ROOM",
+      "width": 35,
+      "height": 35,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        51
+      ],
+      "name": "SHOAL CAVE HIGH TIDE INNER ROOM",
+      "width": 46,
+      "height": 38,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        52
+      ],
+      "name": "NEW MAUVILLE ENTRANCE",
+      "width": 9,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        53
+      ],
+      "name": "NEW MAUVILLE INSIDE",
+      "width": 41,
+      "height": 41,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        54
+      ],
+      "name": "ABANDONED SHIP DECK",
+      "width": 23,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        55
+      ],
+      "name": "ABANDONED SHIP CORRIDORS 1F",
+      "width": 18,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        56
+      ],
+      "name": "ABANDONED SHIP ROOMS 1F",
+      "width": 18,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        57
+      ],
+      "name": "ABANDONED SHIP CORRIDORS B1F",
+      "width": 13,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        58
+      ],
+      "name": "ABANDONED SHIP ROOMS B1F",
+      "width": 27,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        59
+      ],
+      "name": "ABANDONED SHIP ROOMS2 B1F",
+      "width": 18,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        60
+      ],
+      "name": "ABANDONED SHIP UNDERWATER1",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        61
+      ],
+      "name": "ABANDONED SHIP ROOM B1F",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        62
+      ],
+      "name": "ABANDONED SHIP ROOMS2 1F",
+      "width": 9,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        63
+      ],
+      "name": "ABANDONED SHIP CAPTAINS OFFICE",
+      "width": 9,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        64
+      ],
+      "name": "ABANDONED SHIP UNDERWATER2",
+      "width": 21,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        65
+      ],
+      "name": "ABANDONED SHIP HIDDEN FLOOR CORRIDORS",
+      "width": 13,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        66
+      ],
+      "name": "ABANDONED SHIP HIDDEN FLOOR ROOMS",
+      "width": 44,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        67
+      ],
+      "name": "ISLAND CAVE",
+      "width": 17,
+      "height": 33,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        68
+      ],
+      "name": "ANCIENT TOMB",
+      "width": 17,
+      "height": 33,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        69
+      ],
+      "name": "UNDERWATER ROUTE134",
+      "width": 18,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        70
+      ],
+      "name": "UNDERWATER SEALED CHAMBER",
+      "width": 22,
+      "height": 48,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        71
+      ],
+      "name": "SEALED CHAMBER OUTER ROOM",
+      "width": 21,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        72
+      ],
+      "name": "SEALED CHAMBER INNER ROOM",
+      "width": 21,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        73
+      ],
+      "name": "SCORCHED SLAB",
+      "width": 15,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        74
+      ],
+      "name": "AQUA HIDEOUT UNUSED RUBY MAP1",
+      "width": 28,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        75
+      ],
+      "name": "AQUA HIDEOUT UNUSED RUBY MAP2",
+      "width": 62,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        76
+      ],
+      "name": "AQUA HIDEOUT UNUSED RUBY MAP3",
+      "width": 34,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        77
+      ],
+      "name": "SKY PILLAR ENTRANCE",
+      "width": 18,
+      "height": 18,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        78
+      ],
+      "name": "SKY PILLAR OUTSIDE",
+      "width": 28,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        79
+      ],
+      "name": "SKY PILLAR 1F",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        80
+      ],
+      "name": "SKY PILLAR 2F",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {
+        "D2": 38
+      },
+      "legacy_special_drawn_clear": {
+        "D2": 38
+      }
+    },
+    {
+      "map_id": [
+        24,
+        81
+      ],
+      "name": "SKY PILLAR 3F",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        82
+      ],
+      "name": "SKY PILLAR 4F",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {
+        "D2": 34
+      },
+      "legacy_special_drawn_clear": {
+        "D2": 34
+      }
+    },
+    {
+      "map_id": [
+        24,
+        83
+      ],
+      "name": "SHOAL CAVE LOW TIDE ICE ROOM",
+      "width": 20,
+      "height": 30,
+      "special_tiles": {
+        "20": 150
+      },
+      "legacy_special_drawn_clear": {
+        "20": 150
+      }
+    },
+    {
+      "map_id": [
+        24,
+        84
+      ],
+      "name": "SKY PILLAR 5F",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        85
+      ],
+      "name": "SKY PILLAR TOP",
+      "width": 27,
+      "height": 24,
+      "special_tiles": {
+        "66": 80,
+        "D2": 42
+      },
+      "legacy_special_drawn_clear": {
+        "66": 80,
+        "D2": 42
+      }
+    },
+    {
+      "map_id": [
+        24,
+        86
+      ],
+      "name": "MAGMA HIDEOUT 1F",
+      "width": 37,
+      "height": 38,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        87
+      ],
+      "name": "MAGMA HIDEOUT 2F 1R",
+      "width": 33,
+      "height": 39,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        88
+      ],
+      "name": "MAGMA HIDEOUT 2F 2R",
+      "width": 49,
+      "height": 28,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        89
+      ],
+      "name": "MAGMA HIDEOUT 3F 1R",
+      "width": 28,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        90
+      ],
+      "name": "MAGMA HIDEOUT 3F 2R",
+      "width": 24,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        91
+      ],
+      "name": "MAGMA HIDEOUT 4F",
+      "width": 59,
+      "height": 28,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        92
+      ],
+      "name": "MAGMA HIDEOUT 3F 3R",
+      "width": 33,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        93
+      ],
+      "name": "MAGMA HIDEOUT 2F 3R",
+      "width": 60,
+      "height": 19,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        94
+      ],
+      "name": "MIRAGE TOWER 1F",
+      "width": 21,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        95
+      ],
+      "name": "MIRAGE TOWER 2F",
+      "width": 21,
+      "height": 17,
+      "special_tiles": {
+        "D2": 11
+      },
+      "legacy_special_drawn_clear": {
+        "D2": 11
+      }
+    },
+    {
+      "map_id": [
+        24,
+        96
+      ],
+      "name": "MIRAGE TOWER 3F",
+      "width": 21,
+      "height": 17,
+      "special_tiles": {
+        "D2": 3
+      },
+      "legacy_special_drawn_clear": {
+        "D2": 3
+      }
+    },
+    {
+      "map_id": [
+        24,
+        97
+      ],
+      "name": "MIRAGE TOWER 4F",
+      "width": 13,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        98
+      ],
+      "name": "DESERT UNDERPASS",
+      "width": 139,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        99
+      ],
+      "name": "ARTISAN CAVE B1F",
+      "width": 46,
+      "height": 54,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        100
+      ],
+      "name": "ARTISAN CAVE 1F",
+      "width": 21,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        101
+      ],
+      "name": "UNDERWATER MARINE CAVE",
+      "width": 20,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        102
+      ],
+      "name": "MARINE CAVE ENTRANCE",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        103
+      ],
+      "name": "MARINE CAVE END",
+      "width": 27,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        104
+      ],
+      "name": "TERRA CAVE ENTRANCE",
+      "width": 20,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        105
+      ],
+      "name": "TERRA CAVE END",
+      "width": 27,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        106
+      ],
+      "name": "ALTERING CAVE",
+      "width": 32,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        24,
+        107
+      ],
+      "name": "METEOR FALLS STEVENS CAVE",
+      "width": 30,
+      "height": 32,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        0
+      ],
+      "name": "SECRET BASE RED CAVE1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        1
+      ],
+      "name": "SECRET BASE BROWN CAVE1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        2
+      ],
+      "name": "SECRET BASE BLUE CAVE1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        3
+      ],
+      "name": "SECRET BASE YELLOW CAVE1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        4
+      ],
+      "name": "SECRET BASE TREE1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        5
+      ],
+      "name": "SECRET BASE SHRUB1",
+      "width": 11,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        6
+      ],
+      "name": "SECRET BASE RED CAVE2",
+      "width": 7,
+      "height": 16,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        7
+      ],
+      "name": "SECRET BASE BROWN CAVE2",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        8
+      ],
+      "name": "SECRET BASE BLUE CAVE2",
+      "width": 15,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        9
+      ],
+      "name": "SECRET BASE YELLOW CAVE2",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        10
+      ],
+      "name": "SECRET BASE TREE2",
+      "width": 7,
+      "height": 16,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        11
+      ],
+      "name": "SECRET BASE SHRUB2",
+      "width": 15,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        12
+      ],
+      "name": "SECRET BASE RED CAVE3",
+      "width": 15,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        13
+      ],
+      "name": "SECRET BASE BROWN CAVE3",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        14
+      ],
+      "name": "SECRET BASE BLUE CAVE3",
+      "width": 10,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        15
+      ],
+      "name": "SECRET BASE YELLOW CAVE3",
+      "width": 12,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        16
+      ],
+      "name": "SECRET BASE TREE3",
+      "width": 17,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        17
+      ],
+      "name": "SECRET BASE SHRUB3",
+      "width": 13,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        18
+      ],
+      "name": "SECRET BASE RED CAVE4",
+      "width": 9,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        19
+      ],
+      "name": "SECRET BASE BROWN CAVE4",
+      "width": 14,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        20
+      ],
+      "name": "SECRET BASE BLUE CAVE4",
+      "width": 9,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        21
+      ],
+      "name": "SECRET BASE YELLOW CAVE4",
+      "width": 13,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        22
+      ],
+      "name": "SECRET BASE TREE4",
+      "width": 14,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        23
+      ],
+      "name": "SECRET BASE SHRUB4",
+      "width": 14,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        24
+      ],
+      "name": "BATTLE COLOSSEUM 2P",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        25
+      ],
+      "name": "TRADE CENTER",
+      "width": 12,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        26
+      ],
+      "name": "RECORD CORNER",
+      "width": 20,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        27
+      ],
+      "name": "BATTLE COLOSSEUM 4P",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        28
+      ],
+      "name": "CONTEST HALL",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        29
+      ],
+      "name": "UNUSED CONTEST HALL1",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        30
+      ],
+      "name": "UNUSED CONTEST HALL2",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        31
+      ],
+      "name": "UNUSED CONTEST HALL3",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        32
+      ],
+      "name": "UNUSED CONTEST HALL4",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        33
+      ],
+      "name": "UNUSED CONTEST HALL5",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        34
+      ],
+      "name": "UNUSED CONTEST HALL6",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        35
+      ],
+      "name": "CONTEST HALL BEAUTY",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        36
+      ],
+      "name": "CONTEST HALL TOUGH",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        37
+      ],
+      "name": "CONTEST HALL COOL",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        38
+      ],
+      "name": "CONTEST HALL SMART",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        39
+      ],
+      "name": "CONTEST HALL CUTE",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        40
+      ],
+      "name": "INSIDE OF TRUCK",
+      "width": 5,
+      "height": 5,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        41
+      ],
+      "name": "SS TIDAL CORRIDOR",
+      "width": 18,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        42
+      ],
+      "name": "SS TIDAL LOWER DECK",
+      "width": 17,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        43
+      ],
+      "name": "SS TIDAL ROOMS",
+      "width": 36,
+      "height": 18,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        44
+      ],
+      "name": "BATTLE PYRAMID SQUARE01",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        45
+      ],
+      "name": "BATTLE PYRAMID SQUARE02",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        46
+      ],
+      "name": "BATTLE PYRAMID SQUARE03",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        47
+      ],
+      "name": "BATTLE PYRAMID SQUARE04",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        48
+      ],
+      "name": "BATTLE PYRAMID SQUARE05",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        49
+      ],
+      "name": "BATTLE PYRAMID SQUARE06",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        50
+      ],
+      "name": "BATTLE PYRAMID SQUARE07",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        51
+      ],
+      "name": "BATTLE PYRAMID SQUARE08",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        52
+      ],
+      "name": "BATTLE PYRAMID SQUARE09",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        53
+      ],
+      "name": "BATTLE PYRAMID SQUARE10",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        54
+      ],
+      "name": "BATTLE PYRAMID SQUARE11",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        55
+      ],
+      "name": "BATTLE PYRAMID SQUARE12",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        56
+      ],
+      "name": "BATTLE PYRAMID SQUARE13",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        57
+      ],
+      "name": "BATTLE PYRAMID SQUARE14",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        58
+      ],
+      "name": "BATTLE PYRAMID SQUARE15",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        59
+      ],
+      "name": "BATTLE PYRAMID SQUARE16",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        25,
+        60
+      ],
+      "name": "UNION ROOM",
+      "width": 15,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        0
+      ],
+      "name": "SAFARI ZONE NORTHWEST",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        1
+      ],
+      "name": "SAFARI ZONE NORTH",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {
+        "D1": 3
+      },
+      "legacy_special_drawn_clear": {
+        "D1": 3
+      }
+    },
+    {
+      "map_id": [
+        26,
+        2
+      ],
+      "name": "SAFARI ZONE SOUTHWEST",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {
+        "D0": 2
+      },
+      "legacy_special_drawn_clear": {
+        "D0": 2
+      }
+    },
+    {
+      "map_id": [
+        26,
+        3
+      ],
+      "name": "SAFARI ZONE SOUTH",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {
+        "D4": 2,
+        "D6": 11
+      },
+      "legacy_special_drawn_clear": {
+        "D4": 2,
+        "D6": 11
+      }
+    },
+    {
+      "map_id": [
+        26,
+        4
+      ],
+      "name": "BATTLE FRONTIER OUTSIDE WEST",
+      "width": 56,
+      "height": 72,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        5
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER LOBBY",
+      "width": 25,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        6
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER ELEVATOR",
+      "width": 5,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        7
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER CORRIDOR",
+      "width": 17,
+      "height": 5,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        8
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER BATTLE ROOM",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        9
+      ],
+      "name": "SOUTHERN ISLAND EXTERIOR",
+      "width": 33,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        10
+      ],
+      "name": "SOUTHERN ISLAND INTERIOR",
+      "width": 27,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        11
+      ],
+      "name": "SAFARI ZONE REST HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        12
+      ],
+      "name": "SAFARI ZONE NORTHEAST",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        13
+      ],
+      "name": "SAFARI ZONE SOUTHEAST",
+      "width": 40,
+      "height": 40,
+      "special_tiles": {
+        "13": 9
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        14
+      ],
+      "name": "BATTLE FRONTIER OUTSIDE EAST",
+      "width": 72,
+      "height": 72,
+      "special_tiles": {
+        "13": 60
+      },
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        15
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER MULTI PARTNER ROOM",
+      "width": 21,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        16
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER MULTI CORRIDOR",
+      "width": 17,
+      "height": 5,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        17
+      ],
+      "name": "BATTLE FRONTIER BATTLE TOWER MULTI BATTLE ROOM",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        18
+      ],
+      "name": "BATTLE FRONTIER BATTLE DOME LOBBY",
+      "width": 23,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        19
+      ],
+      "name": "BATTLE FRONTIER BATTLE DOME CORRIDOR",
+      "width": 48,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        20
+      ],
+      "name": "BATTLE FRONTIER BATTLE DOME PRE BATTLE ROOM",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        21
+      ],
+      "name": "BATTLE FRONTIER BATTLE DOME BATTLE ROOM",
+      "width": 20,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        22
+      ],
+      "name": "BATTLE FRONTIER BATTLE PALACE LOBBY",
+      "width": 25,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        23
+      ],
+      "name": "BATTLE FRONTIER BATTLE PALACE CORRIDOR",
+      "width": 17,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        24
+      ],
+      "name": "BATTLE FRONTIER BATTLE PALACE BATTLE ROOM",
+      "width": 15,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        25
+      ],
+      "name": "BATTLE FRONTIER BATTLE PYRAMID LOBBY",
+      "width": 15,
+      "height": 18,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        26
+      ],
+      "name": "BATTLE FRONTIER BATTLE PYRAMID FLOOR",
+      "width": 8,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        27
+      ],
+      "name": "BATTLE FRONTIER BATTLE PYRAMID TOP",
+      "width": 34,
+      "height": 23,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        28
+      ],
+      "name": "BATTLE FRONTIER BATTLE ARENA LOBBY",
+      "width": 16,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        29
+      ],
+      "name": "BATTLE FRONTIER BATTLE ARENA CORRIDOR",
+      "width": 18,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        30
+      ],
+      "name": "BATTLE FRONTIER BATTLE ARENA BATTLE ROOM",
+      "width": 16,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        31
+      ],
+      "name": "BATTLE FRONTIER BATTLE FACTORY LOBBY",
+      "width": 19,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        32
+      ],
+      "name": "BATTLE FRONTIER BATTLE FACTORY PRE BATTLE ROOM",
+      "width": 17,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        33
+      ],
+      "name": "BATTLE FRONTIER BATTLE FACTORY BATTLE ROOM",
+      "width": 13,
+      "height": 12,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        34
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE LOBBY",
+      "width": 11,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        35
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE CORRIDOR",
+      "width": 14,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        36
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE THREE PATH ROOM",
+      "width": 13,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        37
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE ROOM NORMAL",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        38
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE ROOM FINAL",
+      "width": 5,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        39
+      ],
+      "name": "BATTLE FRONTIER BATTLE PIKE ROOM WILD MONS",
+      "width": 9,
+      "height": 20,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        40
+      ],
+      "name": "BATTLE FRONTIER RANKING HALL",
+      "width": 53,
+      "height": 15,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        41
+      ],
+      "name": "BATTLE FRONTIER LOUNGE1",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        42
+      ],
+      "name": "BATTLE FRONTIER EXCHANGE SERVICE CORNER",
+      "width": 15,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        43
+      ],
+      "name": "BATTLE FRONTIER LOUNGE2",
+      "width": 13,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        44
+      ],
+      "name": "BATTLE FRONTIER LOUNGE3",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        45
+      ],
+      "name": "BATTLE FRONTIER LOUNGE4",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        46
+      ],
+      "name": "BATTLE FRONTIER SCOTTS HOUSE",
+      "width": 6,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        47
+      ],
+      "name": "BATTLE FRONTIER LOUNGE5",
+      "width": 13,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        48
+      ],
+      "name": "BATTLE FRONTIER LOUNGE6",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        49
+      ],
+      "name": "BATTLE FRONTIER LOUNGE7",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        50
+      ],
+      "name": "BATTLE FRONTIER RECEPTION GATE",
+      "width": 9,
+      "height": 14,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        51
+      ],
+      "name": "BATTLE FRONTIER LOUNGE8",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        52
+      ],
+      "name": "BATTLE FRONTIER LOUNGE9",
+      "width": 9,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        53
+      ],
+      "name": "BATTLE FRONTIER POKEMON CENTER 1F",
+      "width": 14,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        54
+      ],
+      "name": "BATTLE FRONTIER POKEMON CENTER 2F",
+      "width": 14,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        55
+      ],
+      "name": "BATTLE FRONTIER MART",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        56
+      ],
+      "name": "FARAWAY ISLAND ENTRANCE",
+      "width": 34,
+      "height": 46,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        57
+      ],
+      "name": "FARAWAY ISLAND INTERIOR",
+      "width": 29,
+      "height": 26,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        58
+      ],
+      "name": "BIRTH ISLAND EXTERIOR",
+      "width": 30,
+      "height": 30,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        59
+      ],
+      "name": "BIRTH ISLAND HARBOR",
+      "width": 17,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        60
+      ],
+      "name": "TRAINER HILL ENTRANCE",
+      "width": 19,
+      "height": 17,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        61
+      ],
+      "name": "TRAINER HILL 1F",
+      "width": 16,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        62
+      ],
+      "name": "TRAINER HILL 2F",
+      "width": 16,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        63
+      ],
+      "name": "TRAINER HILL 3F",
+      "width": 16,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        64
+      ],
+      "name": "TRAINER HILL 4F",
+      "width": 16,
+      "height": 21,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        65
+      ],
+      "name": "TRAINER HILL ROOF",
+      "width": 25,
+      "height": 16,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        66
+      ],
+      "name": "NAVEL ROCK EXTERIOR",
+      "width": 21,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        67
+      ],
+      "name": "NAVEL ROCK HARBOR",
+      "width": 17,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        68
+      ],
+      "name": "NAVEL ROCK ENTRANCE",
+      "width": 21,
+      "height": 32,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        69
+      ],
+      "name": "NAVEL ROCK B1F",
+      "width": 23,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        70
+      ],
+      "name": "NAVEL ROCK FORK",
+      "width": 27,
+      "height": 86,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        71
+      ],
+      "name": "NAVEL ROCK UP1",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        72
+      ],
+      "name": "NAVEL ROCK UP2",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        73
+      ],
+      "name": "NAVEL ROCK UP3",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        74
+      ],
+      "name": "NAVEL ROCK UP4",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        75
+      ],
+      "name": "NAVEL ROCK TOP",
+      "width": 25,
+      "height": 28,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        76
+      ],
+      "name": "NAVEL ROCK DOWN01",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        77
+      ],
+      "name": "NAVEL ROCK DOWN02",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        78
+      ],
+      "name": "NAVEL ROCK DOWN03",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        79
+      ],
+      "name": "NAVEL ROCK DOWN04",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        80
+      ],
+      "name": "NAVEL ROCK DOWN05",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        81
+      ],
+      "name": "NAVEL ROCK DOWN06",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        82
+      ],
+      "name": "NAVEL ROCK DOWN07",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        83
+      ],
+      "name": "NAVEL ROCK DOWN08",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        84
+      ],
+      "name": "NAVEL ROCK DOWN09",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        85
+      ],
+      "name": "NAVEL ROCK DOWN10",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        86
+      ],
+      "name": "NAVEL ROCK DOWN11",
+      "width": 9,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        87
+      ],
+      "name": "NAVEL ROCK BOTTOM",
+      "width": 22,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        26,
+        88
+      ],
+      "name": "TRAINER HILL ELEVATOR",
+      "width": 5,
+      "height": 7,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        27,
+        0
+      ],
+      "name": "ROUTE104 PROTOTYPE",
+      "width": 1,
+      "height": 1,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        27,
+        1
+      ],
+      "name": "ROUTE104 PROTOTYPE PRETTY PETAL FLOWER SHOP",
+      "width": 15,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        28,
+        0
+      ],
+      "name": "ROUTE109 SEASHORE HOUSE",
+      "width": 15,
+      "height": 10,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        0
+      ],
+      "name": "ROUTE110 TRICK HOUSE ENTRANCE",
+      "width": 12,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        1
+      ],
+      "name": "ROUTE110 TRICK HOUSE END",
+      "width": 12,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        2
+      ],
+      "name": "ROUTE110 TRICK HOUSE CORRIDOR",
+      "width": 15,
+      "height": 24,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        3
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE1",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        4
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE2",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        5
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE3",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        6
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE4",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        7
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE5",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        8
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE6",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        9
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE7",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        10
+      ],
+      "name": "ROUTE110 TRICK HOUSE PUZZLE8",
+      "width": 15,
+      "height": 22,
+      "special_tiles": {
+        "48": 186
+      },
+      "legacy_special_drawn_clear": {
+        "48": 186
+      }
+    },
+    {
+      "map_id": [
+        29,
+        11
+      ],
+      "name": "ROUTE110 SEASIDE CYCLING ROAD SOUTH ENTRANCE",
+      "width": 15,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        29,
+        12
+      ],
+      "name": "ROUTE110 SEASIDE CYCLING ROAD NORTH ENTRANCE",
+      "width": 15,
+      "height": 6,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        30,
+        0
+      ],
+      "name": "ROUTE113 GLASS WORKSHOP",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        31,
+        0
+      ],
+      "name": "ROUTE123 BERRY MASTERS HOUSE",
+      "width": 11,
+      "height": 8,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        32,
+        0
+      ],
+      "name": "ROUTE119 WEATHER INSTITUTE 1F",
+      "width": 20,
+      "height": 13,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        32,
+        1
+      ],
+      "name": "ROUTE119 WEATHER INSTITUTE 2F",
+      "width": 20,
+      "height": 11,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        32,
+        2
+      ],
+      "name": "ROUTE119 HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    },
+    {
+      "map_id": [
+        33,
+        0
+      ],
+      "name": "ROUTE124 DIVING TREASURE HUNTERS HOUSE",
+      "width": 10,
+      "height": 9,
+      "special_tiles": {},
+      "legacy_special_drawn_clear": {}
+    }
+  ],
+  "unreadable": [],
+  "behavior_totals": {
+    "0F": {
+      "tiles": 8,
+      "maps": [
+        "MT PYRE 2F",
+        "MT PYRE 3F",
+        "MT PYRE 4F",
+        "MT PYRE 5F",
+        "MT PYRE 6F"
+      ]
+    },
+    "13": {
+      "tiles": 265,
+      "maps": [
+        "EVER GRANDE CITY",
+        "ROUTE114",
+        "ROUTE119",
+        "METEOR FALLS 1F 1R",
+        "VICTORY ROAD B2F",
+        "SAFARI ZONE SOUTHEAST",
+        "BATTLE FRONTIER OUTSIDE EAST"
+      ]
+    },
+    "20": {
+      "tiles": 320,
+      "maps": [
+        "EVER GRANDE CITY HALL OF FAME",
+        "SHOAL CAVE LOW TIDE ICE ROOM"
+      ]
+    },
+    "26": {
+      "tiles": 64,
+      "maps": [
+        "SOOTOPOLIS CITY GYM 1F"
+      ]
+    },
+    "47": {
+      "tiles": 12,
+      "maps": [
+        "SOOTOPOLIS CITY GYM 1F",
+        "SOOTOPOLIS CITY GYM B1F"
+      ]
+    },
+    "48": {
+      "tiles": 186,
+      "maps": [
+        "ROUTE110 TRICK HOUSE PUZZLE8"
+      ]
+    },
+    "50": {
+      "tiles": 56,
+      "maps": [
+        "ROUTE132",
+        "SEAFLOOR CAVERN ROOM6",
+        "SEAFLOOR CAVERN ROOM7"
+      ]
+    },
+    "51": {
+      "tiles": 3844,
+      "maps": [
+        "ROUTE132",
+        "ROUTE133",
+        "ROUTE134",
+        "SEAFLOOR CAVERN ROOM6",
+        "SEAFLOOR CAVERN ROOM7"
+      ]
+    },
+    "52": {
+      "tiles": 319,
+      "maps": [
+        "ROUTE132",
+        "ROUTE133",
+        "ROUTE134",
+        "SEAFLOOR CAVERN ROOM6",
+        "SEAFLOOR CAVERN ROOM7"
+      ]
+    },
+    "53": {
+      "tiles": 165,
+      "maps": [
+        "ROUTE132",
+        "ROUTE133",
+        "ROUTE134",
+        "SEAFLOOR CAVERN ROOM6",
+        "SEAFLOOR CAVERN ROOM7"
+      ]
+    },
+    "66": {
+      "tiles": 80,
+      "maps": [
+        "SKY PILLAR TOP"
+      ]
+    },
+    "D0": {
+      "tiles": 12,
+      "maps": [
+        "ROUTE111",
+        "ROUTE115",
+        "ROUTE119",
+        "GRANITE CAVE B1F",
+        "SAFARI ZONE SOUTHWEST"
+      ]
+    },
+    "D1": {
+      "tiles": 17,
+      "maps": [
+        "JAGGED PASS",
+        "SAFARI ZONE NORTH"
+      ]
+    },
+    "D2": {
+      "tiles": 190,
+      "maps": [
+        "GRANITE CAVE B1F",
+        "SKY PILLAR 2F",
+        "SKY PILLAR 4F",
+        "SKY PILLAR TOP",
+        "MIRAGE TOWER 2F",
+        "MIRAGE TOWER 3F"
+      ]
+    },
+    "D3": {
+      "tiles": 3,
+      "maps": [
+        "ROUTE119"
+      ]
+    },
+    "D4": {
+      "tiles": 6,
+      "maps": [
+        "ROUTE119",
+        "SAFARI ZONE SOUTH"
+      ]
+    },
+    "D5": {
+      "tiles": 10,
+      "maps": [
+        "ROUTE119"
+      ]
+    },
+    "D6": {
+      "tiles": 45,
+      "maps": [
+        "ROUTE119",
+        "SAFARI ZONE SOUTH"
+      ]
+    }
+  }
+}

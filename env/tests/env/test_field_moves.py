@@ -161,6 +161,7 @@ def test_the_table_has_one_row_per_gate_in_the_contract() -> None:
     assert {g.needs for g in GATES} == {
         "a field move you cannot use yet",
         "an item you do not have yet",
+        "special movement that walking navigation does not perform",
     }
 
 

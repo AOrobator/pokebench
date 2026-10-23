@@ -107,6 +107,7 @@ def next_tiles(
     warp_guidance: bool,
     topology: Topology | None,
     on_foot: bool,
+    terrain: bool = False,
 ) -> str:
     """One line naming the tiles up, down, left and right of the player, in that order."""
     cells = shown.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -144,6 +145,15 @@ def next_tiles(
                 on_foot=on_foot,
                 shut=shut,
             )
+        if terrain and tile is not None and not tile.collision and glyph not in ("N", "W"):
+            # Local import: terrain presentation depends on the map/field-obstacle types.
+            from pokebench_env.terrain_visibility import SANDSTORM, terrain_description
+
+            special = terrain_description(tile.behavior)
+            if glyph == "!":
+                special = f"{SANDSTORM[1]} (!), {SANDSTORM[2]}"
+            if special is not None:
+                name = special
         if not shut:
             name += ", but you stand on a warp" + (
                 f" whose listed activation is pressing {direction}" if warp_guidance else ""

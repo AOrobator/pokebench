@@ -349,7 +349,8 @@
   "story-battle-heal-first-v1",
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
-  "move-learn-goal-reminder-v1"
+  "move-learn-goal-reminder-v1",
+  "field-move-gates-v1"
  ],
  "phases": [
   {

@@ -23,7 +23,7 @@ Retain field-move-gates-v1 and its exact OFF path. Audit every ROM map and game-
 Read-only external ROM and archives; no game assets tracked, new network exposure or subprocess string execution.
 
 ## Milestones
-- [ ] M1: whole-ROM terrain inventory, source/guide cross-check and concrete defect register.
+- [x] M1: whole-ROM terrain inventory, source/guide cross-check and concrete defect register.
 - [ ] M2: RED regression commit; GREEN shared gate/readout/navigation correction with OFF invariance and native archive readback.
 - [ ] M3: both-arm future recipes, explainer, gates, frozen multi-model review and landing/live proof if all gates permit.
 
@@ -46,3 +46,9 @@ None.
 - [ ] ASK USER: archive worklog.
 
 - RED: terrain visibility tests fail against no-op presentation and current owned-bike flood (16 failures, 1 pass); no current run changed. Full static ROM sweep: 518 maps read, zero failures.
+
+- GREEN focused: 151 Python tests, 17 agent tests, 11 future-definition tests. Added 2 additional sandstorm/collision cases (18 visibility tests now pass). Native archive 17231 hash verified and reparsed through production reader: slope descriptions and upper-ladder foot→none labels confirmed. Deleted readout wiring once: factory test failed, then restored.
+- Full TS coverage: agent 3909 tests, viewer 1728 tests pass; line/branch/function percentages agent 99.14/93.31/97.78, viewer 98.02/91.61/95.04. Full Python coverage run: 4028 pass and one old wording assertion fails; expectation corrected for the intentionally changed bike wording. Full Python gate rerun pending. Python coverage floor: lines 97.41, branches 93.47, functions 100. New terrain module has 100% statements/branches.
+- TypeScript build/lint and Python ruff/mypy pass after isolated dependency install. Initial shared-node_modules symlinks resolved workspace types to main; replaced symlinks with an offline worktree-local install. No main source changed.
+- Inventory script reads all 518 maps (zero unreadable), emits count metadata only. Detailed audit and updated existing linked explainer prepared. Remaining defects are explicitly retained in the report; no forced-movement solver or runtime-layout simulator was added.
+- RED commit: 85779c569. Correction: that run had 16 failures, zero passes (earlier prose incorrectly said one pass).

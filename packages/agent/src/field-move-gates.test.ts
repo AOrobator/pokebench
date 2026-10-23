@@ -227,3 +227,20 @@ describe("field-move-gates-v1 obstacle wording",()=>{
   expect(exitBlock(gates,with_(o=>({...o,beyond:null}))).obstacles(29,16)).toBeNull();
  });
 });
+
+describe("terrain gate corrections",()=>{
+ it("names a directly targeted slope instead of exposing only a behavior byte",async()=>{
+  const state=field([".","s","."],{x:0,y:2},["1","1","1"]);
+  const on=await navigate({...NAV,[ID]:true},state,{x:0,y:1},"stay");
+  expect(on.presses).toBe(0);expect(on.status).toContain("muddy slope");expect(on.status).toContain("slides you south");
+  const off=await navigate(NAV,state,{x:0,y:1},"stay");
+  expect(off.status).toContain("metatile behavior 0xd0");expect(off.status).not.toContain("muddy slope");
+ });
+ it("never walks through a closed sandstorm trigger just because it is terrain rather than an object",()=>{
+  const state=field(["...r..."],{x:0,y:0},["1110000"]);
+  const f=state.field_obstacles;if(f==null)throw new Error("no field");
+  const storm={...state,field_obstacles:{...f,obstacles:f.obstacles.map(o=>({...o,kind:"terrain" as const,local_id:null,gate:"go_goggles",only:[0,1] as [number,number]}))}};
+  expect(planNavigation(storm,{x:6,y:0},PLAN)).not.toBeNull();
+  expect(planNavigation(gatedState(storm),{x:6,y:0},PLAN)).toBeNull();
+ });
+});

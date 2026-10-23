@@ -38,6 +38,7 @@ ACRO_BIKE = 1 << 2
 # surf-gated-exits-v2 wording (the operator 2026-10-20): never name a badge, move or item.
 MOVE_NEEDS = "a field move you cannot use yet"
 ITEM_NEEDS = "an item you do not have yet"
+BIKE_NEEDS = "special movement that walking navigation does not perform"
 
 
 @dataclass(frozen=True)
@@ -144,7 +145,7 @@ GATES: tuple[Gate, ...] = (
         None,
         None,
         "src/field_player_avatar.c:567",
-        ITEM_NEEDS,
+        BIKE_NEEDS,
     ),
     Gate(
         "acro_bike",
@@ -156,7 +157,7 @@ GATES: tuple[Gate, ...] = (
         None,
         None,
         "src/field_player_avatar.c:774",
-        ITEM_NEEDS,
+        BIKE_NEEDS,
     ),
     Gate(
         "go_goggles",
@@ -487,10 +488,13 @@ class MapGates:
     obstacles: tuple[Obstacle, ...]
 
     def state(self, o: Obstacle) -> bool | None:
-        """Whether the way through this obstacle is open now; None where it is not known."""
+        """Whether this walking gate is open; item/move ownership lives in caps separately."""
         found = self.caps.of(o.gate)
-        if o.name in MACH_RAILS:
-            found = _any((found, self.caps.of("mach_bike")))
+        if o.local_id is None and o.gate in ("mach_bike", "acro_bike"):
+            # This is the walking flood, not a bike route solver. Ownership (caps) cannot
+            # establish mounting, northward top speed, wheelies/hops or rail alignment.
+            # Unknown capability retains the legacy conservative unknown/open convention.
+            return False if found is not None else None
         return found
 
     def closed(self, o: Obstacle) -> bool:
@@ -763,6 +767,14 @@ class Kind:
         return f"{tiles} ({how})" if joint else f"{tiles}, {how},"
 
 
+def _need_text(needs: set[str]) -> str:
+    if len(needs) == 1:
+        return next(iter(needs))
+    if BIKE_NEEDS in needs:
+        return "a field move, an item, or special movement unavailable to walking navigation"
+    return "a field move or an item you cannot use yet"
+
+
 @dataclass(frozen=True)
 class Group:
     """One readout line: closed obstacles and the exits every way on foot to which they close.
@@ -786,11 +798,11 @@ class Group:
         )
         verb = "closes" if len(kind.tiles) == 1 else "close"
         cut = f" {verb} every way on foot to {_join(self.exits, 'and')}" if self.exits else ""
-        return f"- {kind.what(joint=False)}{cut}: it needs {gate.needs}; {said}"
+        return f"- {kind.what(joint=not self.exits)}{cut}: it needs {gate.needs}; {said}"
 
     def _joint(self) -> str:
         needs = {GATE[k.gate].needs for k in self.kinds}
-        need = needs.pop() if len(needs) == 1 else "a field move or an item you cannot use yet"
+        need = _need_text(needs)
         quoted = [f'"{GATE[k.gate].text}" at the {k.name}' for k in self.kinds if GATE[k.gate].text]
         silent = [k.name for k in self.kinds if GATE[k.gate].text is None]
         said = [f"the game says: {_join(quoted, 'and')}"] if quoted else []
@@ -872,7 +884,7 @@ class FieldObstacles(Generic[K]):
         rest = [
             i
             for i, o in enumerate(self.gates.obstacles)
-            if self.gates.closed(o) and o.local_id is not None and i not in cutting
+            if self.gates.closed(o) and i not in cutting
         ]
         groups = [Group(self._kinds(ids), tuple(exits)) for ids, exits in cuts.items()]
         groups += [Group((kind,), ()) for kind in self._kinds(rest)]
@@ -891,7 +903,7 @@ class FieldObstacles(Generic[K]):
             f"{name} at {_tiles_text(sorted(tiles, key=_reading), 'or')}"
             for name, tiles in named.items()
         )
-        need = needs.pop() if len(needs) == 1 else "a field move or an item you cannot use yet"
+        need = _need_text(needs)
         return f"{what}, which needs {need}"
 
     def warp_note(self, x: int, y: int) -> str | None:

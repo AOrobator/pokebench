@@ -182,7 +182,7 @@
    "gym-readiness-readout-v1": false,
    "party-item-confirmation-v1": false,
    "same-target-no-progress-v1": false,
-   "field-move-gates-v1": false,
+   "field-move-gates-v1": true,
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
    "story-battle-heal-first-v1": true,
@@ -247,7 +247,6 @@
   "party-item-confirmation-v1",
   "same-target-no-progress-v1",
   "full-map-navigation-v1",
-  "field-move-gates-v1",
   "story-progress-clock-v1",
   "yes-no-answer-readout-v1",
   "exit-labels-v3",
@@ -290,7 +289,8 @@
   "duplicate-turn-collapse-v1",
   "evolution-decision-v1",
   "counter-talk-v1",
-  "story-battle-heal-first-v1"
+  "story-battle-heal-first-v1",
+  "field-move-gates-v1"
  ],
  "phases": [
   {

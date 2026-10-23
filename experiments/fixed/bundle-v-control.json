@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-v-control",
- "title": "Harness-fixes bundle vs fixed control (CLOCK_SET \u2192 RIVAL_MET)",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -185,7 +185,7 @@
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
-   "field-move-gates-v1": false,
+   "field-move-gates-v1": true,
    "story-battle-heal-gate-v1": false,
    "exit-labels-v3": false,
    "navigation-tool-use-guard-v1": false,
@@ -310,7 +310,6 @@
   "same-target-no-progress-v1",
   "story-progress-clock-v1",
   "yes-no-answer-readout-v1",
-  "field-move-gates-v1",
   "exit-labels-v3",
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1",
@@ -413,7 +412,8 @@
   "story-battle-heal-first-v1",
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
-  "move-learn-goal-reminder-v1"
+  "move-learn-goal-reminder-v1",
+  "field-move-gates-v1"
  ],
  "phases": [
   {

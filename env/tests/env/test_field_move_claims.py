@@ -249,6 +249,7 @@ def test_a_joint_line_of_silent_kinds_says_the_game_shows_no_message() -> None:
     assert joint_lines(tiles, ())[1:] == [
         "- slope tiles (metatile behavior 0xD0) at (1,0) (which you slide down to the south on"
         " foot) and rail tiles (metatile behavior 0xD5) at (3,0) together close every way on foot"
-        " to (5,0): they need an item you do not have yet; the game shows no message at the slope"
+        " to (5,0): they need special movement that walking navigation does not perform; the game"
+        " shows no message at the slope"
         " tiles (metatile behavior 0xD0) or rail tiles (metatile behavior 0xD5)"
     ]

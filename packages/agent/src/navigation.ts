@@ -64,13 +64,24 @@ export interface MatchingTrigger {readonly x:number;readonly y:number;readonly e
 // the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
 export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean}
 export const SLOPE=0xd0;
+// Describes unsupported movement; no bike action, destination or puzzle solution is chosen.
+function terrainObstacle(behavior:number):string|null {
+ if(behavior===SLOPE)return "a muddy slope: on foot it slides you south; navigate_to cannot climb it north";
+ if(behavior===0xd2)return "cracked floor: it can break and drop you through; navigate_to does not cross it";
+ if(behavior===0x66||behavior===0x0f)return "a hole: entering it can change floors; navigate_to does not cross it";
+ if(behavior===0xd1)return "a bumpy slope that navigate_to cannot climb on foot";
+ if(behavior>=0xd3&&behavior<=0xd6)return "a rail that navigate_to cannot cross on foot";
+ if(behavior===0x20||behavior===0x26||behavior===0x27)return "ice that can slide or change when stepped on; navigate_to does not cross it";
+ if(behavior===0x48)return "a spin tile that forces movement; navigate_to does not cross it";
+ return null;
+}
 // field-move-gates-v1: the state the planners see, with every closed obstacle object (the server's field_obstacles, read
 // from the map's own object list) counted as occupied even when the game has not loaded it. Without field_obstacles it is
 // the state unchanged.
 export function gatedState(state:GameStateSnapshot):GameStateSnapshot {
  const field=state.field_obstacles;
  if(field==null)return state;
- const closed=field.obstacles.filter(o=>o.kind==="object"&&o.open===false).flatMap(o=>o.tiles);
+ const closed=field.obstacles.filter(o=>o.open===false&&(o.kind==="object"||o.gate!=="mach_bike"||o.only===null)).flatMap(o=>o.tiles);
  if(closed.length===0)return state;
  const add=(objects:readonly {readonly x:number;readonly y:number}[]):{x:number;y:number}[]=>[...objects,...closed.filter(t=>!objects.some(o=>o.x===t.x&&o.y===t.y)).map(t=>({x:t.x,y:t.y}))];
  const grid=state.navigation_grid,full=state.map_grid;
@@ -211,7 +222,8 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
  if(standable(tile))return null;
- const what=LEDGES.has(tile.behavior)?"a ledge, which you can only hop over in its arrow direction":WATER.has(tile.behavior)?"water":tile.collision!==0?"a wall or other solid tile":`terrain navigate_to does not walk on (metatile behavior 0x${tile.behavior.toString(16).padStart(2,"0")})`;
+ const special=options.slopes===true?terrainObstacle(tile.behavior):null;
+ const what=special??(LEDGES.has(tile.behavior)?"a ledge, which you can only hop over in its arrow direction":WATER.has(tile.behavior)?"water":tile.collision!==0?"a wall or other solid tile":`terrain navigate_to does not walk on (metatile behavior 0x${tile.behavior.toString(16).padStart(2,"0")})`);
  const candidates:Point[]=[];
  for(let d=1;d<=NEAREST_RADIUS;d++)for(let dy=-d;dy<=d;dy++)for(const dx of new Set([-(d-Math.abs(dy)),d-Math.abs(dy)]))candidates.push({x:goal.x+dx,y:goal.y+dy});
  const sorted=candidates.sort((a,b)=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);

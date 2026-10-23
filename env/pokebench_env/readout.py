@@ -639,6 +639,12 @@ def format_readout(
         ledges = "ledge-hops-v1" not in off
         edge_walls = "one-way-tiles-v1" not in off
         counters = "counter-talk-v1" not in off
+        terrain_note = ""
+        terrain = FIELD_MOVES not in off
+        if terrain and shown is not None:
+            from pokebench_env.terrain_visibility import terrain_view
+
+            shown, terrain_note = terrain_view(shown, state.field_obstacles)
         # adjacent-tiles-v1: the four neighbours in words, from the same cells the map draws.
         neighbours = (
             next_tiles(
@@ -653,6 +659,7 @@ def format_readout(
                 if world_destinations and "world-destinations-v1" not in off
                 else None,
                 on_foot=walking(None if state.running is None else state.running.avatar_flags),
+                terrain=terrain,
             )
             if shown is not None and adjacent_tiles and "adjacent-tiles-v1" not in off
             else None
@@ -674,6 +681,8 @@ def format_readout(
             if shown is not None
             else state.local_map
         )
+        if terrain_note:
+            lines.append(terrain_note)
     if sections is not None:
         lines.append(
             "Terrain sections distinguish areas of the same map; "

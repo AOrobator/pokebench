@@ -251,6 +251,7 @@ export const SWITCHABLE_FEATURES = [
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
   "roxanne-campaign-reminder-v1",
+  "trainer-observed-party-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -623,6 +624,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("move-learn-offer-identity-v1", "guard", "NAMED MOVE DECLINE", "move-learn-tool-v1", "Requires the offered move name for learn_move declines. Checks the native offer after waiting and before each input; mismatches return the current observation for a fresh choice. Matching declines remain allowed. Off: previous learn_move arguments and execution unchanged."),
   on("campaign-progress-clock-v1", "guard", "EARNED CAMPAIGN PROGRESS CLOCK", "stall-briefing-v1", "Default off. Earned campaign arrivals and completed story milestones reset drought time and action counts once. Checkpoint baselines and optional achievements do not reset it. Off: extended measurement milestones remain excluded from supervisor clocks."),
   on("roxanne-campaign-reminder-v1", "guidance", "ROXANNE CAMPAIGN REMINDER", null, "Default off. A qualified historical continuation may append its frozen candidate reminder once before the first decision. No recurring coaching, selected route or blocked rematch. Off: restored conversation bytes are unchanged."),
+  on("trainer-observed-party-v1", "observation", "OBSERVED TRAINER POKÉMON", "battle-loss-recap-v1", "Default off; bundle treatment. Remembers opponent species and levels actually delivered to the model, by trainer ID and party slot, for every trainer class. Retry recaps and active trainer battles list these historical observations across attempts and story milestones. Delivered faint pages update already observed Pokémon. Internal state polls, failed results, unseen party members and ambiguous two-trainer battles teach nothing. Never claims the complete party is known. Off: battle recaps and results are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -934,6 +936,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("move-learn-offer-identity-v1"),
     ...when("campaign-progress-clock-v1"),
     ...when("roxanne-campaign-reminder-v1"),
+    ...when("trainer-observed-party-v1"),
   ];
 }
 
@@ -944,5 +947,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

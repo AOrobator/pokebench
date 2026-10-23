@@ -21,8 +21,8 @@ const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(
 
 describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-137,-132)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-137,-132)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-138,-133)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-138,-133)).toEqual([...NEW]);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-32,-27)).toEqual([...NEW]);
   expect(SERVER_FEATURES.slice(-37,-32)).toEqual([...NEW]);
  });

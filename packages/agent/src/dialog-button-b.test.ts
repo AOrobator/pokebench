@@ -11,7 +11,7 @@ const ID = "dialog-button-b-v1" as const;
 
 describe("dialog-button-b-v1", () => {
   it("is registered last, default off, and the bundle arm is the one that turns it on", () => {
-    expect(SWITCHABLE_FEATURES.at(-123)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-124)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-18)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({group: "guidance", needs: null, switchable: true, title: "DIALOGUE BUTTON B"});
     expect(featureInfo(ID).description).toContain(" Off: ");

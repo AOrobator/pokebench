@@ -1697,3 +1697,11 @@ it("links the campaign reminder card to its qualified-continuation explainer",()
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("restored history");
 });
+
+it("links the observed trainer Pokémon switch to its explainer",()=>{
+ const id="trainer-observed-party-v1";
+ const log=new Log();log.add(0,{...START,harness_features:["probe",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("Observed trainer Pokémon");
+});

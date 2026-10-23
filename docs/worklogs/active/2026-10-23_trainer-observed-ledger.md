@@ -20,7 +20,7 @@ Extend BattleOutcomes and its existing result-facts consumer. New trainer-observ
 Read-only recorded game state and delivered text. No raw enemy party decoding, external service or new persistence surface.
 
 ## Milestones
-- [ ] M1: failing regressions and RED commit
+- [x] M1: failing regressions and RED commit
 - [ ] M2: implementation, switch, bundle, explainer, full gates and GREEN commit
 - [ ] M3: frozen cloud review, landing-board coordination, local merge and viewer proof if all required lanes approve
 
@@ -41,3 +41,11 @@ None.
 
 ## Archive Milestone
 - [ ] ASK USER: archive this worklog
+
+- RED b9f792305: 6 failed / 3 passed, historical May memory, factory wiring and registry absent as expected. The background test finished immediately after commit dispatch; RED receipt retained at /tmp/trainer-red.log.
+
+- GREEN evidence before main sync: agent 4065 tests, viewer 1764 tests, Python 4050 passed. Build and vendor checks passed. TypeScript coverage with 30s per-test deadline passed: agent lines 99.13%, branches 92.92%, functions 97.61%; viewer lines 98.03%, branches 91.60%, functions 95.16%. Default 5s instrumented run timed out in unchanged child-process suites under concurrent full-gate load and then cascaded through their teardown; no test/source policy altered. Lint and Python coverage finishing.
+- Delivery predicate accepts only the matching Foe/Battler line, not a player's party or an unrelated text mention. Historical states omit trainer_opponent during some returned observations; same-battle identity comes from the existing BattleOutcomes running trainer owner. Wild battle types cannot inherit that trainer.
+- Performed mutation receipts in runs/trainer-observed-preview/: removing delivery wiring caused 8 failures; failed-delivery guard 1; delivered-readout predicate 3; opponent-side predicate 5; ambiguous-owner guard 1. Restored code: all 12 new tests passed. Each receipt retained separately.
+- Eight current bundle definitions enabled: bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h, bundle-v-control-2h, glm53-flash-4h and both gym-rustboro-torchic variants. Frozen older comparisons/control bases unchanged; factory armFeatureBits tests prove normalized bundle ON/control OFF.
+- Coordinator reports ELEVATION then party-health own the next landing windows. No hold granted. Sync after their main moves; when number 1, this branch owns one viewer restart.

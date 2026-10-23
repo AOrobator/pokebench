@@ -945,3 +945,11 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
  const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
  for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["reachable-section-alternatives-v1"]).toBe(arm==="bundle");
 });
+
+it("enables observed trainer Pokémon only in every current bundle comparison arm",()=>{
+ for(const id of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
+  expect(armFeatureBits(def,"bundle")["trainer-observed-party-v1"],id).toBe(true);
+  expect(armFeatureBits(def,"control")["trainer-observed-party-v1"],id).toBe(false);
+ }
+});

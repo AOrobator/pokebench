@@ -1,0 +1,113 @@
+from dataclasses import replace
+
+from test_readout import IN_GAME
+
+from pokebench_env.adjacent_tiles import next_tiles
+from pokebench_env.elevation_view import SWITCH, elevation_view
+from pokebench_env.live_map import LocalMap, MapTile
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
+from pokebench_env.running import RunningPermission
+
+ON_FOOT = 1
+SURFING = 1 << 3
+
+# Raw archive 21927 of run 2026-10-22T20-40-54_glm53-mac_0d5d (seq 126992, ROUTE110, turn 1097):
+# (x, y) -> (collision, elevation, behavior). x=16-18 rows 66-68 are the raised road (elevation 4);
+# rows 69-71 are bridge tiles (elevation 15) the player stands on at elevation 3.
+ROUTE110 = {
+    **{(x, y): (0, 4, 0x70) for x in (16, 17, 18) for y in (66, 67)},
+    **{(x, 68): (0, 4, 0x7F) for x in (16, 17, 18)},
+    **{(x, y): (0, 15, 0x70) for x in (16, 17, 18) for y in (69, 70, 71)},
+    **{(15, y): (1, 0, 0x15) for y in (66, 67)},
+    (15, 68): (1, 0, 0x00),
+    **{(15, y): (0, 3, 0x00) for y in (69, 70, 71)},
+    **{(19, y): (1, 0, 0x15) for y in (66, 67)},
+    (19, 68): (1, 0, 0x00),
+    **{(19, y): (0, 3, 0x00) for y in (69, 70, 71)},
+}
+
+
+def route110(player: tuple[int, int] = (17, 69)) -> LocalMap:
+    tiles = tuple(
+        MapTile(x, y, 0, c, b, e) for (x, y), (c, e, b) in sorted(ROUTE110.items(), key=lambda i: (i[0][1], i[0][0]))
+    )
+    rows = []
+    for y in range(66, 72):
+        row = ""
+        for x in range(15, 20):
+            c, _, _ = ROUTE110[(x, y)]
+            row += "@" if (x, y) == player else "#" if c else "."
+        rows.append(row)
+    return LocalMap((15, 66), tuple(rows), tiles, (), ())
+
+
+def adjacent(view: LocalMap, elevation: int | None) -> str:
+    return next_tiles(
+        view,
+        (17, 69),
+        coordinates=True,
+        ledges=True,
+        edge_walls=True,
+        counters=True,
+        warp_guidance=True,
+        topology=None,
+        on_foot=True,
+        elevation=elevation,
+    )
+
+
+def test_the_raised_road_is_drawn_as_another_level_from_the_ground_under_it():
+    original = route110()
+    view, note = elevation_view(original, 3, ON_FOOT)
+    assert view.rows[:3] == ("#LLL#", "#LLL#", "#LLL#")
+    assert view.rows[3:] == ("..@..", ".....", ".....")
+    assert note == (
+        "Other levels (L): tiles at elevation 4, while you are at elevation 3. The game refuses"
+        " a step onto a tile at an elevation other than yours; tiles at elevation 0 or 15 accept"
+        " any elevation, and a step onto a tile at elevation 0 lets your next step reach any"
+        " elevation."
+    )
+    assert original.rows[0] == "#...#"
+    line = adjacent(view, 3)
+    assert "up (17,68) another level (L), elevation 4 (yours is 3), cannot be entered from here" in line
+    assert "left (16,69) clear (.)" in line
+
+
+def test_on_the_road_the_ground_below_is_the_other_level():
+    view, note = elevation_view(route110(), 4, ON_FOOT)
+    assert view.rows[:3] == ("#...#", "#...#", "#...#")
+    assert view.rows[3] == "L.@.L"
+    assert "tiles at elevation 3, while you are at elevation 4" in note
+
+
+def test_no_view_while_surfing_at_elevation_zero_or_with_unknown_avatar_flags():
+    original = route110()
+    for elevation, flags in ((3, SURFING | ON_FOOT), (0, ON_FOOT), (3, None)):
+        view, note = elevation_view(original, elevation, flags)
+        assert view is original
+        assert note == ""
+
+
+def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
+    s = replace(
+        IN_GAME,
+        position=(17, 69),
+        nearby=route110(),
+        local_map="legacy fallback",
+        player_elevation=3,
+        running=RunningPermission(True, True, "test", avatar_flags=ON_FOOT),
+    )
+    base = frozenset({"full-map-navigation-v1"})
+    off = format_readout(s, adjacent_tiles=True, off=base | {SWITCH})
+    on = format_readout(s, adjacent_tiles=True, off=base)
+    assert "up (17,68) clear (.)" in off
+    assert "Other levels" not in off and " L " not in off
+    assert "up (17,68) another level (L)" in on
+    assert "Other levels (L): tiles at elevation 4" in on
+    assert off == format_readout(s, adjacent_tiles=True, off=base | {SWITCH, "elevation-aware-map-v1"})
+
+
+def test_switch_is_registered_server_side_and_default_off():
+    assert SWITCH == "elevation-aware-map-v1"
+    assert SWITCH in SERVER_FEATURES
+    assert SWITCH in features_off_from_env({})

@@ -37,6 +37,7 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 - [x] RED: state 127085, goal (16,71) under the layer-4 cyclist: ON plans DOWN DOWN LEFT, OFF keeps the refusal (TS 2 fail, Python 2 fail)
 - COMMIT: `test(elevation-aware-map): an object on another level blocks navigate_to (RED)` (bf148b34e)
 - [x] GREEN: server object elevations (navigation_grid and map_grid, only when the switch reads them); planner uses AreElevationsCompatible at the walker's elevation before each step; unknown elevations still block. Agent 4067 (+1 known-flaky serial-comparison timing test that passes alone), viewer 1752, Python 4063 pass. schemas/events.v1.json regenerated. Deleting `actorElevation` from withNavigation fails the factory test; restored.
+**M3 explainers**: docs/explainers/elevation-aware-map-v1.html and screen-center-player-v1.html (themed, pages-check clean), mapped in FEATURE_EXPLAINERS with a card-link test.
 **M2 — screen-center-player-v1**
 - [x] RED tests (prompt sentence, cover note from archive 21953 layer facts, OFF invariance): TS 2 fail / 1 pass (registry already in), Python collection error
 - COMMIT: `test(screen-center-player): the player's screen position and hidden sprite (RED)` (3dfe06c38)
@@ -59,6 +60,7 @@ Re-render archive 21953 (Route 110) and the Granite Cave slope archive through t
 - Terrain-gates (Codex, 54f195749) already draws slopes; only the press-result slope reason was missing.
 
 ## Multi-Model Review Log
+- Pre-review findings from Codex CYCLE (2:11 PM, relayed): (1) stacked objects collapsed to one elevation per tile in `_grid_objects`; (2) objects mid-step also occupy previousCoords (DoesObjectCollideWithObjectAt). Fixed: one grid entry per object tile (current and previous) with its own elevation; regressions for a 3/4 stack in both orders (Python serialization, TS planner) and previous coords. Objects array bound raised 16 -> 32 (each of 16 objects can hold two tiles); schema regenerated.
 
 ## Boy Scout Log
 

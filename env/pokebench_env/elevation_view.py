@@ -54,10 +54,11 @@ def elevation_view(
 def read_object_elevations(
     read: ReadMemory, map_id: tuple[int, int]
 ) -> tuple[tuple[int, int, int], ...]:
-    """(x, y, currentElevation) of each object live_map lists on this map.
+    """(x, y, currentElevation) for each tile an object live_map lists on this map occupies.
 
-    pokeemerald DoesObjectCollideWithObjectAt: an object blocks a walker only when
-    AreElevationsCompatible (either elevation 0, or both equal), so navigation needs both.
+    pokeemerald DoesObjectCollideWithObjectAt: an object blocks its currentCoords and its
+    previousCoords (mid-step), and only a walker whose elevation AreElevationsCompatible with
+    its currentElevation (either is 0, or both equal). Stacked objects each keep their own entry.
     """
     raw = read(OBJECT_EVENTS, 16 * 0x24)
     found = []
@@ -66,6 +67,8 @@ def read_object_elevations(
         # The same objects live_map._objects lists: active, not hidden, not the player's slot flag.
         if not body[0] & 1 or body[1] & 0x20 or body[2] & 1 or (body[10], body[9]) != map_id:
             continue
-        x, y = struct.unpack_from("<hh", body, 0x10)
+        x, y, px, py = struct.unpack_from("<hhhh", body, 0x10)
         found.append((x - MAP_OFFSET, y - MAP_OFFSET, body[0x0B] & 15))
+        if (px, py) != (x, y):
+            found.append((px - MAP_OFFSET, py - MAP_OFFSET, body[0x0B] & 15))
     return tuple(found)

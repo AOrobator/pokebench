@@ -86,6 +86,12 @@ describe("elevation-aware-map-v1: an object on another level does not occupy the
       expect(planNavigation(same, goal, { ...options, actorElevation: true })).toBeNull();
     }
   });
+  it("a stack of objects at elevations 3 and 4 on one tile blocks a walker at 3, in either order", () => {
+    for (const levels of [[3, 4], [4, 3]]) {
+      const stacked: GameStateSnapshot = { ...layered, navigation_grid: { ...grid, objects: [...grid.objects.filter(o => o.x !== 16 || o.y !== 71), ...levels.map(elevation => ({ x: 16, y: 71, elevation }))] } };
+      expect(planNavigation(stacked, goal, { ...options, actorElevation: true })).toBeNull();
+    }
+  });
   it("withNavigation hands the switch to navigate_to, which walks under the cyclist", async () => {
     const walk = async (features: FeatureSet): Promise<{ presses: string[][]; status: string }> => {
       let current = layered; const presses: string[][] = [];

@@ -127,6 +127,10 @@ def test_state_json_gives_each_grid_object_its_elevation_only_when_read():
     on = state_json(replace(s, object_elevations=((16, 71, 4),)))["navigation_grid"]
     assert off["objects"] == [{"x": 16, "y": 71}]
     assert on["objects"] == [{"x": 16, "y": 71, "elevation": 4}]
+    # Stacked objects keep one entry each, in either order; tiles beyond the window are left out.
+    for stack in (((16, 71, 3), (16, 71, 4)), ((16, 71, 4), (16, 71, 3))):
+        grid = state_json(replace(s, object_elevations=(*stack, (30, 90, 3))))["navigation_grid"]
+        assert sorted(o["elevation"] for o in grid["objects"]) == [3, 4]
 
 
 def test_object_elevations_come_from_each_loaded_objects_current_elevation():
@@ -135,16 +139,18 @@ def test_object_elevations_come_from_each_loaded_objects_current_elevation():
     from pokebench_env.elevation_view import read_object_elevations
 
     cells = bytearray(16 * 0x24)
-    for slot, (active, local, x, y, elevation) in enumerate(((1, 8, 16, 71, 4), (0, 9, 1, 1, 3))):
+    objects = ((1, 8, 16, 71, 16, 72, 4), (0, 9, 1, 1, 1, 1, 3), (1, 3, 14, 70, 14, 70, 3))
+    for slot, (active, local, x, y, px, py, elevation) in enumerate(objects):
         body = bytearray(0x24)
         body[0] = active
         body[8], body[9], body[10] = local, 25, 0
         body[0x0B] = (elevation << 4) | elevation
-        struct.pack_into("<hh", body, 0x10, x + 7, y + 7)
+        struct.pack_into("<hhhh", body, 0x10, x + 7, y + 7, px + 7, py + 7)
         cells[slot * 0x24 : (slot + 1) * 0x24] = body
 
     def read(address: int, size: int) -> bytes:
         offset = address - 0x02037350
         return bytes(cells[offset : offset + size])
 
-    assert read_object_elevations(read, (0, 25)) == ((16, 71, 4),)
+    # A cyclist mid-step also holds its previous tile (DoesObjectCollideWithObjectAt).
+    assert read_object_elevations(read, (0, 25)) == ((16, 71, 4), (16, 72, 4), (14, 70, 3))

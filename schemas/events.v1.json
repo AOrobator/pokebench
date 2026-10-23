@@ -10973,7 +10973,7 @@
                     },
                     "additionalProperties": false
                   },
-                  "maxItems": 16
+                  "maxItems": 32
                 },
                 "warps": {
                   "type": "array",
@@ -11064,7 +11064,7 @@
                     },
                     "additionalProperties": false
                   },
-                  "maxItems": 16
+                  "maxItems": 32
                 },
                 "warps": {
                   "type": "array",

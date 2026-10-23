@@ -241,9 +241,10 @@ export class RunView {
     const party = this.partyMembers.map((mon, slot) => {
       // gBattlerPartyIndexes identifies the slot; personality:OT identity prevents
       // applying an opponent, tutorial rental or old occupant.
-      const matches = players.filter(b => b.party_slot === slot && mon.identity != null && mon.identity !== "" && b.identity === mon.identity);
+      const matches = players.filter(b => b.party_slot === slot);
       const b = matches.length === 1 ? matches[0] : undefined;
-      if (b === undefined || roster.party.filter(m => m.identity === mon.identity).length !== 1
+      if (b === undefined || mon.identity == null || mon.identity === "" || b.identity !== mon.identity
+        || roster.party.filter(m => m.identity === mon.identity).length !== 1
         || !Number.isInteger(b.hp) || !Number.isInteger(b.max_hp) || b.max_hp <= 0 || b.max_hp > 65535 || b.hp < 0 || b.hp > b.max_hp
         || !Number.isInteger(b.status1) || b.status1 < 0 || b.status1 > 0xfff) return mon;
       slots.push(slot);

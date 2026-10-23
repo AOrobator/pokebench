@@ -35,7 +35,7 @@ it("does not read ahead in replay, retains recovered health through unreadable t
   expect(v.partyHealth).toBeNull();
 });
 
-it.each(["identity", "enemy", "absent", "uninitialized", "owner", "invalid-hp", "zero-max", "duplicate", "inactive", "outside-battle", "unavailable", "invalid-status", "duplicate-roster"])("does not overlay %s battle data", (kind) => {
+it.each(["identity", "enemy", "absent", "uninitialized", "owner", "invalid-hp", "zero-max", "duplicate", "inactive", "outside-battle", "unavailable", "invalid-status", "duplicate-roster", "conflicting-slot"])("does not overlay %s battle data", (kind) => {
   const e = structuredClone(at(1)), b = e.battle;
   if (b?.battlers == null || b.battlers[0] === undefined) throw new Error("fixture battle missing");
   const m = b.battlers[0];
@@ -47,6 +47,7 @@ it.each(["identity", "enemy", "absent", "uninitialized", "owner", "invalid-hp", 
   if (kind === "invalid-hp") m.hp = m.max_hp + 1;
   if (kind === "zero-max") m.max_hp = 0;
   if (kind === "duplicate") b.battlers.push({ ...m, battler: 2, position: 2 });
+  if (kind === "conflicting-slot") b.battlers.push({ ...m, battler: 2, position: 2, identity: "other", hp: 1 });
   if (kind === "inactive") b.active = false;
   if (kind === "outside-battle") e.in_battle = false;
   if (kind === "unavailable") b.phase = "unavailable";

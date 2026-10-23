@@ -1,0 +1,353 @@
+{
+  "screen": "battle",
+  "active_ui": {
+    "phase": "battle_resolving",
+    "selected": null,
+    "ready": false,
+    "controls": "Use the game-owned battle input and selected control when ready",
+    "diagnostic": null,
+    "value": null,
+    "details": {
+      "input_phases": [
+        "controller_busy"
+      ],
+      "battler_0_ready": false,
+      "battler_0_action_cursor": null,
+      "battler_0_move_cursor": null,
+      "battler_0_target_cursor": null,
+      "battler_0_selected": null
+    }
+  },
+  "started": true,
+  "name": "AAA",
+  "location": "ROUTE116",
+  "map_id": [
+    0,
+    31
+  ],
+  "position": {
+    "x": 32,
+    "y": 14
+  },
+  "facing": "right",
+  "in_battle": true,
+  "party": [
+    {
+      "species": "TORCHIC",
+      "level": 16,
+      "hp": 38,
+      "max_hp": 43,
+      "identity": "b7f7c224:c97e7432",
+      "species_id": 280,
+      "personality": 3086467620,
+      "ot_id": 3380507698,
+      "is_egg": false,
+      "status": 0,
+      "held_item": 0,
+      "experience": 2535,
+      "moves": [
+        {
+          "move_id": 10,
+          "pp": 32,
+          "pp_bonus": 0,
+          "name": "SCRATCH",
+          "max_pp": 35
+        },
+        {
+          "move_id": 45,
+          "pp": 40,
+          "pp_bonus": 0,
+          "name": "GROWL",
+          "max_pp": 40
+        },
+        {
+          "move_id": 116,
+          "pp": 30,
+          "pp_bonus": 0,
+          "name": "FOCUS ENERGY",
+          "max_pp": 30
+        },
+        {
+          "move_id": 52,
+          "pp": 21,
+          "pp_bonus": 0,
+          "name": "EMBER",
+          "max_pp": 25
+        }
+      ],
+      "decode_mode": "encrypted",
+      "diagnostic": null,
+      "raw_hex": null,
+      "held_item_name": null,
+      "cpu_context": null,
+      "language": 2,
+      "nickname": "TORCHIC",
+      "nickname_diagnostic": null,
+      "attack": 22,
+      "defense": 22,
+      "speed": 23,
+      "sp_attack": 27,
+      "sp_defense": 25,
+      "ability_num": 0,
+      "ability_id": 66,
+      "met_location": 16,
+      "met_location_name": "ROUTE 101",
+      "met_level": 5,
+      "met_game": 3,
+      "ball": 4,
+      "ball_name": "POK\u00e9 BALL",
+      "ot_name": "AAA",
+      "ot_gender": "male"
+    }
+  ],
+  "money": 7716,
+  "badges": [],
+  "play_time_s": 4271,
+  "v": 1,
+  "run": "goal",
+  "seq": 2,
+  "turn": 1,
+  "t": "2026-10-22T19:00:00.000-04:00",
+  "type": "state",
+  "battle": {
+    "active": true,
+    "initialized": true,
+    "phase": "resolving",
+    "ready": false,
+    "main_func": 134471705,
+    "script_pc": 137210868,
+    "battle_type": 4,
+    "turn": 1,
+    "outcome_code": 0,
+    "outcome": "ongoing",
+    "battlers": [
+      {
+        "battler": 0,
+        "position": 0,
+        "party_slot": 0,
+        "identity": "b7f7c224:c97e7432",
+        "species_id": 280,
+        "species": "TORCHIC",
+        "level": 16,
+        "hp": 38,
+        "max_hp": 43,
+        "status1": 0,
+        "status2": 0,
+        "status3": 0,
+        "stat_stages": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "stats": [
+          22,
+          22,
+          23,
+          27,
+          25
+        ],
+        "types": [
+          10,
+          10
+        ],
+        "ability": 66,
+        "held_item": 0,
+        "moves": [
+          {
+            "slot": 0,
+            "move_id": 10,
+            "name": "SCRATCH",
+            "pp": 32,
+            "max_pp": 35,
+            "move_type": 0,
+            "power": 40,
+            "accuracy": 100,
+            "effect": 0,
+            "target": 0
+          },
+          {
+            "slot": 1,
+            "move_id": 45,
+            "name": "GROWL",
+            "pp": 40,
+            "max_pp": 40,
+            "move_type": 0,
+            "power": 0,
+            "accuracy": 100,
+            "effect": 18,
+            "target": 8
+          },
+          {
+            "slot": 2,
+            "move_id": 116,
+            "name": "FOCUS ENERGY",
+            "pp": 30,
+            "max_pp": 30,
+            "move_type": 0,
+            "power": 0,
+            "accuracy": 0,
+            "effect": 47,
+            "target": 16
+          },
+          {
+            "slot": 3,
+            "move_id": 52,
+            "name": "EMBER",
+            "pp": 21,
+            "max_pp": 25,
+            "move_type": 10,
+            "power": 40,
+            "accuracy": 100,
+            "effect": 4,
+            "target": 0
+          }
+        ],
+        "absent": false
+      },
+      {
+        "battler": 1,
+        "position": 1,
+        "party_slot": 0,
+        "identity": "41c97e6b:c97e7432",
+        "species_id": 301,
+        "species": "NINCADA",
+        "level": 7,
+        "hp": 0,
+        "max_hp": 23,
+        "status1": 0,
+        "status2": 0,
+        "status3": 0,
+        "stat_stages": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "stats": [
+          12,
+          18,
+          13,
+          10,
+          8
+        ],
+        "types": [
+          6,
+          4
+        ],
+        "ability": 14,
+        "held_item": 0,
+        "moves": [
+          {
+            "slot": 0,
+            "move_id": 10,
+            "name": "SCRATCH",
+            "pp": 35,
+            "max_pp": 35,
+            "move_type": 0,
+            "power": 40,
+            "accuracy": 100,
+            "effect": 0,
+            "target": 0
+          },
+          {
+            "slot": 1,
+            "move_id": 106,
+            "name": "HARDEN",
+            "pp": 30,
+            "max_pp": 30,
+            "move_type": 0,
+            "power": 0,
+            "accuracy": 0,
+            "effect": 11,
+            "target": 16
+          },
+          {
+            "slot": 2,
+            "move_id": 141,
+            "name": "LEECH LIFE",
+            "pp": 15,
+            "max_pp": 15,
+            "move_type": 6,
+            "power": 20,
+            "accuracy": 100,
+            "effect": 3,
+            "target": 0
+          },
+          {
+            "slot": 3,
+            "move_id": 0,
+            "name": null,
+            "pp": 0,
+            "max_pp": 0,
+            "move_type": null,
+            "power": null,
+            "accuracy": null,
+            "effect": null,
+            "target": null
+          }
+        ],
+        "absent": false
+      }
+    ],
+    "player_inputs": [
+      {
+        "battler": 0,
+        "controller": 134575365,
+        "phase": "controller_busy",
+        "ready": false,
+        "action_cursor": null,
+        "move_cursor": null,
+        "target_cursor": null,
+        "selected": null,
+        "selected_move_id": null,
+        "displayed_pp": null,
+        "displayed_max_pp": null,
+        "communication": 5
+      }
+    ],
+    "controller_exec_flags": 0,
+    "signals": [],
+    "current_execution": {
+      "attacker": 0,
+      "target": 1,
+      "move_id": 52,
+      "phase": "script_resolution",
+      "script_pc": 137210868,
+      "move_result_flags": 0,
+      "hit_marker": 570426368,
+      "damage": 17,
+      "hp_dealt": 23,
+      "current_action": 0,
+      "turn_action": 0
+    },
+    "non_pokemon_battlers": [],
+    "playback": null,
+    "diagnostic": null,
+    "raw_hex": null,
+    "message": {
+      "state": "idle",
+      "render_state": null,
+      "text": null,
+      "cursor": null,
+      "identity": null,
+      "diagnostic": null,
+      "page": null
+    },
+    "prompt": {
+      "kind": "learn_move",
+      "ready": true,
+      "selected": "YES"
+    },
+    "text_phase": "prompt",
+    "levelup_box": null
+  }
+}

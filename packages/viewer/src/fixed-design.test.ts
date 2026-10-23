@@ -314,3 +314,5 @@ it("operator promotion enables only the reminder in both canonical comparison ar
   for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){expect(d.switches).toContain(id);expect(armFeatures(d,"control")[id]).toBe(false);expect(armFeatures(d,"bundle")[id]).toBe(true);}
  }
 });
+
+it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});

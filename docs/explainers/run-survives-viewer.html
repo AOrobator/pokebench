@@ -102,7 +102,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <main>
 <div class="eyebrow">PokeBench · viewer tooling explainer</div>
 <h1>Runs survive viewer restarts</h1>
-<p>The 8790 viewer serves the run page and the stats page, and it also runs the experiment queue and the finals. Before this change, restarting it to ship a viewer or stats update could kill the trial in progress, or leave the next viewer stuck. Now a restart leaves the trial playing, and the new viewer picks it up where the old one left off.</p>
+<p>The 8790 viewer serves the run page and the stats page. Fixed-run tooling owns measured trial launches; the experiment queue and finals scheduler were retired on 2026-10-22. Before this change, restarting it to ship a viewer or stats update could kill the trial in progress, or leave the next viewer stuck. Now a restart leaves the trial playing, and the new viewer picks it up where the old one left off.</p>
+
+<p><strong>Historical diagrams:</strong> the process-isolation design below retains former queue/finals labels and launch descriptions for context. These are not current launch instructions; measured launches use fixed-run tooling.</p>
 
 <h2>1. Who owns the trial's processes</h2>
 <figure><div class="diagram"><svg viewBox="0 0 900 300" role="img" aria-label="Before: viewer, play and game server share one process group. After: play leads its own group.">

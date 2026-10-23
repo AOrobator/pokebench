@@ -112,7 +112,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <p>No promotion rule is final until the operator specifies the minimum worthwhile lift. There is one analysis after fixed N; no early stopping or run ejection.</p>
 
 <h2>5. Runs, power and cost</h2>
-<div class="note blocked"><strong>Not powered yet.</strong> Eight 45-minute trials per arm cost 12 GPU-hours. No comparable checkpoint baseline rate or minimum useful lift has been selected, so that N is a provisional maximum allowed by the queue schema—not a claim of adequate power. Run <code>power.py plan</code> only after those inputs and an operator GPU budget are explicit.</div>
+<div class="note blocked"><strong>Not powered yet.</strong> Eight 45-minute trials per arm cost 12 GPU-hours. No comparable checkpoint baseline rate or minimum useful lift has been selected, so that N is an unqualified planning placeholder—not a claim of adequate power. Run <code>power.py plan</code> only after those inputs and an operator GPU budget are explicit.</div>
 
 <h2>6. Order, executors and failures</h2>
 <p>Use ABBA blocks across gpu0 and gpu1, balancing arm and launch order. Both executors must serve the same model artifact and load the same checkpoint. Each launched run counts. Preserve terminal reasons and inspect milestone receipts from <code>events.jsonl</code>; never substitute narration for game-owned progress.</p>

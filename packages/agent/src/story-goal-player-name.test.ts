@@ -114,8 +114,8 @@ describe("production factory",()=>{
 
 describe("registry",()=>{
  it("the four GLM-run switches are appended last, in order, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-53,-49)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-53,-49).map(f=>f.id)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-54,-50)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-54,-50).map(f=>f.id)).toEqual([...NEW]);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-21,-17)).toEqual([...NEW]);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STORY GOAL: PLAYER NAME"});

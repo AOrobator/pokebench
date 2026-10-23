@@ -11,7 +11,7 @@ describe("birch-intro-pages-v1", () => {
   it("is appended last as a default-off observation", () => {
     expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
     expect(FEATURES.filter(feature => feature.switchable).at(-45)?.id).toBe(ID);
-    expect(SERVER_FEATURES.at(-13)).toBe(ID);
+    expect(SERVER_FEATURES.at(-12)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-15)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "observation", switchable: true, title: "BIRCH INTRO PAGES", needs: null });
     expect(featureInfo(ID).description).toContain("Bundle arm only, default off");

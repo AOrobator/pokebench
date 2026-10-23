@@ -2,7 +2,7 @@
 
 Status: **future method, unmeasured and not launch-ready**. This reference authorizes no runs, feature edits, checkpoint plumbing, promotions or service changes. The historical census cannot answer this question. “Bitter lesson” is a longitudinal hypothesis about decreasing reliance on hand-built support, not a conclusion about general intelligence.
 
-Resolve repository skills from the explicit `--repo` root: `.claude/skills/pokebench-patch-evaluation/SKILL.md` owns readiness; `.claude/skills/pokebench-experiment-design/SKILL.md` owns sizing and design; `.claude/skills/experiment-queue/SKILL.md` owns registration/approval. Re-read their current constraints before a concrete design. This method does not replace them.
+Resolve repository skills from the explicit `--repo` root: `.claude/skills/pokebench-patch-evaluation/SKILL.md` owns readiness; `.claude/skills/pokebench-experiment-design/SKILL.md` owns sizing and design; `.claude/skills/experiment-queue/SKILL.md` owns registration/approval; `.claude/skills/fixed-run-launch/SKILL.md` owns operator-approved launches. Re-read their current constraints before a concrete design. This method does not replace them.
 
 ## Readiness and eligible starts
 

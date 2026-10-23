@@ -1,0 +1,4 @@
+interface:
+  display_name: "PokeBench decision probes"
+  short_description: "Explore, revise, confirm, and publish decision probes"
+  default_prompt: "Design this PokeBench prompt study to learn efficiently through exploration, trace-guided revision, and held-out confirmation; publish and verify each authorized batch in the live viewer."

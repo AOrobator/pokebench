@@ -872,7 +872,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
    if(ports.cycleStop===true&&active==="local"&&state.position!==null){
     const grid=state.navigation_grid;
-    const identity=JSON.stringify([state.position,state.facing,grid?.elevation,grid?.tiles,grid?.warps,options.triggers??[],path]);
+    const identity=JSON.stringify([state.position,state.facing,grid?.elevation,grid?.tiles,grid?.warps,guardedOptions.triggers??[],path]);
     if(attemptedLocalSteps.has(identity)){status=`route cycle: returned to ${at(state.position)} with the same facing, local terrain and planned route; stopped before repeating ${direction}. No onward route to ${at(goal)} was verified; inspect the returned map and choose another waypoint`;break;}
     attemptedLocalSteps.add(identity);
    }

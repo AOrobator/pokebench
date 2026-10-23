@@ -54,7 +54,7 @@ Read local PB1–PB13 and the inherited Local stack principles referenced by the
 | SI-P1 | PASS | Navigation executor owns detection; factory, prompt and result share its contract. |
 | SI-P1b | N/A | No Rust or Python authority introduced; PokeBench owns this TypeScript executor. |
 | SI-P1c | PASS | Source gates require no GPU or inference target. |
-| SI-P2 | FAIL | Round2 exposed matching-trigger state omitted by triggerBoundary fallback clearing options.triggers. Pending one-line key repair and fallback regression after required scope confirmation; see r2-synthesis.md. |
+| SI-P2 | PASS | Cycle key preserves guarded matching triggers before boundary fallback clears effective route options. Factory fallback regression and delete/restore proof now cover the missed composition; full/visited owner unchanged. |
 | SI-P2b | PASS | Recorded bad source5bec91dc replay is the regression oracle; OFF retains it exactly. |
 | SI-P3 | PASS | Cycle is visible in the returned result and recorder; no hidden retry or alternate route. |
 | SI-P4 | PASS | Changes are tracked on owned branch; no runtime patch. |
@@ -190,3 +190,4 @@ Human conditional request checked against run2026-10-23T11-15-17_qwen36-gpu0_463
 
 Human directly answered the async scope question in this chat: Fix only this bug (Recommended). Authorized only the matching-trigger fallback key repair, regression and requiredthirdreview; ELEVATION retains currentlandingwindow. Added production-factory regression using explicit synthetic variation of retained1031windows: freegoal8,5, threeguardingtriggers, offroute20,0 matchingchange. Pinsguardedplannull bothA and byte-identical fallback path; expects4nativeattempts instead ofstale2. No newproductionpath/domain or runtimecap. RED receipt follows; cycle remainsunlanded pendingrepair/integration/gates/review.
 - RED:21focusedcases,20pass/1expectedfailure. New fallback-composition case expectsRIGHT,LEFT,RIGHT,LEFT andreceivesRIGHT,LEFT; guardednull andequalfallbackpreconditions pass. Receipt /tmp/navigation-cycle-r3-red.log.
+- GREEN: only productionline changes options.triggers to guardedOptions.triggers in the call-local cycle identity.21/21focusedcases pass, includingexact4attemptfallbackcase and20oldcases. Deletingthisrepair gives1newcasefailure/20pass; restored21/21. Focused ESLint on navigation andtest passes, no suppression. SI-P2 rescoredPASS, all67rows zeroFAIL. Receipts navigation-cycle-r3-{red,green,delete-fallback,restored}.log retained canonicalreviewdir. No new guard/cap/owner/API, sourcefiles unchangedoutsideexistingnavigationowner. AwaitactualELEVATIONmainrelease beforeintegratednormalgates/finalR3freeze; currentgamesuntouched.

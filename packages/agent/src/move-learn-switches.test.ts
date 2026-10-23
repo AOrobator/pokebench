@@ -15,7 +15,7 @@ describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=
  it("are appended in order to every registry list as default-off observations",()=>{
   expect(SWITCHABLE_FEATURES.slice(-73,-68)).toEqual([...IDS]);
   expect(FEATURES.filter(f=>f.switchable).slice(-73,-68).map(f=>f.id)).toEqual([...IDS]);
-  expect(SERVER_FEATURES.slice(-20,-17)).toEqual([...SERVER]);
+  expect(SERVER_FEATURES.slice(-22,-19)).toEqual([...SERVER]);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false,"mart-stock-readout-v1":false,"caught-dex-input-v1":false}),null).slice(-36,-31)).toEqual([...IDS]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});

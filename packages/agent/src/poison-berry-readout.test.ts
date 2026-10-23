@@ -8,7 +8,7 @@ describe("independent poison and berry observations",()=>{
  it("appends both switches without moving older features",()=>{
   expect(SWITCHABLE_FEATURES.slice(-36,-34)).toEqual(IDS);
   expect(FEATURES.filter(f=>f.switchable).slice(-36,-34).map(f=>f.id)).toEqual(IDS);
-  expect(SERVER_FEATURES.slice(-7,-5)).toEqual(IDS);
+  expect(SERVER_FEATURES.slice(-9,-7)).toEqual(IDS);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-7,-5)).toEqual(IDS);
  });
  for(const id of IDS){

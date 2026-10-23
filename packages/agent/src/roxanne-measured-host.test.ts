@@ -9,7 +9,7 @@ import {checkEvent} from "./events.js";
 import {buildRestoreBundle} from "./roxanne-restore.js";
 import {digest,type CampaignJob} from "./roxanne-campaign.js";
 import {candidate,verifyEpisodeOutcome} from "./roxanne-campaign-runner.js";
-import {measuredCampaignHost,boundedGradeViews,blindedGradingPrompt,eligibleHeldoutTurns,type MeasuredPorts,type MeasuredCommand} from "./roxanne-measured-host.js";
+import {measuredCampaignHost,capturedRequestsHash,boundedGradeViews,blindedGradingPrompt,eligibleHeldoutTurns,type MeasuredPorts,type MeasuredCommand} from "./roxanne-measured-host.js";
 function fixture(){
  const json:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(json))throw Error("fixture");
  const first=json.map(checkEvent).find(e=>e.type==="state"&&"started"in e&&e.map_id?.[0]===11&&e.map_id[1]===3&&!e.in_battle);if(first?.type!=="state"||!("started"in first)||!first.raw_ram)throw Error("fixture");
@@ -59,7 +59,7 @@ it("selects only input-ready healed post-loss turns with unchanged native capabi
 it("validates a concrete two-lane launch definition before any effect",async()=>{
  const {parseMeasuredLaunch}=await import("./roxanne-measured-host.js"),f=fixture(),sha="a".repeat(64);
  const config={...f.config,starts:Array.from({length:4},(_,i)=>({family:`source${String(i)}`,directory:`/qualified/${String(i)}`,runtimeBaselineSha256:sha})),lanes:[...f.config.lanes,{id:"gpu1",endpoint:"http://127.0.0.1:8091",endpointFile:"/endpoint1",gamePort:8065}],serving:{model:"discovered-model",build:"pinned-build",contextTokens:65536,slots:1,vision:true,fingerprint:sha},priorAccounting:[],graderModel:"cloud-model",window:{from:1,until:100000,clearanceFile:"/clearance.json",clearanceSha256:sha},authorization:{quote:"run the experiment as planned",reviewFile:"/reviews.json",reviewSha256:sha}};
- expect(parseMeasuredLaunch(config)).toEqual(config);expect(()=>parseMeasuredLaunch({...config,starts:[]})).toThrow();expect(()=>parseMeasuredLaunch({...config,lanes:[config.lanes[0],config.lanes[0]]})).toThrow();expect(()=>parseMeasuredLaunch({...config,output:"relative"})).toThrow();
+ expect(parseMeasuredLaunch(config)).toEqual(config);expect(()=>parseMeasuredLaunch({...config,controllerCommit:"b".repeat(40)})).toThrow(/source separation/);expect(()=>parseMeasuredLaunch({...config,starts:[]})).toThrow();expect(()=>parseMeasuredLaunch({...config,lanes:[config.lanes[0],config.lanes[0]]})).toThrow();expect(()=>parseMeasuredLaunch({...config,output:"relative"})).toThrow();
 });
 it("rehearses a complete frozen batch through the measured binding with fake process and lease ports",async()=>{
  const {CampaignController,MemoryCampaignStore,createCampaign}=await import("./roxanne-campaign.js"),{runFrozenBatch}=await import("./roxanne-campaign-runner.js");
@@ -97,11 +97,11 @@ it("requires actual review lanes or the specifically authorized missing-Grok exc
 it("requires guarded runtime source parity and emits its exact preset and restore binding",async()=>{
  const f=fixture(),bundle:unknown=JSON.parse(f.ports.read("/qualified/bundle.json").toString()),history:unknown=JSON.parse(f.ports.read("/qualified/history.json").toString()),{recordedFeatures}=await import("./decision-probe.js");
  if(!Array.isArray(history))throw Error("fixture history");
- const baseline={version:1,sourceBundleHash:digest(bundle),sourceCommit:f.config.sourceCommit,features:{...recordedFeatures(f.source),"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true},systemPrompt:"qualified guarded system",tools:[{name:"learn_move",description:"named decline",parameters:{type:"object",properties:{decline_move:{type:"string"}}}}],referenceHash:digest(history),passed:true};
+ const baseline={version:1,sourceBundleHash:digest(bundle),sourceCommit:f.config.sourceCommit,features:Object.fromEntries(Object.entries({...recordedFeatures(f.source),"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true}).filter(([key])=>key!=="trainer-observed-party-v1")),systemPrompt:"qualified guarded system",tools:[{name:"learn_move",description:"named decline",parameters:{type:"object",properties:{decline_move:{type:"string"}}}}],referenceHash:digest(history),passed:true};
  const bytes=Buffer.from(JSON.stringify(baseline)),runtimeBaselineSha256=createHash("sha256").update(bytes).digest("hex");f.files.set("/qualified/runtime-baseline.json",bytes);
  const config={...f.config,starts:[{family:"source",directory:"/qualified",runtimeBaselineSha256}]},restoreHash=digest({bundle,runtimeBaseline:baseline}),ports={...f.ports,launch:async(command:MeasuredCommand)=>{
   const result=await f.ports.launch(command,new AbortController().signal),preset:unknown=JSON.parse(f.ports.read(command.environment["POKEBENCH_PLAY_PRESET"]??"").toString()),descriptor:unknown=JSON.parse(f.ports.read(command.environment["POKEBENCH_CAMPAIGN_CONTINUATION"]??"").toString());
-  expect(preset).toMatchObject({features:{"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true,"roxanne-campaign-reminder-v1":false}});expect(descriptor).toMatchObject({runtimeBaselineSha256});
+  expect(preset).not.toHaveProperty("features.trainer-observed-party-v1");expect(preset).toMatchObject({features:{"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true,"roxanne-campaign-reminder-v1":false}});expect(descriptor).toMatchObject({runtimeBaselineSha256});
   const path=`/runs/${command.runId}/events.jsonl`,run=parseRun(f.ports.read(path).toString());f.files.set(path,Buffer.from(run.events.map(e=>JSON.stringify(e.type==="run_start"?{...e,system_prompt:baseline.systemPrompt}:e)).join("\n")));
   const artifact=`/runs/${command.runId}/campaign-continuation.json`,value:unknown=JSON.parse(f.ports.read(artifact).toString());if(typeof value!=="object"||value===null||!("initialObservation"in value)||typeof value.initialObservation!=="object"||value.initialObservation===null)throw Error("fixture artifact");f.ports.write(artifact,{...value,initialObservation:{...value.initialObservation,restoreHash}});return result;
  }};
@@ -114,12 +114,15 @@ it("recovers hash-bound terminal originals without acquiring or launching and re
  const launchPath="/output/explore-1-launch.json",launch=JSON.parse(f.ports.read(launchPath).toString()) as {runId:string};
  const hash=(path:string)=>createHash("sha256").update(f.ports.read(path)).digest("hex");
  f.ports.write("/old-lease.json",{lane:"gpu0",run:launch.runId,acquiredAt:10,releasedAt:110});
- const reuse={jobId:f.job.id,output:"/output",launchSha256:hash(launchPath),eventsSha256:hash(`/runs/${launch.runId}/events.jsonl`),continuationSha256:hash(`/runs/${launch.runId}/campaign-continuation.json`),leaseFile:"/old-lease.json",leaseSha256:hash("/old-lease.json"),acquiredAt:10,releasedAt:110};
+ const reuse={jobId:f.job.id,output:"/output",launchSha256:hash(launchPath),eventsSha256:hash(`/runs/${launch.runId}/events.jsonl`),continuationSha256:hash(`/runs/${launch.runId}/campaign-continuation.json`),requestsSha256:capturedRequestsHash(`/runs/${launch.runId}`,1,path=>f.ports.read(path)),leaseFile:"/old-lease.json",leaseSha256:hash("/old-lease.json"),acquiredAt:10,releasedAt:110};
  const noGPU={...f.ports,acquire:()=>{throw Error("forbidden lease");},launch:()=>{throw Error("forbidden launch");}};
  const recovered=await measuredCampaignHost({...f.config,reuse:[reuse]},noGPU).recover?.(f.job);expect(recovered?.outcome.nativeScore.verified).toBe(true);expect(recovered?.finishedAt).toBe(110);expect(f.commands).toHaveLength(1);
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,eventsSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/evidence/);
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,releasedAt:111}]},noGPU).recover?.(f.job)).rejects.toThrow(/occupancy/);
  await expect(measuredCampaignHost({...f.config,reuse:[{...reuse,launchSha256:"0".repeat(64)}]},noGPU).recover?.(f.job)).rejects.toThrow(/launch receipt/);
+ const request=`/runs/${launch.runId}/campaign-requests/00001`,changed=gzipSync(JSON.stringify({messages:[{role:"user",content:"altered context"}],tools:[]}));f.files.set(`${request}.json.gz`,changed);
+ f.ports.write(`${request}.receipt.json`,{index:1,turn:2,offset:1,sha256:createHash("sha256").update(changed).digest("hex")});
+ await expect(measuredCampaignHost({...f.config,reuse:[reuse]},noGPU).recover?.(f.job)).rejects.toThrow(/request corpus/);
 });
 
 it("bounds the final envelope rather than trusting a window-size reserve",()=>{

@@ -16,7 +16,7 @@ import type {AutonomousHost,QualifiedStart} from "./roxanne-autonomous.js";
 const text=Type.String({minLength:1});
 const Artifact=Type.Object({requests:Type.Integer({minimum:1,maximum:10000}),messages:Type.Array(Type.Unknown()),reminder:Type.Union([Type.Null(),Type.Object({index:Type.Integer(),sha256:text})]),initialObservation:Type.Object({snapshot:Type.Unknown(),historyMessages:Type.Integer({minimum:1}),restoreHash:text,stateSha1:text}),journal:Type.Object({frame:Type.Integer({minimum:0}),lastId:Type.Integer({minimum:0})})});
 export const BlindJudgmentSchema=Type.Object({id:text,diagnosis:Type.Enum(["invalid_action","unsupported_fact","abandonment","none"]),factualError:Type.Boolean(),verified:Type.Boolean(),tokens:Type.Literal(0),evidence:Type.Array(text,{minItems:1})},{additionalProperties:false});
-export interface MeasuredConfig{readonly id:string;readonly output:string;readonly runsRoot:string;readonly sourceCommit:string;readonly seed:number;readonly reuse?:readonly {readonly jobId:string;readonly output:string;readonly launchSha256:string;readonly eventsSha256:string;readonly continuationSha256:string;readonly leaseFile:string;readonly leaseSha256:string;readonly acquiredAt:number;readonly releasedAt:number}[];readonly starts:readonly {readonly family:string;readonly directory:string;readonly runtimeBaselineSha256?:string}[];readonly lanes:readonly {readonly id:string;readonly endpoint:string;readonly endpointFile:string;readonly gamePort:number}[]}
+export interface MeasuredConfig{readonly id:string;readonly output:string;readonly runsRoot:string;readonly sourceCommit:string;readonly seed:number;readonly reuse?:readonly {readonly jobId:string;readonly output:string;readonly launchSha256:string;readonly eventsSha256:string;readonly continuationSha256:string;readonly requestsSha256:string;readonly leaseFile:string;readonly leaseSha256:string;readonly acquiredAt:number;readonly releasedAt:number}[];readonly starts:readonly {readonly family:string;readonly directory:string;readonly runtimeBaselineSha256?:string}[];readonly lanes:readonly {readonly id:string;readonly endpoint:string;readonly endpointFile:string;readonly gamePort:number}[]}
 export interface MeasuredCommand{readonly runId:string;readonly environment:Readonly<Record<string,string>>;readonly stopAt:number;readonly deadline:number}
 export interface MeasuredPorts{
  now():number;
@@ -27,6 +27,13 @@ export interface MeasuredPorts{
  grade(row:Parameters<EpisodeHost["grade"]>[0][number]):Promise<unknown>;
  qualifyHeldout(finalist:Candidate):Promise<readonly {family:string;directory:string;runtimeBaselineSha256?:string}[]>;
  deadline(at:number,abort:()=>void):()=>void;
+}
+/** Ordered hashes bind both sides of every captured request/receipt pair. */
+export function capturedRequestsHash(runDir:string,count:number,read:(path:string)=>Buffer):string{
+ return digest(Array.from({length:count},(_,i)=>{
+  const base=join(runDir,"campaign-requests",String(i+1).padStart(5,"0"));
+  return [".json.gz",".receipt.json"].map(ext=>createHash("sha256").update(read(`${base}${ext}`)).digest("hex"));
+ }));
 }
 /** The measured binding uses normal live.js play; all physical effects are explicit ports. */
 export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):AutonomousHost{
@@ -63,6 +70,8 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
    if(!Value.Check(schema,raw)||digest(raw.job)!==digest(job)||raw.sourceCommit!==config.sourceCommit)throw new Error("reuse differs from frozen job");
    const source=starts.get(job.restoreHash);if(source===undefined)throw new Error("unknown reused restore");
    for(const [file,hash]of [["events.jsonl",reuse.eventsSha256],["campaign-continuation.json",reuse.continuationSha256]] as const)if(createHash("sha256").update(ports.read(join(config.runsRoot,raw.runId,file))).digest("hex")!==hash)throw new Error("changed reused gameplay evidence");
+   const archived:unknown=JSON.parse(ports.read(join(config.runsRoot,raw.runId,"campaign-continuation.json")).toString());
+   if(!Value.Check(Artifact,archived)||capturedRequestsHash(join(config.runsRoot,raw.runId),archived.requests,path=>ports.read(path))!==reuse.requestsSha256)throw new Error("changed reused request corpus");
    const processSchema=Type.Object({exitCode:Type.Literal(0)}),process:unknown=JSON.parse(ports.read(join(reuse.output,`${job.id}-process.json`)).toString());if(!Value.Check(processSchema,process))throw new Error("reused episode did not terminate cleanly");
    const leaseBytes=ports.read(reuse.leaseFile);if(createHash("sha256").update(leaseBytes).digest("hex")!==reuse.leaseSha256)throw new Error("changed reused lease receipt");
    const leaseSchema=Type.Object({lane:text,run:text,acquiredAt:Type.Integer(),releasedAt:Type.Integer()}),lease:unknown=JSON.parse(leaseBytes.toString());if(!Value.Check(leaseSchema,lease)||lease.run!==raw.runId||lease.lane!==job.endpoint||lease.acquiredAt!==reuse.acquiredAt||lease.releasedAt!==reuse.releasedAt)throw new Error("reused physical occupancy differs from receipt");
@@ -76,13 +85,19 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
    const loaded=source.loaded,seed=parseInt(digest({seed:config.seed,job:job.id}).slice(0,8),16)&0x7fffffff;
    const runId=`${config.id}_${lane.id}_${job.id}`,descriptor=join(config.output,`${job.id}-continuation.json`),preset=join(config.output,`${job.id}-preset.json`),sourceStart=loaded.source.start;
    const sampling={thinkingLevel:sourceStart.sampling.thinking_level,maxTokens:sourceStart.sampling.max_tokens};
-   const features={...loaded.runtime.features,"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
+   let frozenFeatures:Readonly<Record<string,boolean>>=loaded.runtime.features;
+   if(loaded.runtimeBaselineSha256!==undefined){
+    const bytes=ports.read(join(loaded.directory,"runtime-baseline.json"));if(createHash("sha256").update(bytes).digest("hex")!==loaded.runtimeBaselineSha256)throw new Error("changed frozen runtime feature contract");
+    const raw:unknown=JSON.parse(bytes.toString());if(!Value.Check(Type.Object({features:Type.Record(Type.String(),Type.Boolean())}),raw))throw new Error("invalid frozen runtime features");frozenFeatures=raw.features;
+   }
+   const features={...frozenFeatures,"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
    const maxWallMs=Math.floor(deadline-ports.now()-60_000);if(maxWallMs<1)throw new Error("insufficient episode setup/teardown budget");
-   const definition={...parsePlayPreset({version:2,id:config.id,target:null,stopAt:"ROXANNE_DEFEATED",features,start:{kind:"save_state",path:loaded.statePath,sha1:createHash("sha1").update(loaded.state).digest("hex")},limits:{maxTurns:job.capMs===600_000?70:210,maxWallMs,failureLimit:sourceStart.evaluation?.failure_limit??3,replyFailuresEndRun:sourceStart.evaluation?.reply_failures_end_run??false},sampling}),features};
-   ports.write(descriptor,{directory:loaded.directory,prompt,seed,...(loaded.runtimeBaselineSha256===undefined?{}:{runtimeBaselineSha256:loaded.runtimeBaselineSha256}),frameRoot:join(config.output,"frame-pool"),stopAt:deadline-60_000});ports.write(preset,definition);save(`${job.id}-launch`,{job,runId,sourceCommit:config.sourceCommit,seed,deadline,stopAt:deadline-60_000,definition});
+   const definition=parsePlayPreset({version:2,id:config.id,target:null,stopAt:"ROXANNE_DEFEATED",features,start:{kind:"save_state",path:loaded.statePath,sha1:createHash("sha1").update(loaded.state).digest("hex")},limits:{maxTurns:job.capMs===600_000?70:210,maxWallMs,failureLimit:sourceStart.evaluation?.failure_limit??3,replyFailuresEndRun:sourceStart.evaluation?.reply_failures_end_run??false},sampling});
+   const frozenDefinition={...definition,features};
+   ports.write(descriptor,{directory:loaded.directory,prompt,seed,...(loaded.runtimeBaselineSha256===undefined?{}:{runtimeBaselineSha256:loaded.runtimeBaselineSha256}),frameRoot:join(config.output,"frame-pool"),stopAt:deadline-60_000});ports.write(preset,frozenDefinition);save(`${job.id}-launch`,{job,runId,sourceCommit:config.sourceCommit,seed,deadline,stopAt:deadline-60_000,definition:frozenDefinition});
    const command:MeasuredCommand={runId,stopAt:deadline-60_000,deadline,environment:{POKEBENCH_RUN_ID:runId,POKEBENCH_RUNS_ROOT:config.runsRoot,POKEBENCH_MODEL:sourceStart.model.id,POKEBENCH_ENDPOINT_FILE:lane.endpointFile,POKEBENCH_PLAY_PRESET:preset,POKEBENCH_CAMPAIGN_CONTINUATION:descriptor,POKEBENCH_GAME_SERVER_URL:`http://127.0.0.1:${String(lane.gamePort)}`}};
    const exit=await ports.launch(command,signal);save(`${job.id}-process`,exit);
-   return collect(job,runId,loaded,definition,exit);
+   return collect(job,runId,loaded,definition,exit,features);
   },
   record:(id,o)=>{save(`${id}-outcome`,o);return Promise.resolve();},
   grade:async rows=>{const judgments:BlindJudgment[]=[],segments:unknown[]=[];for(const row of rows){
@@ -140,7 +155,7 @@ export function eligibleHeldoutTurns(run:ReturnType<typeof parseRun>):number[]{
 }
 
 const Sha=Type.String({pattern:"^[a-f0-9]{64}$"});
-const ReusedEpisode=Type.Object({jobId:Type.Enum(["explore-1","explore-2"] as const),output:text,launchSha256:Sha,eventsSha256:Sha,continuationSha256:Sha,leaseFile:text,leaseSha256:Sha,acquiredAt:Type.Integer({minimum:0}),releasedAt:Type.Integer({minimum:0})},{additionalProperties:false});
+const ReusedEpisode=Type.Object({jobId:Type.Enum(["explore-1","explore-2"] as const),output:text,launchSha256:Sha,eventsSha256:Sha,continuationSha256:Sha,requestsSha256:Sha,leaseFile:text,leaseSha256:Sha,acquiredAt:Type.Integer({minimum:0}),releasedAt:Type.Integer({minimum:0})},{additionalProperties:false});
 const PriorAccounting=Type.Object({file:text,sha256:Sha,resultFile:text,resultSha256:Sha},{additionalProperties:false});
 export const MeasuredLaunchSchema=Type.Object({
  id:Type.String({pattern:"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,70}$"}),output:text,runsRoot:text,sourceCommit:Type.String({pattern:"^[a-f0-9]{40}$"}),seed:Type.Integer({minimum:0,maximum:2147483647}),
@@ -154,6 +169,7 @@ export const MeasuredLaunchSchema=Type.Object({
 export function parseMeasuredLaunch(value:unknown){
  if(!Value.Check(MeasuredLaunchSchema,value))throw new Error("invalid measured campaign launch definition");
  if(new Set(value.lanes.map(l=>l.id)).size!==2||new Set(value.lanes.map(l=>l.endpoint)).size!==2||new Set(value.lanes.map(l=>l.gamePort)).size!==2||new Set(value.starts.map(s=>s.family)).size!==4||value.window.until<=value.window.from||[value.output,value.runsRoot,value.window.clearanceFile,value.authorization.reviewFile,...value.starts.map(s=>s.directory),...value.lanes.map(l=>l.endpointFile),...value.priorAccounting.flatMap(p=>[p.file,p.resultFile])].some(p=>!isAbsolute(p)))throw new Error("invalid campaign lanes, paths, families or reservation window");
+ if(value.controllerCommit!==undefined&&value.reuse===undefined)throw new Error("controller source separation requires hash-bound reuse");
  if(value.reuse!==undefined&&(value.controllerCommit===undefined||new Set(value.reuse.map(r=>r.jobId)).size!==2||value.reuse.some(r=>!isAbsolute(r.output)||!isAbsolute(r.leaseFile)||r.releasedAt<r.acquiredAt)))throw new Error("invalid hash-bound continuation reuse");
  return value;
 }

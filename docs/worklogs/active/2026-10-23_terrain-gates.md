@@ -24,7 +24,7 @@ Read-only external ROM and archives; no game assets tracked, new network exposur
 
 ## Milestones
 - [x] M1: whole-ROM terrain inventory, source/guide cross-check and concrete defect register.
-- [ ] M2: RED regression commit; GREEN shared gate/readout/navigation correction with OFF invariance and native archive readback.
+- [x] M2: RED regression commit; GREEN shared gate/readout/navigation correction with OFF invariance and native archive readback.
 - [ ] M3: both-arm future recipes, explainer, gates, frozen multi-model review and landing/live proof if all gates permit.
 
 ## Closing the Loop
@@ -69,3 +69,10 @@ Frozen base 74590b432, head bff18db2f, packet fbc596b677aea928d1a58f373d8b74d6b2
 
 - Final synced gates: Python 4042 pass, coverage lines/branches/functions 97.38/93.34/100.00; agent 3922 pass, 99.20/93.38/97.78; viewer 1736 pass, 98.01/91.52/95.09. Build, TypeScript lint, ruff/format and mypy pass. The first viewer pass after sync lacked the newly added main story-progress build output; built that dependency and reran the complete viewer coverage successfully (initial failure receipt retained).
 - Additional read-only broad scan recorded in audit: 3 collision-free 0xC0 axis barriers still drawn clear (Littleroot bedrooms and Wanda house), plus specialized warp behavior counts. These are follow-ups inside the disclosed incomplete activation/geometry audit; no new runtime behavior added.
+
+## Final review and delivery receipt
+- Reviewed implementation: 2382cf59d745fa7ce37a49e17c6c1ee0a1b8f7e8, base d23155ba6c37377e4082cbc7a1e9d3f1dbf73790, cumulative diff SHA256 e530878488d9615741aa79de90051f17765c760aa4d385d66930a86ce9c2cfc5. Before/after hashes match for each reviewer.
+- Round 2 Claude CLI (claude-opus-5-5): VERDICT: LGTM; exit 0, stderr empty. Original isolated GPT review: VERDICT: LGTM, including independent local/full-map direct-target reproduction. Two fresh reduced-diversity fallbacks, gpt-6.1-sol and gpt-6-astra: VERDICT: LGTM each. No second-round blockers remain. Their recommendations for coordinate compression, vocabulary deduplication and unused constant cleanup are nonblocking follow-ups.
+- Grok lane remains unavailable (Cursor account out of usage). This is reduced diversity, not normal three-cloud-lane approval. Per execute-worklog: no self-merge; awaiting operator approval to land with this roster. Not joined to landing board because landing is not yet authorized under the unavailable-lane rule.
+- M3 preparation complete: 11 future definitions have v1 onInBoth, existing explainer linked and scratch click verified, all gates/native/browser proof pass. Landing, shared-viewer refresh and activation in an actual future run remain pending. Current run, its recordings, scheduler, inference services and shared viewer were not changed by this task.
+- Local delivery: http://127.0.0.1:8791/terrain-gates/audit.html and http://127.0.0.1:8791/terrain-gates/explainer.html; screenshots under the sibling shots directory. Both return 200. This final worklog commit is evidence only; production code remains the reviewed 2382cf59d tree.

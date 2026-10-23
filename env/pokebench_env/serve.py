@@ -32,6 +32,7 @@ from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
 from pokebench_env.checkpoint import install_checkpoint
+from pokebench_env.continuation_clock import ClockEmulator, install_restored_clock, restored_epoch
 from pokebench_env.evolution_decision import SWITCH as EVOLUTION
 from pokebench_env.evolution_decision import install_evolution_decision
 from pokebench_env.frame_pacing import VENDOR_BASE_FPS, GameLoopServer, install_deadline_pacing
@@ -437,6 +438,17 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
+
+    epoch = restored_epoch(os.environ)
+    if epoch is not None:
+        from mgba._pylib import lib  # type: ignore[import-untyped]
+
+        install_restored_clock(
+            cast(type[ClockEmulator], EmeraldEmulator),
+            epoch,
+            fixed_mode=lib.RTC_FIXED,
+            wall_offset_mode=lib.RTC_WALLCLOCK_OFFSET,
+        )
 
     install_deadline_frame_stream(app.app, cast(FrameManagerLike, app.frame_manager))
 

@@ -21,3 +21,11 @@ Readiness verdicts and supporting run IDs are recorded in the matching feature o
 - [Whole-map navigation cook, 1 hour](whole-map-cook-1h.html) — screen; MAIN_MENU start; 12 one-hour pairs; gated on bundle fixes.
 
 - [October 22 Frontier mistake mitigation evaluation catalogue](frontier-mistake-mitigations-plan.html) — correctness and study preparation; 8/arm screen proposal; checkpoint/readiness/cost/power unresolved; no approval or launch.
+
+
+
+
+
+- [Roxanne autonomous sixteen GPU-hour campaign — proposal](roxanne-autonomous-16gpuh-20261023.html)
+
+- [Roxanne controller offline proof](roxanne-controller-offline-20261023.html): native/history qualification, full-trace scoring and network-denied rehearsal; no campaign launch.

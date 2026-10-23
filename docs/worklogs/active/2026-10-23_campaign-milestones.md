@@ -72,3 +72,5 @@ None.
 - Operator approved fixing only Aqua Hideout allFlags proof gap, syncing latest main, final review and merge on success. Verified standing general Grok-outage waiver from server-cited human message "yes dont wait for grok" (2026-10-21T20:35:35Z); coordinator scope note distinguishes general authorization. No new Grok-only permission required. Final proof adds no production behavior.
 
 - Sync latest main c69ad74a5: preserve move-learn offer identity feature/order/defaults and append campaign switch after it. Resolved shared registry/filter/index/doc conflicts; no move-learning behavior altered by campaign delta. Aqua Hideout every-to-some mutation fails the new per-guard test; restoration passes.
+
+- Sync integration checks caught overlapping registry positions and the schema's matching optional-key exclusion type. Preserved both switch defaults and corrected mechanical expectations; no thresholds/skip/retry changes. Agent standalone3943pass. One concurrent full-gate attempt timed out unchanged live-human import test then leaked into its next case; retain log, run normal final gates after build/lint rather than changing that unrelated test.

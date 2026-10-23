@@ -33,3 +33,15 @@ def test_progress_rejects_short_flags_and_unaligned_pointer():
     with pytest.raises(ValueError, match="short"):
         read_story_progress(lambda _a, _n: b"", SB1, None)
     assert read_story_progress(lambda _a, n: bytes(n), SB1 + 1, None) is None
+
+
+def test_campaign_variables_and_avatar_are_measurement_only():
+    m = game(OVERWORLD)
+    m.put(SB1 + 0x139C + 2 * (0x409F - 0x4000), struct.pack("<H", 3))
+    m.put(0x02037590, b"\x01")
+    state = read_game_state(m.read, MAPS)
+    progress = state_json(state)["story_progress"]
+    assert len(progress["variables"]) == 1024
+    assert bytes.fromhex(progress["variables"])[318:320] == b"\x03\x00"
+    assert progress["avatar_flags"] == 1
+    assert format_readout(state) == format_readout(replace(state, story_progress=None))

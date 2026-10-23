@@ -58,7 +58,7 @@ it("selects only input-ready healed post-loss turns with unchanged native capabi
 });
 it("validates a concrete two-lane launch definition before any effect",async()=>{
  const {parseMeasuredLaunch}=await import("./roxanne-measured-host.js"),f=fixture(),sha="a".repeat(64);
- const config={...f.config,starts:Array.from({length:4},(_,i)=>({family:`source${String(i)}`,directory:`/qualified/${String(i)}`})),lanes:[...f.config.lanes,{id:"gpu1",endpoint:"http://127.0.0.1:8091",endpointFile:"/endpoint1",gamePort:8065}],serving:{model:"discovered-model",build:"pinned-build",contextTokens:65536,slots:1,vision:true,fingerprint:sha},graderModel:"cloud-model",window:{from:1,until:100000,clearanceFile:"/clearance.json",clearanceSha256:sha},authorization:{quote:"run the experiment as planned",reviewFile:"/reviews.json",reviewSha256:sha}};
+ const config={...f.config,starts:Array.from({length:4},(_,i)=>({family:`source${String(i)}`,directory:`/qualified/${String(i)}`,runtimeBaselineSha256:sha})),lanes:[...f.config.lanes,{id:"gpu1",endpoint:"http://127.0.0.1:8091",endpointFile:"/endpoint1",gamePort:8065}],serving:{model:"discovered-model",build:"pinned-build",contextTokens:65536,slots:1,vision:true,fingerprint:sha},graderModel:"cloud-model",window:{from:1,until:100000,clearanceFile:"/clearance.json",clearanceSha256:sha},authorization:{quote:"run the experiment as planned",reviewFile:"/reviews.json",reviewSha256:sha}};
  expect(parseMeasuredLaunch(config)).toEqual(config);expect(()=>parseMeasuredLaunch({...config,starts:[]})).toThrow();expect(()=>parseMeasuredLaunch({...config,lanes:[config.lanes[0],config.lanes[0]]})).toThrow();expect(()=>parseMeasuredLaunch({...config,output:"relative"})).toThrow();
 });
 it("rehearses a complete frozen batch through the measured binding with fake process and lease ports",async()=>{
@@ -93,4 +93,19 @@ it("requires actual review lanes or the specifically authorized missing-Grok exc
  expect(()=>{verifyCampaignReviews({...receipt,lanes:[...lanes,...fallback],operatorException:approval},head,campaign);}).not.toThrow();
  for(const value of [receipt,{...receipt,lanes:[...lanes,...fallback]},{...receipt,lanes:[lanes[0],...fallback],operatorException:approval},{...receipt,lanes:[...lanes,fallback[0],fallback[0]],operatorException:approval},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,quote:"go ahead"}},{...receipt,lanes:[...lanes,...fallback],operatorException:{...approval,campaign:"other"}}])expect(()=>{verifyCampaignReviews(value,head,campaign);}).toThrow(/review/);
  expect(()=>{verifyCampaignReviews({...receipt,head:"b".repeat(40)},head,campaign);}).toThrow(/review/);
+});
+it("requires guarded runtime source parity and emits its exact preset and restore binding",async()=>{
+ const f=fixture(),bundle:unknown=JSON.parse(f.ports.read("/qualified/bundle.json").toString()),history:unknown=JSON.parse(f.ports.read("/qualified/history.json").toString()),{recordedFeatures}=await import("./decision-probe.js");
+ if(!Array.isArray(history))throw Error("fixture history");
+ const baseline={version:1,sourceBundleHash:digest(bundle),sourceCommit:f.config.sourceCommit,features:{...recordedFeatures(f.source),"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true},systemPrompt:"qualified guarded system",tools:[{name:"learn_move",description:"named decline",parameters:{type:"object",properties:{decline_move:{type:"string"}}}}],referenceHash:digest(history),passed:true};
+ const bytes=Buffer.from(JSON.stringify(baseline)),runtimeBaselineSha256=createHash("sha256").update(bytes).digest("hex");f.files.set("/qualified/runtime-baseline.json",bytes);
+ const config={...f.config,starts:[{family:"source",directory:"/qualified",runtimeBaselineSha256}]},restoreHash=digest({bundle,runtimeBaseline:baseline}),ports={...f.ports,launch:async(command:MeasuredCommand)=>{
+  const result=await f.ports.launch(command,new AbortController().signal),preset:unknown=JSON.parse(f.ports.read(command.environment["POKEBENCH_PLAY_PRESET"]??"").toString()),descriptor:unknown=JSON.parse(f.ports.read(command.environment["POKEBENCH_CAMPAIGN_CONTINUATION"]??"").toString());
+  expect(preset).toMatchObject({features:{"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true,"roxanne-campaign-reminder-v1":false}});expect(descriptor).toMatchObject({runtimeBaselineSha256});
+  const path=`/runs/${command.runId}/events.jsonl`,run=parseRun(f.ports.read(path).toString());f.files.set(path,Buffer.from(run.events.map(e=>JSON.stringify(e.type==="run_start"?{...e,system_prompt:baseline.systemPrompt}:e)).join("\n")));
+  const artifact=`/runs/${command.runId}/campaign-continuation.json`,value:unknown=JSON.parse(f.ports.read(artifact).toString());if(typeof value!=="object"||value===null||!("initialObservation"in value)||typeof value.initialObservation!=="object"||value.initialObservation===null)throw Error("fixture artifact");f.ports.write(artifact,{...value,initialObservation:{...value.initialObservation,restoreHash}});return result;
+ }};
+ const host=measuredCampaignHost(config,ports),job={...f.job,restoreHash},outcome=await host.episode(job,new AbortController().signal,1_800_000);verifyEpisodeOutcome(job,outcome,"measured");
+ expect(()=>measuredCampaignHost({...config,sourceCommit:"c".repeat(40)},ports)).toThrow(/runtime baseline source/);
+ await host.freezeCandidate(candidate("a","hint"));await expect(measuredCampaignHost(config,{...ports,qualifyHeldout:()=>Promise.resolve([{family:"a",directory:"/a"},{family:"b",directory:"/b"}])}).qualifyHeldout(candidate("a","hint"))).rejects.toThrow(/runtime baseline/);
 });

@@ -1,6 +1,6 @@
 import type {Model,Api} from "@mariozechner/pi-ai";
 import {gzipSync} from "node:zlib";
-import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
+import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,validateLiveContinuationFeatures,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
@@ -234,7 +234,7 @@ async function playAgent(): Promise<void> {
   const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
   const serverEnv={...process.env,...serverFeatureEnv(features),...(continuation===null?{}:{POKEBENCH_RESTORE_RTC_MS:String(continuation.rtcMs)})};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
-  if(continuation!==null)validateLiveContinuationStart(continuation,start);
+  if(continuation!==null){validateLiveContinuationStart(continuation,start);validateLiveContinuationFeatures(continuation,features);}
   const captureMode=checkpointSelection(process.env);
   const experiment=experimentFromEnv(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();

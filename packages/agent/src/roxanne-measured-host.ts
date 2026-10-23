@@ -4,7 +4,7 @@ import {createHash} from "node:crypto";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import {parseRestoredMessages} from "./roxanne-restore.js";
-import {parseRun,recordedFeatures} from "./decision-probe.js";
+import {parseRun} from "./decision-probe.js";
 import {parsePlayPreset} from "./play-preset.js";
 import {parseGameState} from "./game-state.js";
 import {checkEvent} from "./events.js";
@@ -16,7 +16,7 @@ import type {AutonomousHost,QualifiedStart} from "./roxanne-autonomous.js";
 const text=Type.String({minLength:1});
 const Artifact=Type.Object({requests:Type.Integer({minimum:1,maximum:10000}),messages:Type.Array(Type.Unknown()),reminder:Type.Union([Type.Null(),Type.Object({index:Type.Integer(),sha256:text})]),initialObservation:Type.Object({snapshot:Type.Unknown(),historyMessages:Type.Integer({minimum:1}),restoreHash:text,stateSha1:text}),journal:Type.Object({frame:Type.Integer({minimum:0}),lastId:Type.Integer({minimum:0})})});
 export const BlindJudgmentSchema=Type.Object({id:text,diagnosis:Type.Enum(["invalid_action","unsupported_fact","abandonment","none"]),factualError:Type.Boolean(),verified:Type.Boolean(),tokens:Type.Literal(0),evidence:Type.Array(text,{minItems:1})},{additionalProperties:false});
-export interface MeasuredConfig{readonly id:string;readonly output:string;readonly runsRoot:string;readonly sourceCommit:string;readonly seed:number;readonly starts:readonly {readonly family:string;readonly directory:string}[];readonly lanes:readonly {readonly id:string;readonly endpoint:string;readonly endpointFile:string;readonly gamePort:number}[]}
+export interface MeasuredConfig{readonly id:string;readonly output:string;readonly runsRoot:string;readonly sourceCommit:string;readonly seed:number;readonly starts:readonly {readonly family:string;readonly directory:string;readonly runtimeBaselineSha256?:string}[];readonly lanes:readonly {readonly id:string;readonly endpoint:string;readonly endpointFile:string;readonly gamePort:number}[]}
 export interface MeasuredCommand{readonly runId:string;readonly environment:Readonly<Record<string,string>>;readonly stopAt:number;readonly deadline:number}
 export interface MeasuredPorts{
  now():number;
@@ -25,14 +25,15 @@ export interface MeasuredPorts{
  launch(command:MeasuredCommand,signal:AbortSignal):Promise<{exitCode:number|null}>;
  acquire(endpoint:string):Promise<()=>Promise<void>>;
  grade(row:Parameters<EpisodeHost["grade"]>[0][number]):Promise<unknown>;
- qualifyHeldout(finalist:Candidate):Promise<readonly {family:string;directory:string}[]>;
+ qualifyHeldout(finalist:Candidate):Promise<readonly {family:string;directory:string;runtimeBaselineSha256?:string}[]>;
  deadline(at:number,abort:()=>void):()=>void;
 }
 /** The measured binding uses normal live.js play; all physical effects are explicit ports. */
 export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):AutonomousHost{
  const candidates=new Map<string,Candidate>(),starts=new Map<string,{family:string;loaded:ReturnType<typeof loadLiveContinuation>}>();
- const addStart=(row:{family:string;directory:string}):QualifiedStart=>{
-  const loaded=loadLiveContinuation({directory:row.directory,prompt:"",seed:config.seed},path=>ports.read(path)),hash=digest(loaded.bundle);
+ const addStart=(row:{family:string;directory:string;runtimeBaselineSha256?:string}):QualifiedStart=>{
+  const loaded=loadLiveContinuation({directory:row.directory,prompt:"",seed:config.seed,...(row.runtimeBaselineSha256===undefined?{}:{runtimeBaselineSha256:row.runtimeBaselineSha256})},path=>ports.read(path)),hash=loaded.restoreHash;
+  if(loaded.runtimeBaselineSha256!==undefined&&loaded.runtime.sourceCommit!==config.sourceCommit)throw new Error("runtime baseline source differs from campaign pin");
   if(row.family!==loaded.bundle.sourceRun&&!loaded.bundle.sourceRun.endsWith(`_${row.family}`))throw new Error("source family label differs from native provenance");
   if(starts.has(hash)||[...starts.values()].some(s=>s.loaded.bundle.sourceRun===loaded.bundle.sourceRun))throw new Error("duplicate measured restore bundle or source family");starts.set(hash,{family:loaded.bundle.sourceRun,loaded});return {id:row.directory,family:loaded.bundle.sourceRun,restoreHash:hash,qualified:true};
  };
@@ -42,23 +43,23 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
   mode:"measured",now:()=>ports.now(),acquire:endpoint=>ports.acquire(endpoint),deadline:(at,abort)=>ports.deadline(at,abort),
   freezeCandidate:c=>{if(digest(c.text)!==c.hash||candidates.has(c.hash)&&digest(candidates.get(c.hash))!==digest(c))throw new Error("changed frozen prompt");candidates.set(c.hash,c);save(`candidate-${c.hash}`,c);return Promise.resolve();},
   freezeFinalist:c=>{if(!candidates.has(c.hash))throw new Error("unfrozen finalist");save("frozen-finalist",c);return Promise.resolve();},
-  qualifyHeldout:async c=>{const rows=await ports.qualifyHeldout(c);if(rows.length!==2)throw new Error("two qualified heldout families required");const a=rows[0],b=rows[1];if(a===undefined||b===undefined)throw new Error("missing heldout restore");return [addStart(a),addStart(b)];},
+  qualifyHeldout:async c=>{const rows=await ports.qualifyHeldout(c);if(rows.length!==2)throw new Error("two qualified heldout families required");if(config.starts.some(s=>s.runtimeBaselineSha256!==undefined)&&rows.some(s=>s.runtimeBaselineSha256===undefined))throw new Error("heldout runtime baseline qualification missing");const a=rows[0],b=rows[1];if(a===undefined||b===undefined)throw new Error("missing heldout restore");return [addStart(a),addStart(b)];},
   episode:async(job,signal,deadline):Promise<EpisodeOutcome>=>{
    const source=starts.get(job.restoreHash),lane=config.lanes.find(l=>l.id===job.endpoint),prompt=job.arm==="baseline"?"":candidates.get(job.promptHash)?.text;
    if(source===undefined||source.family!==job.family||lane===undefined||prompt===undefined||digest(prompt)!==job.promptHash||signal.aborted)throw new Error("unknown or invalid measured job binding");
    const loaded=source.loaded,seed=parseInt(digest({seed:config.seed,job:job.id}).slice(0,8),16)&0x7fffffff;
    const runId=`${config.id}_${lane.id}_${job.id}`,descriptor=join(config.output,`${job.id}-continuation.json`),preset=join(config.output,`${job.id}-preset.json`),sourceStart=loaded.source.start;
    const sampling={thinkingLevel:sourceStart.sampling.thinking_level,maxTokens:sourceStart.sampling.max_tokens};
-   const features={...recordedFeatures(loaded.source),"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
+   const features={...loaded.runtime.features,"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
    const maxWallMs=Math.floor(deadline-ports.now()-60_000);if(maxWallMs<1)throw new Error("insufficient episode setup/teardown budget");
    const definition=parsePlayPreset({version:2,id:config.id,target:null,stopAt:"ROXANNE_DEFEATED",features,start:{kind:"save_state",path:loaded.statePath,sha1:createHash("sha1").update(loaded.state).digest("hex")},limits:{maxTurns:job.capMs===600_000?70:210,maxWallMs,failureLimit:sourceStart.evaluation?.failure_limit??3,replyFailuresEndRun:sourceStart.evaluation?.reply_failures_end_run??false},sampling});
-   ports.write(descriptor,{directory:loaded.directory,prompt,seed,frameRoot:join(config.output,"frame-pool"),stopAt:deadline-60_000});ports.write(preset,definition);save(`${job.id}-launch`,{job,runId,sourceCommit:config.sourceCommit,seed,deadline,stopAt:deadline-60_000,definition});
+   ports.write(descriptor,{directory:loaded.directory,prompt,seed,...(loaded.runtimeBaselineSha256===undefined?{}:{runtimeBaselineSha256:loaded.runtimeBaselineSha256}),frameRoot:join(config.output,"frame-pool"),stopAt:deadline-60_000});ports.write(preset,definition);save(`${job.id}-launch`,{job,runId,sourceCommit:config.sourceCommit,seed,deadline,stopAt:deadline-60_000,definition});
    const command:MeasuredCommand={runId,stopAt:deadline-60_000,deadline,environment:{POKEBENCH_RUN_ID:runId,POKEBENCH_RUNS_ROOT:config.runsRoot,POKEBENCH_MODEL:sourceStart.model.id,POKEBENCH_ENDPOINT_FILE:lane.endpointFile,POKEBENCH_PLAY_PRESET:preset,POKEBENCH_CAMPAIGN_CONTINUATION:descriptor,POKEBENCH_GAME_SERVER_URL:`http://127.0.0.1:${String(lane.gamePort)}`}};
    const exit=await ports.launch(command,signal);save(`${job.id}-process`,exit);
    const runDir=join(config.runsRoot,runId),events=parseRun(ports.read(join(runDir,"events.jsonl")).toString()).events.map(checkEvent),start=events[0],end=events.at(-1),value:unknown=JSON.parse(ports.read(join(runDir,"campaign-continuation.json")).toString());
    if(exit.exitCode!==0||start?.type!=="run_start"||start.harness.commit!==config.sourceCommit||start.harness.dirty||end?.type!=="run_end"||!Value.Check(Artifact,value))throw new Error("missing measured terminal provenance");
    const expectedStateSha1=createHash("sha1").update(loaded.state).digest("hex");
-   if(digest(value.messages.slice(0,loaded.conversation.length))!==loaded.bundle.conversationHash||value.initialObservation.historyMessages!==loaded.conversation.length||start.start_state.kind!=="save_state"||start.start_state.sha1!==expectedStateSha1||start.restoration?.source_run!==loaded.bundle.sourceRun||start.restoration.source_turn!==loaded.bundle.turn||start.restoration.prefix_sha256!==loaded.bundle.eventsHash||start.restoration.prefix_last_seq!==loaded.source.events.at(-1)?.seq||start.system_prompt!==loaded.bundle.systemPrompt||digest(start.model)!==digest(sourceStart.model)||digest(start.sampling)!==digest(sourceStart.sampling)||digest(start.evaluation?.features)!==digest(definition.version===2?definition.features:null)||start.budgets.max_turns!==definition.limits.maxTurns||start.budgets.max_wall_ms!==definition.limits.maxWallMs)throw new Error("measured run differs from frozen source/preset");
+   if(digest(value.messages.slice(0,loaded.conversation.length))!==loaded.bundle.conversationHash||value.initialObservation.historyMessages!==loaded.conversation.length||start.start_state.kind!=="save_state"||start.start_state.sha1!==expectedStateSha1||start.restoration?.source_run!==loaded.bundle.sourceRun||start.restoration.source_turn!==loaded.bundle.turn||start.restoration.prefix_sha256!==loaded.bundle.eventsHash||start.restoration.prefix_last_seq!==loaded.source.events.at(-1)?.seq||start.system_prompt!==loaded.runtime.systemPrompt||digest(start.model)!==digest(sourceStart.model)||digest(start.sampling)!==digest(sourceStart.sampling)||digest(start.evaluation?.features)!==digest(definition.version===2?definition.features:null)||start.budgets.max_turns!==definition.limits.maxTurns||start.budgets.max_wall_ms!==definition.limits.maxWallMs)throw new Error("measured run differs from frozen source/preset");
    const snapshot=parseGameState(value.initialObservation.snapshot),archives=events.flatMap(e=>e.type==="state"&&"started"in e&&e.started&&e.map_id===null&&e.party.length===0&&e.raw_ram!==undefined?[{seq:e.seq,base64:ports.read(join(runDir,e.raw_ram.path)).toString("base64")}]:[]);
    const gradeWindows=buildGradeWindows({receipts:Array.from({length:value.requests},(_,i)=>JSON.parse(ports.read(join(runDir,"campaign-requests",`${String(i+1).padStart(5,"0")}.receipt.json`)).toString()) as unknown),read:i=>ports.read(join(runDir,"campaign-requests",`${String(i).padStart(5,"0")}.json.gz`)),messages:parseRestoredMessages(value.messages),events,historyMessages:value.initialObservation.historyMessages,reminder:value.reminder});
    const trace={gradeWindows,kind:"native" as const,events,startSeq:0,startedAtMs:Date.parse(start.t),initialObservation:{...value.initialObservation,snapshot},transitionProof:{archives,journal:value.journal}},frames=nativeEpisodeFrames(trace);
@@ -108,7 +109,7 @@ export function eligibleHeldoutTurns(run:ReturnType<typeof parseRun>):number[]{
 const Sha=Type.String({pattern:"^[a-f0-9]{64}$"});
 export const MeasuredLaunchSchema=Type.Object({
  id:Type.String({pattern:"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,70}$"}),output:text,runsRoot:text,sourceCommit:Type.String({pattern:"^[a-f0-9]{40}$"}),seed:Type.Integer({minimum:0,maximum:2147483647}),
- starts:Type.Array(Type.Object({family:text,directory:text},{additionalProperties:false}),{minItems:4,maxItems:4}),
+ starts:Type.Array(Type.Object({family:text,directory:text,runtimeBaselineSha256:Sha},{additionalProperties:false}),{minItems:4,maxItems:4}),
  lanes:Type.Array(Type.Object({id:Type.String({pattern:"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}),endpoint:Type.String({pattern:"^http://127\\.0\\.0\\.1:(8091|8098)$"}),endpointFile:text,gamePort:Type.Integer({minimum:1024,maximum:65535})},{additionalProperties:false}),{minItems:2,maxItems:2}),
  serving:Type.Object({model:text,build:text,contextTokens:Type.Integer({minimum:1}),slots:Type.Integer({minimum:1}),vision:Type.Boolean(),fingerprint:Sha},{additionalProperties:false}),
  graderModel:text,window:Type.Object({from:Type.Integer(),until:Type.Integer(),clearanceFile:text,clearanceSha256:Sha},{additionalProperties:false}),

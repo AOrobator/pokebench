@@ -27,11 +27,11 @@ it("leaves fresh play outside the continuation loader and refuses malformed desc
 });
 
 it("restores production event memories then the hash-bound budget and exact OFF conversation",async()=>{
- const {restoreLiveContinuation}=await import("./roxanne-live-continuation.js"),{ContextBudget}=await import("./context-budget.js"),{flagFeatures}=await import("./play-preset.js");
+ const {restoreLiveContinuation}=await import("./roxanne-live-continuation.js"),{ContextBudget}=await import("./context-budget.js");
  const {read,input,budget}=fixture(),loaded=loadLiveContinuation(input,read),calls:string[]=[],owner=new ContextBudget(budget.limit);
- const prepared=await restoreLiveContinuation(loaded,flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false}),{restoreHistory:async before=>{calls.push("restore");await before(1);calls.push("restored");}},{transformContext:messages=>{calls.push(`consume:${String(messages.length)}`);return Promise.resolve(messages);}},{systemPrompt:loaded.bundle.systemPrompt,tools:[],budget:owner});
+ const prepared=await restoreLiveContinuation(loaded,loaded.runtime.features,{restoreHistory:async before=>{calls.push("restore");await before(1);calls.push("restored");}},{transformContext:messages=>{calls.push(`consume:${String(messages.length)}`);return Promise.resolve(messages);}},{systemPrompt:loaded.bundle.systemPrompt,tools:[],budget:owner});
  expect(calls).toEqual(["restore","consume:0","restored"]);expect(prepared.messages).toBe(loaded.conversation);expect(prepared.receipt).toBe(null);expect(owner.snapshot()).toEqual(budget);
- await expect(restoreLiveContinuation(loaded,flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false}),{restoreHistory:()=>Promise.resolve()},{transformContext:m=>Promise.resolve(m)},{systemPrompt:"wrong",tools:[],budget:owner})).rejects.toThrow(/runtime prompt/);
+ await expect(restoreLiveContinuation(loaded,loaded.runtime.features,{restoreHistory:()=>Promise.resolve()},{transformContext:m=>Promise.resolve(m)},{systemPrompt:"wrong",tools:[],budget:owner})).rejects.toThrow(/runtime prompt/);
 });
 it.each(["qualification","budget","tools","source"] as const)("refuses altered %s at the disk consumer",defect=>{
  const {files,read,input,bundle}=fixture();
@@ -81,4 +81,11 @@ it("rejects unqualified, tampered, wrong-source and broadened runtime migrations
  const f=await runtimeFixture();
  for(const baseline of [{...f.baseline,passed:false},{...f.baseline,sourceBundleHash:"c".repeat(64)},{...f.baseline,referenceHash:"c".repeat(64)},{...f.baseline,features:{...f.baseline.features,"move-learn-tool-v1":false}},{...f.baseline,features:{...f.baseline.features,"roxanne-campaign-reminder-v1":true}},{...f.baseline,features:{...f.baseline.features,"move-learn-goal-reminder-v1":true}}])expect(()=>loadLiveContinuation(f.bind(baseline),f.read)).toThrow(/runtime/);
  f.bind({...f.baseline,systemPrompt:"tampered"});expect(()=>loadLiveContinuation(f.input,f.read)).toThrow(/runtime/);
+});
+it("checks runtime flags before model discovery and binds migrated native anchors",async()=>{
+ const f=await runtimeFixture(),loaded=loadLiveContinuation(f.input,f.read),{validateLiveContinuationFeatures,captureContinuationStart}=await import("./roxanne-live-continuation.js");
+ expect(()=>{validateLiveContinuationFeatures(loaded,{...loaded.runtime.features,"move-learn-tool-v1":false});}).toThrow(/runtime features/);
+ expect(()=>{validateLiveContinuationFeatures(loaded,{...loaded.runtime.features,"roxanne-campaign-reminder-v1":true});}).not.toThrow();
+ const state=loaded.source.events.find(e=>e.type==="state");if(state?.type!=="state"||!("started"in state))throw Error("fixture");
+ const snapshot=parseGameState(Object.fromEntries(Object.entries(state).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));expect(captureContinuationStart(loaded,snapshot).restoreHash).toBe(loaded.restoreHash);
 });

@@ -5,9 +5,11 @@ import type {FeatureSet} from "./features.js";
 import {verifyRestoreBundle,insertReminder,type RestoreBundle,type ReminderReceipt} from "./roxanne-restore.js";
 
 /** Single production preparation seam for baseline and candidate episodes. Never appends a boot task. */
-export function prepareContinuation(features:FeatureSet,bundle:RestoreBundle,state:Buffer,history:readonly Message[],prefix:string,prompt:string,conversation?:readonly Message[],runtime?:{readonly systemPrompt:string;readonly toolsHash:string;readonly budget?:ContextBudget;readonly budgetState?:ContextBudgetState}):{messages:readonly Message[];receipt:ReminderReceipt|null}{
+export function prepareContinuation(features:FeatureSet,bundle:RestoreBundle,state:Buffer,history:readonly Message[],prefix:string,prompt:string,conversation?:readonly Message[],runtime?:{readonly systemPrompt:string;readonly toolsHash:string;readonly budget?:ContextBudget;readonly budgetState?:ContextBudgetState;readonly qualifiedRuntime?:{readonly sourceBundleHash:string;readonly systemPrompt:string;readonly toolsHash:string}}):{messages:readonly Message[];receipt:ReminderReceipt|null}{
  verifyRestoreBundle(bundle,state,history,prefix);
- if(bundle.conversationHash!==undefined&&(runtime?.systemPrompt!==bundle.systemPrompt||runtime.toolsHash!==bundle.toolsHash))throw new Error("runtime prompt or tool definitions differ from restored context");
+ const qualified=runtime?.qualifiedRuntime;
+ if(qualified!==undefined&&qualified.sourceBundleHash!==digest(bundle))throw new Error("qualified runtime source bundle mismatch");
+ if(bundle.conversationHash!==undefined&&(runtime?.systemPrompt!==(qualified?.systemPrompt??bundle.systemPrompt)||runtime.toolsHash!==(qualified?.toolsHash??bundle.toolsHash)))throw new Error("runtime prompt or tool definitions differ from qualified context");
  if(bundle.budgetHash!==undefined){
   if(runtime?.budget===undefined||runtime.budgetState===undefined||digest(runtime.budgetState)!==bundle.budgetHash)throw new Error("context budget restoration digest mismatch");
   runtime.budget.restore(runtime.budgetState);

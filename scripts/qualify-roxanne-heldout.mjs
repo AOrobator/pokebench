@@ -2,6 +2,7 @@
 // Reports validity metadata only, never protected gameplay content to the planner.
 import {readFileSync,writeFileSync,readdirSync,mkdirSync,openSync,closeSync,existsSync} from 'node:fs';
 import {join,resolve,relative,isAbsolute} from 'node:path';
+import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const repo=resolve(fileURLToPath(new URL('..',import.meta.url))),mod=n=>import(join(repo,'packages/agent/dist',n+'.js'));
@@ -30,7 +31,9 @@ for(const family of ['e8b4','35df']){
    exec([process.execPath,join(repo,'scripts/qualify-roxanne-history.mjs'),out,contextPath,digest(context)]);
    exec([process.execPath,join(repo,'scripts/qualify-roxanne-continuation.mjs'),out,runsRoot]);
    const result=JSON.parse(readFileSync(join(out,'continuation-qualification.json'),'utf8'));if(!result.passed)throw Error('production restoration failed');
-   qualified.push({family,directory:out});attempts.push({family,turn,qualified:true});break;
+   exec([process.execPath,join(repo,'scripts/qualify-roxanne-continuation.mjs'),out,runsRoot,'guard-runtime']);
+   const runtimeBaselineSha256=createHash('sha256').update(readFileSync(join(out,'runtime-baseline.json'))).digest('hex');
+   qualified.push({family,directory:out,runtimeBaselineSha256});attempts.push({family,turn,qualified:true});break;
   }catch(error){attempts.push({family,turn,qualified:false,reason:String(error).split('\n')[0]});}
   finally{closeSync(stdout);closeSync(stderr);}
  }

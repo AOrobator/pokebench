@@ -49,3 +49,5 @@ M2 therefore also owns bounded lossless grading of oversized native decisions, i
 - Correction:3865c0c3a recorded mobilewrap intent but its selector insertion matched no explicit head tag in this standalone document; actual stylesheet insertion now targets existing style boundary and is verified in diff. Normal final gate chain on f19c95e45 completed alltest/coverage/lint/build/vendorPASS; subsequent changes documentationonly, wrappingbrowser recheck below.
 
 - Favicon source5b6cec13c/evidence1acc73468 nowcanonicalmain, actualboardempty/ownerreportswindowreleased. Sync into ownedbranch only before integratedfinalreview. ELEVATION remains separate/unlanded; no claim of its activation. Allmainchanges retained, no canonicalmainmove bythischat.
+
+- Integrated canonicalfaviconmain1acc73468 into ownedbranch withautomatic merge ofserverroute tests; allincomingfaviconchanges retained. Coordinator requestedELEVATIONactualstatus, authorizes usefulsync/gates whilewaiting, no indefiniteunreadyhold. No mainfreeze guarantee inferred; exactpacket revalidation requiredafteranylatermainmove.

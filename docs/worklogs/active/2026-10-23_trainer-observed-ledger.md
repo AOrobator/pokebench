@@ -65,3 +65,5 @@ None.
 - Round 1 synthesis: all three GPT-family reviewers independently reproduced the same faint-slot bug; Claude missed it. No other confirmed blocker. Fix stayed inside original BattleOutcomes owner. New duplicate-compact-Foe regression enforces spoiler boundary conservatively; no new data source/tool/runtime domain.
 - Round 2 deletion/restoration receipts: independently deleting MULTI operand failed 1 test; TWO_OPPONENTS operand 1; compact Foe delivery alternative 1; numbered Battler alternative 9; native faint-slot guard 1; compact unique-slot guard 1. Restored code passes all 14 feature tests. Receipts uniquely named r2-*.log; original round retained.
 - Final Python coverage after main sync: 4065 passed, lines 97.37%, branches 93.30%, functions 100%. Final full TS gates rerun after the bounded review fix.
+
+- Party-health moved main to c249f81ee immediately before R2 sealing. Initial R2 Claude dispatch was invalidated/stopped without a verdict because it compared an unmerged main. Syncing party-health before resealing; its viewer-only change adds no registry switch and does not alter this feature boundary.

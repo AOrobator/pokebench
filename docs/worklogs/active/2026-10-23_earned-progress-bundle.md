@@ -27,3 +27,5 @@ RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run ch
 - Captured5current process identities +3stable run_start record hashes (allclockOFF). Current runs expose process titles rather than preset argv, so no preset-filehash claim. No currentrun files written. Controller2367 uses frozen wrapper capturing latestmain pertrial and feature_recipe; actuallater run_start remains required for execution claim.
 
 - Full preflight correctly caught older bundle-list positional assertions after appending the new switch. Shifted only the3affected existing expectations by one; feature/order semantics retained. No runtime code/testthreshold changes.
+
+- Broader viewer preflight also caught two legacy-order filters that already exclude later treatments. Added clock to those filters, preserving their original feature-order assertions. Current recipe activation remains the sole configuration delta.

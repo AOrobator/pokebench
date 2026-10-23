@@ -16,3 +16,5 @@ The decision-probe source includes the general-wording/specific-error-correction
 - [ ] Retire verified global copies and global game-state alias after main contains replacements; preserve recoverable backup outside global discovery.
 
 Global copies remain in place until the canonical checkout contains the replacements, avoiding disruption to the parent thread or other active chats. Do not replace them with global symlinks: that would keep project skills globally discoverable.
+
+Pre-review source refresh: global decision-probes SKILL.md changed after the captured inventory. Preserved the concurrent strengthened pilot-first standing instruction verbatim in the repository copy; retained the portable report path. Other captured source files unchanged. Fresh pre-retirement inventories will be checked before moving globals to backup.

@@ -18,7 +18,7 @@ Before scheduling or starting inference, apply [pokebench-run-coordination](../p
 
 ## Default for prompt design: explore, diagnose and revise, confirm
 
-Operator preference, October 22, 2026: maximize useful information per GPU hour. Start with directional evidence and trace inspection; reserve large fixed comparisons for promising candidates. Do not default to hundreds of repetitions per candidate simply because decision probes are cheaper than gameplay. An explicit operator request for a particular fixed comparison still governs that study.
+Operator standing instruction, October 22, 2026: never begin prompt development with large frozen arms. Start with small directional comparisons and trace inspection; reserve large fixed comparisons for promising candidates. More GPU-time permission does not waive the pilot. If an operator later explicitly overrides this standing instruction, explain the tradeoff before using that override; a request to try variants or increase repetitions alone is not a reason to skip exploration.
 
 Before launching, state the decision the next batch should inform, the total authorized GPU budget, the cost estimate from comparable calls, and the allocation across exploration, revision and confirmation. Reserve compute and untouched cases for confirmation before spending on exploration. Choose small initial batches that cover distinct cases and failure modes, rather than mainly repeating one context. There is no universal N or mandatory budget percentage: explain the tradeoff, including call latency, token use and uncertainty. Extra GPU-time authorization is not a reason to skip the exploratory stages.
 

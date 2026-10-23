@@ -29,7 +29,8 @@ ROUTE110 = {
 
 def route110(player: tuple[int, int] = (17, 69)) -> LocalMap:
     tiles = tuple(
-        MapTile(x, y, 0, c, b, e) for (x, y), (c, e, b) in sorted(ROUTE110.items(), key=lambda i: (i[0][1], i[0][0]))
+        MapTile(x, y, 0, c, b, e)
+        for (x, y), (c, e, b) in sorted(ROUTE110.items(), key=lambda i: (i[0][1], i[0][0]))
     )
     rows = []
     for y in range(66, 72):
@@ -64,12 +65,14 @@ def test_the_raised_road_is_drawn_as_another_level_from_the_ground_under_it():
     assert note == (
         "Other levels (L): tiles at elevation 4, while you are at elevation 3. The game refuses"
         " a step onto a tile at an elevation other than yours; tiles at elevation 0 or 15 accept"
-        " any elevation, and a step onto a tile at elevation 0 lets your next step reach any"
-        " elevation."
+        " any elevation."
     )
     assert original.rows[0] == "#...#"
     line = adjacent(view, 3)
-    assert "up (17,68) another level (L), elevation 4 (yours is 3), cannot be entered from here" in line
+    assert (
+        "up (17,68) another level (L), elevation 4 (yours is 3), cannot be entered from here"
+        in line
+    )
     assert "left (16,69) clear (.)" in line
 
 
@@ -104,7 +107,9 @@ def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
     assert "Other levels" not in off and " L " not in off
     assert "up (17,68) another level (L)" in on
     assert "Other levels (L): tiles at elevation 4" in on
-    assert off == format_readout(s, adjacent_tiles=True, off=base | {SWITCH, "elevation-aware-map-v1"})
+    assert off == format_readout(
+        s, adjacent_tiles=True, off=base | {SWITCH, "elevation-aware-map-v1"}
+    )
 
 
 def test_switch_is_registered_server_side_and_default_off():

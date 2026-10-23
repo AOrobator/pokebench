@@ -1,12 +1,12 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
-import { COUNTER, EDGE_WALLS, LEDGES, OPPOSITE, type Direction } from "./tile-rules.js";
+import { COUNTER, EDGE_WALLS, GAME_RULE, LEDGES, OPPOSITE, type Direction } from "./tile-rules.js";
 
 // blocked-batch-result-v1: a batch of one repeated direction that left the player on its tile,
 // with field controls free in both snapshots, says so and names what the readout shows on the way.
 // Each map fact is named only when the run's switches draw it for the model: ledges (ledge-hops-v1),
 // edge walls (one-way-tiles-v1), counters (counter-talk-v1) and map connections (world-destinations-v1).
-export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
+export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly elevation?: boolean }
 
 type Point = { readonly x: number; readonly y: number };
 type Tile = { readonly collision: number; readonly behavior: number; readonly elevation: number };
@@ -25,9 +25,12 @@ export function repeatedDirection(buttons: readonly Button[]): Direction | null 
 
 // "terrain" never lets this direction through from here. "occupied" is a warp or object on the
 // next tile: it is described, not claimed as the blocker (object elevation is not read, and a warp
-// is not an obstacle). "unknown" names no cause. Elevation is never named: the readout does not show it.
+// is not an obstacle). "unknown" names no cause. Elevation and slopes are named only with elevation-aware-map-v1,
+// whose map draws L where IsElevationMismatchAt refuses the step.
 // pokeemerald PLAYER_AVATAR_FLAG_ON_FOOT and PLAYER_AVATAR_FLAG_SURFING: water stops only a walker.
-const ON_FOOT = 1 << 0, SURFING = 1 << 3;
+const ON_FOOT = 1 << 0, SURFING = 1 << 3, MUDDY_SLOPE = 0xd0;
+// elevation-aware-map-v1: the server draws L only when the avatar flags were read and show no surfing.
+const surfing = (state: GameStateSnapshot): boolean => { const flags = state.running?.avatar_flags ?? null; return flags === null || (flags & SURFING) !== 0; };
 const onFoot = (state: GameStateSnapshot): boolean => {
   const flags = state.running?.avatar_flags ?? null;
   return flags !== null && (flags & ON_FOOT) !== 0 && (flags & SURFING) === 0;
@@ -75,6 +78,11 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
       : { text: `${named} is water (~ on the local map); what stopped you is not known.`, kind: "unknown" };
   }
   if (show.edgeWalls === true && (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false)) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
+  if (show.elevation === true && !surfing(state) && GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
+    return { text: `${named} is at elevation ${String(tile.elevation)} while you are at elevation ${String(grid.elevation)} (L on the local map), and the game refuses a step onto a tile at another elevation`, kind: "terrain" };
+  }
+  // pokeemerald ForcedMovement_MuddySlope: on foot the slope slides the player back south.
+  if (show.elevation === true && direction === "UP" && tile.behavior === MUDDY_SLOPE && onFoot(state)) return { text: `${named} is a muddy slope, which slides a walker back down`, kind: "terrain" };
   return { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" };
 }
 
@@ -98,4 +106,17 @@ export function blockedBatchResult(before: GameStateSnapshot, after: GameStateSn
     : `${found !== null && found.kind === "terrain" ? "blocked" : "no movement"}: ${pressed} did not move you; you are still ${tile}${show.position ? ` facing ${after.facing}` : ""}.`;
   if (found === null) return head;
   return `${head} ${found.kind === "terrain" ? `${found.text}, so ${direction} cannot move you from here.` : found.text}`;
+}
+
+/**
+ * elevation-aware-map-v1: a single direction press that neither moved nor turned the player, with
+ * free field controls in both snapshots, names its terrain cause; null when none is known.
+ */
+export function refusedPressResult(before: GameStateSnapshot, after: GameStateSnapshot, buttons: readonly Button[], show: BlockedBatchFacts): string | null {
+  const direction = buttons.length === 1 && isDirection(buttons[0]) ? buttons[0] : null;
+  if (direction === null || show.liveMap !== true || before.position === null || after.position === null || after.facing !== direction.toLowerCase() || before.facing !== after.facing) return null;
+  const found = blocker(before, before.position, direction, show);
+  if (found === null || found.kind !== "terrain") return null;
+  const tile = show.position ? `at ${at(before.position)} facing ${after.facing}` : "on the same tile";
+  return `blocked: ${direction} did not move you; you are still ${tile}. ${found.text}, so ${direction} cannot move you from here.`;
 }

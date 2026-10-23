@@ -28,7 +28,9 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 ## Milestones
 **M1 — elevation-aware-map-v1**
 - [x] RED tests (Route 110 archive state, slope, OFF invariance, factory wiring): TS 8 fail / 1 pass, Python collection error (module missing)
-- [ ] GREEN implementation, registry, presets, bundle-arm definitions
+- COMMIT: `test(elevation-aware-map): ... (RED)` (cfe170b94)
+- [x] GREEN implementation, registry, presets, bundle-arm definitions (both switches registered and added to the bundle arm of the 7 current definitions; screen-center has no behavior until M2). Agent 4062 pass, viewer 1752 pass, Python 4055 pass (worktree venv needed the main venv's mgba package copied in for test_view and mypy). Wiring deletions: removing `elevation` from toolSwitches fails 4/9 TS tests; forcing the readout gate off fails 1/5 Python tests; both restored green. Registry-position tests shifted by two.
+- Not covered (sent to coordinator for Codex): navigate_to occupancy across layers (AreElevationsCompatible); state objects carry no elevation.
 **M2 — screen-center-player-v1**
 - [ ] RED tests (prompt sentence, cover note from archive 21953, OFF invariance)
 - [ ] GREEN implementation

@@ -8,7 +8,8 @@ first), IsMetatileDirectionallyImpassable edge walls, and a map edge with no con
 side (GetMapBorderIdAt == CONNECTION_INVALID), and never for the press that a directional warp
 under the player answers. A connection is never named for one edge tile: Topology has no
 connected-map size, so it cannot tell whether the tile lies in the connection's span. Objects and
-warps are described, never called blockers; elevation is never named.
+warps are described, never called blockers; elevation is named only for a tile
+elevation-aware-map-v1 draws L (IsElevationMismatchAt refuses it from the player's elevation).
 """
 
 from collections.abc import Sequence
@@ -108,6 +109,7 @@ def next_tiles(
     topology: Topology | None,
     on_foot: bool,
     terrain: bool = False,
+    elevation: int | None = None,
 ) -> str:
     """One line naming the tiles up, down, left and right of the player, in that order."""
     cells = shown.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -154,6 +156,9 @@ def next_tiles(
                 special = f"{SANDSTORM[1]} (!), {SANDSTORM[2]}"
             if special is not None:
                 name = special
+        if elevation is not None and tile is not None and glyph == "L":
+            # elevation-aware-map-v1 draws L only where IsElevationMismatchAt refuses the step.
+            name = f"another level (L), elevation {tile.elevation} (yours is {elevation}), {SHUT}"
         if not shut:
             name += ", but you stand on a warp" + (
                 f" whose listed activation is pressing {direction}" if warp_guidance else ""

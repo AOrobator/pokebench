@@ -58,7 +58,7 @@ it("the new treatment is inert when the original guard is OFF",async()=>{
 });
 
 it("registers default OFF with an unqueued single-feature experiment",async()=>{
- const {readFileSync}=await import("node:fs");const {normalizeFeatures}=await import("./play-preset.js");const {ALL_ON,featureInfo,SWITCHABLE_FEATURES}=await import("./features.js");
+ const {normalizeFeatures}=await import("./play-preset.js");const {ALL_ON,featureInfo}=await import("./features.js");
  const {"rejected-movement-stride-v1":_enabled,...old}=ALL_ON;expect(_enabled).toBe(true);expect(normalizeFeatures(old)["rejected-movement-stride-v1"]).toBe(false);
  expect(featureInfo("rejected-movement-stride-v1").needs).toBe("safe-navigation-strides-v1");
 });

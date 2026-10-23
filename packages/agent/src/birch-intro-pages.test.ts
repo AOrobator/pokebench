@@ -41,8 +41,6 @@ describe("birch-intro-pages-v1", () => {
       expect(fixed.switches.indexOf(ID)).toBeGreaterThan(fixed.switches.indexOf("milestone-instruction-memory-v1"));
       const bundle = { ...fixed.base.features, ...Object.fromEntries(fixed.switches.map((id) => [id, true])) };
       expect(bundle[ID]).toBe(true);
-      if (name === "bundle-v-control") {
-      }
     }
   });
 });

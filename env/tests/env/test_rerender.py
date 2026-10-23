@@ -137,6 +137,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "connection_edges_enabled": False,
         "in_game_naming_enabled": False,
         "offscreen_objects_enabled": False,
+        "blackout_transition_enabled": False,
         "transition_coherence_enabled": False,
         "readout_truth_enabled": False,
         "birch_pages_enabled": False,

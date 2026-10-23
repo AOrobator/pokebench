@@ -7,11 +7,11 @@ description: Run a "PokeBench review", where four personas (harness engineer, da
 
 The operator asks for a "PokeBench review" of something: a diff or branch, a switch, an experiment entry, a results report, a worklog, a plan or a loose idea. Answer with four personas who each critique it from their discipline, each written by a separate subagent that never sees the others' work. Every claim stands on recorded evidence, not on narration or memory.
 
-This skill reviews; it does not act. It never launches, approves, queues or discards experiments, edits harness code or merges. Recommendations that need those steps are written as next steps for the operator.
+This skill reviews; it does not act. It never launches or approves runs, edits harness code or merges. Recommendations that need those steps are written as next steps for the operator.
 
 ## 1. Pin down the subject
 
-Name the subject in one line: what it is, its commit or file path, and the switch id or experiment id when there is one. If the operator's ask is ambiguous, pick the most recent matching thing (latest branch, newest report, newest `experiments/*.json` touched) and say which you picked.
+Name the subject in one line: what it is, its commit or file path, and the switch id or experiment id when there is one. If the operator's ask is ambiguous, pick the most recent matching thing (latest branch, newest report, newest `experiments/fixed/*.json` touched) and say which you picked.
 
 ## 2. Gather the evidence base once
 
@@ -32,8 +32,8 @@ All four personas share this base. The coordinator (you) collects it once, befor
 
    The helper reflects the viewer build in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`, kept at `main`). If the subject changes the milestone axis or grading, also read `packages/viewer/src/frontier.ts` on the subject's commit and say where it differs.
 
-   If the helper reports the viewer unavailable, stop and tell the operator. Do not run `just viewer-main` during a review: it kills whatever holds port 8790, and that process also hosts the experiment run queue, so a restart can interrupt a measured cohort.
-2. **Experiment state.** Read `http://127.0.0.1:8790/api/experiments` from the running viewer (not `just experiments`, which rebuilds) for the queue, pending and closed lists and the queue's readiness verdicts. Also read `docs/experiments/readiness.md` for recorded verdicts, and `experiments/<id>.json` plus `runs/<id>/` or `runs/reports/` for any result the subject touches. The previous persona review is the newest top-level `runs/reviews/*.html` (subdirectories there hold code-review scratch); compare its frontier to find what is new.
+   If the helper reports the viewer unavailable, stop and tell the operator. Do not run `just viewer-main` during a review: it kills whatever holds port 8790, and the operator may be using it during a launch check.
+2. **Recorded comparison state.** Read the subject’s fixed-run definition under `experiments/fixed/`, its `runs/experiments/<id>/status.json` and trial ledger, plus the relevant `runs/<id>/` recordings or `runs/reports/` results. Read readiness evidence from the feature/evaluation worklog. These are read-only checks; do not build or launch. The previous persona review is the newest top-level `runs/reviews/*.html` (subdirectories hold code-review scratch); compare its frontier to find what is new.
 3. **Rules.** `docs/agent-principles.md` (PB1 to PB13). Each persona file names the skills it applies; the coordinator does not pre-digest them.
 4. **The subject itself.** Read the diff, file or report in full. For runs, cite run ids and event `seq` numbers, not summaries.
 

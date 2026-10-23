@@ -20,7 +20,7 @@ execute-worklog, viewer-e2e, close-the-loop, talk-to-claude, multi-model-review.
 Implementation pending. Shared viewer and gameplay processes unchanged.
 
 ## Implementation evidence
-- Removed queue UI, endpoints, autorun/approval/promotion machinery, 232 root definitions, queue/winner explainers and queue skill + agent symlink. Fixed definitions and recorded event schemas remain.
+- Removed queue UI, endpoints, autorun/approval/promotion machinery, 232 root definitions initially (233 after main sync), queue/winner explainers and queue skill + agent symlink. Fixed definitions and recorded event schemas remain.
 - Shared fixed-run source identity helpers moved intact to fixed-source.ts. Legacy ledger schemas/readers moved intact to legacy-experiment-ledger.ts; no scheduling or approval exports remain.
 - Stats has hardware-only run-lanes polling; no queue request. Cards/phone headers/PokéNav run identity omit experiment badges and trials. Chart versions are configurations numbered per model, without arm headings.
 - Mixed feature/registration tests retain feature, fixed-arm and native-RAM checks. Native tests previously loading queue definitions now exercise explicit fixture arms. No coverage thresholds/excludes or skips changed.
@@ -40,3 +40,5 @@ Explicit user scope: remove queue and all experiment UI on Stats/PokéNav, prese
 - Endpoint deletion proof: temporarily renamed the actual server run-lanes route; the real HTTP contract test failed (404 instead of the exact one-run hardware payload). Restored byte-identical source and all 3 queue-removal contract tests passed. Removed one remaining unused test helper left by main-sync registration removal. Skill validator passes all seven edited skill entrypoints.
 
 - Final pre-review inspection found scripts/viewer-restart.sh still probing deleted /api/experiments. Stopped the first Claude inspection before verdict and retained its partial receipt; that packet is superseded. This existing restart caller must use /api/run-lanes. Strengthening the existing fake viewer rehearsal to answer only the retained endpoint provides RED/GREEN proof; no new runtime mechanism or gameplay scope. Also found two persona/analysis skill references to the deleted API for cleanup.
+
+- Restart dependency RED/GREEN: fake node viewer now returns 404 for every endpoint except /api/run-lanes. Old restart failed its readiness check (24.39s); retargeted only that probe, then both restart lifecycle rehearsals passed (2.82s). Audit/fixed-runner target suites: 76 passed. Persona-review and run-analysis skills no longer require deleted queue state; both validate. This is the existing viewer restart lifecycle already required by the removal acceptance, not new scheduling infrastructure. Rechecking full gates before resealing review.

@@ -26,7 +26,7 @@ describe("experiments audit", () => {
     const findings = experimentsAudit(r, data([run({ id: "in-cohort", cohort: "experiment:bundle-v-control@abc" }), run({ id: "orphan", cohort: null, problem: "Run identity is invalid" }), run({ id: "human-tagged", cohort: "x" })]));
     expect(findings).toEqual([
       { run: "missing", experiment: "bundle-v-control", problem: "not in the workbench snapshot" },
-      { run: "orphan", experiment: "bundle-v-control", problem: "in no EXPERIMENT dropdown cohort (Run identity is invalid)" },
+      { run: "orphan", experiment: "bundle-v-control", problem: "in no result provenance cohort (Run identity is invalid)" },
     ]);
     expect(experimentsAudit(join(r, "absent"), data([]))).toEqual([]);
   });
@@ -38,7 +38,7 @@ describe("experiments audit", () => {
     recorded(r, "2026-10-16T05-00-02_qwen36-gpu1_bad", { id: "bundle-v-control", arm: "control", trial: 1, of: 2, extra: true });
     const findings = experimentsAudit(r, await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(findings.map(f => f.run)).toEqual(["2026-10-16T05-00-02_qwen36-gpu1_bad"]);
-    expect(findings[0]?.problem).toContain("in no EXPERIMENT dropdown cohort");
+    expect(findings[0]?.problem).toContain("in no result provenance cohort");
   });
   it("reads a long first line and agrees with the full snapshot through the fast cohort index", async () => {
     const r = root(), long = "2026-10-16T05-00-03_qwen36-gpu1_long";
@@ -60,9 +60,9 @@ describe("experiments audit", () => {
     const lines: string[] = [], errors: string[] = [];
     const deps = (runs: WorkbenchData["runs"]) => ({ runsRoot: r, snapshot: (at: string) => { expect(at).toBe(r); return Promise.resolve(data(runs)); }, out: (l: string) => { lines.push(l); }, err: (l: string) => { errors.push(l); } });
     expect(await auditMain([], deps([run({ id: "orphan", cohort: "c" })]))).toBe(0); expect(lines).toEqual([]);
-    expect(await auditMain([], deps([]))).toBe(1); expect(lines).toEqual(["orphan\tx\tnot in the workbench snapshot"]); expect(errors).toEqual(["experiments-audit: 1 tagged run is in no EXPERIMENT dropdown cohort"]);
+    expect(await auditMain([], deps([]))).toBe(1); expect(lines).toEqual(["orphan\tx\tnot in the workbench snapshot"]); expect(errors).toEqual(["experiments-audit: 1 tagged run is in no result provenance cohort"]);
     write(join(r, "orphan-2"), { type: "run_start", evaluation: { experiment: { id: "y" } } });
-    expect(await auditMain([], deps([]))).toBe(1); expect(errors.at(-1)).toBe("experiments-audit: 2 tagged runs are in no EXPERIMENT dropdown cohort");
+    expect(await auditMain([], deps([]))).toBe(1); expect(errors.at(-1)).toBe("experiments-audit: 2 tagged runs are in no result provenance cohort");
     const other = root(); expect(await auditMain([other], { ...deps([]), snapshot: (at: string) => { expect(at).toBe(other); return Promise.resolve(data([])); } })).toBe(0);
     expect(await auditMain(["a", "b"], deps([]))).toBe(2); expect(errors.at(-1)).toContain("usage");
     expect(await auditMain([], { ...deps([]), snapshot: () => Promise.reject(new Error("boom")) })).toBe(2); expect(errors.at(-1)).toBe("experiments-audit: boom");  });

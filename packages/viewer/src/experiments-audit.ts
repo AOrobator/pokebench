@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-// Completeness check for the EXPERIMENT dropdown: every run whose run_start names an experiment
-// (evaluation.experiment) must be in some dropdown cohort.
+// Completeness check for recorded comparison provenance: every run whose run_start names an experiment
+// (evaluation.experiment) must have an internal cohort mapping.
 export interface AuditFinding { readonly run: string; readonly experiment: string; readonly problem: string }
 export interface AuditRuns { readonly runs: readonly { readonly id: string; readonly cohort: string | null; readonly problem: string | null }[] }
 const CHUNK = 64 * 1024, MAX_FIRST_LINE = 16 * 1024 * 1024, chunk = Buffer.alloc(CHUNK);
@@ -40,7 +40,7 @@ export function experimentsAudit(runsRoot: string, data: AuditRuns): AuditFindin
       const experiment = namedExperiment(path); if (experiment === null) continue;
       const run = byId.get(entry.name);
       if (run === undefined) findings.push({ run: entry.name, experiment, problem: "not in the workbench snapshot" });
-      else if (run.cohort === null) findings.push({ run: entry.name, experiment, problem: `in no EXPERIMENT dropdown cohort${run.problem === null ? "" : ` (${run.problem})`}` });
+      else if (run.cohort === null) findings.push({ run: entry.name, experiment, problem: `in no result provenance cohort${run.problem === null ? "" : ` (${run.problem})`}` });
     }
   }
   return findings.sort((a, b) => a.run.localeCompare(b.run));
@@ -54,7 +54,7 @@ export async function auditMain(argv: readonly string[], deps: AuditDeps): Promi
   try { findings = experimentsAudit(root, await deps.snapshot(root)); } catch (error) { deps.err(`experiments-audit: ${error instanceof Error ? error.message : String(error)}`); return 2; }
   for (const f of findings) deps.out(`${f.run}\t${f.experiment}\t${f.problem}`);
   if (findings.length === 0) return 0;
-  deps.err(`experiments-audit: ${String(findings.length)} tagged run${findings.length === 1 ? " is" : "s are"} in no EXPERIMENT dropdown cohort`);
+  deps.err(`experiments-audit: ${String(findings.length)} tagged run${findings.length === 1 ? " is" : "s are"} in no result provenance cohort`);
   return 1;
 }
 /* v8 ignore start -- process wiring */

@@ -21,7 +21,7 @@ print(subprocess.Popen(sys.argv[2:], stdin=subprocess.DEVNULL, stdout=log, stder
     "$log" node --env-file="$envfile" "$cli" --port "$port" --runs "$runs")"
 up=""
 for _ in $(seq 40); do
-    if [[ "$(lsof -tiTCP:"$port" -sTCP:LISTEN || true)" == "$child" ]] && curl -fs "http://127.0.0.1:$port/api/experiments" >/dev/null; then up=yes; break; fi
+    if [[ "$(lsof -tiTCP:"$port" -sTCP:LISTEN || true)" == "$child" ]] && curl -fs "http://127.0.0.1:$port/api/run-lanes" >/dev/null; then up=yes; break; fi
     sleep 0.5
 done
 if [[ -z "$up" ]]; then echo "viewer did not answer on $port; see $log" >&2; exit 1; fi

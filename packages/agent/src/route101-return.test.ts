@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -16,7 +17,7 @@ it("sits between the Birch handoff and Oldale as a navigation split that the mod
   expect(MILESTONE_ORDER.indexOf(NAME)).toBe(MILESTONE_ORDER.indexOf("BIRCH_STARTER_HANDOFF_COMPLETE") + 1);
   expect(MILESTONE_ORDER.indexOf("OLDALE_TOWN")).toBe(MILESTONE_ORDER.indexOf(NAME) + 1);
   expect(MILESTONES.find(m => m.name === NAME)?.kind).toBe("navigation");
-  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK", NAME, "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
+  expect([...MEASUREMENT_ONLY_MILESTONES].filter(n=>!EXTENDED_PROGRESS_NAMES.has(n))).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK", NAME, "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
 });
 
 it("records the first stable Route 101 state after the lab handoff, with pre-handoff, town and route evidence", () => {

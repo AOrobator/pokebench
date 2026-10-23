@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
@@ -107,6 +108,13 @@ describe("story-progress-clock-v1 stall counts",()=>{
   const milestone=(name:string,origin:"observed"|"present_at_start"="observed")=>{emit({type:"milestone",name,server_timestamp:0,kind:"story",origin,evidence:[seq]});};
   return {kinds,retired,go,state,milestone,advance:(ms:number)=>{now+=ms;}};
  }
+ it("extended gym and story measurements never reset the clock under either override",()=>{
+  for(const progressAware of [false,true]) {
+   const r=rig({...features,"progress-aware-cycles-v1":progressAware});r.advance(4*60_000);r.state({});
+   for(const name of EXTENDED_PROGRESS_NAMES)r.milestone(name);
+   r.advance(2*60_000);r.state({});expect(r.kinds).toContain("milestone_drought");
+  }
+ });
  it("first Roxanne interaction stays measurement-only even when the progress clock is enabled",()=>{
    const r=rig(features);r.advance(4*60_000);r.state({});
    r.milestone("ROXANNE_FIRST_INTERACTION");r.advance(2*60_000);r.state({});
@@ -164,7 +172,7 @@ describe("story-progress-clock-v1 stall counts",()=>{
 describe("story-progress-clock-v1 switch",()=>{
  const events=recorded(BD60);
  it("covers every measurement-only milestone",()=>{
-  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
+  expect([...MEASUREMENT_ONLY_MILESTONES].filter(n=>!EXTENDED_PROGRESS_NAMES.has(n))).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
   expect(SWITCHABLE_FEATURES.at(-77)).toBe(ID);

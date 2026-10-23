@@ -39,6 +39,11 @@ verify-rom:
 backfill-route103 +runs:
     cd env && uv run python -m pokebench_env.backfill_route103 ../runs {{runs}}
 
+# Recover all-gym story measurements from bounded immutable prefixes of retained raw RAM.
+[positional-arguments]
+backfill-story-progress +runs:
+    uv run --project env python -m pokebench_env.backfill_story_progress runs "$@"
+
 # Trainer-card art for the viewer (cards, trainer sprites, font, party icons) from ~/dev/pokeemerald
 # ($POKEEMERALD), every asset verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
 [positional-arguments]

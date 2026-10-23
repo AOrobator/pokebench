@@ -59,6 +59,10 @@
     "./legacy-experiment-ledger": {
       "types": "./src/legacy-experiment-ledger.ts",
       "default": "./dist/legacy-experiment-ledger.js"
+    },
+    "./story-progress": {
+      "types": "./src/story-progress.ts",
+      "default": "./dist/story-progress.js"
     }
   },
   "scripts": {

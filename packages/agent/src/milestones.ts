@@ -1,3 +1,4 @@
+import {PROGRESS_CATALOG, EXTENDED_PROGRESS_NAMES, progressReached} from "./story-progress.js";
 import { roxanneFirstInteraction } from "./roxanne-interaction.js";
 import {completedHeal} from "./activity.js";
 import type { RunEvent } from "./events.js";
@@ -127,7 +128,7 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
 };
 const routeNames = new Set(["RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
 // Recorded and graded, but never reported to the model or used to reset its stall clocks.
-export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["ROXANNE_FIRST_INTERACTION", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
+export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["ROXANNE_FIRST_INTERACTION", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", ...EXTENDED_PROGRESS_NAMES]);
 
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
@@ -224,6 +225,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RUSTBORO_GYM_COMPLETE", kind: "story", reached: flag("rustboro_gym_complete") },
   { name: "STONE_BADGE", kind: "story", reached: (s) => savedWorld(s) ? s.badges.includes("STONE") : null },
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },
+  ...PROGRESS_CATALOG.filter(m=>EXTENDED_PROGRESS_NAMES.has(m.name)).map(m=>({name:m.name,kind:m.map===undefined?"story" as const:"navigation" as const,reached:(s:GameStateSnapshot)=>progressReached(m.name,s)})),
 ];
 export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
 // The required progression axis shared by the viewer and automatic
@@ -242,6 +244,7 @@ export const REQUIRED_FRONTIER_MILESTONES: readonly string[] = [
   "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS",
   "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "ROXANNE_FIRST_INTERACTION", "ROXANNE_DEFEATED",
   "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED",
+  ...PROGRESS_CATALOG.map(m=>m.name),
 ];
 // Optional activities can happen almost anywhere after their prerequisite (a heal in Oldale before
 // Route 103), so they never rank how far a run got.

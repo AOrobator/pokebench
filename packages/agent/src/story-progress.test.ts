@@ -13,9 +13,9 @@ it("distinguishes the Rusturf victory and completed rescue; unknown is not false
 it("records all seven later leaders, badge handoffs and TM receipts independently",()=>{
  for(const [i,leader] of ["BRAWLY","WATTSON","FLANNERY","NORMAN","WINONA","TATE_AND_LIZA","JUAN"].entries()) {
   expect(progressReached(`${leader}_DEFEATED`,snapshot(0x500+266+i))).toBe(true);
-  expect(PROGRESS_CATALOG.some(m=>m.name===["KNUCKLE","DYNAMO","HEAT","BALANCE","FEATHER","MIND","RAIN"][i]+"_BADGE")).toBe(true);
+  expect(PROGRESS_CATALOG.some(m=>m.name===`${["KNUCKLE","DYNAMO","HEAT","BALANCE","FEATHER","MIND","RAIN"][i]??""}_BADGE`)).toBe(true);
  }
- for(const m of PROGRESS_CATALOG)expect(MEASUREMENT_ONLY_MILESTONES.has(m.name)).toBe(true);
+ for(const m of PROGRESS_CATALOG.filter(m=>!["ROUTE_116","RUSTURF_TUNNEL"].includes(m.name)))expect(MEASUREMENT_ONLY_MILESTONES.has(m.name)).toBe(true);
 });
 it("emits once and distinguishes resumed completion from a witnessed transition",()=>{
  const tracker=new StateMilestones({read:()=>Promise.resolve(snapshot(0x8f))});tracker.initialize("save_state");
@@ -23,4 +23,15 @@ it("emits once and distinguishes resumed completion from a witnessed transition"
  expect(tracker.observe(snapshot(0x8f),2).filter(m=>m.name==="DEVON_GOODS_RECOVERED")).toEqual([]);
  const fresh=new StateMilestones({read:()=>Promise.resolve(snapshot(0x8f))});fresh.initialize("save_state");fresh.observe(snapshot(0),1);
  expect(fresh.observe(snapshot(0x8f),2).find(m=>m.name==="DEVON_GOODS_RECOVERED")).toMatchObject({origin:"observed",evidence:[2]});
+});
+
+it("every completion tests its own bit, while every map split validates map identity",()=>{
+ for(const m of PROGRESS_CATALOG) {
+  if(m.flag!==undefined){expect(progressReached(m.name,snapshot(m.flag))).toBe(true);expect(progressReached(m.name,snapshot(m.flag^1))).toBe(false);}
+  if(m.anyFlags!==undefined)for(const bit of m.anyFlags)expect(progressReached(m.name,snapshot(bit))).toBe(true);
+  if(m.map!==undefined) {
+   const reached={...snapshot(0),map_id:[m.map[0]??0,m.map[1]??0] as [number,number],badges:["HEAT"]};
+   expect(progressReached(m.name,reached)).toBe(true);expect(progressReached(m.name,{...reached,map_id:[99,99]})).toBe(false);
+  }
+ }
 });

@@ -262,3 +262,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.
 
 - [move-learn-goal-reminder-v1](move-learn-goal-reminder-v1.html) — tested task reminder after an explicit skip plan; both-arm operator activation.
+
+- [All gym story milestones](all-gym-story-milestones-v1.html) — native story splits, all gym badges and immutable historical recovery.

@@ -15,8 +15,8 @@ RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run ch
 
 ## Status
 - [x] RED/GREEN recipe proof
-- [ ] Gates and review
-- [ ] Landing and future-run configuration proof
+- [x] Gates and review
+- [x] Landing and future-run configuration proof
 
 ## Session log
 - Main base ec19227bc; reuse owned clean campaign worktree on new branch. Direct user approval covers activation; no further permission requested.
@@ -37,3 +37,8 @@ RED generated bundle/control tests, GREEN exact armPreset/armFeatures/dry-run ch
 
 - Final default coverage passes4053agent/1747viewer/4050Python after other test workers exited: agent99.13%lines/92.93%branches/97.61%functions, viewer98.01/91.51/95.10, Python97.37/93.30/100. Previous two failed unchanged-import timeout runs retained; no test timeout/workers/retry/skip/serialization changes. Normal fulltests pass too.
 - Synced source67137a3e5 and docs-onlyevidence7d550557d. Campaign owner released board and permits branch reviews but retains short main/8790 source window for actual campaign launch proof; no main/8790 action until direct release or coordination. Next agreed window is this config activation, then cycle-stop. Final review packet remains only14files:7recipes,6testfiles,worklog; no runtime production changes.
+
+## Landing evidence
+- Frozen source ea42031d306aed516729fc3f9759ca645fe6e90e fast-forward landed from7d550557d under board#1, actual Codex session 00000000-0000-4000-8000-6e66d6c7b105. Packet SHA2566e630a20c916b6d04206afc901eef3f6ef2756984de68ef677ca088acc55b7ef. Claude cloud, fresh isolated Sol GPT, Astra fallback and supplemental integrity all LGTM. Grok fresh usage-limit failure retained; previously verified general human outage waiver applies; reduced family diversity explicit. Review synthesis/receipts retained runs/reviews/earned-progress-bundle-ea42031d3/. No blockers; preexisting positional-test cleanup outside scope.
+- All full branch gates pass as above. Postlanding main just test passes4053agent/1747viewer/4050Python. Actual-main production parse/arm/preset/recorded-feature rehearsal passes seven recipes/eight phases; fake fixed-cli seam proves Mac/GPU overlay clockON and unchanged lane without host accesses. Current source receipt runs/reports/earned-progress-bundle/rehearsal.json and fake-cli-receipt.json. No actual future enabled run_start or gameplay benefit claimed.
+- Campaign owner released source window; direct agreed order CLOCK→minimal viewer restoration repair→CYCLE freeze. Viewer owner explicitly granted exclusive one8790refresh after this evidence commit; live refresh receipt retained separately under runs/reports/earned-progress-bundle/. Protected active identities53193/53718/59194/59608/59717/59718/59806/59807 snapshotted before refresh. Existing continuation reader defect belongs to viewer repair; no claim it is fixed by this config patch. Original2367/3395/34823 naturally absent at review, no survival/cause claim. No currentrun/config/controller/worker edits or game restarts. Global defaults/controls and custom campaign clock remainOFF.

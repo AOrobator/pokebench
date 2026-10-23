@@ -2034,6 +2034,25 @@ describe("POKéMON PARTY page", () => {
     expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("keeps the rich party sample through a mid-frame read and updates its HP afterwards", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    const partial = { ...must(partyRun()[1]), run: must(RUNS[0]).id, seq: 9, party: [], name: null, money: null, play_time_s: null };
+    stream.send("ev", partial);
+    app.render();
+    expect(ui("party").querySelector(".pv")).not.toBeNull();
+    expect(ui("party").textContent).toContain("Last recorded party · state #1");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-slot="1"]')).click();
+    expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 12 of 14"]')).not.toBeNull();
+    stream.send("ev", { ...must(partyRun(3)[1]), run: must(RUNS[0]).id, seq: 10 });
+    app.render();
+    expect(ui("party").textContent).not.toContain("Last recorded party");
+    expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
+  });
+
   it("shows the plain list when the party art was never built", async () => {
     const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
     feed(must(streams[0]), partyRun());

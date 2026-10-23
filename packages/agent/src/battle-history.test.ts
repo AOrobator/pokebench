@@ -4,7 +4,7 @@ import {describe,it,expect} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {checkEvent,type RunEvent} from "./events.js";
 import {featuresOf,type FeatureSet} from "./features.js";
-import {BattleActionHistory} from "./battle-action-history.js";
+import {BattleActionHistory,BATTLE_HISTORY_CONTEXT_CHARS} from "./battle-action-history.js";
 import {contextTools} from "./play-wiring.js";
 
 const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/battle-history-7030.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>checkEvent(JSON.parse(l)));
@@ -31,12 +31,13 @@ describe("native battle history delivery",()=>{
   expect(before).toHaveLength(1);expect(s.notes).toHaveLength(1);expect(s.notes[0]?.evidence).toContain(1744);
  });
  it("retains separate player/foe actions and observed net HP changes, not model damage guesses",async()=>{
-  const s=setup({"battle-action-history-v1":true});s.feed(2171);
+  const s=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});s.feed(2171);
   const out=await s.wired.transformContext(before);
   expect(last(out)).toContain("Player TORCHIC used SCRATCH");
   expect(last(out)).toContain("Foe GEODUDE used DEFENSE CURL");
   expect(last(out)).toContain("33/33 → 31/33 (net -2)");
   expect(last(out)).toContain("31/33 → 30/33 (net -1)");
+  expect(last(out)).toContain("30/33 → 29/33 (net -1)");expect(last(out)).toContain("19/41 → 0/41 (net -19)");expect(last(out)).toContain("HP endpoint 2161 (last delivered battle-page snapshot; final observation 2169)");
   expect(last(out)).toContain("Foe GEODUDE used ROCK TOMB");
   expect(last(out)).not.toContain("Scratch base damage is around 12");
  });
@@ -57,7 +58,9 @@ it("requires a successful current-state receipt and consumes immediate context o
  s.emit({...receipt,state_seq:1});expect(await s.wired.transformContext(before)).toBe(before);
  s.emit(receipt);expect(last(await s.wired.transformContext(before))).toContain("Last observed loss");
  expect(last(await s.wired.transformContext(before))).toContain("Last observed loss");
- s.emit(checkEvent({v:receipt.v,run:receipt.run,t:receipt.t,turn:receipt.turn,type:"assistant",seq:1745,thinking:"",text:"Choose freely",tool_calls:[],stop_reason:"stop",usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null}));
+ const reply={v:receipt.v,run:receipt.run,t:receipt.t,turn:receipt.turn,type:"assistant",seq:1745,thinking:"",text:"Choose freely",tool_calls:[],stop_reason:"stop",usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null};
+ for(const failed of [{...reply,stop_reason:"aborted"},{...reply,seq:1746,stop_reason:"error"},{...reply,seq:1747,error:"transport failure"}]){s.emit(checkEvent(failed));expect(last(await s.wired.transformContext(before))).toContain("Last observed loss");}
+ s.emit(checkEvent({...reply,seq:1748}));
  expect(await s.wired.transformContext(before)).toBe(before);
 });
 it("incomplete identities produce unknown preparation comparisons, never unchanged EXP or moves",async()=>{
@@ -76,16 +79,17 @@ it("evolution, EXP and moves compare by native identity without treating a speci
 it("held-out4637 critical-hit and burn pages keep the move's player/foe side",async()=>{
  const events=gunzipSync(readFileSync(new URL("./fixtures/battle-history-4637.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>checkEvent(JSON.parse(l)));
  for(const [through,expected]of [[5762,"Player move page: A critical hit!"],[5966,"Player move page: A critical hit!"],[6256,"Foe move page: A critical hit!"]] as const){
-  const s=setup({"battle-action-history-v1":true});for(const e of events)if(e.seq<=through)s.emit(e);
+  const s=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});for(const e of events)if(e.seq<=through)s.emit(e);
   const out=last(await s.wired.transformContext(before));expect(out).toContain(expected);expect(out).toContain("attribution to individual moves is unknown");
   if(through===5762)expect(out).toContain("burn");
  }
 });
 
 it("evicts whole oldest action intervals with small injected limits and preserves complete remaining source evidence",()=>{
- const history=new BattleActionHistory({intervals:2,memory:64,pages:8,sources:8});for(const e of EVENTS)history.observe(e);
- const context=history.context();expect(context).not.toBeNull();expect(context?.text).not.toContain("33/33 → 31/33 (net -2)");expect(context?.text).toContain("31/33 → 30/33 (net -1)");expect(context?.evidence.length).toBeLessThanOrEqual(8);expect(history.context(0)).toBeNull();expect(history.context(4)?.evidence.length).toBeLessThanOrEqual(4);
- const bounded=new BattleActionHistory({intervals:2,memory:64,pages:8,sources:4});for(const e of EVENTS)bounded.observe(e);expect(bounded.context()?.evidence.length).toBeLessThanOrEqual(4);
+ expect(BATTLE_HISTORY_CONTEXT_CHARS).toBe(6000);
+ const history=new BattleActionHistory({intervals:2,memory:32,pages:8,sources:12});for(const e of EVENTS)if(e.seq>=2000)history.observe(e);
+ const context=history.context();expect(context).not.toBeNull();expect(context?.text).not.toContain("33/33 → 31/33 (net -2)");expect(context?.text).toContain("31/33 → 30/33 (net -1)");expect(context?.evidence.length).toBeLessThanOrEqual(12);expect(history.context(0)).toBeNull();expect(history.context(12,1)).toBeNull();expect(history.context(5)).toBeNull();
+ const bounded=new BattleActionHistory({intervals:2,memory:32,pages:8,sources:6});for(const e of EVENTS)if(e.seq>=2000)bounded.observe(e);expect(bounded.context()?.evidence).toEqual([2101,2168,2135,2161,2169,2171]);
 });
 it("failed and stale action receipts do not publish pending pages",()=>{
  const pages=eventAt(2064),receipt=eventAt(2066);if(receipt.type!=="tool_result")throw new Error("receipt");
@@ -113,9 +117,37 @@ it("compact tool comparison uses the latest completed attempt even when it won, 
 
 it("changed battler identity or HP limit prevents a damage delta while retaining delivered actions",()=>{
  const after=eventAt(2065);if(after.type!=="state"||!("started"in after)||after.battle?.battlers==null)throw new Error("battle");
- for(const change of ["identity","max_hp"] as const){
+ for(const change of ["identity","max_hp","party_slot","species","absent"] as const){
   const h=new BattleActionHistory();for(const e of EVENTS)if(e.seq>=2000&&e.seq<=2064)h.observe(e);
-  h.observe({...after,battle:{...after.battle,battlers:after.battle.battlers.map(b=>b.position%2===1?{...b,...(change==="identity"?{identity:"synthetic-switched-member"}:{max_hp:99})}:b)}});h.observe(eventAt(2066));
+  h.observe({...after,battle:{...after.battle,battlers:after.battle.battlers.map(b=>b.position%2===1?{...b,...(change==="identity"?{identity:"synthetic-switched-member"}:change==="party_slot"?{party_slot:b.party_slot+1}:change==="species"?{species:"synthetic-other-species"}:change==="absent"?{absent:true}:{max_hp:99})}:b)}});h.observe(eventAt(2066));
   expect(h.context()?.text).toContain("Player TORCHIC used SCRATCH");expect(h.context()?.text).not.toContain("33/33 → 31/33 (net -2)");expect(h.context()?.text).toContain("no comparable HP delta");
  }
+});
+
+it("an existing last-loss comparison remains available in a later battle even if no immediate note was consumed",()=>{
+ const s=setup({"leader-loss-immediate-v1":true});s.feed(1744);
+ const battle=eventAt(2045);if(battle.type!=="state"||!("started"in battle))throw new Error("native battle choice");
+ expect(s.wired.training?.block(battle)).toContain("Last observed loss to GYM LEADER ROXANNE");
+});
+
+it("held-out native wild MUDKIP/ZIGZAGOON pages retain player and foe sides",async()=>{
+ const events=gunzipSync(readFileSync(new URL("./fixtures/battle-history-wild-0d5d.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>checkEvent(JSON.parse(l)));
+ const s=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});for(const e of events)s.emit(e);
+ const text=last(await s.wired.transformContext(before));expect(text).toContain("Player MUDKIP used TACKLE");expect(text).toContain("Foe ZIGZAGOON used GROWL");expect(text).not.toContain("Unknown side Wild");
+});
+
+it("uses a prior native nickname in fast snapshots and keeps foe-like player nicknames ambiguous",()=>{
+ for(const [nickname,side]of [["PEBBLE","Player"],["Foe RALTS","Unknown side"]] as const){
+  // Explicit synthetic nickname-only edge: valid Emerald names and TORCHIC's observed SCRATCH.
+  const state=eventAt(2062),pages=eventAt(2064);if(state.type!=="state"||!("started"in state)||pages.type!=="dialogue_auto_advance")throw new Error("native nickname base");
+  const h=new BattleActionHistory();h.observe({...state,party:state.party.map((p,i)=>i===0?{...p,nickname}:p)});h.observe(eventAt(2063));
+  const used=pages.pages.find(p=>p.text.includes("used"));if(used===undefined)throw new Error("native used page");
+  h.observe({...pages,pages:[{...used,text:`${nickname} used\nSCRATCH!`}]});h.observe(eventAt(2065));h.observe(eventAt(2066));
+  expect(h.context()?.text).toContain(`${side} ${nickname} used SCRATCH!`);expect(h.context()?.evidence).toContain(2062);
+ }
+});
+
+it("missing player names leave a printed foe-like actor uncertain while native player species remains identifiable",()=>{
+ const h=new BattleActionHistory();h.observe(eventAt(2063));h.observe(eventAt(2064));h.observe(eventAt(2065));h.observe(eventAt(2066));
+ expect(h.context()?.text).toContain("Player TORCHIC used SCRATCH");expect(h.context()?.text).toContain("Unknown side Foe GEODUDE used DEFENSE CURL");
 });

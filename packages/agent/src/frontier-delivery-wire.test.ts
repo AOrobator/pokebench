@@ -151,3 +151,21 @@ it.each(["full","jit","jit-v2"] as const)("puts native7030 loss in the FIRST pin
  expect(events.filter(e=>["tool_call","button_press","native_action"].includes(e.type))).toEqual([]);
  console.log(`Immediate native loss delivery proof: ${r.log.eventsPath}`);
 });
+
+it("shares the native attempt owner and delivers compact preparation through the production tool wrapper with immediate feedback OFF",async()=>{
+ const historical=gunzipSync(readFileSync(new URL("./fixtures/battle-history-7030.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ const native=historical.find(e=>e.seq===1742);if(native?.type!=="state"||!("started"in native))throw new Error("native completed attempt");
+ const fields=Object.fromEntries(Object.entries(native).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key)));
+ // Explicitly synthetic gym-location projection of the native field observation; no new game outcome.
+ const current={...parseGameState(fields),location:"RUSTBORO CITY GYM"};
+ const features={...featuresOf([]),"leader-loss-comparison-v1":true,"leader-preparation-comparison-v1":true};
+ const r=recording(()=>current,"compact-tool-owner"),subscribers:((e:RunEvent)=>void)[]=[];
+ const subscribe=r.recorder.subscribe.bind(r.recorder);r.recorder.subscribe=fn=>{subscribers.push(fn);subscribe(fn);};
+ const wiring=contextTools(features,r.recorder,r.recorder.transformContext);
+ const observe:AgentTool={name:"observe",label:"Observe",description:"offline native projection",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Synthetic gym-location projection"}],details:{state:current}})};
+ const tools=playGameTools([observe],features,{read:()=>Promise.resolve(current)},r.recorder,undefined,wiring.tools,wiring.training);
+ expect(subscribers).toHaveLength(1);
+ for(const e of historical)if(e.seq<=1744)for(const fn of subscribers)fn(e);
+ const out=await deliver(r,tools,features,"observe",{},["Preparation since last completed ROXANNE attempt","EXP unchanged","Opponents last observed during that attempt"]);
+ expect(out.delivered).not.toContain("Moves at battle start:");
+});

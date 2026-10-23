@@ -7,7 +7,7 @@
 // - leader-attempt-ledger-v1: each battle with a GYM LEADER (trainer class LEADER) this run, side by side.
 // - seen-trainers-ledger-v1: the trainers heal-before-trainers-v2 listed on each map the player stood on, with
 //   the game's trainer flag.
-import {BattleActionHistory} from "./battle-action-history.js";
+import {BattleActionHistory,BATTLE_HISTORY_CONTEXT_CHARS} from "./battle-action-history.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
 import {battleDecision,withAppendedBlock} from "./effectiveness-heard.js";
@@ -76,7 +76,7 @@ export class TrainingBlock {
 
  observe(event:RunEvent):void {
   if(this.features["battle-action-history-v1"])this.actions.observe(event);
-  if(event.type==="assistant"&&event.stop_reason!=="error"&&event.error===undefined&&this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
+  if(event.type==="assistant"&&event.stop_reason!=="error"&&event.stop_reason!=="aborted"&&event.error===undefined&&this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
   if(event.type==="state"){this.latest="started" in event?event:null;this.receipt=null;}
   if(event.type==="tool_result"||event.type==="decision_input")this.receipt=(event.type==="decision_input"||!event.is_error)&&this.latest!==null&&event.state_seq===this.latest.seq?event.seq:null;
   if(event.type==="state"&&"started" in event){this.state(event);return;}
@@ -314,7 +314,7 @@ export class TrainingBlock {
    parts.push(...this.lossPart(state,true));this.offeredLoss=latest.endSeq;
    evidence.push(latest.startSeq,...(latest.endSeq===null?[]:[latest.endSeq]),...[...latest.foes.values()].map(f=>f.seq),...latest.messageSources.values(),...latest.effectivenessSources.values());
   }
-  const actions=this.features["battle-action-history-v1"]?this.actions.context(64-new Set(evidence).size):null;
+  const actions=this.features["battle-action-history-v1"]?this.actions.context(64-new Set(evidence).size,BATTLE_HISTORY_CONTEXT_CHARS-parts.join("\n").length-(parts.length===0?0:1)):null;
   if(actions!==null){parts.push(actions.text);evidence.push(...actions.evidence);}
   return parts.length===0?null:{text:parts.join("\n"),evidence:[...new Set(evidence)]};
  }
@@ -336,7 +336,7 @@ export class TrainingBlock {
  private toolLoss(s:Snapshot):string[] {
   const last=[...this.leaders.values()].flat().filter(b=>b.done).sort((a,b)=>(b.endSeq??0)-(a.endSeq??0))[0];
   // The context path supplies this same comparison once before the first post-loss decision.
-  if(this.features["leader-loss-immediate-v1"]&&last?.outcome==="lost"&&last.endSeq!==this.consumedLoss)return [];
+  if(this.features["leader-loss-immediate-v1"]&&last?.outcome==="lost"&&last.endSeq!==this.consumedLoss&&field(s))return [];
   return this.lossPart(s);
  }
 

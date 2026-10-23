@@ -1,3 +1,4 @@
+import {easternTimestamp} from "./run-log.js";
 import {randomUUID} from "node:crypto";
 import type {Message} from "@mariozechner/pi-ai";
 import {CampaignController,digest,freezeBatch,type CampaignJob,type CampaignPhase} from "./roxanne-campaign.js";
@@ -48,7 +49,7 @@ function anonymousMessages(messages:readonly Message[],receipt:ReminderReceipt|n
 function anonymousTrace(trace:EpisodeTrace,id:string):EpisodeTrace{
  if(trace.kind==="fixture")return trace;
  return {...trace,startedAtMs:0,events:trace.events.filter(e=>e.type!=="run_start").map(event=>{
-  const e={...event,run:id,t:new Date(Date.parse(event.t)-trace.startedAtMs).toISOString()};
+  const e={...event,run:id,t:easternTimestamp(new Date(Date.parse(event.t)-trace.startedAtMs))};
   switch(e.type){
    case "turn_start":return {...e,context:{messages:0,images:0,est_tokens:0}};
    case "assistant":{const behavior={...e};delete behavior.request_context;return {...behavior,usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null};}

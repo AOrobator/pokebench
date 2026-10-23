@@ -54,3 +54,20 @@ it("does not relabel an inside level gain as outside preparation when a differen
  const leveled=mon({level:16}),b=mon({identity:"b"});
  expect(scoreRecovery([frame(1),frame(2,{party:[leveled],roxanneBattle:true}),frame(3,{map:[0,3],party:[leveled]}),frame(4,{map:[0,3],party:[leveled,b]}),frame(5,{map:[0,3],party:[leveled]}),frame(6,{party:[leveled],roxanneBattle:true})])).toMatchObject({verified:true,eventualRecovery:false});
 });
+
+it.each([
+ ["member",[mon(),mon({identity:"b"})]],
+ ["level",[mon({level:16})]],
+ ["evolution",[mon({species:281})]],
+ ["moves",[mon({moves:[24,45,116,52]})]],
+] as const)("requires the acquired outside %s capability at rematch",(kind,party)=>{
+ const outside=frame(2,{map:[0,3],party}),retained=frame(3,{party,roxanneBattle:true});
+ expect(scoreRecovery([frame(1),outside,retained])).toMatchObject({strictRecovery:true,changes:[kind]});
+ // A distinct gym-only move cannot borrow the discarded outside gain.
+ const inside=kind==="moves"?mon({level:16}):mon({moves:[24,45,116,52]});
+ expect(scoreRecovery([frame(1),outside,frame(3,{map:[0,3]}),frame(4,{party:[inside],roxanneBattle:true})])).toMatchObject({strictRecovery:false,eventualRecovery:false});
+ if(kind==="evolution")expect(scoreRecovery([frame(1),frame(2,{map:[0,3]}),frame(3,{party,roxanneBattle:true})])).toMatchObject({strictRecovery:false});
+});
+it("retains an observed native victory on the incoherent frame itself",()=>{
+ expect(scoreRecovery([frame(1),frame(2,{coherent:false,victory:true})])).toMatchObject({verified:false,strictRecovery:false,eventualRecovery:false,victory:true});
+});

@@ -59,20 +59,23 @@ it.each(["ram","identity","moves","diagnostic","map"] as const)("preserves a sch
  expect(()=> {verifyEpisodeOutcome({...job("b"),capMs:1_800_000},{...o,traceHash:episodeTraceHash(o)},"measured");}).toThrow(/recomputed/);
 });
 it("blinds realistic usage and actual recorder context telemetry at the grade consumer while retaining originals",async()=>{
- const {mkdtempSync,readFileSync,rmSync}=await import("node:fs"),{tmpdir}=await import("node:os"),{join}=await import("node:path"),{gunzipSync}=await import("node:zlib"),{checkEvent,parseEvent}=await import("./events.js"),{recoveryFrames}=await import("./roxanne-score.js"),{RunLog}=await import("./run-log.js"),{RunRecorder}=await import("./recorder.js"),{FrameStore}=await import("./frames.js"),{RUN_START_META}=await import("../test-support/events.js"),{assistant}=await import("../test-support/pi.js");
+ const {mkdtempSync,readFileSync,rmSync}=await import("node:fs"),{tmpdir}=await import("node:os"),{join}=await import("node:path"),{gunzipSync}=await import("node:zlib"),{checkEvent,parseEvent}=await import("./events.js"),{recoveryFrames}=await import("./roxanne-score.js"),{RunLog,easternTimestamp}=await import("./run-log.js"),{RunRecorder}=await import("./recorder.js"),{FrameStore}=await import("./frames.js"),{RUN_START_META}=await import("../test-support/events.js"),{assistant}=await import("../test-support/pi.js");
  const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(raw))throw new Error("invalid recording");const archived=raw.map(checkEvent),first=archived.find(e=>e.seq===17303);if(first===undefined)throw new Error("missing start");
  const dir=mkdtempSync(join(tmpdir(),"roxanne-blind-")),originals:import("./roxanne-campaign-runner.js").EpisodeOutcome[]=[];
  try{
  const c=new CampaignController(new MemoryCampaignStore(createCampaign("blind-seam",0)));
  const host:EpisodeHost={mode:"measured",now:()=>0,acquire:()=>Promise.resolve(()=>Promise.resolve()),deadline:()=>()=>undefined,episode:async j=>{
-  const delivered=insertReminder([{role:"user",content:"original history",timestamp:123}],j.arm!=="baseline","secret reminder");
-  const reply=assistant({text:"same action",input:j.arm==="baseline"?100:104,output:10});
-  const log=RunLog.create(dir,`2026-10-11T22-00-00_blind_${j.id}`),rec=new RunRecorder({log,frames:new FrameStore(dir,1000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.reject(new Error("no game calls"))},now:()=>0});
-  log.append({type:"run_start",turn:0,...RUN_START_META});await rec.transformContext([...delivered.messages]);rec.recordRequestContext({mode:"full",scene:"overworld",state_seq:null,system_prompt:"same core",prompt_sha256:digest(j.arm),tools:[],tools_sha256:digest([]),component_chars:{core_text:9,guidance_text:0,canonical_history_json:j.arm==="baseline"?100:116}});await rec.emit({type:"message_end",message:reply});
-  const telemetry=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).filter(e=>e.type==="turn_start"||e.type==="assistant").map(e=>({...e,t:first.t}));
-  const trace={kind:"native" as const,events:[...telemetry,...archived],startSeq:17303,startedAtMs:Date.parse(first.t)};
+  const shift=j.arm==="baseline"?20000:10000,epoch=Date.parse(first.t)+shift;let tick=0;
+  const delivered=insertReminder([{role:"user",content:"original history",timestamp:epoch+5}],j.arm!=="baseline","secret reminder");
+  const reply={...assistant({text:"same action",input:j.arm==="baseline"?100:104,output:j.arm==="baseline"?10:12}),timestamp:epoch+10};
+  const log=RunLog.create(dir,`2026-10-11T22-00-00_blind_${j.id}`,()=>new Date(epoch)),rec=new RunRecorder({log,frames:new FrameStore(dir,1000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.reject(new Error("no game calls"))},now:()=>tick});
+  log.append({type:"run_start",turn:0,...RUN_START_META});await rec.transformContext([...delivered.messages]);rec.recordRequestContext({mode:"full",scene:"overworld",state_seq:null,system_prompt:"same core",prompt_sha256:digest(j.arm),tools:[],tools_sha256:digest([]),component_chars:{core_text:9,guidance_text:0,canonical_history_json:j.arm==="baseline"?100:116}});tick=j.arm==="baseline"?40:20;await rec.emit({type:"message_update",message:reply,assistantMessageEvent:{type:"text_delta",contentIndex:0,delta:"same action",partial:reply}});tick*=3;await rec.emit({type:"message_end",message:reply});
+  log.append({type:"compaction",turn:1,from_tokens:reply.usage.input,to_tokens:reply.usage.input/2});rec.end("budget");
+  const telemetry=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).filter(e=>["turn_start","assistant","compaction","run_end"].includes(e.type));
+  const trace={kind:"native" as const,events:[...telemetry,...archived.map(e=>({...e,t:easternTimestamp(new Date(Date.parse(e.t)+shift))}))],startSeq:17303,startedAtMs:epoch};
   const o={reason:"budget",messages:[...delivered.messages,reply],reminder:delivered.receipt,trace,nativeScore:scoreRecovery(recoveryFrames(trace.events,17303))};return {...o,traceHash:episodeTraceHash(o)};
  },record:(_id,o)=>{originals.push(o);return Promise.resolve();},grade:rows=>{
+  for(const row of rows)if(row.trace.kind==="native")row.trace.events.forEach(checkEvent);
   const comparable=rows.map(r=>({...r,id:"anonymous",traceHash:"projection",trace:r.trace.kind==="native"?{...r.trace,events:r.trace.events.map(e=>({...e,run:"anonymous"}))}:r.trace}));
   expect(comparable[0]).toEqual(comparable[1]);expect(rows.every(r=>r.traceHash!==originals[0]?.traceHash&&r.traceHash!==originals[1]?.traceHash)).toBe(true);
   return Promise.resolve({hash:gradeDigest(rows.map(r=>r.id)),ids:rows.map(r=>r.id)});

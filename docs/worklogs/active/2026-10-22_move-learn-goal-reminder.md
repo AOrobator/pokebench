@@ -25,3 +25,21 @@ Reuses learn-move.ts ownership recognizer through moveLearningChoice instead of 
 Deterministic gates: all agent4884 and viewer1811 tests pass under coverage with30s Vitest timeout; unchanged map-cycle fixture validates600native-shaped states and exceeds default5s under instrumentation. Default-timeout failures retained, no tests skipped or thresholds changed. Python first attempt lacked POKEBENCH_ROM; rerun with repository.env. Lint initially lacked isolated mGBA binding; canonical installed binding linked into isolated venv (samePython3.11), then TypeScript/eslint/ruff/mypy pass. Build and vendor check pass. Final full gate receipts to follow.
 
 GREEN implementation commit ae11af581. Source pin updated to that implementation commit before frozen review. Only new reminder is onInBoth; no existing five-switch arm assignment changes. Standing Grok outage exception confirmed by coordinator from operator10:47EDT: "land without grok"; selected review roster Claude + GPT + distinct cloud Sonnet fallback, no local inference.
+
+Scope audit: two2h recipes previously inherited settle/question/comparison true in control. Operator19:55 "only ... reminder in control" requires moving those three to their bundle switch lists and setting base false. All five move-learning switches now ON only in bundle across all five canonical recipes. Current frozen active run remains untouched. Factory test failed on the inherited mismatch before correction.
+
+Offline proof: 5438 original80cb events schema-validated through#5437; with and without comparison, production context factory preserves all prior messages and appends exact tested text. Native CPU reset with all five switches OFF still reports a ready evolution_move_learning state2 and original learner identity. Browser clicked historical card→explainer→expanded reminder at1280/1440/375; historical badge staysNOTRECORDED (no retroactive activation).
+
+## Final pre-review qualification
+
+- Full `just test`: agent4889, viewer1811, Python4013 passed (no skips in configured native environment).
+- TypeScript coverage with30s instrumentation timeout: both stacks passed >=90% gates. Python coverage4013passed: lines97.41%, branches93.48%, functions100%; floor90 unchanged.
+- `just lint`, `just build`, `just verify-vendor`, explainer pages-check passed.
+- Six independent guard deletions (OFF, prior claim, same state, successful result, native choice owner, duplicate suppression) each produced assertion failures; restored19focused tests pass. Receipts runs/reviews/move-learn-goal-reminder/mutations-v2.
+- Production native-source replay and actual pinned piLoop provider boundary verified exact final user reminder with zero network calls. A CPU-native reset confirms ready choice ownership with all five optional switchesOFF.
+- Headless browser card→explainer→expanded reminder passed1280/1440/375, screenshots opened. Preview historical status correctly NOTRECORDED. Current main has not moved and shared8790not restarted.
+- `experiments-check` finds exactly150pre-existing malformed starter-decision-salience ledger rows on baseline and branch, zero new problems; reminder definition individually parses, is pending, not queued, flips only its flag.
+
+### STOP — unresolved operator recipe choice
+
+Coordinator20:05hold: two2h controls already had settle/question/comparison ON. Await operator decision to preserve those three or turn themOFF. The threeOFF variant is concrete in this branch; preserving existing requires restoring only those two recipe bases/switch memberships and adjusting the factory test. Primary chat async question also presents both choices. No inference or landing while held. Requested temporary global main hold was released so other branches can proceed. Review principles PB9 staysFAIL and external review has not started; remove this STOP only on explicit operator answer.

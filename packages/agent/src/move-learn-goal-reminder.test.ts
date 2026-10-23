@@ -32,4 +32,8 @@ describe(ID,()=>{
 
  it("delivers in control without requiring the five bundle-only readouts or tools",async()=>{const s=setup(true);s.emit(s.claim);s.emit(s.state);s.emit({...s.result,text:"Interface: evolution_move_learning; input ready"});expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:REMINDER});});
 
+ it.each([1,2])("recognizes initial native move-learning page %i",async move_learning_state=>{const s=setup(true);s.ui.details={...s.ui.details,move_learning_state};s.emit(s.claim);s.emit(s.state);s.emit(s.result);expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:REMINDER});});
+ it.each(["I will skip learning new moves","I will keep the current moveset"])("records an explicit earlier plan: %s",async thinking=>{const s=setup(true);s.emit({...s.claim,thinking});s.emit(s.state);s.emit(s.result);expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:REMINDER});});
+ it("does not treat a rejected skip plan as a prior instruction",async()=>{const s=setup(true);s.emit({...s.claim,thinking:"I will not skip learning new moves."});s.emit(s.state);s.emit(s.result);expect(await s.wired.transformContext(messages)).toBe(messages);});
+
 });

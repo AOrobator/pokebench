@@ -33,7 +33,8 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 - [x] GREEN implementation, registry, presets, bundle-arm definitions (both switches registered and added to the bundle arm of the 7 current definitions; screen-center has no behavior until M2). Agent 4062 pass, viewer 1752 pass, Python 4055 pass (worktree venv needed the main venv's mgba package copied in for test_view and mypy). Wiring deletions: removing `elevation` from toolSwitches fails 4/9 TS tests; forcing the readout gate off fails 1/5 Python tests; both restored green. Registry-position tests shifted by two.
 - Not covered (sent to coordinator for Codex): navigate_to occupancy across layers (AreElevationsCompatible); state objects carry no elevation.
 **M1b — cross-level occupancy (elevation-aware-map-v1)**
-- [ ] RED: state 127085, goal (16,71) under the layer-4 cyclist: ON plans DOWN DOWN LEFT, OFF keeps the refusal
+- COMMIT: `feat(screen-center-player): ...` (0c7235456)
+- [x] RED: state 127085, goal (16,71) under the layer-4 cyclist: ON plans DOWN DOWN LEFT, OFF keeps the refusal (TS 2 fail, Python 2 fail)
 - [ ] GREEN: server object elevations; planner uses AreElevationsCompatible at the walker's planned elevation
 **M2 — screen-center-player-v1**
 - [x] RED tests (prompt sentence, cover note from archive 21953 layer facts, OFF invariance): TS 2 fail / 1 pass (registry already in), Python collection error

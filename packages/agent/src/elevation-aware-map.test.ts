@@ -6,6 +6,8 @@ import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { toolSwitches } from "./play-config.js";
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { pressResult } from "./press-result.js";
+import { planNavigation, withNavigation } from "./navigation.js";
+import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 
 const ID = "elevation-aware-map-v1";
 
@@ -60,5 +62,53 @@ describe("elevation-aware-map-v1 registry and wiring", () => {
   it("the production tool switches carry it", () => {
     expect(toolSwitches(on(recordedFeatures)).elevation).toBe(true);
     expect(toolSwitches(recordedFeatures).elevation).toBe(false);
+  });
+});
+
+// State 127085 (turn 1098, ROUTE110): the player at (17,69) on elevation 3 under the road; the
+// CYCLING_TRIATHLETE_F (object 8) rides at (16,71) on elevation 4 (its interaction candidate's
+// elevation; the recorded state predates object elevations in navigation_grid).
+describe("elevation-aware-map-v1: an object on another level does not occupy the walker's tile", () => {
+  const recorded = at(127086).after;
+  const grid = recorded.navigation_grid;
+  if (grid == null) throw new Error("no grid");
+  const layered: GameStateSnapshot = { ...recorded, navigation_grid: { ...grid, objects: grid.objects.map(o => ({ ...o, elevation: o.x === 16 && o.y === 71 ? 4 : 3 })) } };
+  const goal = { x: 16, y: 71 };
+  const options = { ledges: true, oneWay: true, floor: true, elevation: "game" as const };
+  it("plans DOWN DOWN LEFT under the cyclist with the switch, and refuses as before without it", () => {
+    expect(planNavigation(layered, goal, { ...options, actorElevation: true })).toEqual(["DOWN", "DOWN", "LEFT"]);
+    expect(planNavigation(layered, goal, options)).toBeNull();
+    expect(planNavigation(recorded, goal, { ...options, actorElevation: true })).toBeNull();
+  });
+  it("an object at elevation 0 or at the walker's elevation still blocks", () => {
+    for (const elevation of [0, 3]) {
+      const same: GameStateSnapshot = { ...layered, navigation_grid: { ...grid, objects: grid.objects.map(o => ({ ...o, elevation })) } };
+      expect(planNavigation(same, goal, { ...options, actorElevation: true })).toBeNull();
+    }
+  });
+  it("withNavigation hands the switch to navigate_to, which walks under the cyclist", async () => {
+    const walk = async (features: FeatureSet): Promise<{ presses: string[][]; status: string }> => {
+      let current = layered; const presses: string[][] = [];
+      const step = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] } as const;
+      const press = (_id: string, params: { buttons: string[] }, _signal?: AbortSignal, check?: (s: GameStateSnapshot | undefined) => void): Promise<AgentToolResult<unknown>> => {
+        check?.(current); presses.push(params.buttons);
+        const [dx, dy] = step[params.buttons[0] as keyof typeof step];
+        const p = current.position;
+        if (p !== null) current = { ...current, position: { x: p.x + dx, y: p.y + dy }, facing: (params.buttons[0] ?? "down").toLowerCase() as GameStateSnapshot["facing"] };
+        return Promise.resolve({ content: [{ type: "text", text: "observed" }], details: { state: current } });
+      };
+      const observe = { name: "observe", label: "observe", description: "observe", parameters: {}, execute: () => Promise.resolve({ content: [{ type: "text", text: "observed" }], details: { state: current } }) } as unknown as AgentTool;
+      const pressTool = { name: "press", label: "press", description: "press", parameters: {}, execute: press, executeChecked: press } as unknown as AgentTool;
+      const nav = withNavigation([observe, pressTool], features, { read: () => Promise.resolve(current) }).find(t => t.name === "navigate_to");
+      if (nav === undefined) throw new Error("no navigate_to");
+      const out = await nav.execute("nav", { ...goal, map_id: [0, 25], walking: true });
+      return { presses, status: (out.details as { navigation: { status: string } }).navigation.status };
+    };
+    const base: FeatureSet = { ...recordedFeatures, "trainer-sight-check-v1": false, "story-battle-heal-gate-v1": false, "safe-navigation-strides-v1": false };
+    const onWalk = await walk(on(base));
+    expect(onWalk.presses.map(b => b[0])).toEqual(["DOWN", "DOWN", "LEFT"]);
+    expect(onWalk.status).toBe("arrived at requested coordinate");
+    const offWalk = await walk(base);
+    expect(offWalk.presses).toEqual([]);
   });
 });

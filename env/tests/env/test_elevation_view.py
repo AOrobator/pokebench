@@ -116,3 +116,35 @@ def test_switch_is_registered_server_side_and_default_off():
     assert SWITCH == "elevation-aware-map-v1"
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
+
+
+def test_state_json_gives_each_grid_object_its_elevation_only_when_read():
+    from pokebench_env.readout import state_json
+
+    local = replace(route110(), objects=((8, 16, 71),))
+    s = replace(IN_GAME, position=(17, 69), nearby=local, player_elevation=3)
+    off = state_json(s)["navigation_grid"]
+    on = state_json(replace(s, object_elevations=((16, 71, 4),)))["navigation_grid"]
+    assert off["objects"] == [{"x": 16, "y": 71}]
+    assert on["objects"] == [{"x": 16, "y": 71, "elevation": 4}]
+
+
+def test_object_elevations_come_from_each_loaded_objects_current_elevation():
+    import struct
+
+    from pokebench_env.elevation_view import read_object_elevations
+
+    cells = bytearray(16 * 0x24)
+    for slot, (active, local, x, y, elevation) in enumerate(((1, 8, 16, 71, 4), (0, 9, 1, 1, 3))):
+        body = bytearray(0x24)
+        body[0] = active
+        body[8], body[9], body[10] = local, 25, 0
+        body[0x0B] = (elevation << 4) | elevation
+        struct.pack_into("<hh", body, 0x10, x + 7, y + 7)
+        cells[slot * 0x24 : (slot + 1) * 0x24] = body
+
+    def read(address: int, size: int) -> bytes:
+        offset = address - 0x02037350
+        return bytes(cells[offset : offset + size])
+
+    assert read_object_elevations(read, (0, 25)) == ((16, 71, 4),)

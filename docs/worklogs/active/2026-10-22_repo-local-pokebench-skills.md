@@ -18,3 +18,9 @@ The decision-probe source includes the general-wording/specific-error-correction
 Global copies remain in place until the canonical checkout contains the replacements, avoiding disruption to the parent thread or other active chats. Do not replace them with global symlinks: that would keep project skills globally discoverable.
 
 Pre-review source refresh: global decision-probes SKILL.md changed after the captured inventory. Preserved the concurrent strengthened pilot-first standing instruction verbatim in the repository copy; retained the portable report path. Other captured source files unchanged. Fresh pre-retirement inventories will be checked before moving globals to backup.
+
+## Parent landing qualification
+
+Refreshed source inventories confirm all three full folders and exactly three portability edits, plus preserved concurrent pilot-first instruction. Global cross-model differs only in the reconciled routing reference; all other files match. Fourteen relative links resolve within an independent copy; both helper CLI entrypoints execute through those relocated links and all nine tests pass there. Three quick_validate checks pass. No project runtime/recipes changed.
+
+Full configured just test: agent4889, viewer1811, native Python4013 pass. First native attempt ran before the worktree ROM/binding setup was complete and failed/skipped; receipt retained, no tests changed, configured rerun passes. Build/lint/vendor pass. TypeScript >=90% coverage passes with30s instrumentation timeout; Python configured coverage gate passes >=90. Initial Python coverage invocation used wrong working directory/CLI shape; retained as failed attempt, correct env-local command passes. No exclusions, threshold changes, retries or skips introduced. Deterministic receipts /tmp/local-skills-* and ignored runs/reviews/repo-local-pokebench-skills. Frozen review follows.

@@ -1458,3 +1458,9 @@ it("serves the map-cycle recovery explainer byte for byte",async()=>{
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(source)).toBe(true);
 });
+
+it("serves the move-learning goal reminder explainer byte for byte from its card mapping",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="move-learn-goal-reminder-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+});

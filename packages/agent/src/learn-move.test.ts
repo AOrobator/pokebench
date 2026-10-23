@@ -309,8 +309,8 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(LEARN_MOVE_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"LEARN MOVE TOOL"});
   expect(featureInfo(LEARN_MOVE_ID).description).toContain(" Off: no learn_move tool and no prompt section.");
-  expect(SWITCHABLE_FEATURES.at(-30)).toBe(LEARN_MOVE_ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-30)?.id).toBe(LEARN_MOVE_ID);
+  expect(SWITCHABLE_FEATURES.at(-31)).toBe(LEARN_MOVE_ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-31)?.id).toBe(LEARN_MOVE_ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-9)).toBe(LEARN_MOVE_ID);
   expect(SERVER_FEATURES).not.toContain(LEARN_MOVE_ID);
   expect(BASE[LEARN_MOVE_ID]).toBe(false);

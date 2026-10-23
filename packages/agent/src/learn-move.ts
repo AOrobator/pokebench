@@ -97,6 +97,13 @@ function view(s:GameStateSnapshot):View {
  return {kind:"other"};
 }
 
+// Shared recognition for the goal reminder; prompt ownership stays with this tool.
+export function moveLearningChoice(s:GameStateSnapshot):boolean {
+ const v=view(s),learner=learnerOf(s,null);
+ if(learner?.moves.includes(learner.newMove))return false;
+ return v.kind==="box"||v.kind==="forget"||(v.kind==="page"&&(v.mvstate===1||v.mvstate===2));
+}
+
 // The two pages before "Delete a move to make room for …?": MVSTATE 1/2 in the evolution scene, the game's words in battle.
 function learnPage(v:View,l:Learner):boolean {
  if(v.kind!=="page")return false;

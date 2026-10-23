@@ -596,6 +596,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "delivered-place-evidence-v1":"delivered-place-evidence-v1.html",
  "coherent-battle-observation-v1":"coherent-battle-observation-v1.html",
  "map-cycle-recovery-v1":"map-cycle-recovery-v1.html",
+ "move-learn-goal-reminder-v1":"move-learn-goal-reminder-v1.html",
  "random-starter-v1":"random-starter-v1.html",
 });
 

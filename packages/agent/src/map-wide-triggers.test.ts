@@ -15,8 +15,8 @@ const ID="map-wide-triggers-v1" as const;
 
 describe("registry",()=>{
  it("is the server's last switch: a default-off server observation that needs coordinate-script-conditions-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-41)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-41)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-42)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-42)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-17)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-10)).toBe(ID);

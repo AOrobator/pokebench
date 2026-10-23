@@ -389,3 +389,6 @@ Pending, not queued. Correctness repair: native proof and regression coverage be
 | Switch | Activation milestone | Verdict | Evidence |
 | --- | --- | --- | --- |
 | `random-starter-v1` | `PLAYER_NAME_CONFIRMED` (exposure is the starter bag) | NOT A TREATMENT: never queued | Data-collection switch (the operator 2026-10-22: long-play data on Treecko and Mudkip). Default off everywhere; used only by the one-arm fixed run `random-starter-2h`. |
+
+## move-learn-goal-reminder-v1
+Pending, no queue or launch. Native known-context100trial confirmation:86acquired14declined, no failures. STARTER_CHOSEN is the earliest native bound; exposure requires an actual move choice, displayed comparison, earlier explicit skip plan. Broad held-out evidence mixed; full gameplay benefit unproven. Operator explicitly approved both-arm promotion.

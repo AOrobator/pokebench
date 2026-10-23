@@ -1,0 +1,8 @@
+{
+  "source_run": "2026-10-23T11-15-02_qwen36-gpu1_7030",
+  "source_sha": "d4bda4eb0cd64aa4df8239b44467cb4629e806c7",
+  "source_file_sha256": "092a51eec3bb4fbee3d681c24f129841dd5a350de96437fdd7975c8bfc2d1376",
+  "selection": "state/dialogue_auto_advance/tool_result/battle_choice/native_action seq1580..1744 and2000..2171; original rows unchanged",
+  "event_count": 262,
+  "fixture_sha256": "aa0c73d3d7a67f0d3b8ec9a4f04f2d201ad205ab53a337aba5c5588c2b90233f"
+}

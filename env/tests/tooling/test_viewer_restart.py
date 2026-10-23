@@ -17,7 +17,7 @@ import http.server, sys
 port = int(sys.argv[sys.argv.index("--port") + 1])
 class Ok(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200); self.end_headers(); self.wfile.write(b"[]")
+        self.send_response(200 if self.path == "/api/run-lanes" else 404); self.end_headers(); self.wfile.write(b"[]")
     def log_message(self, *args):
         pass
 http.server.HTTPServer(("127.0.0.1", port), Ok).serve_forever()

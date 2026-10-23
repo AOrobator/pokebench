@@ -1,9 +1,12 @@
+import {blindGradeWindows,type GradeWindow} from "./roxanne-grading.js";
+import {verifiedTransitionSamples,type TransitionProof} from "./roxanne-native-transitions.js";
 import {easternTimestamp} from "./run-log.js";
 import {randomUUID} from "node:crypto";
 import type {Message} from "@mariozechner/pi-ai";
 import {CampaignController,digest,freezeBatch,type CampaignJob,type CampaignPhase} from "./roxanne-campaign.js";
 import {maskIntervention,type ReminderReceipt} from "./roxanne-restore.js";
 import {scoreRecovery,scoreReadiness,recoveryFrames,type RecoveryScore,type RecoveryFrame} from "./roxanne-score.js";
+import type {GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
 export const INITIAL_PROMPTS={
@@ -18,7 +21,7 @@ export function revise(parent:Candidate,diagnosis:Diagnosis,evidence:readonly st
  if(parent.parent!==null||diagnosis==="none"||evidence.length===0)throw new Error("one evidenced revision round only");
  return candidate(`${parent.id}-r1`,`${parent.text}\n\n${revisions[diagnosis]}`,parent.id,evidence);
 }
-export type EpisodeTrace={readonly kind:"native";readonly events:readonly RunEvent[];readonly startSeq:number;readonly startedAtMs:number}|{readonly kind:"fixture";readonly frames:readonly RecoveryFrame[]};
+export type EpisodeTrace={readonly kind:"native";readonly events:readonly RunEvent[];readonly startSeq:number;readonly startedAtMs:number;readonly transitionProof?:TransitionProof;readonly gradeWindows?:readonly GradeWindow[];readonly initialObservation?:{readonly snapshot:GameStateSnapshot;readonly historyMessages?:number;readonly restoreHash:string;readonly stateSha1:string}}|{readonly kind:"fixture";readonly frames:readonly RecoveryFrame[]};
 export interface EpisodeOutcome{readonly trace:EpisodeTrace;readonly reason:string;readonly traceHash:string;readonly messages:readonly Message[];readonly reminder:ReminderReceipt|null;readonly nativeScore:RecoveryScore;readonly readinessPassed?:boolean}
 export interface BlindJudgment{readonly id:string;readonly diagnosis:Diagnosis;readonly factualError:boolean;readonly verified:boolean;readonly tokens:number;readonly evidence:readonly string[]}
 export const gradeDigest=(ids:readonly string[],judgments:readonly BlindJudgment[]=[]):string=>digest({ids:[...ids].sort(),judgments:[...judgments].sort((a,b)=>a.id.localeCompare(b.id))});
@@ -35,20 +38,31 @@ export interface EpisodeHost{
 }
 /** Hash the original behavioral evidence, including model messages; recompute scores independently. */
 export const episodeTraceHash=(outcome:Pick<EpisodeOutcome,"reason"|"messages"|"reminder"|"trace">):string=>digest({reason:outcome.reason,messages:outcome.messages,reminder:outcome.reminder,trace:outcome.trace});
+/** A live continuation has a separately recorded pre-decision observation; it is not delivered as a new model turn. */
+export function nativeEpisodeFrames(trace:Extract<EpisodeTrace,{kind:"native"}>):RecoveryFrame[]{
+ const events=trace.events.map(checkEvent),transitions=verifiedTransitionSamples(events,trace.transitionProof);
+ if(trace.initialObservation===undefined)return recoveryFrames(events,trace.startSeq,trace.startedAtMs,transitions);
+ const start=events[0],initial=trace.initialObservation;
+ if(start?.type!=="run_start"||start.restoration===undefined||start.start_state.kind!=="save_state"||start.start_state.sha1!==initial.stateSha1||trace.startSeq!==0||events.some(e=>e.seq===0&&e.type!=="run_start")||initial.snapshot.raw_ram===undefined)throw new Error("invalid pre-decision native observation provenance");
+ const anchor=checkEvent({...initial.snapshot,v:1,run:start.run,seq:0,t:easternTimestamp(new Date(trace.startedAtMs)),type:"state",turn:start.restoration.source_turn-1});
+ return recoveryFrames([anchor,...events.filter(e=>e.type!=="run_start")],0,trace.startedAtMs,transitions);
+}
 export function verifyEpisodeOutcome(job:CampaignJob,outcome:EpisodeOutcome,mode:EpisodeHost["mode"]):void{
  if(mode==="measured"&&outcome.trace.kind!=="native")throw new Error("measured episode requires native trace evidence");
- const frames=outcome.trace.kind==="native"?recoveryFrames(outcome.trace.events.map(checkEvent),outcome.trace.startSeq,outcome.trace.startedAtMs):outcome.trace.frames;
+ const frames=outcome.trace.kind==="native"?nativeEpisodeFrames(outcome.trace):outcome.trace.frames;
  const score=scoreRecovery(frames,{turns:job.capMs===600_000?70:210,ms:job.capMs});
  if(outcome.traceHash!==episodeTraceHash(outcome)||digest(score)!==digest(outcome.nativeScore)||job.capMs===600_000&&outcome.readinessPassed!==scoreReadiness(frames))throw new Error("trace hash or independently recomputed score mismatch");
+ if(outcome.trace.kind==="native"&&outcome.trace.initialObservation!==undefined&&outcome.trace.initialObservation.restoreHash!==job.restoreHash)throw new Error("native start differs from frozen restore bundle");
  if(job.arm==="baseline"?outcome.reminder!==null:outcome.reminder?.sha256!==job.promptHash)throw new Error("delivered reminder does not match frozen arm");
 }
 /** Grading is behavioral: prompt/context/usage telemetry stays only in the original record. */
 function anonymousMessages(messages:readonly Message[],receipt:ReminderReceipt|null):readonly Message[]{
  return maskIntervention(messages,receipt).map(m=>m.role!=="assistant"?{...m,timestamp:0}:{...m,timestamp:0,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}});
 }
-function anonymousTrace(trace:EpisodeTrace,id:string):EpisodeTrace{
+function anonymousTrace(trace:EpisodeTrace,id:string,reminder:ReminderReceipt|null):EpisodeTrace{
  if(trace.kind==="fixture")return trace;
- return {...trace,startedAtMs:0,events:trace.events.filter(e=>e.type!=="run_start").map(event=>{
+ const behavior={...trace};delete behavior.transitionProof;
+ return {...behavior,...(trace.gradeWindows===undefined?{}:{gradeWindows:blindGradeWindows(trace.gradeWindows,trace.initialObservation?.historyMessages??0,reminder),...(trace.initialObservation===undefined?{}:{initialObservation:{...trace.initialObservation,historyMessages:0}})}),startedAtMs:0,events:trace.events.filter(e=>e.type!=="run_start").map(event=>{
   const e={...event,run:id,t:easternTimestamp(new Date(Date.parse(event.t)-trace.startedAtMs))};
   switch(e.type){
    case "turn_start":return {...e,context:{messages:0,images:0,est_tokens:0}};
@@ -87,7 +101,7 @@ export async function runFrozenBatch(controller:CampaignController,phase:Campaig
  if(failed!==undefined){controller.stop(`incomplete frozen batch: ${failed.message}`);throw failed;}
  if(outcomes.size!==jobs.length){controller.stop("incomplete frozen batch");throw new Error("not all frozen episodes terminated");}
  // Treatment mapping never goes to the grader. Full originals were recorded above.
- const mapping=new Map<string,string>();const projected=jobs.map(job=>{const id=`E${randomUUID()}`;mapping.set(id,job.id);const o=outcomes.get(job.id);if(o===undefined)throw new Error("missing terminal trace");const view={messages:anonymousMessages(o.messages,o.reminder),nativeScore:o.nativeScore,trace:anonymousTrace(o.trace,id)};return {id,...view,traceHash:digest(view)};});
+ const mapping=new Map<string,string>();const projected=jobs.map(job=>{const id=`E${randomUUID()}`;mapping.set(id,job.id);const o=outcomes.get(job.id);if(o===undefined)throw new Error("missing terminal trace");const view={messages:anonymousMessages(o.messages,o.reminder).slice(o.trace.kind==="native"&&o.trace.gradeWindows!==undefined?o.trace.initialObservation?.historyMessages??0:0),nativeScore:o.nativeScore,trace:anonymousTrace(o.trace,id,o.reminder)};return {id,...view,traceHash:digest(view)};});
  projected.sort((a,b)=>a.id.localeCompare(b.id));
  controller.bindBlinding(Object.fromEntries(mapping));
  const grades=await host.grade(projected);

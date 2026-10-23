@@ -128,6 +128,7 @@ export class RunRecorder {
   private nativeActionsEnabled=false;
   // semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt.
   private semanticV2=false;
+  private nativeActionSnapshot=false;
   private nativeActionCursor=0;
   private nativeActionFrame=0;
   private nativeActionTime=0;
@@ -422,6 +423,13 @@ export class RunRecorder {
     }
   }
 
+  currentTurn():number{return this.turn;}
+
+  nativeJournalReceipt():{frame:number;lastId:number}{
+    if(!this.nativeActionsEnabled||!this.nativeActionSnapshot||this.nativeActionFailure!==null)throw new RecorderError("no verified durable native journal snapshot");
+    return {frame:this.nativeActionFrame,lastId:this.nativeActionCursor};
+  }
+
   async recordNativeActions():Promise<void> {
     if(!this.nativeActionsEnabled)return;
     if(this.nativeActionFailure!==null)throw this.nativeActionFailure;
@@ -436,7 +444,7 @@ export class RunRecorder {
       }
       if(batch.last_id!==cursor)throw new RecorderError("Native action journal cursor does not cover snapshot");
       for(const entry of batch.entries)this.append({type:"native_action",turn:this.turn,...entry});
-      this.nativeActionCursor=cursor;this.nativeActionFrame=batch.frame;this.nativeActionTime=time;
+      this.nativeActionCursor=cursor;this.nativeActionFrame=batch.frame;this.nativeActionTime=time;this.nativeActionSnapshot=true;
     } catch(error) {
       this.nativeActionFailure=error instanceof Error?error:new RecorderError("Native action recording failed");
       this.telemetryError("actions",this.nativeActionFailure);

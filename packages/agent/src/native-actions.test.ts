@@ -49,3 +49,9 @@ describe('native action history',()=>{
   await expect(h.recorder.checkMilestones()).rejects.toThrow('503');
  });
 });
+it('returns the last durably drained cursor without rewinding a destructive journal',async()=>{
+ const h=setup({frame:20,last_id:1,entries:[learned]});await h.start();expect(()=>{h.recorder.nativeJournalReceipt();}).toThrow();await h.recorder.recordNativeActions();const receipt=h.recorder.nativeJournalReceipt();expect(receipt).toEqual({frame:20,lastId:1});receipt.frame=999;expect(h.recorder.nativeJournalReceipt().frame).toBe(20);expect(h.fetcher).toHaveBeenCalledTimes(1);
+ const old=setup({},false);await old.start();expect(()=>{old.recorder.nativeJournalReceipt();}).toThrow();
+ h.fetcher.mockResolvedValue(new Response('',{status:503}));await expect(h.recorder.recordNativeActions()).rejects.toThrow();expect(()=>{h.recorder.nativeJournalReceipt();}).toThrow();
+});
+it('reports the actual recorder turn without advancing it for a request receipt',async()=>{const h=setup({frame:0,last_id:0,entries:[]});await h.start();expect(h.recorder.currentTurn()).toBe(0);await h.recorder.transformContext([]);expect(h.recorder.currentTurn()).toBe(1);expect(h.recorder.currentTurn()).toBe(1);await h.recorder.transformContext([]);expect(h.recorder.currentTurn()).toBe(2);});

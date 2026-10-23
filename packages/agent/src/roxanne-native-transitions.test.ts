@@ -14,16 +14,16 @@ function fixture(){
 }
 it("accepts only hash-bound fully empty non-idle native snapshots with a complete terminal journal",()=>{const {events,proof}=fixture();expect([...verifiedTransitionSamples(events,proof)]).toEqual([1]);});
 it.each(["hash","cpu","region","frame","rom","partial","journal","blind"] as const)("rejects %s evidence defects",defect=>{
- const {ram,events,proof}=fixture();
+ const {ram,events,proof}=fixture();const receipt=proof.archives[0];if(receipt===undefined)throw Error("fixture");
  if(defect==="cpu"){ram.cpsr=0x3f;ram.gprs[15]=0x080008b0;}
- if(defect==="region")ram.regions[0].data_base64="";
+ if(defect==="region"){const r=ram.regions[0];if(r===undefined)throw Error("fixture");r.data_base64="";}
  if(defect==="frame")ram.frame=7;
  if(defect==="rom")ram.rom_sha1="b".repeat(40);
- if(["cpu","region","frame","rom"].includes(defect)){const b=gzipSync(JSON.stringify(ram));proof.archives[0]!.base64=b.toString("base64");const s=events[1];if(s?.type!=="state"||!("started"in s)||s.raw_ram===undefined)throw Error("fixture");s.raw_ram.sha256=sha(b);}
- if(defect==="hash")proof.archives[0]!.base64=Buffer.from("tamper").toString("base64");
+ if(["cpu","region","frame","rom"].includes(defect)){const b=gzipSync(JSON.stringify(ram));receipt.base64=b.toString("base64");const s=events[1];if(s?.type!=="state"||!("started"in s)||s.raw_ram===undefined)throw Error("fixture");s.raw_ram.sha256=sha(b);}
+ if(defect==="hash")receipt.base64=Buffer.from("tamper").toString("base64");
  if(defect==="partial"){const s=events[1];if(s?.type!=="state"||!("started"in s))throw Error("fixture");s.map_id=[11,3];}
  if(defect==="journal")proof.journal.lastId=2;
  if(defect==="blind"){const e=events[2];if(e?.type!=="native_action")throw Error("fixture");e.kind="harness_bug";}
  expect(()=>verifiedTransitionSamples(events,proof)).toThrow();
 });
-it("leaves absent evidence unqualified and rejects duplicate receipts",()=>{const {events,proof}=fixture();expect(verifiedTransitionSamples(events).size).toBe(0);proof.archives.push(proof.archives[0]!);expect(()=>verifiedTransitionSamples(events,proof)).toThrow();});
+it("leaves absent evidence unqualified and rejects duplicate receipts",()=>{const {events,proof}=fixture();expect(verifiedTransitionSamples(events).size).toBe(0);const first=proof.archives[0];if(first===undefined)throw Error("fixture");proof.archives.push(first);expect(()=>verifiedTransitionSamples(events,proof)).toThrow();});

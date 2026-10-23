@@ -71,3 +71,11 @@ it.each([
 it("retains an observed native victory on the incoherent frame itself",()=>{
  expect(scoreRecovery([frame(1),frame(2,{coherent:false,victory:true})])).toMatchObject({verified:false,strictRecovery:false,eventualRecovery:false,victory:true});
 });
+it("verified transition nonsamples preserve acquisition provenance and never create capabilities",()=>{
+ const transition=frame(2,{transition:true,party:[],map:[]});
+ expect(scoreRecovery([frame(1),transition,frame(3,{map:[0,31],party:[mon({level:16})]}),frame(4,{roxanneBattle:true,party:[mon({level:16})]})])).toMatchObject({verified:true,strictRecovery:true});
+ expect(scoreRecovery([frame(1),transition,frame(3,{roxanneBattle:true})])).toMatchObject({verified:true,strictRecovery:false,unchangedRematches:1});
+ expect(scoreRecovery([frame(1),{...transition,coherent:false},...trace().slice(2)]).verified).toBe(false);
+ const battleGain=[frame(0),frame(1,{roxanneBattle:true}),transition,frame(3,{map:[0,31],party:[mon({level:16})]}),frame(4,{roxanneBattle:true,party:[mon({level:16})]})];
+ expect(scoreRecovery(battleGain).strictRecovery).toBe(false);
+});

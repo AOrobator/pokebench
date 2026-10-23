@@ -85,3 +85,19 @@ it("blinds realistic usage and actual recorder context telemetry at the grade co
  expect(originals.map(o=>o.trace.kind==="native"?o.trace.events.filter(e=>e.type==="turn_start")[0]?.context.messages:null)).toEqual([2,1]);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+it("scores from a separately retained pre-decision native observation",async()=>{
+ const {readFileSync}=await import("node:fs"),{gunzipSync}=await import("node:zlib"),{checkEvent}=await import("./events.js"),{RUN_START_META}=await import("../test-support/events.js"),{nativeEpisodeFrames}=await import("./roxanne-campaign-runner.js");
+ const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(raw))throw new Error("invalid fixture");const prior=raw.map(checkEvent),initial=prior.find(e=>e.type==="state"&&e.seq===17303);if(initial?.type!=="state"||!("started"in initial))throw new Error("missing exact fixture state");
+ const {v,run,seq,t,type,turn,...snapshot}=initial;expect(type).toBe("state");
+ const start=checkEvent({v,run,seq:0,t,type:"run_start",turn:0,...RUN_START_META,start_state:{kind:"save_state",path:"/owned/checkpoint.state",sha1:"a".repeat(40)},restoration:{source_run:"source",source_turn:turn+1,prefix_sha256:"b".repeat(64),prefix_last_seq:seq}});
+ const native={kind:"native" as const,events:[start,...prior.filter(e=>e.seq>seq)],startSeq:0,startedAtMs:Date.parse(t),initialObservation:{snapshot,restoreHash:job("b").restoreHash,stateSha1:"a".repeat(40)}};
+ const frames=nativeEpisodeFrames(native);expect(frames[0]).toMatchObject({seq:0,turn:0,map:[11,3],coherent:true});expect(frames[1]?.seq).toBeGreaterThan(seq);
+ const outside=checkEvent({...initial,seq:seq+1,map_id:[0,31],turn:turn+1});
+ const journal=prior.find(e=>e.type==="native_action");if(journal?.type!=="native_action")throw new Error("missing native journal fixture");
+ const firstExit=nativeEpisodeFrames({...native,events:[start,outside,checkEvent({...journal,id:1,seq:seq+2,t,turn:turn+1,kind:"native_input"})]});
+ expect(firstExit[0]?.map).toEqual([11,3]);expect(firstExit[1]?.map).toEqual([0,31]);expect(scoreRecovery(firstExit).departed).toBe(true);
+ const o={reason:"budget",messages:[],reminder:null,trace:native,nativeScore:scoreRecovery(frames)};
+ expect(()=> { verifyEpisodeOutcome({...job("b"),capMs:1_800_000},{...o,traceHash:episodeTraceHash(o)},"measured"); }).not.toThrow();
+ const wrong={...o,trace:{...native,initialObservation:{...native.initialObservation,restoreHash:"c".repeat(64)}}};expect(()=> { verifyEpisodeOutcome({...job("b"),capMs:1_800_000},{...wrong,traceHash:episodeTraceHash(wrong)},"measured"); }).toThrow(/restore bundle/);
+ expect(()=>nativeEpisodeFrames({...native,initialObservation:{...native.initialObservation,stateSha1:"f".repeat(40)}})).toThrow(/provenance/);
+});

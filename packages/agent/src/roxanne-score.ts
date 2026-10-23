@@ -1,7 +1,7 @@
 import type {RunEvent} from "./events.js";
 
 export interface CapabilityMon {readonly identity:string;readonly species:number;readonly level:number;readonly moves:readonly number[]}
-export interface RecoveryFrame {readonly seq:number;readonly turn:number;readonly elapsedMs:number;readonly map:readonly number[];readonly party:readonly CapabilityMon[];readonly roxanneBattle:boolean;readonly victory:boolean;readonly coherent:boolean}
+export interface RecoveryFrame {readonly seq:number;readonly turn:number;readonly elapsedMs:number;readonly map:readonly number[];readonly party:readonly CapabilityMon[];readonly roxanneBattle:boolean;readonly victory:boolean;readonly coherent:boolean;readonly transition?:true}
 export type CapabilityChange="level"|"evolution"|"moves"|"member";
 function index(party:readonly CapabilityMon[]):Map<string,CapabilityMon>{
  const out=new Map<string,CapabilityMon>();
@@ -42,6 +42,7 @@ export function scoreRecovery(frames:readonly RecoveryFrame[],cap:{readonly turn
   if(!Number.isSafeInteger(f.seq)||f.seq<=lastSeq||f.elapsedMs<lastMs||f.turn<lastTurn||!Number.isFinite(f.elapsedMs)||f.elapsedMs<0)throw new Error("nonmonotone recovery evidence");lastSeq=f.seq;lastMs=f.elapsedMs;lastTurn=f.turn;
   if(f.victory){victory=true;evidence.push(f.seq);}
   if(!f.coherent){verified=false;continue;}
+  if(f.transition===true)continue;
   if(f.map.length!==2||f.map.some(v=>!Number.isSafeInteger(v)||v<0)){verified=false;continue;}
   const changed=capabilityChanges(first.party,f.party);
   if(!gym(f)){if(!departed)evidence.push(f.seq);departed=true;if(!wasBattle&&capabilityChanges(previousParty,f.party).length>0)outsideGains.push({before:previousParty,after:f.party});}
@@ -63,7 +64,7 @@ export function provisionalWinner(candidate:readonly ValidationRow[],baseline:re
 }
 
 /** Native recorder states only. Narration, selected calls and citation diagnostics never create progress. */
-export function recoveryFrames(events:readonly RunEvent[],afterSeq:number,episodeStartedAtMs?:number):RecoveryFrame[]{
+export function recoveryFrames(events:readonly RunEvent[],afterSeq:number,episodeStartedAtMs?:number,verifiedTransitions:ReadonlySet<number>=new Set()):RecoveryFrame[]{
  const eligible=events.filter(e=>e.seq>=afterSeq);
  const started=eligible.find((e):e is Extract<RunEvent,{type:"state";started:boolean}>=>e.type==="state"&&"started" in e);
  if(started===undefined)throw new Error("missing episode native start");
@@ -83,7 +84,8 @@ export function recoveryFrames(events:readonly RunEvent[],afterSeq:number,episod
    if(s.trainer_opponent?.battle_active===true){roxanne=s.trainer_opponent.trainer_id===265;battlePending=false;}
    else if(s.battle.battle_type!==null&&(s.battle.battle_type&8)===0)battlePending=false;
   }
-  out.push({seq:s.seq,turn:s.turn-started.turn,elapsedMs:Date.parse(s.t)-t0,map:s.map_id??[],party,roxanneBattle:roxanne,victory:victories.has(s.seq),coherent:coverage&&coherent});
+  const transition=verifiedTransitions.has(s.seq)&&s.map_id===null&&s.party.length===0&&s.raw_ram!==undefined;
+  out.push({...(transition?{transition:true as const}:{}),seq:s.seq,turn:s.turn-started.turn,elapsedMs:Date.parse(s.t)-t0,map:s.map_id??[],party,roxanneBattle:roxanne,victory:victories.has(s.seq),coherent:coverage&&(coherent||transition)});
  }
  if(battlePending||lastNativeId===null){const last=out.at(-1);if(last!==undefined)out[out.length-1]={...last,coherent:false};}
  return out;
@@ -95,6 +97,7 @@ export function scoreReadiness(frames:readonly RecoveryFrame[]):boolean{
  const original=index(first.party);
  for(const f of frames){
   if(!f.coherent||f.elapsedMs>600_000||f.turn>70)return false;
+  if(f.transition===true)continue;
   if(!f.roxanneBattle)continue;
   const now=index(f.party);
   return [...original].every(([id,old])=>{const p=now.get(id);return p!==undefined&&p.level>=old.level&&p.species===old.species&&old.moves.filter(m=>m!==0).every(m=>p.moves.includes(m));});

@@ -34,7 +34,7 @@ describe("the report card", () => {
   it("draws the trainer card top with the frontier run's trainer, tier from the frontier, STORY bar and the verdict sheet", () => {
     const html = detailHtml(top50, 2, ART);
     expect(html).toContain("/sprites/card/wide-bronze.png"); expect(html).toContain("/sprites/trainers/norman.png");
-    expect(html).toContain("OCT 17 · No.002"); expect(html).toContain(">39/111<"); expect(html).toContain("Aqua woods event");
+    expect(html).toContain("OCT 17 · No.002"); expect(html).toContain(">39/109<"); expect(html).toContain("Aqua woods event");
     expect(html).toContain("The harness is helping."); expect(html).toContain("<dt>Bundle vs control</dt><dd>8–0</dd>");
     expect(html).toContain('href="/reports?open=2026-10-17_top50"');
   });

@@ -21,11 +21,11 @@ Read-only memory, bounded validated archives and plain sidecars under run direct
 
 ## Milestones
 **M1 — Catalog, native recording, replay and historical backfill**
-- [ ] RED tests and commit
-- [ ] Implement source-backed catalog, native transport, replay/frontier and backfill
-- [ ] Gates: test/lint/build/coverage >=90%, verify vendor
-- [ ] GREEN commit
-- [ ] Real retained RAM and current GLM backfill receipt, original hashes unchanged
+- [x] RED tests and commit
+- [x] Implement source-backed catalog, native transport, replay/frontier and backfill
+- [x] Gates: test/lint/build/coverage >=90%, verify vendor
+- [x] GREEN commit
+- [x] Real retained RAM and current GLM backfill receipt, original hashes unchanged
 - [ ] Principles and three-cloud-lane frozen review
 - [ ] Land on board and verify live viewer while keeping gameplay processes alive
 
@@ -60,3 +60,7 @@ User-gated, pending explicit request.
 - Final gate rerun after cycle isolation and phone label repair: agent 3914 tests, viewer 1722 tests, Python 4024 tests pass. Lint/build/vendor pass. Coverage agent statements/branches/functions/lines 97.30/93.40/97.78/99.20%; viewer 95.63/91.51/95.09/98.01%; Python lines/branches/functions 97.38/93.37/100%.
 - Final headless browser receipt (main runs/reports/all-gym-story-20261023/browser-proof.json): 1280/1440/375 frontier/full/evidence and explainer closed/open, no console errors or document overflow. Fixed mobile explainer provenance hash wrapping and made the native wiring diagram horizontally scrollable at readable size. Real Watch click selects 0d5d and shows RUNNING. Preview is isolated at 8897; source logs/raw snapshots copied or immutable hardlinked, no controls pressed.
 - Exact source writer audit also checked Rustboro city state 8 in the Briney sailing script (beside the rival scenes); the normal Devon exit is forced through the state-6 scientist tutorial before sailing is available. The recorded run has the direct 6→7 tutorial completion witness, not just the later 8.
+
+- Review round 1: Claude and isolated GPT independently BLOCKING on the same people-ledger counter leak (new measurement story events changed model-facing text). Claude also found optional Route116/Rusturf visits now outrank gym-one completion and become automatic checkpoints. Both are Fix: inside INV-3 and shared frontier ownership. Reproduced RED tests, then excluded only EXTENDED_PROGRESS_NAMES from the separate ledger counter (historical counts preserved) and kept the two existing optional visits off the required/frontier axes. Frontier now 109 checkpoints. No new production owner or review-only scope growth. Optional Route106/109/cave-floor arrivals and Letter quantity hardening are Follow-up, not this branch. Grok Cursor grok-4.7-high and cursor-grok-4.5-high both unavailable: account usage limit (ActionRequiredError, exit1); not approval. Two fresh distinct-model read-only fallbacks required; reduced vendor diversity prevents self-merge under execute-worklog.
+
+- Round2 fix verification: exact model-facing ledger regression (all60 added names, same state/turn) fails without the new counter filter and passes with it; legacy measurement still increments the existing counter. Frontier regression fails before subtracting optional early visits and passes after; auto-checkpoint required list and shared viewer axis asserted. Updated exact count/next-split fixture expectations. Full tests agent3915/viewer1723/Python4024, lint/build/vendor pass. Coverage TS unchanged above90%; Python final coverage rerun completing on unchanged production source. Headless desktop/phone refreshed on109-point axis; config READ EXPLAINER popup verified200 with no console errors.

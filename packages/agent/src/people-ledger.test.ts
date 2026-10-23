@@ -12,6 +12,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import {IN_GAME} from "../test-support/events.js";
 
 interface Fixture {readonly run:string;readonly harness_features:readonly string[];readonly events:readonly unknown[]}
@@ -36,6 +37,22 @@ const T418_BLOCK=[
 ].join("\n");
 
 function replay(ledger:PeopleLedger,until:number):void {for(const e of EVENTS){if(e.seq>until)break;ledger.observe(e);}}
+
+it("new story measurements preserve the exact model-facing ledger and header",()=>{
+ const ledger=new PeopleLedger();const result=resultAt(418);
+ replay(ledger,result.seq-1);
+ const state=stateAt(12555),before=ledger.annotate(result.text,state,result.id);
+ const header=ledger.untalkedLine(state,result.text,result.id);
+ expect(ledger.block(state,result.text,result.id)).toBe(T418_BLOCK);
+ for(const name of EXTENDED_PROGRESS_NAMES) {
+  ledger.observe(checkEvent({v:1,run:"r",seq:result.seq,t:"2026-10-16T02:00:00.000-04:00",turn:418,type:"milestone",name,kind:"story",origin:"observed",server_timestamp:1}));
+  expect(ledger.annotate(result.text,state,result.id),name).toBe(before);
+  expect(ledger.untalkedLine(state,result.text,result.id),name).toBe(header);
+ }
+ // The historical counter continues counting existing measurement events.
+ ledger.observe(checkEvent({v:1,run:"r",seq:result.seq+1,t:"2026-10-16T02:00:00.000-04:00",turn:418,type:"milestone",name:"RIVAL_BATTLE_DEFEATED",kind:"story",origin:"observed",server_timestamp:1}));
+ expect(ledger.block(state,result.text,result.id)).toContain("6 story milestones since");
+});
 
 describe("people-ledger-v1 on the 2026-10-16T00-34-26_qwen36-gpu1_show recording",()=>{
  it("lists May's mom as last talked to on turn 145 and the boy as never talked to, right after the Position line at T418",()=>{

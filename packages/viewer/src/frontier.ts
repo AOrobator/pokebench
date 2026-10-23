@@ -35,7 +35,7 @@ export const FRONTIER_MILESTONES = [
   { id: "ROXANNE_DEFEATED", label: "Roxanne defeated" },
   { id: "RUSTBORO_GYM_COMPLETE", label: "Gym complete" }, { id: "STONE_BADGE", label: "Badge" },
   { id: "ROCK_TOMB_RECEIVED", label: "Rock Tomb" },
-  ...PROGRESS_CATALOG.map(m=>({id:m.name,label:m.label})),
+  ...PROGRESS_CATALOG.filter(m=>EXTENDED_PROGRESS_NAMES.has(m.name)).map(m=>({id:m.name,label:m.label})),
 ] as const;
 const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }

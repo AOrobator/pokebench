@@ -17,7 +17,7 @@ async function exercise(enabled:boolean){
  const prefix=original.map(e=>JSON.stringify(e)).join("\n")+"\n",runsRoot=mkdtempSync(join(tmpdir(),"restored-live-memory-"));
  const plan:RunPlan={runsRoot,runId:"continued",port:8123,model:RUN_START_META.model,sampling:RUN_START_META.sampling,systemPrompt:"Play.",tools:[],startState:{kind:"save_state",path:"external.state",sha1:"a".repeat(40)},harnessFeatures:enabled?[id]:[],budgets:{max_turns:10},piVersion:RUN_START_META.pi_version,continuation:{prior:original,sourceTurn:2,sourceRun:"original",prefix}};
  const host:RunHost={serverHealthy:()=>Promise.resolve(false),launchServer:()=>Promise.resolve({serverDir:"owned",stop:()=>Promise.resolve()}),harness:()=>RUN_START_META.harness,vendorPin:()=>RUN_START_META.vendor_pin,milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve({...IN_GAME,location:"RUSTBORO CITY DEVON CORP 1F",map_id:[11,0],position:{x:5,y:8}})}};
- let observed:RunEvent[]=[],before="",after="",warningAfter:string|null=null;
+ const observed:RunEvent[]=[];let before="",after="",warningAfter:string|null=null;
  await withRun(plan,host,new FrameStore(runsRoot),async recorder=>{
   const features={...flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false}),"loop-guard-supervisor-v1":true,"observed-instructions-v1":true};
   const supervisor=loopSupervisor(features,recorder),governor=new Governor({limits:{maxTurns:10,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{},now:()=>0});

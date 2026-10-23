@@ -268,3 +268,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Named move decline](move-learn-offer-identity-v1.html): verifies the offered move before executing a decline.
 - [Campaign milestones and earned progress](campaign-progress-clock-v1.html)
+
+- [Restored live memory](restored-memory-run-v1.html): continuation memory namespaces and fresh observations.

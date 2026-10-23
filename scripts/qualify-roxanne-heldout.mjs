@@ -6,9 +6,12 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const repo=resolve(fileURLToPath(new URL('..',import.meta.url))),mod=n=>import(join(repo,'packages/agent/dist',n+'.js'));
-const [{digest},{eligibleHeldoutTurns},{parseRun,decisionContext,recordedFeatures}]=await Promise.all(['roxanne-campaign','roxanne-measured-host','decision-probe'].map(mod));
+const [{digest},{eligibleHeldoutTurns,parseMeasuredLaunch},{parseRun,decisionContext,recordedFeatures},{loadLiveContinuation}]=await Promise.all(['roxanne-campaign','roxanne-measured-host','decision-probe','roxanne-live-continuation'].map(mod));
 const [campaign,runsRoot,expectedHash]=process.argv.slice(2);if(!campaign||!runsRoot||!expectedHash)throw Error('usage: <campaign-dir> <source-runs-root> <frozen-finalist-hash>');
 const finalist=JSON.parse(readFileSync(join(campaign,'frozen-finalist.json'),'utf8'));if(finalist.hash!==expectedHash||digest(finalist.text)!==expectedHash)throw Error('finalist must be frozen before eligibility');
+const launch=parseMeasuredLaunch(JSON.parse(readFileSync(join(campaign,'launch-receipt.json'),'utf8')).config),first=launch.starts[0];if(!first)throw Error('missing qualified common runtime');
+const common=loadLiveContinuation({directory:first.directory,prompt:'',seed:launch.seed,runtimeBaselineSha256:first.runtimeBaselineSha256});
+const runtimeMode=common.runtime.features['restored-memory-run-v1']?'live-memory-runtime':'guard-runtime';
 const root=join(campaign,'protected-qualification');mkdirSync(root,{recursive:false});
 const rom=process.env.POKEBENCH_ROM;if(!rom)throw Error("POKEBENCH_ROM is required");
 const qualified=[],attempts=[];
@@ -31,7 +34,7 @@ for(const family of ['e8b4','35df']){
    exec([process.execPath,join(repo,'scripts/qualify-roxanne-history.mjs'),out,contextPath,digest(context)]);
    exec([process.execPath,join(repo,'scripts/qualify-roxanne-continuation.mjs'),out,runsRoot]);
    const result=JSON.parse(readFileSync(join(out,'continuation-qualification.json'),'utf8'));if(!result.passed)throw Error('production restoration failed');
-   exec([process.execPath,join(repo,'scripts/qualify-roxanne-continuation.mjs'),out,runsRoot,'guard-runtime']);
+   exec([process.execPath,join(repo,'scripts/qualify-roxanne-continuation.mjs'),out,runsRoot,runtimeMode]);
    const runtimeBaselineSha256=createHash('sha256').update(readFileSync(join(out,'runtime-baseline.json'))).digest('hex');
    qualified.push({family,directory:out,runtimeBaselineSha256});attempts.push({family,turn,qualified:true});break;
   }catch(error){attempts.push({family,turn,qualified:false,reason:String(error).split('\n')[0]});}

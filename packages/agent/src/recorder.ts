@@ -34,6 +34,7 @@ export interface RecorderDeps {
   readonly now?: () => number;
   readonly history?: readonly RunEvent[];
   readonly turnBase?: number;
+  readonly restoreRunIdentity?: boolean;
 }
 
 export interface PressTiming {
@@ -109,6 +110,7 @@ export class RunRecorder {
   private turn = 0;
   private readonly turnBase:number;
   private readonly prior:readonly RunEvent[];
+  private readonly restoreRunIdentity:boolean;
   private restoring=false;
   private historyRestored=false;
   isRestoring=():boolean=>this.restoring;
@@ -150,7 +152,7 @@ export class RunRecorder {
 
   constructor(deps: RecorderDeps) {
     this.log = deps.log;
-    this.prior=deps.history??[];this.turnBase=deps.turnBase??0;this.turn=this.turnBase;
+    this.restoreRunIdentity=deps.restoreRunIdentity??false;this.prior=deps.history??[];this.turnBase=deps.turnBase??0;this.turn=this.turnBase;
     this.frames = deps.frames;
     this.milestones = deps.milestones;
     this.gameState = deps.gameState;
@@ -168,7 +170,8 @@ export class RunRecorder {
     if(this.prior.some(e=>e.seq>=this.log.continuationStartSeq))throw new RecorderError("history collides with continuation namespace");
     this.restoring=true;
     try{
-      for(const event of this.prior){
+      for(const source of this.prior){
+        const event=this.restoreRunIdentity?{...source,run:this.log.runId}:source;
         if(event.type==="turn_start")await beforeTurn(event.turn);
         if(event.type==="state"&&"started" in event){this.activities.observe(event,event.seq);this.milestones.observe?.(event,event.seq);this.latestStateEvent=event;}
         if(event.type==="milestone"){this.milestoneEvents.push(event);if(event.origin!=="present_at_start")this.furthest=deeperMilestone(this.furthest,event.name);}

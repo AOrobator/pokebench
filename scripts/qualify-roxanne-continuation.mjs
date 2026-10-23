@@ -7,8 +7,8 @@ import {fileURLToPath} from 'node:url';
 const repo=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const mod=name=>import(join(repo,'packages/agent/dist',name+'.js'));
 const [{digest},{parseRun,recordedFeatures,recordedConversation},{qualifyRestoredContext},{parseRestoredMessages,verifyRestoreBundle},{contextTools,playGameTools,loopSupervisor,stallBriefing,contextBudget},{gameTools},{toolSwitches,playSystemPrompt},{RunRecorder},{RunLog},{FrameStore},{StateWatcher},{Governor,attachLoopGuard,slideWindow}]=await Promise.all(['roxanne-campaign','decision-probe','roxanne-continuation','roxanne-restore','play-wiring','game-tools','play-config','recorder','run-log','frames','game-state','harness'].map(mod));
-const [directory,runsRoot,mode]=process.argv.slice(2);if(mode!==undefined&&mode!=='guard-runtime')throw Error('unknown continuation qualification mode');if(!directory||!runsRoot)throw Error('usage: <qualified-directory> <source-runs-root>');
-const prefix=readFileSync(join(directory,'events-prefix.jsonl'),'utf8'),run=parseRun(prefix),features={...recordedFeatures(run),...(mode==='guard-runtime'?{'move-learn-tool-v1':true,'move-learn-offer-identity-v1':true}:{})};
+const [directory,runsRoot,mode]=process.argv.slice(2);if(mode!==undefined&&!['guard-runtime','live-memory-runtime'].includes(mode))throw Error('unknown continuation qualification mode');if(!directory||!runsRoot)throw Error('usage: <qualified-directory> <source-runs-root>');
+const prefix=readFileSync(join(directory,'events-prefix.jsonl'),'utf8'),run=parseRun(prefix),features={...recordedFeatures(run),...(mode!==undefined?{'move-learn-tool-v1':true,'move-learn-offer-identity-v1':true,...(mode==='live-memory-runtime'?{'restored-memory-run-v1':true}:{})}:{})};
 const bundle=JSON.parse(readFileSync(join(directory,'bundle.json'),'utf8')),reference=parseRestoredMessages(JSON.parse(readFileSync(join(directory,'history.json'),'utf8')));
 verifyRestoreBundle(bundle,readFileSync(join(directory,'checkpoint.state')),reference,prefix);
 let unavailableFrames=0;const timeline=new Map();
@@ -22,7 +22,7 @@ if(bundle.conversationHash!==undefined&&bundle.conversationHash!==digest(persist
 const root=mkdtempSync(join(tmpdir(),'roxanne-continuation-qualification-'));
 const log=RunLog.create(root,'offline-qualification',()=>new Date(),run.events.at(-1).seq+1),frames=new FrameStore(root,1000000,()=>{});
 const source=new StateWatcher('http://127.0.0.1:1'); // constructor is pure; network is denied in the rehearsal sandbox.
-const recorder=new RunRecorder({log,frames,milestones:{poll:()=>Promise.resolve([])},gameState:source,history:run.events,turnBase:bundle.turn-1});
+const recorder=new RunRecorder({log,frames,milestones:{poll:()=>Promise.resolve([])},gameState:source,history:run.events,turnBase:bundle.turn-1,restoreRunIdentity:features['restored-memory-run-v1']});
 const {v,run:sourceRun,seq,t,type,turn,...sourceMeta}=run.start;
 await recorder.start({...sourceMeta,restoration:{source_run:bundle.sourceRun,source_turn:bundle.turn,prefix_sha256:bundle.eventsHash,prefix_last_seq:run.events.at(-1).seq}},false);
 const governor=new Governor({limits:{maxTurns:210,maxWallMs:1800000,failureLimit:3},retry:()=>{},abort:()=>{},now:()=>0});
@@ -39,11 +39,11 @@ const receipt=await qualifyRestoredContext(reference,persistent,async history=>{
 if(mode===undefined)writeFileSync(join(directory,'persistent-history.json'),JSON.stringify(persistent));
 const sourceTools=JSON.parse(readFileSync(join(directory,"tools.json"),"utf8"));
 const currentTools=tools.map(({name,description,parameters})=>({name,description,parameters}));
-const productionToolsMatch=digest(sourceTools)===bundle.toolsHash&&(mode==='guard-runtime'?currentTools.some(t=>t.name==='learn_move'&&t.parameters?.properties?.decline_move?.type==='string'):JSON.stringify(currentTools)===JSON.stringify(sourceTools));
+const productionToolsMatch=digest(sourceTools)===bundle.toolsHash&&(mode!==undefined?currentTools.some(t=>t.name==='learn_move'&&t.parameters?.properties?.decline_move?.type==='string'):JSON.stringify(currentTools)===JSON.stringify(sourceTools));
 if(mode===undefined)writeFileSync(join(directory,"production-tools.json"),JSON.stringify(currentTools));
 const result={...receipt,budgetState:restoredBudget,passed:receipt.passed&&productionToolsMatch&&governor.stopReason===null&&!detector.stopped,productionToolsMatch,conversationHash:digest(persistent),gpuCalls:0,productionToolCount:tools.length,persistentMessages:persistent.length,unavailableHistoricalFrames:unavailableFrames,governorStoppedDuringRestore:governor.stopReason!==null,detectorStoppedDuringRestore:detector.stopped};
 if(result.passed&&mode===undefined){if(restoredBudget!==null){bundle.budgetHash=digest(restoredBudget);writeFileSync(join(directory,"budget.json"),JSON.stringify(restoredBudget));}bundle.conversationHash=digest(persistent);writeFileSync(join(directory,'bundle.json'),JSON.stringify(bundle,null,2)+'\n');}
-if(mode==='guard-runtime'){
+if(mode!==undefined){
  if(digest(restoredBudget)!==bundle.budgetHash||digest(persistent)!==bundle.conversationHash)throw Error('guard migration changed historical budget/conversation');
  if(result.passed){const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),baseline={version:1,sourceBundleHash:digest(bundle),sourceCommit,features,systemPrompt:playSystemPrompt(features,run.start.evaluation?.goal_target??null),tools:currentTools,referenceHash:receipt.referenceHash,passed:true};writeFileSync(join(directory,'runtime-baseline.json'),JSON.stringify(baseline,null,2)+'\n');}
  writeFileSync(join(directory,'runtime-qualification.json'),JSON.stringify(result,null,2)+'\n');

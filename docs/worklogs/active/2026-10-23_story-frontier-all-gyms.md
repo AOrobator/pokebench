@@ -26,8 +26,8 @@ Read-only memory, bounded validated archives and plain sidecars under run direct
 - [x] Gates: test/lint/build/coverage >=90%, verify vendor
 - [x] GREEN commit
 - [x] Real retained RAM and current GLM backfill receipt, original hashes unchanged
-- [ ] Principles and three-cloud-lane frozen review
-- [ ] Land on board and verify live viewer while keeping gameplay processes alive
+- [x] Frozen review: Claude/GPT/Sol/Astra LGTM; operator waived unavailable Grok
+- [x] Land on shared board; live viewer proof recorded separately after evidence commit
 
 ## Closing the Loop
 Unit and source-contract tests; negative/unavailable/repeat/resume cases; recorder/replay qualification; before/after GLM splits; headless desktop/phone viewer proof. Distinguish future new-run recorder activation from ongoing historical projection.
@@ -70,3 +70,7 @@ User-gated, pending explicit request.
 - Human header RED: production humanPlan tests and recorder capability test fail, and actual RunView consumer produces an unwanted derived rescue event. Added the capability to existing human header only. Retained the proven correct-count missing-row regression from scratch. Same scope; no new owner or behavior. Round3 required before landing.
 
 - Final round3 gates: agent3915/viewer1725/Python4024 pass; lint/build/vendor pass. Coverage agent97.30/93.40/97.78/99.20%, viewer95.65/91.53/95.09/98.01% (statements/branches/functions/lines), Python97.38/93.37/100% (lines/branches/functions). Human plan header and production RunView caller regressions first fail, then pass after header capability addition; original isolated recorder capability test remains unchanged. Correct-count missing-row test now retained. Updated GLM sidecar through99484/9079 rows, original log stays append-only and unchanged. Review packet freezes this committed tree.
+
+- LANDED fast-forward on main at `1dc017c1066ec9adcc2ea436057e6af035e7b9b6`, board #1 with exact Codex thread 00000000-0000-4000-8000-44b3156a0011. Frozen diff SHA256 `34c95ea1a1658c6a9c3c415772b1908ea0531868ee69dc23cf1eb82cdaf93ed8`; same packet independently verified clean before/after by Claude CLI, isolated GPT /root/gpt_story_review_r3, Sol gpt-6.1-sol /root/story_fallback_sol_r3 and Astra gpt-6-astra /root/story_fallback_astra_r3. All VERDICT: LGTM. Grok Cursor usage outage never treated as approval; user explicitly approved final round and landing without Grok. Reduced vendor diversity disclosed. Raw Claude review + packet/syntheses in owned worktree runs/reviews/all-gym-story-r1/r2/r3; isolated task reports in conversation and summary files there.
+- Main initial justtest encountered unbuilt new agent export in viewer imports; justbuild restored the derived artifact with no source changes. Main justtest then passes3915agent/1725viewer/4024Python. Logs /tmp/pokebench-progress-main-{build,built-tests}.log. Landed production native reader independently confirms GLM75 qualified splits (11 added), Qwen61; original features remain untouched and recovered coverage is separately declared. Receipt main runs/reports/all-gym-story-20261023/landed-native-proof.json.
+- Post-evidence-commit closeout runs justviewer-main once, then verifies served build stamp, headless live desktop/phone chart and Watch click, correct frame and preserved gameplay process ids. Durable receipt destinations: runs/reports/all-gym-story-20261023/live-browser-proof.json, live-service-proof.json and live/*.png. These are populated by the final live checks after this evidence-only commit, not inferred from build/tests. Active GLM frozen harness is unchanged; new launches from landed source record native events, old live GLM continues viewer recovery from subsequent raw archives. No run/inference launched or modified.

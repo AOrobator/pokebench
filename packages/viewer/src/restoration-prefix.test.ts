@@ -1,22 +1,25 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { qualifiedNativeMilestone } from "@pokebench/agent/milestones";
-import { Log, START, state } from "../test-support/events.js";
+import { Log, START, assistant, state } from "../test-support/events.js";
+import { restorationNextSequence } from "./restoration-prefix.js";
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { createNativeRecordingTailer, readNativeRecording } from "./frontier-recording.js";
-import { createIncrementalRunLoader, loadRun } from "./workbench-store.js";
+import { createIncrementalRunLoader, createWorkbenchLoader, loadRun } from "./workbench-store.js";
+const roots:string[]=[];
+afterEach(()=>{for(const root of roots.splice(0))rmSync(root,{recursive:true,force:true});});
 function fixture() {
  const source=new Log();source.add(0,START);source.add(10,state());
- const prefix=source.events.map(e=>JSON.stringify(e)).join("\n")+"\n",root=mkdtempSync(join(tmpdir(),"restored-viewer-")),id="restored",folder=join(root,id);writeFileSync(join(root,"placeholder"),"");
+ const prefix=source.events.map(e=>JSON.stringify(e)).join("\n")+"\n",root=mkdtempSync(join(tmpdir(),"restored-viewer-")),id="restored",folder=join(root,id);roots.push(root);
  const start:RunEvent={...source.events[0]!,run:id,t:"2026-10-12T22:00:00.000-04:00",...START,start_state:{kind:"save_state",path:"/owned/source.state",sha1:"a".repeat(40)},restoration:{source_run:source.events[0]!.run,source_turn:2,prefix_last_seq:1,prefix_sha256:createHash("sha256").update(prefix).digest("hex")}};
  const next={...source.events[1]!,run:id,seq:2,t:"2026-10-12T22:00:01.000-04:00"};
  return {root,id,folder,prefix,start,next};
 }
-function write(f:ReturnType<typeof fixture>,prefix=f.prefix,start=f.start,next=f.next){const path=join(f.folder,"events.jsonl");mkdir(f.folder);writeFileSync(join(f.folder,"restoration-prefix.jsonl"),prefix);writeFileSync(path,[start,next].map(e=>JSON.stringify(e)).join("\n")+"\n");return path;}
-import { mkdirSync } from "node:fs";
+function write(f:ReturnType<typeof fixture>,prefix=f.prefix,start:unknown=f.start,next:RunEvent=f.next){const path=join(f.folder,"events.jsonl");mkdir(f.folder);writeFileSync(join(f.folder,"restoration-prefix.jsonl"),prefix);writeFileSync(path,[start,next].map(e=>JSON.stringify(e)).join("\n")+"\n");return path;}
 function mkdir(path:string){mkdirSync(path,{recursive:true});}
 it("reads only new continuation progress, with current timing/hash and incremental parity",()=>{
  const f=fixture(),path=write(f),tail=createNativeRecordingTailer(path,f.id,qualifiedNativeMilestone),first=tail.read();
@@ -29,8 +32,28 @@ it("does not accept ordinary gaps or a gap after the restored boundary",()=>{
 });
 it("requires exact bound source identity, complete prefix, last sequence and save-state provenance",()=>{
  const cases=[{prefix:""},{prefix:f=>f.prefix+"garbage"},{prefix:f=>f.prefix.replace('"seq":1','"seq":3'),rehash:true},{prefix:f=>f.prefix.replaceAll('"run":"2026-10-11T22-00-00_think-swarm_test"','"run":"wrong"'),rehash:true},{prefix:f=>f.prefix.replace('"type":"state"','"type":"run_end"'),rehash:true},{start:f=>({...f.start,start_state:{kind:"boot"}})},{start:f=>({...f.start,restoration:{...f.start.restoration!,prefix_last_seq:4}})}] satisfies {prefix?:string|((f:ReturnType<typeof fixture>)=>string);rehash?:boolean;start?:(f:ReturnType<typeof fixture>)=>unknown}[];
- for(const c of cases){const f=fixture(),prefix=typeof c.prefix==="function"?c.prefix(f):c.prefix??f.prefix;let start=c.start?.(f)??f.start;if(c.rehash)start={...f.start,restoration:{...f.start.restoration!,prefix_sha256:createHash("sha256").update(prefix).digest("hex")}};const path=write(f,prefix,start as RunEvent);expect(()=>readNativeRecording(path,f.id,qualifiedNativeMilestone)).toThrow();}
+ for(const c of cases){const f=fixture(),prefix=typeof c.prefix==="function"?c.prefix(f):c.prefix??f.prefix;let start=c.start?.(f)??f.start;if(c.rehash)start={...f.start,restoration:{...f.start.restoration!,prefix_sha256:createHash("sha256").update(prefix).digest("hex")}};const path=write(f,prefix,start);expect(()=>readNativeRecording(path,f.id,qualifiedNativeMilestone)).toThrow();}
 });
 it("withdraws cached continuation data when prefix changes, disappears or becomes a symlink",()=>{
  const f=fixture(),path=write(f),prefix=join(dirname(path),"restoration-prefix.jsonl"),load=createIncrementalRunLoader();expect(load(f.root,f.id).run.status).toBe("unresponsive");writeFileSync(prefix,f.prefix.replace("MAY","MAX"));expect(load(f.root,f.id).run.status).toBe("invalid");writeFileSync(prefix,f.prefix);expect(load(f.root,f.id).run.status).toBe("unresponsive");rmSync(prefix);expect(load(f.root,f.id).run.status).toBe("invalid");writeFileSync(prefix+".copy",f.prefix);symlinkSync(prefix+".copy",prefix);expect(load(f.root,f.id).run.status).toBe("invalid");
+});
+
+it("withdraws summary-cache hits when bound prefix changes without a log append",async()=>{
+ const f=fixture(),path=write(f),load=createWorkbenchLoader({build:null});expect((await load.load(f.root,f.id)).run.status).toBe("unresponsive");
+ writeFileSync(join(dirname(path),"restoration-prefix.jsonl"),f.prefix.replace("MAY","MAX"));expect((await load.load(f.root,f.id)).run.status).toBe("invalid");
+});
+it("rejects a changed prefix through an already-created direct tailer",()=>{
+ const f=fixture(),path=write(f),tail=createNativeRecordingTailer(path,f.id,qualifiedNativeMilestone);tail.read();writeFileSync(join(dirname(path),"restoration-prefix.jsonl"),f.prefix.replace("MAY","MAX"));expect(()=>tail.read()).toThrow(/prefix changed/);
+});
+
+it("does not replay source tokens or source milestones into the new run",()=>{
+ const f=fixture(),old=new Log();old.add(0,START);old.add(1,assistant());old.add(2,{type:"milestone",turn:1,name:"PLAYER_NAME_CONFIRMED",kind:"story",origin:"present_at_start",server_timestamp:1});
+ const prefix=old.events.map(e=>JSON.stringify(e)).join("\n")+"\n",start={...f.start,restoration:{...f.start.restoration!,prefix_last_seq:2,prefix_sha256:createHash("sha256").update(prefix).digest("hex")}};
+ const path=write(f,prefix,start,{...f.next,seq:3}),result=readNativeRecording(path,f.id,qualifiedNativeMilestone);
+ expect(result.view.tokens).toEqual({input:0,output:0});expect(result.view.milestones.some(m=>m.name==="PLAYER_NAME_CONFIRMED")).toBe(false);expect(result.splits.every(s=>s.seq>=3)).toBe(true);
+});
+it("enforces metadata, bounded bytes and complete prefix framing",()=>{
+ const f=fixture(),path=write(f);for(const restoration of [{...f.start.restoration!,source_run:f.id},{...f.start.restoration!,source_turn:0},{...f.start.restoration!,prefix_last_seq:Number.MAX_SAFE_INTEGER}])expect(()=>restorationNextSequence(path,{...f.start,restoration})).toThrow(/provenance/);
+ const raw=f.prefix.trimEnd(),start={...f.start,restoration:{...f.start.restoration!,prefix_sha256:createHash("sha256").update(raw).digest("hex")}};writeFileSync(join(f.folder,"restoration-prefix.jsonl"),raw);expect(()=>restorationNextSequence(path,start)).toThrow(/incomplete/);
+ truncateSync(join(f.folder,"restoration-prefix.jsonl"),RUN_LOG_MAX_BYTES+1);expect(()=>restorationNextSequence(path,f.start)).toThrow(/bound/);
 });

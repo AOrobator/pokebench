@@ -30,3 +30,12 @@ it("keeps moving navigation windows bounded by reusing exact unchanged array ent
  const body=gzipSync(JSON.stringify({messages:[{role:"system",content:"actual delivered context"}],tools:[]}));
  expect(grading.buildGradeWindows({receipts:[{index:1,turn:2,offset:0,sha256:createHash("sha256").update(body).digest("hex")}],read:()=>body,messages:[],events,historyMessages:0,reminder:null})).toHaveLength(1);
 });
+
+it("rejects malformed array copies without changing the original events",()=>{
+ const events=[0,1].map((shift,i)=>checkEvent({v:1,run:"r",seq:i+1,t:"2026-10-23T13:00:00.000-04:00",turn:2,type:"state",...IN_GAME,navigation_grid:{elevation:3,objects:[],warps:[],tiles:Array.from({length:225-shift},(_,j)=>({x:j+shift,y:0,collision:0,behavior:0,elevation:3}))}}));
+ const packed=grading.packNativeEvents(events),delta=packed[1];if(delta?.kind!=="delta"||delta.arrays.length===0)throw Error("array reuse required");expect(grading.unpackNativeEvents(packed)).toEqual(events);
+ expect(()=>grading.unpackNativeEvents([packed[0],{...delta,arrays:[{path:["navigation_grid","tiles"],items:[225]}]}])).toThrow(/array index/);
+ expect(()=>grading.unpackNativeEvents([packed[0],{...delta,arrays:[{path:["location"],items:[0]}]}])).toThrow(/array/);
+ expect(()=>grading.unpackNativeEvents([packed[0],{...delta,arrays:[{path:["navigation_grid","tiles"],items:[-1]}]}])).toThrow();
+ expect(events[0]?.run).toBe("r");
+});

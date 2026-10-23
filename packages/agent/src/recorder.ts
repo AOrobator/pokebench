@@ -163,15 +163,17 @@ export class RunRecorder {
   private readonly milestoneEvents: RunEvent[] = [];
   private latestStateEvent: Extract<RunEvent,{type:"state"}> | null = null;
   // Replay is opt-in: milestones at checkpoint start, or the latest recorded state for a late request observer.
-  subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); if(replayLatestState&&this.latestStateEvent!==null)observer(this.latestStateEvent); }
+  subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false, continuationMemory = false): void {
+    const receive=(event:RunEvent):void=>{observer(this.restoreRunIdentity&&continuationMemory&&event.run!==this.log.runId?{...event,run:this.log.runId}:event);};
+    this.observers.push(receive); if (replayMilestones) for (const event of this.milestoneEvents) receive(event); if(replayLatestState&&this.latestStateEvent!==null)receive(this.latestStateEvent);
+  }
   /** Attach all production memory consumers first, then replay once in event order. No old side effects. */
   async restoreHistory(beforeTurn:(turn:number)=>Promise<void>):Promise<void>{
     if(this.historyRestored)throw new RecorderError("history already restored");
     if(this.prior.some(e=>e.seq>=this.log.continuationStartSeq))throw new RecorderError("history collides with continuation namespace");
     this.restoring=true;
     try{
-      for(const source of this.prior){
-        const event=this.restoreRunIdentity?{...source,run:this.log.runId}:source;
+      for(const event of this.prior){
         if(event.type==="turn_start")await beforeTurn(event.turn);
         if(event.type==="state"&&"started" in event){this.activities.observe(event,event.seq);this.milestones.observe?.(event,event.seq);this.latestStateEvent=event;}
         if(event.type==="milestone"){this.milestoneEvents.push(event);if(event.origin!=="present_at_start")this.furthest=deeperMilestone(this.furthest,event.name);}

@@ -6,9 +6,9 @@ import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 const IDS=["poison-readout-v1","berry-readout-v1"] as const;
 describe("independent poison and berry observations",()=>{
  it("appends both switches without moving older features",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-32,-30)).toEqual(IDS);
-  expect(FEATURES.filter(f=>f.switchable).slice(-32,-30).map(f=>f.id)).toEqual(IDS);
-  expect(SERVER_FEATURES.slice(-6,-4)).toEqual(IDS);
+  expect(SWITCHABLE_FEATURES.slice(-34,-32)).toEqual(IDS);
+  expect(FEATURES.filter(f=>f.switchable).slice(-34,-32).map(f=>f.id)).toEqual(IDS);
+  expect(SERVER_FEATURES.slice(-7,-5)).toEqual(IDS);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).slice(-7,-5)).toEqual(IDS);
  });
  for(const id of IDS){

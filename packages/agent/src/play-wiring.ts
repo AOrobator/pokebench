@@ -57,23 +57,25 @@ type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"reco
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
  const tools:AgentTool[]=[];
- const observedBase=observedInstructions(features,recorder,base);
- const memory=navigationMemory(features,recorder,observedBase);
+ const memoryRecorder:WiringRecorder={subscribe:(observer,milestones=false,latest=false)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
+
+ const observedBase=observedInstructions(features,memoryRecorder,base);
+ const memory=navigationMemory(features,memoryRecorder,observedBase);
  if(memory!==null)tools.push(memory.tool);
- const dialogue=dialogueLog(features,recorder);
+ const dialogue=dialogueLog(features,memoryRecorder);
  if(dialogue!==null)tools.push(dialogue);
- const ledger=instructionLedger(features,recorder,memory?.transformContext??observedBase);
+ const ledger=instructionLedger(features,memoryRecorder,memory?.transformContext??observedBase);
  if(ledger!==null)tools.push(ledger.tool);
- const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??observedBase);
+ const hint=nextMilestoneHint(features,memoryRecorder,ledger?.transformContext??memory?.transformContext??observedBase);
  if(hint!==null)tools.push(hint.tool);
  const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
- const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
+ const chain=disprovedBeliefs(features,memoryRecorder,hinted)?.transformContext??hinted;
  const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
  // fixed-point-breaker-v1 or duplicate-turn-collapse-v1: duplicate turns collapse before every other step;
  // fixed-point-breaker-v1 alone ends the request with its note.
- const breaker=fixedPointBreaker(features,recorder);
+ const breaker=fixedPointBreaker(features,memoryRecorder);
  const note=features["fixed-point-breaker-v1"];
- return {tools,transformContext:moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),window:contextWindow(features),breaker};
+ return {tools,transformContext:moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
@@ -85,32 +87,32 @@ export function contextBudget(features:FeatureSet,model:{readonly contextWindow:
 // The loop guard's supervisor briefing, when that switch is on.
 export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">):((kind:LoopKind,calls:number)=>string)|undefined {
  if(!features["loop-guard-supervisor-v1"])return undefined;
- const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true,false,true);
  return (kind,calls)=>briefing.text(kind,calls);
 }
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
 // same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
 export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate"|"recordLoopGuard">,detector:Pick<LoopDetector,"stall">&Partial<Pick<LoopDetector,"mapCycleWindow">>,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
- if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
+ if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);},false,false,true);}
  if(!features["stall-briefing-v1"])return null;
- const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true,false,true);
  // story-character-stall-gate-v1: the gate reads each event before the stall check that the same event runs.
  const gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate(recorder):null;
- if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
+ if(gate!==null)recorder.subscribe(event=>{gate.observe(event);},false,false,true);
  // positive-supervisor-v1: retired stall briefings stay in the record as diagnostics; the model is not sent them.
  const retired=features["positive-supervisor-v1"]||features["milestone-drought-suppression-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (${features["positive-supervisor-v1"]?"positive-supervisor-v1":"milestone-drought-suppression-v1"}): ${text}`,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null;
  const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});},
   // drought-battle-heal-hold-v1: a held drought briefing stays in the record as a diagnostic (Activity History).
   features["drought-battle-heal-hold-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
- recorder.subscribe(event=>{stall.observe(event);});
+ recorder.subscribe(event=>{stall.observe(event);},false,false,true);
  return stall;
 }
 
 // text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.
 export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">,replyFailuresEndRun=true):((replies:number,note:number)=>string)|undefined {
  if(!features["text-only-supervisor-v1"])return undefined;
- const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true,false,true);
  return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT,replyFailuresEndRun);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 

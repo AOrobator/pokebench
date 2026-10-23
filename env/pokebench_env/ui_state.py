@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pokebench_env.game_screen import ReadMemory, Screen
 from pokebench_env.gba_text import GBA_TEXT
 from pokebench_env.menus import MenuValue
-from pokebench_env.transition_coherence import HANDOFF_CALLBACKS
+from pokebench_env.transition_coherence import CB2_WHITE_OUT, HANDOFF_CALLBACKS
 
 STRING_VAR4 = 0x02021FC4
 STRING_VAR4_SIZE = 1000
@@ -363,6 +363,7 @@ def read_active_ui(
     birch_pages: bool = False,
     birch_intro_pages: bool = False,
     transition_coherence: bool = True,
+    blackout_transition: bool = False,
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
     caught_dex: bool = False,
@@ -722,6 +723,8 @@ def read_active_ui(
             if page is not None:
                 return page
             return ActiveUi(INTRO_PHASE, None, False, INTRO_NOT_READY)
+    if blackout_transition and not owners and screen.callback2 == CB2_WHITE_OUT:
+        return ActiveUi("field_transition", None, False, "Whiting out; input is not active yet")
     if screen.kind != "unknown" and not owners:
         return None
     if transition_coherence and not owners and screen.callback2 in HANDOFF_CALLBACKS:

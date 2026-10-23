@@ -252,6 +252,7 @@ export const SWITCHABLE_FEATURES = [
   "campaign-progress-clock-v1",
   "roxanne-campaign-reminder-v1",
   "restored-memory-run-v1",
+  "blackout-transition-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -625,6 +626,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("campaign-progress-clock-v1", "guard", "EARNED CAMPAIGN PROGRESS CLOCK", "stall-briefing-v1", "Default off. Earned campaign arrivals and completed story milestones reset drought time and action counts once. Checkpoint baselines and optional achievements do not reset it. Off: extended measurement milestones remain excluded from supervisor clocks."),
   on("roxanne-campaign-reminder-v1", "guidance", "ROXANNE CAMPAIGN REMINDER", null, "Default off. A qualified historical continuation may append its frozen candidate reminder once before the first decision. No recurring coaching, selected route or blocked rematch. Off: restored conversation bytes are unchanged."),
   on("restored-memory-run-v1", "guidance", "RESTORED LIVE MEMORY", null, "Default off. Historical event envelopes are replayed into the continuation run memory namespace so fresh observations can update supervisor and instruction memories. Saved source history is preserved. Off: replay original source run identities unchanged."),
+  on("blackout-transition-v1", "observation", "BLACKOUT TRANSITION", null, "Default off. Recognizes the verified whiteout callback as an input-not-ready transition. Unknown callbacks remain coverage errors. Native measurement recognizes the known callback independently. Off: previous screen and UI readout unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -700,6 +702,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "static-npc-template-approach-v1",
   "coherent-battle-observation-v1",
   "window-escape-route-v1",
+  "blackout-transition-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -937,6 +940,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("campaign-progress-clock-v1"),
     ...when("roxanne-campaign-reminder-v1"),
     ...when("restored-memory-run-v1"),
+    ...when("blackout-transition-v1"),
   ];
 }
 

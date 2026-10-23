@@ -14,10 +14,10 @@ export type CampaignJob=Static<typeof JobSchema>;
 const BatchSchema=Type.Object({phase:Type.Enum(PHASES),jobs:Type.Array(JobSchema,{minItems:1,maxItems:16}),hash},closed);
 export type FrozenBatch=Static<typeof BatchSchema>;
 const TrackedJobSchema=Type.Object({...JobSchema.properties,phase:Type.Enum(PHASES),status:Type.Enum(["pending","running","complete"] as const),startedAt:Type.Union([ms,Type.Null()]),finishedAt:Type.Union([ms,Type.Null()]),reason:Type.Union([Type.String({minLength:1}),Type.Null()]),traceHash:Type.Union([hash,Type.Null()])},closed);
-const StateSchema=Type.Object({version:Type.Literal(1),id:name,revision:Type.Integer({minimum:0}),startedAt:Type.Number({minimum:0}),spentMs:ms,reservedMs:ms,contingencySpentMs:Type.Integer({minimum:0,maximum:2_400_000}),batches:Type.Array(Type.Object({phase:Type.Enum(PHASES),hash,jobIds:Type.Array(name,{minItems:1,maxItems:16}),gradeHash:Type.Union([hash,Type.Null()]),blindMap:Type.Union([Type.Record(name,name),Type.Null()])},closed),{maxItems:5}),jobs:Type.Array(TrackedJobSchema,{maxItems:36}),stopped:Type.Union([Type.String({minLength:1}),Type.Null()])},closed);
+const StateSchema=Type.Object({version:Type.Literal(1),id:name,revision:Type.Integer({minimum:0}),startedAt:Type.Number({minimum:0}),priorGpuMs:Type.Integer({minimum:0,maximum:CAMPAIGN_CAP_MS}),priorEpisodes:Type.Integer({minimum:0,maximum:36}),spentMs:ms,reservedMs:ms,contingencySpentMs:Type.Integer({minimum:0,maximum:2_400_000}),batches:Type.Array(Type.Object({phase:Type.Enum(PHASES),hash,jobIds:Type.Array(name,{minItems:1,maxItems:16}),gradeHash:Type.Union([hash,Type.Null()]),blindMap:Type.Union([Type.Record(name,name),Type.Null()])},closed),{maxItems:5}),jobs:Type.Array(TrackedJobSchema,{maxItems:36}),stopped:Type.Union([Type.String({minLength:1}),Type.Null()])},closed);
 export type CampaignState=Static<typeof StateSchema>;
 export const digest=(value:unknown):string=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
-export function createCampaign(id:string,startedAt:number):CampaignState{return parseState({version:1,id,revision:0,startedAt,spentMs:0,reservedMs:0,contingencySpentMs:0,batches:[],jobs:[],stopped:null});}
+export function createCampaign(id:string,startedAt:number,prior:{readonly gpuMs:number;readonly episodes:number}={gpuMs:0,episodes:0}):CampaignState{return parseState({version:1,id,revision:0,startedAt,priorGpuMs:prior.gpuMs,priorEpisodes:prior.episodes,spentMs:prior.gpuMs,reservedMs:0,contingencySpentMs:0,batches:[],jobs:[],stopped:null});}
 export function parseState(value:unknown):CampaignState{if(!Value.Check(StateSchema,value))throw new Error("invalid campaign state");return structuredClone(value);}
 export interface CampaignStore{read():CampaignState;commit(expectedRevision:number,next:CampaignState):void}
 export class MemoryCampaignStore implements CampaignStore{
@@ -35,6 +35,7 @@ export class CampaignController{
  private change(update:(next:CampaignState)=>void):void{const next=this.state;update(next);next.revision++;parseState(next);this.store.commit(this.current.revision,next);this.current=next;this.audit();}
  private audit():void{
   parseState(this.current);
+  if(this.current.priorEpisodes+this.current.jobs.length>36)throw new Error("campaign episode accounting mismatch");
   const ids=new Set<string>(),running=new Set<string>();
   for(const j of this.current.jobs){
    if(ids.has(j.id))throw new Error("duplicate durable episode");ids.add(j.id);
@@ -52,7 +53,7 @@ export class CampaignController{
   if(batched.size!==this.current.jobs.length)throw new Error("unbatched durable episode");
   const pending=this.current.jobs.filter(j=>j.status!=="complete").reduce((sum,j)=>sum+j.capMs,0);
   const spent=this.current.jobs.reduce((sum,j)=>sum+(j.status==="complete"?(j.finishedAt??0)-(j.startedAt??0):0),0);
-  if(pending!==this.current.reservedMs||spent!==this.current.spentMs||(this.current.spentMs+this.current.reservedMs+this.current.contingencySpentMs>CAMPAIGN_CAP_MS&&this.current.stopped===null))throw new Error("campaign accounting mismatch");
+  if(pending!==this.current.reservedMs||spent+this.current.priorGpuMs!==this.current.spentMs||(this.current.spentMs+this.current.reservedMs+this.current.contingencySpentMs>CAMPAIGN_CAP_MS&&this.current.stopped===null))throw new Error("campaign accounting mismatch");
  }
  resume():void{if(this.current.jobs.some(j=>j.status==="running"))throw new Error("uncertain running episode: reconcile recorded outcome; never resample");}
  freeze(batch:FrozenBatch):void{
@@ -63,6 +64,8 @@ export class CampaignController{
   if(PHASES[this.current.batches.length]!==batch.phase||batch.jobs.length>limit)throw new Error("phase order or episode count exceeds plan");
   if(new Set(batch.jobs.map(j=>j.id)).size!==batch.jobs.length||batch.jobs.some(j=>this.current.jobs.some(old=>old.id===j.id)))throw new Error("duplicate episode identity");
   if(batch.jobs.some(j=>j.capMs>(batch.phase==="controls"?600_000:1_800_000))||batch.jobs.reduce((sum,j)=>sum+j.capMs,0)>PHASE_CAPS[batch.phase])throw new Error("batch exceeds protected phase budget");
+  if(this.current.priorEpisodes+this.current.jobs.length+batch.jobs.length>36)throw new Error("remaining episode budget insufficient for the complete phase");
+  if(this.current.spentMs+this.current.reservedMs+this.current.contingencySpentMs+batch.jobs.reduce((sum,j)=>sum+j.capMs,0)>CAMPAIGN_CAP_MS)throw new Error("remaining campaign budget insufficient for the complete phase");
   this.change(next=>{next.batches.push({phase:batch.phase,hash:batch.hash,jobIds:batch.jobs.map(j=>j.id),gradeHash:null,blindMap:null});for(const j of batch.jobs)next.jobs.push({...j,phase:batch.phase,status:"pending",startedAt:null,finishedAt:null,reason:null,traceHash:null});next.reservedMs+=batch.jobs.reduce((sum,j)=>sum+j.capMs,0);});
  }
  start(id:string,at:number):void{

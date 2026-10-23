@@ -44,7 +44,7 @@ export function loadLiveContinuation(descriptor:unknown,read:(path:string)=>Buff
   const baseline:unknown=JSON.parse(bytes.toString("utf8"));
   if(!Value.Check(RuntimeBaseline,baseline)||baseline.sourceBundleHash!==digest(bundle)||baseline.referenceHash!==digest(history.map(m=>({...m,timestamp:0}))))throw new Error("invalid qualified runtime baseline provenance");
   const features=normalizeFeatures(baseline.features),required=["move-learn-tool-v1","move-learn-offer-identity-v1"];
-  if(required.some(key=>baseline.features[key as keyof typeof baseline.features]!==true)||Object.entries(features).some(([key,on])=>key!=="restored-memory-run-v1"&&on!==(required.includes(key)?true:originalFeatures[key as keyof FeatureSet])))throw new Error("runtime migration changes unapproved features");
+  if(required.some(key=>baseline.features[key as keyof typeof baseline.features]!==true)||Object.entries(features).some(([key,on])=>!(["restored-memory-run-v1","blackout-transition-v1"].includes(key))&&on!==(required.includes(key)?true:originalFeatures[key as keyof FeatureSet])))throw new Error("runtime migration changes unapproved features");
   runtime={features,systemPrompt:baseline.systemPrompt,tools:baseline.tools,sourceCommit:baseline.sourceCommit};restoreHash=digest({bundle,runtimeBaseline:baseline});
  }
  return {directory,statePath,state,prefix,history,conversation,budget,tools,bundle,source,runtime,restoreHash,...(descriptor.runtimeBaselineSha256===undefined?{}:{runtimeBaselineSha256:descriptor.runtimeBaselineSha256}),prompt:descriptor.prompt,seed:descriptor.seed,...(descriptor.frameRoot===undefined?{}:{frameRoot:resolve(descriptor.frameRoot)}),...(descriptor.stopAt===undefined?{}:{stopAt:descriptor.stopAt}),rtcMs:Math.round(bundle.rtcUnixMs)};

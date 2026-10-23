@@ -8,9 +8,9 @@ const ID="move-learn-early-comparison-v1";
 
 describe("move-learn-early-comparison-v1 (the operator 2026-10-22)",()=>{
  it("precedes the two later readout switches in every registry list as a default-off observation that needs the comparison",()=>{
-  expect(SWITCHABLE_FEATURES.at(-33)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-33)?.id).toBe(ID);
-  expect(SERVER_FEATURES.at(-7)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-35)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-35)?.id).toBe(ID);
+  expect(SERVER_FEATURES.at(-8)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"MOVE-LEARN EARLY COMPARISON",needs:"move-learn-comparison-v1"});
   expect(featureInfo(ID).description).toContain("COMBUSKEN is trying to learn DOUBLE KICK.");

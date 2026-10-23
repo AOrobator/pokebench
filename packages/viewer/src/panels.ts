@@ -563,6 +563,10 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "owned-battle-context-v1":"owned-battle-context-v1.html",
  "npc-approach-feedback-v1":"npc-approach-feedback-v1.html",
  "leader-loss-comparison-v1":"leader-loss-comparison-v1.html",
+ "leader-loss-immediate-v1":"leader-loss-immediate-v1.html",
+ "battle-action-history-v1":"battle-action-history-v1.html",
+ "leader-preparation-comparison-v1":"leader-preparation-comparison-v1.html",
+
  "navigation-recovery-v1":"navigation-recovery-v1.html",
  "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
  "gym-door-label-v1":"gym-door-label-v1.html",

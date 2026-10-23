@@ -1,0 +1,15 @@
+{
+  "source_run": "2026-10-22T20-40-54_glm53-mac_0d5d",
+  "through_seq": 3175,
+  "bounded_prefix_sha256": "4f62d923d5baea22641577d3c1236da6cb693fbdad26bb65537ec7910e5ed99d",
+  "selection": "Original previous delivered observation, wild-action pages and their source states, matching successful result and final state; rows unchanged",
+  "seqs": [
+    3138,
+    3139,
+    3172,
+    3173,
+    3174,
+    3175
+  ],
+  "fixture_sha256": "cc346eaea9c91458ee007f2e7c11353fb501f7bfbe5e4d45e4e36094b64c5a21"
+}

@@ -257,6 +257,10 @@ export const SWITCHABLE_FEATURES = [
   "restored-memory-run-v1",
   "blackout-transition-v1",
   "trainer-observed-party-v1",
+  "leader-loss-immediate-v1",
+  "battle-action-history-v1",
+  "leader-preparation-comparison-v1",
+
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -635,6 +639,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("restored-memory-run-v1", "guidance", "RESTORED LIVE MEMORY", null, "Default off. Historical event envelopes are replayed into the continuation run memory namespace so fresh observations can update supervisor and instruction memories. Saved source history is preserved. Off: replay original source run identities unchanged."),
   on("blackout-transition-v1", "observation", "BLACKOUT TRANSITION", null, "Default off. Recognizes the verified whiteout callback as an input-not-ready transition. Unknown callbacks remain coverage errors. Native measurement recognizes the known callback independently. Off: previous screen and UI readout unchanged."),
   on("trainer-observed-party-v1", "observation", "OBSERVED TRAINER POKÉMON", "battle-loss-recap-v1", "Default off; bundle treatment. Remembers opponent species and levels actually delivered to the model, by trainer ID and party slot, for every trainer class. Retry recaps and active trainer battles list these historical observations across attempts and story milestones. Delivered faint pages update already observed Pokémon. Internal state polls, failed results, unseen party members and ambiguous two-trainer battles teach nothing. Never claims the complete party is known. Off: battle recaps and results are unchanged."),
+  on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
+  on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
+  on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -955,6 +962,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("restored-memory-run-v1"),
     ...when("blackout-transition-v1"),
     ...when("trainer-observed-party-v1"),
+    ...when("leader-loss-immediate-v1"),
+    ...when("battle-action-history-v1"),
+    ...when("leader-preparation-comparison-v1"),
+
   ];
 }
 

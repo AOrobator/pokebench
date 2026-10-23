@@ -158,3 +158,10 @@ it("unchanged native move IDs remain unchanged when a current move display name 
  s.emit({...state,seq:1746,party:state.party.map(p=>({...p,moves:p.moves?.map(m=>({...m,name:null}))??null}))});s.emit({...receipt,seq:1747,state_seq:1746});
  expect(last(await s.wired.transformContext(before))).toContain("moves unchanged");
 });
+
+it("an unknown current species with the same native identity does not invent a party removal",async()=>{
+ const s=setup({"leader-loss-immediate-v1":true,"leader-preparation-comparison-v1":true});s.feed(1744);
+ const state=eventAt(1742),receipt=eventAt(1744);if(state.type!=="state"||!("started"in state)||receipt.type!=="tool_result")throw new Error("native state");
+ s.emit({...state,seq:1746,party:state.party.map(p=>({...p,species:null}))});s.emit({...receipt,seq:1747,state_seq:1746});
+ const text=last(await s.wired.transformContext(before));expect(text).toContain("party membership unchanged");expect(text).toContain("species unknown");expect(text).not.toContain("no longer in observed party");
+});

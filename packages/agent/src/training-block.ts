@@ -286,7 +286,8 @@ export class TrainingBlock {
   if(complete)for(const b of before){
    const n=byId.get(b.identity);if(n===undefined){rows.push(`  ${String(b.species)}: no longer in observed party.`);continue;}
    const compare=(label:string,a:string|number|null|undefined,z:string|number|null|undefined)=>`${label} ${a==null||z==null?"unknown":JSON.stringify(a)===JSON.stringify(z)?"unchanged":`${String(a)} → ${String(z)}`}`;
-   rows.push(`  ${String(b.species)}: ${compare("species",b.species,n.species)}; ${compare("level",b.level,n.level)}; ${compare("EXP",b.experience,n.experience)}; ${compare("moves",b.moves?.map(m=>m.name??m.move_id).join(", "),n.moves?.map(m=>m.name??m.move_id).join(", "))}; HP ${b.hp==null?"unknown":String(b.hp)}/${b.max_hp==null?"unknown":String(b.max_hp)} → ${n.hp==null?"unknown":String(n.hp)}/${n.max_hp==null?"unknown":String(n.max_hp)} (battle start → now).`);
+   const moves=b.moves==null||n.moves==null?"moves unknown":JSON.stringify(b.moves.map(m=>m.move_id))===JSON.stringify(n.moves.map(m=>m.move_id))?"moves unchanged":`moves ${b.moves.map(m=>m.name??m.move_id).join(", ")} → ${n.moves.map(m=>m.name??m.move_id).join(", ")}`;
+   rows.push(`  ${String(b.species)}: ${compare("species",b.species,n.species)}; ${compare("level",b.level,n.level)}; ${compare("EXP",b.experience,n.experience)}; ${moves}; HP ${b.hp==null?"unknown":String(b.hp)}/${b.max_hp==null?"unknown":String(b.max_hp)} → ${n.hp==null?"unknown":String(n.hp)}/${n.max_hp==null?"unknown":String(n.max_hp)} (battle start → now).`);
   }
   if(complete)for(const n of now)if(!before.some(b=>b.identity===n.identity))rows.push(`  Added observed party member: ${String(n.species)} Lv${String(n.level)}.`);
   const bag=(items:Bag|null|undefined)=>{

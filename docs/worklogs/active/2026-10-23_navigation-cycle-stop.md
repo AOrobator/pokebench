@@ -77,7 +77,7 @@ Read local PB1–PB13 and the inherited Local stack principles referenced by the
 | SI-P22 | PASS | RED30faad23c, GREENb24205f1c, sync6bdef2b70 committed; retained native fixture tracked. |
 | SI-P23 | N/A | No physical host/topology operation. |
 | SI-P24 | PASS | P29 redirect: no implicit waiver; review outage provenance verified separately. |
-| SI-P25 | PASS | Final cumulative patch frozen and independently reviewed after fixes. |
+| SI-P25 | PASS | Each review uses a frozen cumulative packet; R1 blockers retained and final updated verdicts remain required before landing. |
 | SI-P26 | PASS | Guard and factory deletion each fail7focused tests; no bypass introduced. |
 | SI-P27 | PASS | Durable worklog maintained while completing authorized landing. |
 | SI-P28 | N/A | No topology retirement. |
@@ -122,7 +122,7 @@ Read local PB1–PB13 and the inherited Local stack principles referenced by the
 ### Test-quality review
 
 1. Seam: production withNavigation factory and RunRecorder consume exact returned result.
-2. Deletions: performed factory, guard, facing, terrain, path, elevation mutations; every case red then restored green.
+2. Deletions: performed factory, guard, facing, terrain, path, elevation, warp, matching-trigger, position and local-mode mutations; every targeted case red then restored green (see R1 repair below).
 3. No process-global mutations; state and cycle set are instance/call local.
 4. Recorder proof owns a unique temp directory and exact payload; no shared collector.
 5. No new concurrency; ordinary full gates ran alongside other owners without sleeps/retries added.
@@ -151,3 +151,7 @@ Added five bounded proof cases (20focused tests total): off-route warp change, m
 Human conditional request checked against run2026-10-23T11-15-17_qwen36-gpu0_4637. T307 result13310/state13309 says Location RUSTBORO CITY(map0/3), X18Y17, arrived at requested coordinate after1 bounded input. Its frame frames/013310_0.png shows the outdoor street. T308 assistant13317 references state13309 yet states inside Devon and a Dewdrop Ticket goal. Delivered system already prioritizes location/game evidence and checks destination map after transitions. No false map or frame established behind that belief; classify spatial/prior-over-evidence, no repair manufactured under conditional authorization. Separately the primary trace ownerredacted-id received direct human authorization for a factual map-unchanged arrival clarification and owns that separate flag/packet. T270 generic semantic refusal during native field-control lock is distinct and did deliver all4 Devon employee dialogue pages; no causal claim linking it to inside belief. Existing runs untouched throughout.
 
 - Integrated milestone sourcef5450b823/evidenceec19227bc into branch, preserving campaign changes before appending navigation switch. Reconciled append-index assertions from actual new main; first pre-reconciliation test invocation failed85 registry assertions and is not accepted evidence. Removed unrelated JSON title escaping byte. No canonical main/viewer changes. New complete gates run only after merge commit.
+
+- Integrated branch931825482 normal tests pass3966agent/1742viewer/4044Python (native44.11s), all zero skips; build/lint/vendor pass. Actual clean build stamp931825482, owned listener13526 bound127.0.0.1:53979 with cwd the owned worktree. Headless card popup desktop/phone proof binds31 served assets including explainer to exact local compiled/file SHA256; every hash matches, no JS errors or body overflow, screenshots opened. Initial byte comparison used the wrong viewer-local module for two documented agent module routes; corrected path mapping and reran; mismatch receipt retained. Full coverage attempts under concurrent host gates timed out in existing map-cycle-recovery/people-id-cards-delivery/battle-text-auto-advance tests; no new test failed, no timeouts/configs changed. Separate full normal gate passes; coverage is explicitly NOT yet accepted and will run after final campaign sync. Failed receipts retained.
+- Campaign ownerredacted-id and this chat directly agreed campaign guarded-runtime takes next stable gate/qualification/review/landing window, then cycle stop. Milestone ec19227bc was integrated; no further final packet freeze or main/8790 move until campaign's actual final evidence/release SHA. Separate tiny bundle clock config ownerredacted-id was asked to coordinate into that campaign window before freeze if feasible. No gameplay/inference/runtime feature activation from this branch.
+- Devon delivery audit retained exact packet/prompt/tool context and immutable prefix throughseq13317, frame hashes and independent seven raw-region length/hash checks. SaveBlock pointer0x2025a28 mapbytes0,3 confirmed from raw4842 SHA2562bab5fd0be264382c4b97572036883f3575173b43c66eab12756483134b8b686. No Dewdrop text in any prior delivered tool result through that cutoff. Receipt runs/reviews/navigation-cycle-stop/devon-delivery-audit.json. The assistant belief is labeled a stated belief, not causal reasoning evidence.

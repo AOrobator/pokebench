@@ -879,7 +879,7 @@ export class App {
 
   private renderParty(view: RunView): void {
     const root = this.ui("party"), state = view.partyState;
-    const html = this.partyData === null || state === null ? party(view) : partyNotice(view) + partyPage(state.party, this.partyData, this.partyUi, state.name ?? null);
+    const html = this.partyData === null || state === null ? party(view) : partyNotice(view) + partyPage(view.partyMembers, this.partyData, this.partyUi, state.name ?? null);
     if (this.html.get(root) === html) return;
     const active = this.doc.activeElement instanceof HTMLElement && root.contains(this.doc.activeElement) ? this.doc.activeElement : null;
     const refocus = active === null ? null : active.dataset.pvSlot !== undefined ? `[data-pv-slot="${String(this.partyUi.slot)}"]` : active.dataset.pvTab !== undefined ? `[data-pv-tab="${String(this.partyUi.tab)}"]` : active.dataset.pvMove !== undefined ? `[data-pv-move="${active.dataset.pvMove}"]` : null;

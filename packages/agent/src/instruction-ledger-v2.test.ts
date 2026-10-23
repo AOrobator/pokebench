@@ -477,7 +477,7 @@ describe("instruction-ledger-v2 switch",()=>{
  });
  it("is registered last, default-off, an observation that needs dialogue auto-advance",()=>{
   const id="instruction-ledger-v2";
-  expect(SWITCHABLE_FEATURES.at(-130)).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-131)).toBe(id);
   expect(FEATURES.filter(f=>f.switchable).at(-130)?.id).toBe(id);
   expect(featureInfo(id)).toMatchObject({group:"observation",title:"CONVERSATION LEDGER",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo(id).description).toContain(" Off: ");

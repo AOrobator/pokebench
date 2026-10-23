@@ -309,7 +309,7 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(LEARN_MOVE_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"LEARN MOVE TOOL"});
   expect(featureInfo(LEARN_MOVE_ID).description).toContain(" Off: no learn_move tool and no prompt section.");
-  expect(SWITCHABLE_FEATURES.at(-32)).toBe(LEARN_MOVE_ID);
+  expect(SWITCHABLE_FEATURES.at(-33)).toBe(LEARN_MOVE_ID);
   expect(FEATURES.filter(f=>f.switchable).at(-32)?.id).toBe(LEARN_MOVE_ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-9)).toBe(LEARN_MOVE_ID);
   expect(SERVER_FEATURES).not.toContain(LEARN_MOVE_ID);
@@ -330,7 +330,7 @@ describe("move-learn-tool-v1 registry, prompt and production wiring",()=>{
   expect(playSystemPrompt(BASE,null)).not.toContain("learn_move");
   expect(playSystemPrompt(ON,null)).toBe(`${playSystemPrompt(BASE,null)}\n\n${LEARN_MOVE_SECTION}`);
   expect(LEARN_MOVE_SECTION).toBe('- learn_move: when the game asks "Delete a move to make room for …?" or "Stop learning …?", or shows the pages before them or the summary screen\'s list of moves to forget, call learn_move with forget set to one of the four moves the POKéMON knows (as the game names them) or "none". With a move, the harness answers YES, moves the summary highlight to that move checking it after each press, and presses A; with none, it answers NO to deleting a move and YES to stopping, and the POKéMON keeps its moves. It reports what the game printed and the party\'s moves afterwards. No choice is recommended. It refuses, and presses nothing, when no move-learning prompt is open or the move is not one the POKéMON knows. press still works on these prompts.');
-  const jit={...ALL_ON,"just-in-time-prompt-v1":true,"tool-prompt-docs-v1":true};
+  const jit={...ALL_ON,"move-learn-offer-identity-v1":false,"just-in-time-prompt-v1":true,"tool-prompt-docs-v1":true};
   for(const scene of SCENES){
    const prompt=playSystemPrompt(jit,null,scene);
    expect(prompt).toContain(LEARN_MOVE_SECTION);
@@ -399,4 +399,85 @@ describe("learn_move is recorded like the other game tools",()=>{
   expect(paired).toMatchObject({type:"state"});
   expect(JSON.stringify(paired)).toContain("DOUBLE KICK");
  });
+});
+
+
+describe("offered move identity guard",()=>{
+ const guarded=(sim:LearnSim,over:Partial<LearnMovePorts>={})=>learnMoveTool(sim.ports(over),true);
+ it("refuses stale PECK after wait exposes DOUBLE KICK, without pressing",async()=>{
+  const sim=new LearnSim("evolution",{kind:"page1"});
+  const r=await guarded(sim).execute("l",{forget:"none",decline_move:"PECK"});
+  expect(sim.presses).toEqual([]);
+  expect(first(r)).toContain("COMBUSKEN is trying to learn DOUBLE KICK");
+  expect(first(r)).toContain("PECK");
+  expect(r.details).toMatchObject({learn_move:{refused:true,presses:[]}});
+ });
+ it("requires the declined move name and accepts matching decline or learning",async()=>{
+  const sim=new LearnSim("evolution",{kind:"delete",selected:"YES"});
+  expect(first(await guarded(sim).execute("l",{forget:"none"}))).toContain("decline_move");
+  expect(sim.presses).toEqual([]);
+  await guarded(sim).execute("l",{forget:"none",decline_move:"double kick"});
+  expect(sim.presses).toEqual(["B","A"]);
+  const learn=new LearnSim("evolution",{kind:"delete",selected:"YES"});
+  await guarded(learn).execute("l",{forget:"SCRATCH"});
+  expect(learn.moves()).toEqual(["DOUBLE KICK","GROWL","FOCUS ENERGY","EMBER"]);
+ });
+ it("checks the offer again at the actual press even when the menu looks identical",async()=>{
+  const sim=new LearnSim("evolution",{kind:"delete",selected:"YES"});
+  const r=await guarded(sim,{press:(_id,_params,_signal,check)=>{
+   const changed=sim.state();details(changed)["new_move"]="PECK";
+   check(changed);return Promise.resolve({content:[],details:{state:changed}});
+  }}).execute("l",{forget:"none",decline_move:"DOUBLE KICK"});
+  expect(sim.presses).toEqual([]);
+  expect(first(r)).toContain("offer changed");
+ });
+ it("checks again after page advancement",async()=>{
+  const sim=new LearnSim("evolution",{kind:"page1"});const base=sim.ports();
+  const r=await guarded(sim,{wait:async()=>{const w=await base.wait();if(sim.presses.length)details(w.state)["new_move"]="PECK";return w;}}).execute("l",{forget:"none",decline_move:"DOUBLE KICK"});
+  expect(sim.presses).toEqual(["A"]);
+  expect(first(r)).toContain("offer changed");
+ });
+});
+
+
+it("production factory wires default-OFF offer identity into the schema, prompt and native wait",async()=>{
+ const sim=new LearnSim("evolution",{kind:"page1"});
+ const noop={beforePress:()=>undefined,afterPress:()=>Promise.resolve()};
+ const base=[observeTool("http://unused"),pressTool("http://unused",noop)];
+ const features={...BASE,"move-learn-tool-v1":true,"move-learn-offer-identity-v1":true};
+ const ports=sim.ports();
+ const state={read:()=>Promise.resolve(sim.state()),moveLearnWait:()=>ports.wait()};
+ const off=withLearnMove(base,{...features,"move-learn-offer-identity-v1":false},state).at(-1);
+ const tool=withLearnMove(base,features,state).at(-1);
+ expect(off?.parameters).toEqual(LearnMoveArgs);
+ expect(off?.description).toBe(LEARN_MOVE_DESCRIPTION);
+ expect(tool?.parameters).toHaveProperty("properties.decline_move");
+ expect(tool?.description).toContain("decline_move is required");
+ for(const scene of SCENES)expect(playSystemPrompt(features,null,scene)).toContain("decline_move is required");
+ expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])["move-learn-offer-identity-v1"]).toBe(false);
+ // No HTTP observation endpoint is ever contacted: keep the production factory and native wait,
+ // replace only observe with an inert typed observation to inspect the refusal.
+ const ordinary=[{...base[0],name:"observe",execute:(id:string,signal?:AbortSignal)=>ports.observe(id,signal)},base[1]].filter((t):t is AgentTool=>t!==undefined);
+ const guard=withLearnMove(ordinary,features,state).at(-1);
+ const r=await guard?.execute("l",{forget:"none",decline_move:"PECK"});
+ expect(sim.presses).toEqual([]);
+ if(r===undefined)throw new Error("guard missing");
+ expect(first(r)).toContain("COMBUSKEN is trying to learn DOUBLE KICK");
+});
+
+it("4637T81: a pre-offer stale PECK decline is refused when native wait exposes DOUBLE KICK",async()=>{
+ const fixture=JSON.parse(readFileSync(new URL("../test-support/learn-move-4637-offer.json",import.meta.url),"utf8")) as {states:Record<string,Raw>};
+ const before=parseGameState({...rec("evo_page1"),...fixture.states["3783"]});
+ const offered=parseGameState({...rec("evo_page1"),...fixture.states["3794"]});
+ expect(before.active_ui).toMatchObject({phase:"evolution",ready:false,details:{evolution_state:15,move_learning_state:0}});
+ expect(offered.active_ui).toMatchObject({phase:"evolution_move_learning",ready:true,details:{new_move:"DOUBLE KICK",new_move_id:24}});
+ const presses:Button[]=[];let waits=0;
+ const r=await learnMoveTool({
+  wait:()=>{waits++;return Promise.resolve({reason:"page",frames:1,state:offered,battle_learner:null});},
+  press:(_id,args)=>{presses.push(...args.buttons);throw new Error("unexpected input");},
+  observe:()=>Promise.resolve({content:[{type:"text",text:"Native DOUBLE KICK offer"}],details:{state:offered}}),
+ },true).execute("l",{forget:"none",decline_move:"PECK"});
+ expect(waits).toBe(1);expect(presses).toEqual([]);
+ expect(first(r)).toContain("COMBUSKEN is trying to learn DOUBLE KICK");
+ expect(r.details).toMatchObject({state:{active_ui:{details:{new_move_id:24}}},learn_move:{decline_move:"PECK",refused:true,presses:[]}});
 });

@@ -70,3 +70,5 @@ None.
 - Round2 gates:3936 agent+1738 viewer+4044 Python tests; build pass; lint completion recorded in review packet. Additional optional-splits headless UI screenshot verified; no console errors. Offline replay header remains LOADING because the original run prefix has no terminal event; no live/complete-run claim.
 
 - Operator approved fixing only Aqua Hideout allFlags proof gap, syncing latest main, final review and merge on success. Verified standing general Grok-outage waiver from server-cited human message "yes dont wait for grok" (2026-10-21T20:35:35Z); coordinator scope note distinguishes general authorization. No new Grok-only permission required. Final proof adds no production behavior.
+
+- Sync latest main c69ad74a5: preserve move-learn offer identity feature/order/defaults and append campaign switch after it. Resolved shared registry/filter/index/doc conflicts; no move-learning behavior altered by campaign delta. Aqua Hideout every-to-some mutation fails the new per-guard test; restoration passes.

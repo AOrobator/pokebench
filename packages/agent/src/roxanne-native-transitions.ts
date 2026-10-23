@@ -29,7 +29,10 @@ export function verifiedTransitionSamples(events:readonly RunEvent[],proof?:Tran
   if(![0x10,0x11,0x12,0x13,0x17,0x1b,0x1f].includes(mode))throw new Error("invalid transition CPU mode");
   // The archive uses emulator frame_counter; journal.frame starts at server boot.
   // Compare each to its own owner only, never these two distinct clocks.
-  if((mode===0x10||mode===0x1f)&&(value.cpsr&0x20)!==0&&pc-2>=0x080008ac&&pc-2<0x080008d4)throw new Error("empty state has no non-idle transition proof");
+  const iwram=value.regions[1];if(iwram===undefined)throw new Error("missing transition IWRAM");
+  // pret731ad5bf overworld.c:1550: CB2_WhiteOut waits120frames without RunTasks or input.
+  const whiteout=start.rom_sha1==="f3ae088181bf583e55daf962a92bb46f4f1d07b7"&&start.harness_features.includes("blackout-transition-v1")&&Buffer.from(iwram.data_base64,"base64").readUInt32LE(0x22c4)===0x08085f59&&event.screen==="field_transition"&&!event.in_battle&&event.active_ui?.phase==="field_transition"&&event.active_ui.ready===false&&event.active_ui.diagnostic===null;
+  if((mode===0x10||mode===0x1f)&&(value.cpsr&0x20)!==0&&pc-2>=0x080008ac&&pc-2<0x080008d4&&!whiteout)throw new Error("empty state has no verified transition proof");
   out.add(receipt.seq);
  }
  return out;

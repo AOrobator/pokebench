@@ -1,4 +1,5 @@
 """Exact CB2_WhiteOut owner, pret731ad5bf overworld.c:1550; no RunTasks during wait."""
+
 import struct
 
 from test_transition_coherence import Zeros

@@ -54,8 +54,9 @@ function nativePatch(before:unknown,after:unknown,path:readonly (string|number)[
   while(suffix<before.length-prefix&&suffix<after.length-prefix&&before.charCodeAt(before.length-1-suffix)===after.charCodeAt(after.length-1-suffix))suffix++;
   parts.text.push({path:[...path],prefix,remove:before.length-prefix-suffix,insert:after.slice(prefix,after.length-suffix)});
  }else if(Array.isArray(before)&&Array.isArray(after)){
-  const indexes=new Map(before.map((value,index)=>[JSON.stringify(value),index]));
-  const reused:NativePatch={set:[],remove:[],text:[],arrays:[{path:[...path],items:after.map(value=>indexes.get(JSON.stringify(value))??{value})}]};
+  const earlier:readonly unknown[]=before,later:readonly unknown[]=after;
+  const indexes=new Map(earlier.map((value,index)=>[JSON.stringify(value),index]));
+  const reused:NativePatch={set:[],remove:[],text:[],arrays:[{path:[...path],items:later.map(value=>indexes.get(JSON.stringify(value))??{value})}]};
   if(before.length===after.length){for(const [i,value]of after.entries())add(nativePatch(before[i],value,[...path,i]));}
   else Object.assign(parts,whole);
   if(JSON.stringify(reused).length<JSON.stringify(parts).length)Object.assign(parts,reused);
@@ -94,11 +95,12 @@ export function unpackNativeEvents(records:readonly unknown[]):RunEvent[]{
   let value:RunEvent;
   if(row.kind==="full")value=checkEvent(row.event);
   else{const base=values[row.base];if(base===undefined)throw new Error("invalid packed native base");const restored:unknown=structuredClone(base);
-   for(const path of row.remove){const {parent,key}=nativeParent(restored,path);if(!record(parent)||typeof key!=="string"||!Object.hasOwn(parent,key))throw new Error("invalid packed native removal");delete parent[key];}
+   for(const path of row.remove){const {parent,key}=nativeParent(restored,path);if(!record(parent)||typeof key!=="string"||!Object.hasOwn(parent,key))throw new Error("invalid packed native removal");Reflect.deleteProperty(parent,key);}
    for(const change of row.set){const {parent,key}=nativeParent(restored,change.path);if(Array.isArray(parent)&&typeof key==="number")parent[key]=change.value;else if(record(parent)&&typeof key==="string")Object.defineProperty(parent,key,{value:change.value,writable:true,enumerable:true,configurable:true});}
    for(const change of row.arrays){const {parent,key}=nativeParent(restored,change.path);const before=Array.isArray(parent)&&typeof key==="number"?parent[key]:record(parent)&&typeof key==="string"?parent[key]:undefined;
     if(!Array.isArray(before))throw new Error("invalid packed native array");
-    const next=change.items.map(item=>{if(typeof item!=="number")return item.value;if(item>=before.length)throw new Error("invalid packed native array index");return structuredClone(before[item]);});
+    const elements:readonly unknown[]=before;
+    const next=change.items.map(item=>{if(typeof item!=="number")return item.value;if(item>=before.length)throw new Error("invalid packed native array index");return structuredClone(elements[item]);});
     Object.defineProperty(parent,key,{value:next,writable:true,enumerable:true,configurable:true});
    }
    for(const change of row.text){const {parent,key}=nativeParent(restored,change.path);const before=Array.isArray(parent)&&typeof key==="number"?parent[key]:record(parent)&&typeof key==="string"?parent[key]:undefined;

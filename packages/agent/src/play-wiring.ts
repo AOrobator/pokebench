@@ -57,7 +57,7 @@ type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"reco
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
  const tools:AgentTool[]=[];
- const memoryRecorder:WiringRecorder={subscribe:(observer,milestones=false,latest=false)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
+ const memoryRecorder:WiringRecorder={subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
 
  const observedBase=observedInstructions(features,memoryRecorder,base);
  const memory=navigationMemory(features,memoryRecorder,observedBase);

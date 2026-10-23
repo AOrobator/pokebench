@@ -98,7 +98,7 @@ export async function withRun(
   let server: ServerHandle | undefined;
   const beforeRunEnd:(()=>Promise<void>)[]=[];
   if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
-  const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState,...(plan.continuation===undefined?{}:{history:prior,turnBase:plan.continuation.sourceTurn-1}) });
+  const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState,...(plan.continuation===undefined?{}:{history:prior,turnBase:plan.continuation.sourceTurn-1,restoreRunIdentity:plan.harnessFeatures.includes("restored-memory-run-v1")}) });
   let reason: RunEndReason = "crash";
   try {
     const startMeta:RunStartMeta={

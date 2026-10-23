@@ -11,17 +11,20 @@ const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/battle-history-7030.jso
 const before:AgentMessage[]=[{role:"user",content:"Play the game.",timestamp:0}];
 const features=(over:Partial<FeatureSet>={}):FeatureSet=>({...featuresOf([]),"leader-loss-comparison-v1":true,...over});
 const setup=(on:Partial<FeatureSet>)=>{
- const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
- const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{listeners.push(fn);},recordLedgerContext:(n:{text:string;evidence:number[]})=>notes.push(n),recordNavigationContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:()=>undefined,recordLoopBreaker:()=>undefined};
+ const restorations:boolean[]=[],listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
+ const recorder={subscribe:(fn:(e:RunEvent)=>void,_milestones?:boolean,_latest?:boolean,restored=false)=>{listeners.push(fn);restorations.push(restored);},recordLedgerContext:(n:{text:string;evidence:number[]})=>notes.push(n),recordNavigationContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:()=>undefined,recordLoopBreaker:()=>undefined};
  const wired=contextTools(features(on),recorder,m=>Promise.resolve(m));
  const emit=(e:RunEvent)=>{for(const f of listeners)f(e);};
  const feed=(upto:number)=>{for(const e of EVENTS)if(e.seq<=upto)emit(e);};
- return {wired,feed,notes,listeners,emit};
+ return {wired,feed,notes,listeners,restorations,emit};
 };
 const last=(m:AgentMessage[])=>m.at(-1)?.content;
 describe("native battle history delivery",()=>{
  it("OFF preserves the original request reference and has no extra subscription",async()=>{
   const s=setup({});s.feed(1744);expect(await s.wired.transformContext(before)).toBe(before);expect(s.listeners).toHaveLength(0);
+ });
+ it("uses the production restoration-aware recorder for the shared history owner",()=>{
+  const s=setup({"leader-loss-immediate-v1":true});expect(s.listeners).toHaveLength(1);expect(s.restorations).toEqual([true]);
  });
  it("delivers the last-loss comparison outside the gym before the next post-loss choice",async()=>{
   const s=setup({"leader-loss-immediate-v1":true});s.feed(1744);

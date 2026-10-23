@@ -89,3 +89,9 @@ it("checks runtime flags before model discovery and binds migrated native anchor
  const state=loaded.source.events.find(e=>e.type==="state");if(state?.type!=="state"||!("started"in state))throw Error("fixture");
  const snapshot=parseGameState(Object.fromEntries(Object.entries(state).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));expect(captureContinuationStart(loaded,snapshot).restoreHash).toBe(loaded.restoreHash);
 });
+
+it("explicit memory-run migration is hash-bound without allowing another feature change",async()=>{
+ const f=await runtimeFixture(),baseline={...f.baseline,features:{...f.baseline.features,"restored-memory-run-v1":true}},input=f.bind(baseline),loaded=loadLiveContinuation(input,f.read);
+ expect(loaded.runtime.features["restored-memory-run-v1"]).toBe(true);expect(loaded.bundle).toEqual(f.bundle);expect(loaded.history).toEqual(f.history);
+ expect(()=>loadLiveContinuation(f.bind({...baseline,features:{...baseline.features,"ram-state-v1":!loaded.runtime.features["ram-state-v1"]}}),f.read)).toThrow(/unapproved/);
+});

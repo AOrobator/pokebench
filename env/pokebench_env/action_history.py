@@ -65,10 +65,11 @@ def read_action_frame(
     battle_move_learn_input: bool = False,
 ) -> ActionFrame:
     battle = read_battle_state(read, tutorial_owner_enabled=tutorial_owner_enabled)
-    screen = read_screen(read)
+    screen = read_screen(read, blackout_transition=True)
     ui = read_active_ui(
         read,
         screen,
+        blackout_transition=True,
         tutorial_owner_enabled=tutorial_owner_enabled,
         evolution_decision=evolution_decision,
         battle_move_learn_input=battle_move_learn_input,
@@ -622,10 +623,11 @@ class NativeActionJournal:
                         )
                     return
                 self.busy_frames = 0
-                screen = read_screen(read)
+                screen = read_screen(read, blackout_transition=True)
                 ui = read_active_ui(
                     read,
                     screen,
+                    blackout_transition=True,
                     tutorial_owner_enabled=self.tutorial_owner_enabled,
                     battle_move_learn_input=self.battle_move_learn_input,
                 )

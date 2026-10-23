@@ -73,7 +73,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  // fixed-point-breaker-v1 alone ends the request with its note.
  const breaker=fixedPointBreaker(features,recorder);
  const note=features["fixed-point-breaker-v1"];
- const history=trainingContext(features,recorder,moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}));
+ const history=trainingContext(features,recorder,moveLearnGoalReminder(features,recorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
  return {tools,transformContext:history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

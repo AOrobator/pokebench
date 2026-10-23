@@ -46,6 +46,7 @@ export class BattleActionHistory {
    const lines:string[]=[],nameSources=new Set<number>();
    const side=(actor:string,stateSeq:number,printed:string):string=>{
     const source=this.states.get(stateSeq);
+    if(source!==undefined)nameSources.add(source.seq);
     // Fast snapshots omit names: use only a preceding native party read in this battle.
     const partyRead=source!==undefined&&source.party.length>0?source:[...this.states.values()].findLast(s=>s.battle===source?.battle&&s.seq<=stateSeq&&s.party.length>0);
     const player=partyRead?.party.some(m=>m.species===actor||m.nickname===actor)===true||source?.battlers?.some(b=>b.position%2===0&&b.species===actor)===true;
@@ -89,7 +90,7 @@ export class BattleActionHistory {
  context(maxSources=this.limits.sources,maxChars=BATTLE_HISTORY_CONTEXT_CHARS):{text:string;evidence:number[]}|null {
   const entries=[...this.entries];
   let chars=HEADER.length+entries.reduce((sum,entry)=>sum+entry.text.length+1,0);
-  while(entries.length>0&&(new Set(entries.flatMap(entry=>entry.evidence)).size>Math.max(0,maxSources)||chars>maxChars)){const removed=entries.shift();if(removed!==undefined)chars-=removed.text.length+1;}
+  while(entries.length>0&&(new Set(entries.flatMap(entry=>entry.evidence)).size>Math.max(0,Math.min(this.limits.sources,maxSources))||chars>maxChars)){const removed=entries.shift();if(removed!==undefined)chars-=removed.text.length+1;}
   if(entries.length===0)return null;
   return {text:[HEADER,...entries.map(e=>e.text)].join("\n"),evidence:[...new Set(entries.flatMap(e=>e.evidence))]};
  }

@@ -72,9 +72,12 @@ export class TrainingBlock {
  private readonly pendingLossPages=new Map<string,PendingLossPages>();
  private readonly names=new Map<number,string>();
  private readonly maps=new Map<string,Map<number,SeenTrainer>>();
- constructor(private readonly features:FeatureSet){}
+ constructor(private readonly features:FeatureSet,private readonly contextToolNames:ReadonlySet<string>=new Set<string>()){}
 
  observe(event:RunEvent):void {
+  // These factory-owned context tools read history without a new native observation.
+  // Failed results and all game-tool results still require a matching current receipt.
+  if(event.type==="tool_result"&&!event.is_error&&event.state_seq===undefined&&this.contextToolNames.has(event.name))return;
   if(this.features["battle-action-history-v1"])this.actions.observe(event);
   if(event.type==="assistant"&&event.stop_reason!=="error"&&event.stop_reason!=="aborted"&&event.error===undefined&&this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
   if(event.type==="state"){this.latest="started" in event?event:null;this.receipt=null;}
@@ -363,8 +366,8 @@ export function withTrainingBlock(tools:readonly AgentTool[],features:FeatureSet
  return withAppendedBlock(tools,features,state=>training.block(state as unknown as Snapshot));
 }
 
-export function trainingContext(features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void,replay?:boolean):void;recordLedgerContext(note:{text:string;evidence:number[]}):void},base:(messages:AgentMessage[])=>Promise<AgentMessage[]>):{transform:(messages:AgentMessage[])=>Promise<AgentMessage[]>;training?:TrainingBlock}{
+export function trainingContext(features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void,replay?:boolean):void;recordLedgerContext(note:{text:string;evidence:number[]}):void},base:(messages:AgentMessage[])=>Promise<AgentMessage[]>,contextTools:readonly AgentTool[]=[]):{transform:(messages:AgentMessage[])=>Promise<AgentMessage[]>;training?:TrainingBlock}{
  if(!["leader-loss-immediate-v1","battle-action-history-v1","leader-preparation-comparison-v1"].some(id=>features[id as keyof FeatureSet]))return {transform:base};
- const training=new TrainingBlock(features);recorder.subscribe(e=>{training.observe(e);},true);
+ const training=new TrainingBlock(features,new Set(contextTools.map(tool=>tool.name)));recorder.subscribe(e=>{training.observe(e);},true);
  return {training,transform:async messages=>{const out=await base(messages),note=training.context();if(note===null||out.some(m=>m.role==="user"&&m.content===note.text))return out;recorder.recordLedgerContext(note);return [...out,{role:"user",content:note.text,timestamp:Date.now()}];}};
 }

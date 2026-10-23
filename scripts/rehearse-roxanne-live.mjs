@@ -9,6 +9,7 @@ import {createHash} from 'node:crypto';
 
 const repo=resolve(fileURLToPath(new URL('..',import.meta.url))),mod=n=>import(join(repo,'packages/agent/dist',n+'.js'));
 const [{loadLiveContinuation},{recordedFeatures},{parseEvent}]=await Promise.all(['roxanne-live-continuation','decision-probe','events'].map(mod));
+const rom=process.env.POKEBENCH_ROM;if(!rom)throw Error('POKEBENCH_ROM is required for CPU-native rehearsal');
 const [qualified,output,mode]=process.argv.slice(2);if(mode!==undefined&&mode!=="deadline"&&mode!=="candidate"&&mode!=="foreign-port")throw Error("unsupported rehearsal mode");if(!qualified||!output)throw Error('usage: <qualified-directory> <new-output-directory>');
 mkdirSync(output,{recursive:false});const runs=join(output,'runs');mkdirSync(runs);
 const reminder=mode==='candidate'?'Use the observed loss and current capabilities to choose your next strategy.':'',loaded=loadLiveContinuation({directory:qualified,prompt:reminder,seed:42}),start=loaded.source.start;
@@ -25,7 +26,7 @@ const game=createServer((_req,res)=>{res.setHeader('content-type','application/j
 const endpoint=join(output,'fake-endpoint.json');writeFileSync(endpoint,JSON.stringify({base_url:`http://127.0.0.1:${address.port}/v1`,api_key:'offline-only'}));
 const runId='2026-10-23T00-00-00_roxanne_offline',out=openSync(join(output,'worker.log'),'wx'),err=openSync(join(output,'worker.err'),'wx');
 try{
- child=spawn(process.execPath,[join(repo,'packages/agent/dist/live.js'),'play'],{cwd:repo,env:{...process.env,POKEBENCH_ROM:'/Users/user/.roms/pokemon-emerald.gba',POKEBENCH_RUNS_ROOT:runs,POKEBENCH_RUN_ID:runId,POKEBENCH_PLAY_PRESET:preset,POKEBENCH_CAMPAIGN_CONTINUATION:descriptor,POKEBENCH_ENDPOINT_FILE:endpoint,POKEBENCH_MODEL:start.model.id,POKEBENCH_GAME_SERVER_URL:`http://127.0.0.1:${ga.port}`},stdio:['ignore',out,err]});
+ child=spawn(process.execPath,[join(repo,'packages/agent/dist/live.js'),'play'],{cwd:repo,env:{...process.env,POKEBENCH_ROM:rom,POKEBENCH_RUNS_ROOT:runs,POKEBENCH_RUN_ID:runId,POKEBENCH_PLAY_PRESET:preset,POKEBENCH_CAMPAIGN_CONTINUATION:descriptor,POKEBENCH_ENDPOINT_FILE:endpoint,POKEBENCH_MODEL:start.model.id,POKEBENCH_GAME_SERVER_URL:`http://127.0.0.1:${ga.port}`},stdio:['ignore',out,err]});
  const code=await new Promise((r,reject)=>{child.once('error',reject);child.once('exit',r);});
  if(mode==='foreign-port'){const preserved=(await fetch(`http://127.0.0.1:${ga.port}/health`)).ok,passed=code===1&&requests===0&&preserved&&readFileSync(join(output,'worker.err'),'utf8').match(/different process group|every run needs its own/)!==null;const receipt={passed,mode:'foreign-port-refusal',gpuCalls:0,requests,exitCode:code,foreignListenerPreserved:preserved};writeFileSync(join(output,'receipt.json'),JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));if(!passed)process.exitCode=1;}else{
  const events=readFileSync(join(runs,runId,'events.jsonl'),'utf8').trim().split('\n').map(parseEvent),record=JSON.parse(readFileSync(join(runs,runId,'campaign-continuation.json'),'utf8'));

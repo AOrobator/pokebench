@@ -1,6 +1,6 @@
 // CPU/disk-only eligibility worker. Invoked only after exact finalist text is frozen.
 // Reports validity metadata only, never protected gameplay content to the planner.
-import {readFileSync,writeFileSync,readdirSync,mkdirSync,openSync,closeSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,mkdirSync,openSync,closeSync,existsSync} from 'node:fs';
 import {join,resolve,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
@@ -9,6 +9,7 @@ const [{digest},{eligibleHeldoutTurns},{parseRun,decisionContext,recordedFeature
 const [campaign,runsRoot,expectedHash]=process.argv.slice(2);if(!campaign||!runsRoot||!expectedHash)throw Error('usage: <campaign-dir> <source-runs-root> <frozen-finalist-hash>');
 const finalist=JSON.parse(readFileSync(join(campaign,'frozen-finalist.json'),'utf8'));if(finalist.hash!==expectedHash||digest(finalist.text)!==expectedHash)throw Error('finalist must be frozen before eligibility');
 const root=join(campaign,'protected-qualification');mkdirSync(root,{recursive:false});
+const rom=process.env.POKEBENCH_ROM;if(!rom)throw Error("POKEBENCH_ROM is required");
 const qualified=[],attempts=[];
 for(const family of ['e8b4','35df','7c9f']){
  const ids=readdirSync(runsRoot).filter(name=>name.endsWith(`_${family}`));if(ids.length!==1){attempts.push({family,eligible:false,reason:'source identity unavailable or ambiguous'});continue;}
@@ -17,7 +18,7 @@ for(const family of ['e8b4','35df','7c9f']){
   const out=join(root,`${family}-t${turn}`),stdout=openSync(join(root,`${family}-t${turn}.log`),'wx'),stderr=openSync(join(root,`${family}-t${turn}.err`),'wx');
   const exec=(argv)=>execFileSync(argv[0],argv.slice(1),{cwd:repo,env:{...process.env,PYTHONPATH:join(repo,'env')},stdio:['ignore',stdout,stderr],timeout:1800000});
   try{
-   exec([join(repo,'env/.venv/bin/python'),join(repo,'scripts/qualify-roxanne-checkpoint.py'),'--run',runDir,'--turn',String(turn),'--rom','/Users/user/.roms/pokemon-emerald.gba','--out',out]);
+   exec([join(repo,'env/.venv/bin/python'),join(repo,'scripts/qualify-roxanne-checkpoint.py'),'--run',runDir,'--turn',String(turn),'--rom',rom,'--out',out,...(run.start.start_state.kind==='save_state'&&!existsSync(run.start.start_state.path)?['--initial-state',join(runsRoot,'launch-receipts/fast-text/MAIN_MENU.state')]:[])]);
    const q=JSON.parse(readFileSync(join(out,'qualification.json'),'utf8'));if(!q.receipt.passed)throw Error('native qualification failed');
    const prefix=parseRun(readFileSync(join(out,'events-prefix.jsonl'),'utf8'));
    // decisionContext needs the turn marker to delimit the exact prefix.

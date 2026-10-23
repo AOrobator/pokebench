@@ -326,3 +326,15 @@ it("normal bundle recipes enable named declines while control retains its previo
   expect(armFeatures(d,"control")["move-learn-offer-identity-v1"],name).toBe(false);
  }
 });
+
+
+it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"])("future %s bundle credits earned campaign progress while control remains OFF",name=>{
+ const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+ expect(definitionProblems(d),name).toEqual([]);
+ expect(armFeatures(d,"bundle")["campaign-progress-clock-v1"],`${name}/bundle`).toBe(true);
+ expect(armFeatures(d,"control")["campaign-progress-clock-v1"],`${name}/control`).toBe(false);
+ for(const phase of d.phases){
+  expect(armPreset(d,phase.id,"bundle").features["campaign-progress-clock-v1"],`${name}/${phase.id}/bundle preset`).toBe(true);
+  expect(armPreset(d,phase.id,"control").features["campaign-progress-clock-v1"],`${name}/${phase.id}/control preset`).toBe(false);
+ }
+});

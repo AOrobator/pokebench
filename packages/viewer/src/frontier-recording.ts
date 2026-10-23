@@ -1,4 +1,4 @@
-import {EXTENDED_PROGRESS_NAMES,STORY_PROGRESS_FEATURE} from "@pokebench/agent/story-progress";
+import {EXTENDED_PROGRESS_NAMES,CAMPAIGN_PROGRESS_FEATURE,STORY_PROGRESS_FEATURE} from "@pokebench/agent/story-progress";
 import { createHash, type Hash } from "node:crypto";
 import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
@@ -70,7 +70,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
 // a fresh tailer so one-shot validation retains its historical behavior.
 export function createNativeRecordingTailer(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false, observeRead: (offset: number, bytes: number) => void = () => undefined, verifyPrefix = false): NativeRecordingTailer {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
-  let progressSupported=false;
+  let progressSupported=false,campaignSupported=false;
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
@@ -100,7 +100,8 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     } else { view.lastMs = ms; view.turn = Math.max(view.turn, event.turn); }
     if (event.type === "state" && "started" in event) {
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
-      progressSupported=event.story_progress!==undefined;
+      progressSupported ||= event.story_progress!==undefined;
+      campaignSupported ||= event.story_progress?.variables!==undefined;
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
       const resumedSplit = (name: string): boolean => EXTENDED_PROGRESS_NAMES.has(name) || name === "ROXANNE_FIRST_INTERACTION" || name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "RIVAL_BATTLE_STARTED" || name === "RIVAL_BATTLE_DEFEATED" || name === "RIVAL_OLDALE_SEND_OFF" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
@@ -187,6 +188,6 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     const outputView = Object.assign(new RunView(), structuredClone(view));
     Object.defineProperty(outputView, "control", { value: Object.assign(new ControlView(), structuredClone(view.control)), enumerable: true, configurable: true });
     outputView.state = null;
-    return { view: outputView, last, splits: outputSplits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?{recoveredFeatures:[STORY_PROGRESS_FEATURE]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: outputRaw }, skipped: skipped === null ? null : { ...skipped } };
+    return { view: outputView, last, splits: outputSplits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...((progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)||campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE))?{recoveredFeatures:[...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?[STORY_PROGRESS_FEATURE]:[]),...(campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE)?[CAMPAIGN_PROGRESS_FEATURE]:[])]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: outputRaw }, skipped: skipped === null ? null : { ...skipped } };
   } };
 }

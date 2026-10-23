@@ -1,4 +1,4 @@
-import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
+import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {battleOnScreen} from "./battle-context.js";
 import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
@@ -39,6 +39,7 @@ export class StallBriefing {
  private readonly progressCycles:ProgressAwareCycles|null;
  private room:{key:string;name:string}|null=null;
  private readonly pairs=new Map<string,Pair>();
+ private readonly campaignSeen=new Set<string>();
  private progressAt=0;
  private progressSeq:number|null=null;
  private droughts=0;
@@ -119,7 +120,12 @@ export class StallBriefing {
  }
 
  observe(event:RunEvent):void {
-   if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name))return;
+   if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
+   if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
+    const seen=this.campaignSeen.has(event.name);this.campaignSeen.add(event.name);
+    if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"&&!seen){this.restart(event.seq);this.progressSeq=event.seq;}
+    return;
+   }
   this.progressCycles?.observe(event);
   if(this.features["drought-battle-heal-hold-v1"]&&(HEAL_WARNINGS.has(event.type)||event.type==="story_battle_heal_gate"&&event.outcome==="refused")){this.healTrip??={seq:event.seq,calls:0};this.settleHold(event.seq);return;}
   if(event.type==="milestone"){

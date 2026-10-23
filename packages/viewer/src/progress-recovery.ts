@@ -39,7 +39,7 @@ function decode(dir:string,row:Row):Static<typeof StoryProgressSchema>|null {
  const ptr=iw.readUInt32LE(0x5d8c),save=ptr-0x02000000;if(save<0||save>0x40000-0x159c||save%4!==0)return null;
  const stage=(id:number,max:number):number|null=>{const n=ew.readUInt16LE(save+0x139c+2*(id-0x4000));return n<=max?n:null;};
  let letter=false;for(let i=0;i<30;i++)if(ew.readUInt16LE(save+0x5d8+i*4)===274)letter=true;
- return {flags:ew.subarray(save+0x1270,save+0x139c).toString("hex"),rustboro_stage:stage(0x405a,8),devon_stage:stage(0x408f,1),letter};
+ return {variables:ew.subarray(save+0x139c,save+0x159c).toString("hex"),avatar_flags:ew[0x37590]??0,flags:ew.subarray(save+0x1270,save+0x139c).toString("hex"),rustboro_stage:stage(0x405a,8),devon_stage:stage(0x408f,1),letter};
 }
 export function progressAttacher(dir:string):(event:RunEvent)=>RunEvent {
  const rows=new Map<number,Row>();let through=-1,stopped=false,native=false;
@@ -63,7 +63,7 @@ export function progressAttacher(dir:string):(event:RunEvent)=>RunEvent {
   if(row===undefined||row.raw_ram.path!==event.raw_ram.path||row.raw_ram.sha256!==event.raw_ram.sha256||row.raw_ram.sequence!==event.raw_ram.sequence||row.raw_ram.frame!==event.raw_ram.frame){stopped=true;return event;}
   try{
    const decoded=event.screen==="field_transition"||event.screen==="unknown"?null:decode(dir,row);
-   if(JSON.stringify(decoded)!==JSON.stringify(row.story_progress)){stopped=true;return event;}
+   if(decoded===null?row.story_progress!==null:row.story_progress===null||Object.entries(row.story_progress).some(([key,value])=>decoded[key as keyof typeof decoded]!==value)){stopped=true;return event;}
    return event.story_progress===undefined?{...event,story_progress:decoded}:event;
   }catch{stopped=true;return event;}
  };

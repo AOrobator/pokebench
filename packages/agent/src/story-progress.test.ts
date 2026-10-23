@@ -30,8 +30,17 @@ it("every completion tests its own bit, while every map split validates map iden
   if(m.flag!==undefined){expect(progressReached(m.name,snapshot(m.flag))).toBe(true);expect(progressReached(m.name,snapshot(m.flag^1))).toBe(false);}
   if(m.anyFlags!==undefined)for(const bit of m.anyFlags)expect(progressReached(m.name,snapshot(bit))).toBe(true);
   if(m.map!==undefined) {
-   const reached={...snapshot(0),map_id:[m.map[0]??0,m.map[1]??0] as [number,number],badges:["HEAT"]};
+   const variables=Buffer.alloc(512);if(m.requireVariable!==undefined)variables.writeUInt16LE(m.requireValues?.[0]??0,2*(m.requireVariable-0x4000));
+   const reached={...snapshot(0),field_controls_locked:false,position:{x:m.bounds?.[0]??1,y:m.bounds?.[1]??1},story_progress:{flags:"00".repeat(300),rustboro_stage:0,devon_stage:0,letter:false,variables:variables.toString("hex"),avatar_flags:1},map_id:[m.map[0]??0,m.map[1]??0] as [number,number],badges:["HEAT"]};
    expect(progressReached(m.name,reached)).toBe(true);expect(progressReached(m.name,{...reached,map_id:[99,99]})).toBe(false);
   }
  }
+});
+
+
+it.each([{removed:[],open:false},{removed:[821],open:false},{removed:[822],open:false},{removed:[821,822],open:true}])("Aqua Hideout access for removed guard flags $removed is $open",({removed,open})=>{
+ const s=snapshot(0);const bytes=Buffer.alloc(300);
+ for(const bit of removed)bytes[bit>>3]=(bytes[bit>>3]??0)|(1<<(bit&7));
+ const native={...s,story_progress:{flags:bytes.toString("hex"),rustboro_stage:0,devon_stage:0,letter:false}};
+ expect(progressReached("AQUA_HIDEOUT_ACCESS_OPENED",native),`removed guard flags: ${JSON.stringify(removed)}`).toBe(open);
 });

@@ -267,3 +267,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [All gym story milestones](all-gym-story-milestones-v1.html) — native story splits, all gym badges and immutable historical recovery.
 
 - [Named move decline](move-learn-offer-identity-v1.html): verifies the offered move before executing a decline.
+- [Campaign milestones and earned progress](campaign-progress-clock-v1.html)

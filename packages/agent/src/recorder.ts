@@ -125,6 +125,7 @@ export class RunRecorder {
   private rawRamRequired = false;
   private activityEnabled=false;
   private route103Required=false;
+  private campaignRequired=false;
   private progressRequired=false;
   private nativeActionsEnabled=false;
   // semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt.
@@ -203,6 +204,7 @@ export class RunRecorder {
     if (this.rawRamRequired && state.raw_ram === undefined) throw new RecorderError("Declared full-raw-ram-v1 but the server returned no raw RAM archive reference");
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
     requireRoute103Field(this.route103Required,state);
+    if(this.campaignRequired&&state.story_progress!=null&&(state.story_progress.variables===undefined||state.story_progress.avatar_flags===undefined))throw new RecorderError("Declared campaign-story-milestones-v1 but campaign measurement is missing; check Python reader deployment.");
     if(this.progressRequired&&state.story_progress===undefined)throw new RecorderError("Declared all-gym-story-milestones-v1 but game server returned no story_progress; check Python reader deployment.");
     if(this.activityEnabled&&(state.game_stats===undefined||state.blackout_active===undefined||state.party.some(mon=>mon.identity===undefined)))throw new RecorderError("Declared native-progress-activity-v1 but the game server returned incomplete native activity state; check the Python reader deployment.");
     const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
@@ -222,6 +224,7 @@ export class RunRecorder {
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.activityEnabled=meta.harness_features.includes("native-progress-activity-v1");
     this.route103Required=meta.harness_features.includes("route103-rival-splits-v1");
+    this.campaignRequired=meta.harness_features.includes("campaign-story-milestones-v1");
     this.progressRequired=meta.harness_features.includes("all-gym-story-milestones-v1");
     this.battleEnabled=meta.harness_features.includes("battle-choices-v1");
     this.nativeActionsEnabled=meta.harness_features.includes("native-action-history-v1");

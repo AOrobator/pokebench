@@ -768,3 +768,11 @@ it("refuses a new measurement claim from an old server but accepts explicitly un
  const unavailable=harness().recorder;await unavailable.start(meta,false);
  expect(()=>unavailable.recordState({...STATE,story_progress:null})).not.toThrow();
 });
+
+it("requires campaign measurements on declared readable snapshots, while preserving unavailable state",async()=>{
+ const {recorder}=harness();await recorder.start({...START_META,harness_features:["campaign-story-milestones-v1"]});
+ const old={flags:"00".repeat(300),rustboro_stage:0,devon_stage:0,letter:false};
+ expect(()=>recorder.recordState({...STATE,story_progress:old})).toThrow(/campaign measurement is missing/);
+ expect(()=>recorder.recordState({...STATE,story_progress:null})).not.toThrow();
+ expect(()=>recorder.recordState({...STATE,story_progress:{...old,variables:"00".repeat(512),avatar_flags:1}})).not.toThrow();
+});

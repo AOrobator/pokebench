@@ -1,4 +1,4 @@
-import {PROGRESS_CATALOG, EXTENDED_PROGRESS_NAMES, progressReached} from "./story-progress.js";
+import {PROGRESS_CATALOG, EXTENDED_PROGRESS_NAMES, OPTIONAL_PROGRESS_NAMES, progressReached} from "./story-progress.js";
 import { roxanneFirstInteraction } from "./roxanne-interaction.js";
 import {completedHeal} from "./activity.js";
 import type { RunEvent } from "./events.js";
@@ -244,11 +244,11 @@ export const REQUIRED_FRONTIER_MILESTONES: readonly string[] = [
   "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS",
   "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "ROXANNE_FIRST_INTERACTION", "ROXANNE_DEFEATED",
   "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED",
-  ...PROGRESS_CATALOG.filter(m=>EXTENDED_PROGRESS_NAMES.has(m.name)).map(m=>m.name),
+  ...PROGRESS_CATALOG.filter(m=>EXTENDED_PROGRESS_NAMES.has(m.name)&&!OPTIONAL_PROGRESS_NAMES.has(m.name)).map(m=>m.name),
 ];
 // Optional activities can happen almost anywhere after their prerequisite (a heal in Oldale before
 // Route 103), so they never rank how far a run got.
-export const ACTIVITY_MILESTONES: ReadonlySet<string> = new Set(["FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL"]);
+export const ACTIVITY_MILESTONES: ReadonlySet<string> = new Set(OPTIONAL_PROGRESS_NAMES);
 export const DEPTH_ORDER: readonly string[] = MILESTONE_ORDER.filter((name) => !ACTIVITY_MILESTONES.has(name));
 export function deeperMilestone(current: string | null, candidate: string): string | null {
   const depth = DEPTH_ORDER.indexOf(candidate);

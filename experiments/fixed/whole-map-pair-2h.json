@@ -258,6 +258,8 @@
    "move-learn-goal-reminder-v1": true,
    "move-learn-offer-identity-v1": false,
    "campaign-progress-clock-v1": false,
+   "elevation-aware-map-v1": false,
+   "screen-center-player-v1": false,
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
    "leader-preparation-comparison-v1": false
@@ -320,6 +322,8 @@
   "map-cycle-recovery-v1",
   "move-learn-offer-identity-v1",
   "campaign-progress-clock-v1",
+  "elevation-aware-map-v1",
+  "screen-center-player-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
   "leader-preparation-comparison-v1"

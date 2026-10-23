@@ -134,3 +134,15 @@ describe("elevation-aware-map-v1: an object on another level does not occupy the
     expect(offWalk.presses).toEqual([]);
   });
 });
+
+describe("elevation-aware-map-v1: a refused press past an object on another level names the elevation", () => {
+  it("the cyclist riding above (17,68) at elevation 4 does not hide the elevation reason", () => {
+    const { before, after } = at(127086);
+    const grid = before.navigation_grid;
+    if (grid == null) throw new Error("no grid");
+    const rider = { ...before, navigation_grid: { ...grid, objects: [...grid.objects, { x: 17, y: 68, elevation: 4 }] } };
+    expect(pressResult(rider, after, ["UP", "UP", "UP"], toolSwitches(on(recordedFeatures)))).toContain("is at elevation 4 while you are at elevation 3 (L on the local map)");
+    const walker = { ...before, navigation_grid: { ...grid, objects: [...grid.objects, { x: 17, y: 68, elevation: 3 }] } };
+    expect(pressResult(walker, after, ["UP", "UP", "UP"], toolSwitches(on(recordedFeatures)))).toContain("has a person or object on it");
+  });
+});

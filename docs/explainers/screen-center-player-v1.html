@@ -121,7 +121,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <div class="tw"><table><tr><th>Layer type</th><th>Top layer goes to</th><th>Covers a priority-2 sprite?</th></tr>
 <tr><td>NORMAL (0)</td><td>BG1</td><td>yes, if any top tile is not blank</td></tr>
 <tr><td>COVERED (1)</td><td>BG2</td><td>no</td></tr>
-<tr><td>SPLIT (2)</td><td>BG1</td><td>yes, if any top tile is not blank</td></tr></table></div></section>
+<tr><td>SPLIT (2)</td><td>BG1</td><td>yes, if any top tile is not blank</td></tr></table></div><p>Limitation: "not blank" means a non-zero tile index. The server does not read tile pixels, so a non-zero tile that is fully transparent would still count; the line says "may not show you" for that reason.</p></section>
 <section class="card"><h2>Wiring and OFF</h2>
 <p>Agent: <code>play-config.ts</code> adds the prompt section. Game server: <code>screen_center.py</code> reads the layers, behind the same switch through <code>rerender.read_state</code>. No tool changes. OFF: no prompt sentence and no readout line; the readout and state are byte for byte today's.</p></section>
 <section class="card"><h2>Status</h2><p>Branch <code>claude/elevation-center-v1</code>. Not measured: no run has used it yet. Merging does not launch anything.</p></section>

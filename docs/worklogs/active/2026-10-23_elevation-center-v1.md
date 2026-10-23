@@ -46,7 +46,7 @@ Read-only RAM and archive reads; no new network exposure, subprocesses or ROM co
 - Scope added 2:00 PM (the operator via Codex/coordinator): navigate_to occupancy across layers goes in elevation-aware-map-v1 (M1b below).
 **M3 — explainers, gates, review, landing**
 - [ ] Explainers with diagrams, FEATURE_EXPLAINERS links
-- [ ] `just test`, `just lint`, `just build`, `just coverage` (>=90)
+- [x] `just lint` pass; `just coverage` pass at adc942e54 (after syncing main 24d71e151): agent 4071 (lines 99.13 / branches 92.94 / functions 97.61), viewer 1763 (98.03 / 91.61 / 95.16), Python 4063 (97.37 / 93.30 / 100). Build ran inside the test steps.
 - [ ] Multi-model review: Claude + GPT + fallback cloud lane, LGTM on the frozen packet
 - [ ] Land via landing board, `just viewer-main`, live check
 
@@ -63,6 +63,9 @@ Re-render archive 21953 (Route 110) and the Granite Cave slope archive through t
 - Pre-review findings from Codex CYCLE (2:11 PM, relayed): (1) stacked objects collapsed to one elevation per tile in `_grid_objects`; (2) objects mid-step also occupy previousCoords (DoesObjectCollideWithObjectAt). Fixed: one grid entry per object tile (current and previous) with its own elevation; regressions for a 3/4 stack in both orders (Python serialization, TS planner) and previous coords. Objects array bound raised 16 -> 32 (each of 16 objects can hold two tiles); schema regenerated.
 
 - Codex (2:15 PM, relayed) asked for per-step evidence and real object heights: occupancy tests now use state 127085 re-read from raw archive 21932 by the production reader with the switch on (real heights: the cyclist mid-step holds (16,71) and (16,72) at elevation 4; object 27 at (21,78)/(21,77) elevation 4), plan DOWN DOWN LEFT locally and on the whole map ON, null OFF; objects at 0 or 3 block, 15 is not a wildcard; a one-row whole map proves the check uses the walker's elevation after an elevation-0 tile, not the start elevation.
+
+- Round 1. Claude CLI on packet 24d71e151..34b8e938e (sha256 8a409168…): BLOCKING, two test gaps: map_grid object elevations untested, and no proof of the per-step walker elevation. Fallback subagent (fable, replacing the down Grok lane) on the same packet: LGTM, with notes: an object on another level masked the elevation reason in press results; an L tile over a directional warp said "cannot be entered" next to the warp clause; one tautological parity assert; PB7 should be PASS with the viewer-main condition; top-layer heuristic limitation. Codex CLI gpt-5.6-sol on packet 24d71e151..adc942e54 (sha256 609cc503…): BLOCKING, on gate receipts only (no code defect). First Codex attempt with the default model failed: gpt-6.1-sol unsupported for a ChatGPT account.
+- Fixes: per-step corridor and whole-map tests (adc942e54); a state_json map_grid ON/OFF test; blocked-batch ignores objects whose elevations all differ from the walker's; L next to a directional warp drops the shut clause; parity assert compares against a state without the switch's inputs; explainer states the top-layer limitation; PB7 rescored PASS.
 
 ## Boy Scout Log
 

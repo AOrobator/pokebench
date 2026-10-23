@@ -107,9 +107,9 @@ def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
     assert "Other levels" not in off and " L " not in off
     assert "up (17,68) another level (L)" in on
     assert "Other levels (L): tiles at elevation 4" in on
-    assert off == format_readout(
-        s, adjacent_tiles=True, off=base | {SWITCH, "elevation-aware-map-v1"}
-    )
+    # OFF ignores the state the switch reads: no player elevation or avatar flags gives the same bytes.
+    plain = replace(s, player_elevation=0, running=None)
+    assert off == format_readout(plain, adjacent_tiles=True, off=base | {SWITCH})
 
 
 def test_switch_is_registered_server_side_and_default_off():
@@ -154,3 +154,27 @@ def test_object_elevations_come_from_each_loaded_objects_current_elevation():
 
     # A cyclist mid-step also holds its previous tile (DoesObjectCollideWithObjectAt).
     assert read_object_elevations(read, (0, 25)) == ((16, 71, 4), (16, 72, 4), (14, 70, 3))
+
+
+def test_an_other_level_tile_above_a_directional_warp_is_not_called_shut():
+    base = route110()
+    tiles = tuple(replace(t, behavior=0x64) if (t.x, t.y) == (17, 69) else t for t in base.tiles)
+    on_warp = replace(base, tiles=tiles, warps=((17, 69, 0, 1),))
+    view, _ = elevation_view(on_warp, 3, ON_FOOT)
+    up = adjacent(view, 3).split("; ")[0]
+    assert up == (
+        "Next tiles: up (17,68) another level (L), elevation 4 (yours is 3), but you stand on a"
+        " warp whose listed activation is pressing up"
+    )
+
+
+def test_state_json_gives_whole_map_objects_their_elevations_only_when_read():
+    from pokebench_env.live_map import FullMap
+    from pokebench_env.readout import state_json
+
+    tiles = tuple(MapTile(x, 0, 0, 0, 0, 3) for x in range(4))
+    full = FullMap(4, 1, ("@...",), tiles, ((8, 2, 0),), ())
+    s = replace(IN_GAME, position=(0, 0), nearby=None, full_map=full, player_elevation=3)
+    assert state_json(s)["map_grid"]["objects"] == [{"x": 2, "y": 0}]
+    on = state_json(replace(s, object_elevations=((2, 0, 4), (40, 99, 3))))["map_grid"]
+    assert on["objects"] == [{"x": 2, "y": 0, "elevation": 4}, {"x": 40, "y": 99, "elevation": 3}]

@@ -158,7 +158,9 @@ def next_tiles(
                 name = special
         if elevation is not None and tile is not None and glyph == "L":
             # elevation-aware-map-v1 draws L only where IsElevationMismatchAt refuses the step.
-            name = f"another level (L), elevation {tile.elevation} (yours is {elevation}), {SHUT}"
+            name = f"another level (L), elevation {tile.elevation} (yours is {elevation})" + (
+                f", {SHUT}" if shut else ""
+            )
         if not shut:
             name += ", but you stand on a warp" + (
                 f" whose listed activation is pressing {direction}" if warp_guidance else ""

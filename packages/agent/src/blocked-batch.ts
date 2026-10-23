@@ -47,9 +47,12 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
   const tileAt = (p: Point): Tile | undefined => grid.tiles.find(t => t.x === p.x && t.y === p.y);
   const same = (p: Point): boolean => p.x === next.x && p.y === next.y;
   const map = state.map_id;
-  const object = (state.world_context?.objects ?? []).find(o => same(o) && map !== null && o.map_id[0] === map[0] && o.map_id[1] === map[1]);
+  // elevation-aware-map-v1: objects on the next tile whose elevations all differ from yours (neither 0) do not collide.
+  const listed = grid.objects.filter(same);
+  const passable = show.elevation === true && listed.length > 0 && listed.every(o => o.elevation !== undefined && o.elevation !== 0 && grid.elevation !== 0 && o.elevation !== grid.elevation);
+  const object = passable ? undefined : (state.world_context?.objects ?? []).find(o => same(o) && map !== null && o.map_id[0] === map[0] && o.map_id[1] === map[1]);
   if (object !== undefined) return { text: `${named} has a person or object on it (object id ${String(object.local_id)}).`, kind: "occupied" };
-  if (grid.objects.some(same)) return { text: `${named} has a person or object on it.`, kind: "occupied" };
+  if (!passable && listed.length > 0) return { text: `${named} has a person or object on it.`, kind: "occupied" };
   if (grid.warps.some(same)) return { text: `${named} is a warp (W on the local map) that did not activate from this side.`, kind: "occupied" };
   const own = tileAt(here);
   if (show.edgeWalls === true && own !== undefined && own.collision === 0 && (EDGE_WALLS.get(own.behavior)?.includes(direction) ?? false)) {

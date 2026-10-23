@@ -255,7 +255,7 @@ it("keeps the event loop responsive through a chunk of many tiny malformed lines
   viewers.push(viewer);
   let ticks = 0, running = true;
   const batches: { tick: number; lines: number; limit: number }[] = [];
-  const next = LogReader.prototype.next;
+  const next: (this: LogReader, limit: number) => ReturnType<LogReader["next"]> = Reflect.get(LogReader.prototype, "next");
   vi.spyOn(LogReader.prototype, "next").mockImplementation(function(this: LogReader, limit: number) {
     const result = next.call(this, limit);
     if (result.lines > 0) batches.push({ tick: ticks, lines: result.lines, limit });

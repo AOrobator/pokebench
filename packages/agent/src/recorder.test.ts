@@ -747,3 +747,16 @@ it("semantic-navigation-v2: navigate_to_target and explore_map results record th
     }
   }
 });
+it("restores memory chronology without re-emitting old evidence or consuming a new decision",async()=>{
+ const runsRoot=mkdtempSync(join(tmpdir(),"pokebench-rec-restore-"));
+ const old=[parseEvent(JSON.stringify({v:1,run:"source",t:"2026-10-23T12:00:00.000-04:00",seq:1,turn:3,type:"turn_start",context:{messages:1,images:0,est_tokens:1}}))];
+ const log=RunLog.create(runsRoot,"restore",()=>new Date(),2);
+ const r=new RunRecorder({log,frames:new FrameStore(runsRoot,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(STATE)},history:old,turnBase:3});
+ await r.start(START_META,false);const beforeRestore=events(log);const seen:number[]=[],second:number[]=[];r.subscribe(e=>seen.push(e.seq));r.subscribe(e=>second.push(e.seq));
+ await r.restoreHistory(async turn=>{expect(turn).toBe(3);expect(r.isRestoring()).toBe(true);r.recordLedgerContext({text:"past",evidence:[]});await r.transformContext([]);});
+ expect(events(log)).toEqual(beforeRestore);expect(seen).toEqual([1]);expect(second).toEqual(seen);expect(r.isRestoring()).toBe(false);
+ await expect(r.restoreHistory(()=>Promise.resolve())).rejects.toThrow(/already/);
+ await r.transformContext([]);r.end("budget");expect(events(log).slice(-2).map(e=>e.seq)).toEqual([3,4]);expect(events(log).at(-1)).toMatchObject({turns:1,turn:4});
+ const collision=new RunRecorder({log:RunLog.create(runsRoot,"collision"),frames:new FrameStore(runsRoot,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(STATE)},history:[{...old[0],seq:2} as RunEvent]});
+ await collision.start(START_META,false);await expect(collision.restoreHistory(()=>Promise.resolve())).rejects.toThrow(/collides/);
+});

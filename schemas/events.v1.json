@@ -779,6 +779,34 @@
           "type": "boolean",
           "const": true
         },
+        "restoration": {
+          "type": "object",
+          "required": [
+            "source_run",
+            "source_turn",
+            "prefix_sha256",
+            "prefix_last_seq"
+          ],
+          "properties": {
+            "source_run": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_turn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prefix_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "prefix_last_seq": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
         "rom_sha1": {
           "type": "string",
           "pattern": "^[0-9a-f]{40}$"

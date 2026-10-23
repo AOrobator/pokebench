@@ -32,6 +32,8 @@ export interface RecorderDeps {
   readonly milestones: MilestoneSource;
   readonly gameState: StateSource;
   readonly now?: () => number;
+  readonly history?: readonly RunEvent[];
+  readonly turnBase?: number;
 }
 
 export interface PressTiming {
@@ -105,6 +107,11 @@ export class RunRecorder {
   private readonly gameState: StateSource;
   private readonly now: () => number;
   private turn = 0;
+  private readonly turnBase:number;
+  private readonly prior:readonly RunEvent[];
+  private restoring=false;
+  private historyRestored=false;
+  isRestoring=():boolean=>this.restoring;
   private startedAt = 0;
   elapsedMs():number {return this.now()-this.startedAt;}
   private requestAt = 0;
@@ -140,6 +147,7 @@ export class RunRecorder {
 
   constructor(deps: RecorderDeps) {
     this.log = deps.log;
+    this.prior=deps.history??[];this.turnBase=deps.turnBase??0;this.turn=this.turnBase;
     this.frames = deps.frames;
     this.milestones = deps.milestones;
     this.gameState = deps.gameState;
@@ -151,7 +159,23 @@ export class RunRecorder {
   private latestStateEvent: Extract<RunEvent,{type:"state"}> | null = null;
   // Replay is opt-in: milestones at checkpoint start, or the latest recorded state for a late request observer.
   subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); if(replayLatestState&&this.latestStateEvent!==null)observer(this.latestStateEvent); }
+  /** Attach all production memory consumers first, then replay once in event order. No old side effects. */
+  async restoreHistory(beforeTurn:(turn:number)=>Promise<void>):Promise<void>{
+    if(this.historyRestored)throw new RecorderError("history already restored");
+    if(this.prior.some(e=>e.seq>=this.log.continuationStartSeq))throw new RecorderError("history collides with continuation namespace");
+    this.restoring=true;
+    try{
+      for(const event of this.prior){
+        if(event.type==="turn_start")await beforeTurn(event.turn);
+        if(event.type==="state"&&"started" in event){this.activities.observe(event,event.seq);this.milestones.observe?.(event,event.seq);this.latestStateEvent=event;}
+        if(event.type==="milestone"){this.milestoneEvents.push(event);if(event.origin!=="present_at_start")this.furthest=deeperMilestone(this.furthest,event.name);}
+        for(const observer of this.observers)observer(event);
+      }
+      this.historyRestored=true;
+    }finally{this.restoring=false;}
+  }
   private append(body: EventBody): RunEvent {
+    if(this.restoring)throw new RecorderError("historical replay cannot append live evidence");
     const event = this.log.append(body);
     if (event.type === "milestone") this.milestoneEvents.push(event);
     if(event.type==="state")this.latestStateEvent=event;
@@ -165,13 +189,13 @@ export class RunRecorder {
     this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(snapshot.content[0].data,"base64").length};
     this.append({type:"decision_input",turn:this.turn,decision_turn:this.turn+1,state_seq:state.seq,text:snapshot.content[1].text,frames:[frame]});
   }
-  recordNavigationContext(body:Omit<BodyOf<"navigation_context">,"type"|"turn">):void {this.append({type:"navigation_context",turn:this.turn+1,...body});}
-  recordLedgerContext(body:Omit<BodyOf<"ledger_context">,"type"|"turn">):void {this.append({type:"ledger_context",turn:this.turn+1,...body});}
-  recordMilestoneHint(body:Omit<BodyOf<"milestone_hint">,"type"|"turn">):void {this.append({type:"milestone_hint",turn:this.turn+1,...body});}
-  recordBeliefLedger(body:Omit<BodyOf<"belief_ledger">,"type"|"turn">):void {this.append({type:"belief_ledger",turn:this.turn+1,...body});}
+  recordNavigationContext(body:Omit<BodyOf<"navigation_context">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"navigation_context",turn:this.turn+1,...body});}
+  recordLedgerContext(body:Omit<BodyOf<"ledger_context">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"ledger_context",turn:this.turn+1,...body});}
+  recordMilestoneHint(body:Omit<BodyOf<"milestone_hint">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"milestone_hint",turn:this.turn+1,...body});}
+  recordBeliefLedger(body:Omit<BodyOf<"belief_ledger">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"belief_ledger",turn:this.turn+1,...body});}
   recordWaitInput(id:string,duration_ms:number):void {this.append({type:"wait_input",turn:this.turn,tool_call_id:id,duration_ms});}
   recordControl(body: Omit<BodyOf<"operator_control">, "type" | "turn">): void { this.append({ type: "operator_control", turn: this.turn, ...body }); }
-  recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
+  recordLoopGuard(body: LoopNotice): void {if(this.restoring)return; this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
     if (this.rawRamRequired && state.raw_ram === undefined) throw new RecorderError("Declared full-raw-ram-v1 but the server returned no raw RAM archive reference");
@@ -206,6 +230,7 @@ export class RunRecorder {
   }
 
   readonly transformContext = (messages: AgentMessage[]): Promise<AgentMessage[]> => {
+    if(this.restoring)return Promise.resolve(messages);
     this.turn += 1;
     this.requestAt = this.now();
     this.firstTokenAt = null;
@@ -507,7 +532,7 @@ export class RunRecorder {
   }
 
   // fixed-point-breaker-v1: recorded as the request is built.
-  recordLoopBreaker(body: LoopBreakerBody): void {
+  recordLoopBreaker(body: LoopBreakerBody): void {if(this.restoring)return;
     this.append({ type: "loop_breaker", turn: this.turn + 1, ...body });
   }
   // fixed-point-breaker-v1 stage 3: recorded as the request is built.
@@ -534,7 +559,7 @@ export class RunRecorder {
     this.append({ type: "heal_first_line", turn: this.turn, tool, tool_call_id: toolCallId, kind: facts.kind, opponent: facts.opponent, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), heard, exit, text });
   }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
-  recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {
+  recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {if(this.restoring)return;
     this.append({ type: "stall_gate", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });
   }
 
@@ -545,7 +570,7 @@ export class RunRecorder {
       reason,
       ...(reason==="milestone"&&this.targetProof!==null?{target_proof:{...this.targetProof,state_evidence:[...this.targetProof.state_evidence]}}:{}),
       furthest_milestone: this.furthest,
-      turns: this.turn,
+      turns: this.turn-this.turnBase,
       wall_ms: Math.round(this.now() - this.startedAt),
       tokens: this.tokens,
       frames: this.saved,

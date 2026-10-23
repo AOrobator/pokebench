@@ -24,22 +24,26 @@ No remote services or new dependencies. ROM stays external, read-only and untrac
 ## Milestones
 **M1 — Controller and native trace scorer**
 - [x] RED tests: controller/scorer modules absent; both new suites fail importing their production owners. Budget/concurrency, frozen batches, uncertain restart, grade locks, recovery and winner assertions committed before implementation.
-- [ ] GREEN initial controller/scorer24focusedtests; remaining full rehearsal, adversarial mutations and review pending.
+- [x] GREEN controller/scorer, durable frozen batches, independent trace/hash verification and raw anonymous event grading; archive ea04/d548 scoring checked.
 **M2 — Checkpoint and history qualification**
 - [x] RED restore integrity/ownership/hash and native replay tests: missing production modules fail TS/Python collection. M1 first GREEN17tests; types checked after optional milestone evidence repair. RED commit45c544640.
-- [ ] GREEN restore builder; CPU-only native replay/load receipts for actual development/control starts; protected qualification via sealed metadata-only path
-- [ ] Record any genuinely unrecoverable starts explicitly
+- [x] GREEN restore builder: d548T488,2e93T637,ea04T578,da1cT393 match all7native regions+registers; all4fresh-core reloads and current production party/location decodes pass. Hash-bound validated-reconstructed histories (37,33,10,22messages) preserve original task/visible loss evidence. Original historical HTTP bodies are unavailable, explicitly disclosed. Protected families remain sealed until final prompt freeze.
+- [x] All four development/readiness native starts recovered; failed early reconstruction attempts retained as failed attempts. Protected starts intentionally remain sealed, not claimed qualified.
 **M3 — Delivery, rehearsal and review**
-- [ ] RED/GREEN registered default-OFF one-shot reminder and production wiring: RED continuation factory absent; no fresh boot task allowed; replay subscribers must see identical historical prefix.
-- [ ] Full fake-clock campaign/restart/failure rehearsal, zero GPU calls
-- [ ] Gates: tests, build, lint, >=90% coverage, vendor integrity
+- [x] RED/GREEN registered default-OFF one-shot reminder; ordinary pi continuation, seeded production memories/guard, disjoint evidence namespace and source turn base, prefix persistence, clock lifecycle and hash-bound context-budget restoration. Fresh play remains unchanged.
+- [x] Full network-denied fake-clock rehearsals: 36 episodes / 180 ordinary pi-loop responses through provisional fixture validation, and 10 episodes / 50 responses stopping without a nominee. Exact frozen prompt text is delivered; raw trace evidence is retained and scores recomputed by the runner. Uncertain restart, acquisition failure and teardown overrun tests pass.
+- [x] Gates: full TS test/coverage suites at two workers, Python4019passed with external ROM, build, lint, unchanged >=90% floors and pristine vendor. Final source cleanup has focused regressions in addition to the full suites.
 - [ ] Principles and independent reviews on frozen implementation packet
-- [ ] Operator-facing report with qualified vs blocked starts and concrete remaining limitations
+- [x] Tracked offline report and default-OFF feature explainer; isolated headless viewer card/link proof and desktop/phone screenshots.
 
 ## Closing the Loop
 No launch. Prove native load+context restoration independently from fake rehearsal. Record real receipts and link a local verified report. Do not mark campaign ready if qualification is missing. Leave implementation on the owned branch; no main merge is part of this offline request.
 
 ## Session Log
+- Commits: RED45c544640; restore RED97bccf5ed; initial GREEN4c07dddc5; continuation RED5bdff8e21. Native proof receipts are under canonical ignored runs/reports/roxanne-controller-offline-20261023/qualification/.
+- Continuation qualification now seeds production event memories/guard state, preserves sequence/turn namespaces, and restores RTC plus budget usage anchors. All four complete conversations (975/1271/1155/785 messages) reproduce frozen first contexts (37/33/10/22 messages) and all eight production tools. No original HTTP wire bodies exist; this is an explicitly validated reconstruction.
+- Launch boundary: the public command is rehearsal-only. The injected episode-host interface is implemented by the offline adapter; no benchmark transport is bound or launched. A later authorized launch must check model file/tokenizer/template/context/sampling parity across GPUs, bind the measured episode host, coordinate leases, and qualify protected starts after the finalist freeze. This milestone does not claim live readiness or promotion.
+
 - 2026-10-23: authorization is the operator's explicit implementation/qualification/scoring/rehearsal request. Reusing isolated codex/roxanne-campaign-plan worktree at e3da528c2, with its existing planning document. Main pointer belongs to Birch and remains untouched.
 
 - Native reconstruction: d548T488 and2e93T637 now reproduce all7native regions and CPU registers exactly and reload through the one-frame vendor load step. Both have zero mismatched decision checkpoints. Must preserve source RTC epoch; mGBA RTC_FIXED value is milliseconds (source interface.c). No GPU calls.
@@ -55,3 +59,13 @@ None.
 
 ## Archive Milestone
 - [ ] ASK USER: archive this worklog
+
+- Full native qualification: all seven archived RAM regions and CPU registers match on reconstructed saves and independent fresh loads; the production decoder matches party identities/species/levels/HP/moves and location. Native RTC values use milliseconds, per pinned mGBA source; source time is fixed for the vendor load frame then advances via RTC_WALLCLOCK_OFFSET.
+- History defects found and repaired offline: temporary context notes cannot become persistent conversation; applying the window twice can drop a screenshot; an already collapsed dialog can duplicate its text; a cold context budget loses the learned usage anchor; serialized bundle property order must not invalidate equal hash-bound fields. Native ea04 first-context mismatch exposed the budget omission and now passes with its reconstructed usage anchor.
+- Scoring defects found and repaired: party gains carried out of the gym battle do not establish outside preparation; native battle epochs prevent transient RAM flags from creating fake rematches; beyond-cap events cannot rescue a score. ea04 is eventual recovery plus victory from the earlier loss start, with one unchanged rematch; strict success is false and its late recovery is outside that start's 30-minute cap.
+- Adversarial evidence: removing reminder wiring, full-batch reservation, outside-gym gain gating or restore-integrity checking makes the targeted test fail; originals restored. Record/logs are in runs/reports/roxanne-controller-offline-20261023/.
+- Gate setup: worktree Python runtime is now isolated, with its own editable package and corrected launcher paths. Missing POKEBENCH_ROM caused early native-fixture test failures; all 4019 Python tests subsequently pass with the existing external ROM. An unchanged map-cycle coverage test hit 5 seconds under concurrent qualification load; the full identical TS suites are rerun with two workers, without timeout/floor/exclusion changes.
+
+- Final scorer wiring mutation: bypassing verifyEpisodeOutcome in runFrozenBatch makes the false-score-through-batch regression fail. Original raw trace and terminal occupancy remain recorded before evidence rejection; fixtures cannot enter a measured host. A second integrity mutation covers the final structural bundle verifier after the JSON-key-order repair.
+
+- Shared main advanced independently from e3da528c2 to74590b432d55295d6c35153466dec152993443a7 while this branch was in progress; canonical tree is clean. This work made no main commit or merge. This frozen branch is reviewed against its original e3da528c2 base, not claimed synced/landed at current main.

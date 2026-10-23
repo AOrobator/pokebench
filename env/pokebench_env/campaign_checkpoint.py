@@ -48,20 +48,40 @@ class ClockSample(TypedDict):
     unix_ms: float
 
 
-def wall_clock_at(frame: int, samples: Sequence[ClockSample]) -> int:
-    from bisect import bisect_right
+class RecordedClock:
+    def __init__(self, samples: Sequence[ClockSample]) -> None:
+        from math import isfinite
 
-    if not samples or any(
-        b["frame"] <= a["frame"] or b["unix_ms"] < a["unix_ms"]
-        for a, b in zip(samples, samples[1:], strict=False)
-    ):
-        raise ValueError("invalid recorded clock samples")
-    frames = [sample["frame"] for sample in samples]
-    i = bisect_right(frames, frame)
-    a, b = samples[max(0, i - 1)], samples[min(len(samples) - 1, i)]
-    if a["frame"] == b["frame"]:
-        return int(a["unix_ms"])
-    return int(
-        a["unix_ms"]
-        + (b["unix_ms"] - a["unix_ms"]) * (frame - a["frame"]) / (b["frame"] - a["frame"])
-    )
+        if not samples or any(
+            type(s["frame"]) is not int
+            or s["frame"] < 0
+            or not isfinite(s["unix_ms"])
+            or s["unix_ms"] < 0
+            for s in samples
+        ):
+            raise ValueError("invalid recorded clock samples")
+        if any(
+            b["frame"] <= a["frame"] or b["unix_ms"] < a["unix_ms"]
+            for a, b in zip(samples, samples[1:], strict=False)
+        ):
+            raise ValueError("invalid recorded clock samples")
+        self.frames = tuple(s["frame"] for s in samples)
+        self.values = tuple(s["unix_ms"] for s in samples)
+
+    def at(self, frame: int) -> int:
+        from bisect import bisect_right
+
+        i = bisect_right(self.frames, frame)
+        a, b = max(0, i - 1), min(len(self.frames) - 1, i)
+        if a == b:
+            return int(self.values[a])
+        return int(
+            self.values[a]
+            + (self.values[b] - self.values[a])
+            * (frame - self.frames[a])
+            / (self.frames[b] - self.frames[a])
+        )
+
+
+def wall_clock_at(frame: int, samples: Sequence[ClockSample]) -> int:
+    return RecordedClock(samples).at(frame)

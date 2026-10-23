@@ -14,3 +14,8 @@ it("derives occupied GPU time and launched episodes from immutable original rece
 it("rejects changed totals, live ownership, duplicate draws and incomplete outcomes",()=>{
  const f=fixture();expect(()=>verifyPriorAccounting(f.bind({...f.accounting,physicalGpuMs:0}),f.read)).toThrow();expect(()=>verifyPriorAccounting(f.bind({...f.accounting,unresolvedLeases:["gpu0"]}),f.read)).toThrow();expect(()=>verifyPriorAccounting(f.bind(f.accounting,{...f.result,accountingComplete:false}),f.read)).toThrow();const refs=f.bind();expect(()=>verifyPriorAccounting([...refs,...refs],f.read)).toThrow(/duplicate/);
 });
+it("enforces the amended 38 total episode ceiling on immutable prior receipts",()=>{
+ const f=fixture(),receipts=Array.from({length:38},(_,i)=>({lane:"gpu0",acquiredAt:i,releasedAt:i,run:`prior_${String(i)}`}));
+ const refs=f.bind({...f.accounting,physicalGpuMs:0,receipts},{...f.result,gpuMs:0});expect(verifyPriorAccounting(refs,f.read).episodes).toBe(38);
+ const extra=[...receipts,{lane:"gpu0",acquiredAt:38,releasedAt:38,run:"prior_38"}];expect(()=>verifyPriorAccounting(f.bind({...f.accounting,physicalGpuMs:0,receipts:extra},{...f.result,gpuMs:0}),f.read)).toThrow(/budget/);
+});

@@ -6,7 +6,7 @@ it("charges prior failed-epoch physical occupancy before reserving new work",()=
  expect(()=>{near.freeze(freezeBatch("explore",[{id:"one",arm:"baseline",family:"d",endpoint:"gpu0",capMs:1001,promptHash:digest(""),restoreHash:digest("restore")}]));}).toThrow(/budget/);expect(near.state).toEqual(before);
 });
 it("does not reset the global launched-episode ceiling on a fresh recovery controller",()=>{
- const c=new CampaignController(new MemoryCampaignStore(createCampaign("episodes-spent",0,{gpuMs:2_460_992,episodes:36}))),before=c.state;
+ const c=new CampaignController(new MemoryCampaignStore(createCampaign("episodes-spent",0,{gpuMs:2_460_992,episodes:38}))),before=c.state;
  expect(()=>{c.freeze(freezeBatch("explore",[{id:"one",arm:"baseline",family:"d",endpoint:"gpu0",capMs:1000,promptHash:digest(""),restoreHash:digest("restore")}]));}).toThrow(/episode/);expect(c.state).toEqual(before);
 });
 it("allows the explicitly amended 38-total episode ceiling without raising GPU hours",()=>{

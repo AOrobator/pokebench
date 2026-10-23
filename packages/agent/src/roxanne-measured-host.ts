@@ -8,7 +8,7 @@ import {parseRun} from "./decision-probe.js";
 import {parsePlayPreset} from "./play-preset.js";
 import {parseGameState} from "./game-state.js";
 import {checkEvent} from "./events.js";
-import {digest,CAMPAIGN_CAP_MS} from "./roxanne-campaign.js";
+import {digest,CAMPAIGN_CAP_MS,CAMPAIGN_EPISODE_CAP} from "./roxanne-campaign.js";
 import {loadLiveContinuation} from "./roxanne-live-continuation.js";
 import {nativeEpisodeFrames,episodeTraceHash,gradeDigest,type EpisodeOutcome,type BlindJudgment,type Candidate,type EpisodeHost} from "./roxanne-campaign-runner.js";
 import {scoreRecovery,scoreReadiness} from "./roxanne-score.js";
@@ -136,7 +136,7 @@ export function verifyPriorAccounting(refs:readonly import("typebox").Static<typ
   if(!Value.Check(Accounting,accounting)||!Value.Check(Result,result)||physicalGpuOccupancy(accounting.receipts)!==accounting.physicalGpuMs||result.gpuMs!==accounting.physicalGpuMs)throw new Error("incomplete prior campaign accounting");
   for(const row of accounting.receipts){if(row.run!==null){if(runs.has(row.run))throw new Error("duplicate prior episode accounting");runs.add(row.run);}receipts.push(row);}
  }
- const gpuMs=physicalGpuOccupancy(receipts);if(gpuMs>CAMPAIGN_CAP_MS||runs.size>36)throw new Error("prior campaign budget already exceeded");
+ const gpuMs=physicalGpuOccupancy(receipts);if(gpuMs>CAMPAIGN_CAP_MS||runs.size>CAMPAIGN_EPISODE_CAP)throw new Error("prior campaign budget already exceeded");
  return {gpuMs,episodes:runs.size,receipts,sources:refs};
 }
 /** Independent physical accounting includes failed/invalid draws whose controller

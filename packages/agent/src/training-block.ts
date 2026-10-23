@@ -277,19 +277,19 @@ export class TrainingBlock {
 
 
  private preparation(name:string,last:LeaderBattle,s:Snapshot):string[] {
-  const before=last.startParty.filter(m=>m.species!==null&&m.is_egg!==true),now=s.party.filter(m=>m.species!==null&&m.is_egg!==true);
+  const before=last.startParty.filter(m=>m.is_egg!==true),now=s.party.filter(m=>m.is_egg!==true);
   const unique=(p:Party)=>p.length>0&&p.every(m=>m.identity!=null)&&new Set(p.map(m=>m.identity)).size===p.length;
   const complete=unique(before)&&unique(now),byId=new Map(now.map(m=>[m.identity,m]));
   const same=complete&&before.length===now.length&&before.every(m=>byId.has(m.identity));
   const rows=[`- Preparation since last completed ${name} attempt (${last.outcome??"outcome unknown"}; battle-start state ${String(last.startSeq)}, completion state ${String(last.endSeq??"unknown")}; compared with current observation): party membership ${complete?(same?"unchanged":"changed"):"unknown"}.`];
   if(!complete)rows.push("  Party species, levels, EXP, moves and HP comparison unknown (missing or duplicated identities).");
   if(complete)for(const b of before){
-   const n=byId.get(b.identity);if(n===undefined){rows.push(`  ${String(b.species)}: no longer in observed party.`);continue;}
+   const n=byId.get(b.identity);if(n===undefined){rows.push(`  ${b.species??"unknown member"}: no longer in observed party.`);continue;}
    const compare=(label:string,a:string|number|null|undefined,z:string|number|null|undefined)=>`${label} ${a==null||z==null?"unknown":JSON.stringify(a)===JSON.stringify(z)?"unchanged":`${String(a)} → ${String(z)}`}`;
    const moves=b.moves==null||n.moves==null?"moves unknown":JSON.stringify(b.moves.map(m=>m.move_id))===JSON.stringify(n.moves.map(m=>m.move_id))?"moves unchanged":`moves ${b.moves.map(m=>m.name??m.move_id).join(", ")} → ${n.moves.map(m=>m.name??m.move_id).join(", ")}`;
-   rows.push(`  ${String(b.species)}: ${compare("species",b.species,n.species)}; ${compare("level",b.level,n.level)}; ${compare("EXP",b.experience,n.experience)}; ${moves}; HP ${b.hp==null?"unknown":String(b.hp)}/${b.max_hp==null?"unknown":String(b.max_hp)} → ${n.hp==null?"unknown":String(n.hp)}/${n.max_hp==null?"unknown":String(n.max_hp)} (battle start → now).`);
+   rows.push(`  ${b.species??"unknown member"}: ${compare("species",b.species,n.species)}; ${compare("level",b.level,n.level)}; ${compare("EXP",b.experience,n.experience)}; ${moves}; HP ${b.hp==null?"unknown":String(b.hp)}/${b.max_hp==null?"unknown":String(b.max_hp)} → ${n.hp==null?"unknown":String(n.hp)}/${n.max_hp==null?"unknown":String(n.max_hp)} (battle start → now).`);
   }
-  if(complete)for(const n of now)if(!before.some(b=>b.identity===n.identity))rows.push(`  Added observed party member: ${String(n.species)} Lv${String(n.level)}.`);
+  if(complete)for(const n of now)if(!before.some(b=>b.identity===n.identity))rows.push(`  Added observed party member: ${n.species??"unknown species"} Lv${n.level==null?"unknown":String(n.level)}.`);
   const bag=(items:Bag|null|undefined)=>{
    if(items==null)return null;
    const quantities=new Map<number,{name:string|null;quantity:number}>();

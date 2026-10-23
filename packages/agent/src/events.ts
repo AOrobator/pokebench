@@ -512,6 +512,7 @@ export const ResourcesSchema=Type.Object({
  script_pc:Type.Union([NonNegativeInt,Type.Null()]),script_mode:Type.Union([NonNegativeInt,Type.Null()]),script_status:Type.Union([NonNegativeInt,Type.Null()]),
  selected_tree_id:Type.Union([NonNegativeInt,Type.Null()]),berry_script_owner:Type.Union([Type.Enum(["harvest","water","plant"]),Type.Null()]),
 },closed);
+export const StoryProgressSchema = Type.Object({flags:Type.String({pattern:"^[0-9a-f]{600}$"}),rustboro_stage:Type.Union([Type.Integer({minimum:0,maximum:8}),Type.Null()]),devon_stage:Type.Union([Type.Integer({minimum:0,maximum:1}),Type.Null()]),letter:Type.Union([Type.Boolean(),Type.Null()])},closed);
 export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:NonNegativeInt, frame:NonNegativeInt, path:Type.String({pattern:"^raw-ram/[0-9]{8,}\\.json\\.gz$"}), sha256:Type.String({pattern:"^[0-9a-f]{64}$"})},closed);
 export const StateBodySchema = Type.Object(
   {
@@ -586,6 +587,7 @@ export const StateBodySchema = Type.Object(
     party_ownership:Type.Optional(Type.Union([Type.Object({owner:NullableString,source:Type.String(),original_identities:Type.Array(Type.String(),{maxItems:6}),rental_personalities:Type.Array(NonNegativeInt,{maxItems:3}),diagnostic:NullableString,raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed),Type.Null()])),
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
+    story_progress:Type.Optional(Type.Union([StoryProgressSchema,Type.Null()])),
     route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
     // trainer-opponent-v1: gTrainerBattleOpponent_A, its ROM name and class, its defeated flag, and a trainer battle on now.
     trainer_opponent:Type.Optional(Type.Union([Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),trainer_class:Type.Integer({minimum:0,maximum:255}),name:Type.Union([Type.String({maxLength:40}),Type.Null()]),defeated:Type.Boolean(),battle_active:Type.Boolean()},closed),Type.Null()])),

@@ -242,7 +242,7 @@ it.each([
     );
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const named={...NAME_CONFIRMED,game_stats:null,blackout_active:false,route103_rival:null,raw_ram:{v:1 as const,sequence:0,frame:0,path:"raw-ram/00000000.json.gz",sha256:"a".repeat(64)}};
+    const named={...NAME_CONFIRMED,game_stats:null,blackout_active:false,route103_rival:null,story_progress:null,raw_ram:{v:1 as const,sequence:0,frame:0,path:"raw-ram/00000000.json.gz",sha256:"a".repeat(64)}};
     const initial = {
       ...named,
       story: { ...NAME_CONFIRMED.story, name_confirmed: false },

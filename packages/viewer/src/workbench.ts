@@ -179,7 +179,7 @@ export class Workbench {
     const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
       id: run.id, model: run.model, status: run.status, problem: run.problem, excluded: run.excluded,
       config: run.config, splits: run.splits,
-      measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features },
+      measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };
     const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers, this.hideTimeOutliers ? this.data.runs.map(run => [run.id, run.splits]) : null]);
     if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }

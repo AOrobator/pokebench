@@ -121,7 +121,7 @@ def test_the_gated_flood_is_always_inside_the_ungated_one() -> None:
                 )
 
 
-def test_a_slope_is_one_way_south_on_foot_until_the_mach_bike_opens_it() -> None:
+def test_a_slope_is_one_way_south_even_when_a_bike_is_owned() -> None:
     # A one-tile-wide passage at x=1 with slope tiles at (1,1) and (1,2).
     tiles = {(1, y): (0, 0xD0 if y in (1, 2) else 0) for y in range(4)}
     slope = terrain_obstacles(tiles, None)
@@ -140,7 +140,7 @@ def test_a_slope_is_one_way_south_on_foot_until_the_mach_bike_opens_it() -> None
     # Stepping up onto the slope is allowed; it slides you straight back down.
     assert reachable(tiles, (1, 3), water=False, rules=closed) == {(1, 2), (1, 3)}
     opened = map_gates(ALL_OPEN, (), tiles, None).rules()
-    assert reachable(tiles, (1, 3), water=False, rules=opened) == set(tiles)
+    assert reachable(tiles, (1, 3), water=False, rules=opened) == {(1, 2), (1, 3)}
 
 
 def test_cracked_floor_is_a_wall_only_on_maps_whose_step_callback_breaks_it() -> None:
@@ -150,21 +150,21 @@ def test_cracked_floor_is_a_wall_only_on_maps_whose_step_callback_breaks_it() ->
     elsewhere = map_gates(ALL_CLOSED, (), tiles, "ROUTE104").rules()
     assert reachable(tiles, (0, 0), water=False, rules=elsewhere) == set(tiles)
     mach = map_gates(capabilities((), (), (), 1 << 1), (), tiles, "GRANITE CAVE B1F").rules()
-    assert reachable(tiles, (0, 0), water=False, rules=mach) == set(tiles)
+    assert reachable(tiles, (0, 0), water=False, rules=mach) == {(0, 0)}
 
 
-def test_rails_and_bumpy_slopes_block_walkers_until_a_bike_opens_them() -> None:
+def test_rails_and_bumpy_slopes_are_not_opened_to_walking_by_bike_ownership() -> None:
     tiles = {(x, 0): (0, {1: 0xD1, 3: 0xD5}.get(x, 0)) for x in range(5)}
     closed = map_gates(ALL_CLOSED, (), tiles, None).rules()
     assert reachable(tiles, (0, 0), water=False, rules=closed) == {(0, 0)}
     acro = map_gates(capabilities((), (), (), 1 << 2), (), tiles, None).rules()
-    assert reachable(tiles, (0, 0), water=False, rules=acro) == set(tiles)
+    assert reachable(tiles, (0, 0), water=False, rules=acro) == {(0, 0)}
     # A Mach Bike rolls along a non-isolated rail, never up a bumpy slope.
     mach = capabilities((), (), (), 1 << 1)
     tiles[(1, 0)] = (0, 0)
     assert reachable(
         tiles, (0, 0), water=False, rules=map_gates(mach, (), tiles, None).rules()
-    ) == set(tiles)
+    ) == {(0, 0), (1, 0), (2, 0)}
 
 
 def test_a_waterfall_pushes_a_surfer_back_south_until_waterfall_is_usable() -> None:
@@ -248,7 +248,7 @@ def test_granite_cave_b1f_upper_ladders_need_the_mach_bike() -> None:
     assert [ungated[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "foot", "foot"]
     opened = map_gates(ALL_OPEN, (), tiles, "GRANITE CAVE B1F")
     labels = dict(classify(tiles, (4, 21), warps=warps, connections={}, rules=opened.rules()).warps)
-    assert labels == ungated
+    assert [labels[w] for w in warps] == ["none", "foot", "none", "foot", "none", "none", "none"]
     # From the top ladder #4 (8,5) the slope slides you down to the lower ladders.
     top = dict(classify(tiles, (8, 5), warps=warps, connections={}, rules=gated.rules()).warps)
     assert [top[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "none", "none"]
@@ -475,7 +475,7 @@ def test_a_cut_off_map_connection_carries_the_obstacles_and_a_note() -> None:
     ]
 
 
-def test_terrain_is_named_only_when_it_cuts_off_an_exit_and_mixed_needs_say_so() -> None:
+def test_terrain_is_also_named_when_it_cuts_off_no_exit_and_mixed_needs_say_so() -> None:
     # A corridor: rock at (1,0) or the slope column at x=3 must be passed to reach the warp (5,0).
     tiles = {(x, 0): (0, 0) for x in range(6)}
     tiles[(3, 0)] = (0, 0xD0)
@@ -484,7 +484,7 @@ def test_terrain_is_named_only_when_it_cuts_off_an_exit_and_mixed_needs_say_so()
     field = FieldObstacles(gates, found, 6, 1)
     # The rock is on the frontier; the slope lies past it.
     assert found.warp_blocks == {(5, 0): (0,)}
-    assert [line.split(" close")[0] for line in field.lines(str, str)] == [
+    assert [line.split(" close")[0] for line in field.lines(str, str)[:2]] == [
         HEADER,
         "- BREAKABLE_ROCK at (1,0)",
     ]
@@ -492,7 +492,7 @@ def test_terrain_is_named_only_when_it_cuts_off_an_exit_and_mixed_needs_say_so()
     note = mixed.warp_note(5, 0)
     assert note is not None and note.endswith(
         "passes BREAKABLE_ROCK at (1,0) or slope tiles (metatile behavior 0xD0) at (3,0), which"
-        " needs a field move or an item you cannot use yet"
+        " needs a field move, an item, or special movement unavailable to walking navigation"
     )
     slope_only = map_gates(ALL_CLOSED, (), tiles, None)
     alone = survey(tiles, (5, 0), slope_only, warps=((0, 0),), connections={})
@@ -500,10 +500,14 @@ def test_terrain_is_named_only_when_it_cuts_off_an_exit_and_mixed_needs_say_so()
     assert lines == [
         HEADER,
         "- slope tiles (metatile behavior 0xD0) at (3,0), which you slide down to the south on"
-        " foot, closes every way on foot to (0, 0): it needs an item you do not have yet; the game"
+        " foot, closes every way on foot to (0, 0): it needs special movement that walking"
+        " navigation"
+        " does not perform; the game"
         " shows no message there",
     ]
-    assert FieldObstacles(map_gates(ALL_OPEN, (), tiles, None), alone, 6, 1).lines(str, str) == []
+    assert (
+        FieldObstacles(map_gates(ALL_OPEN, (), tiles, None), alone, 6, 1).lines(str, str) == lines
+    )
 
 
 def test_rom_templates_skip_hidden_flags_other_sprites_and_the_bridge_kecleon() -> None:

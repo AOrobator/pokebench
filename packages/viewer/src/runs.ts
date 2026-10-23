@@ -674,7 +674,7 @@ export async function comparisonsOf(runsRoot: string, runId: string, readBaselin
       const candidateRom = start.controller?.rom_sha1 ?? start.rom_sha1;
       if (humanPair && (current.vendor_pin !== start.vendor_pin || (currentRom !== undefined && candidateRom !== undefined && currentRom !== candidateRom))) return null;
       const baseline = await readBaseline(summary.id);
-      if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) return null;
+      if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name) > 0)) return null;
       return { ...baseline, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features, ...(start.controller?.kind === "human" ? { controller: { kind: "human" as const, name: start.controller.name } } : {}), ...(humanPair ? { romIdentity: currentRom !== undefined && candidateRom !== undefined ? "verified" as const : "unverified" as const } : {}) };
     } catch (error) {
       if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;

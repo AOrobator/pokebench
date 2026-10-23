@@ -23,10 +23,14 @@ SUMMARY_FIELDS = frozenset(
 
 
 def as_recorded(value: object) -> object:
-    """Drop the summary facts from every Pokémon record (a dict with a personality key)."""
+    """Project old recordings without later summary facts or story-progress measurement data."""
     if isinstance(value, dict):
         mon = "personality" in value
-        return {k: as_recorded(v) for k, v in value.items() if not (mon and k in SUMMARY_FIELDS)}
+        return {
+            k: as_recorded(v)
+            for k, v in value.items()
+            if k != "story_progress" and not (mon and k in SUMMARY_FIELDS)
+        }
     if isinstance(value, list):
         return [as_recorded(v) for v in value]
     return value

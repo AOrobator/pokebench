@@ -373,6 +373,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",
+ "all-gym-story-milestones-v1":"all-gym-story-milestones-v1.html",
   "gym-evidence-v1":"gym-evidence-v1.html",
  "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",
  "field-ownership-feedback-v1":"field-ownership-feedback-v1.html",

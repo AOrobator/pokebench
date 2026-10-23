@@ -45,6 +45,7 @@ from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.static_npc_templates import StaticNpcTemplates, read_static_npc_templates
 from pokebench_env.story import StoryState, read_story
+from pokebench_env.story_progress import StoryProgress, read_story_progress
 from pokebench_env.surf_gate import (
     ConnectionKey,
     FloodInputs,
@@ -148,6 +149,7 @@ class GameState:
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
     story_characters: StoryCharacters | None = None
+    story_progress: StoryProgress | None = None
     route103_rival: Route103Rival | None = None
     trainer_opponent: TrainerOpponent | None = None
     battle_details: BattleDetails | None = None
@@ -595,6 +597,7 @@ def read_game_state(
         screen=label,
         started=True,
         story=read_story(read, screen, save1),
+        story_progress=read_story_progress(read, save1, resources),
         route103_rival=read_route103_rival(read, save1, in_battle),
         trainer_opponent=read_trainer_opponent(read, save1, in_battle),
         name=player,

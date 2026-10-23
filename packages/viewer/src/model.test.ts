@@ -1,3 +1,4 @@
+import {humanPlan} from "../../agent/src/human.js";
 import { describe, expect, it } from "vitest";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, state } from "../test-support/events.js";
 import { ASSUMED_TIMING, RunView, foldUntil, isRunEvent } from "./model.js";
@@ -395,4 +396,15 @@ it("labels stall-briefing-v1 notes in the activity history by stall",()=>{
  expect(view.loopLabel(drought as Extract<typeof drought,{type:"loop_guard"}>)).toMatch(/^Milestone drought supervisor message sent to the model/);
  const dwell=log.add(300,{type:"loop_guard",turn:5,kind:"interface_dwell",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: You are stalling. You have made 30 calls in the nickname naming editor",calls:30,evidence:[2,3]});
  expect(fold(log).loopLabel(dwell as Extract<typeof dwell,{type:"loop_guard"}>)).toMatch(/^Interface dwell supervisor message sent to the model/);
+});
+
+it("modern human headers suppress recovery of missing new measurement events",()=>{
+ const plan=humanPlan("unused","human-test",8040,"f3ae088181bf583e55daf962a92bb46f4f1d07b7");
+ if(plan.controller===undefined)throw Error("human plan must declare its controller");
+ const log=new Log();log.add(0,{...START,controller:plan.controller,harness_features:[...plan.harnessFeatures]});
+ const flags=Buffer.alloc(300);flags[0x8f>>3]=128;
+ log.add(1,state({story_progress:{flags:flags.toString("hex"),rustboro_stage:0,devon_stage:0,letter:false}}));
+ const view=fold(log);
+ expect(view.milestones.filter(m=>m.name==="DEVON_GOODS_RECOVERED")).toEqual([]);
+ expect(view.start?.harness_features).toContain("all-gym-story-milestones-v1");
 });

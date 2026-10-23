@@ -760,3 +760,11 @@ it("restores memory chronology without re-emitting old evidence or consuming a n
  const collision=new RunRecorder({log:RunLog.create(runsRoot,"collision"),frames:new FrameStore(runsRoot,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(STATE)},history:[{...old[0],seq:2} as RunEvent]});
  await collision.start(START_META,false);await expect(collision.restoreHistory(()=>Promise.resolve())).rejects.toThrow(/collides/);
 });
+
+it("refuses a new measurement claim from an old server but accepts explicitly unavailable native state",async()=>{
+ const meta={...START_META,harness_features:["all-gym-story-milestones-v1"]};
+ const missing=harness().recorder;await missing.start(meta,false);
+ expect(()=>missing.recordState(STATE)).toThrow(/no story_progress/);
+ const unavailable=harness().recorder;await unavailable.start(meta,false);
+ expect(()=>unavailable.recordState({...STATE,story_progress:null})).not.toThrow();
+});

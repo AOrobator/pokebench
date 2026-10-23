@@ -20,6 +20,7 @@ from pokebench_env.resources import BAG_POCKETS, BerryTree, PokemonStorage, Reso
 from pokebench_env.route103_rival import Route103Rival
 from pokebench_env.running import read_running_permission
 from pokebench_env.story import INITIAL_TRAINER_FLAGS, StoryState
+from pokebench_env.story_progress import StoryProgress
 
 # A fixture member with an all-zero tail and misc block and no ROM tables behind it: stats 0,
 # ability slot 0 of a zeroed species row, met data 0 with no map-section name, no OT language.
@@ -112,6 +113,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
     state = read_game_state(memory.read, MAPS)
     assert state == GameState(
         screen="overworld",
+        story_progress=StoryProgress("00" * 268 + "8002" + "00" * 30, 0, 0, False),
         story=StoryState(
             **{field: False for field in INITIAL_TRAINER_FLAGS},
             name_confirmed=True,

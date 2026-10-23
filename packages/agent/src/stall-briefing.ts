@@ -1,3 +1,4 @@
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import {battleOnScreen} from "./battle-context.js";
 import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
@@ -118,6 +119,7 @@ export class StallBriefing {
  }
 
  observe(event:RunEvent):void {
+   if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name))return;
   this.progressCycles?.observe(event);
   if(this.features["drought-battle-heal-hold-v1"]&&(HEAL_WARNINGS.has(event.type)||event.type==="story_battle_heal_gate"&&event.outcome==="refused")){this.healTrip??={seq:event.seq,calls:0};this.settleHold(event.seq);return;}
   if(event.type==="milestone"){

@@ -352,7 +352,8 @@
   "counter-talk-v1",
   "story-battle-heal-first-v1",
   "tool-prompt-docs-v1",
-  "field-ownership-feedback-v1"
+  "field-ownership-feedback-v1",
+  "field-move-gates-v1"
  ],
  "phases": [
   {

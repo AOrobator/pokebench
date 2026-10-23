@@ -64,7 +64,7 @@ export function passesText(found:readonly Obstacle[]):string {
  for(const o of found)named.set(o.name,[...(named.get(o.name)??[]),...o.tiles]);
  const what=[...named].map(([name,tiles])=>`${name} at ${join([...tiles].sort(reading).map(t=>`(${String(t.x)},${String(t.y)})`),"or")}`).join(" or ");
  const needs=[...new Set(found.map(o=>o.needs))];
- const need=needs.length===1?needs[0]??"":"a field move or an item you cannot use yet";
+ const need=needs.length===1?needs[0]??"":needs.includes("special movement that walking navigation does not perform")?"a field move, an item, or special movement unavailable to walking navigation":"a field move or an item you cannot use yet";
  const texts=[...new Set(found.flatMap(o=>o.text===null?[]:[o.text]))].map(t=>`"${t}"`);
  const said=texts.length===0?"the game shows no message there":`the game says: ${join(texts,"and")}`;
  return `every way to it on this map passes ${what}, which needs ${need}; ${said}`;

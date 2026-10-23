@@ -9,6 +9,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {COUNTER} from "./tile-rules.js";
 import {semanticWalk} from "./semantic-targets.js";
+import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 
 type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
@@ -105,7 +106,7 @@ export class PeopleLedger {
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
   if(event.type==="milestone"){
-   if(event.kind==="story")this.story.push(event.seq);
+   if(event.kind==="story"&&!EXTENDED_PROGRESS_NAMES.has(event.name))this.story.push(event.seq);
    if(event.kind==="story"&&event.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.chapter=event.seq;
    return;
   }

@@ -237,6 +237,8 @@ it.each([true, false] as const)("live play honours milestone-stall-stop-v1=%s", 
   const end = events.at(-1);
   if (end?.type !== "run_end") throw new Error("missing actual terminal");
   expect(end.reason).toBe(reason);
-  if (on) expect(reason).toBe("stalled");
-  else expect(reason).not.toBe("stalled");
+  expect(reason).toBe("budget");
+  const notes=events.filter(e=>e.type==="loop_guard"&&e.kind==="milestone_drought");
+  expect(notes).toHaveLength(on?1:0);
+  if(on)expect(notes[0]).toMatchObject({phase:"supervisor",message:expect.stringContaining("run continues")});
 });

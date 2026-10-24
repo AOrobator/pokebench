@@ -20,7 +20,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
-  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(102);
+  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(103);
   expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(91);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(68);
   for (const f of FEATURES) {

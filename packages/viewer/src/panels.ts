@@ -385,6 +385,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "blackout-transition-v1":"blackout-transition-v1.html",
  "restored-memory-run-v1":"restored-memory-run-v1.html",
  "refusal-ledger-v1":"refusal-ledger-v1.html",
+ "native-task-goal-retirement-v1":"native-task-goal-retirement-v1.html",
  "all-gym-story-milestones-v1":"all-gym-story-milestones-v1.html",
   "gym-evidence-v1":"gym-evidence-v1.html",
  "tool-prompt-docs-v1":"tool-prompt-docs-v1.html",

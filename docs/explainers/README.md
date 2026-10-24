@@ -291,3 +291,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Active warp exits](active-warp-exits-v1.html) — separate exit evidence from actionable choices.
 - [Available exit presentation](available-exits-presentation-v1.html) — separate exit evidence from actionable choices.
+- [Native task goal retirement](native-task-goal-retirement-v1.html): retires source-verified active instructions using known unfinished issuance and current native completion, preserving future dialogue.

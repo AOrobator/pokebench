@@ -31,11 +31,11 @@ describe("menu-refusal-recovery-v1 recorded Pokemart loop",()=>{
   expect(r.detector.context()).toContain("No battle is active. Shop menu open; selected BUY. B quits this menu.");
   expect(r.detector.context()).not.toContain("generic briefing");
  });
- it("stops after six delivered recovery calls instead of rebriefing forever",()=>{
+ it("briefs once after six delivered recovery calls and preserves the run",()=>{
   const r=rig(true);r.replay(262,287);
-  expect(r.notices.map(n=>n.phase)).toEqual(["warning","stop"]);
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
   expect(r.notices[1]).toMatchObject({calls:8});
-  expect(r.governor.stopReason).toBe("stuck");expect(r.detector.stopped).toBe(true);
+  expect(r.governor.stopReason).toBe(null);expect(r.detector.stopped).toBe(false);
  });
  it("retires on the recorded B close, without injecting any game input",()=>{
   const r=rig(true);r.replay(262,263);r.replay(288,288);

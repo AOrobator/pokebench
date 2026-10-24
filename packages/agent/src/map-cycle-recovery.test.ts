@@ -26,7 +26,7 @@ export const BRIEFING_7C9F=[
  "Where you are: PETALBURG CITY (map 0/0) — southeast terrain section [4,5], position 17,20.",
  "Maps visited since your last native story progress (visits): PETALBURG CITY (map 0/0) 10; PETALBURG CITY (map 8/4) 3; RUSTBORO CITY GYM (map 11/3) 1; ROUTE 104 (map 0/19) 1; ROUTE 102 (map 0/17) 1; PETALBURG CITY (map 8/2) 1; PETALBURG CITY (map 8/0) 1; PETALBURG CITY (map 8/3) 1; PETALBURG CITY (map 8/6) 1; PETALBURG CITY GYM (map 8/1) 1; PETALBURG CITY (map 8/5) 1.",
  "Walking exits of this map you have not left by since your last native story progress: none (since then you have left this map by every exit you can walk to from here).",
- "If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns, and the run ends if that cycle is not resolved within 12 calls.",
+ "If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns. Each unresolved window produces another briefing; this guard never ends the run.",
 ].join("\n");
 
 function recordedFeatures(on:boolean):FeatureSet {
@@ -51,11 +51,11 @@ function rig(on:boolean){
 const mapCycle=(notices:readonly LoopNotice[])=>notices.filter(n=>n.kind==="map_cycle");
 
 describe("map-cycle-recovery-v1 on the recorded 7c9f window",()=>{
- it("OFF reproduces the recorded stop exactly",()=>{
+ it("OFF keeps the simple navigation briefing instead of detailed history",()=>{
   const r=rig(false);r.replay();
-  expect(mapCycle(r.notices).map(n=>n.phase)).toEqual(["warning","stop"]);
-  expect(mapCycle(r.notices).at(-1)).toMatchObject({message:recordedStop?.message,evidence:recordedStop?.evidence,calls:recordedStop?.calls});
-  expect(r.governor.stopReason).toBe("stuck");expect(r.detector.stopped).toBe(true);
+  expect(mapCycle(r.notices).map(n=>n.phase)).toEqual(["warning","supervisor"]);
+  expect(mapCycle(r.notices).at(-1)).toMatchObject({evidence:recordedStop?.evidence,calls:recordedStop?.calls});
+  expect(r.governor.stopReason).toBe(null);expect(r.detector.stopped).toBe(false);
  });
  it("ON briefs instead of stopping, with the exact briefing the model is shown",()=>{
   const r=rig(true);r.replay();
@@ -73,16 +73,16 @@ describe("map-cycle-recovery-v1 on the recorded 7c9f window",()=>{
   for(const line of BRIEFING_7C9F.split("\n").slice(2))for(const name of ["PETALBURG WOODS","RUSTBORO CITY (map 0/3)","ROUTE 116","GRANITE"])expect(line).not.toContain(name);
   expect(BRIEFING_7C9F).toContain("No destination is selected for you.");
  });
- it("ON stops on a second map cycle after the briefing, the same stop as today",()=>{
+ it("ON briefs again on a second map cycle",()=>{
   const r=rig(true);r.replay();
   const field=latestField();
   r.detector.context();r.detector.complete(call(field,{seq:20000}));
   expect(r.detector.context()).toBe(null);
   expect(r.detector.stall("map_cycle",()=>"second cycle",[20001])).toBe(true);
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++){r.detector.context();r.detector.complete(call(field,{seq:20002+i}));}
-  expect(mapCycle(r.notices).map(n=>n.phase)).toEqual(["warning","supervisor","warning","stop"]);
-  expect(mapCycle(r.notices).at(-1)?.message).toContain("Bounded navigation recovery ended without verified recovery.");
-  expect(r.governor.stopReason).toBe("stuck");
+  expect(mapCycle(r.notices).map(n=>n.phase)).toEqual(["warning","supervisor","warning","supervisor"]);
+  expect(mapCycle(r.notices).at(-1)?.message).toContain("run continues");
+  expect(r.governor.stopReason).toBe(null);
  });
  it("ON refuses a new stall note while the briefing waits for delivery",()=>{
   const r=rig(true);r.replay();
@@ -107,9 +107,9 @@ describe("NavigationRecovery map-cycle briefing",()=>{
   r.recovery.cycle("cycle",[1],1);r.recovery.context();
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)r.recovery.complete(call(s,{seq:from+i}),from+i);
  }
- it("OFF stops at the budget as before",()=>{
+ it("OFF keeps a simple nonterminal briefing at the budget",()=>{
   const r=direct(false);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);
-  expect(r.notices.map(n=>n.phase)).toEqual(["warning","stop"]);expect(r.recovery.stopped).toBe(true);expect(r.recovery.mapCycleWindow()).toBe(0);
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);expect(r.recovery.stopped).toBe(false);expect(r.recovery.mapCycleWindow()).toBe(0);
  });
  it("ON briefs once, shows it until one call completes, and advances the cycle window",()=>{
   const r=direct(true);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);
@@ -177,10 +177,10 @@ describe("NavigationRecovery map-cycle briefing",()=>{
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)u.recovery.complete(call(undefined,{seq:i}),i);
   expect(u.notices.at(-1)?.message).toContain("Where you are: unavailable.");
  });
- it("ON stops when the budget runs out again before new story progress",()=>{
+ it("ON briefs when the budget runs out again before new story progress",()=>{
   const r=direct(true);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);r.recovery.context();r.recovery.complete(call(s),40);
   exhaust(r,s,100);
-  expect(r.notices.map(n=>n.phase)).toEqual(["warning","supervisor","warning","stop"]);expect(r.recovery.stopped).toBe(true);
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning","supervisor","warning","supervisor"]);expect(r.recovery.stopped).toBe(false);
  });
  it("ON native story progress re-arms the briefing and resets the visit counts",()=>{
   const r=direct(true);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);r.recovery.context();r.recovery.complete(call(s),40);
@@ -194,12 +194,12 @@ describe("NavigationRecovery map-cycle briefing",()=>{
   const r=direct(true);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);r.recovery.progress(60,20);
   expect(r.recovery.context()).toBe(null);expect(r.recovery.active).toBe(false);
  });
- it("ON leaves the stale-map rejection episode's stop unchanged",()=>{
+ it("ON leaves stale-map rejection nonterminal",()=>{
   const r=direct(true);const s=at([0,10]);r.recovery.state(s);
   const mismatch=call(s,{name:"navigate_to_target",args:{map_id:[0,16]},acted:false});
   r.recovery.complete(mismatch,1);r.recovery.complete(mismatch,2);r.recovery.context();
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)r.recovery.complete(call(s),10+i);
-  expect(r.notices.map(n=>[n.kind,n.phase])).toEqual([["rejection","warning"],["rejection","stop"]]);expect(r.recovery.stopped).toBe(true);
+  expect(r.notices.map(n=>[n.kind,n.phase])).toEqual([["rejection","warning"],["rejection","supervisor"]]);expect(r.recovery.stopped).toBe(false);
  });
 });
 
@@ -240,8 +240,8 @@ describe("map-cycle-recovery-v1 through the stall-briefing wiring",()=>{
    r.move(HOUSE_2F);r.move(HOUSE_1F);r.move(HOUSE_2F);r.move(HOUSE_1F);
    expect(r.guards().map(g=>g.phase)).toEqual(["warning"]);
    for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)r.press(HOUSE_1F);
-   expect(r.guards().map(g=>g.phase)).toEqual(on?["warning","supervisor"]:["warning","stop"]);
-   if(!on){expect(r.governor.stopReason).toBe("stuck");continue;}
+   expect(r.guards().map(g=>g.phase)).toEqual(on?["warning","supervisor"]:["warning","supervisor"]);
+   if(!on){expect(r.governor.stopReason).toBe(null);continue;}
    const brief=r.guards().at(-1);
    expect(brief?.message).toContain("(visits): map 1/0 3; map 1/1 2.");
    r.press(HOUSE_1F);
@@ -251,8 +251,8 @@ describe("map-cycle-recovery-v1 through the stall-briefing wiring",()=>{
    r.move(HOUSE_1F);
    expect(r.guards().map(g=>g.phase)).toEqual(["warning","supervisor","warning"]);
    for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)r.press(HOUSE_1F);
-   expect(r.guards().map(g=>g.phase)).toEqual(["warning","supervisor","warning","stop"]);
-   expect(r.governor.stopReason).toBe("stuck");
+   expect(r.guards().map(g=>g.phase)).toEqual(["warning","supervisor","warning","supervisor"]);
+   expect(r.governor.stopReason).toBe(null);
   }
  });
  it("StallBriefing without the switch ignores the cycle window",()=>{

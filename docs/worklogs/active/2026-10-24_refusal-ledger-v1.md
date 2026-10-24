@@ -24,11 +24,11 @@ One milestone: RED fixtures and production delivery tests committed; GREEN imple
 
 ## Status
 
-- [ ] RED committed
-- [ ] GREEN and adversarial wiring receipt
-- [ ] gates and explainer verification
-- [ ] frozen cloud reviews
-- [ ] board landing and coordinated viewer proof
+- [x] RED committed
+- [x] GREEN and adversarial wiring receipt
+- [x] gates and explainer verification
+- [x] frozen cloud reviews
+- [x] board landing and coordinated viewer proof
 
 RED: production context tests run offline from schema-validated projected recorded events. Focused invocation uses vitest directly (the initial pnpm test -- shape did not filter correctly; stopped only the owned vitest PID). Corrected fixture-only guard evidence and strengthened expiry tests to require a populated ledger before expiry. Final RED receipt /tmp/refusal-ledger-red-focused-v2.log. Expected failures are missing registry/retention/delivery, not import errors.
 
@@ -72,3 +72,22 @@ Correction to the preceding receipt, committed immediately after inspection: the
 Normalization seam strengthened before final full gate: two identical recorded refusal results followed by the original 20468 walked-prefix/one-action shape must aggregate to three attempts while displaying the full latest line. Separate removal of the walked-prefix normalizer and of the action-count normalizer each fails the count assertion; restoration passes 25/25. Unique normalization mutation logs retained. No production change in this test commit.
 
 Second normal gate (build first, frozen80b4ed52f, 51.41s then immediate CPU release): build PASS and all 4,199 agent tests PASS. Viewer 1,801/1,802 pass; server-controls' raw ALL_ON draft explicitly turned disproved-beliefs/story OFF, so the new dependent treatment correctly rejected the now-inconsistent fixture with409. Corrected only that test draft to refusal-ledger OFF and added exact409/error assertion when it is flipped ON with its dependency OFF. Focused server-controls passes. Normal test recipe stopped at this failure; Python/trainer checks, coverage and lint have not been claimed. No source threshold/worker/retry change; no production behavior repair needed.
+
+
+## Final landing evidence — 2026-10-24
+
+Source landed by board-controlled fast-forward on local main at `6f6db659217a9c8622a86db469e1af254723850c`, reviewed base `b8911c90e26e6acc399827e218c6ac97cc2d4e36`, binary own diff SHA256 `47484831b766b71fcd21094b06cdae68b1824d291a867e3783cd0cc90c509720`. The branch was rebased onto the approved trainer sprite source/evidence ancestry with identical own diff, without touching protected design files or rebinding approval. Actual session `00000000-0000-4000-8000-614401494ae6` verified number1 on the shared board. No remote/push/PR.
+
+Final normal gates on this exact head: build/test/coverage/lint/vendor all PASS, total316.83s. Agent4199, viewer1807, Python4068; zero skipped; design guard1 unittest and3 approved headless visual cases. Coverage lines/branches/functions: agent99.14/92.72/97.53; viewer98.04/91.68/95.18; Python97.36/93.28/100. Private test environment initially lacked the documented ROM environment variable; the failed245fail/3306pass/517skip run is not credited. Set only ignored private POKEBENCH_ROM to the existing documented ~/.roms/pokemon-emerald.gba, verified ROM, passed44 focused native readout cases, then ran the actual all-green normal chain. Approved card art read only. No thresholds, exclusions, retries, skips or test runner lifecycle weakened.
+
+Formal frozen round1: Claude Opus5.5 CLI, isolated fresh GPT6.1Sol high and isolated fresh GPT6Astra high fallback each returned terminal LGTM on the same diff/boundary/principles. Actual discovered Grok4.7xhigh invocation exited1 after4.22s with exhausted usage; it supplied NO approval. Applied the primary human waiver cited above, as confirmed by coordinator; vendor diversity reduced. Claude exit0, empty stderr,148.21s. Both GPT lanes recomputed identity before/after; Astra independently matched all33 projected fixture records to original streams. All9 test-quality dimensions inspected; allPB1–PB13 PASS/N/A with PB12 N/A. Formal synthesis and original outputs retained under runs/reviews/refusal-ledger-v1/review-formal-1/. No blocker and no source changes after freeze. Accepted earlier advisory fixes and the disqualified passing mutation are disclosed above; only the corrected independent-reference failure/restoration counts as proof. Nonblocking follow-up: attempt lists/evidence grow until expiry, so long-run context cost and benefit remain unmeasured. Anchor selection, press/loss extension and new retention policy remain separate scope.
+
+Coordinated post-main window admitted after Item2 actual CPU release. Actual start15:22:02Z/hardend15:25:02Z, normal build PASS16.51s, normal just test PASS108.72s cumulative, exactly ONE just viewer-main PASS127.31s cumulative, actual heavy release about15:24:09Z. Same4199/1807/4068 counts; trainer guard and3 widths pass. Used the existing clean /private/tmp/pokebench-viewer-qwen36-20261024, matching the existing latest-main loop override. Ten protected controller/play/launcher/server PID+PPID+start+argv identities and all3 gameplay lease SHA256 values match byte-for-byte before/after. No game/model/GPU/controller/schedule restarted, stopped or reconfigured.
+
+Public8790 viewer listener48718 PPID1 serves clean6f6db659 source. Owned headless browser clicked the existing GPU0 3b6e Watch card from comparisons, selected that exact run, saw RUNNING and43 live frames received/12 presented at capture, no visible problems or pageerrors. Inspected saved watch/config screenshots. Actual Harness Config search→READ EXPLAINER popup succeeded; served panels/explainer hashes equal completed artifacts. Existing older run correctly says NOT RECORDED for this new switch, never liveON. Postlanding proof/rawlogs and protected snapshots: runs/reviews/refusal-ledger-v1/postlanding/. Prior owned offline replay proof covers memory row→expanded raw inspector with exact evidence, desktop1280/1440 and phone375 pages. Full original event-stream production replay is in real-trace.json. Canonical8791 explainer returns200 and pages-check passes; no focus taken.
+
+Feature remains registered/defaultOFF, no active recipe or frozen run altered. No inference/probe/gameplay launched and no effectiveness claim. Offline16-decision proposal remains unapproved/unlaunched. Correction to its cost wording:432832 tokens is a rough historical-estimate proxy, not a guaranteed input floor or bill; actual context windows/images/model/runtime must be reproduced and priced before any authorization. Optional anchor-fact remains deferred.
+
+Separate later request to enable future bundle recipes is outside this sealed source patch. Coordinator corrected the initial claimed authorization: older general cook instructions and today's permission to brief five chats do not establish specific new recipe activation. Hold recipe edits/landing until current human authorization is verified; no recipes in this evidence-only commit. Current reported long-run paths are bundle-v-control-2h and bundle-v-control, not an invented new definition. The fixed-run CLI's dry-run label can invoke real trial work; no real command was executed for recipe proof.
+
+This is the permitted single post-landing evidence-only commit, touching only docs/worklogs/. Next action is board release and reporting final evidence SHA to coordinator/other owners. Source6f6 is the served build; a later docs-only evidence SHA need not trigger another viewer restart.

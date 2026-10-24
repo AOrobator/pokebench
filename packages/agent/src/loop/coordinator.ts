@@ -408,9 +408,11 @@ export class LoopCoordinator {
         this.notice("supervisor", seq);
         return;
       }
-      this.stopped = this.mode === "enforced";
       this.episode.threshold = true;
-      this.notice("stop", seq);
+      if(this.mode==="enforced"){
+        this.episode.briefing=`LOOP GUARD: ${this.episode.message} Recovery remains unverified after ${String(this.episode.recovery)} calls. The run continues; no input or destination is selected for you.`;
+        this.notice("supervisor",seq);
+      }else this.notice("stop",seq);
       return;
     }
     if (selected === null || hit === null) return;

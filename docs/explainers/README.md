@@ -192,7 +192,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 
 - [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.
-- [Shop menu refusal recovery](menu-refusal-recovery-v1.html): verified shop refusal feedback and bounded stopping, default OFF and bundle ON.
+- [Shop menu refusal recovery](menu-refusal-recovery-v1.html): verified shop refusal feedback and bounded nonterminal briefings, default OFF and bundle ON.
 
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
 
@@ -260,7 +260,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Window escape route](window-escape-route-v1.html): Default off; bundle treatment. When no route lies inside the 15x15 local map, navigate_to plans over the whole current map for the rest of that call.
 - [Elevation-aware map](elevation-aware-map-v1.html): Default off; bundle treatment. Tiles the player cannot step onto from its elevation draw L, refused presses name the elevation or slope, and objects on another level no longer block navigate_to.
 - [Screen-center player](screen-center-player-v1.html): Default off; bundle treatment. The system prompt says the player is the sprite at the screen's center tile, and the readout says when the map's top layer hides it.
-- [Map-cycle recovery briefing](map-cycle-recovery-v1.html): an unresolved map-cycle episode briefs once and resets the cycle count instead of stopping the run.
+- [Map-cycle recovery briefing](map-cycle-recovery-v1.html): each unresolved map-cycle episode briefs and resets the cycle count without ending the run.
 - [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.
 
 - [move-learn-goal-reminder-v1](move-learn-goal-reminder-v1.html) — tested task reminder after an explicit skip plan; both-arm operator activation.

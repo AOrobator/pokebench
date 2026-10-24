@@ -327,9 +327,7 @@ async function playAgent(): Promise<void> {
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
       });
-      const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), () => {
-        governor.abort("stalled");
-      });
+      const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), loopDetector);
       stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
       const stopWatching = watchControl(controlFile, runControl);
       signals.onAbort((signal) => {

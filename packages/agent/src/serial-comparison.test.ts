@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { createServer, type Socket } from "node:net";
+import { setTimeout as startupTimer, clearTimeout as clearStartup } from "node:timers";
 import { counterbalancedTrials, prepareComparison, superviseComparison, type ComparisonHost } from "./serial-comparison.js";
 
 function defined<T>(value:T|undefined):T { if(value===undefined)throw new Error("test fixture missing value");return value; }
@@ -197,13 +199,66 @@ describe("child evidence and resume integrity",()=>{
 });
 
 describe("bounded child lifetime",()=>{
- it("retains stdout/stderr and classifies a real hung child as infrastructure",async()=>{
-  const m=await diskFixture();await writeFile(m.build.path,"console.log('child stdout');console.error('child stderr');process.on('SIGINT',()=>{});setInterval(()=>{},1000);");
-  const h=filesystemComparisonHost(m,{watchdogMs:100,interruptGraceMs:10,killGraceMs:10});
-  await expect(h.launch(await tinyCommand(m))).rejects.toThrow("timed_out");
+ it.each(["hang","log-conflict","late-spawn"] as const)("retains output or cleans pre-spawn failure (%s)",async mode=>{
+  const m=await diskFixture();
   const dir=join(m.repoRoot,"runs/launch-receipts/naming-test");
-  expect(await readFile(join(dir,"naming-test_01.stdout.log"),"utf8")).toContain("child stdout");
-  expect(await readFile(join(dir,"naming-test_01.stderr.log"),"utf8")).toContain("child stderr");
+  let markReady:()=>void=()=>{};
+  let deadline:ReturnType<typeof startupTimer>|undefined;
+  let expireReady:()=>void=()=>{};
+  const ready=new Promise<void>((resolve,reject)=>{
+   markReady=resolve;expireReady=()=>{reject(Error('child did not become ready'));};
+  });
+  const sockets:Socket[]=[];
+  const server=createServer(socket=>{sockets.push(socket);socket.once('data',bytes=>{if(bytes.toString()==='ready')markReady();});});
+  const originalTimer=globalThis.setTimeout;
+  const watchdog:{fire?:()=>void}={};
+  let cleaning=false;
+  let outcome:Promise<unknown>|undefined;
+  let restoreTimer:()=>void=()=>{};
+  try{
+  await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  const address=server.address();if(address===null||typeof address==='string')throw Error('missing test port');
+  await writeFile(m.build.path,`import {connect} from 'node:net';process.on('SIGINT',()=>{});console.log('child stdout');console.error('child stderr');const socket=connect(${String(address.port)},'127.0.0.1',()=>{socket.end('ready');});setInterval(()=>{},1000);`);
+  const command=await tinyCommand(m);
+  if(mode==='log-conflict'){await mkdir(dir,{recursive:true});await writeFile(join(dir,`${command.runId}.stdout.log`),'owned existing log');}
+  let fired=false;
+  const timer=vi.spyOn(globalThis,'setTimeout').mockImplementation((callback,delay,...args:unknown[])=>{
+   if(delay===100){watchdog.fire=()=>{if(!fired){fired=true;callback(...args);}};return startupTimer(()=>{if(cleaning)watchdog.fire?.();},0);}
+   return startupTimer(callback,delay,...args);
+  });
+  restoreTimer=()=>{timer.mockRestore();};
+  const h=filesystemComparisonHost(m,{watchdogMs:100,interruptGraceMs:10,killGraceMs:10});
+  if(mode!=='log-conflict')deadline=startupTimer(expireReady,2000);
+  outcome=h.launch(command).then(()=>null,(error:unknown)=>error);
+   if(mode==='log-conflict'){
+    expect(await outcome).toMatchObject({code:'EEXIST'});
+    expect(timer).not.toHaveBeenCalledWith(expect.any(Function),100);
+   }else if(mode==='late-spawn'){
+    expireReady();await expect(ready).rejects.toThrow('child did not become ready');
+    expect(watchdog.fire).toBeUndefined();
+   }else{
+   await ready;
+   expect(timer).toHaveBeenCalledWith(expect.any(Function),100);
+   if(watchdog.fire===undefined)throw Error('watchdog was not scheduled');
+   watchdog.fire();
+   const failure:unknown=await outcome;if(!(failure instanceof Error))throw Error('missing timeout error');
+   expect(failure.message).toContain('timed_out');
+   expect(await readFile(join(dir,"naming-test_01.stdout.log"),"utf8")).toContain("child stdout");
+   expect(await readFile(join(dir,"naming-test_01.stderr.log"),"utf8")).toContain("child stderr");
+   }
+  }finally{
+   cleaning=true;clearStartup(deadline);
+   try{watchdog.fire?.();await outcome;}finally{
+    restoreTimer();for(const socket of sockets)socket.destroy();
+    await new Promise<void>(resolve=>{server.close(()=>{resolve();});});
+   }
+  }
+  expect(globalThis.setTimeout).toBe(originalTimer);expect(server.listening).toBe(false);
+ });
+ it("the real startup watchdog still times out a silent child",async()=>{
+  const m=await diskFixture();await writeFile(m.build.path,"setInterval(()=>{},1000);");
+  const h=filesystemComparisonHost(m,{watchdogMs:100,interruptGraceMs:10,killGraceMs:10});
+  await expect(h.launch(await tinyCommand(m))).rejects.toThrow('timed_out');
  });
  it("preserves safe failure category in supervisor outcome",async()=>{
   const m=await diskFixture(),h=filesystemComparisonHost(m,{verify:async()=>{},node:join(m.repoRoot,"missing")});

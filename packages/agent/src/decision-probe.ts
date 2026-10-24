@@ -132,7 +132,7 @@ export class Replay {
   }
   readonly recordLoopGuard = (body: LoopNotice): void => { this.own({ type: "loop_guard", ...body, evidence: [...body.evidence] }, this.current.turn); };
   readonly recordNavigationContext = (body: Omit<Extract<EventBody, { type: "navigation_context" }>, "type">): void => { this.own({ type: "navigation_context", ...body }, this.upcoming); };
-  readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, this.upcoming); };
+  readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, body.instruction_goals===undefined?this.upcoming:this.current.turn); };
   readonly recordMilestoneHint = (body: Omit<Extract<EventBody, { type: "milestone_hint" }>, "type">): void => { this.own({ type: "milestone_hint", ...body }, this.upcoming); };
   readonly recordBeliefLedger = (body: Omit<Extract<EventBody, { type: "belief_ledger" }>, "type">): void => { this.own({ type: "belief_ledger", ...body }, this.upcoming); };
   readonly recordLoopBreaker = (body: LoopBreakerBody): void => { this.own({ type: "loop_breaker", ...body }, this.upcoming); };

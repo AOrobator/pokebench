@@ -102,3 +102,12 @@ it("recovers from the actual recorded trainer-row overshoot with UP,A",async()=>
  const tool=menuOptionTool({observe:()=>Promise.resolve(result(current)),press:(_id,b,check)=>{check(current);buttons.push(b);current=b==="UP"?target:{...target,active_ui:null};return Promise.resolve(result(current));}});
  await tool.execute("recorded-recovery",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual(["UP","A"]);
 });
+it.each(["phase","id"])("rejects a mismatched requested menu %s independently",async kind=>{
+ let current=at(2);const buttons:Button[]=[];const tool=menuOptionTool({observe:()=>Promise.resolve(result(current)),press:(_id,b,check)=>{check(current);buttons.push(b);current=b==="A"?{...current,active_ui:null}:at(3);return Promise.resolve(result(current));}});
+ await tool.execute("wrong-request",{phase:kind==="phase"?"start_menu":"field_multichoice",menu_id:kind==="id"?87:86,option:"POKéNAV"});expect(buttons).toEqual([]);
+});
+it.each(["identity","cursor"])("checks pre-input %s independently",async kind=>{
+ const current=at(2),ui=must(current.active_ui),before=kind==="cursor"?at(3):{...current,active_ui:{...ui,details:{...ui.details,menu_id:87}}};const buttons:Button[]=[];
+ const tool=menuOptionTool({observe:()=>Promise.resolve(result(current)),press:(_id,b,check)=>{check(before);buttons.push(b);return Promise.resolve(result(at(3)));}});
+ await tool.execute("changed-input",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual([]);
+});

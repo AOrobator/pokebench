@@ -110,8 +110,10 @@ it("reuses the native owner to retire Norman's first-gym request while retaining
     expect(ledger.archive(undefined, "gym")).toContain('"verification":"native_verified"');
     expect(ledger.archive(undefined, "return")).toContain('"status":"deferred"');
     const original=must(native.find(e=>e.type==="dialogue_auto_advance")),result=must(native.find(e=>e.seq===7561));
-    if(original.type!=="dialogue_auto_advance")throw new Error("Missing source dialogue");
-    s.send([checkEvent({...original,seq:90000,tool_call_id:"reissued",pages:original.pages.map(page=>({...page,state_seq:34806}))}),checkEvent({...result,seq:90001,id:"reissued",state_seq:34806})]);
+    const completedState=must(native.find(e=>e.seq===34806));
+    // Synthetic return to the issuing room isolates the already-complete issuance case from map mismatch.
+    s.send([checkEvent({...completedState,seq:89999,map_id:[8,1],location:"PETALBURG CITY GYM"})]);
+    s.send([checkEvent({...original,seq:90000,tool_call_id:"reissued",pages:original.pages.map(page=>({...page,state_seq:89999}))}),checkEvent({...result,seq:90001,id:"reissued",state_seq:89999})]);
     ledger.apply({reviewed:[{episode:90001,interpretation:"A renewed instruction, after the original task completed"}],updates:[{id:"gym-again",native_source_completion:true,title:"New gym request",sources:[{episode:90001,page:0}],parent:null,status:"active",reason:"Newly issued request",completion:"This renewed request is satisfied"}]});
     expect(ledger.archive(undefined,"gym-again")).toContain('"status":"active"');
 });

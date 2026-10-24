@@ -20,7 +20,7 @@ OFF = frozenset(SERVER_FEATURES) | {ID}
 OFF -= {"ram-state-v1", "expanded-menu-battle-information-v1", "readout-truth-v1"}
 
 
-def fixture(sequence=8360):
+def fixture(sequence=8361):
     data = json.loads((Path(__file__).parent / f"fixtures/party-menu-{sequence}.json").read_text())
     m = Memory()
     for key, value in data["memory"].items():
@@ -181,3 +181,17 @@ def test_cursor_labels_egg_without_exposing_underlying_species(monkeypatch):
     ui = corrected(m).active_ui
     assert ui.details["cursor_species"] == "EGG"
     assert "MUDKIP" not in ui.selected
+
+
+def test_prior_action_menu_keeps_action_and_names_its_party_cursor():
+    m, _ = fixture(8356)
+    ui = corrected(m).active_ui
+    assert ui.phase == "party_action_menu" and ui.selected == "SEND OUT"
+    assert ui.details["cursor_species"] == "MUDKIP"
+    assert ui.details["cursor_party_index"] == 0
+
+
+def test_earlier_retained_message_sample_has_the_same_verified_wait():
+    m, _ = fixture(8360)
+    ui = corrected(m).active_ui
+    assert ui.ready is True and ui.selected == "A/B: CONTINUE"

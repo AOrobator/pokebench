@@ -73,6 +73,10 @@ describe(ID,()=>{
   const egg={...firstHealed,is_egg:true};
   expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
  });
+ it.each(["positive max HP","known identity","unique identities"] as const)("independently requires %s in matching before/after parties",guard=>{
+  const party=(s:State)=>s.party.map((m,i)=>guard==="positive max HP"?{...m,hp:0,max_hp:0}:guard==="known identity"&&i===0?{...m,identity:null}:guard==="unique identities"?{...m,identity:"duplicate"}:m);
+  expect(fold([change(loss,{party:party(loss)}),change(field,{party:party(field)})]).battles()[0]?.whiteout).toBeNull();
+ });
  it("does not infer a whiteout from a win, escape, surviving party or ordinary map change",()=>{
   expect(fold([change(loss,{battle:{...lostBattle,outcome:"drew"}}),field]).battles()[0]).toMatchObject({outcome:"drew",whiteout:{turn:642}});
   for(const outcome of ["won","ran","ongoing"]){

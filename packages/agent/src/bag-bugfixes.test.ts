@@ -1,0 +1,47 @@
+import {expect,it} from "vitest";
+import {FEATURES,SWITCHABLE_FEATURES,SERVER_FEATURES,playHarnessFeatures,serverFeatureEnv} from "./features.js";
+import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {toolSwitches,playSystemPrompt,playTools} from "./play-config.js";
+import {pressResult} from "./press-result.js";
+import {LoopCoordinator} from "./loop/coordinator.js";
+import type {LoopNotice} from "./loop/types.js";
+import type {GameStateSnapshot} from "./game-state.js";
+import {IN_GAME} from "../test-support/events.js";
+
+const IDS=["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"] as const;
+const off=()=>flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
+function bag(pocket="TMS HMS",index=0,item=-2):GameStateSnapshot{return {...IN_GAME,screen:"bag_menu",active_ui:{phase:"bag_menu",selected:item===-2?"CLOSE BAG":"TM39",ready:true,diagnostic:null,value:null,controls:"Directions select; A accepts; B cancels",details:{pocket,bag_location:0,owner_task:0,selected_index:index,list_item_id:item}}};}
+it("registers independent omitted-OFF switches without tool/prompt changes",()=>{
+ for(const id of IDS){const old=off();const {[id]:value,...omitted}=old;expect(value).toBe(false);expect(normalizeFeatures(omitted)[id]).toBe(false);
+ const on={...old,[id]:true};expect(playHarnessFeatures(on,null)).toEqual([...playHarnessFeatures(old,null),id]);expect(playTools(on)).toEqual(playTools(old));expect(playSystemPrompt(on,null)).toBe(playSystemPrompt(old,null));expect(FEATURES.find(f=>f.id===id)?.description).toContain(" Off: ");}
+ expect(SWITCHABLE_FEATURES.slice(-3)).toEqual(IDS);expect(SERVER_FEATURES).toContain(IDS[0]);expect(serverFeatureEnv(off()).POKEBENCH_FEATURES_OFF.split(",")).toContain(IDS[0]);
+});
+it("production tool switches report a changed empty pocket, preserving exact OFF text",()=>{
+ const before=bag("BERRIES"),after=bag("TMS HMS");
+ const legacy="interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown)";
+ expect(pressResult(before,after,["LEFT"],toolSwitches(off()))).toBe(legacy);
+ expect(pressResult(before,after,["LEFT"],toolSwitches({...off(),"bag-press-feedback-v1":true}))).toContain("interface changed");
+});
+it("cursor and item changes count, raw task/timer churn does not",()=>{
+ const switches=toolSwitches({...off(),"bag-press-feedback-v1":true});
+ expect(pressResult(bag(),bag("TMS HMS",1),["DOWN"],switches)).toContain("interface changed");
+ expect(pressResult(bag(),bag("TMS HMS",0,339),["UP"],switches)).toContain("interface changed");
+ const after=bag();after.active_ui!.details!["task_data"]=[100,1,2];
+ expect(pressResult(bag(),after,["UP"],switches)).toContain("interface unchanged");
+});
+it("warns after three equivalent bag attempts, while OFF never qualifies",()=>{
+ for(const enabled of [false,true]){const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:enabled});
+ for(let i=0;i<3;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:bag(),state:bag(),seq:i+1});
+ expect(notices.some(n=>n.kind==="ineffective"&&n.phase==="warning")).toBe(enabled);}
+});
+it("real pocket or cursor movement resets ineffective attempts and recovers a warning",()=>{
+ const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});
+ const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});
+ press(bag(),bag());press(bag(),bag());press(bag(),bag("BERRIES"));press(bag("BERRIES"),bag("BERRIES"));expect(notices).toEqual([]);
+ press(bag("BERRIES"),bag("BERRIES"));press(bag("BERRIES"),bag("BERRIES"));expect(notices.at(-1)?.phase).toBe("warning");
+ detector.context();press(bag("BERRIES"),bag("BERRIES",1));expect(notices.at(-1)?.phase).toBe("recovered");
+});
+it("does not infer ineffective loops from transitions, diagnostics or incomplete bag ownership",()=>{
+ for(const mutation of ["ready","diagnostic","owner_task","selected_index","pocket","list_item_id"]){const state=bag();const ui=state.active_ui!;if(mutation==="ready")ui.ready=false;else if(mutation==="diagnostic")ui.diagnostic="unknown";else delete ui.details![mutation];
+ const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});for(let i=0;i<8;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:state,state});expect(notices,mutation).toEqual([]);}
+});

@@ -1705,6 +1705,14 @@ it("links native task goal retirement to its source-grounded explainer",()=>{
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("34807");
 });
 
+it("links the party menu message from its feature card",()=>{
+ const id="party-menu-message-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links the nonterminal deterministic guard to its shared supervisor explainer",()=>{
  expect(FEATURE_EXPLAINERS["deterministic-loop-guard-v1"]).toBe("loop-guard-supervisor-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["deterministic-loop-guard-v1"]});

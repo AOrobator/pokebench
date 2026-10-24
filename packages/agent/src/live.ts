@@ -449,12 +449,16 @@ async function playHuman(): Promise<void> {
 
 const command = process.argv[2];
 const entry = command === "smoke" ? smoke : command === "human" ? playHuman : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
+let entryCompleted: Promise<void>;
 if (entry === null) {
+  entryCompleted = Promise.resolve();
   console.error("usage: live.js smoke | live.js play | live.js probe [save-state]");
   process.exitCode = 2;
 } else {
-  entry().catch((error: unknown) => {
+  entryCompleted = entry().catch((error: unknown) => {
     console.error(`${command ?? ""} FAILED: ${String(error)}`);
     process.exitCode = 1;
   });
 }
+
+export { entryCompleted };

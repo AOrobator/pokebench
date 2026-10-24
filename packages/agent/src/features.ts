@@ -264,6 +264,7 @@ export const SWITCHABLE_FEATURES = [
   "player-elevation-readout-v1",
 
   "party-menu-message-v1",
+  "drought-progress-facts-v1",
   "interface-guidance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -649,6 +650,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("refusal-ledger-v1", "guidance", "NAVIGATION REFUSAL HISTORY", "disproved-beliefs-v1", "Default off. Extends the belief ledger with whole recorded navigate_to and navigate_to_target route refusal lines, target, attempts and evidence references. Repeated matching reasons count together. Current observations take precedence; history does not prohibit retries or choose actions. Clears on map or story change, reaching the tile, semantic activation, or a new result with another reason. Off: existing disproved-beliefs ledger and model context unchanged."),
   on("player-elevation-readout-v1", "observation", "PLAYER ELEVATION", "live-player-position-v1", "Default off; bundle only. Adds verified current player elevation to the Position line. When the known tile at your own coordinates is elevation 0 or 15, states that the tile accepts any elevation. Uses current native object elevation, not the previous elevation or another sprite. No location interpretation or route advice. Off: the Position line and all readout bytes are unchanged."),
   on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
+  on("drought-progress-facts-v1", "guard", "FACTUAL DROUGHT BRIEFING", "stall-briefing-v1", "Default off. Holds this stall briefing’s due drought feedback while a battle is on screen, then restarts its clock. Other drought notes state the recorded interval and retain observed exits and dialogue without claiming play is failing or requiring a different strategy. Use the existing campaign-progress-clock-v1 to credit earned post-Rustboro milestones. Off: previous drought timing and wording are unchanged."),
   on("interface-guidance-v1", "observation", "INTERFACE GUIDANCE", null, "Bundle arm only, default off. Qualified native interface owners report mode-specific controls in state and ordinary tool observations. During the PokéNav forced-call tutorial, B cannot exit and only MATCH CALL opens; after the call, exit is available. Recalls only a matching instruction page already delivered in this tutorial, with original speaker attribution, turn and result event, while the tutorial owns input. No JIT dependency, automatic inputs or guessed guidance for unknown screens. Off: existing controls and tool-result bytes are unchanged; no interface instruction reminder."),
 ];
 
@@ -980,6 +982,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("player-elevation-readout-v1"),
 
     ...when("party-menu-message-v1"),
+    ...when("drought-progress-facts-v1"),
     ...when("interface-guidance-v1"),
   ];
 }

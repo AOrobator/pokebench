@@ -27,3 +27,8 @@ Game reference clean at 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881. src/field_cont
 Initial rules/skills/evidence read. No live services, gameplay, endpoints or schedules touched. Focused tests only until finite CPU window coordinated.
 
 RED: focused navigation-nonterminal regressions: 5 failed as intended (both missing doors and repeated terminal phases); live stall regression now expects hard-budget completion and a recorded nonterminal note.
+
+Scope amendment from coordinator: live.ts246 proves deterministic-loop-guard-v1 ON enables generic terminal enforcement (OFF is diagnostic), so generic threshold termination is switch-owned and covered by the human no-switch termination rule. Authorized narrow coordinator.ts threshold nonterminal notice with OFF diagnostic phases unchanged; include menu-refusal bypass tests. No failure-policy change or new strategy.
+Adversarial receipts: navigation-budget, walking-warps and live-stall-wiring each failed when its actual delivery operand was deleted and passed after restoration; unique logs under runs/proof/navigation-nonterminal/. Focused 155 tests green before added enforced/diagnostic live delivery cases (4/4 green).
+
+Additional RED: generic enforced test reaches actual governor.abort(stuck); OFF diagnostic never exposes a warning and retains only would_warn, preserved exactly.

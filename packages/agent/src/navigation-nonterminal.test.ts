@@ -32,3 +32,16 @@ for(const detailed of [false,true])for(const kind of ["map_cycle","rejection"] a
  expect(notices.filter(n=>n.phase==="supervisor")).toHaveLength(3);
  expect(notices.some(n=>n.phase==="stop")).toBe(false);
 });
+
+import {attachLoopGuard,Governor} from "./harness.js";
+import type {RunEvent} from "./events.js";
+for(const enforced of [false,true])it(`keeps generic threshold nonterminal and bounded; enforced=${String(enforced)}`,()=>{
+ const notices:LoopNotice[]=[];const subscribers:((e:RunEvent)=>void)[]=[];
+ const governor=new Governor({limits:{maxTurns:200,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{throw Error("guard aborted run");},now:()=>0});
+ const d=attachLoopGuard({subscribe:f=>{subscribers.push(f);},recordLoopGuard:n=>notices.push(n)},governor,undefined,enforced?"enforced":"diagnostic");
+ for(const f of subscribers)f(recorded);
+ for(let i=0;i<30;i++){d.context();d.complete({name:"observe",args:{},isError:false,text:"same observation",state,seq:8200+i});}
+ expect(governor.stopReason).toBe(null);expect(d.stopped).toBe(false);
+ expect(notices.map(n=>n.phase)).toEqual(enforced?["warning","supervisor"]:["would_warn"]);
+ if(enforced)expect(d.context()).toContain("run continues");else expect(d.context()).toBe(null);
+});

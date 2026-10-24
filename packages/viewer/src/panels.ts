@@ -428,6 +428,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "grass-cost-navigation-v1":"grass-cost-switch.html",
  "game-evidence-priority-v1":"game-evidence-priority-v1.html",
  "dialogue-log-v1":"dialogue-log-v1.html",
+ "deterministic-loop-guard-v1":"loop-guard-supervisor-v1.html",
  "loop-guard-supervisor-v1":"loop-guard-supervisor-v1.html",
  "instruction-ledger-v1":"instruction-ledger-v1.html",
  "next-milestone-hint-v1":"next-milestone-hint-v1.html",
@@ -615,7 +616,7 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  const missing="not recorded",evaluation=start.evaluation;
  const explicit:Readonly<Record<string,boolean>>=evaluation===undefined?{}:{"deterministic-loop-guard-v1":evaluation.flags.loopGuard,"active-ui-ownership-v1":evaluation.flags.activeUi,"contextual-interface-docs-v1":evaluation.flags.interfaceDocs,"objective-tracking-v1":evaluation.flags.objectives};
  const fallback:Readonly<Record<string,readonly[string,string,string]>>={
-  "deterministic-loop-guard-v1":["LOOP GUARD","Warns on repeated planning, observations, actions, cycles and rejections; can end persistent loops.","guard"],
+  "deterministic-loop-guard-v1":["LOOP GUARD","Warns on repeated planning, observations, actions, cycles and rejections; unresolved windows brief without ending the run.","guard"],
   "active-ui-ownership-v1":["ACTIVE UI OWNERSHIP","Reports the interface that owns input, its selection and readiness.","guidance"],
   "contextual-interface-docs-v1":["INTERFACE DOCS","Supplies screen-specific control documentation.","guidance"],
   "objective-tracking-v1":["OBJECTIVE TRACKING","Maintains an objective record and requires an active objective before pressing.","guard"],

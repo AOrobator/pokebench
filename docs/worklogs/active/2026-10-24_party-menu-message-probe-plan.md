@@ -1,6 +1,6 @@
 # Offline decision-probe plan: party-menu-message-v1
 
-Status: PREPARED OFFLINE, no model discovery, requests, leases or workers authorized. Implementation fixtures are not a gameplay or decision-benefit result.
+Status: PLAN AND NATIVE FIXTURES PREPARED; FULL CONTEXTS UNBUILT. Production context-only replay refuses earlier auto-advanced result39391 before any model call. Error receipt: runs/party-menu-offline/context-build-1.log. Operator approval [private message reference] at2026-10-24T15:42:49Z waives separate safety probes for the two approved bundle recipes. No model discovery, requests, leases or workers authorized. Implementation fixtures are not a gameplay or decision-benefit result.
 
 ## Question and source
 Does truthful native party message/readiness/cursor information change GLM's next decision at turn390 of 2026-10-22T20-40-54_glm53-mac_0d5d? Source event39808/paired frame039808_0.png/raw8361; loop39618–40935. Current-code replay differs from historical context: label and preserve any shared differences, and isolate only party-menu-message-v1 between arms. Readouts must be re-rendered for both arms with the same source RAM, system prompt/tools must match.

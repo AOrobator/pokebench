@@ -46,7 +46,7 @@ const unknownState = {
 
 describe("loop guard through pinned pi and recorded events", () => {
   it.each(["set_objective", "observe"])(
-    "stops persisted planning via %s, exposes correction and cancels a trailing press",
+    "briefs persisted planning via %s, exposes correction and permits a model-selected trailing press",
     async (recovery) => {
       const root = mkdtempSync(join(tmpdir(), "pokebench-loop-"));
       try {
@@ -104,7 +104,7 @@ describe("loop guard through pinned pi and recorded events", () => {
             toolCalls: [
               toolCall("r1", recovery, {}),
               toolCall("r2", recovery, {}),
-              toolCall("must-not-execute", "press", {}),
+              toolCall("model-selected-press", "press", {}),
             ],
             stopReason: "toolUse",
           }),
@@ -133,13 +133,14 @@ describe("loop guard through pinned pi and recorded events", () => {
           signal: controller.signal,
           streamFn,
         });
-        expect(await play(userText("play"), governor, loop)).toBe("stuck");
-        recorder.end("stuck");
+        expect(await play(userText("play"), governor, loop)).toBe("budget");
+        recorder.end("budget");
         expect(executed).toEqual([
           "set_objective",
           "set_objective",
           recovery,
           recovery,
+          "press",
         ]);
         expect(retries).toEqual([]);
         expect(seen).toHaveLength(2);
@@ -152,16 +153,17 @@ describe("loop guard through pinned pi and recorded events", () => {
         const notices = events.filter((e) => e.type === "loop_guard");
         expect(notices.map((e) => [e.kind, e.phase])).toEqual([
           ["planning", "warning"],
-          ["planning", "stop"],
+          ["planning", "supervisor"],
+          ["planning", "recovered"],
         ]);
         expect(notices[0]?.evidence).toEqual([
           events.find((e) => e.type === "tool_result" && e.id === "p2")?.seq,
         ]);
         expect(events.at(-1)).toMatchObject({
           type: "run_end",
-          reason: "stuck",
+          reason: "budget",
         });
-        expect(controller.signal.aborted).toBe(true);
+        expect(controller.signal.aborted).toBe(false);
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
@@ -290,7 +292,7 @@ it.each(["observation", "ineffective", "cycle", "rejection", "interaction", "nam
                 name === "press" ? { buttons: input } : {},
               ),
             ),
-            toolCall("blocked", "press", {}),
+            toolCall("model-selected", "press", {}),
           ],
           stopReason: "toolUse",
         }),
@@ -318,12 +320,13 @@ it.each(["observation", "ineffective", "cycle", "rejection", "interaction", "nam
         signal: controller.signal,
         streamFn,
       });
-      expect(await play(userText("play"), governor, loop)).toBe("stuck");
-      recorder.end("stuck");
+      expect(await play(userText("play"), governor, loop)).toBe("budget");
+      recorder.end("budget");
       expect(executed).toEqual([
         ...names.map((_n, i) => `first${String(i)}`),
         "recover0",
         "recover1",
+        "model-selected",
       ]);
       expect(seen[1]?.at(-1)?.content).toContain(`LOOP GUARD (${expectedKind})`);
       if(kind === "interaction") expect(seen[1]?.at(-1)?.content).toContain("Use a single input");
@@ -337,7 +340,8 @@ it.each(["observation", "ineffective", "cycle", "rejection", "interaction", "nam
           .map((e) => [e.kind, e.phase]),
       ).toEqual([
         [expectedKind, "warning"],
-        [expectedKind, "stop"],
+        [expectedKind, "supervisor"],
+        ...(kind==="rejection"?[[expectedKind,"recovered"]]:[]),
       ]);
       if (kind === "ineffective" || kind === "cycle")
         expect(
@@ -556,25 +560,12 @@ it.each(["diagnostic", "enforced"] as const)(
       });
       const reason = await play(userText("play"), governor, loop);
       recorder.end(reason);
-      expect(reason).toBe(mode === "diagnostic" ? "budget" : "stuck");
-      expect(executed).toEqual(
-        mode === "diagnostic"
-          ? [
-              "get_objectives",
-              "get_objectives",
-              "get_objectives",
-              "get_objectives",
-              "press",
-            ]
-          : [
-              "get_objectives",
-              "get_objectives",
-              "get_objectives",
-              "get_objectives",
-            ],
-      );
+      expect(reason).toBe("budget");
+      expect(executed).toEqual([
+        "get_objectives", "get_objectives", "get_objectives", "get_objectives", "press",
+      ]);
       expect(retries).toEqual([]);
-      expect(controller.signal.aborted).toBe(mode === "enforced");
+      expect(controller.signal.aborted).toBe(false);
       const warning = seen[1]?.some(
         (m) =>
           m.role === "user" &&
@@ -590,7 +581,7 @@ it.each(["diagnostic", "enforced"] as const)(
       expect(notices.map((e) => e.phase)).toEqual(
         mode === "diagnostic"
           ? ["would_warn", "would_stop", "would_recover"]
-          : ["warning", "stop"],
+          : ["warning", "supervisor", "recovered"],
       );
       expect(notices.every((e) => "mode" in e && e.mode === mode)).toBe(true);
       if (mode === "diagnostic")

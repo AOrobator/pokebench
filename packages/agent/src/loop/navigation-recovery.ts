@@ -37,7 +37,6 @@ export class NavigationRecovery {
  private readonly unmatched=new Map<string,number>();
  private readonly labels=new Map<string,string>();
  private briefing:{text:string;exposed:boolean}|null=null;
- private briefed=false;
  private window=0;
  private seen=new Set<string>();
  private latest:GameStateSnapshot|undefined;
@@ -63,7 +62,7 @@ export class NavigationRecovery {
   if(qualified(state)&&label!==undefined)this.labels.set(at,label);
  }
  unavailable():void {this.latest=undefined;}
- progress(seq:number,calls:number):void {if(this.episode!==null)this.notice("recovered",seq,calls);this.episode=null;this.stale=[];this.seen.clear();this.visits.clear();this.used.clear();this.unmatched.clear();this.here=null;this.lastOnMap=null;this.briefing=null;this.briefed=false;if(this.latest!==undefined)this.state(this.latest);}
+ progress(seq:number,calls:number):void {if(this.episode!==null)this.notice("recovered",seq,calls);this.episode=null;this.stale=[];this.seen.clear();this.visits.clear();this.used.clear();this.unmatched.clear();this.here=null;this.lastOnMap=null;this.briefing=null;if(this.latest!==undefined)this.state(this.latest);}
  // map-cycle-recovery-v1: advances each time a briefing replaces a stop; stall-briefing-v1 restarts its map-pair counts.
  mapCycleWindow():number {return this.window;}
  cycle(_text:string,evidence:readonly number[],calls:number):boolean {
@@ -91,8 +90,7 @@ export class NavigationRecovery {
    if(recovered){this.notice("recovered",seq,calls);this.episode=null;this.stale=[];return true;}
    const budgetState=state??this.latest;
    if(episode.exposed&&budgetState?.in_battle!==true&&budgetState?.active_ui==null&&++episode.calls===NAVIGATION_RECOVERY_CALLS){
-    if(this.mapCycleRecovery&&episode.kind==="map_cycle"&&!this.briefed&&this.mode==="enforced"){this.brief(episode,seq,calls);return true;}
-    this.notice("stop",seq,calls);this.stopped=this.mode==="enforced";
+    this.brief(episode,seq,calls);
    }
    return true;
   }
@@ -106,14 +104,23 @@ export class NavigationRecovery {
  }
  private bearings():string {
   const s=this.latest;if(s===undefined)return "Current map unavailable.";
-  const connections=s.exit_reach?.connections??[];
-  return `Current map: ${mapKey(s)??"unavailable"}. Position: ${String(s.position?.x??"unavailable")},${String(s.position?.y??"unavailable")}. Observed walking exits: ${connections.filter(c=>c.reach==="foot").sort((a,b)=>Number(this.seen.has(a.destination.join("/")))-Number(this.seen.has(b.destination.join("/")))).map(c=>`${c.direction} -> ${c.destination.join("/")} (${this.seen.has(c.destination.join("/"))?"visited since last native story progress":"not visited since last native story progress"})${this.semanticTargets?` [navigate_to_target ${JSON.stringify({map_id:s.map_id,target:{kind:"connection",direction:c.direction}})}]`:""}`).join("; ")||"none qualified"}.`;
+  const reach=s.exit_reach;
+  const target=(t:object):string=>this.semanticTargets?` [navigate_to_target ${JSON.stringify({map_id:s.map_id,target:t})}]`:"";
+  const exits=reach===undefined?null:[
+   ...reach.warps.filter(w=>w.reach==="foot").map(w=>`warp (${String(w.x)},${String(w.y)})${target({kind:"warp",x:w.x,y:w.y})}`),
+   ...reach.connections.filter(c=>c.reach==="foot").sort((a,b)=>Number(this.seen.has(a.destination.join("/")))-Number(this.seen.has(b.destination.join("/")))).map(c=>`${c.direction} -> ${c.destination.join("/")} (${this.seen.has(c.destination.join("/"))?"visited since last native story progress":"not visited since last native story progress"})${target({kind:"connection",direction:c.direction})}`),
+  ];
+  return `Current map: ${mapKey(s)??"unavailable"}. Position: ${String(s.position?.x??"unavailable")},${String(s.position?.y??"unavailable")}. Observed walking exits: ${exits===null?"unknown (exit reachability was not read)":exits.join("; ")||"none qualified"}.`;
  }
- // map-cycle-recovery-v1: the one briefing that replaces a map-cycle stop until new native story progress.
+ // Every exhausted navigation episode briefs without ending the run.
  private brief(episode:Episode,seq:number,calls:number):void {
-  const text=this.recoveryText();
-  this.briefing={text,exposed:false};this.briefed=true;this.window++;this.episode=null;
-  this.notify({kind:"map_cycle",message:text,calls,evidence:loopEvidence([...episode.evidence,seq]),mode:"enforced",phase:"supervisor"});
+  const text=this.mapCycleRecovery&&episode.kind==="map_cycle"?this.recoveryText():`NAVIGATION RECOVERY BRIEFING: ${episode.kind==="map_cycle"?"The repeated map cycle":"Stale-map navigation"} was not resolved within ${String(NAVIGATION_RECOVERY_CALLS)} calls. The run continues. Backtracking is allowed. No destination is selected for you.\n${this.bearings()}`;
+  if(this.mode==="enforced"){
+   this.briefing={text,exposed:false};
+   if(this.mapCycleRecovery&&episode.kind==="map_cycle")this.window++;
+   this.notify({kind:episode.kind,message:text,calls,evidence:loopEvidence([...episode.evidence,seq]),mode:"enforced",phase:"supervisor"});
+  }
+  this.episode=null;this.stale=[];
  }
  private label(key:string):string {const label=this.labels.get(key);return label===undefined?`map ${key}`:name(label);}
  private recoveryText():string {
@@ -139,17 +146,17 @@ export class NavigationRecovery {
    `Where you are: ${where}.`,
    `Maps visited since your last native story progress (visits): ${visits||"none recorded"}.`,
    `Walking exits of this map you have not left by since your last native story progress: ${exits===null?"unknown (exit reachability was not read for this map)":exits.length===0?"none (since then you have left this map by every exit you can walk to from here)":exits.join("; ")}.${caveat}`,
-   `If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns, and the run ends if that cycle is not resolved within ${String(NAVIGATION_RECOVERY_CALLS)} calls.`,
+   `If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns. Each unresolved window produces another briefing; this guard never ends the run.`,
   ].join("\n");
  }
  private open(kind:Episode["kind"],text:string,evidence:readonly number[],calls:number):void {
   this.episode={kind,text,evidence:[...evidence],exposed:false,calls:0,maps:new Set(this.seen)};
   this.notice("warning",evidence.at(-1)??0,calls);
  }
- private notice(phase:"warning"|"recovered"|"stop",seq:number,calls:number):void {
+ private notice(phase:"warning"|"recovered",seq:number,calls:number):void {
   const e=this.episode;if(e===null)return;
-  const fields={kind:e.kind,message:`${e.text}\n${this.bearings()}${phase==="stop"?"\nBounded navigation recovery ended without verified recovery.":phase==="recovered"?"\nVerified navigation recovery.":""}`,calls,evidence:loopEvidence([...e.evidence,seq])};
+  const fields={kind:e.kind,message:`${e.text}\n${this.bearings()}${phase==="recovered"?"\nVerified navigation recovery.":""}`,calls,evidence:loopEvidence([...e.evidence,seq])};
   if(this.mode==="enforced")this.notify({...fields,mode:this.mode,phase});
-  else this.notify({...fields,mode:this.mode,phase:phase==="warning"?"would_warn":phase==="stop"?"would_stop":"would_recover"});
+  else this.notify({...fields,mode:this.mode,phase:phase==="warning"?"would_warn":"would_recover"});
  }
 }

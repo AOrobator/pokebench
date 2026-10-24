@@ -1705,3 +1705,10 @@ it("links the party menu message from its feature card",()=>{
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+
+it("links the nonterminal deterministic guard to its shared supervisor explainer",()=>{
+ expect(FEATURE_EXPLAINERS["deterministic-loop-guard-v1"]).toBe("loop-guard-supervisor-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["deterministic-loop-guard-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(doc.querySelector('[data-feature="deterministic-loop-guard-v1"] a')?.getAttribute("href")).toBe("/explainers/loop-guard-supervisor-v1.html");
+});

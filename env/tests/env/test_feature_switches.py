@@ -237,6 +237,7 @@ def test_env_list_is_validated() -> None:
             "blackout-transition-v1",
             "player-elevation-readout-v1",
             "party-menu-message-v1",
+            "interface-guidance-v1",
             "coherent-battle-observation-v1",
             "named-interactions-v1",
             "world-destinations-v1",

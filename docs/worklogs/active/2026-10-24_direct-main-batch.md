@@ -7,8 +7,8 @@ The operator superseded per-branch sequencing: "lets do direct to main. just mer
 Ten pinned source candidates in runs/reviews/direct-main-batch-20261024/manifest.json. Native goal before goal/menu shares one matcher; NPC/config last preserves all feature activation in one current.json. Preserve defaultOFF/bundleON scopes, three bag switches bothON, GLM cutoff bothON with control4096/bundle8192 only appropriate protocols, main trigger and gym bothON/dependencies. Keep both GLM and offline-party decision-probe repairs. No new gameplay/inference/schedule/loop/env/PAUSE/STOP writes. Claude holds future starts since17:03:46; active runs untouched; only Claude will resume after final validated signal. Broader validation-reuse/CPU-tool pilot excluded.
 
 ## Merge ledger
-- [ ] WHITEOUT: codex/same-map-whiteout-v2 at e153405d17a3c71005cc67ece5b77cd83d00fc06
-- [ ] GUIDANCE: codex/interface-guidance at aa552c794c9636628e8f9a80c429e0b7fac819f2
+- [x] WHITEOUT: codex/same-map-whiteout-v2 at e153405d17a3c71005cc67ece5b77cd83d00fc06
+- [x] GUIDANCE: codex/interface-guidance at aa552c794c9636628e8f9a80c429e0b7fac819f2
 - [ ] EXITS: codex/actionable-exits at 7eb7f524348fd34b374ec47489dda5de5a2cbb8c
 - [ ] NATIVEGOAL: codex/stale-goal-completion-v1 at 5fa6eb381eb5688ce2a378c1b3428c8debb4de8f
 - [ ] GOALMENU: codex/instruction-goal-ledger at 4d3c5041302693bf5a654f6b0a7ce28ceb9c0c61
@@ -30,3 +30,5 @@ Deferred until all ten merges, per direct instruction. Then full normal test/lin
 - Whiteout prior server socket-timing failure in unchanged main test; address only in final test phase if reproduced.
 - Native-goal full gates/cloudreview pending; consumer mutation reserved final stage.
 - NPC/config 2old policy assertion repairs not rerun; no full/cloud approval claim.
+
+- WHITEOUT landedcc7d90f62 (1/10). GUIDANCE conflicts resolved by union of both registered flags, runtime/type exclusions, omitted-OFF defaults/legacyfixtures, explainers and bundle factors; no settings discarded, no checks executed.

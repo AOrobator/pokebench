@@ -266,6 +266,7 @@ export const SWITCHABLE_FEATURES = [
   "party-menu-message-v1",
   "drought-progress-facts-v1",
   "whiteout-outcomes-v2",
+  "interface-guidance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -652,6 +653,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
   on("drought-progress-facts-v1", "guard", "FACTUAL DROUGHT BRIEFING", "stall-briefing-v1", "Default off. Holds this stall briefing’s due drought feedback while a battle is on screen, then restarts its clock. Other drought notes state the recorded interval and retain observed exits and dialogue without claiming play is failing or requiring a different strategy. Use the existing campaign-progress-clock-v1 to credit earned post-Rustboro milestones. Off: previous drought timing and wording are unchanged."),
   on("whiteout-outcomes-v2", "observation", "NATIVE WHITEOUT OUTCOMES", null, "Default off; applicable to both arms. Records a lost or drawn battle as a whiteout after an observed native whiteout callback or fresh receipt, or after displacement, exact money halving and the same identified party all fainted then fully healed. Same-map respawns count. Healing, money changes and map changes alone do not count. Off: previous loss-plus-map-change whiteout inference and recap bytes unchanged."),
+  on("interface-guidance-v1", "observation", "INTERFACE GUIDANCE", null, "Bundle arm only, default off. Qualified native interface owners report mode-specific controls in state and ordinary tool observations. During the PokéNav forced-call tutorial, B cannot exit and only MATCH CALL opens; after the call, exit is available. Recalls only a matching instruction page already delivered in this tutorial, with original speaker attribution, turn and result event, while the tutorial owns input. No JIT dependency, automatic inputs or guessed guidance for unknown screens. Off: existing controls and tool-result bytes are unchanged; no interface instruction reminder."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -732,6 +734,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "blackout-transition-v1",
   "player-elevation-readout-v1",
   "party-menu-message-v1",
+  "interface-guidance-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -983,6 +986,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("party-menu-message-v1"),
     ...when("drought-progress-facts-v1"),
     ...when("whiteout-outcomes-v2"),
+    ...when("interface-guidance-v1"),
   ];
 }
 

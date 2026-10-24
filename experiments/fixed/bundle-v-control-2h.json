@@ -272,7 +272,8 @@
    "refusal-ledger-v1": false,
    "party-menu-message-v1": false,
    "drought-progress-facts-v1": false,
-   "whiteout-outcomes-v2": false
+   "whiteout-outcomes-v2": false,
+   "interface-guidance-v1": false
   }
  },
  "switches": [
@@ -344,7 +345,8 @@
   "refusal-ledger-v1",
   "party-menu-message-v1",
   "drought-progress-facts-v1",
-  "whiteout-outcomes-v2"
+  "whiteout-outcomes-v2",
+  "interface-guidance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

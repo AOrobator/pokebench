@@ -287,3 +287,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Party menu message](party-menu-message-v1.html)
 - [Factual drought briefing](drought-progress-facts-v1.html): battle holds and factual recorded intervals, preserving observed options; default OFF.
 - [Native whiteout outcomes](whiteout-outcomes-v2.html) — default OFF, both-arm applicable; callback receipts or strict loss/displacement/money/healing evidence include same-map respawns.
+- [Interface guidance](interface-guidance-v1.html): mode-specific native controls and previously delivered tutorial instructions in ordinary observations; no JIT dependency.

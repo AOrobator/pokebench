@@ -1724,3 +1724,11 @@ it("links player elevation to its exact tracked explainer without inventing hist
  }
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("tile that accepts any elevation (15)");
 });
+
+it("links the independent interface guidance card to its tracked explainer",()=>{
+ const id="interface-guidance-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("independent of JIT");
+});

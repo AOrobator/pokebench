@@ -157,3 +157,27 @@ def test_short_printer_and_undrawn_window_are_diagnostic():
 
         ui = read_menu_family(read, PARTY_CALLBACK, party_menu_message=True)
         assert ui.ready is None and ui.diagnostic
+
+
+def test_new_switch_owns_button_numbering_even_without_readout_truth():
+    for slot, label in [(6, "CONFIRM"), (7, "CANCEL")]:
+        m, _ = fixture(8367)
+        m.put(PARTY_MENU + 9, bytes([slot]))
+        ui = read_menu_family(m.read, PARTY_CALLBACK, party_menu_message=True)
+        assert ui.selected == label and ui.ready is True
+    m, _ = fixture(8367)
+    m.put(PARTY_MENU + 10, b"\xff\10")
+    ui = read_menu_family(m.read, PARTY_CALLBACK, party_menu_message=True)
+    assert ui.ready is None and ui.diagnostic == "Party cursor has no selected slot"
+
+
+def test_cursor_labels_egg_without_exposing_underlying_species(monkeypatch):
+    from dataclasses import replace
+    import pokebench_env.game_state as reader
+
+    m, _ = fixture(8367)
+    party = corrected(m).party
+    monkeypatch.setattr(reader, "_party", lambda *a, **k: (replace(party[0], is_egg=True),))
+    ui = corrected(m).active_ui
+    assert ui.details["cursor_species"] == "EGG"
+    assert "MUDKIP" not in ui.selected

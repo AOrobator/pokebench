@@ -547,12 +547,13 @@ def read_game_state(
             mon = party[cursor]
             details.update({"cursor_party_index": cursor, "cursor_party_number": cursor + 1})
             if mon.species is not None and mon.diagnostic is None:
-                details["cursor_species"] = mon.species
+                species = "EGG" if mon.is_egg else mon.species
+                details["cursor_species"] = species
                 details["cursor_fainted"] = mon.hp == 0 if mon.hp is not None else None
                 if active_ui.phase == "party_menu":
                     suffix = " (fainted)" if mon.hp == 0 else ""
                     active_ui = replace(
-                        active_ui, selected=f"{active_ui.selected}: {mon.species}{suffix}"
+                        active_ui, selected=f"{active_ui.selected}: {species}{suffix}"
                     )
             active_ui = replace(active_ui, details=details)
     resources = read_resources(read, save1, save2)

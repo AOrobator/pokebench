@@ -321,7 +321,7 @@ def read_menu_family(
                 0x081B82D5: "party_switch_item_from_bag_confirmation",
             }
             # readout-truth-v1: slot 7 is the Cancel button (B or Cancel sets it before closing).
-            party_slots = range(8) if truth else range(7)
+            party_slots = range(8) if truth or party_menu_message else range(7)
             confirmations = [task for task in tasks if task[1] in confirmation_phases]
             if confirmations:
                 if len(confirmations) != 1 or slot not in party_slots:
@@ -480,12 +480,14 @@ def read_menu_family(
             else:
                 # PARTY_ACTION_SWITCH=8, SOFTBOILED=10 own the second cursor.
                 selected_slot = second if action in (8, 10) else slot
+                if party_menu_message and selected_slot not in range(8):
+                    raise ValueError("Party cursor has no selected slot")
                 details["selected_index"] = selected_slot
                 selected = (
                     {PARTY_CONFIRM: "CONFIRM", PARTY_CANCEL: "CANCEL"}.get(
                         selected_slot, f"PARTY SLOT {selected_slot + 1}"
                     )
-                    if truth
+                    if truth or party_menu_message
                     else "CANCEL"
                     if selected_slot == 6
                     else f"PARTY SLOT {selected_slot + 1}"

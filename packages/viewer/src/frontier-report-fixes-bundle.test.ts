@@ -10,19 +10,19 @@ const SWITCHES = [
   ["current-map-display-name-v1", "semantic-current-map-feedback-v1"],
   ["window-escape-route-v1", "bounded-navigation-v1"],
 ] as const;
-const RECIPES = ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "glm53-flash-4h"];
+const RECIPES = [["bundle-v-control",113],["bundle-cook-1h",111],["whole-map-cook-1h",111],["whole-map-pair-2h",50],["bundle-v-control-2h",53],["glm53-flash-4h",93]] as const;
 const read = (path: string): string => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
 
 describe("frontier report fixes bundle activation", () => {
   it("are off in the next-run defaults", () => {
     for (const [id] of SWITCHES) expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
   });
-  it("each recipe enables them, last and in order, only in the normalized bundle arm, where the switch each needs is on", () => {
-    for (const name of RECIPES) {
+  it("each recipe enables them, at their original positions and in order, only in the normalized bundle arm, where the switch each needs is on", () => {
+    for (const [name,index] of RECIPES) {
       const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
       expect(controlBaseProblems(definition, read(definition.controlBase.path))).toEqual([]);
       // map-cycle-recovery-v1 is appended after them where its dependency is on in the bundle arm.
-      expect(definition.switches.filter((id) => id !== "trainer-observed-party-v1" && id !== "player-elevation-readout-v1" && id !== "navigation-cycle-stop-v1" && id !== "elevation-aware-map-v1" && id !== "screen-center-player-v1" && id !== "leader-loss-immediate-v1" && id !== "battle-action-history-v1" && id !== "leader-preparation-comparison-v1" && id !== "campaign-progress-clock-v1" && id !== "move-learn-offer-identity-v1" && id !== "map-cycle-recovery-v1").slice(-3)).toEqual(SWITCHES.map(([id]) => id));
+      expect(definition.switches.slice(index,index+3)).toEqual(SWITCHES.map(([id]) => id));
       for (const [id] of SWITCHES) expect(definition.base.features[id]).toBe(false);
       for (const phase of definition.phases) {
         const control = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")));

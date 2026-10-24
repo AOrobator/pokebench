@@ -5,7 +5,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "typebox";
 import { expect, it } from "vitest";
 import { contextTools, playGameTools } from "./play-wiring.js";
-import { featuresOf, type FeatureSet } from "./features.js";
+import { featuresOf, dependencyProblems, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, jitTools } from "./play-config.js";
 import { checkEvent, type BodyOf, type RunEvent } from "./events.js";
@@ -104,16 +104,34 @@ it("reuses the native owner to retire Norman's first-gym request while retaining
     const native = fixture.events.map(checkEvent), s = setup(true, []);
     s.send(native.filter(e => e.seq <= 7561));
     const ledger = must(s.context.instructionGoals).ledger;
-    ledger.apply({ reviewed: [{ episode: 7561, interpretation: "Two separate requests: first gym and future four-badge return" }], updates: [{ id: "gym", title: "Challenge Rustboro gym", sources: [{ episode: 7561, page: 0 }], parent: null, status: "active", reason: "Dad asked", completion: "Gym complete" }, { id: "return", title: "Return with four badges", sources: [{ episode: 7561, page: 3 }], parent: null, status: "deferred", reason: "Later request", completion: "Four badges and return" }] });
+    ledger.apply({ reviewed: [{ episode: 7561, interpretation: "Two separate requests: first gym and future four-badge return" }], updates: [{ id: "gym", native_source_completion:true, title: "Challenge Rustboro gym", sources: [{ episode: 7561, page: 0 }], parent: null, status: "active", reason: "Dad asked", completion: "Gym complete" }, { id: "return", title: "Return with four badges", sources: [{ episode: 7561, page: 3 }], parent: null, status: "deferred", reason: "Later request", completion: "Four badges and return" }] });
     expect(ledger.archive(undefined, "gym")).not.toContain("native_verified");
     s.send(native.filter(e => e.seq > 7561));
     expect(ledger.archive(undefined, "gym")).toContain('"verification":"native_verified"');
     expect(ledger.archive(undefined, "return")).toContain('"status":"deferred"');
+    const original=must(native.find(e=>e.type==="dialogue_auto_advance")),result=must(native.find(e=>e.seq===7561));
+    if(original.type!=="dialogue_auto_advance")throw new Error("Missing source dialogue");
+    s.send([checkEvent({...original,seq:90000,tool_call_id:"reissued",pages:original.pages.map(page=>({...page,state_seq:34806}))}),checkEvent({...result,seq:90001,id:"reissued",state_seq:34806})]);
+    ledger.apply({reviewed:[{episode:90001,interpretation:"A renewed instruction, after the original task completed"}],updates:[{id:"gym-again",native_source_completion:true,title:"New gym request",sources:[{episode:90001,page:0}],parent:null,status:"active",reason:"Newly issued request",completion:"This renewed request is satisfied"}]});
+    expect(ledger.archive(undefined,"gym-again")).toContain('"status":"active"');
 });
 it("does not commit in-memory review or send input when durable recording fails",async()=>{
  const s=setup(),ledger=must(s.context.instructionGoals).ledger,before=ledger.text();let actions=0;
- s.record.recordLedgerContext=()=>{throw new Error("storage failure");};
+ const originalRecord=s.record.recordLedgerContext;s.record.recordLedgerContext=()=>{throw new Error("storage failure");};
  const action:AgentTool={name:"press",label:"Press",description:"Press",parameters:Type.Object({}),execute:()=>{actions++;return Promise.resolve({content:[],details:undefined});}};
  const wrapped=must(withInstructionGoalReview([action],s.context.instructionGoals??null)[0]);
- await expect(wrapped.execute("failed-record",{goal_review:review})).rejects.toThrow("storage failure");expect(actions).toBe(0);expect(ledger.text()).toBe(before);
+ await expect(wrapped.execute("failed-record",{goal_review:review})).rejects.toThrow("storage failure");expect(actions).toBe(0);expect(ledger.text()).toBe(before);s.record.recordLedgerContext=originalRecord;await wrapped.execute("failed-record",{goal_review:review});expect(actions).toBe(1);
 });
+it("records dialogue triggered by menu confirmation through the ordinary checked-press wrapper",async()=>{
+ const s=setup(false),said="Please select the POKéNAV.",base=state;let current=state,seq=80000;const presses:string[]=[],transcripts:BodyOf<"dialogue_auto_advance">[]=[];
+ const see=()=>Promise.resolve({content:[{type:"text" as const,text:"fresh observation"}],details:{state:current}});
+ const run=(buttons:readonly string[])=>{for(const b of buttons){presses.push(b);current=b==="A"?{...base,active_ui:null,world_context:{objects:base.world_context?.objects??[],triggers:[],dialogue:said,message:{phase:"button_wait",cursor:said.length,ready:true,identity:"a".repeat(64)}}}:base;}return see();};
+ const observe:AgentTool={name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:()=>see()};
+ const press:import("./game-tools.js").CheckedPressTool={name:"press",label:"Press",description:"Press",parameters:Type.Object({buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT"]),{minItems:1,maxItems:8}),walking:Type.Optional(Type.Boolean())}),execute:(_id,args)=>run(args.buttons),executeChecked:(_id,args,check)=>{check(current);return run(args.buttons);}};
+ const recorder={...s.record,recordState:()=>({seq:seq++,turn:1}),recordDialogueAutoAdvance:(b:Omit<BodyOf<"dialogue_auto_advance">,"type"|"turn">)=>{transcripts.push({type:"dialogue_auto_advance",turn:1,...b});return {seq:seq++,turn:1};},lowHpTrainerWarning:()=>{},peopleIdCard:()=>{},destinationCitation:()=>{},unfinishedActivity:()=>{}};
+ const tools=playGameTools([observe,press],{...features(false,true),"dialogue-auto-advance-v1":true,"field-dialogue-phase-v1":true},{read:()=>Promise.resolve(current)},recorder);
+ await must(tools.find(t=>t.name==="select_menu_option")).execute("menu-choice",{phase:"field_multichoice",menu_id:86,option:"BAG"});
+ expect(presses).toEqual(["A","B"]);expect(transcripts).toHaveLength(1);expect(transcripts[0]?.pages.map(p=>p.text)).toEqual([said]);
+});
+
+it("rejects combining the model ledger with the legacy catalog objective owner",()=>{expect(dependencyProblems({...features(true),"objective-tracking-v1":true})).toContain("instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)");});

@@ -2042,6 +2042,9 @@
                         "minLength": 1,
                         "maxLength": 1000
                       },
+                      "native_source_completion": {
+                        "type": "boolean"
+                      },
                       "evidence": {
                         "type": "array",
                         "items": {

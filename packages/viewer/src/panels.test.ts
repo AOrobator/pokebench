@@ -1719,5 +1719,5 @@ it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("links %s to its e
 });
 it("keeps a recorded goal transaction visible as a ledger event with raw evidence",()=>{
  const log=bare();const e=log.add(100,{type:"ledger_context",turn:1,text:'INSTRUCTION GOALS — "Select POKéNAV"; verification model_interpretation',evidence:[12],instruction_goals:{call_id:"review",review:{reviewed:[{episode:12,interpretation:"Current request"}],updates:[]}}});
- expect(eventText(e)).toContain("Instruction ledger delivered");
+ expect(eventText(e)).toContain("Instruction goal review recorded");expect(inspector(e)).toContain("instruction_goals");
 });

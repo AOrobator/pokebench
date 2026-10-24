@@ -670,6 +670,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
   }),
+  ...(features["instruction-goal-ledger-v1"]&&features["objective-tracking-v1"]?["instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"]:[]),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
   ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : []),
   ...(features["deterministic-exploration-v1"] && !semanticNavigation(features) ? ["deterministic-exploration-v1 needs semantic-navigation-v1 or semantic-navigation-v2"] : [])];

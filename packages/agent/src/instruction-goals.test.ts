@@ -82,7 +82,7 @@ it("repeated dialogue resurfaces for interpretation without erasing unfinished g
     const result = must(events.find(e => e.seq === 39462));
     g.observe({ ...dialogue, seq: 51000, tool_call_id: "repeat" } as RunEvent);
     g.observe({ ...result, seq: 51001, id: "repeat" } as RunEvent);
-    expect(g.pending()).toEqual([39462]);
+    expect(g.pending()).toEqual([51001]);
     expect(g.archive(undefined, "call")).toContain('"status":"active"');
     expect(() => { g.apply({ reviewed: [{ episode: 39462, interpretation: "same" }, { episode: 39462, interpretation: "same" }], updates: [] }); }).toThrow();
 });
@@ -92,7 +92,7 @@ it("uses the shared native-proof interface only after a paired successful observ
     const g = new InstructionGoals({ observe: () => { }, tasks: pages => new Map(pages.map(p => [p, { requires: ["existing task"] }])), completed: (_task, s) => done && s !== undefined ? "existing task complete" : null });
     for (const e of events.filter(e => e.seq <= 39462))
         g.observe(e);
-    g.apply(review);
+    g.apply({...review,updates:review.updates.map(goal=>({...goal,native_source_completion:true}))});
     expect(g.text()).not.toContain("native_verified");
     done = true;
     g.observe({ ...state, seq: 60000 });
@@ -134,4 +134,15 @@ it("injects a small unfinished-goal bound and rejects overflow atomically", () =
     expect(g.text()).toBe(before);
     g.apply({ reviewed: [], updates: [] }, "same-call");
     g.apply({ bad: "ignored replay" }, "same-call");
+});
+it("bounds archive listing without deleting full quotes or goal history",()=>{
+ const g=fresh();g.apply(review);const first=JSON.parse(g.archive(undefined,undefined,0,1)) as {episode_count:number;episodes:unknown[];goals:unknown[];more_episodes:boolean};
+ expect(first.episode_count).toBe(2);expect(first.episodes).toHaveLength(1);expect(first.goals).toHaveLength(1);expect(first.more_episodes).toBe(true);expect(g.archive(39462)).toContain("Please select the POKéNAV.");
+ expect(()=>g.archive(39462,"call")).toThrow();expect(()=>g.archive(undefined,undefined,-1,1)).toThrow();expect(()=>g.archive(undefined,undefined,0,101)).toThrow();
+});
+it("never auto-closes arbitrary model goals from a cited native task without explicit binding",()=>{
+ let done=false;const g=new InstructionGoals({observe:()=>{},tasks:pages=>new Map(pages.map(p=>[p,{requires:["source task"]}])),completed:()=>done?"source task complete":null});
+ for(const e of events.filter(e=>e.seq<=39462))g.observe(e);g.apply(review);done=true;
+ const state=must(events.find(e=>e.type==="state"&&"started"in e)),result=must(events.find(e=>e.seq===39462));g.observe(checkEvent({...state,seq:61000}));g.observe(checkEvent({...result,seq:61001,id:"native-without-binding",state_seq:61000}));
+ expect(g.archive(undefined,"select")).toContain('"status":"active"');expect(g.text()).not.toContain("native_verified");
 });

@@ -262,3 +262,10 @@ it("labels successive native keys separately instead of claiming a simultaneous 
   expect(svg).toContain('aria-hidden="true">↑</span>');
   expect(svg).not.toContain('A+↑');
 });
+
+it("keeps goal review transactions out of the closed timeline while ordinary context delivery keeps its existing mark",()=>{
+ const log=new Log();log.add(0,START);const before=lanesSvg(view(log),BASE_MS+1000);
+ log.add(100,{type:"ledger_context",turn:1,text:"Review committed",evidence:[],instruction_goals:{call_id:"review",review:{reviewed:[],updates:[]}}});
+ expect(lanesSvg(view(log),BASE_MS+1000)).toBe(before);
+ log.add(200,{type:"ledger_context",turn:1,text:"INSTRUCTION GOALS delivered",evidence:[1]});expect(lanesSvg(view(log),BASE_MS+1000)).toContain("Instruction ledger delivered · 1 references");
+});

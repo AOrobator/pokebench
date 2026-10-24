@@ -216,7 +216,7 @@ function describe(entry: Entry): TraceStep {
       return { ...base(entry), category: entry.category, iconHtml: icon, tone, titleHtml: esc(first.kind.replace(/_/g, " ")), summaryHtml: esc(JSON.stringify(first.details)), desc: `#${String(first.seq)} · frame ${String(first.frame)} (first observed)`, status: isError(first) ? "error" : null, body: null };
     }
     default: {
-      const [icon, title] = RUN_LABEL[first.type] ?? ["EV", first.type];
+      const [icon, title] = first.type==="ledger_context"&&first.instruction_goals!==undefined?["MEM","Instruction goal review recorded"] as const:RUN_LABEL[first.type] ?? ["EV", first.type];
       const category = entry.category;
       const text = "text" in first && typeof first.text === "string" ? first.text : null;
       return {

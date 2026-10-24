@@ -7,12 +7,12 @@ export const InstructionGoalSchema=Type.Object({
  id:Type.String({minLength:1,maxLength:80,pattern:"^[a-zA-Z0-9_-]+$"}),title:text,
  sources:Type.Array(GoalSourceSchema,{minItems:1,maxItems:8}),parent:Type.Union([Type.String({minLength:1,maxLength:80}),Type.Null()]),
  status:Type.Enum(["open","active","deferred","blocked","reported_complete","superseded","abandoned"]),reason:text,completion:text,
- evidence:Type.Optional(refs),superseded_by:Type.Optional(Type.String({minLength:1,maxLength:80})),
+ native_source_completion:Type.Optional(Type.Boolean()),evidence:Type.Optional(refs),superseded_by:Type.Optional(Type.String({minLength:1,maxLength:80})),
 },closed);
 export const GoalReviewSchema=Type.Object({
  reviewed:Type.Array(Type.Object({episode:Type.Integer({minimum:0}),interpretation:text},closed),{maxItems:16}),
  updates:Type.Array(InstructionGoalSchema,{maxItems:16}),
 },closed);
-export const GoalArchiveArgs=Type.Object({episode:Type.Optional(Type.Integer({minimum:0})),goal:Type.Optional(Type.String({minLength:1,maxLength:80}))},closed);
+export const GoalArchiveArgs=Type.Object({episode:Type.Optional(Type.Integer({minimum:0})),goal:Type.Optional(Type.String({minLength:1,maxLength:80})),offset:Type.Optional(Type.Integer({minimum:0})),limit:Type.Optional(Type.Integer({minimum:1,maximum:100}))},closed);
 export type InstructionGoal=Static<typeof InstructionGoalSchema>;
 export type GoalReview=Static<typeof GoalReviewSchema>;

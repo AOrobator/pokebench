@@ -532,3 +532,8 @@ describe("trainer-sight-check-v1 in Activity History", () => {
     expect(eventText(must(log.events.at(-1)))).toBe("Trainer sight check (navigate_to to (5,2), 23 route tiles) · not checked: unknown");
   });
 });
+
+it("distinguishes a durable model goal review from a delivered context in Activity History",()=>{
+ const log=new Log();log.add(0,START);log.add(100,{type:"ledger_context",turn:1,text:"Goal review committed: model interpretation",evidence:[],instruction_goals:{call_id:"review",review:{reviewed:[],updates:[]}}});log.add(200,{type:"ledger_context",turn:1,text:"INSTRUCTION GOALS",evidence:[]});
+ const html=steps(build(log.events)).map(step=>traceRow(step)).join("");expect(html).toContain("Instruction goal review recorded");expect(html).toContain("Instruction ledger delivered");
+});

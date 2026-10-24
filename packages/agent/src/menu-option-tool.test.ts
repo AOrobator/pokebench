@@ -95,3 +95,10 @@ it.each(["diagnostic", "index", "label", "id", "options"])("does not plan from m
     const broken = { ...s, active_ui: { ...ui, ...(kind === "diagnostic" ? { diagnostic: "unsupported" } : {}), ...(kind === "label" ? { selected: "wrong" } : {}), details: { ...ui.details, ...(kind === "index" ? { selected_index: 99 } : {}), ...(kind === "id" ? { menu_id: null } : {}), ...(kind === "options" ? { options: [] } : {}) } } };
     expect(menuOptionView(broken)).toBeNull();
 });
+it("recovers from the actual recorded trainer-row overshoot with UP,A",async()=>{
+ let current=snapshot(must(fixture.events.map(checkEvent).find(e=>e.seq===40378)));
+ const target=snapshot(must(fixture.events.map(checkEvent).find(e=>e.seq===39570))),buttons:Button[]=[];
+ expect(current.active_ui?.details?.["selected_index"]).toBe(4);expect(target.active_ui?.selected).toBe("POKéNAV");
+ const tool=menuOptionTool({observe:()=>Promise.resolve(result(current)),press:(_id,b,check)=>{check(current);buttons.push(b);current=b==="UP"?target:{...target,active_ui:null};return Promise.resolve(result(current));}});
+ await tool.execute("recorded-recovery",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual(["UP","A"]);
+});

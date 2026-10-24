@@ -188,7 +188,8 @@ export class AutoTalk {
     if(p===null||!free(s))return {state:s,facing:null};
     if(p.x===side.x&&p.y===side.y)return {state:s,facing:side.facing};
     walked();
-    const args:Record<string,unknown>={x:side.x,y:side.y,map_id:target.map_id,...(this.features["cited-destination-v1"]?{because:"the fixed-point breaker's auto-talk"}:{})};
+    const because=this.features["citation-evidence-v1"]?{quote:"the fixed-point breaker's auto-talk"}:"the fixed-point breaker's auto-talk";
+    const args:Record<string,unknown>={x:side.x,y:side.y,map_id:target.map_id,...(this.features["cited-destination-v1"]?{because}:{})};
     await navigate.execute(this.id("walk"),args,signal);
     const next=await this.state.read(signal);
     const moved=next.position!==null&&(next.position.x!==p.x||next.position.y!==p.y);

@@ -85,7 +85,7 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
   expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
   expect(SWITCHABLE_FEATURES.at(167)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(167)?.id).toBe(ID);
-  expect(SERVER_FEATURES.at(-24)).toBe(ID);
+  expect(SERVER_FEATURES.at(58)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-46)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

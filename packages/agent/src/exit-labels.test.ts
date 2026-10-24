@@ -20,7 +20,7 @@ describe("exit-labels-v2 registry",()=>{
  it("is recorded last and hands the game server its own switch",()=>{
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-59)).toBe(ID);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
-  expect(SERVER_FEATURES.at(-30)).toBe(ID);
+  expect(SERVER_FEATURES.at(52)).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
  });

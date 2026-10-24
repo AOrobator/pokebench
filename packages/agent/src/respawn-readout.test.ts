@@ -24,7 +24,7 @@ describe("respawn-readout-v1 registry",()=>{
  });
  it("is appended last, so recorded runs keep their switch order",()=>{
   expect(SWITCHABLE_FEATURES.at(157)).toBe(ID);
-  expect(SERVER_FEATURES.at(-28)).toBe(ID);
+  expect(SERVER_FEATURES.at(54)).toBe(ID);
   const all=playHarnessFeatures({...ALL_ON,[ID]:true},null);
   expect(all.at(-1)).toBe(ID);
  });

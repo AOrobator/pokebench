@@ -19,7 +19,7 @@ describe("registry",()=>{
   expect(FEATURES.filter(f=>f.switchable).at(200)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-17)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
-  expect(SERVER_FEATURES.at(-13)).toBe(ID);
+  expect(SERVER_FEATURES.at(69)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"coordinate-script-conditions-v1",switchable:true,title:"MAP-WIDE TRIGGERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(LEGACY_ALL_ON[ID]).toBe(false);

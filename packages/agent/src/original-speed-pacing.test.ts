@@ -21,7 +21,7 @@ it("appends the independent speed policy without reordering recorded feature ide
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-32)).toBe(ID);
+  expect(SERVER_FEATURES.at(50)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {

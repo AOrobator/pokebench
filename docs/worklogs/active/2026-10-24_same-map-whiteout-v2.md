@@ -14,7 +14,8 @@ Retained GLM 2026-10-22T20-40-54_glm53-mac_0d5d, source pin 5bec91dcd. Fixture c
 ## Steps and receipts
 - [x] RED commit: native-shape fixture + negative cases + production factory delivery
 - [x] GREEN: implementation, registration, explainer, adversarial wiring deletion/restoration
-- [ ] Gates, frozen cloud reviews and synthesis
+- [x] Integrated normal gates
+- [ ] Frozen cloud reviews and synthesis
 - [ ] Landing board ff-only landing, coordinated viewer proof
 
 ## Coordination
@@ -72,3 +73,10 @@ Integrated source: after sprite source/evidence final release, preserved backup 
 Focused lint before next integrated full window found eight forbidden non-null assertions in new tests. Replaced with checked fixture access/required battle-party evidence; production unchanged. COMMIT: test: validate whiteout fixture access explicitly (SHA in git log).
 
 The first focused lint rerun still found one egg-fixture non-null assertion (not claimed green); changed it to the already checked member. COMMIT: test: use checked egg fixture member (SHA in git log).
+
+## Integrated full gates (2026-10-24)
+Normal full chain on clean integrated 3d42ec5d4b3a57ef030c6712bdbc83b90df037ec / actual base b8911c90e26e6acc399827e218c6ac97cc2d4e36: just build/test/coverage/lint/verify-vendor all PASS, 314.6s, CPU released. No worker caps, skips, threshold changes or retries. Logs runs/item2-proof/gates-20261024-104905/. Tests4196agent,1807viewer,4068Python,3protected trainer widths. Coverage L/B/F: agent99.14/92.73/97.52; viewer98.04/91.67/95.18; Python97.36/93.28/100.00. Native binding imported from private venv read-only package link; decoder import and sys.prefix both owned checkout. Documented read-only card-art prerequisite fixed the earlier environment failure; no protected baseline/source edits in own diff.
+Built3d42 headless replay repeated: exact served main/app/panels/explainer bytes hash-match built/source files (runs/item2-proof/viewer-proof.json). Card→explainer click, recorded trace note and expanded Raw event JSON show latest whiteout turn754. Latest screenshots inspected. No page errors; scratch browser/server closed. This is offline proof, not activation.
+Current actual Grok quota failure independently read: /private/tmp/drought-r1-grok.stderr, mtime2026-10-24T14:44:31.104889Z, exit1, stdout/review empty; runner drought-cloud-review.py selects cursor-grok-4.5-high. Exact failure: ActionRequiredError: Increase limits for faster responses You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue. Copied immutable failure receipt into runs/item2-review/. Catalog discovery success was not treated as review availability. Apply verified standing human waiver: Claude + normal independent GPT5.6Sol + fresh distinct Astra cloud fallback; reduced vendor diversity, no Grok LGTM claimed.
+Review scope unchanged: no new production domain, tools, prompts, event schema, timeline, activation, run termination or runtime changes. All principles PB1–PB13 scored above with zero FAIL; PB13 review/landing remain pending. This commit only records completed evidence after gated source; source/test bytes unchanged.
+COMMIT: docs: record integrated whiteout gates and review boundary (SHA in git log).

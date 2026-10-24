@@ -222,7 +222,7 @@
    "drought-battle-heal-hold-v1": false,
    "gym-evidence-v1": false,
    "milestone-instruction-memory-v1": false,
-   "trigger-navigation-boundary-v1": false,
+   "trigger-navigation-boundary-v1": true,
    "birch-intro-pages-v1": false,
    "tool-prompt-docs-v1": true,
    "field-ownership-feedback-v1": true,
@@ -357,7 +357,6 @@
   "drought-battle-heal-hold-v1",
   "gym-evidence-v1",
   "milestone-instruction-memory-v1",
-  "trigger-navigation-boundary-v1",
   "birch-intro-pages-v1",
   "move-learn-loop-fingerprint-v1",
   "stale-plan-fact-v1",
@@ -439,7 +438,8 @@
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
   "move-learn-goal-reminder-v1",
-  "field-move-gates-v1"
+  "field-move-gates-v1",
+  "trigger-navigation-boundary-v1"
  ],
  "phases": [
   {

@@ -9,3 +9,5 @@ Production armFeatures, armFeatureBits and armPreset must return true for both a
 ## Session log
 - Created isolated branch from ebed5a7f3; read active pointer, repo rules and landing/review/close-the-loop skills. Coordinator notified before review.
 - RED: all eight production-recipe tests fail because onInBoth omits the switch; initial import setup required building the agent package.
+- Promoted exactly the eight existing treatment recipes to base true/onInBoth; no other feature values or schedule settings changed.
+- GREEN: focused recipe and fixed-design suite 50/50 passed. RED commit fceed27bb. Full build/test/coverage/lint/vendor gates running; no active run touched.

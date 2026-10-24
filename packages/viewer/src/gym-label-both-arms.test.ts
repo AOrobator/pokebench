@@ -24,5 +24,5 @@ for (const name of ["bundle-v-control", "bundle-v-control-2h"]) {
 }
 it("keeps ordinary next-run and omitted preset gym defaults off", () => {
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
- expect(presetFeatures(parsePlayPreset({version:1,id:"gym-default-check",target:null,limits:{maxTurns:1,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:4096},flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false},features:{}}))[ID]).toBe(false);
+ expect(presetFeatures(parsePlayPreset({version:1,id:"gym-default-check",target:null,limits:{maxTurns:1,maxWallMs:1000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:4096},flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}}))[ID]).toBe(false);
 });

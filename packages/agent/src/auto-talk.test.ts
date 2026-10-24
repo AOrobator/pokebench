@@ -158,7 +158,7 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
 });
 
 
-it.each([[false,"fixed_point"],[true,"fixed_point"],[false,"text_only"],[true,"text_only"]] as const)("auto-talk ON with structured citations=%s trigger=%s uses the real cited wrapper without rejecting the internal walk",async(enabled,trigger)=>{
+it.each([[false,"fixed_point"],[true,"fixed_point"],[false,"no_tool_call"],[true,"no_tool_call"]] as const)("auto-talk ON with structured citations=%s trigger=%s uses the real cited wrapper without rejecting the internal walk",async(enabled,trigger)=>{
  const features={...ON,"bounded-navigation-v1":true,"cited-destination-v1":true,"duplicate-turn-collapse-v1":true,"citation-evidence-v1":enabled};
  const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3)],{},features,true);
  if(trigger==="fixed_point")r.loop(AUTO_TALK_TURNS);else r.silent(AUTO_TALK_REPLIES);

@@ -455,7 +455,7 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
   expect(Object.keys(normalizeFeatures(old)).slice(-187,-181)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-186)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-187)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 

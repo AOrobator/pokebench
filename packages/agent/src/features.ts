@@ -265,6 +265,7 @@ export const SWITCHABLE_FEATURES = [
 
   "party-menu-message-v1",
   "drought-progress-facts-v1",
+  "citation-evidence-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -650,6 +651,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("player-elevation-readout-v1", "observation", "PLAYER ELEVATION", "live-player-position-v1", "Default off; bundle only. Adds verified current player elevation to the Position line. When the known tile at your own coordinates is elevation 0 or 15, states that the tile accepts any elevation. Uses current native object elevation, not the previous elevation or another sprite. No location interpretation or route advice. Off: the Position line and all readout bytes are unchanged."),
   on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
   on("drought-progress-facts-v1", "guard", "FACTUAL DROUGHT BRIEFING", "stall-briefing-v1", "Default off. Holds this stall briefing’s due drought feedback while a battle is on screen, then restarts its clock. Other drought notes state the recorded interval and retain observed exits and dialogue without claiming play is failing or requiring a different strategy. Use the existing campaign-progress-clock-v1 to credit earned post-Rustboro milestones. Off: previous drought timing and wording are unchanged."),
+  on("citation-evidence-v1", "guidance", "QUOTED DESTINATION EVIDENCE", "cited-destination-v1", "Default off; bundle only. navigate_to takes because: {quote, rationale?}. Only quote is checked verbatim against non-error tool results already shown this run; existing case, curly-quote and whitespace normalization applies. Rationale stays unverified and neither field reaches navigation. Every result states whether the quotation was found, missing or too short, even with input-cuts-v1. A found quotation verifies words only, never speaker identity, rationale or destination. The existing destination_citation event records quote as because; original tool_call arguments retain rationale. Off: the prior string because schema, prompt, citation feedback and execution remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -980,6 +982,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
 
     ...when("party-menu-message-v1"),
     ...when("drought-progress-facts-v1"),
+    ...when("citation-evidence-v1"),
   ];
 }
 

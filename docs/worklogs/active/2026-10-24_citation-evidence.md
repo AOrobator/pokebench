@@ -8,9 +8,9 @@ The operator: "lets implement a fix, should be a separate switch, only on in the
 
 ## One milestone
 - [x] RED: six regression/contract tests fail against incumbent (missing registry, structured schema, prompt, feedback, bundle activation), /private/tmp/citation-red.log.
-- [ ] GREEN implementation, production wiring and pinned-pi delivery; adversarial wiring deletion/restoration.
-- [ ] Default-OFF registry, presets, viewer draft; bundle-only fixed definitions.
-- [ ] Explainer and existing Activity History/raw-event/replay consumers verified.
+- [x] GREEN implementation and production pinned-pi delivery. Four performed mutations (production switch wiring, quote-vs-rationale ownership, malformed-object guard, feedback delivery) each failed the targeted test; restored 8/8 tests pass. Receipts: runs/citation-evidence/receipts/*.log.
+- [x] Default-OFF registry, presets, viewer draft. Bundle-only activation in bundle-v-control, bundle-v-control-2h, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h and glm53-flash-4h. Base/control OFF; historical definitions unchanged.
+- [x] Tracked themed explainer, existing card allowlist and exact-route tests. Headless Chromium proof on isolated synthetic pinned-pi recording: ON card, actual link click, trace citation row and raw inspector. No page errors. Screenshots at 1280/1440/375 inspected; phone diagram scrolls within its card. Served HTML/app/CSS/explainer bytes match local artifacts. Receipts: runs/citation-evidence/browser-receipt.json, served-bytes.json; screenshots at canonical runs/mockups/citation-evidence/shots/. No native gameplay proof claimed.
 - [ ] Tests, coverage >=90%, lint, build, vendor checks.
 - [ ] Principles self-review and independent cloud review.
 
@@ -19,3 +19,6 @@ Correctness repair; factual evidence already reached at turn 314, therefore offl
 
 ## Session log
 - Isolated branch codex/citation-evidence from 7133032cc. Claude notified. Loaded feature-switch, feature-explainer, agent-observability, tool-prompt-sync, viewer-e2e, close-the-loop, talk-to-claude, multi-model-review workflows.
+
+- RED commit cc260485c. Initial full gate exposed omitted optional-schema filter and legacy registry-list bookkeeping, corrected without changing old prompt hashes. Initial isolated Python environment lacked ROM configuration and native binding; independent environment now installed, main editable package path verified restored, native binding copied into the isolated environment, and canonical .env linked read-only. Original failed logs retained. One loaded full TS test run hit existing serial-comparison child-startup timing (empty stdout within its short cap); no timing, skip or retry policy changed. Subsequent full agent coverage run passed 4236 tests.
+- Build passed; vendor pin/clean check passed. TypeScript coverage: agent lines 99.15%, branches 92.74%, functions 97.56%; viewer lines 98.04%, branches 91.68%, functions 95.18% (1840 tests). Final Python tests/coverage and complete lint finishing before review. Normal board order; coordinator declined landing hold, and citation-evidence is not a launch-gate item.

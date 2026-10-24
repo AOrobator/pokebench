@@ -23,7 +23,7 @@ const textOf=(result:Awaited<ReturnType<AgentTool["execute"]>>)=>result.content.
 function factory(enabled:boolean,production=true){
  const subs:((e:RunEvent)=>void)[]=[],calls:unknown[]=[];
  const records:{facts:DestinationCitationFacts;text:string|null}[]=[];
- const recorder={subscribe:(sub:(e:RunEvent)=>void)=>{subs.push(sub);},destinationCitation:(facts:DestinationCitationFacts,text:string|null)=>{records.push({facts,text});}};
+ const recorder={recordState:()=>{throw Error("unused");},recordDialogueAutoAdvance:()=>{throw Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,storyBattleWarning:()=>undefined,healBeforeTrainersWarning:()=>undefined,unfinishedActivity:()=>undefined,subscribe:(sub:(e:RunEvent)=>void)=>{subs.push(sub);},destinationCitation:(facts:DestinationCitationFacts,text:string|null)=>{records.push({facts,text});}};
  const nav:AgentTool={name:"navigate_to",label:"Walk",description:"Walk.",parameters:Type.Object({x:Type.Number(),y:Type.Number(),map_id:Type.Array(Type.Number())},{additionalProperties:false}),execute:(_id,params)=>{calls.push(params);return Promise.resolve({content:[{type:"text",text:"Navigation result"}],details:undefined});}};
  const features={...OFF,"cited-destination-v1":true,"input-cuts-v1":true,[ID]:enabled};
  // Supplied navigation seam isolates this wrapper; real bounded navigation remains independently covered.
@@ -46,7 +46,7 @@ it("production factory matches the recorded newline quote independently of ratio
  expect(Value.Check(h.tool.parameters,args)).toBe(true);
  const result=await h.tool.execute("citation",args);
  expect(h.records).toEqual([{facts:{tool_call_id:"citation",because:quote,verdict:"found",found_turn:314,...goal},text:"Destination citation: quotation found in observations from turn 314. This checks the quoted words only; speaker identity, rationale and destination are not verified."}]);
- expect(textOf(result)).toBe(`${h.records[0]?.text}\nNavigation result`);
+ expect(textOf(result)).toBe(`${h.records[0]?.text??"missing citation feedback"}\nNavigation result`);
  expect(h.calls).toEqual([goal]);
  expect(textOf(result)).not.toContain(rationale);
 });
@@ -82,8 +82,7 @@ it("requires a structured quote, allows optional rationale and rejects malformed
  const h=factory(true);
  for(const because of [quote,{},null,{quote:7},{quote,rationale:7},{quote,extra:"unverified"}]){
   expect(Value.Check(h.tool.parameters,{...goal,because})).toBe(false);
-  const result=await h.tool.execute("invalid",{...goal,because});
-  expect(result.isError).toBe(true);
+  await expect(h.tool.execute("invalid",{...goal,because})).rejects.toThrow("No navigation was attempted.");
  }
  expect(h.calls).toEqual([]);expect(h.records).toEqual([]);
  expect(Value.Check(h.tool.parameters,{...goal,because:{quote}})).toBe(true);

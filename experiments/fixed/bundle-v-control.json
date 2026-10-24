@@ -22,6 +22,7 @@
    "maxTokens": 4096
   },
   "features": {
+   "citation-evidence-v1": false,
    "original-speed-pacing-v1": true,
    "battle-decision-ready-v1": true,
    "active-field-message-buffer-v1": true,
@@ -399,7 +400,8 @@
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
   "party-menu-message-v1",
-  "drought-progress-facts-v1"
+  "drought-progress-facts-v1",
+  "citation-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -22,6 +22,7 @@
    "maxTokens": 4096
   },
   "features": {
+   "citation-evidence-v1": false,
    "battle-decision-ready-v1": true,
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
@@ -388,7 +389,8 @@
   "trainer-observed-party-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
-  "leader-preparation-comparison-v1"
+  "leader-preparation-comparison-v1",
+  "citation-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

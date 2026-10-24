@@ -2128,7 +2128,7 @@ it("shows production navigation recovery warning, recovery and nonterminal brief
  log.add(6000,{type:"run_end",turn:15,reason:"budget",furthest_milestone:null,turns:15,wall_ms:6000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
  feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});app.tick(5000);
  expect(notices.map(n=>n.phase)).toEqual(["warning","recovered","warning","supervisor"]);
- for(const guard of guards){const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(guard.seq)}"]`));expect(row.textContent).toContain("NAVIGATION RECOVERY");row.click();expect(ui("inspector").textContent).toContain('"kind": "map_cycle"');expect(ui("inspector").querySelector('.raw-event pre')?.textContent).toBe(JSON.stringify(guard,null,2));}
+ for(const guard of guards){const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(guard.seq)}"]`));expect(row.textContent).toContain("NAVIGATION RECOVERY");row.click();expect(ui("inspector").textContent).toContain('"kind": "map_cycle"');expect(ui("inspector").querySelector('.raw-event pre')?.textContent).toBe(JSON.stringify({...guard,run:M4_ID},null,2));}
  const scrub=ui("scrub") as HTMLInputElement;scrub.value="0";scrub.dispatchEvent(new Event("input"));
  expect(ui("trace").textContent).not.toContain("NAVIGATION RECOVERY");
 });

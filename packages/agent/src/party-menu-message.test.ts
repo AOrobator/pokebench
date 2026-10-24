@@ -1,0 +1,20 @@
+import {expect,it} from "vitest";
+import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,playHarnessFeatures,serverFeatureEnv} from "./features.js";
+import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {playSystemPrompt,playTools} from "./play-config.js";
+const ID="party-menu-message-v1";
+it("registers a default OFF server treatment without changing tools or prompt",()=>{
+ const off=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
+ const on={...off,[ID]:true};
+ const {[ID]:omitted,...legacy}=off;
+ expect(omitted).toBe(false);
+ expect(normalizeFeatures(legacy)[ID]).toBe(false);
+ expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-4)?.id).toBe(ID);
+ expect(SERVER_FEATURES.at(-1)).toBe(ID);
+ expect(playHarnessFeatures(on,null)).toEqual([...playHarnessFeatures(off,null),ID]);
+ expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+ expect(serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
+ expect(playSystemPrompt(off,null)).toBe(playSystemPrompt(on,null));
+ expect(playTools(off)).toEqual(playTools(on));
+});

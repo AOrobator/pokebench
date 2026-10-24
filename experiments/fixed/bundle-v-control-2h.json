@@ -270,6 +270,7 @@
    "battle-action-history-v1": false,
    "leader-preparation-comparison-v1": false,
    "refusal-ledger-v1": false,
+   "party-menu-message-v1": false,
    "native-task-goal-retirement-v1": false,
    "instruction-goal-ledger-v1": false,
    "menu-option-tool-v1": false
@@ -344,6 +345,7 @@
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
+  "party-menu-message-v1",
   "native-task-goal-retirement-v1",
   "instruction-goal-ledger-v1",
   "menu-option-tool-v1"

@@ -180,7 +180,8 @@ SERVER_FEATURES = (
     "party-menu-message-v1",
     "interface-guidance-v1",
     "active-warp-exits-v1",
-    "available-exits-presentation-v1,bag-pocket-truth-v1",
+    "available-exits-presentation-v1",
+    "bag-pocket-truth-v1",
 )
 
 

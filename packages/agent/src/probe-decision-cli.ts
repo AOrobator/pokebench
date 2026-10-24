@@ -82,9 +82,10 @@ export async function probe(run: RecordedRun, args: ProbeArgs, ports: ProbePorts
   const recorded = recordedFeatures(run);
   // A flipped server switch re-renders the window's readouts in both arms, so they differ only by the switch.
   const rerender = args.switches.some((s) => serverSwitch(s.id));
-  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender);
+  const compositeReadouts = args.switches.length === 1 && args.switches[0]?.id === "party-menu-message-v1" ? "party-menu-message-v1" : null;
+  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender, compositeReadouts);
   const flipped = args.switches.length === 0 ? null : withSwitches(recorded, args.switches);
-  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender);
+  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender, compositeReadouts);
   const start = run.events.find((e) => e.type === "turn_start" && e.turn === args.turn);
   const size = start?.type === "turn_start" ? start.context : null;
   const draw = async (c: DecisionContext): Promise<Decision[]> => (sampler === null ? [] : await sample(c, args.samples, sampler));

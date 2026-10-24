@@ -52,7 +52,7 @@ function look(d:LoopDetector,minute:string):void {
 
 describe("clock-view-loop-v1",()=>{
  it("is registered second to last, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-139)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(117)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-23)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
   expect(featureInfo(ID).description).toContain(" Off: ");

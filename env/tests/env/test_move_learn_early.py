@@ -266,7 +266,7 @@ def test_a_failed_read_on_a_page_is_a_visible_harness_bug() -> None:
 
 
 def test_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-10] == EARLY_SWITCH
+    assert SERVER_FEATURES[72] == EARLY_SWITCH
     assert EARLY_SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
 

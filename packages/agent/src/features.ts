@@ -261,6 +261,7 @@ export const SWITCHABLE_FEATURES = [
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
+  "player-elevation-readout-v1",
   "native-task-goal-retirement-v1",
 
 ] as const;
@@ -645,6 +646,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
   on("refusal-ledger-v1", "guidance", "NAVIGATION REFUSAL HISTORY", "disproved-beliefs-v1", "Default off. Extends the belief ledger with whole recorded navigate_to and navigate_to_target route refusal lines, target, attempts and evidence references. Repeated matching reasons count together. Current observations take precedence; history does not prohibit retries or choose actions. Clears on map or story change, reaching the tile, semantic activation, or a new result with another reason. Off: existing disproved-beliefs ledger and model context unchanged."),
+  on("player-elevation-readout-v1", "observation", "PLAYER ELEVATION", "live-player-position-v1", "Default off; bundle only. Adds verified current player elevation to the Position line. When the known tile at your own coordinates is elevation 0 or 15, states that the tile accepts any elevation. Uses current native object elevation, not the previous elevation or another sprite. No location interpretation or route advice. Off: the Position line and all readout bytes are unchanged."),
   on("native-task-goal-retirement-v1", "observation", "NATIVE TASK GOAL RETIREMENT", null, "Default off; bundle only. Retires a source-verified active instruction when native task evidence was known unfinished at issuance and now proves completion. Reuses audited task rules; preserves historical and future dialogue. Unknown wording or evidence stays unchanged. Off: existing story goal and away guidance are unchanged."),
 ];
 
@@ -724,6 +726,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "elevation-aware-map-v1",
   "screen-center-player-v1",
   "blackout-transition-v1",
+  "player-elevation-readout-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -970,6 +973,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
     ...when("refusal-ledger-v1"),
+    ...when("player-elevation-readout-v1"),
     ...when("native-task-goal-retirement-v1"),
 
   ];

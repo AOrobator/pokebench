@@ -100,7 +100,7 @@ def test_the_readout_factory_honors_the_switch_and_keeps_off_bytes():
         player_elevation=3,
         running=RunningPermission(True, True, "test", avatar_flags=ON_FOOT),
     )
-    base = frozenset({"full-map-navigation-v1"})
+    base = frozenset({"full-map-navigation-v1", "player-elevation-readout-v1"})
     off = format_readout(s, adjacent_tiles=True, off=base | {SWITCH})
     on = format_readout(s, adjacent_tiles=True, off=base)
     assert "up (17,68) clear (.)" in off

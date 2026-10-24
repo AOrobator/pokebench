@@ -1,0 +1,53 @@
+# State-owned interface guidance
+
+## Problem Statement
+Control 0517 reached the scripted PokéNav tutorial at turn 1027, opened PokéNav at 1101, then repeatedly pressed B. The native forced-call handler rejects B, while the decoder says B returns. The scientist's delivered instruction falls outside named-character instruction memory.
+
+Authorization: The operator said "okay lets do that as it's own switch thats only on in the bundle. also think about how this can generalize to other screens and custom interfaces we might encounter later in the game" after approving observation delivery without JIT. This approves this concrete implementation; no additional design approval is pending.
+
+## Skills Loaded
+feature-switch; feature-explainer; agent-observability; pokebench-game-state; talk-to-claude; execute-worklog; multi-model-review.
+
+## Architecture
+`interface-guidance-v1`, default OFF, enabled in current fixed bundle recipes only. Native UI projection supplies truthful mode-specific controls through typed state and ordinary observation text. A small rule-based tool-result decorator recalls only a matching page from a previously delivered tutorial episode, with event/turn/attribution provenance, while that interface owns the current observation. Both delivery and recording use the normal tool path, independent of both JIT switches. Rules qualify actual UI owner, phase, mode and readiness; unsupported interfaces get nothing. First adapter: the forced-call PokéNav tutorial, including its field start menu and post-call exit phase. Generalization adds explicit source-grounded adapters, not inferred walkthroughs. No startup-task, global instruction-retention, navigation, action, timeline or grader changes.
+
+## Invariants
+- INV-1 OFF preserves existing tools, prompts, state and text exactly; assert omitted/false defaults and factory behavior.
+- INV-2 Native controls follow verified owner/mode; test normal mode, forced ready, post-call, fades, diagnostics and mismatched handlers.
+- INV-3 Reminder quotes only previously delivered tutorial instruction with original unknown attribution; no static invented quotation, no future recipients, no stale reminder outside tutorial.
+- INV-4 JIT OFF still delivers guidance in tool results; deletion of production wiring must fail factory test.
+- INV-5 Control remains OFF; bundle ON; legacy presets default OFF.
+
+## Security Review
+Read-only memory and delivered dialogue. No new endpoints, dependencies, filesystem runtime writes, game inputs or RAM writes. No active run changes. Unknown owners stay unknown.
+
+## Milestones
+**M1 — Tests and implementation**
+- [x] RED tests and commit
+- [ ] Native controls and delivered-instruction decorator
+- [ ] Registry, defaults, bundle recipe and explainer wiring
+- [ ] GREEN commit; gates and adversarial wiring deletion
+**M2 — Proof and review**
+- [ ] Reparse recorded raw RAM with matching ROM and compare ON/OFF
+- [ ] Principles self-review; frozen packet; independent cloud reviews
+- [ ] Land on board only with required approvals; verify served state
+
+## Closing the Loop
+No gameplay/inference launch. Use archived real snapshots and a production tool factory test. Explainer verified without taking desktop focus. Future benefit evaluation starts at this tutorial checkpoint under a separately approved fixed-run design; test/readiness evidence is not a gameplay-benefit claim.
+
+## Session Log
+- 2026-10-24: Isolated managed worktree from main. Reviewed run 0517 seq 39430, 42004, 42533, native mode=1 callback 0x081C9521, source pokeemerald 731ad5bf (clean), ROM SHA1 f3ae088181bf583e55daf962a92bb46f4f1d07b7. Raw sequence 15960 frame 793995 reproduces misleading controls. Existing active run remains pinned and untouched.
+
+## Surprises
+None yet.
+
+## Multi-Model Review Log
+Pending.
+
+## Boy Scout Log
+None.
+
+## Archive Milestone
+- [ ] Operator approves archive.
+
+- RED: Python collection fails on missing interface_guidance module; TS factory/retention test fails on missing interface-guidance module. Tests use native PokéNav fixture and delivered dialogue from run 0517.

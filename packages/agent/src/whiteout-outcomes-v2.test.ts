@@ -65,6 +65,7 @@ describe(ID,()=>{
    expect(fold([change(loss,fields),field]).battles()[0]?.whiteout).toBeNull();
   }
   expect(fold([loss,change(field,{party:[field.party[0]!]})]).battles()[0]?.whiteout).toBeNull();
+  expect(fold([change(loss,{money:0}),change(field,{money:0})]).battles()[0]?.whiteout).toBeNull();
   const egg={...loss.party[0]!,is_egg:true};
   expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
  });

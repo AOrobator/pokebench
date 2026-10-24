@@ -147,7 +147,7 @@ describe("field-ownership-feedback-v1 registration",()=>{
  it("is a default-off agent-only guard, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-49)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-51)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-14)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

@@ -36,7 +36,7 @@ const transition={phase:"clock_transition",selected:null,ready:false,controls:"C
 
 describe("loop-guard-screen-v1",()=>{
  it("is registered third from the end, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-136)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-138)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-20)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});
   expect(featureInfo(ID).description).toContain(" Off: ");

@@ -4,7 +4,6 @@ import type {RunEvent} from "./events.js";
 import {GoalReviewSchema,type InstructionGoal} from "./instruction-goal-schema.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
-type Result=Extract<RunEvent,{type:"tool_result"}>;
 interface Episode {id:number;turn:number;pages:Dialogue["pages"];latest_result:number;reviewed_result:number;interpretation:string|null}
 interface GoalRecord extends InstructionGoal {updated_result:number;verification:"model_interpretation"|"model_reported"|"native_verified";native_reason?:string}
 export interface NativeGoalTask {readonly requires:readonly string[]}
@@ -15,6 +14,8 @@ export interface InstructionNativeProof {
 }
 const terminal=(g:InstructionGoal):boolean=>["reported_complete","superseded","abandoned"].includes(g.status);
 export const GOAL_LIMITS={headerGoals:12,headerEpisodes:4,maxUnfinished:128} as const;
+
+export class GoalReviewError extends Error {}
 
 export class InstructionGoals {
  constructor(private readonly native?:InstructionNativeProof,private readonly limits:Readonly<{headerGoals:number;headerEpisodes:number;maxUnfinished:number}>=GOAL_LIMITS){}
@@ -54,40 +55,42 @@ export class InstructionGoals {
   this.current=episode;
  }
  pending():number[]{return [...this.episodes.values()].filter(e=>e.reviewed_result<e.latest_result).map(e=>e.id);}
- apply(input:unknown,callId?:string):void {
+ apply(input:unknown,callId?:string,beforeCommit?:()=>void):void {
   if(callId!==undefined&&this.applied.has(callId))return;
-  if(!Value.Check(GoalReviewSchema,input))throw new Error("Invalid goal review; supply reviewed episodes and full goal updates");
+  if(!Value.Check(GoalReviewSchema,input))throw new GoalReviewError("Invalid goal review; supply reviewed episodes and full goal updates");
   const nativeGoals=new Map(this.nativeGoals);
   const goals=new Map(this.goals),reviewed=new Set<number>(),updated=new Set<string>();
-  for(const r of input.reviewed){if(!this.episodes.has(r.episode)||reviewed.has(r.episode))throw new Error("Review must cite unique delivered dialogue episodes");reviewed.add(r.episode);}
+  for(const r of input.reviewed){if(!this.episodes.has(r.episode)||reviewed.has(r.episode))throw new GoalReviewError("Review must cite unique delivered dialogue episodes");reviewed.add(r.episode);}
   for(const g of input.updates){
-   if(updated.has(g.id))throw new Error("Only one update per goal per review");updated.add(g.id);
-   for(const s of g.sources){const e=this.episodes.get(s.episode);if(e===undefined||e.pages[s.page]===undefined)throw new Error("Goal source must cite a delivered episode and zero-based page");}
-   for(const ref of g.evidence??[])if(!this.results.has(ref))throw new Error("Goal evidence must cite delivered observations in this run");
+   if(updated.has(g.id))throw new GoalReviewError("Only one update per goal per review");updated.add(g.id);
+   for(const s of g.sources){const e=this.episodes.get(s.episode);if(e===undefined||e.pages[s.page]===undefined)throw new GoalReviewError("Goal source must cite a delivered episode and zero-based page");}
+   for(const ref of g.evidence??[])if(!this.results.has(ref))throw new GoalReviewError("Goal evidence must cite delivered observations in this run");
    const previous=goals.get(g.id);
-   if(g.status==="reported_complete"&&(previous===undefined||(g.evidence??[]).length===0||!(g.evidence??[]).some(ref=>ref>previous.updated_result)))throw new Error("Reported completion needs a prior goal and newer delivered observation evidence");
-   if(g.status==="superseded"&&g.superseded_by===undefined)throw new Error("Superseded goals must name their replacement");
-   const tasks=g.sources.map(source=>{const episode=this.episodes.get(source.episode)!;const page=episode.pages[source.page]!;return this.nativeSources.get(source.episode)?.get(page);});
+   if(g.status==="reported_complete"&&(previous===undefined||(g.evidence??[]).length===0||!(g.evidence??[]).some(ref=>ref>previous.updated_result)))throw new GoalReviewError("Reported completion needs a prior goal and newer delivered observation evidence");
+   if(g.status==="superseded"&&g.superseded_by===undefined)throw new GoalReviewError("Superseded goals must name their replacement");
+   const tasks=g.sources.map(source=>{const page=this.episodes.get(source.episode)?.pages[source.page];return page===undefined?undefined:this.nativeSources.get(source.episode)?.get(page);});
    if(tasks.every((task):task is NativeGoalTask=>task!==undefined))nativeGoals.set(g.id,tasks);else nativeGoals.delete(g.id);
    goals.set(g.id,{...g,updated_result:this.latestResult,verification:g.status==="reported_complete"?"model_reported":"model_interpretation"});
   }
   for(const g of goals.values()){
-   if(g.parent!==null&&!goals.has(g.parent))throw new Error("Unknown parent goal");
-   if(g.superseded_by!==undefined&&(!goals.has(g.superseded_by)||g.superseded_by===g.id))throw new Error("Unknown or self replacement");
+   if(g.parent!==null&&!goals.has(g.parent))throw new GoalReviewError("Unknown parent goal");
+   if(g.superseded_by!==undefined&&(!goals.has(g.superseded_by)||g.superseded_by===g.id))throw new GoalReviewError("Unknown or self replacement");
    const seen=new Set<string>([g.id]);let p=g.parent;
-   while(p!==null){if(seen.has(p))throw new Error("Goal parents cannot form cycles");seen.add(p);p=goals.get(p)?.parent??null;}
+   while(p!==null){if(seen.has(p))throw new GoalReviewError("Goal parents cannot form cycles");seen.add(p);p=goals.get(p)?.parent??null;}
   }
-  if([...goals.values()].filter(g=>!terminal(g)).length>this.limits.maxUnfinished)throw new Error("Unfinished goal bound reached; explicitly account for existing goals first");
+  if([...goals.values()].filter(g=>!terminal(g)).length>this.limits.maxUnfinished)throw new GoalReviewError("Unfinished goal bound reached; explicitly account for existing goals first");
+  beforeCommit?.();
   this.goals=goals;this.nativeGoals.clear();for(const [id,tasks] of nativeGoals)this.nativeGoals.set(id,tasks);
-  for(const r of input.reviewed){const e=this.episodes.get(r.episode)!;e.reviewed_result=e.latest_result;e.interpretation=r.interpretation;}
+  for(const r of input.reviewed){const e=this.episodes.get(r.episode);if(e!==undefined){e.reviewed_result=e.latest_result;e.interpretation=r.interpretation;}}
   if(callId!==undefined)this.applied.add(callId);
   this.completeNative(this.latestResult);
  }
  private completeNative(resultSeq:number):void {
-  if(this.native===undefined||this.deliveredState===undefined)return;
+  const native=this.native;
+  if(native===undefined||this.deliveredState===undefined)return;
   for(const [id,tasks] of this.nativeGoals){
    const goal=this.goals.get(id);if(goal===undefined||terminal(goal)||tasks.length===0)continue;
-   const reasons=tasks.map(task=>this.native!.completed(task,this.deliveredState));
+   const reasons=tasks.map(task=>native.completed(task,this.deliveredState));
    if(reasons.every((reason):reason is string=>reason!==null))this.goals.set(id,{...goal,status:"reported_complete",verification:"native_verified",native_reason:[...new Set(reasons)].join("; "),evidence:[resultSeq],updated_result:resultSeq});
   }
  }
@@ -100,8 +103,9 @@ export class InstructionGoals {
  text():string {
   const pending=this.pending(),goals=[...this.goals.values()],unfinished=goals.filter(g=>!terminal(g));
   const ordered=[...unfinished.filter(g=>g.status==="active"),...unfinished.filter(g=>g.status!=="active")];
-  const shown=pending.slice(-this.limits.headerEpisodes).map(id=>this.episodes.get(id)!);
+  const shown=pending.slice(-this.limits.headerEpisodes).flatMap(id=>{const episode=this.episodes.get(id);return episode===undefined?[]:[episode];});
   return ["INSTRUCTION GOALS — exact game dialogue and your own interpretations. No route or goal is assigned by the harness. Current observations override historical state.",
+   `Latest delivered observation result: ${this.results.size===0?"none":String(this.latestResult)}; native state: ${this.deliveredState===undefined?"unavailable":String(this.deliveredState.seq)}. Cite delivered result IDs for observation evidence.`,
    `Current interaction: ${this.current===null?"none recorded":JSON.stringify(this.current)}`,
    `Dialogue awaiting your interpretation (${String(pending.length)}): ${JSON.stringify(pending)}. Account for each new episode with goal_review or review_goals before a game-changing action; you may explain that it is not a request.`,
    `Recent pending episodes (${String(shown.length)} shown; get_instruction_goals retrieves any episode): ${JSON.stringify(shown)}`,

@@ -1711,3 +1711,13 @@ it("links the nonterminal deterministic guard to its shared supervisor explainer
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
  expect(doc.querySelector('[data-feature="deterministic-loop-guard-v1"] a')?.getAttribute("href")).toBe("/explainers/loop-guard-supervisor-v1.html");
 });
+
+it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("links %s to its exact tracked explainer",id=>{
+ const log=new Log();log.add(0,{...START,harness_features:[id]});const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("0517");
+});
+it("keeps a recorded goal transaction visible as a ledger event with raw evidence",()=>{
+ const log=bare();const e=log.add(100,{type:"ledger_context",turn:1,text:'INSTRUCTION GOALS — "Select POKéNAV"; verification model_interpretation',evidence:[12],instruction_goals:{call_id:"review",review:{reviewed:[{episode:12,interpretation:"Current request"}],updates:[]}}});
+ expect(eventText(e)).toContain("Instruction ledger delivered");
+});

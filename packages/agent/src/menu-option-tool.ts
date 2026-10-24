@@ -43,7 +43,7 @@ export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptio
   if(matches.length!==1||target===undefined)return finish("nothing pressed; the requested label is absent or ambiguous in the visible menu.");
   let current=initial;
   try{
-   while(true){
+   for(let step=0;step<=initial.options.length;step++){
     signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
     const button:Button=current.index===target?"A":current.index<target?"DOWN":"UP";
     const expected=current.index+(button==="DOWN"?1:button==="UP"?-1:0),planned=current;
@@ -57,6 +57,7 @@ export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptio
     if(next===null||next.identity!==initial.identity||next.index!==expected)throw new MenuStop("menu changed or cursor did not move as expected; no confirmation was sent.");
     current=next;
    }
+   return finish("input bound reached; inspect the returned state.");
   }catch(error){if(error instanceof MenuStop){result=await ports.observe(id,signal);state=stateOf(result);return finish(error.message);}throw error;}
  }};
 }

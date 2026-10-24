@@ -1513,3 +1513,10 @@ it("serves the shared nonterminal guard explainer byte for byte",async()=>{
  const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS["deterministic-loop-guard-v1"]).toBe(file);
  const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
 });
+
+it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("serves the exact tracked %s explainer through the feature allowlist",async id=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-goal-menu-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+});

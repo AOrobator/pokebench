@@ -477,8 +477,8 @@ describe("instruction-ledger-v2 switch",()=>{
  });
  it("is registered last, default-off, an observation that needs dialogue auto-advance",()=>{
   const id="instruction-ledger-v2";
-  expect(SWITCHABLE_FEATURES.at(-143)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-143)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-145)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-145)?.id).toBe(id);
   expect(featureInfo(id)).toMatchObject({group:"observation",title:"CONVERSATION LEDGER",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo(id).description).toContain(" Off: ");
   // The switchboard copy describes the shipped rule (review round 1: it still described the NAME:-only pin).

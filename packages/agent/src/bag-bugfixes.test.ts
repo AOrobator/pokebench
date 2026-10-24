@@ -71,3 +71,23 @@ it("qualifies verified battle bags without qualifying ordinary battle screens, p
  }
  const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});const battle={...IN_GAME,in_battle:true,screen:"battle",active_ui:null};for(let i=0;i<5;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:battle,state:battle});expect(notices).toEqual([]);
 });
+
+it("ignores raw task churn for warnings and recovery with the existing field and battle loop switches ON",async()=>{
+ const {readFileSync}=await import("node:fs");const {parseGameState}=await import("./game-state.js");
+ const recorded=parseGameState(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
+ if(recorded.battle==null||recorded.battle.diagnostic!==null)throw Error("fixture must carry a verified native battle payload");
+ for(const inBattle of [false,true])for(const enabled of [false,true]){
+ const notes:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notes.push(n),{bagLoops:enabled,ineffectiveLoops:true,battles:true,interactions:true});
+ const snapshot=(taskData:number,pocket="TMS HMS"):GameStateSnapshot=>{
+ const state=bag(pocket);return {...state,in_battle:inBattle,...(inBattle?{battle:recorded.battle}:{}),active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:inBattle?1:0,task_data:[taskData]}}};
+ };
+ const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
+ for(let i=0;i<3;i++)press(snapshot(i),snapshot(i));
+ expect(notes.filter(n=>n.kind==="ineffective"&&n.phase==="warning"),`battle=${inBattle} enabled=${enabled}`).toHaveLength(enabled?1:0);
+ if(!enabled)continue;
+ detector.context();press(snapshot(3),snapshot(4));
+ expect(notes.map(n=>n.phase)).toEqual(["warning"]);
+ press(snapshot(5),snapshot(6,"BERRIES"));
+ expect(notes.map(n=>n.phase)).toEqual(["warning","recovered"]);
+ }
+});

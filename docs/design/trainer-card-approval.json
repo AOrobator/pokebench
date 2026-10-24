@@ -1,11 +1,8 @@
 {
-  "parent": "9094991127313ec021f1347e45d70faba0134e1c",
-  "user_quote": "restore the trainer cards to how they look in my screenshot and add those protections so this doesn't happen again. get it reviewed, land it, and verify it's live",
-  "source": "User message in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24; review fixes remain within requested protections",
+  "parent": "bbefc77b80f66a3797b7755fa79a98ad92542b48",
+  "user_quote": "why do the first two trainer cards have the same sprite? each GPU should have a different trainer. it should be based off the hash of gpu + experiment + experiment arm",
+  "source": "User correction in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24; authorizes sprite identity and matching protected tests/baselines",
   "files": {
-    "packages/viewer/src/trainer-card-app.test.ts": "c968aa550d124445e7e16df5c1f424bc7e7391357e5dbaf08506dae3ee29b7d3",
-    "packages/viewer/src/workbench.test.ts": "a778c97e9cb9e958b17c84218cacf9148fa99e1d3d513998a4399e8d25b87d17",
-    "scripts/check-trainer-card-design.py": "e5599cf477a45637dfd030327d04c0f7d4ccc597f34b95c84e40e6081e0ac47c",
-    "scripts/test_trainer_card_design_guard.py": "902ae4653fc24347e56278b7767abd400960438be2ddcc4801ce5b01e6d8c2eb"
+    "packages/viewer/src/trainer-card.test.ts": "fad0a836b007830712c271b01e62d88a879683242045642e0689355a5977d87c"
   }
 }

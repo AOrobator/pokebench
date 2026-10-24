@@ -92,6 +92,35 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     expect(plain).toMatchObject({ title: "Model <img onerror=x>", arm: null, trial: null, card: null, status: "paused" });
     expect(cardInputFor(recorded({ id: "q", experiment: null, model: null }), 1000, 1000, "live", [], ART).title).toBe("q");
   });
+  it("keeps the actual concurrent GPU cards distinct across separate experiment ids", () => {
+    const bundle = recorded({ id: "2026-10-24T08-12-17_qwen36-gpu0_154a", status: "live", experiment: { id: "bundle-v-control-2h-dryrun-cook-solo-bundle-b-1", arm: "bundle", trial: 1, of: 1 } });
+    const control = recorded({ id: "2026-10-24T08-12-35_qwen36-gpu1_0517", status: "live", experiment: { id: "bundle-v-control-2h-dryrun-cook-solo-control-a-1", arm: "control", trial: 1, of: 1 } });
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const art = { ...ART, trainers }, runs = [bundle, control];
+    const picks = runs.map(run => cardInputFor(run, 1000, 1000, "live", runs, art).trainer);
+    expect(new Set(picks).size, picks.join(",")).toBe(2);
+    const ended = recorded({ id: "old-gpu2-recording", status: "ended", experiment: { id: "unrelated", arm: "bundle", trial: 1, of: 1 } });
+    expect(runs.map(run => cardInputFor(run, 1000, 2000, "watching", [ended, ...runs.toReversed()], art).trainer)).toEqual(picks);
+  });
+  it("hashes GPU, experiment and arm in order, independently of trial and model", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const cases = [["gpu0", "case-a", "bundle"], ["gpu1", "case-a", "bundle"], ["gpu0", "case-b", "bundle"], ["gpu0", "case-a", "control"]] as const;
+    const picks = cases.map(([gpu, id, arm]) => {
+      const run = recorded({ id: `owned-${gpu}-trial`, status: "live", experiment: { id, arm, trial: 1, of: 4 } });
+      const pick = cardInputFor(run, 0, 0, "live", [run], { ...ART, trainers }).trainer;
+      const next = { ...run, model: "another model", experiment: { id, arm, trial: 4, of: 4 } };
+      expect(cardInputFor(next, 0, 1000, "watching", [next], { ...ART, trainers }).trainer).toBe(pick);
+      return pick;
+    });
+    expect(picks).toEqual(["flannery", "norman", "roxanne", "sidney"]);
+  });
+  it("resolves full-tuple hash collisions across current experiments in one shared table", () => {
+    const a = recorded({ id: "owned-gpu0-a", status: "live", experiment: { id: "left", arm: "bundle", trial: 1, of: 1 } });
+    const b = recorded({ id: "owned-gpu1-b", status: "paused", experiment: { id: "experiment-1", arm: "control", trial: 1, of: 1 } });
+    const runs = [a, b];
+    // Both ordered tuple hashes start at slot zero of this four-sprite palette.
+    expect(runs.map(run => cardInputFor(run, 0, 0, "live", runs, ART).trainer)).toEqual(["brendan", "may"]);
+  });
   it("uses the run's GPU identity so same-model live cards are visually distinct", () => {
     const model = "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
     const gpu1 = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu1_petalburg-rerun-a", status: "live", experiment: null, model });

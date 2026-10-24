@@ -244,5 +244,5 @@ it.each([[true,true],[true,false],[false,true],[false,false]] as const)("live pl
   const notes=events.filter(e=>e.type==="loop_guard"&&e.kind==="milestone_drought");
   expect(notes).toHaveLength(on?1:0);
   if(on){expect(notes[0]).toMatchObject({phase:enforced?"supervisor":"would_warn"});expect(notes[0]?.message).toContain("run continues");}
-  expect(owner.received.some(text=>text.includes("No new milestone was recorded during the last 10 minutes"))).toBe(on&&enforced);
+  expect(owner.received.some(text=>text.includes("No newly observed milestone that resets this clock was recorded during the last 10 minutes"))).toBe(on&&enforced);
 });

@@ -57,3 +57,5 @@ GREEN proof before full gates: 257 agent tests across12 focused suites; 304 view
 Dependency proof: private copied package dependency links resolve owned agent workspace, not canonical agent dist. Own vendor checkout is exact clean bbab97ad73e460b7cd7c08527d10ced30cc03fbe. Python commands use canonical interpreter read-only with PYTHONPATH set explicitly to this worktree env; no uv editable install/shared venv mutation. Five explainers pass pages-theme/pages-check. Full gates, review and landing remain pending.
 
 Headless desktop/phone inspection caught overflow from an unbroken source hash and two uncontained SVG diagrams; fixed wrapping and local diagram scrolling before source freeze. Browser uses headless:true and never touches operator tabs/windows. No external page requests or page errors.
+
+Item3 source-grounded text correction before review: StallStop ignores MEASUREMENT_ONLY_MILESTONES, so the timer notice must say “newly observed milestone that resets this clock”, not claim no milestone of any kind was recorded. Live delivery assertion first changed and failed; clock policy remains identical.

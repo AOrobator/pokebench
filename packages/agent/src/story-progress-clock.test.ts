@@ -176,7 +176,7 @@ describe("story-progress-clock-v1 switch",()=>{
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
   expect(SWITCHABLE_FEATURES.at(-90)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-89)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-90)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");

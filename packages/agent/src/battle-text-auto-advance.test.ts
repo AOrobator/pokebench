@@ -428,7 +428,7 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
   expect(SWITCHABLE_FEATURES.at(-187)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-186)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-187)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -446,16 +446,16 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).slice(-186,-180)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(presetFeatures(preset)).slice(-187,-181)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
  it("is the key before battle-message-waiting-v1 wherever a preset or default lists switches, and in the registry",()=>{
   const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
-  expect(Object.keys(normalizeFeatures(old)).slice(-186,-180)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(normalizeFeatures(old)).slice(-187,-181)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-186)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-187)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
@@ -736,7 +736,7 @@ describe("pending-field-dialogue-v1",()=>{
  it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
   const id="pending-field-dialogue-v1";
   expect(SWITCHABLE_FEATURES.at(-80)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-79)?.id).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-80)?.id).toBe(id);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[id]:true}),null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);

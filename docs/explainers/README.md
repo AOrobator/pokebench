@@ -285,6 +285,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Player elevation](player-elevation-readout-v1.html): verified player height in the Position line; known own-tile elevation 0/15 rule. Default OFF, bundle only.
 - [Party menu message](party-menu-message-v1.html)
+- [Factual drought briefing](drought-progress-facts-v1.html): battle holds and factual recorded intervals, preserving observed options; default OFF.
 - [Native task goal retirement](native-task-goal-retirement-v1.html): retires source-verified active instructions using known unfinished issuance and current native completion, preserving future dialogue.
 
 - [Instruction goals](instruction-goal-ledger-v1.html): cited model-maintained goals, dialogue review and separate completion evidence.

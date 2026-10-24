@@ -7,6 +7,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {playGameTools} from "./play-wiring.js";
+import {isCheckedPress,pressTool,type CheckedPressTool} from "./game-tools.js";
 import {withInterfaceGuidance} from "./interface-guidance.js";
 const fixture=JSON.parse(readFileSync(new URL("../test-support/interface-guidance-0517.json",import.meta.url),"utf8")) as {state:unknown;dialogue:unknown};
 const STATE=parseGameState(fixture.state);
@@ -88,4 +89,24 @@ it("registers as a continuation-memory consumer so restored event identity follo
  let options:unknown[]=[];
  withInterfaceGuidance([],true,{subscribe:(_fn,...rest)=>{options=rest;}});
  expect(options).toEqual([false,false,true]);
+});
+
+it("ignores successful tool results without a matching dialogue episode",async()=>{
+ emitted.length=0;const tools=withInterfaceGuidance([tool(()=>STATE)],true,recorder);
+ expect(()=>send(event({v:1,run:"2026-10-24T08-12-35_qwen36-gpu1_0517",seq:39430,t:"2026-10-24T11:35:42.000-04:00",type:"tool_result",turn:1027,id:"unmatched",name:"observe",is_error:false,duration_ms:1,frames:[],text:"observation"}))).not.toThrow();
+ expect(await execute(tools)).toBe("observation");
+});
+it("production factory preserves checked press arguments and annotates its result",async()=>{
+ emitted.length=0;let received:Parameters<CheckedPressTool["executeChecked"]>|undefined;
+ const actual=pressTool("http://127.0.0.1:1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()});
+ const base:CheckedPressTool={...actual,execute:()=>{throw new Error("ordinary execute must not replace checked press");},executeChecked:(...args)=>{received=args;return Promise.resolve({content:[{type:"text",text:"observation"}],details:{state:STATE}});}};
+ const tools=playGameTools([base],ON,{read:()=>Promise.resolve(STATE)},recorder);
+ const wrapped=tools[0];if(wrapped===undefined||!isCheckedPress(wrapped))throw new Error("checked press lost");
+ delivered();
+ const args:Parameters<CheckedPressTool["executeChecked"]>=["guarded-call",{buttons:["A"]},()=>undefined,new AbortController().signal,()=>undefined,{automaticRunning:false}];
+ const output=await wrapped.executeChecked(...args);
+ expect(received).toHaveLength(args.length);
+ for(const [index,arg] of args.entries())expect(received?.[index]).toBe(arg);
+ expect(text(output)).toContain("Current interface instruction");
+ expect(output.details).toEqual({state:STATE});
 });

@@ -26,7 +26,7 @@ Read-only memory and delivered dialogue. No new endpoints, dependencies, filesys
 - [x] RED tests and commit
 - [x] Native controls and delivered-instruction decorator
 - [x] Registry, defaults, bundle recipe and explainer wiring
-- [ ] GREEN commit; gates and adversarial wiring deletion
+- [x] GREEN commit and five adversarial wiring deletions; exact final-head broad gates pending
 **M2 — Proof and review**
 - [x] Reparse recorded raw RAM with matching ROM and compare ON/OFF
 - [ ] Principles self-review; frozen packet; independent cloud reviews
@@ -42,7 +42,8 @@ No gameplay/inference launch. Use archived real snapshots and a production tool 
 None yet.
 
 ## Multi-Model Review Log
-Pending.
+Round 1 frozen head 8ddf89a9cead4ba22342af50a2bd648ccddaa9e6; binary diff SHA256 1bad30bd6ee13c626f7e49938304b3dfcd88d4bd614eed1f1059a1716e66644a. Claude CLI LGTM. Independent GPT 5.6 Sol BLOCKING on test/evidence gaps; two Grok availability fallbacks (GPT 6.1 Sol and GPT 6 Astra) BLOCKING on evidence gaps. Both discovered Grok Cursor models returned usage exhaustion; fallbacks do not grant self-merge. Round-1 synthesis recorded under runs/interface-guidance-review/round1-synthesis.md.
+Accepted test-only fixes: guarded press argument forwarding/result annotation through playGameTools and unmatched successful tool-result handling. Accepted proof additions: separate failed-delivery, missing-episode, diagnostic, completion, continuation binding and checked-wrapper deletion/restoration cases. No production defect demonstrated. Additional field-menu fixture/parse-order cleanup deferred; no capability expansion. All nine test-quality dimensions addressed in synthesis; required performed proof and round 2 remain pending CPU admission.
 
 ## Boy Scout Log
 None.
@@ -63,3 +64,5 @@ None.
 - GREEN code and targeted proof ready for branch commit. Landing remains gated by final literal gate, frozen independent review and normal landing-board order. No source/run activation performed.
 
 - GREEN commit: 20fe3b40f68fef4dcd282a2a32e999c0fbee28f7. Candidate clean; final literal test/coverage window requested from the Codex coordinator (prerequisites have priority). No heavy checks until an explicit grant. Cloud reviews may inspect the frozen packet read-only without running gates.
+
+- Review-fix preparation: added two tests (10 total in this focused file) for unmatched delivered results and guarded press preservation, including reference identity for all six arguments. Prepared six separate deleted/restored proof cases without executing them. No production source changes. Coordinator explicitly queued targeted MAX30s, normal just-test MAX90s and coverage MAX120s as separate windows behind existing prerequisites; no focused batch or broad gate may start before specific grant. This test-only commit is intentionally recorded as unvalidated, not a green gate. Next: admission, focused proofs, final-head broad gates, cumulative round-2 review. No merge/activation occurred. Missing Grok lane still requires operator exception before landing.

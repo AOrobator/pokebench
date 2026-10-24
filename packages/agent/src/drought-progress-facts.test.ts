@@ -28,6 +28,7 @@ describe(ID,()=>{
   expect(normalizeFeatures(old)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:true},null))[ID]).toBe(true);
+  expect(playHarnessFeatures({...BASE,"party-menu-message-v1":true,[ID]:true},null).slice(-2)).toEqual(["party-menu-message-v1",ID]);
  });
  it("holds due drought during real battle HP changes, records diagnostic, then restarts after battle",()=>{
   const r=rig(true);r.time(STALL_DROUGHT_MS+1);

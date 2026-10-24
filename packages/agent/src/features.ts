@@ -262,9 +262,9 @@ export const SWITCHABLE_FEATURES = [
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
   "player-elevation-readout-v1",
-  "drought-progress-facts-v1",
 
   "party-menu-message-v1",
+  "drought-progress-facts-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -977,9 +977,9 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("leader-preparation-comparison-v1"),
     ...when("refusal-ledger-v1"),
     ...when("player-elevation-readout-v1"),
-    ...when("drought-progress-facts-v1"),
 
     ...when("party-menu-message-v1"),
+    ...when("drought-progress-facts-v1"),
   ];
 }
 

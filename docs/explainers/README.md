@@ -282,3 +282,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.
 
 - [Navigation refusal history](refusal-ledger-v1.html): default-OFF quoted route refusals, repeated attempts and current-observation precedence.
+- [Native task goal retirement](native-task-goal-retirement-v1.html): retires source-verified active instructions using known unfinished issuance and current native completion, preserving future dialogue.

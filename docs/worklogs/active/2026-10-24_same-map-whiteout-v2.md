@@ -1,11 +1,11 @@
 # Item 2: same-map whiteout outcomes v2
 
-Authorized by the operator's five-chat brief, item 2. Isolated branch codex/same-map-whiteout-v2.
+Authorized by the operator's five-chat brief, item 2. Isolated branch codex/same-map-whiteout-v2. Current stage: final serial repair integrated; current qualification and R4 pending. Human scope checkpoint answered; no further scope question is pending.
 
 ## Contract
 Default-OFF whiteout-outcomes-v2 changes only BattleOutcomes evidence and existing briefing/recap consumers. OFF retains map-change rule exactly. ON requires lost/drew plus an observed native callback/fresh latch receipt or the conjunction of displacement, exact integer money halving, and the same identified non-egg party all fainted then fully healed at the first overworld state. No healing/money-only inference, run termination, tool/prompt changes, historical rewriting, launches, live process changes, or timeline additions.
 
-Both-arm applicability: independent of blackout-transition-v1 and whiteout-healed-v1. Existing briefing-battle-outcomes-v1/battle-loss-recap-v1 consumers expose the revised facts when enabled. New switch stays OFF in defaults and existing fixed-run arms; activation must explicitly name both arms, source pin and receipt/healing prerequisites after landing. No gameplay claim from fixture replay.
+Both-arm applicability: independent of blackout-transition-v1 and whiteout-healed-v1. Existing briefing-battle-outcomes-v1/battle-loss-recap-v1 consumers expose the revised facts when enabled. The switch stays OFF in defaults. The verified human two-recipe amendment below authorizes future bundle ON/control OFF in bundle-v-control-2h and bundle-v-control, without separate safety probes. Existing active runs and frozen recipes are untouched; no new launch or gameplay benefit is claimed.
 
 ## Source evidence
 pret/pokeemerald clean 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, overworld.c DoWhiteOut (358), SetWarpDestinationToLastHealLocation (665), CB2_WhiteOut (1550): money / 2, HealPlayerParty and warp to saved heal location. Existing env latch already watches verified US callback 0x08085F59. No env changes.
@@ -14,7 +14,8 @@ Retained GLM 2026-10-22T20-40-54_glm53-mac_0d5d, source pin 5bec91dcd. Fixture c
 ## Steps and receipts
 - [x] RED commit: native-shape fixture + negative cases + production factory delivery
 - [x] GREEN: implementation, registration, explainer, adversarial wiring deletion/restoration
-- [x] Integrated normal gates
+- [x] Historical integrated normal gates (exact receipts below)
+- [ ] Current serial-repair-integrated normal gates (R4)
 - [ ] Frozen cloud reviews and synthesis
 - [ ] Landing board ff-only landing, coordinated viewer proof
 
@@ -26,7 +27,7 @@ RED receipt: /tmp/item2-red.log: 5 intended failures, 4186 passes (command forwa
 GREEN preparation: 91 focused tests passed before final OFF adjunct. Seven independent adversarial deletions (v2 production selection, money, displacement, fainted, healed, identity and fresh-receipt checks) each failed then restored: runs/item2-proof/<operand>.log; restored.log passed. Fixture setup performs one read+gunzip, validates six whole state rows once per worker; test folds have 2–6 state steps with no filesystem/network/process work per step. Party comparisons are bounded by six slots. No aggregate cloning/transaction/persistence introduced.
 Explainer: pages-theme/check passed, 8791 candidate returned 200. Headless Chromium screenshots at 1280/1440/375, collapsed+expanded, all six inspected with image tool; mobile overflow corrected and rechecked at scrollWidth=viewport. No desktop/browser focus or gameplay calls. Screenshots main runs/mockups/whiteout-outcomes-v2/. Source and game references inspected clean. Tool-prompt-sync N/A: no tools/arguments/gates or system prompt changes.
 
-## Principles adherence (before reviewers)
+## Initial principles adherence (historical)
 | ID | Result | Evidence |
 |---|---|---|
 | PB1 | PASS | Native outcomes/callback and source-owned transition effects; no model claims |
@@ -43,7 +44,7 @@ Explainer: pages-theme/check passed, 8791 candidate returned 200. Headless Chrom
 | PB12 | PASS | No protected folders or desktop focus; no ROM copy |
 | PB13 | PASS | RED commit plus GREEN proof; gates/review/landing pending explicitly |
 
-Review boundary: source path owner BattleOutcomes with its registry/preset/next-run defaults, legacy feature snapshots, feature-card explainer mapping and tests/docs. Every change maps to item2 native evidence fix or required feature-switch/explainer contract. Terminator: tested/reviewed local ff-only landing, coordinated live feature-card proof. Split triggers: new decoder owner, historical trace rewriting, run termination, model/tool additions, activation/launches. None included.
+Original review boundary (historical; the two-recipe condition was superseded by the verified human amendment below): source path owner BattleOutcomes with its registry/preset/next-run defaults, legacy feature snapshots, feature-card explainer mapping and tests/docs. Every change maps to item2 native evidence fix or required feature-switch/explainer contract. Terminator: tested/reviewed local ff-only landing, coordinated live feature-card proof. Split triggers: new decoder owner, historical trace rewriting, run termination, model/tool additions, activation/launches. None included.
 
 Pinned pi delivery proof: 22 v2 tests passed. Production textOnlySupervisor→Governor→piLoop with scripted StreamFn records one note after three text-only responses; the fourth model input contains that exact note and latest whiteout turn 754 ON / none OFF. No network/model/game calls; four deterministic messages per arm. Existing loop-factory test also checks both outputs. Added exact card-link/tracked-document serving assertions through existing viewer test owners.
 Python isolation: independent private env/.venv via uv sync; sys.prefix and pokebench_env.__file__ both point to /private/tmp/pokebench-same-map-whiteout-v2. Vendor initialized at bbab97ad73e460b7cd7c08527d10ced30cc03fbe, no edits. Never shared editable install.
@@ -179,3 +180,15 @@ Conflict resolution starts from incoming complete registry, optional/default/leg
 
 The moving-NPC owner was notified that its explicitly approved canonical-config migration must preserve whiteout's intended future bundle ON/control OFF values when those entries land, and must not activate an unknown feature before registration lands. That owner remains the sole migration owner. The serial repair's final qualified release must still be integrated before full validation and R4. No heavy job, review round, board entry, main move, viewer refresh or run change occurred here.
 COMMIT: merge: preserve released drought and recipe settings (SHA in git log).
+
+
+## Final serial-repair release integrated
+
+Integrated final qualified recovery evidence main `65fc7dd6b2c51bf347b5585bf2cca9ef04f54a51` over reviewed source `4293758025c30aed1a2fede313bf68a12567f7d3`. The recovery owner reports all five gates, independent reviews, canonical build/test and one viewer refresh passed, with protected identities, six lease hashes and control files unchanged. Its final passive proof retained an explicitly unrelated `/api/models` HTTP 502 limitation; no second refresh was performed. These are the recovery owner's evidence, not whiteout qualification.
+
+The merge is automatic and preserves the three incoming serial/human production-and-test files byte-for-byte. BattleOutcomes and the corrected 26-case whiteout test remain byte-identical to `2d4596cb`. Each incoming recipe is reconstructed exactly by removing only the whiteout false base value and final switch. No runtime scope or active-run state changes occur here. Full whiteout qualification and a fresh cumulative R4 still must run on this clean integrated tip in its next admitted finite window, after the reserved interface sequence.
+
+Additional direct human confirmation was independently read from coordinator chat `00000000-0000-4000-8000-f5efe0494f81`, user message `00000000-0000-4000-8000-02d3937b4808` in turn `00000000-0000-4000-8000-0db3af9861cd`. The exact scope question named the receipt-only test correction, 26 passing cases, mutation failure, unchanged same-map recognition and the two approved bundle/control recipes; the human answered “Confirm unchanged scope; continue checks and review”. Recorded in `runs/item2-review/r4-human-checkpoint.json`. This corroborates the earlier actual human checkpoint; no duplicate question is needed.
+
+Prepared passive landing proof now identifies the actual 8790 listener and its serving tree, rather than assuming a stale tree path, and checks 1280/1440/375 widths. Read-only protection preparation found 17 relevant process identities, six known lease files and env/PAUSE/STOP hashes, plus the controller log tail. Landing checks will take fresh before/after baselines. The existing prepare lock is held only during the single refresh, following the recovery protocol. These preparation scripts have not performed a whiteout landing or refresh.
+COMMIT: merge: integrate qualified serial-test recovery (SHA in git log).

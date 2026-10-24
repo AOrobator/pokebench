@@ -27,3 +27,39 @@ it("stops on a changed owner at the checked input seam without sending A",async(
  const buttons:Button[]=[];const tool=menuOptionTool({observe:async()=>result(at(2)),press:async(_id,b,check)=>{check({...at(2),active_ui:null});buttons.push(b);return result(at(3));}});
  const r=await tool.execute("pick",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual([]);expect(JSON.stringify(r)).toContain("changed");
 });
+it.each([0,3,7])("moves from recorded index %s without wrapping or overshooting",async index=>{
+ let s=at(index);const buttons:Button[]=[];
+ const tool=menuOptionTool({observe:async()=>result(s),press:async(_id,b,check)=>{check(s);buttons.push(b);const v=menuOptionView(s)!;s=b==="A"?{...s,active_ui:null}:at(v.index+(b==="DOWN"?1:-1));return result(s);}});
+ await tool.execute("pick",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual([...Array.from({length:Math.abs(index-3)},()=>index<3?"DOWN":"UP"),"A"]);
+});
+it.each(["absent","duplicate","no-movement","interruption"])("does not confirm on %s",async kind=>{
+ let s=at(2);if(kind==="duplicate")s={...s,active_ui:{...s.active_ui!,details:{...s.active_ui!.details,options:["POKéNAV","POKéNAV","BAG"],selected_index:2}}};
+ const buttons:Button[]=[];const tool=menuOptionTool({observe:async()=>result(s),press:async(_id,b,check)=>{check(s);buttons.push(b);if(kind==="interruption")s={...s,active_ui:null};return result(s);}});
+ await tool.execute("pick",{phase:"field_multichoice",menu_id:86,option:kind==="absent"?"UNSEEN":"POKéNAV"});expect(buttons.includes("A")).toBe(false);expect(buttons.length).toBeLessThanOrEqual(1);
+});
+it("validates input, honors cancellation and fails closed on missing state",async()=>{
+ const tool=menuOptionTool({observe:async()=>({content:[],details:undefined}),press:async()=>result(at(2))});
+ await expect(tool.execute("x",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"})).rejects.toThrow("lacks state");
+ const abort=new AbortController();abort.abort();await expect(tool.execute("x",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"},abort.signal)).rejects.toThrow();
+ await expect(tool.execute("x",{phase:"field_multichoice",menu_id:86,option:""})).rejects.toThrow("Supply phase");
+});
+it("supports the source-owned vertical START menu",async()=>{
+ let s=at(2);const {menu_id:_id,...details}=s.active_ui!.details!;s={...s,active_ui:{...s.active_ui!,phase:"start_menu",details}};const buttons:Button[]=[];
+ const tool=menuOptionTool({observe:async()=>result(s),press:async(_id,b,check)=>{check(s);buttons.push(b);return result(s);}});
+ await tool.execute("x",{phase:"start_menu",menu_id:null,option:"BAG"});expect(buttons).toEqual(["A"]);
+});
+it("factory annotates visible supported choices and preserves the checked-press path",async()=>{
+ const {withMenuOptionTool}=await import("./menu-option-tool.js");const {Type}=await import("typebox");
+ const observe={name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:async()=>result(at(2))};
+ const press={...observe,name:"press",executeChecked:async()=>result(at(2))};
+ const tools=withMenuOptionTool([observe,press],true);expect(JSON.stringify(await tools[0]!.execute("x",{}))).toContain("Menu selection tool available");
+ const checked=tools[1]!;if(!("executeChecked"in checked)||typeof checked.executeChecked!=="function")throw new Error("checked path missing");
+ expect(JSON.stringify(await checked.executeChecked())).toContain("select_menu_option");
+ expect(()=>withMenuOptionTool([observe],true)).toThrow("checked press");expect(withMenuOptionTool([observe],false)[0]).toBe(observe);
+ const noState={...observe,execute:async()=>({content:[],details:undefined})};await withMenuOptionTool([noState,press],true)[0]!.execute("x",{});
+ const changed={...observe,execute:async()=>result({...at(2),active_ui:null})};expect((await withMenuOptionTool([changed,press],true)[0]!.execute("x",{})).content).toEqual([{type:"text",text:"current observation"}]);
+});
+it.each(["diagnostic","index","label","id","options"])("does not plan from malformed %s menu state",kind=>{
+ const s=at(2),ui=s.active_ui!;const broken={...s,active_ui:{...ui,...(kind==="diagnostic"?{diagnostic:"unsupported"}:{}),...(kind==="label"?{selected:"wrong"}:{}),details:{...ui.details,...(kind==="index"?{selected_index:99}:{}),...(kind==="id"?{menu_id:null}:{}),...(kind==="options"?{options:[]}: {})}}};
+ expect(menuOptionView(broken)).toBeNull();
+});

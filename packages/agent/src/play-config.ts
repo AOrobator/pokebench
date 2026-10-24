@@ -1,3 +1,5 @@
+import {INSTRUCTION_GOALS_SECTION} from "./instruction-goal-tools.js";
+import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
@@ -267,6 +269,11 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
   if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
+  if(features["instruction-goal-ledger-v1"]){
+    prompt=prompt.replace("1. The latest thing a story character told you. Each result starts with it as the Story goal line, read from game memory, with the place it names.","1. Current game observations and exact delivered dialogue. Historical place mentions are context; you interpret and maintain your active goals in the instruction ledger.").replace("A SUPERVISOR note under the header says when your last two moves took you farther from the place the Story goal line names.","");
+    prompt += `\n\n${INSTRUCTION_GOALS_SECTION}`;
+  }
+  if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   return prompt;
 }
 
@@ -288,7 +295,7 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : [])];
+  return ["observe", "press", ...(features["instruction-goal-ledger-v1"]?["review_goals","get_instruction_goals"]:[]), ...(features["menu-option-tool-v1"]?["select_menu_option"]:[]), ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : [])];
 }
 
 // V2 reuses the existing paragraphs; the standing core retains cross-scene policy.

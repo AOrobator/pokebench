@@ -261,6 +261,8 @@ export const SWITCHABLE_FEATURES = [
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
+  "instruction-goal-ledger-v1",
+  "menu-option-tool-v1",
 
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -644,6 +646,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
   on("refusal-ledger-v1", "guidance", "NAVIGATION REFUSAL HISTORY", "disproved-beliefs-v1", "Default off. Extends the belief ledger with whole recorded navigate_to and navigate_to_target route refusal lines, target, attempts and evidence references. Repeated matching reasons count together. Current observations take precedence; history does not prohibit retries or choose actions. Clears on map or story change, reaching the tile, semantic activation, or a new result with another reason. Off: existing disproved-beliefs ledger and model context unchanged."),
+  on("instruction-goal-ledger-v1", "guidance", "INSTRUCTION GOALS", "dialogue-auto-advance-v1", "Default off. Pins delivered dialogue and a cited, model-maintained multi-goal ledger before decisions. New dialogue is reviewed before game-changing input. Completion claims remain distinct from native proof. Off: no goal review bookkeeping, tools, context or action gate."),
+  on("menu-option-tool-v1", "guidance", "SELECT MENU OPTION", "active-ui-ownership-v1", "Default off. Adds select_menu_option for visible vertical START and field menus, using checked UP/DOWN and one A press. The model chooses the option; changed menus stop execution. Off: menu selection uses the existing press tool."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -968,6 +972,9 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
     ...when("refusal-ledger-v1"),
+    ...when("instruction-goal-ledger-v1"),
+    ...when("menu-option-tool-v1"),
+
 
   ];
 }
@@ -979,5 +986,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

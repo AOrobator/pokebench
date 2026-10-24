@@ -1920,6 +1920,154 @@
           "type": "string",
           "const": "ledger_context"
         },
+        "instruction_goals": {
+          "type": "object",
+          "required": [
+            "call_id",
+            "review"
+          ],
+          "properties": {
+            "call_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "review": {
+              "type": "object",
+              "required": [
+                "reviewed",
+                "updates"
+              ],
+              "properties": {
+                "reviewed": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "episode",
+                      "interpretation"
+                    ],
+                    "properties": {
+                      "episode": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "interpretation": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 16
+                },
+                "updates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "sources",
+                      "parent",
+                      "status",
+                      "reason",
+                      "completion"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z0-9_-]+$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      },
+                      "sources": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "episode",
+                            "page"
+                          ],
+                          "properties": {
+                            "episode": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "page": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 8
+                      },
+                      "parent": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 80
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "open",
+                          "active",
+                          "deferred",
+                          "blocked",
+                          "reported_complete",
+                          "superseded",
+                          "abandoned"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      },
+                      "completion": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      },
+                      "evidence": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "minItems": 1,
+                        "maxItems": 16,
+                        "uniqueItems": true
+                      },
+                      "superseded_by": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 16
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "text": {
           "type": "string"
         },

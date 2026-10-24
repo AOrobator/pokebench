@@ -9,7 +9,7 @@ import {BattleOutcomes} from "./battle-outcomes.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
-import {ALL_ON,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
+import {ALL_ON,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
 const ID="whiteout-outcomes-v2";
@@ -28,7 +28,7 @@ const receipt={frame:120,money_before:3615,notice:"Whited out"};
 
 describe(ID,()=>{
  it("registers an optional default-OFF switch with independent both-arm applicability",()=>{
-  const older=Object.fromEntries(Object.entries(LEGACY_ALL_ON).filter(([id])=>id!==ID));
+  const older=Object.fromEntries(Object.entries(LEGACY_ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
@@ -56,7 +56,7 @@ describe(ID,()=>{
   ["partial healing",{party:field.party.map((m,i)=>i===0?{...m,hp:1}:m)}],
   ["changed identity",{party:field.party.map((m,i)=>i===0?{...m,identity:"other"}:m)}],
   ["unknown identity",{party:field.party.map(m=>({...m,identity:null}))}],
-  ["unknown egg status",{party:field.party.map(m=>({...m,is_egg:undefined}))}],
+  ["unknown egg status",{party:field.party.map(m=>({...m,is_egg:null}))}],
  ] satisfies [string,Partial<State>][]) ("refuses %s",(_label,fields)=>{
   expect(fold([loss,change(field,fields)]).battles()[0]?.whiteout).toBeNull();
  });
@@ -112,6 +112,7 @@ describe(ID,()=>{
   const observers:((e:RunEvent)=>void)[]=[],recorded:string[]=[],sent:string[]=[];
   const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},textOnlySupervisor:(_replies:number,_note:number,_limit:number,text:string)=>{recorded.push(text);}};
   const supervisor=textOnlySupervisor(features(on),recorder);
+  if(supervisor===undefined)throw new Error("text-only supervisor must be enabled");
   for(const state of states)for(const observe of observers)observe(state);
   const model:Model<"openai-completions">={id:"offline-fixture",name:"offline fixture",api:"openai-completions",provider:"test",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:65536,maxTokens:100};
   const controller=new AbortController();

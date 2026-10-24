@@ -1,8 +1,13 @@
 {
-  "parent": "bbefc77b80f66a3797b7755fa79a98ad92542b48",
+  "parent": "c847defdc75038d6f8ad3387dfc9224cce31b292",
   "user_quote": "why do the first two trainer cards have the same sprite? each GPU should have a different trainer. it should be based off the hash of gpu + experiment + experiment arm",
   "source": "User correction in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24; authorizes sprite identity and matching protected tests/baselines",
   "files": {
-    "packages/viewer/src/trainer-card.test.ts": "fad0a836b007830712c271b01e62d88a879683242045642e0689355a5977d87c"
+    "docs/design/trainer-cards/README.md": "4a90917ba7bdbc66001b239977ca642456cf8d40221efdaae798a8c22b258d5b",
+    "packages/viewer/design-tests/baselines/cards-1280.png": "0a391711f3e27456c78e0bec0dc5e07bc820e7680a3a0a12d169c6e10bff86d2",
+    "packages/viewer/design-tests/baselines/cards-1440.png": "ff0fd7b56464a17439ff8ed06b9e140c18805fb3aae608d08fd1cc734261188a",
+    "packages/viewer/design-tests/baselines/cards-375.png": "67dcfe5a07f0851a9ddfa9c038b993e1daa59bb22bfb4af1240af3abdb8f69f2",
+    "packages/viewer/src/trainer-card-app.test.ts": "8c8ea2d7191e17e6860489e76118a187a1540f553a41490bb449883c4f4665e7",
+    "packages/viewer/src/trainer-card.test.ts": "37650e820827de121e24c35e8cae7ae8fe45029e05998dcc5972bf3bddd32f4c"
   }
 }

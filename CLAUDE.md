@@ -116,3 +116,5 @@ Every HTML deliverable (explainer, UI mockup, report, review, gallery or index p
 ## Protected trainer-card design
 
 Operator decision 2026-10-24: the October 21 trainer cards are the approved design. Follow `docs/design/trainer-cards/README.md`. Changing their appearance or displayed identity, protected assertions, fixtures or visual baselines requires the operator's explicit approval for that change. Queue cleanup and reviewer suggestions do not grant it. Preserve the experiment tab, arm type badge, trial line, sprites, six slots, bars, tier and milestone state. Run `just trainer-card-check` on viewer presentation changes; do not update baselines to silence a failure. The pre-commit approval guard binds protected staged changes to a new recorded approval.
+
+Trainer sprites: GPU-qualified identity hashes GPU + experiment + experiment arm, in that order. Resolve collisions across all current cards, including different experiments, while preserving the legacy no-GPU choices. Sprite changes and their protected baselines require the same explicit operator approval.

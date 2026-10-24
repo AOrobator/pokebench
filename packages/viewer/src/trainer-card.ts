@@ -42,11 +42,11 @@ function fnv1a(text: string): number {
   return hash;
 }
 
-function trainerAllocation(group: string, identities: readonly string[], trainers: readonly string[], reserved: ReadonlySet<number> = new Set()): ReadonlyMap<string, number> {
+function trainerAllocation(group: string | null, identities: readonly string[], trainers: readonly string[], reserved: ReadonlySet<number> = new Set()): ReadonlyMap<string, number> {
   const taken = new Set(reserved), allocated = new Map<string, number>();
   const all = [...new Set(identities)].sort();
   for (const each of all) {
-    const seed = `${group}\u0000${each}`;
+    const seed = group === null ? each : `${group}\u0000${each}`;
     let index = fnv1a(seed) % trainers.length;
     for (let probes = 0; taken.has(index) && probes < trainers.length; probes++) index = (index + 1) % trainers.length;
     taken.add(index);
@@ -65,30 +65,35 @@ function gpuOf(runId: string): string {
   return /(?:^|[-_])(gpu\d+)(?=[-_]|$)/i.exec(runId)?.[1]?.toLowerCase() ?? "";
 }
 
-function trainerIdentity(arm: string, gpu: string): string {
-  return gpu === "" ? arm : `${arm}\u0000${gpu}`;
+function trainerGroup(run: WorkbenchRun): string {
+  return run.experiment?.id ?? run.model ?? run.id;
 }
 
-interface TrainerPeer { readonly arm: string; readonly gpu: string }
+function legacyTrainer(run: WorkbenchRun, runs: readonly WorkbenchRun[], trainers: readonly string[]): string {
+  const experiment = run.experiment;
+  const arms = experiment == null ? [] : runs.flatMap(other => other.experiment?.id === experiment.id ? [other.experiment.arm] : []);
+  return trainerFor(trainerGroup(run), experiment?.arm ?? "", arms, trainers);
+}
 
-function experimentTrainerFor(group: string, current: TrainerPeer, peers: readonly TrainerPeer[], trainers: readonly string[]): string {
-  const all = [...peers, current], arms = [...new Set(all.map(peer => peer.arm))];
-  const legacy = trainerAllocation(group, arms, trainers);
-  if (current.gpu === "") return trainers[legacy.get(current.arm) ?? 0] ?? "";
-  const reserved = new Set(all.flatMap(peer => peer.gpu === "" ? [legacy.get(peer.arm) ?? 0] : []));
-  const identities = all.flatMap(peer => peer.gpu === "" ? [] : [trainerIdentity(peer.arm, peer.gpu)]);
-  const index = trainerAllocation(group, identities, trainers, reserved).get(trainerIdentity(current.arm, current.gpu)) ?? 0;
+function gpuTrainerKey(run: WorkbenchRun): string {
+  return `${gpuOf(run.id)}\u0000${trainerGroup(run)}\u0000${run.experiment?.arm ?? ""}`;
+}
+
+const currentCard = (run: WorkbenchRun): boolean => run.status === "live" || run.status === "paused";
+
+function gpuTrainer(run: WorkbenchRun, runs: readonly WorkbenchRun[], trainers: readonly string[]): string {
+  const peers = [...runs, run].filter(other => currentCard(run) ? currentCard(other) : trainerGroup(other) === trainerGroup(run));
+  const reserved = new Set(peers.flatMap(other => gpuOf(other.id) === "" ? [trainers.indexOf(legacyTrainer(other, runs, trainers))] : []));
+  const identities = peers.flatMap(other => gpuOf(other.id) === "" ? [] : [gpuTrainerKey(other)]);
+  const index = trainerAllocation(null, identities, trainers, reserved).get(gpuTrainerKey(run)) ?? 0;
   return trainers[index] ?? "";
 }
 
 // One run's card from the workbench snapshot; runs: every run the snapshot has, so the trainer pick sees
-// all of the experiment's arms the same way on every page.
+// the current cards across experiments (or its replay group) the same way on every page.
 export function cardInputFor(run: WorkbenchRun, at: number, now: number, status: CardInput["status"], runs: readonly WorkbenchRun[], art: CardArt): CardInput {
   const experiment = run.experiment ?? null, title = experiment?.id ?? run.model ?? run.id;
-  const gpu = gpuOf(run.id);
-  const trainer = experiment === null
-    ? trainerFor(title, trainerIdentity("", gpu), [], art.trainers)
-    : experimentTrainerFor(title, { arm: experiment.arm, gpu }, runs.flatMap((other) => (other.experiment?.id === experiment.id ? [{ arm: other.experiment.arm, gpu: gpuOf(other.id) }] : [])), art.trainers);
+  const trainer = gpuOf(run.id) === "" ? legacyTrainer(run, runs, art.trainers) : gpuTrainer(run, runs, art.trainers);
   const facts = plateFacts(run, at, now);
   return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
     card: run.card ?? null, facts: status === "replay" ? { ...facts, fresh: false } : facts, status, trainer };

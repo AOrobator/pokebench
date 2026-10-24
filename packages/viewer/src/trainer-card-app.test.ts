@@ -100,7 +100,7 @@ describe("trainer cards in the viewer", () => {
     expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
     const mine = card(row, LIVE_ID), other = card(row, OTHER_ID);
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
-    expect(mine.innerHTML).toContain("/sprites/trainers/wattson.png"); expect(other.innerHTML).toContain("/sprites/trainers/sidney.png");
+    expect(mine.innerHTML).toContain("/sprites/trainers/roxanne.png"); expect(other.innerHTML).toContain("/sprites/trainers/brawly.png");
     expect(mine.querySelector('.tc-tab [data-gt]')?.getAttribute("data-gt")).toBe("bundle-v-control-dryrun-cook");
     expect(mine.querySelector(".tc-ty")?.textContent).toBe("TYPE/BUNDLE");
     expect(other.querySelector(".tc-ty")?.textContent).toBe("TYPE/CONTROL");

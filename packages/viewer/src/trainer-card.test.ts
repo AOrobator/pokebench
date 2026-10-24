@@ -127,9 +127,9 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const gpu0 = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu0_petalburg-rerun-b", status: "live", experiment: null, model });
     const runs = [gpu1, gpu0];
     const art = { ...ART, trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"] };
-    expect(cardInputFor(gpu1, 1000, 1000, "live", runs, art).trainer).toBe("wally");
-    expect(cardInputFor(gpu0, 1000, 1000, "live", runs, art).trainer).toBe("glacia");
-    expect(cardInputFor(gpu1, 1000, 2000, "watching", runs, art).trainer).toBe("wally");
+    expect(cardInputFor(gpu1, 1000, 1000, "live", runs, art).trainer).toBe("phoebe");
+    expect(cardInputFor(gpu0, 1000, 1000, "live", runs, art).trainer).toBe("wattson");
+    expect(cardInputFor(gpu1, 1000, 2000, "watching", runs, art).trainer).toBe("phoebe");
   });
   it("keeps experiment arms distinct when their runs use different GPUs", () => {
     const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];

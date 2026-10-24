@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, it } from "vitest";
 import { checkEvent, type RunEvent } from "./events.js";
-import { InstructionGoals } from "./instruction-goals.js";
+import { InstructionGoals, GOAL_LIMITS } from "./instruction-goals.js";
 const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pokenav-instruction-goals.json.gz", import.meta.url))).toString()) as {
     events: unknown[];
 };
@@ -124,6 +124,7 @@ it("supports explicit abandonment and supersession without making either a verif
     expect(() => { g.apply({ reviewed: [], updates: [{ ...must(review.updates[1]), status: "superseded", superseded_by: "select" }] }); }).toThrow();
 });
 it("injects a small unfinished-goal bound and rejects overflow atomically", () => {
+    expect(GOAL_LIMITS).toEqual({headerGoals:12,headerEpisodes:4,maxUnfinished:128});
     const g = new InstructionGoals(undefined, { headerGoals: 1, headerEpisodes: 1, maxUnfinished: 2 });
     for (const e of events.filter(e => e.seq <= 39462))
         g.observe(e);

@@ -5,7 +5,7 @@ import {featuresOf,playHarnessFeatures} from "./features.js";
 import {probe} from "./probe-decision-cli.js";
 
 const ID="party-menu-message-v1";
-const recorded={...featuresOf([]),"ram-state-v1":true,"active-field-message-buffer-v1":true,"active-ui-ownership-v1":true,"dialogue-auto-advance-v1":true,"battle-text-auto-advance-v1":true,"battle-move-tool-v1":true,"field-dialogue-phase-v1":true};
+const recorded={...featuresOf([]),"ram-state-v1":true,"active-field-message-buffer-v1":true,"active-ui-ownership-v1":true,"dialogue-auto-advance-v1":true,"battle-text-auto-advance-v1":true,"battle-move-tool-v1":true,"story-battle-heal-first-v1":true,"field-dialogue-phase-v1":true};
 const prefix='Battle action: chose FIGHT, then WATER GUN; buttons pressed: A, A.\nDialogue shown during this call (1 page, in order, whole):\n1. "Screen: is quoted dialogue, not a readout"\n\n';
 const raw={v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)};
 function fixture(options:{missingRaw?:boolean;missingScreen?:boolean;ambiguousScreen?:boolean;error?:boolean}={}){
@@ -61,7 +61,7 @@ it("keeps original composite text byte-for-byte when no rerender is requested",a
 });
 
 it("constructed battle tools remain unable to execute any game operation",async()=>{
- const run=fixture();const {tools}=probeTools(recorded,new Replay(run.start));
+ const run=fixture();const replay=new Replay(run.start);expect(()=>replay.healFirstLine()).toThrow(/probe tools never execute/);const {tools}=probeTools(recorded,replay);
  for(const name of ["observe","battle_action"]){
   const tool=tools.find(t=>t.name===name);expect(tool?.name).toBe(name);if(tool===undefined)throw Error("missing inert tool");
   await expect(tool.execute("owned-inert-call",name==="battle_action"?{action:"fight",move:"WATER GUN"}:{})).rejects.toThrow(/probe tools never execute/);

@@ -152,6 +152,7 @@ export class Replay {
   readonly peopleIdCard = (): never => { throw new Error("probe tools never execute"); };
   readonly storyBattleWarning = (): never => { throw new Error("probe tools never execute"); };
   readonly healBeforeTrainersWarning = (): never => { throw new Error("probe tools never execute"); };
+  readonly healFirstLine = (): never => { throw new Error("probe tools never execute"); };
   readonly storyGoalAway = (): never => { throw new Error("probe tools never execute"); };
   readonly destinationCitation = (): never => { throw new Error("probe tools never execute"); };
 }

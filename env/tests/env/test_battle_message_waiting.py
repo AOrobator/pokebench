@@ -31,7 +31,7 @@ FIXTURE = json.loads(
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
 RECORDED_OFF = (
-    frozenset({"coherent-battle-observation-v1"})
+    frozenset({"coherent-battle-observation-v1", "player-elevation-readout-v1"})
     | frozenset(FIXTURE["recorded_off"])
     | {
         "readout-truth-v1",
@@ -324,7 +324,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-50] == SWITCH
+    assert SERVER_FEATURES[32] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 

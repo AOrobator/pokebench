@@ -282,3 +282,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.
 
 - [Navigation refusal history](refusal-ledger-v1.html): default-OFF quoted route refusals, repeated attempts and current-observation precedence.
+
+- [Player elevation](player-elevation-readout-v1.html): verified player height in the Position line; known own-tile elevation 0/15 rule. Default OFF, bundle only.

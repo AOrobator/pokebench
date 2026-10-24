@@ -108,7 +108,7 @@ def test_off_readout_is_byte_identical_to_main() -> None:
     default_off = (FIXTURES / "adjacent-tiles-off-t457-ead18377.txt").read_text()
     all_on = (FIXTURES / "adjacent-tiles-off-all-on-t457-ead18377.txt").read_text()
     assert render(state, features_off_from_env({})) == default_off
-    assert render(state, frozenset({"adjacent-tiles-v1"})) == all_on
+    assert render(state, frozenset({"adjacent-tiles-v1", "player-elevation-readout-v1"})) == all_on
     assert format_readout(state) == format_readout(state, frozenset(), adjacent_tiles=False)
     assert format_readout(state, frozenset({"adjacent-tiles-v1"}), adjacent_tiles=True) == (
         format_readout(state)

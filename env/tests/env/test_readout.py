@@ -58,7 +58,7 @@ PRE_GAME = GameState("naming", False, None, None, None, None, None, False, None,
 
 
 def test_in_game_readout_lists_every_field() -> None:
-    assert format_readout(IN_GAME) == (
+    assert format_readout(IN_GAME, frozenset({"player-elevation-readout-v1"})) == (
         "Screen: overworld\n"
         "Dialog: none\n"
         "Menu: unavailable (active owner not verified)\n"
@@ -77,7 +77,7 @@ def test_empty_party_badges_unknown_facing_and_battle() -> None:
     state = GameState(
         **{**IN_GAME.__dict__, "party": (), "badges": (), "facing": None, "in_battle": True}
     )
-    text = format_readout(state)
+    text = format_readout(state, frozenset({"player-elevation-readout-v1"}))
     assert "Party (player): none" in text
     assert "Badges: none" in text
     assert "Position: X=7, Y=9\n" in text

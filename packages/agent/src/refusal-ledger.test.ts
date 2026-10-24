@@ -32,7 +32,7 @@ describe("refusal ledger production context",()=>{
  it("rejects a missing source fixture before even a negative case can pass",()=>{expect(()=>fixture("missing-source")).toThrow("Missing recorded refusal fixture missing-source");});
  it("defaults OFF and requires the existing belief ledger",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"disproved-beliefs-v1"});
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(254)).toBe(ID);
   expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);
   const omitted=Object.fromEntries(Object.entries(ON).filter(([id])=>id!==ID));
   expect(normalizeFeatures(omitted as FeatureSet)[ID]).toBe(false);

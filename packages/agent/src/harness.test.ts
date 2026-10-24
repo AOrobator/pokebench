@@ -1026,6 +1026,13 @@ for(const recover of [false,true])it(`delivers shop refusal feedback through pin
   expect(delivered).not.toContain("generic briefing");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
   expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(recover?["warning","recovered"]:["warning","supervisor"]);
+  if(!recover){
+   const note=events.find(e=>e.type==="loop_guard"&&e.phase==="supervisor");
+   if(note?.type!=="loop_guard")throw Error("missing nonterminal shop note");
+   expect(note.message).toContain("run continues");
+   const deliveredNote=seen[8]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
+   expect(deliveredNote).toContain(note.message);
+  }
   expect(seen).toHaveLength(recover?3:10);expect(presses).toBe(recover?1:0);
   expect(events.filter(e=>e.type==="button_press").map(e=>e.buttons)).toEqual(recover?[["B"]]:[]);
  }finally{rmSync(root,{recursive:true,force:true});}

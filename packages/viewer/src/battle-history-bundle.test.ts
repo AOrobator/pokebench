@@ -5,7 +5,7 @@ import {dependencyProblems} from "@pokebench/agent/features";
 import {armPreset,controlBaseProblems,parseFixedDefinition} from "./fixed-design.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 const IDS=["leader-loss-immediate-v1","battle-action-history-v1","leader-preparation-comparison-v1"] as const;
-const RECIPES = [["bundle-v-control",122],["bundle-v-control-2h",62],["bundle-cook-1h",120],["whole-map-cook-1h",120],["whole-map-pair-2h",59],["gym-rustboro-torchic",55],["gym-rustboro-torchic-healed",55]] as const;
+const RECIPES = [["bundle-v-control",119],["bundle-v-control-2h",61],["bundle-cook-1h",120],["whole-map-cook-1h",120],["whole-map-pair-2h",59],["gym-rustboro-torchic",55],["gym-rustboro-torchic-healed",55]] as const;
 const read=(p:string)=>readFileSync(new URL(`../../../${p}`,import.meta.url),"utf8");
 it("future current recipes enable factual history in bundle only, preserve the pinned control base, and satisfy dependencies",()=>{
  for(const id of IDS)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);

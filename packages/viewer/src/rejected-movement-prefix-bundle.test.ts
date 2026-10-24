@@ -4,7 +4,7 @@ import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "rejected-movement-prefix-v1";
-const RECIPES = [["bundle-v-control",109],["bundle-cook-1h",108],["whole-map-cook-1h",108],["whole-map-pair-2h",47],["bundle-v-control-2h",49],["glm53-flash-4h",92]] as const;
+const RECIPES = [["bundle-v-control",106],["bundle-cook-1h",108],["whole-map-cook-1h",108],["whole-map-pair-2h",47],["bundle-v-control-2h",48],["glm53-flash-4h",92]] as const;
 
 // the operator 2026-10-22: turn the longest-valid-prefix walk on in the bundle arm; the control arm keeps it off.
 describe("rejected movement prefix bundle activation", () => {

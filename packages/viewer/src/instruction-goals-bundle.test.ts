@@ -2,7 +2,7 @@ import {readFileSync,readdirSync} from "node:fs";
 import {expect,it} from "vitest";
 import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 import {dependencyProblems,playHarnessFeatures} from "@pokebench/agent/features";
-import {playTools} from "../../agent/src/play-config.js";
+import {playTools,playSystemPrompt} from "../../agent/src/play-config.js";
 import {armPreset,controlBaseProblems,parseFixedDefinition} from "./fixed-design.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 const IDS=["instruction-goal-ledger-v1","menu-option-tool-v1"] as const;
@@ -20,6 +20,13 @@ it("activates two independent tools only in generated bundle arms and preserves 
    const names=playTools(features);expect(names.includes("review_goals")).toBe(arm==="bundle");expect(names.includes("select_menu_option")).toBe(arm==="bundle");
    // Disabling either new feature leaves the other one's model tool available.
    if(arm==="bundle"){
+    expect(features["harness-trust-v1"],`${name}/${phase.id}`).toBe(true);
+    for(const scene of ["overworld","battle","menu","clock","naming","unknown"] as const){
+     const prompt=playSystemPrompt(features,null,scene);
+     expect(prompt,`${name}/${phase.id}/${scene}`).toContain("Historical place mentions are context; you interpret and maintain your active goals in the instruction ledger.");
+     expect(prompt,`${name}/${phase.id}/${scene}`).not.toContain("Each result starts with it as the Story goal line");
+     expect(prompt,`${name}/${phase.id}/${scene}`).not.toContain("A SUPERVISOR note under the header says");
+    }
     expect(playTools({...features,"instruction-goal-ledger-v1":false})).toContain("select_menu_option");
     expect(playTools({...features,"menu-option-tool-v1":false})).toContain("review_goals");
    }

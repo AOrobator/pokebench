@@ -137,3 +137,18 @@ it("records dialogue triggered by menu confirmation through the ordinary checked
 });
 
 it("rejects combining the model ledger with the legacy catalog objective owner",()=>{expect(dependencyProblems({...features(true),"objective-tracking-v1":true})).toContain("instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)");});
+
+it("does not advance initial field dialogue to a menu and choose an unseen option",async()=>{
+ const s=setup(false),base=state,said="Please select the POKéNAV.";
+ let current:typeof state={...base,screen:"overworld",in_battle:false,field_controls_locked:true,active_ui:null,world_context:{objects:base.world_context?.objects??[],triggers:[],dialogue:said,message:{phase:"button_wait",cursor:said.length,ready:true,identity:"a".repeat(64)}}};
+ const presses:string[]=[],transcripts:BodyOf<"dialogue_auto_advance">[]=[];let seq=81000;
+ const see=()=>Promise.resolve({content:[{type:"text" as const,text:current.world_context?.dialogue??"menu observation"}],details:{state:current}});
+ const run=(buttons:readonly string[])=>{for(const button of buttons){presses.push(button);current=button==="B"?base:button==="DOWN"?{...base,active_ui:{...must(base.active_ui),selected:"POKéNAV",details:{...must(base.active_ui).details,selected_index:3}}}:{...base,active_ui:null};}return see();};
+ const observe:AgentTool={name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:()=>see()};
+ const press:import("./game-tools.js").CheckedPressTool={name:"press",label:"Press",description:"Press",parameters:Type.Object({buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT"]),{minItems:1,maxItems:8}),walking:Type.Optional(Type.Boolean())}),execute:(_id,args)=>run(args.buttons),executeChecked:(_id,args,check)=>{check(current);return run(args.buttons);}};
+ const recorder={...s.record,recordState:()=>({seq:seq++,turn:1}),recordDialogueAutoAdvance:(body:Omit<BodyOf<"dialogue_auto_advance">,"type"|"turn">)=>{transcripts.push({type:"dialogue_auto_advance",turn:1,...body});return {seq:seq++,turn:1};},lowHpTrainerWarning:()=>{},peopleIdCard:()=>{},destinationCitation:()=>{},unfinishedActivity:()=>{}};
+ const tools=playGameTools([observe,press],{...features(false,true),"dialogue-auto-advance-v1":true,"field-dialogue-phase-v1":true,"pending-field-dialogue-v1":true},{read:()=>Promise.resolve(current)},recorder);
+ const result=await must(tools.find(tool=>tool.name==="select_menu_option")).execute("no-unseen-menu",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});
+ expect(presses).toEqual([]);expect(transcripts).toEqual([]);
+ expect(result.details).toMatchObject({state:{active_ui:null,world_context:{dialogue:said}},menu_selection:{buttons:[],confirmation_sent:false}});
+});

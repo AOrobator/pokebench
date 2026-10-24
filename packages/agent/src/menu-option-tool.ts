@@ -61,9 +61,11 @@ export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptio
   }catch(error){if(error instanceof MenuStop){result=await ports.observe(id,signal);state=stateOf(result);return finish(error.message);}throw error;}
  }};
 }
-export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:MenuOptionPorts["gate"]):AgentTool[]{
+export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:MenuOptionPorts["gate"],observeOnly?:AgentTool):AgentTool[]{
  if(!on)return [...tools];
- const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
+ // The menu decision must not advance field dialogue via the wrapped observe.
+ // Keep the dialogue-aware checked press so text caused by final A is still recorded.
+ const press=tools.find(t=>t.name==="press"),observe=observeOnly??tools.find(t=>t.name==="observe");
  if(press===undefined||!isCheckedPress(press)||observe===undefined)throw new Error("select_menu_option requires checked press and observe");
  const annotate=(r:AgentToolResult<unknown>):AgentToolResult<unknown>=>{
   const d:unknown=r.details;if(typeof d!=="object"||d===null||!("state"in d)||d.state==null)return r;

@@ -156,6 +156,7 @@ def recorded_off(seq: int) -> frozenset[str]:
             "elevation-aware-map-v1",
             "screen-center-player-v1",
             "blackout-transition-v1",
+            "player-elevation-readout-v1",
         }
     )  # type: ignore[arg-type]
 

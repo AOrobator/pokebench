@@ -62,3 +62,5 @@ Offline browser proof: owned scratch startViewer with no queue or inference/game
 COMMIT: test: cover drawn whiteout transition evidence (SHA in git log).
 
 Prefix-index static audit found four later assertions hidden behind earlier failing assertions (raw ALL_ON coherent-observation list, explorer/instruction normalized-key lists, readout-truth mapped switch IDs). Applied the same original-length conversion, preserving exact indices/values. No new test owner files beyond the existing mechanical set. COMMIT: test: retain remaining normalized registry prefix positions (SHA in git log).
+
+The narrowed audit's first run had 62 passes and one legacy prompt feature-list failure after its earlier position check was repaired. Added v2 to that test's existing frozen historical feature exclusion list, as required for new default-OFF switches; prompt digests/expected features remain unchanged. COMMIT: test: keep historical prompt feature set frozen (SHA in git log).

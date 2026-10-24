@@ -23,3 +23,12 @@ Game source: clean pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, fi
 
 ## Gates and review
 Pending. No experiments authorized or launched.
+
+- GREEN implementation: loaded A-activated object branch reuses approaches/checked navigation/checked press. New checked navigation option limits each segment to one action. Shared 32-attempt bound includes rejected input preconditions. Stops on identity, native recipient, field ownership, map and script/sight boundaries. Tool description and overworld prompt describe the bound only ON.
+- Default-OFF registry/preset/flag/viewer default and harness metadata wired. Five maintained bundle definitions (bundle-v-control, bundle-v-control-2h, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h): shared base false, bundle switch true. Historical/versioned protocols and control-base bytes unchanged. No active run/preset copies touched.
+- Eight adversarial checks performed and restored: production switch wiring; native-slot/elevation/activation identity operands; native recipient; pre-input drift; one-command segment limit; 32-attempt cap. Each targeted regression failed. Restoration passed. /tmp/moving-npc-mutations.json and /tmp/moving-npc-mutation-*.log retain separate receipts.
+- Headless Chromium explainer checks at 1280/1440/375, expanded/collapsed, with no page errors or document overflow. Inspected all six screenshots; corrected mobile source hash wrapping and gave diagram its own horizontal scroll. Local proof /tmp/moving-npc-page-proof.json and main runs/mockups/moving-npc-target-v1/shots.
+- Initial full checks retained: preset schema requiredness was corrected; legacy fixture lists/catalog count updated without changing frozen prompt digests. Concurrent full-test/coverage attempts exposed unrelated child-startup output race and full-explainer rendering timeout. No production runner/test timing was changed. Clean sequential gates pending.
+
+- Final focused file: 24 passed, including stationary ON/OFF exact result, continuous drift bound, long route total cap, native recorder delivery, and sight exclusion/refusal from production-shaped game-server reply. /tmp/moving-npc-sight2.log.
+- Coordinator requested no heavy checks pending explicit CPU admission; stopped only this chat's owned qualification tree (root 62401) before test/coverage stages. No gameplay or shared viewer signals. Normal landing queue and designated viewer tree /private/tmp/pokebench-viewer-qwen36-20261024 apply. Final full gates await CPU window; no clean-gate claim.

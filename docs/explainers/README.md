@@ -286,3 +286,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Player elevation](player-elevation-readout-v1.html): verified player height in the Position line; known own-tile elevation 0/15 rule. Default OFF, bundle only.
 - [Party menu message](party-menu-message-v1.html)
 - [Factual drought briefing](drought-progress-facts-v1.html): battle holds and factual recorded intervals, preserving observed options; default OFF.
+
+- [Moving NPC target](moving-npc-target-v1.html): bounded live-position follow for a selected loaded object; default OFF, bundle ON.

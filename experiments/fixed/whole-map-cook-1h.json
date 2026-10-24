@@ -260,7 +260,8 @@
    "trainer-observed-party-v1": false,
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
-   "leader-preparation-comparison-v1": false
+   "leader-preparation-comparison-v1": false,
+   "moving-npc-target-v1": false
   }
  },
  "switches": [
@@ -388,7 +389,8 @@
   "trainer-observed-party-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
-  "leader-preparation-comparison-v1"
+  "leader-preparation-comparison-v1",
+  "moving-npc-target-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

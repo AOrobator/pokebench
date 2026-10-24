@@ -613,7 +613,7 @@ export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
 // trainer-sight-check-v2: navigate_to_target asks for trainer-sight-check-v1's check on its first walk; exclude is the
 // object it goes to talk to (its own sight is no reason to refuse).
 export interface TargetSightCheck {readonly confirm:boolean;readonly exclude:number|null}
-export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
+export interface CheckedNavigationOptions {readonly commandLimit?:1;readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
@@ -783,8 +783,8 @@ async function checkRoute(sight:TrainerSightPorts|undefined,gate:StoryBattleHeal
 export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const mode:NavigationMode=ports.fullMap===true?"full":ports.visitedTerrain===true?"visited":"local",truth=ports.truth===true;
  const limit=mode==="local"?MAX_NAVIGATION_COMMANDS:MAX_FULL_ROUTE_COMMANDS;
- const bound=ports.maxCommands??limit;
- if(!Number.isInteger(bound)||bound<1||bound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
+ const defaultBound=ports.maxCommands??limit;
+ if(!Number.isInteger(defaultBound)||defaultBound<1||defaultBound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
  const incumbent=mode==="full"?FULL_DESCRIPTION:mode==="visited"?VISITED_DESCRIPTION:LOCAL_DESCRIPTION;
  const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
@@ -797,6 +797,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const bounded=ports.triggerBoundary===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
  const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
+  const bound=checkedOptions.commandLimit??defaultBound;
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   // window-escape-route-v1: once the local window has no route, this call plans over the whole current map.
   let active:NavigationMode=mode;

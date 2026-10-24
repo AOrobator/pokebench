@@ -34,7 +34,7 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/levelup-box-54a7.json").
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
 RECORDED_OFF = (
-    frozenset({"coherent-battle-observation-v1"})
+    frozenset({"coherent-battle-observation-v1", "player-elevation-readout-v1"})
     | frozenset(FIXTURE["recorded_off"])
     | {
         SWITCH,
@@ -227,7 +227,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-48] == SWITCH
+    assert SERVER_FEATURES[34] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

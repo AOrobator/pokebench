@@ -30,10 +30,10 @@ it("starts OFF for the next run and links its card to the tracked explainer", ()
   expect(html).toContain("No new story milestone, level-up, trainer win or full heal in the last 30 actions");
 });
 
-it("is on only in the bundle arm of the bundle-v-control recipes, appended last, with the control base unchanged", () => {
-  for (const name of ["bundle-v-control", "bundle-v-control-2h"]) {
+it("is on only in the bundle arm of the bundle-v-control recipes, at its original position, with the control base unchanged", () => {
+  for (const [name,index] of [["bundle-v-control",112],["bundle-v-control-2h",52]] as const) {
     const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
-    expect(definition.switches.filter(id=>id!=="native-task-goal-retirement-v1").filter(id=>id!=="trainer-observed-party-v1").at(-13), name).toBe(ID);
+    expect(definition.switches.at(index), name).toBe(ID);
     expect(definition.base.features[ID], name).toBe(false);
     expect(definition.onInBoth, name).not.toContain(ID);
     expect(definition.offInBoth, name).not.toContain(ID);

@@ -106,7 +106,7 @@ describe("gym-readiness-readout-v1 wiring",()=>{
   expect(await plain()).toBe("Location: RUSTBORO CITY GYM\nPosition: 5,19");
  });
  it("is registered as a bundle-only agent switch, off by default, needing nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-96)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(162)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({needs:null});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(FEATURES.some(f=>f.id===ID)).toBe(true);

@@ -376,6 +376,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "trainer-observed-party-v1":"trainer-observed-party-v1.html",
+ "player-elevation-readout-v1":"player-elevation-readout-v1.html",
  "campaign-story-milestones-v1":"campaign-progress-clock-v1.html",
  "campaign-progress-clock-v1":"campaign-progress-clock-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",

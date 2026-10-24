@@ -143,7 +143,7 @@ import {playSystemPrompt} from "./play-config.js";
 import {CYCLE_STOP_SENTENCE} from "./navigation.js";
 it("registers the default-OFF treatment and keeps OFF prompt bytes",()=>{
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
- expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"bounded-navigation-v1"});expect(featureInfo(ID).description).toContain(" Off: ");expect(SERVER_FEATURES).not.toContain(ID);
+ expect(SWITCHABLE_FEATURES.at(247)).toBe(ID);expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"bounded-navigation-v1"});expect(featureInfo(ID).description).toContain(" Off: ");expect(SERVER_FEATURES).not.toContain(ID);
  expect(flagFeatures(flags)[ID]).toBe(false);const {[ID]:priorValue,...oldPreset}=flagFeatures(flags);expect(priorValue).toBe(false);expect(normalizeFeatures(oldPreset)[ID]).toBe(false);
  const on={...features,[ID]:true};expect(playHarnessFeatures(on,null)).toContain(ID);expect(playHarnessFeatures(features,null)).not.toContain(ID);
  expect(playSystemPrompt(features,null)).not.toContain(CYCLE_STOP_SENTENCE);expect(playSystemPrompt(on,null)).toContain(CYCLE_STOP_SENTENCE);expect(playSystemPrompt(on,null).replace(`\n\n${CYCLE_STOP_SENTENCE}`,"")).toBe(playSystemPrompt(features,null));

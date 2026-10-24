@@ -192,3 +192,6 @@ Additional direct human confirmation was independently read from coordinator cha
 
 Prepared passive landing proof now identifies the actual 8790 listener and its serving tree, rather than assuming a stale tree path, and checks 1280/1440/375 widths. Read-only protection preparation found 17 relevant process identities, six known lease files and env/PAUSE/STOP hashes, plus the controller log tail. Landing checks will take fresh before/after baselines. The existing prepare lock is held only during the single refresh, following the recovery protocol. These preparation scripts have not performed a whiteout landing or refresh.
 COMMIT: merge: integrate qualified serial-test recovery (SHA in git log).
+
+Integrated Item 3's final closure evidence commit `ef2bac15e8309b2143c1bd06629882814693dd45`, a docs-only successor of `65fc7dd6`. Its owner reports the existing 429-source viewer proof and pixel inspection complete, retaining the unrelated `/api/models` 502 limitation; no duplicate refresh occurred. This normal branch merge adds no behavior. Current whiteout full qualification must bind to this actual latest main; the earlier READY identity is superseded before any gate starts.
+COMMIT: merge: include final drought closure evidence (SHA in git log).

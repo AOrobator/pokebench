@@ -231,7 +231,8 @@
    "away-note-buildings-v1": false,
    "current-map-display-name-v1": false,
    "window-escape-route-v1": false,
-   "trainer-observed-party-v1": false
+   "trainer-observed-party-v1": false,
+   "player-elevation-readout-v1": false
   }
  },
  "switches": [
@@ -331,7 +332,8 @@
   "away-note-buildings-v1",
   "current-map-display-name-v1",
   "window-escape-route-v1",
-  "trainer-observed-party-v1"
+  "trainer-observed-party-v1",
+  "player-elevation-readout-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

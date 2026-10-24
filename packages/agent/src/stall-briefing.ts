@@ -77,9 +77,11 @@ export class StallBriefing {
  private holding:"battle"|"trainer"|"heal"|null=null;
  private heldLevel=0;
  private hold():"battle"|"trainer"|"heal"|null {
-  if(!this.features["drought-battle-heal-hold-v1"])return null;
   const s=this.last;
-  if(s!==null&&battleOnScreen(s,this.features["owned-battle-context-v1"]))return "battle";
+  const battle=s!==null&&battleOnScreen(s,this.features["drought-progress-facts-v1"]||this.features["owned-battle-context-v1"]);
+  if(this.features["drought-progress-facts-v1"]&&battle)return "battle";
+  if(!this.features["drought-battle-heal-hold-v1"])return null;
+  if(battle)return "battle";
   // An unbeaten trainer's sight script holds the field before the battle starts (trainer_opponent is set, not defeated).
   if(s?.field_controls_locked===true&&s.trainer_opponent?.defeated===false&&!s.trainer_opponent.battle_active)return "trainer";
   return this.healTrip!==null?"heal":null;
@@ -219,8 +221,8 @@ export class StallBriefing {
    if(level>this.heldLevel){
     this.heldLevel=level;
     const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
-    const what=turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
-    this.heldDrought?.(`Not sent (drought-battle-heal-hold-v1): ${what}, but ${why}.`,[from??seq,seq]);
+    const what=this.features["drought-progress-facts-v1"]&&holding==="battle"?`the active drought clock reached ${turns?`${String(level*STALL_DROUGHT_ACTIONS)} actions`:`${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`}`:turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
+    this.heldDrought?.(`Not sent (${this.features["drought-progress-facts-v1"]&&holding==="battle"?"drought-progress-facts-v1":"drought-battle-heal-hold-v1"}): ${what}, but ${why}.`,[from??seq,seq]);
    }
    return;
   }

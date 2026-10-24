@@ -93,7 +93,7 @@ it("registers as a continuation-memory consumer so restored event identity follo
 
 it("ignores successful tool results without a matching dialogue episode",async()=>{
  emitted.length=0;const tools=withInterfaceGuidance([tool(()=>STATE)],true,recorder);
- expect(()=>send(event({v:1,run:"2026-10-24T08-12-35_qwen36-gpu1_0517",seq:39430,t:"2026-10-24T11:35:42.000-04:00",type:"tool_result",turn:1027,id:"unmatched",name:"observe",is_error:false,duration_ms:1,frames:[],text:"observation"}))).not.toThrow();
+ expect(()=>{send(event({v:1,run:"2026-10-24T08-12-35_qwen36-gpu1_0517",seq:39430,t:"2026-10-24T11:35:42.000-04:00",type:"tool_result",turn:1027,id:"unmatched",name:"observe",is_error:false,duration_ms:1,frames:[],text:"observation"}));}).not.toThrow();
  expect(await execute(tools)).toBe("observation");
 });
 it("production factory preserves checked press arguments and annotates its result",async()=>{

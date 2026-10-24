@@ -85,7 +85,7 @@ it("ignores raw task churn for warnings and recovery with the existing field and
  };
  const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
  for(let i=0;i<3;i++)press(snapshot(i),snapshot(i));
- expect(notes.filter(n=>n.kind==="ineffective"&&n.phase==="warning"),`battle=${inBattle} enabled=${enabled}`).toHaveLength(enabled?1:0);
+ expect(notes.filter(n=>n.kind==="ineffective"&&n.phase==="warning"),`battle=${String(inBattle)} enabled=${String(enabled)}`).toHaveLength(enabled?1:0);
  if(!enabled)continue;
  detector.context();press(snapshot(3),snapshot(4));
  expect(notes.map(n=>n.phase)).toEqual(["warning"]);
@@ -100,11 +100,11 @@ it.each([false,true])("does not fabricate recovery from raw task churn after an 
  if(recorded.type!=="state"||!("battle" in recorded)||recorded.battle==null||recorded.battle.diagnostic!==null)throw Error("fixture must contain a validated native battle");
  const battle=recorded.battle,notes:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notes.push(n),{bagLoops:true,ineffectiveLoops:true,battles:true,interactions:true});
  const snapshot=(taskData:number,pocket="TMS HMS"):GameStateSnapshot=>{const state=bag(pocket);return {...state,in_battle:inBattle,...(inBattle?{battle}:{}),active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:inBattle?1:0,task_data:[taskData]}}};};
- const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});
+ const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
  for(let i=0;i<3;i++)press(snapshot(0),snapshot(0));
- expect(notes.map(n=>n.phase),`established warning battle=${inBattle}`).toEqual(["warning"]);
+ expect(notes.map(n=>n.phase),`established warning battle=${String(inBattle)}`).toEqual(["warning"]);
  detector.context();press(snapshot(3),snapshot(4));
- expect(notes.map(n=>n.phase),`raw task churn battle=${inBattle}`).toEqual(["warning"]);
+ expect(notes.map(n=>n.phase),`raw task churn battle=${String(inBattle)}`).toEqual(["warning"]);
  press(snapshot(5),snapshot(6,"BERRIES"));
- expect(notes.map(n=>n.phase),`visible pocket progress battle=${inBattle}`).toEqual(["warning","recovered"]);
+ expect(notes.map(n=>n.phase),`visible pocket progress battle=${String(inBattle)}`).toEqual(["warning","recovered"]);
 });

@@ -109,14 +109,16 @@ describe(ID,()=>{
   expect(b.battles()[0]?.whiteout?.party).toEqual([]);
   expect(b.recap(field)).not.toContain("restored your whole party");
  });
- it("keeps recap previews read-only and commits the same evidence once",()=>{
+ it.each([{name:"sampled transition",state:field},{name:"native receipt only",state:change(field,{money:null,party:[],blackout_receipt:receipt})}])("keeps $name recap previews read-only and commits the same evidence once",({state})=>{
   const b=fold([loss]);
-  expect(b.recap(field)).toContain("and whited out");
-  expect(b.recap(field)).toContain("and whited out");
+  const preview=b.recap(state);
+  expect(preview).toContain("and whited out");
+  expect(b.recap(state)).toBe(preview);
   expect(b.battles()).toHaveLength(0);
-  b.observe(field);b.observe(field);
+  b.observe(state);b.observe(state);
   expect(b.battles()).toHaveLength(1);
-  expect(b.recap(field)).toContain("and whited out");
+  expect(b.battles()[0]?.whiteout?.turn).toBe(loss.turn);
+  expect(b.recap(state)).toBe(preview);
  });
  it.each([false,true])("delivers the corrected recorded note through pinned pi before the next decision, v2=%s",async on=>{
   const observers:((e:RunEvent)=>void)[]=[],recorded:string[]=[],sent:string[]=[];

@@ -545,6 +545,10 @@ export class SupervisorBriefing {
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
+  if(this.features["drought-progress-facts-v1"]&&(stall.kind==="milestone_drought"||stall.kind==="action_drought")){
+   const interval=stall.kind==="milestone_drought"?`milestone counted by the active drought clock for ${String(stall.minutes)} minutes of play`:`milestone, level-up, trainer win or full heal counted by the active drought clock in the last ${String(stall.actions)} actions`;
+   return this.bearings(`SUPERVISOR: No new ${interval} (stall briefing, ${String(calls)} calls into the run).`,true,true);
+  }
   if(stall.kind==="action_drought")return this.droughtFacts(stall.actions,calls);
   if(this.features["positive-supervisor-v1"])return this.positive(stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name}.`:"");
   const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name} without leaving it, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
@@ -583,24 +587,24 @@ export class SupervisorBriefing {
   return lines.join("\n");
  }
 
- private focused(headline:string):string {
+ private focused(headline:string,factual=false):string {
   const ui=this.screenNow?.ui;
   const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${this.features["briefing-repeat-count-v1"]&&t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ")||"none recorded";
   const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,true,true).slice(0,3);
   const goal=this.goal??"none recorded";
-  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}${this.unfinishedLine()}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
+  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}${this.unfinishedLine()}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose ${factual?"an action":"a different action"}. End the next reply with one listed tool call.`;
  }
 
- private bearings(headline:string,stall=false):string {
-  if(this.features["supervisor-briefing-v2"])return this.focused(headline);
-  if((stall||this.features["loop-guard-screen-v1"])&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
+ private bearings(headline:string,stall=false,factual=false):string {
+  if(this.features["supervisor-briefing-v2"])return this.focused(headline,factual);
+  if((stall||this.features["loop-guard-screen-v1"])&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui,factual);
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   const instruction=`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`;
   const exits=this.staying()?"":`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
   // briefing-exits-v1: the stall briefing leads with the unentered exits and the latest story step's dialogue.
   const first=stall&&this.exits!==null;
-  return `${headline} What you have been trying is not working, so do not try it again.
+  return `${headline}${factual?"":" What you have been trying is not working, so do not try it again."}
 Stop and get your bearings:
 - Where you are: ${this.where()}
 ${first?`${exits}${instruction}`:""}- Last story progress: ${this.lastProgress()}
@@ -609,11 +613,11 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Cha
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-${this.untalked()}${stall?`${this.staying()?"":`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n`}${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+${this.untalked()}${stall?`${this.staying()?"":`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n`}${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. ${factual?"Choose your next action from the current game readout.":"Make a new plan that is different from what you have been trying, and say which untried option you will try first."} The run continues.`;
  }
 
  // stall-briefing-v1 inside an owned interface: what the interface shows and how the game lets you finish it.
- private interfaceBearings(headline:string,ui:OwnedInterface):string {
+ private interfaceBearings(headline:string,ui:OwnedInterface,factual=false):string {
   const tries=[...this.uiTried.slice().reverse(),...this.tried.slice().reverse()];
   const tried=tries.length===0?"nothing recorded":tries.map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
@@ -625,7 +629,7 @@ ${this.untalked()}${stall?`${this.staying()?"":`- Not tried yet on other maps yo
   // pokeemerald naming_screen.c: START moves the cursor to OK and A on OK saves; SaveInputText keeps the
   // destination unchanged when the text is empty, and ChangePokemonNickname preloads it with the current name.
   const finish=ui.naming?`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}\n`:"";
-  return `${headline} What you have been trying is not working, so do not try it again.
+  return `${headline}${factual?"":" What you have been trying is not working, so do not try it again."}
 Stop and get your bearings:
 - Where you are: in the ${ui.name} (screen ${this.screenNow?.state.screen??"unknown"}); your last field position was ${this.where()}
 - Open interface: ${shows}
@@ -634,7 +638,7 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Sto
 - Recent dialogue you were shown, newest first: ${this.told()}
 - Dialogue shown with your last story step${this.instructionText()}
 - What you tried recently, newest first: ${tried}
-Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say how you will finish or leave this interface first. The run continues.`;
+Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. ${factual?"Choose your next action from the current game readout.":"Make a new plan that is different from what you have been trying, and say how you will finish or leave this interface first."} The run continues.`;
  }
 
  textOnly(replies:number,note:number,limit:number,replyFailuresEndRun=true):string {

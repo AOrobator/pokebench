@@ -215,7 +215,7 @@
    "rejected-movement-step-v1": false,
    "observed-field-dialogue-v1": false,
    "story-goal-player-name-v1": false,
-   "cut-off-reply-feedback-v1": false,
+   "cut-off-reply-feedback-v1": true,
    "trainer-sight-check-v2": false,
    "auto-talk-v2": false,
    "map-wide-triggers-v1": false,
@@ -352,7 +352,6 @@
   "rejected-movement-step-v1",
   "observed-field-dialogue-v1",
   "story-goal-player-name-v1",
-  "cut-off-reply-feedback-v1",
   "trainer-sight-check-v2",
   "auto-talk-v2",
   "map-wide-triggers-v1",
@@ -443,7 +442,8 @@
   "trigger-navigation-boundary-v1",
   "bag-pocket-truth-v1",
   "bag-press-feedback-v1",
-  "bag-ineffective-loop-v1"
+  "bag-ineffective-loop-v1",
+  "cut-off-reply-feedback-v1"
  ],
  "phases": [
   {

@@ -236,7 +236,8 @@
    "bag-pocket-truth-v1": true,
    "bag-press-feedback-v1": true,
    "bag-ineffective-loop-v1": true,
-   "citation-evidence-v1": false
+   "citation-evidence-v1": false,
+   "cut-off-reply-feedback-v1": true
   }
  },
  "switches": [
@@ -377,7 +378,8 @@
   "field-move-gates-v1",
   "bag-pocket-truth-v1",
   "bag-press-feedback-v1",
-  "bag-ineffective-loop-v1"
+  "bag-ineffective-loop-v1",
+  "cut-off-reply-feedback-v1"
  ],
  "phases": [
   {
@@ -425,5 +427,6 @@
    "lane": "A",
    "arm": "control"
   }
- ]
+ ],
+ "bundleMaxTokens": 8192
 }

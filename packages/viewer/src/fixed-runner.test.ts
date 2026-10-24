@@ -828,8 +828,8 @@ it("enables the seven training and catching switches only in the bundle of the f
  }
 });
 
-it("enables the six GLM-run fixes only in the bundle of the five current bundle definitions, keeps them OFF in the next-run default",()=>{
- const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"] as const;
+it("enables five GLM-run fixes only in the bundle; cut-off feedback is shared; next-run defaults stay OFF",()=>{
+ const ids=["story-goal-player-name-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"] as const;
  for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   const control=armFeatures(def,"control"),bundle=armFeatures(def,"bundle"),controlBits=armFeatureBits(def,"control"),bundleBits=armFeatureBits(def,"bundle");
@@ -952,4 +952,22 @@ it("enables observed trainer Pokémon only in every current bundle comparison ar
   expect(armFeatureBits(def,"bundle")["trainer-observed-party-v1"],id).toBe(true);
   expect(armFeatureBits(def,"control")["trainer-observed-party-v1"],id).toBe(false);
  }
+});
+
+it("rehearses bundle-only reply caps through persisted presets and chained fake trials",async()=>{
+ const original=definition();
+ const def=definition({bundleMaxTokens:8192,base:{...original.base,features:{...original.base.features,"cut-off-reply-feedback-v1":true}},onInBoth:[...original.onInBoth,"cut-off-reply-feedback-v1"],lanes:original.lanes.slice(0,1),phases:[{id:"cook",perArm:1,maxWallMs:60000,primary:false,start:{kind:"boot"}}]});
+ const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot);
+ try{
+  expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>false,pid:77})).toBe("finished");
+  expect(host.launches).toHaveLength(2);expect(host.maxRunning).toBe(1);
+  expect(outcomes(readLedger(join(dir,"trials.jsonl")))).toHaveLength(2);
+  for(const launch of host.launches){
+   const preset:unknown=JSON.parse(readFileSync(launch.presetPath,"utf8"));
+   const arm=(JSON.parse(launch.env["POKEBENCH_EXPERIMENT"]??"{}") as {arm:string}).arm;
+   expect(preset).toMatchObject({sampling:{maxTokens:arm==="bundle"?8192:4096},features:{"cut-off-reply-feedback-v1":true}});
+  }
+  const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
+  expect(index.runs).toHaveLength(2);expect(experimentsAudit(runsRoot,index)).toEqual([]);
+ }finally{rmSync(runsRoot,{recursive:true,force:true});}
 });

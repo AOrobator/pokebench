@@ -14,7 +14,7 @@ Ten pinned source candidates in runs/reviews/direct-main-batch-20261024/manifest
 - [x] GOALMENU: codex/instruction-goal-ledger at 4d3c5041302693bf5a654f6b0a7ce28ceb9c0c61
 - [x] BAGS: codex/bag-pocket-bugfixes at f62f90f780c0a47dce8c11f23327174eccfe4cba
 - [x] CITATION: codex/citation-evidence at 855f9e611c514713cb6805240a26fc032a9cf3af
-- [ ] GLM: codex/glm-reply-cap-feedback at 22747b80529d4bb4c95370fb9bc6020985fc8713
+- [x] GLM: codex/glm-reply-cap-feedback at 22747b80529d4bb4c95370fb9bc6020985fc8713
 - [ ] OFFLINEPARTY: codex/offline-party-context-repair at db5fdf33f81c29aabc530a716256f55e7fb16987
 - [ ] NPC_CONFIG: codex/moving-npc-target at e906b2dec61107f6bb389b6f0983538a2b6d532b
 
@@ -42,3 +42,5 @@ Deferred until all ten merges, per direct instruction. Then full normal test/lin
 - Goal/menu landedb3f20defa (5/10). Bags preserve three both-arm ON settings and incoming native bag/raw-task guard repair. Runtime server truth bit appended, defaultOFF schema/runtime+type/legacy exclusions unioned. Preserved stable partyindex83; source tuple88; observation105/guard69/guidance93. Protocol three-way source merge uses real prebatchbase for Git virtual conflicted-base JSON; no test execution.
 
 - Bags landedb47c0354b (6/10). Citation keeps structuredEvidence option plus all native/interface/model-goal wrappers and incoming AutoTalk caller schema fix. DefaultOFF/bundleON, guidancecount94. No checks run.
+
+- Citation landede68c4d8de (7/10). GLM cutoff forwarding unions new optional cap notice with instruction-goal context/tools in live+offline factories; retains explicit replay-note repair and per-protocol bundleMaxTokens. Config three-way merge keeps bag3 and cutoffbothON, preserves baseline sampling. No checks run.

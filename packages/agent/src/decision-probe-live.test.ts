@@ -21,6 +21,7 @@ const owner = vi.hoisted(() => ({
   inferences: 0,
   // cut-off-reply-feedback-v1: the scripted reply with no tool call stops at max_tokens instead of ending normally.
   cutOff: false,
+  textReplies: 1,
   contexts: [] as Context[],
   child: null as ChildProcess | null,
   resolve: null as ((value: RunEndReason) => void) | null,
@@ -73,7 +74,8 @@ vi.mock("./harness.js", async (load) => {
         ...options,
         streamFn: (_model, context) => {
           owner.contexts.push(JSON.parse(JSON.stringify({ systemPrompt: context.systemPrompt, messages: context.messages, tools: (context.tools ?? []).map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })) })) as Context);
-          const message = (SCRIPT[owner.inferences] ?? (() => assistant({ thinking: "Same.", toolCalls: [toolCall(`c${String(owner.inferences + 10)}`, "press", { buttons: ["A"] })], stopReason: "toolUse" })))();
+          const scripted = owner.inferences >= 3 && owner.inferences < 3 + owner.textReplies ? SCRIPT[3] : SCRIPT[owner.inferences];
+          const message = (scripted ?? (() => assistant({ thinking: "Same.", toolCalls: [toolCall(`c${String(owner.inferences + 10)}`, "press", { buttons: ["A"] })], stopReason: "toolUse" })))();
           owner.inferences++;
           const stream = createAssistantMessageEventStream();
           stream.push({ type: "done", reason: message.stopReason === "toolUse" ? "toolUse" : message.stopReason === "length" ? "length" : "stop", message });
@@ -116,7 +118,7 @@ PC.before = { ...PC.before, route103_rival: null, story_progress:null }; PC.afte
 // The same place once the box is closed: no message, field controls free.
 const FREE = { ...PC.before, field_controls_locked: false, world_context: { ...(PC.before.world_context as Record<string, unknown>), dialogue: null, message: null } };
 
-async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff = false): Promise<string> {
+async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff = false, failureLimit = 3, textReplies = 1): Promise<string> {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "decision-probe-"));
   owner.launched = false;
@@ -124,10 +126,11 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff
   owner.inferences = 0;
   owner.contexts = [];
   owner.cutOff = cutOff;
+  owner.textReplies = textReplies;
   const romPath = join(owner.root, "fixture.gba");
   writeFileSync(romPath, "test-owned ROM identity fixture");
   vi.stubEnv("POKEBENCH_ROM", romPath);
-  const preset = { version: 2, id: "probe", target: null, limits: { maxTurns, maxWallMs: 45 * 60_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 100 }, features };
+  const preset = { version: 2, id: "probe", target: null, limits: { maxTurns, maxWallMs: 45 * 60_000, failureLimit }, sampling: { thinkingLevel: "medium", maxTokens: 100 }, features };
   const path = join(owner.root, "preset.json");
   writeFileSync(path, JSON.stringify(preset));
   vi.stubEnv("POKEBENCH_PLAY_PRESET", path);
@@ -324,3 +327,60 @@ it("builds the run's tool definitions with ports that never touch a game", async
   expect(() => replay.recordState()).toThrow(/never execute/);
   expect(() => replay.recordDialogueAutoAdvance()).toThrow(/never execute/);
 });
+
+it.each([[false,false,true],[true,false,true],[true,true,true],[false,true,true],[true,false,false],[true,true,false]])("records and delivers recovery (feedback %s, breaker %s, cut-off %s)",async(on,breaker,cut)=>{
+ const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":on,"text-only-supervisor-v1":true,"fixed-point-breaker-v1":breaker};
+ const dir=await recordRun(features,6,cut,1);
+ const {parseRun,decisionContext,recordedFeatures}=await import("./decision-probe.js");
+ const run=parseRun(readFileSync(join(dir,"events.jsonl"),"utf8"));
+ const note=run.events.find(e=>e.type==="text_only_supervisor");
+ expect(note).toMatchObject({type:"text_only_supervisor",turn:4});
+ if(note?.type!=="text_only_supervisor")throw new Error("missing recorded supervisor");
+ if(on&&cut)expect(note.text).toContain("Your last reply reached the output limit (100 tokens)");
+ else expect(note.text).not.toContain("output limit");
+ expect(owner.contexts[4]?.messages).toContainEqual(expect.objectContaining({role:"user",content:note.text}));
+ const recovery=run.events.filter(e=>e.type==="loop_breaker"&&e.trigger==="no_tool_call"&&e.stage===2);
+ expect(recovery).toHaveLength(breaker?1:0);
+ for(const e of recovery)if(e.type==="loop_breaker"){
+  if(on&&cut)expect(e.text).toContain("output limit (100 tokens)");else expect(e.text).not.toContain("output limit");
+  expect(owner.contexts[4]?.messages.filter(m=>m.role==="user"&&m.content===e.text)).toHaveLength(1);
+ }
+ const ports=await framePorts(dir);
+ const flipped=await decisionContext(run,5,{...recordedFeatures(run),"cut-off-reply-feedback-v1":!on},ports,"replayed");
+ const userTexts=flipped.messages.flatMap(m=>m.role==="user"&&typeof m.content==="string"?[m.content]:[]);
+ expect(userTexts.filter(t=>t.includes("output limit (100 tokens)"))).toHaveLength(!on&&cut?(breaker?2:1):0);
+ for(const derivation of breaker?["replayed"] as const:["recorded","replayed"] as const){
+  const rebuilt=await decisionContext(run,5,recordedFeatures(run),ports,derivation);
+  expect(sent({systemPrompt:rebuilt.systemPrompt,messages:[...rebuilt.messages],tools:[...rebuilt.tools]})).toEqual(sent(owner.contexts[4] ?? {systemPrompt:"",messages:[],tools:[]}));
+ }
+},60000);
+
+it("consumes each supervisor note once when replay changes consecutive cut-off notices",async()=>{
+ const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":true,"text-only-supervisor-v1":true};
+ const dir=await recordRun(features,7,true,1,2);
+ const probe=await import("./decision-probe.js");
+ const run=probe.parseRun(readFileSync(join(dir,"events.jsonl"),"utf8"));
+ const notes=run.events.filter(e=>e.type==="text_only_supervisor");
+ expect(notes.map(e=>e.note)).toEqual([1,2]);
+ const flipped=await probe.decisionContext(run,6,{...probe.recordedFeatures(run),"cut-off-reply-feedback-v1":false},await framePorts(dir),"replayed");
+ const delivered=flipped.messages.flatMap(m=>m.role==="user"&&typeof m.content==="string"&&m.content.includes("text-only supervisor, note")?[m.content]:[]);
+ expect(delivered).toHaveLength(2);
+ expect(delivered[0]).toContain("text-only supervisor, note 1 of 3");
+ expect(delivered[1]).toContain("text-only supervisor, note 2 of 3");
+ for(const text of delivered)expect(text).not.toContain("output limit");
+},60000);
+
+it("attaches a due supervisor to the reply that earned it at the normal three-reply threshold",async()=>{
+ const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":true,"text-only-supervisor-v1":true};
+ const dir=await recordRun(features,8,true,3,3);
+ const probe=await import("./decision-probe.js");
+ const run=probe.parseRun(readFileSync(join(dir,"events.jsonl"),"utf8"));
+ expect(run.events.filter(e=>e.type==="text_only_supervisor").map(e=>e.turn)).toEqual([6]);
+ const ports=await framePorts(dir);
+ for(const derivation of ["recorded","replayed"] as const){
+  const rebuilt=await probe.decisionContext(run,7,probe.recordedFeatures(run),ports,derivation);
+  expect(sent({systemPrompt:rebuilt.systemPrompt,messages:[...rebuilt.messages],tools:[...rebuilt.tools]})).toEqual(sent(owner.contexts[6] ?? {systemPrompt:"",messages:[],tools:[]}));
+ }
+ const flipped=await probe.decisionContext(run,7,{...probe.recordedFeatures(run),"cut-off-reply-feedback-v1":false},ports,"replayed");
+ expect(flipped.messages.flatMap(m=>m.role==="user"&&typeof m.content==="string"&&m.content.includes("output limit")?[m.content]:[])).toEqual([]);
+},60000);

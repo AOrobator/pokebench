@@ -132,12 +132,13 @@ export class FixedPointBreaker {
  private streak=0;
  private names:readonly string[]=[];
  private silent=0;
+ private cutOff=false;
  // stage 3: which loop the counts belong to, so it acts once per loop.
  private streakFrom="";
  private calls=0;
  // Replies already reported as collapsed, by tool call id (or timestamp for a reply with no tool call).
  private readonly reported=new Set<string>();
- constructor(private readonly features:FeatureSet,private readonly recorder:BreakerRecorder){this.cycle=features["short-cycle-fixed-point-v1"];}
+ constructor(private readonly features:FeatureSet,private readonly recorder:BreakerRecorder,private readonly cutOffNotice?:string){this.cycle=features["short-cycle-fixed-point-v1"];}
 
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started"in event){
@@ -148,6 +149,7 @@ export class FixedPointBreaker {
   if(event.type==="assistant"){
    if(event.stop_reason==="error"||event.stop_reason==="aborted")return;
    if(this.cycle&&this.turn!==null&&!this.turn.done)this.remember(null,[]);
+   this.cutOff=event.stop_reason==="length"&&event.tool_calls.length===0;
    if(event.tool_calls.length===0){this.silent++;if(this.cycle)this.remember(null,[]);return;}
    this.silent=0;this.calls++;
    this.turn={calls:JSON.stringify(event.tool_calls.map(c=>[c.name,c.args])),ids:new Set(event.tool_calls.map(c=>c.id)),states:new Map(),cycle:new Map(),done:false};
@@ -235,7 +237,7 @@ export class FixedPointBreaker {
   if(this.silent>0){
    // Stage 1 left the reply out (as fresh-retry-v1 does); its nudge is still the newest one.
    const last=messages.findLastIndex(m=>"role"in m&&m.role==="assistant");
-   const text=noToolNote(this.silent);
+   const text=this.cutOff&&this.cutOffNotice!==undefined?this.cutOffNotice:noToolNote(this.silent);
    this.recorder.recordLoopBreaker({stage:2,trigger:"no_tool_call",repeats:this.silent,collapsed:0,text});
    const nudge=messages.findLastIndex((m,index)=>index>last&&"role"in m&&m.role==="user"&&(m.content===NUDGE||m.content===TEXT_ONLY_REMINDER));
    const note:AgentMessage={role:"user",content:text,timestamp:Date.now()};
@@ -307,9 +309,9 @@ export class FixedPointBreaker {
  }
 }
 
-export function fixedPointBreaker(features:FeatureSet,recorder:BreakerRecorder&{subscribe(fn:(event:RunEvent)=>void):void}):FixedPointBreaker|null {
+export function fixedPointBreaker(features:FeatureSet,recorder:BreakerRecorder&{subscribe(fn:(event:RunEvent)=>void):void},cutOffNotice?:string):FixedPointBreaker|null {
  // duplicate-turn-collapse-v1 needs the same turn records the breaker keeps; it applies only stage 1.
  if(!features["fixed-point-breaker-v1"]&&!features["duplicate-turn-collapse-v1"])return null;
- const breaker=new FixedPointBreaker(features,recorder);recorder.subscribe(event=>{breaker.observe(event);});
+ const breaker=new FixedPointBreaker(features,recorder,cutOffNotice);recorder.subscribe(event=>{breaker.observe(event);});
  return breaker;
 }

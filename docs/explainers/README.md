@@ -281,4 +281,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Observed battle action history](battle-action-history-v1.html) — Keep what the game printed beside what the next observation measured.
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.
 
+- [Navigation refusal history](refusal-ledger-v1.html): default-OFF quoted route refusals, repeated attempts and current-observation precedence.
+
 - [Party menu message](party-menu-message-v1.html)

@@ -68,7 +68,7 @@ const press=(g:ReturnType<typeof game>,features=on,pick:RandomStarter="MUDKIP",h
 
 describe(ID,()=>{
  it("is registered last, default off everywhere, with an Off: clause",()=>{
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(240)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"RANDOM STARTER PICK"});
   expect(featureInfo(ID).description).toContain(" Off: the model chooses its starter");
   const {[ID]:_omitted,...omitted}=on;

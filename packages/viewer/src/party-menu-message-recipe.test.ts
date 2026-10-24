@@ -1,3 +1,4 @@
+import {recipeText} from "../test-support/recipe-text.js";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
@@ -9,7 +10,7 @@ const ID="party-menu-message-v1";
 const recipeIds=["bundle-v-control-2h","bundle-v-control"] as const;
 for(const recipe of recipeIds){
  it(`${recipe}: enables party message only in bundle and transports the exact server flag`,()=>{
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${recipe}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${recipe}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(id=>id===ID)).toEqual([ID]);
   expect(def.base.features[ID]).toBe(false);
   expect(def.offInBoth).not.toContain(ID);

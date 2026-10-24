@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // same-target-no-progress-v1 (the operator approved the guard 2026-10-20). Run 2026-10-20T16-14-34_qwen36-gpu0_a8f9 from
 // turn 1282 (tool_call seq 41089) called navigate_to (29,16) on RUSTURF TUNNEL 39 times; every call ended on one of
@@ -316,7 +317,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
  });
  it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
-   const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+   const fixed=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
    expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
    expect(fixed.base.features["deterministic-loop-guard-v1"]).toBe(true);
   }

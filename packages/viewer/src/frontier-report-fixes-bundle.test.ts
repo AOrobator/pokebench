@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { describe, expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
@@ -11,7 +11,7 @@ const SWITCHES = [
   ["window-escape-route-v1", "bounded-navigation-v1"],
 ] as const;
 const RECIPES = [["bundle-v-control",109],["bundle-cook-1h",110],["whole-map-cook-1h",110],["whole-map-pair-2h",49],["bundle-v-control-2h",51],["glm53-flash-4h",93]] as const;
-const read = (path: string): string => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+const read = (path: string): string => recipeText(new URL(`../../../${path}`, import.meta.url),"utf8");
 
 describe("frontier report fixes bundle activation", () => {
   it("are off in the next-run defaults", () => {

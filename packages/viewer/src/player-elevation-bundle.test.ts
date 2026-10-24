@@ -1,3 +1,4 @@
+import {recipeText} from "../test-support/recipe-text.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
@@ -11,8 +12,8 @@ it("keeps the next-run default OFF", () => {
 });
 for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic", "gym-rustboro-torchic-healed"]) {
  it(`${name}: normalized bundle alone enables player elevation at the server seam`, () => {
-  const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
-  expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
+  const { definition } = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8"));
+  expect(controlBaseProblems(definition, recipeText(new URL(`../../../${definition.controlBase.path}`, import.meta.url),"utf8"))).toEqual([]);
   for (const phase of definition.phases) {
    for (const arm of ["control", "bundle"] as const) {
     const features = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, arm)));
@@ -37,7 +38,7 @@ it.each([
  try {
   const starts = new Map<string, string>();
   for (const id of ["bundle-v-control-2h", "bundle-v-control", "glm53-flash-4h"]) {
-   const path = `experiments/fixed/${id}.json`, text = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+   const path = `experiments/fixed/${id}.json`, text = recipeText(new URL(`../../../${path}`, import.meta.url),"utf8");
    const { definition } = parseFixedDefinition(text);
    mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), text);
    const base = definition.controlBase.path; mkdirSync(dirname(join(root, base)), { recursive: true });

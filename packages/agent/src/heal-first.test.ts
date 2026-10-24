@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-first-v1 (the operator 2026-10-20 10:43 PM ET: "the heal first line needs to be in both control and the
 // bundle"). Probe story-battle-heal-first-20261020 (97a0 turn 157, 16 per arm, recorded features with gym-heal-warning-v1
@@ -304,7 +305,7 @@ describe("registry, fixed bundles and event",()=>{
   expect(playTools({...WIRE,[ID]:true})).toEqual(playTools({...WIRE,[ID]:false}));
  });
  it("is on in both arms of bundle-v-control, bundle-cook-1h, whole-map-cook-1h, glm53-flash-1h and whole-map-pair-1h-v7; its pending experiment's incumbent is the control arm with it off",()=>{
-  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
+  const read=(path:string):unknown=>JSON.parse(recipeText(new URL(`../../../${path}`,import.meta.url),"utf8"));
   for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","glm53-flash-1h","whole-map-pair-1h-v7"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
    expect(fixed.base.features[ID]).toBe(true);expect(fixed.onInBoth).toContain(ID);expect(fixed.switches).not.toContain(ID);expect(fixed.offInBoth).not.toContain(ID);

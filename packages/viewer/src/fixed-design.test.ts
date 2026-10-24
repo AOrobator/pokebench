@@ -1,4 +1,4 @@
-import {readFileSync} from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
@@ -260,8 +260,8 @@ it("stops the starter diagnostic without replacing its broad play goal",()=>{
 });
 
 it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced slots",()=>{
- const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8")).definition;
- const base=readFileSync(new URL("../../../experiments/fixed/control-bases/starter-decision-salience-control.json",import.meta.url),"utf8");
+ const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8")).definition;
+ const base=recipeText(new URL("../../../experiments/fixed/control-bases/starter-decision-salience-control.json",import.meta.url),"utf8");
  expect(controlBaseProblems(def,base)).toEqual([]);expect(def.switches).toEqual(["starter-decision-salience-v1"]);expect(def.plan).toHaveLength(16);
  expect(def.phases).toMatchObject([{perArm:8,primary:false,maxWallMs:300_000,start:{kind:"save_state",sha1:"0c34433cc305ea5de6fa69aa4a5612bf434a5714"}}]);
  expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
@@ -269,7 +269,7 @@ it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced s
 
 it("enables both navigation treatments only in evolving bundle arms, with unchanged control provenance",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  const def=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(def)).toEqual([]);
   for(const phase of def.phases){
    const control=armPreset(def,phase.id,"control"),bundle=armPreset(def,phase.id,"bundle");
@@ -282,7 +282,7 @@ it("enables both navigation treatments only in evolving bundle arms, with unchan
 
 it("enables pending field dialogue only in each evolving bundle and preserves control provenance",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const raw=readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
+  const raw=recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
   const def=parseFixedDefinition(raw).definition;
   expect(definitionProblems(def)).toEqual([]);
   expect(def.switches).toContain("pending-field-dialogue-v1");
@@ -290,36 +290,36 @@ it("enables pending field dialogue only in each evolving bundle and preserves co
    expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(false);
    expect(armPreset(def,phase.id,"bundle").features["pending-field-dialogue-v1"]).toBe(true);
   }
-  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  }
 });
 
 it("enables menu refusal recovery only in evolving bundle arms",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  const def=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(def)).toEqual([]);
   expect(def.switches).toContain("menu-refusal-recovery-v1");
   for(const phase of def.phases){
    expect(armPreset(def,phase.id,"control").features["menu-refusal-recovery-v1"]).toBe(false);
    expect(armPreset(def,phase.id,"bundle").features["menu-refusal-recovery-v1"]).toBe(true);
   }
-  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  }
 });
 
 it("operator promotion enables only the reminder in both canonical comparison arms",()=>{
  for(const name of ["bundle-v-control","bundle-v-control-2h","whole-map-pair-2h","whole-map-cook-1h","bundle-cook-1h"]){
-  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);
+  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);
   for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);
   for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){expect(d.switches).toContain(id);expect(armFeatures(d,"control")[id]).toBe(false);expect(armFeatures(d,"bundle")[id]).toBe(true);}
  }
 });
 
-it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});
+it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});
 
 it("normal bundle recipes enable named declines while control retains its previous contract",()=>{
  for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
-  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(d),name).toEqual([]);
   expect(armFeatures(d,"bundle")["move-learn-offer-identity-v1"],name).toBe(true);
   expect(armFeatures(d,"bundle")["move-learn-tool-v1"],name).toBe(true);
@@ -329,7 +329,7 @@ it("normal bundle recipes enable named declines while control retains its previo
 
 
 it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"])("future %s bundle credits earned campaign progress while control remains OFF",name=>{
- const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+ const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
  expect(definitionProblems(d),name).toEqual([]);
  expect(armFeatures(d,"bundle")["campaign-progress-clock-v1"],`${name}/bundle`).toBe(true);
  expect(armFeatures(d,"control")["campaign-progress-clock-v1"],`${name}/control`).toBe(false);
@@ -342,9 +342,9 @@ it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-co
 it("enables navigation cycle stopping only in the seven evolving bundle arms",()=>{
  const id="navigation-cycle-stop-v1";
  for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
-  const d=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(d),name).toEqual([]);expect(d.base.features[id]).toBe(false);expect(d.switches.filter(s=>s===id)).toEqual([id]);
   expect(armFeatures(d,"control")[id],name).toBe(false);expect(armFeatures(d,"bundle")[id],name).toBe(true);
-  expect(controlBaseProblems(d,readFileSync(new URL(`../../../${d.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
+  expect(controlBaseProblems(d,recipeText(new URL(`../../../${d.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
  }
 });

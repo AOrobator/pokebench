@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { describe, expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
@@ -10,10 +10,10 @@ const RECIPES = [["bundle-v-control",107],["bundle-cook-1h",109],["whole-map-coo
 describe("rejected movement prefix bundle activation", () => {
   for (const [name,index] of RECIPES) {
     it(`${name} enables it only in the normalized bundle arm, where the navigation guard it needs is on`, () => {
-      const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
+      const { definition } = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8"));
       expect(definition.switches.at(index)).toBe(ID);
       expect(definition.base.features[ID]).toBe(false);
-      expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
+      expect(controlBaseProblems(definition, recipeText(new URL(`../../../${definition.controlBase.path}`, import.meta.url),"utf8"))).toEqual([]);
       for (const phase of definition.phases) {
         const control = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")));
         const bundle = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")));

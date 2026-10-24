@@ -5,7 +5,7 @@ import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
 import {armFeatures,parseFixedDefinition,materializeFixedSource} from "./fixed-design.js";
-import {readFixedDefinition} from "./fixed-definition.js";
+import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
 import {definition} from "../test-support/fixed.js";
 const root=fileURLToPath(new URL("../../../",import.meta.url));
 function sources(){
@@ -57,4 +57,32 @@ it("all maintained future protocols reference one feature owner, including bundl
   const archived=readFileSync(join(root,`experiments/archive/fixed/${id}.json`),"utf8");
   expect(parseFixedDefinition(archived).definition.id).toBe(id);
  }
+});
+
+it("retired protocols remain readable for history but cannot be loaded for new launches",()=>{
+ for(const id of ["bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+  expect(()=>readFixedDefinition(root,id)).toThrow("no definition");
+  const historical=readFixedDefinition(root,id,true);
+  expect(historical.definition.id).toBe(id);expect(historical.featureRecipe).toBeNull();
+ }
+});
+
+it("uses the newer control baseline and retains explicit both-arm promotions",()=>{
+ const d=readFixedDefinition(root,"bundle-v-control").definition;
+ for(const arm of ["control","bundle"] as const){
+  const f=armFeatures(d,arm);
+  for(const id of ["full-map-navigation-v1","safe-navigation-strides-v1","semantic-navigation-v2","party-item-confirmation-v1","yes-no-answer-readout-v1","blackout-readout-v1","original-speed-pacing-v1","named-warp-destinations-v1","exit-labels-v2","gym-door-label-v1","trigger-navigation-boundary-v1"])expect(f[id],`${arm}: ${id}`).toBe(true);
+ }
+});
+it("rejects unsafe source and recipe identifiers before file access",()=>{
+ expect(()=>readFixedDefinition(root,"../outside")).toThrow("invalid definition or recipe id");
+ expect(()=>readFeatureRecipe(root,"../outside")).toThrow("invalid definition or recipe id");
+});
+
+it("reports missing resolvers, malformed configs and invalid config schemas",()=>{
+ const {source,recipe}=sources();
+ expect(()=>materializeFixedSource(source)).toThrow("requires a source loader");
+ expect(()=>parseFixedDefinition(JSON.stringify(source))).toThrow("requires a source loader");
+ expect(()=>parseFixedDefinition(JSON.stringify(source),()=>"not json")).toThrow();
+ expect(()=>parseFixedDefinition(JSON.stringify(source),()=>JSON.stringify({...recipe,features:{wrong:"not boolean"}}))).toThrow("invalid feature recipe");
 });

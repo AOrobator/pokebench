@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {gunzipSync} from "node:zlib";
 import {readFileSync} from "node:fs";
 import {describe,it,expect} from "vitest";
@@ -107,7 +108,7 @@ it("is default OFF, separately receipted and has a pending single-switch experim
  expect(featureInfo(id)).toMatchObject({group:"guard",needs:null});expect(featureInfo(id).description).toContain(" Off: ");
  expect(playHarnessFeatures({...LEGACY_ALL_ON,[id]:true},null)).toEqual([...playHarnessFeatures(LEGACY_ALL_ON,null),id]);
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const f=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const f=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(f.base.features[id]).toBe(false);expect(f.switches).toContain(id);
  }
 });

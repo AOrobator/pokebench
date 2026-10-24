@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
@@ -60,7 +61,7 @@ it("registers a default-OFF switch with state-only conflict and bundle treatment
  expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})["observed-instructions-v1"]).toBe(false);
  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":true},null)).toContain("observed-instructions-v1");
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires observed-instructions-v1 OFF");
- const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+ const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
  expect(bundle.base.features["observed-instructions-v1"]).toBe(false);expect(bundle.switches).toContain("observed-instructions-v1");
 });
 
@@ -141,7 +142,7 @@ it("registers two independent default-OFF repairs with separate pending experime
   expect(normalizeFeatures(legacy as typeof off)[id]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
   expect(playHarnessFeatures({...off,[id]:true},null)).toContain(id);
-  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[id]).toBe(false);expect(bundle.switches).toContain(id);
  }
 });

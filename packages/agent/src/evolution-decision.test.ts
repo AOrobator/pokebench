@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {describe,it,expect,vi} from 'vitest';
 import {IN_GAME} from '../test-support/events.js';
 import {Value} from 'typebox/value';
@@ -72,7 +73,7 @@ describe('explicit native evolution choice',()=>{
   expect(JSON.stringify(result.content)).toContain('Nothing pressed');
  });
  it('the intervention is on in both arms (operator decision 2026-10-20)',()=>{
-  const bundle=JSON.parse(readFileSync(new URL('../../../experiments/fixed/bundle-v-control.json',import.meta.url),'utf8')) as {switches:string[];base:{features:Record<string,boolean>};onInBoth:string[];offInBoth:string[]};
+  const bundle=JSON.parse(recipeText(new URL('../../../experiments/fixed/bundle-v-control.json',import.meta.url),'utf8')) as {switches:string[];base:{features:Record<string,boolean>};onInBoth:string[];offInBoth:string[]};
   expect(bundle.switches).not.toContain(ID);
   expect(bundle.base.features[ID]).toBe(true);
   expect(bundle.onInBoth).toContain(ID);expect(bundle.offInBoth).not.toContain(ID);

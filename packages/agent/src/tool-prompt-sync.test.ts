@@ -1,8 +1,9 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // tool-prompt-docs-v1 (tool-prompt-sync skill): every tool the model has is named in its system prompt.
 // Run d548 had choose_evolution in its tool list and not a word about it in its system prompt.
 import {createHash} from "node:crypto";
-import {readFileSync,readdirSync} from "node:fs";
+import {readdirSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
@@ -10,7 +11,7 @@ import {jitTools,playSystemPrompt,playTools,type PromptScene} from "./play-confi
 
 const ID="tool-prompt-docs-v1" as const;
 const root=(path:string):URL=>new URL(`../../../${path}`,import.meta.url);
-const json=(path:string):unknown=>JSON.parse(readFileSync(root(path),"utf8"));
+const json=(path:string):unknown=>JSON.parse(recipeText(root(path),"utf8"));
 type Fixed={base:{features:Record<string,boolean>};switches:string[]};
 const asFeatures=(raw:Record<string,boolean>):FeatureSet=>normalizeFeatures(Object.fromEntries(Object.entries(raw).filter(([id])=>(SWITCHABLE_FEATURES as readonly string[]).includes(id))) as Parameters<typeof normalizeFeatures>[0]);
 

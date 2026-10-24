@@ -14,7 +14,11 @@ describe("experiment cohort definitions and labels", () => {
     writeFileSync(join(runs, "launch-receipts", "a", "manifest.json"), JSON.stringify({ id: "factorial", label: "Factorial (Think Fast)" }));
     writeFileSync(join(runs, "launch-receipts", "b", "manifest.json"), JSON.stringify({ id: "plain", label: "" }));
     writeFileSync(join(runs, "launch-receipts", "c", "manifest.json"), JSON.stringify({ id: "other", label: "factorial" }));
+    mkdirSync(join(dir,"archive/fixed"),{recursive:true});
+    writeFileSync(join(dir,"archive/fixed/retired.json"),JSON.stringify({id:"retired",title:"Retired protocol"}));
+    writeFileSync(join(dir,"archive/fixed/same.json"),JSON.stringify({id:"same",title:"Older title"}));
     const defs = experimentDefinitions(dir, runs);
+    expect(defs.get("retired")).toEqual({id:"retired",title:"Retired protocol"});
     expect(defs.get("same")).toEqual({ id: "same", title: "Fixed title" });
     expect(defs.has("big")).toBe(false);
     expect(defs.get("Factorial (Think Fast)")).toEqual({ id: "factorial", title: "Factorial (Think Fast)" });

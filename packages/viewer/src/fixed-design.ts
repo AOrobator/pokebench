@@ -60,6 +60,22 @@ const draftShape = {
 };
 export const FixedDraftSchema = Type.Object({ ...draftShape, seed: Type.Optional(Type.String({ pattern: "^[0-9a-f]{16}$" })) }, closed);
 export const FixedDefinitionSchema = Type.Object({ ...draftShape, seed: Type.String({ pattern: "^[0-9a-f]{16}$" }), plan: Type.Array(SlotSchema) }, closed);
+export const FeatureRecipeSchema=Type.Object({version:Type.Literal(1),id:Name,romSha1:draftShape.romSha1,controlBase:draftShape.controlBase,features:draftShape.base.properties.features,switches:draftShape.switches,offInBoth:draftShape.offInBoth,onInBoth:draftShape.onInBoth},closed);
+const protocolShape=Type.Omit(Type.Object(draftShape,closed),["controlBase","switches","offInBoth","onInBoth","base"]).properties;
+const protocolBase=Type.Omit(draftShape.base,["features"]).properties;
+const FeatureSourceSchema=Type.Object({...protocolShape,base:Type.Object(protocolBase,closed),featureRecipe:Name,seed:Type.Optional(Type.String({pattern:"^[0-9a-f]{16}$"})),plan:Type.Optional(Type.Array(SlotSchema))},closed);
+export type FeatureRecipe=Static<typeof FeatureRecipeSchema>;
+export function materializeFixedSource(value:unknown,readRecipe?:(id:string)=>string):unknown {
+ if(typeof value!=="object"||value===null||!("featureRecipe" in value))return value;
+ if(!Value.Check(FeatureSourceSchema,value))throw new FixedDesignError("invalid feature-referenced protocol; keep all feature settings in its recipe");
+ if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${value.featureRecipe} requires a source loader`);
+ const recipe:unknown=JSON.parse(readRecipe(value.featureRecipe));
+ if(!Value.Check(FeatureRecipeSchema,recipe))throw new FixedDesignError("invalid feature recipe");
+ if(recipe.id!==value.featureRecipe)throw new FixedDesignError("feature recipe identity differs from its reference");
+ if(recipe.romSha1!==value.romSha1)throw new FixedDesignError("feature recipe ROM differs from the protocol");
+ const {featureRecipe,...protocol}=value;void featureRecipe;
+ return {...protocol,controlBase:recipe.controlBase,base:{...value.base,features:recipe.features},switches:recipe.switches,offInBoth:recipe.offInBoth,onInBoth:recipe.onInBoth};
+}
 export type FixedDefinition = Static<typeof FixedDefinitionSchema>;
 export type FixedLane = Static<typeof LaneSchema>;
 export type FixedPhase = Static<typeof PhaseSchema>;
@@ -232,20 +248,22 @@ export function definitionProblems(def: FixedDefinition): string[] {
   return [...new Set(problems)];
 }
 
-export function parseFixedDefinition(text: string): { definition: FixedDefinition; sha256: string } {
+export function parseFixedDefinition(text: string, readRecipe?:(id:string)=>string): { definition: FixedDefinition; sha256: string } {
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch (error) {
     throw new FixedDesignError(`not JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
+  let recipeText:string|null=null;
+  value=materializeFixedSource(value,id=>{if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${id} requires a source loader`);recipeText=readRecipe(id);return recipeText;});
   if (!Value.Check(FixedDefinitionSchema, value)) {
     const [first] = Value.Errors(FixedDefinitionSchema, value);
     throw new FixedDesignError(`not a fixed-run definition: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);
   }
   const problems = definitionProblems(value);
   if (problems.length > 0) throw new FixedDesignError(problems.join("\n"));
-  return { definition: value, sha256: createHash("sha256").update(text).digest("hex") };
+  return { definition: value, sha256: createHash("sha256").update(recipeText===null?text:JSON.stringify([text,recipeText])).digest("hex") };
 }
 
 export function dryRunDefinition(def: FixedDefinition, wallMs: number, phaseId: string = def.phases[0]?.id ?? ""): FixedDefinition {

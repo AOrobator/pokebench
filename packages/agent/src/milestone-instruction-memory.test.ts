@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
@@ -37,7 +38,7 @@ it("defaults OFF, records the switch and enables only the bundle treatment",()=>
  expect(SWITCHABLE_FEATURES).toContain(id);
  expect(normalizeFeatures(featuresOf([]))[id]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
- const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+ const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
  expect(bundle.base.features[id]).toBe(false);expect(bundle.switches).toContain(id);
 });
 it("production chain delivers and records the selected compact text; OFF is byte-identical",async()=>{

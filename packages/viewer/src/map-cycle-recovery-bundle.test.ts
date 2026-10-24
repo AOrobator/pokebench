@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { describe, expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { dependencyProblems } from "@pokebench/agent/features";
@@ -14,7 +14,7 @@ const controlBases = new Map<string, string>();
 function definitionOf(name: string): ReturnType<typeof parseFixedDefinition>["definition"] {
   let definition = definitions.get(name);
   if (definition === undefined) {
-    definition = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")).definition;
+    definition = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8")).definition;
     definitions.set(name, definition);
   }
   return definition;
@@ -22,7 +22,7 @@ function definitionOf(name: string): ReturnType<typeof parseFixedDefinition>["de
 function controlBaseOf(path: string): string {
   let text = controlBases.get(path);
   if (text === undefined) {
-    text = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+    text = recipeText(new URL(`../../../${path}`, import.meta.url),"utf8");
     controlBases.set(path, text);
   }
   return text;

@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {attachLoopGuard,Governor} from "./harness.js";
@@ -96,7 +97,7 @@ describe("trigger-script-loop-v1",()=>{
  });
  it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
   expect(featureInfo("trigger-script-loop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
-  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features["trigger-script-loop-v1"]).toBe(false);expect(bundle.switches).toContain("trigger-script-loop-v1");
   expect(readFileSync(new URL("./live.ts",import.meta.url),"utf8")).toContain('features["trigger-script-loop-v1"]');
  });

@@ -112,11 +112,13 @@ describe("refusal ledger production context",()=>{
   const original=JSON.parse(readFileSync(new URL("../test-support/beliefs-sh02.json",import.meta.url),"utf8")) as Fixture;
   const prior=original.events.filter(e=>e.turn<=88),s=setup(),previous=setup(OFF);s.send(prior);previous.send(prior);await previous.decide();
   const old=previous.bodies.at(-1);expect(old?.entries).toBe(1);expect(old?.text).toContain("PROF. BIRCH");
+  const oldEvidence=[1664,1676,1688,1700,1712,1724,1732,1736];
+  expect(old?.evidence).toEqual(oldEvidence);
   const native=prior.findLast(e=>e.type==="state"&&"started"in e);if(native===undefined||!("started"in native))throw new Error("source state missing");
   const refusals=fixture("2aca").map(e=>rewrite(e,{seq:e.seq+100000,...(e.type==="state"&&"started"in e?{story:native.story}:e.type==="tool_result"&&e.state_seq!==undefined?{state_seq:e.state_seq+100000}:{})}));
   s.send(refusals);await s.decide();
   const combined=s.bodies[0];expect(combined?.entries).toBe(2);expect(combined?.text).toContain("PROF. BIRCH");expect(combined?.text).toContain("Target (14,5)");
-  expect(combined?.evidence).toEqual([...new Set([...(old?.evidence??[]),...refusals.map(e=>e.seq)])].sort((a,b)=>a-b));
+  expect(combined?.evidence).toEqual([...new Set([...oldEvidence,...refusals.map(e=>e.seq)])].sort((a,b)=>a-b));
  });
  it("keeps a whole qualified semantic-object route refusal without asserting current presence",async()=>{
   const events=fixture("2aca"),s=setup(),state=events.findLast(e=>e.type==="state"),call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");

@@ -1,0 +1,12 @@
+# Bounded offline party context repair
+
+User approved implementing the proposed observation-only repair and rebuilding turn390/391 contexts, active runs untouched, zero model calls. Scope: decision-probe result-text reconstruction and its caller, tests, immutable generated contexts/receipts. Only the exact party-menu-message-v1 comparison may rerender the final readout of a retained composite result. Preserve recorded action/page prefix, recorded trajectory/images, automatic-action semantics; keep rejecting other feature deltas, missing native provenance, malformed readouts. No gameplay feature/default/recipe/tool/prompt changes, model inference or cloud review calls, main landing, viewer/service restarts, active run/lease/controller changes. User no-model-calls overrides required cloud-review workflow for this task: leave implementation on isolated branch, report local verification separately. No new harness switch: this is an offline reconstruction permission, original game switch remains the only treatment.
+
+- [ ] RED production probe/caller regressions and rejection cases
+- [ ] GREEN bounded final-readout reconstruction
+- [ ] Local checks, performed adversarial deletion/restoration
+- [ ] Rebuild turn390/391 baseline+partyON with sampler=null, verify prefix preservation/readout-only diffs, hashes/repeatability, zero network/model calls
+
+Worktree /private/tmp/pokebench-party-menu-message on codex/offline-party-context-repair, basea1d1fa3417d50ed140c2167b7dd185f1996de637. Earlier party implementation branch preserved. Original failed context attempt remains runs/party-menu-offline/context-build-1.log; sourceprefix SHA2565affa996488682c58d1d152b51915dd012565e8e63cc2c6dc7ad0623c243533b. Current source guard rejects composite results whenever visible readouts must rerender; auto branch skips fresh readout replacement. Native39391 turn384 battle_action has4pages/zeroautoB, finalstate39390/raw8300.
+
+RED: production probe seam regression and rejection tests added. Initial red-1 caught invalid synthetic raw path; corrected to schema-valid eight-digit path, preserved log. red-2:7failed/2passed, intended composite guard blocks party pair and missing/malformed provenance cases, while original no-rerender preservation and unsupported-change refusals pass. Executed only local Vitest, no gateway/server/model call, existing shared preparelock acquired nonblocking during test. COMMIT: `test(probe): expose bounded party composite replay gap`.

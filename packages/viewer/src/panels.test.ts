@@ -1724,3 +1724,10 @@ it("links player elevation to its exact tracked explainer without inventing hist
  }
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("tile that accepts any elevation (15)");
 });
+
+it.each(["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"])("links %s to its exact tracked explainer",id=>{
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

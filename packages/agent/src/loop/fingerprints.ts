@@ -59,9 +59,9 @@ export function semanticState(state: GameStateSnapshot, interactions = false, mo
     const learning = moveLearningState(state);
     if (learning !== null) return learning;
   }
-  if (state.in_battle) return null;
   const bag = bagLoops ? bagListState(state) : null;
   if (bag !== null) return stable({kind:"bag_list",...bag});
+  if (state.in_battle) return null;
   const ui = state.active_ui;
   if (state.screen === "naming" && state.naming?.ready === true) {
     const naming = state.naming;

@@ -19,10 +19,10 @@ feature-switch, feature-explainer, pokebench-game-state, pokebench-trace-forensi
 ## M1
 - [x] RED regression tests and commit
 - [x] GREEN implementation and production factory tests
-- [ ] Wiring deletion/restoration receipts
+- [x] Wiring deletion/restoration receipts
 - [x] Read-only recorded RAM and event replay
 - [x] Three linked explainers and background browser checks
-- [ ] Full test, lint, build, coverage and vendor gates
+- [x] Full test, lint, build, coverage and vendor gates
 - [ ] Principles and frozen multi-model review
 - [ ] Landing board, local landing and served-build check
 
@@ -40,3 +40,7 @@ Archived replay establishes readout/feedback/detection correctness, not gameplay
 - Browser: headless Chromium clicked all three actual Harness Config explainer links on an isolated scratch viewer. 1280/1440/375 captures, collapsed/expanded, viewed as QA sheets; no page errors. Artifacts in canonical ignored `runs/mockups/bag-bugfixes/`. Mobile diagrams adjusted to scroll within their own figure for readable labels. These are operator docs and offline replay, not new gameplay.
 
 - GREEN commit `16ab1a2a8`. Synced main `7133032cc`; recipe conflicts resolved by retaining main’s approved trigger-navigation both-arm promotion and adding the three bag repairs. Wiring-deletion checks each failed with its production operand removed, then passed restored, with hashes and separate logs in owned `runs/wiring-proof/`.
+
+- Post-sync full suites: agent4236 and viewer1838 (132 files) pass with maxWorkers4/testTimeout30000; Python4114 pass. On the busy shared host, the default parallel run hit an unrelated serial-comparison child-start timing assertion; reduced worker concurrency passed without changing tests. Full lint passes all languages. Post-sync coverage rerun includes bag feedback wording (explicitly names pocket/list changes). Prior coverage logs retain the first historical-recipe failure before restoration.
+- Browser final rehearsal uses a terminal-marked, explicitly manual offline scratch run, not a live game. It preserves copied historic observations and generates the new guard diagnostic through production code. Early scratch proof lacked a terminal marker and its game image was not valid recorded-frame proof; replaced it with ended replay. Verified trace warning, selected raw-event JSON, and all3 explainer click-throughs; no new timeline marks. Screenshots/receipts are not benchmark evidence.
+- Reviewer transport discovery: Claude dedicated review profile logged in; Cursor advertises Grok4.5. No local inference calls. Coordinator declines landing holds and requires normal board order; active gameplay must remain up. Authorized viewer restart owner will use `/private/tmp/pokebench-viewer-qwen36-20261024` once, after actual landing, unless coordinator assigns refresh elsewhere.

@@ -207,7 +207,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <li>With the switch ON, fixed-point recovery also names the configured cap after a cut-off; its recorded text matches the delivered message. With it OFF, both supervisors retain their previous text.</li>
 <li>The failure count is unchanged: a cut-off reply still counts as "reply hit max_tokens" toward the failure limit.</li>
 <li>A cut-off reply that did make a tool call gets no follow-up message, as before.</li>
-<li>Decision probes rebuild the same follow-up with <code>followUpText</code>: a recorded supervisor note after the reply first, then the notice for a <code>"length"</code> reply, else NUDGE. The probe builds the notice from the probed switches and the recorded max tokens.</li>
+<li>Decision probes rebuild the same follow-up with <code>followUpText</code>: a recorded supervisor note after the reply first, then the notice for a <code>"length"</code> reply, else NUDGE. Recorded reconstruction retains historical note text. Replayed probes bind each supervisor to its assistant turn, remove only the exact recorded cut-off prefix, and rebuild the notice from the probed switches and recorded token cap.</li>
 </ul>
 </section>
 

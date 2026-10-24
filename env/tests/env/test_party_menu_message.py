@@ -97,6 +97,7 @@ def test_invalid_message_or_printer_fails_closed(address, value):
     m.put(address, value)
     ui = corrected(m).active_ui
     assert ui.ready is None and ui.diagnostic
+    assert "message" not in ui.details
 
 
 def test_duplicate_missing_text_task_and_other_transition_never_claim_wait():
@@ -195,3 +196,17 @@ def test_earlier_retained_message_sample_has_the_same_verified_wait():
     m, _ = fixture(8360)
     ui = corrected(m).active_ui
     assert ui.ready is True and ui.selected == "A/B: CONTINUE"
+
+
+def test_a_rom_backed_printer_cannot_publish_stale_stringvar4():
+    m, _ = fixture()
+    m.put(PRINTER, struct.pack("<I", 0x08500000))
+    state = corrected(m)
+    assert state.active_ui.ready is None
+    assert "message" not in state.active_ui.details
+    assert "has no energy" not in (state.dialog or "")
+    m, _ = fixture()
+    m.put(PRINTER + 0x1B, b"\0")
+    state = corrected(m)
+    assert state.active_ui.ready is False
+    assert "message" not in state.active_ui.details

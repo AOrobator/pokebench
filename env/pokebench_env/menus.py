@@ -377,8 +377,10 @@ def read_menu_family(
                     message = decode_message(message_bytes)
                     if not message:
                         raise ValueError("Party item message buffer is empty")
-                    details["message"] = message
-                    if party_item_confirmation or (party_menu_message and function == 0x081B1C1D):
+                    return_message = party_menu_message and function == 0x081B1C1D
+                    if not return_message:
+                        details["message"] = message
+                    if party_item_confirmation or return_message:
                         from pokebench_env.battle_text import AUTO_SCROLL, PRINTERS, TEXT_FLAGS
 
                         printers = [t for t in tasks if t[1] == 0x081B1B8D]
@@ -393,6 +395,8 @@ def read_menu_family(
                                 raise ValueError("Party printer has invalid window/message cursor")
                             if printer[0x1C] not in range(7):
                                 raise ValueError("Party printer has unknown render state")
+                            if return_message:
+                                details["message"] = message
                             # text.c EXT_CTRL_CODE_PAUSE_UNTIL_PRESS consumes FC 09,
                             # then RENDER_STATE_WAIT polls A/B unless autoScroll is set.
                             payload = message_bytes[:cursor]

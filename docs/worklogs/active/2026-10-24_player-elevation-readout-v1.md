@@ -26,7 +26,7 @@ Native reference `/Users/user/dev/pokeemerald`, clean SHA731ad5bfd6e6f265508d0ef
 ## Milestones
 
 - [x] RED exact readout and production feature-wiring tests, committed failing
-- [ ] GREEN minimal formatter and registered switch, exact OFF parity
+- [x] GREEN minimal formatter and registered switch, exact OFF parity
 - [ ] Tracked themed explainer, native rerender/delivery/recorded replay proof; absolute headless only
 - [ ] Normal build/test/coverage/lint/vendor and protected trainer-card checks; no timeout/worker/retry/skip suppression
 - [ ] Full principles self-review and frozen independent cloud review with verified standing Grok outage procedure if needed
@@ -48,4 +48,11 @@ Pending implementation qualification. No external review dispatched.
 
 - [ ] Human approval required before archive.
 
-- RED: native fixture and focused regression committed before production changes. Python: 11 intended suffix/default failures, 3 passes. Agent: 2 intended registry/environment failures, 1 parity pass. Receipts runs/reviews/player-elevation-readout-v1/red-{python,ts}.log. Fixture is 34 RAM-only windows (56,372 bytes), uses an external identity-checked ROM; no ROM bytes or live execution. COMMIT: `test: freeze player elevation readout regression` (SHA in next log update).
+- RED: native fixture and focused regression committed before production changes. Python: 11 intended suffix/default failures, 3 passes. Agent: 2 intended registry/environment failures, 1 parity pass. Receipts runs/reviews/player-elevation-readout-v1/red-{python,ts}.log. Fixture is 34 RAM-only windows (56,372 bytes), uses an external identity-checked ROM; no ROM bytes or live execution. COMMIT: `test: freeze player elevation readout regression` (fa89027f3).
+
+- GREEN implementation: existing readout formatter adds own current elevation and only matching known tile0/15. Existing pregame/field-transition/invalid-position early returns already exclude invented height. No reader/state/observation/API/tool/prompt/planner changes. Registered server switch, historical/next-run defaultOFF, metadata, exact card and seven bundle/control definitions wired.
+- Focused: 14 new native/readout tests; registry+new observation 30/30; pinned-pi observation→next request→RunRecorder exact-text arms 2/2 (new agent suite total5); normalized bundles/default/card9 selected pass. Focused selection is not a full-suite gate. Old Python assertions now explicitly retain historical switchOFF or assert the new all-on Position; default server count83.
+- Seven operand deletions/restorations: suffix, own-tile coordinate comparison, tile0, tile15, current-versus-previous nibble, metadata and server-env. All intended RED then restored GREEN in mutation-v2-*.log and mutation-v2-receipts.json. Earlier own-tile attempt unexpectedly passed because same-length Python source changed/restored within the timestamp-cache interval; retained original passing receipt as unproven, then removed only own targeted private pyc on each mutation before qualification. No test suppression.
+- Shared registry seam: reused only exact positive-prefix numeric replacements from Item2 f3cc8b023d201f49657ace0f1ea3ed8bceb50716/a2fc732cd21240a2d1a79d380b4306b884a75991, not owner worklog/production/whiteout flag. 118 numeric lines/81 file-commit entries, receipts prefix-reuse.json. Own new SERVER_FEATURES append also made historical end-relative checks unstable; retained their fixed old prefix positions from length82 as absolute indices, expected IDs/ordered slices unchanged. Legacy helper/new-server-OFF expectations updated explicitly. No broad assertion replacement or protected trainer-card changes. Integration will prefer actual main once Item2 lands.
+- Explainer themed/checked; standalone8791 page returns200, all six1280/1440/375 collapsed/expanded screenshots captured and inspected through background image tools. Fixed a real expanded-phone source-SHA overflow, reran all six with no page overflow/errors. Wide diagram scrolls inside its own frame. Proof runs/mockups/player-elevation-readout-v1/shots. No foreground app/tab/desktop input.
+- Full build/test/coverage/lint/vendor, protected-card check, native full-archive independent receipt and scratch-viewer click/replay are pending. No full gate/review/landing readiness claimed.

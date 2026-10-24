@@ -68,8 +68,7 @@ def test_native_current_height_uses_low_nibble_instead_of_previous_height(memory
     state = native_state(changed)
     assert state.player_elevation == 4
     assert position(render(state, ON)) == (
-        "Position: X=17, Y=69, facing up, elevation 4, "
-        "on a tile that accepts any elevation (15)"
+        "Position: X=17, Y=69, facing up, elevation 4, on a tile that accepts any elevation (15)"
     )
 
 

@@ -70,7 +70,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:HBT,switchable:true,title:"HEAL BEFORE TRAINERS: BAG ITEMS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(POTION_SENTENCE);
-  expect(SWITCHABLE_FEATURES.at(-139)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(115)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-25)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);

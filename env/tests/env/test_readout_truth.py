@@ -150,6 +150,7 @@ def recorded_off(seq: int) -> frozenset[str]:
     return (
         frozenset(frame(seq)["recorded_off"])
         | NEW
+        | {"active-warp-exits-v1", "available-exits-presentation-v1"}
         | TRAINING
         | {
             "static-npc-template-approach-v1",

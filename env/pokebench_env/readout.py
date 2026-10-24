@@ -22,6 +22,8 @@ from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
 from pokebench_env.elevation_view import SWITCH as ELEVATION_MAP
 from pokebench_env.elevation_view import elevation_view
 from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
+from pokebench_env.exit_presentation import SWITCH as AVAILABLE_EXITS
+from pokebench_env.exit_presentation import split_exits
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
 from pokebench_env.field_moves import SWITCH as FIELD_MOVES
@@ -59,7 +61,7 @@ from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import ConnectionKey, SurfGate
-from pokebench_env.topology import Topology
+from pokebench_env.topology import Connection, Topology
 from pokebench_env.training_readout import exp_clause
 from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
@@ -177,6 +179,8 @@ SERVER_FEATURES = (
     "player-elevation-readout-v1",
     "party-menu-message-v1",
     "interface-guidance-v1",
+    "active-warp-exits-v1",
+    "available-exits-presentation-v1",
 )
 
 
@@ -206,7 +210,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1",
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1",
     )
     if raw == "":
         return frozenset()
@@ -319,6 +323,12 @@ def format_readout(
 ) -> str:
     if "ram-state-v1" in off:
         return ""
+    unavailable_warps: tuple[InteractionTarget, ...] = ()
+    unavailable_connections: tuple[Connection, ...] = ()
+    if AVAILABLE_EXITS not in off and EXIT_REACH not in off:
+        state, unavailable_warps, unavailable_connections = split_exits(
+            state, surf=SURF_GATE not in off
+        )
     truth = TRUTH not in off
     # readout-rules-in-prompt-v1: the fixed map rules are in the system prompt instead.
     rules = rules_in_prompt and RULES_FEATURE not in off
@@ -837,6 +847,37 @@ def format_readout(
             if label is not None:
                 return f"{direction} edge -> {label}"
         return f"{direction} edge -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    unavailable = []
+    if "world-targets-v1" not in off:
+        for t in unavailable_warps:
+            if t.destination is None:
+                continue
+            g, n, _ = t.destination
+            # Reuse the same provenance-filtered names as the original choices.
+            label = warp_labels.get((t.x, t.y)) or (
+                dynamic or "dynamic destination"
+                if (g, n) == (127, 127)
+                else names.get((g, n), f"map {g}/{n}")
+            )
+            reason = (
+                "crosses water you cannot cross yet"
+                if across(t)
+                else "not reachable on foot from where you stand"
+            )
+            unavailable.append(f"warp ({t.x},{t.y}) → {label} ({reason})")
+    if world_destinations and "world-destinations-v1" not in off:
+        for c in unavailable_connections:
+            reason = (
+                "crosses water you cannot cross yet"
+                if gate is not None and gate.blocks_connection(c.direction)
+                else "not reachable on foot from where you stand"
+            )
+            unavailable.append(
+                f"{c.direction} edge → {names.get(c.destination, c.destination_name)} ({reason})"
+            )
+    if unavailable:
+        lines.append("Unavailable from here: " + "; ".join(unavailable))
 
     if field is not None:
         lines.extend(field.lines(warp_name, connection_name))

@@ -378,6 +378,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "campaign-story-milestones-v1":"campaign-progress-clock-v1.html",
  "campaign-progress-clock-v1":"campaign-progress-clock-v1.html",
  "drought-progress-facts-v1":"drought-progress-facts-v1.html",
+ "active-warp-exits-v1":"active-warp-exits-v1.html",
+ "available-exits-presentation-v1":"available-exits-presentation-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",
  "whiteout-outcomes-v2":"whiteout-outcomes-v2.html",
  "blackout-transition-v1":"blackout-transition-v1.html",

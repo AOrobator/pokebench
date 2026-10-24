@@ -113,7 +113,12 @@ def test_observation_endpoint_delivers_names_only_when_explicitly_enabled(monkey
     memory.cells.update(m.cells)
     memory.put(SB1 + 4, bytes([1, 1]))
     for off, named in [("named-interactions-v1", False), ("", True)]:
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF",
+            ",".join(
+                filter(None, [off, "active-warp-exits-v1", "available-exits-presentation-v1"])
+            ),
+        )
         app = FastAPI()
         install_observation(app, Shot, memory.read, MAPS)
         status, _, body = get(app, "/pokebench/observation")

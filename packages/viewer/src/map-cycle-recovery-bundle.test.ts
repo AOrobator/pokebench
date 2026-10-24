@@ -6,7 +6,7 @@ import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-de
 
 const ID = "map-cycle-recovery-v1";
 // Current recipes whose bundle arm runs navigation-recovery-v1, the switch this one needs (glm53-flash-4h does not).
-const RECIPES = [["gym-rustboro-torchic-healed",49],["bundle-v-control",113],["bundle-cook-1h",114],["whole-map-cook-1h",114],["whole-map-pair-2h",53],["bundle-v-control-2h",55],["gym-rustboro-torchic",49]] as const;
+const RECIPES = [["gym-rustboro-torchic-healed",48],["bundle-v-control",112],["bundle-cook-1h",113],["whole-map-cook-1h",113],["whole-map-pair-2h",52],["bundle-v-control-2h",54],["gym-rustboro-torchic",48]] as const;
 
 // Each recipe is parsed once and each control base read once, however many cases use them.
 const definitions = new Map<string, ReturnType<typeof parseFixedDefinition>["definition"]>();

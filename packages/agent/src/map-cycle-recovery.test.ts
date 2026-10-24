@@ -282,7 +282,7 @@ describe("registry, presets and experiment",()=>{
  });
 
  it("is on in the bundle arm of every current recipe whose bundle runs navigation-recovery-v1, and nowhere else",()=>{
-  const on={"bundle-v-control":113,"bundle-cook-1h":114,"whole-map-cook-1h":114,"whole-map-pair-2h":53,"bundle-v-control-2h":55,"gym-rustboro-torchic":49};
+  const on={"bundle-v-control":112,"bundle-cook-1h":113,"whole-map-cook-1h":113,"whole-map-pair-2h":52,"bundle-v-control-2h":54,"gym-rustboro-torchic":48};
   for(const [name,index] of Object.entries(on)){
    const f=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
    expect(f.base.features[ID],name).toBe(false);expect(f.switches[index],name).toBe(ID);expect(f.switches,name).toContain("navigation-recovery-v1");

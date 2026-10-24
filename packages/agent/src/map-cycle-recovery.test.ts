@@ -290,6 +290,6 @@ describe("registry, presets and experiment",()=>{
    expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth,name).not.toContain(ID);
   }
   const glm=JSON.parse(recipeText(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")) as {switches:string[]};
-  expect(glm.switches).not.toContain(ID);
+  expect(glm.switches).toContain(ID);
  });
 });

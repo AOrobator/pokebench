@@ -82,10 +82,13 @@ function pressLine(text: string, line: string | null): string {
 const READOUT = /^Screen: /m;
 export const serverSwitch = (id: SwitchableFeature): boolean => id === "active-ui-ownership-v1" || SERVER_FEATURES.includes(id);
 
-async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, features: FeatureSet, ports: ProbePorts, visible: ReadonlySet<number>, rerender: boolean): Promise<Map<number, string>> {
+async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, features: FeatureSet, ports: ProbePorts, visible: ReadonlySet<number>, rerender: boolean, compositeReadouts: "party-menu-message-v1" | null): Promise<Map<number, string>> {
   const texts = new Map<number, string>();
-  const auto = parts.find((p) => p.auto && (AUTO_TEXT.some((id) => recorded[id] !== features[id]) || (rerender && visible.has(p.event.seq))));
+  const partyOnly = compositeReadouts === "party-menu-message-v1" && SWITCHABLE_FEATURES.every((id) => id === compositeReadouts || recorded[id] === features[id]);
+  const auto = parts.find((p) => p.auto && (AUTO_TEXT.some((id) => recorded[id] !== features[id]) || (rerender && visible.has(p.event.seq) && !partyOnly)));
   if (auto !== undefined) throw new Error(`tool_result seq ${String(auto.event.seq)} was auto-advanced through dialogue; its text cannot be re-derived under these switches yet`);
+  const composite = parts.filter((p) => p.auto && rerender && visible.has(p.event.seq));
+  if (composite.some((p) => p.event.is_error || p.after?.raw_ram === undefined || (p.event.text.match(/^Screen: /gm)?.length ?? 0) !== 1)) throw new Error("composite result has no supported final readout/raw RAM");
   const shown = new ShownStates();
   const switches = toolSwitches(features);
   const rendered = parts.filter((p) => rerender && visible.has(p.event.seq) && p.after?.raw_ram !== undefined && READOUT.test(p.event.text));
@@ -94,6 +97,11 @@ async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, 
   for (const part of parts) {
     let text = part.event.text;
     if (part.auto) {
+      if (rerender && visible.has(part.event.seq)) {
+        const readout = fresh.get(part.event.seq);
+        if (readout === undefined || !readout.startsWith("Screen: ")) throw new Error("composite result has no reconstructed final readout");
+        text = text.slice(0, text.search(READOUT)) + readout;
+      }
       if (part.after !== undefined) shown.record(part.after);
       texts.set(part.event.seq, part.event.is_error?text:starterDecisionText(text,part.after??null,features["starter-decision-salience-v1"]));
       continue;
@@ -155,7 +163,7 @@ const inert = (): Promise<never> => Promise.reject(new Error("probe tools never 
 export function probeTools(features: FeatureSet, recorder: Replay): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
   const context = contextTools(features, recorder, (m) => Promise.resolve(m));
-  const tools = playGameTools(base, features, { read: inert }, recorder,undefined,[],context.training);
+  const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert }, recorder,undefined,[],context.training);
   return { tools: [...tools, ...context.tools], transform: context.transformContext, window: context.window };
 }
 const asTool = (t: AgentTool): Tool => ({ name: t.name, description: t.description, parameters: t.parameters });
@@ -223,7 +231,7 @@ export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(t
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */
 export type Derivation = "recorded" | "replayed";
 /** `rerender` re-renders every readout still in the window from raw RAM with today's renderer; the probe sets it in both arms whenever a server switch flips, so the arms differ only by the switch. */
-export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false): Promise<DecisionContext> {
+export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null): Promise<DecisionContext> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
   if (target === undefined) throw new Error(`turn ${String(turn)} has no turn_start in this run`);
@@ -249,7 +257,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id, cutOff);
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
-  const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender);
+  const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender, compositeReadouts);
   const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff);
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start));

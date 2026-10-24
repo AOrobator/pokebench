@@ -144,7 +144,10 @@
       "dialog-button-b-v1": true,
       "just-in-time-prompt-v1": false,
       "just-in-time-prompt-v2": false,
-      "save-state-task-truth-v1": false
+      "save-state-task-truth-v1": false,
+      "bag-pocket-truth-v1": true,
+      "bag-press-feedback-v1": true,
+      "bag-ineffective-loop-v1": true
     }
   },
   "switches": [
@@ -157,7 +160,11 @@
     "story-destinations-v1",
     "just-in-time-prompt-v1"
   ],
-  "onInBoth": [],
+  "onInBoth": [
+    "bag-pocket-truth-v1",
+    "bag-press-feedback-v1",
+    "bag-ineffective-loop-v1"
+  ],
   "phases": [
     {
       "id": "pilot",

@@ -102,6 +102,7 @@ def read_state(
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         party_menu_message_enabled="party-menu-message-v1" not in off,
+        bag_pocket_truth_enabled="bag-pocket-truth-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,

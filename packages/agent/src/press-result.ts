@@ -1,14 +1,16 @@
+import { bagListState } from "./bag-list-state.js";
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 import { blockedBatchResult, refusedPressResult } from "./blocked-batch.js";
 import { scriptHeld } from "./loop-detection.js";
 
 
-function interfaceProjection(state: GameStateSnapshot): string | undefined {
+function interfaceProjection(state: GameStateSnapshot, bagFeedback = false): string | undefined {
   if (state.naming != null) return JSON.stringify(["naming",state.naming.text,state.naming.page,state.naming.column,state.naming.row,state.naming.key,state.naming.ready]);
   const ui=state.active_ui;
   if (ui == null || ui.diagnostic !== null || ui.ready === null) return undefined;
-  return JSON.stringify([ui.phase,ui.selected,ui.ready,ui.value ?? null]);
+  const bag = bagFeedback ? bagListState(state) : null;
+  return JSON.stringify([ui.phase,ui.selected,ui.ready,ui.value ?? null,...(bag === null ? [] : [bag])]);
 }
 
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
@@ -17,7 +19,7 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
 // topology say which map facts the model is shown. elevation (elevation-aware-map-v1) names elevation and slope
 // refusals, and the terrain cause of a single refused direction press.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean }
+export interface PressFacts { readonly bagPressFeedback?: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -207,10 +209,15 @@ function pressResultLine(before: GameStateSnapshot | undefined, after: GameState
 function basePressResult(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts): string {
   if (before === undefined) return "unavailable (no verified before snapshot)";
   if (before.active_ui?.diagnostic != null || after.active_ui?.diagnostic != null) return "unavailable (state coverage error; no verified interface outcome)";
-  const beforeUi=interfaceProjection(before), afterUi=interfaceProjection(after);
+  const beforeUi=interfaceProjection(before,show.bagPressFeedback), afterUi=interfaceProjection(after,show.bagPressFeedback);
   if (beforeUi !== undefined || afterUi !== undefined) {
-    if (beforeUi !== afterUi) return "interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)";
-    return "interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown)";
+    const bag = show.bagPressFeedback === true && (bagListState(before) !== null || bagListState(after) !== null);
+    if (beforeUi !== afterUi) return bag
+      ? "interface changed (phase, selection, value, readiness, or bag pocket/list state changed; input acceptance per frame unproven)"
+      : "interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)";
+    return bag
+      ? "interface unchanged (no net phase, selection, value, readiness, or bag pocket/list change; intermediate effects unknown)"
+      : "interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown)";
   }
 
   if (!before.started || !after.started || before.position === null || after.position === null ||

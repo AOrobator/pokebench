@@ -216,6 +216,7 @@ def read_menu_family(
     truth: bool = False,
     party_item_confirmation: bool = False,
     party_menu_message: bool = False,
+    bag_pocket_truth: bool = False,
 ) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
@@ -545,7 +546,11 @@ def read_menu_family(
                 raise ValueError("invalid Bag pocket")
             details.update(
                 {
-                    "pocket": ("ITEMS", "KEY ITEMS", "POKE BALLS", "TMS HMS", "BERRIES")[pocket],
+                    "pocket": (
+                        ("ITEMS", "POKE BALLS", "TMS HMS", "BERRIES", "KEY ITEMS")
+                        if bag_pocket_truth
+                        else ("ITEMS", "KEY ITEMS", "POKE BALLS", "TMS HMS", "BERRIES")
+                    )[pocket],
                     "bag_location": position[4],
                     "owner_task": task,
                 }

@@ -18,10 +18,10 @@ feature-switch, feature-explainer, pokebench-game-state, pokebench-trace-forensi
 
 ## M1
 - [x] RED regression tests and commit
-- [ ] GREEN implementation and production factory tests
+- [x] GREEN implementation and production factory tests
 - [ ] Wiring deletion/restoration receipts
-- [ ] Read-only recorded RAM and event replay
-- [ ] Three linked explainers and background browser checks
+- [x] Read-only recorded RAM and event replay
+- [x] Three linked explainers and background browser checks
 - [ ] Full test, lint, build, coverage and vendor gates
 - [ ] Principles and frozen multi-model review
 - [ ] Landing board, local landing and served-build check
@@ -33,3 +33,8 @@ Archived replay establishes readout/feedback/detection correctness, not gameplay
 - Created isolated managed worktree from main `ebed5a7f3`; branch `codex/bag-pocket-bugfixes`.
 
 - RED: agent 5 failing/1 passing; Python 5 failing/1 passing. Failures reproduce wrong enum, missing feature registration, empty-pocket comparison and missing ineffective warning. Viewer both-arm activation fails before config edits. Logs `/tmp/bag-fixes-red-{ts,py,viewer}.log`.
+
+- RED commit `bbe972887`. GREEN: targeted native-memory fixtures, agent production factory/replay and pinned pi message-path tests pass. `bag-ineffective-loop-v1` warning recorded at call 3 and delivered to decision 4; the saved original run remains unchanged.
+- Full agent suite 4236 passing; viewer coverage suite 1830 passing; Python 4114 passing. TS lint, Python ruff/format/mypy and build pass. Coverage: viewer lines98.04/branches91.67/functions95.18; Python lines97.39/branches93.38/functions100. Initial full-test failures were updated registry assertions, missing isolated-worktree runtime dependencies, historical recipe hashes and one overloaded 5s timing test; the 30s-budget full agent suite passed. No coverage excludes or thresholds changed.
+- Activation corrected after the immutable-recipe tests: 24 current recipes enable all three fixes in base.features and onInBoth. Three historical recipes (`bundle-cook-4h`, `bundle-cook-6h`, `bundle-cook-6h-v2`) retain their exact frozen bytes; pinned control bases and existing runs unchanged.
+- Browser: headless Chromium clicked all three actual Harness Config explainer links on an isolated scratch viewer. 1280/1440/375 captures, collapsed/expanded, viewed as QA sheets; no page errors. Artifacts in canonical ignored `runs/mockups/bag-bugfixes/`. Mobile diagrams adjusted to scroll within their own figure for readable labels. These are operator docs and offline replay, not new gameplay.

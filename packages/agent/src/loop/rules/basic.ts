@@ -71,10 +71,11 @@ export class BasicRules {
     private readonly ineffectiveLoops: boolean,
     private readonly transitions: boolean,
     private readonly moveLearning = false,
+    private readonly bagLoops = false,
   ) {}
 
   prepare(call: CompletedCall): BasicEvaluation {
-    const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions, this.moveLearning);
+    const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions, this.moveLearning, this.bagLoops);
     const game = !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "navigate_to_target" || call.name === "explore_map" || call.name === "observe");
     const changed = game && fingerprint !== null && fingerprint !== this.previous;
     const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
@@ -128,7 +129,7 @@ export class BasicRules {
     const action: unknown = call.name === "navigate_to" ? [call.args["map_id"], call.args["x"], call.args["y"]]
       : navigation ? [call.name, call.requested ?? call.args]
       : batch ? buttons : Array.isArray(buttons) ? buttons[0] : null;
-    const before = call.beforeState === undefined ? null : semanticState(call.beforeState, this.interactions, this.moveLearning);
+    const before = call.beforeState === undefined ? null : semanticState(call.beforeState, this.interactions, this.moveLearning, this.bagLoops);
     const key = eligible && evaluation.fingerprint !== null && evaluation.fingerprint === before
       ? `${evaluation.fingerprint}:${JSON.stringify(action)}` : "";
     this.ineffective = key !== "" && key === this.ineffective.key

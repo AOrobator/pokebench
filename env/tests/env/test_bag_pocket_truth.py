@@ -1,13 +1,14 @@
 """Emerald 731ad5bf item.h enum, and 3b6e t1360 native pocket 4 -> 3."""
+
 import struct
 
 import pytest
 
+from pokebench_env.game_screen import GMAIN
 from pokebench_env.game_state import MapNames
 from pokebench_env.menus import BAG_CALLBACK, BAG_POSITION, read_menu_family
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
-from pokebench_env.game_screen import GMAIN
 from tests.env.test_menus import list_task, put_task
 from tests.env.test_ui_state import Memory
 
@@ -23,7 +24,9 @@ def bag(pocket):
     return m
 
 
-@pytest.mark.parametrize("pocket,label", enumerate(["ITEMS", "POKE BALLS", "TMS HMS", "BERRIES", "KEY ITEMS"]))
+@pytest.mark.parametrize(
+    "pocket,label", enumerate(["ITEMS", "POKE BALLS", "TMS HMS", "BERRIES", "KEY ITEMS"])
+)
 def test_native_pocket_names_through_production_reader(pocket, label):
     m = bag(pocket)
     off = frozenset(SERVER_FEATURES) - {"ram-state-v1", "expanded-menu-battle-information-v1"}
@@ -32,7 +35,9 @@ def test_native_pocket_names_through_production_reader(pocket, label):
     old_label = ["ITEMS", "KEY ITEMS", "POKE BALLS", "TMS HMS", "BERRIES"][pocket]
     assert legacy.active_ui.details["pocket"] == old_label
     assert state_json(fixed)["active_ui"]["details"]["pocket"] == label
-    assert render(fixed, off - {ID}) == render(legacy, off).replace(f"pocket: {old_label}", f"pocket: {label}")
+    assert render(fixed, off - {ID}) == render(legacy, off).replace(
+        f"pocket: {old_label}", f"pocket: {label}"
+    )
 
 
 def test_default_off_and_invalid_pocket_fail_closed():
@@ -40,3 +45,19 @@ def test_default_off_and_invalid_pocket_fail_closed():
     assert ID not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
     m = bag(5)
     assert read_menu_family(m.read, BAG_CALLBACK, bag_pocket_truth=True).diagnostic
+
+
+@pytest.mark.parametrize("sequence,expected", [(19453, "KEY ITEMS"), (19458, "BERRIES")])
+def test_archived_3b6e_memory_reparses_without_changing_off_ui(sequence, expected):
+    import json
+    from dataclasses import asdict
+    from pathlib import Path
+
+    fixture = json.loads((Path(__file__).parent / f"fixtures/bag-3b6e-{sequence}.json").read_text())
+    m = Memory()
+    for key, value in fixture["memory"].items():
+        m.put(int(key.split(":")[0], 16), bytes.fromhex(value))
+    assert asdict(read_menu_family(m.read, BAG_CALLBACK)) == fixture["legacy_ui"]
+    fixed = read_menu_family(m.read, BAG_CALLBACK, bag_pocket_truth=True)
+    assert fixed.details["pocket"] == expected
+    assert fixed.selected == "CLOSE BAG" and fixed.ready is True

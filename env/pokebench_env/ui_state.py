@@ -367,6 +367,7 @@ def read_active_ui(
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
     party_menu_message: bool = False,
+    bag_pocket_truth: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
 ) -> ActiveUi | None:
@@ -511,6 +512,7 @@ def read_active_ui(
         truth=truth,
         party_item_confirmation=party_item_confirmation,
         party_menu_message=party_menu_message,
+        bag_pocket_truth=bag_pocket_truth,
     )
     if menu_family is not None:
         return menu_family

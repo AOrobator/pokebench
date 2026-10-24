@@ -164,14 +164,21 @@
       "text-only-supervisor-v2": false,
       "safe-navigation-strides-v1": false,
       "evolution-decision-v1": false,
-      "observed-instructions-v1": false
+      "observed-instructions-v1": false,
+      "bag-pocket-truth-v1": true,
+      "bag-press-feedback-v1": true,
+      "bag-ineffective-loop-v1": true
     }
   },
   "switches": [
     "starter-decision-salience-v1"
   ],
   "offInBoth": [],
-  "onInBoth": [],
+  "onInBoth": [
+    "bag-pocket-truth-v1",
+    "bag-press-feedback-v1",
+    "bag-ineffective-loop-v1"
+  ],
   "phases": [
     {
       "id": "diagnostic",

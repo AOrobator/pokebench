@@ -267,7 +267,10 @@
    "leader-preparation-comparison-v1": false,
    "refusal-ledger-v1": false,
    "party-menu-message-v1": false,
-   "drought-progress-facts-v1": false
+   "drought-progress-facts-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -439,7 +442,10 @@
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
   "move-learn-goal-reminder-v1",
-  "field-move-gates-v1"
+  "field-move-gates-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

@@ -264,7 +264,10 @@
    "trainer-observed-party-v1": false,
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
-   "leader-preparation-comparison-v1": false
+   "leader-preparation-comparison-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -365,7 +368,10 @@
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
   "move-learn-goal-reminder-v1",
-  "field-move-gates-v1"
+  "field-move-gates-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

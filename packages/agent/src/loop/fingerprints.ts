@@ -1,3 +1,4 @@
+import {bagListState} from "../bag-list-state.js";
 import type { GameStateSnapshot } from "../game-state.js";
 import { legacyParty } from "../party-facts.js";
 
@@ -53,12 +54,14 @@ export function moveLearningState(state: GameStateSnapshot): string | null {
 export const isMoveLearning = (fingerprint: string | null): boolean => fingerprint?.startsWith('{"kind":"move_learning"') === true;
 
 // Only surfaces with observable interaction state can establish equivalence.
-export function semanticState(state: GameStateSnapshot, interactions = false, moveLearning = false): string | null {
+export function semanticState(state: GameStateSnapshot, interactions = false, moveLearning = false, bagLoops = false): string | null {
   if (moveLearning) {
     const learning = moveLearningState(state);
     if (learning !== null) return learning;
   }
   if (state.in_battle) return null;
+  const bag = bagLoops ? bagListState(state) : null;
+  if (bag !== null) return stable({kind:"bag_list",...bag});
   const ui = state.active_ui;
   if (state.screen === "naming" && state.naming?.ready === true) {
     const naming = state.naming;

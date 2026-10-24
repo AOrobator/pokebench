@@ -47,7 +47,7 @@ def test_exact_event39808_reaches_production_json_and_readout_with_off_bytes_unc
     assert ui["details"]["cursor_species"] == "MUDKIP"
     assert 'Dialog: "MUDKIP has no energy left to battle!"' in render(state, OFF - {ID})
     assert "A or B continues the message" in render(state, OFF - {ID})
-    assert SERVER_FEATURES[-1] == ID and ID in features_off_from_env({})
+    assert SERVER_FEATURES[-2] == ID and ID in features_off_from_env({})
 
 
 def test_post_acknowledgement_does_not_reuse_stale_message_and_names_cursor():

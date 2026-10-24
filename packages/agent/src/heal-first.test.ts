@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-first-v1 (the operator 2026-10-20 10:43 PM ET: "the heal first line needs to be in both control and the
 // bundle"). Probe story-battle-heal-first-20261020 (97a0 turn 157, 16 per arm, recorded features with gym-heal-warning-v1
@@ -304,14 +305,15 @@ describe("registry, fixed bundles and event",()=>{
   expect(playTools({...WIRE,[ID]:true})).toEqual(playTools({...WIRE,[ID]:false}));
  });
  it("is on in both arms of bundle-v-control, bundle-cook-1h, whole-map-cook-1h, glm53-flash-1h and whole-map-pair-1h-v7; its pending experiment's incumbent is the control arm with it off",()=>{
-  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
+  const read=(path:string):unknown=>JSON.parse(recipeText(new URL(`../../../${path}`,import.meta.url),"utf8"));
   for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","glm53-flash-1h","whole-map-pair-1h-v7"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
    expect(fixed.base.features[ID]).toBe(true);expect(fixed.onInBoth).toContain(ID);expect(fixed.switches).not.toContain(ID);expect(fixed.offInBoth).not.toContain(ID);
   }
+  // Maintained control retains the newer Qwen pending-dialogue baseline and explicit common promotions.
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const {"trigger-navigation-boundary-v1":triggerOff,"milestone-instruction-memory-v1":memoryOff,"rejected-movement-step-v1":stepOff,"observed-field-dialogue-v1":fieldOff,"progress-aware-cycles-v1":progressOff,"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"shop-interface-v1":shopOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,"exp-next-level-v1":expNextOff,"pokedex-own-v1":pokedexOff,"exp-earned-ledger-v1":expEarnedOff,"leader-attempt-ledger-v1":leaderOff,"seen-trainers-ledger-v1":seenOff,"party-coverage-v1":coverageOff,"said-type-matches-v1":saidTypeOff,"story-goal-player-name-v1":glm0Off,"cut-off-reply-feedback-v1":glm1Off,"trainer-sight-check-v2":glm2Off,"auto-talk-v2":glm3Off,"map-wide-triggers-v1":glm4Off,"drought-battle-heal-hold-v1":glm5Off}=control;
-  expect(triggerOff).toBe(true);expect(memoryOff).toBe(false);expect([stepOff,fieldOff]).toEqual([false,false]);expect(progressOff).toBe(false);expect(dexOff).toBe(false);expect(gymOff).toBe(true);expect(martOff).toBe(false);expect(shopOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);expect([expNextOff,pokedexOff,expEarnedOff,leaderOff,seenOff,coverageOff,saidTypeOff]).toEqual([false,false,false,false,false,false,false]);expect([glm0Off,glm1Off,glm2Off,glm3Off,glm4Off,glm5Off]).toEqual([false,true,false,false,false,false]);
+  expect(triggerOff).toBe(true);expect(memoryOff).toBe(false);expect([stepOff,fieldOff]).toEqual([false,false]);expect(progressOff).toBe(false);expect(dexOff).toBe(false);expect(gymOff).toBe(true);expect(martOff).toBe(false);expect(shopOff).toBe(false);expect(pendingOff).toBe(true);expect(menuOff).toBe(false);expect([expNextOff,pokedexOff,expEarnedOff,leaderOff,seenOff,coverageOff,saidTypeOff]).toEqual([false,false,false,false,false,false,false]);expect([glm0Off,glm1Off,glm2Off,glm3Off,glm4Off,glm5Off]).toEqual([false,false,false,false,false,false]);
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{
   const root=mkdtempSync(join(tmpdir(),"pokebench-heal-first-"));

@@ -1443,7 +1443,7 @@ it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
 it("links each new navigation switch card to its exact tracked explainer without changing historical status",()=>{
  const log=new Log();log.add(0,{...START,harness_features:[]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
- for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+ for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1","moving-npc-target-v1"] as const){
   const card=must(doc.querySelector(`[data-feature="${id}"]`));
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);

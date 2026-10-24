@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // move-learn-loop-fingerprint-v1: run 2026-10-21T13-33-54_qwen36-gpu0_ea04 pressed B round the 4-state cycle
 // "Delete a move to make room for DOUBLE KICK?" -> "Stop learning DOUBLE KICK?" -> "COMBUSKEN is trying to learn
@@ -17,7 +18,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 const ID="move-learn-loop-fingerprint-v1" as const;
 const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/move-learn-loop-ea04.json.gz",import.meta.url))).toString("utf8")) as {events:Record<string,unknown>[]};
 const EVENTS=fixture.events.map(e=>checkEvent(e));
-const fixed=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+const fixed=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
 const bundle=(on:boolean):FeatureSet=>({...normalizeFeatures({...fixed.base.features,...Object.fromEntries(fixed.switches.map(id=>[id,true]))} as Parameters<typeof normalizeFeatures>[0]),[ID]:on});
 const snapshot=(e:RunEvent)=>parseGameState(Object.fromEntries(Object.entries(e).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
 const states=EVENTS.filter(e=>e.type==="state");

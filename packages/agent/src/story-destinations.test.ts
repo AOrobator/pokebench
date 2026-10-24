@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
@@ -239,10 +240,10 @@ describe("scripted-place-guidance-v1",()=>{
  it("ON does not promote an arbitrary unnamed place line",()=>{
   expect(block(true,[page("Go to RUSTBORO CITY.",null,null)])).toBeNull();
  });
- it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
+ it("is default OFF and included in both arms of the maintained baseline",()=>{
   expect(featureInfo("scripted-place-guidance-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
-  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features["scripted-place-guidance-v1"]).toBe(false);expect(bundle.switches).toContain("scripted-place-guidance-v1");
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features["scripted-place-guidance-v1"]).toBe(true);expect(bundle.switches).not.toContain("scripted-place-guidance-v1");
  });
 });
 

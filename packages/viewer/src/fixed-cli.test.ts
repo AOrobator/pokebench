@@ -1,3 +1,4 @@
+import {recipeText} from "../test-support/recipe-text.js";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -235,7 +236,7 @@ describe("fixed-run status and analyze", () => {
 
   it("renders the actual JIT definition as a descriptive frontier screen through the CLI",async()=>{
     const {deps,out,path,runsRoot}=setup();
-    const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/jit-10m.json",import.meta.url),"utf8")).definition;
+    const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/jit-10m.json",import.meta.url),"utf8")).definition;
     expect(def).toMatchObject({primaryOutcome:"frontier",replacementReserveMs:0});
     writeFileSync(join(path,"..","jit-10m.json"),JSON.stringify(def));
     const dir=join(runsRoot,"experiments",def.id);mkdirSync(dir,{recursive:true});
@@ -445,4 +446,52 @@ it("runs one exploratory lane/arm with the current definition, without altering 
  expect(runs[0]?.def.plan).toHaveLength(1);
  for(const flags of [["--arm","bundle"],["--lane","A"],["--arm","bad","--lane","A"],["--arm","bundle","--lane","missing"]])expect(await main(["dry-run","bundle-v-control",...flags],deps)).toBe(1);
  expect(runs).toHaveLength(1);
+});
+
+describe("shared current feature config",()=>{
+ function shared(){
+  const f=setup(),full=definition();
+  const {controlBase,switches,offInBoth,onInBoth,base,...protocol}=full;
+  const {features,...baseProtocol}=base;
+  const config={version:1,id:"current",romSha1:full.romSha1,controlBase,features,switches,offInBoth,onInBoth};
+  const source={...protocol,base:baseProtocol,featureRecipe:"current"};
+  mkdirSync(join(f.root,"experiments/feature-configs"),{recursive:true});
+  const configPath=join(f.root,"experiments/feature-configs/current.json");
+  writeFileSync(configPath,JSON.stringify(config));writeFileSync(f.path,JSON.stringify(source));
+  return {...f,source,config,configPath};
+ }
+ it("plans without copying feature maps back into the protocol",async()=>{
+  const f=shared();try{
+   expect(await main(["plan","bundle-v-control"],f.deps),f.err.join("\n")).toBe(0);
+   const source=JSON.parse(readFileSync(f.path,"utf8")) as {featureRecipe:string;base:{features?:unknown}};
+   expect(source.featureRecipe).toBe("current");expect(source.base.features).toBeUndefined();
+  }finally{rmSync(f.root,{recursive:true,force:true});}
+ });
+ it("invalidates an approval when only the shared config changes",async()=>{
+  const f=shared();try{
+   expect(await main(["approve","bundle-v-control"],{...f.deps,interactive:true,prompt:()=>Promise.resolve("bundle-v-control")}),f.err.join("\n")).toBe(0);
+   writeFileSync(f.configPath,JSON.stringify(f.config,null,2));
+   expect(await main(["run","bundle-v-control"],f.deps)).toBe(1);
+   expect(f.err.at(-1)).toContain("definition changed since it was approved");expect(f.runs).toEqual([]);
+  }finally{rmSync(f.root,{recursive:true,force:true});}
+ });
+ it("future launches materialize current features and save their source receipt",async()=>{
+  const f=shared();try{
+   expect(await main(["dry-run","bundle-v-control","--phase","cook","--wall-ms","120000"],f.deps),f.err.join("\n")).toBe(0);
+   expect(f.runs).toHaveLength(1);expect(f.runs[0]?.def.base.features).toEqual(f.config.features);
+   const receipt=JSON.parse(readFileSync(join(f.runsRoot,"experiments/bundle-v-control-dryrun-cook/feature-recipe.json"),"utf8")) as {id:string;sha256:string;definition:unknown};
+   expect(receipt.id).toBe("current");expect(receipt.sha256).toBe(createHash("sha256").update(JSON.stringify(f.config)).digest("hex"));
+   expect(parseFixedDefinition(JSON.stringify(receipt.definition)).definition).toEqual(f.runs[0]?.def);
+  }finally{rmSync(f.root,{recursive:true,force:true});}
+ });
+});
+
+it("keeps archived recipe analysis available while refusing a new archived launch",async()=>{
+ const f=setup();try{
+  mkdirSync(join(f.root,"experiments/archive/fixed"),{recursive:true});
+  writeFileSync(join(f.root,"experiments/archive/fixed/bundle-v-control.json"),JSON.stringify(definition()));
+  expect(await main(["analyze","bundle-v-control"],f.deps),f.err.join("\n")).toBe(0);
+  expect(await main(["run","bundle-v-control"],f.deps)).toBe(1);
+  expect(f.err.at(-1)).toContain("no definition");expect(f.runs).toEqual([]);
+ }finally{rmSync(f.root,{recursive:true,force:true});}
 });

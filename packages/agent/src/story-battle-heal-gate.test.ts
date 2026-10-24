@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // story-battle-heal-gate-v1 (the operator 2026-10-20 8:53 PM ET: "yes i also want the gate built", "the gate could also be useful
 // for the gym"). Run 97a0 (2026-10-20T20-26-22_qwen36-gpu1_97a0): result 4541 (turn 156, state 4540) carried the story
@@ -448,7 +449,7 @@ describe("registry and event",()=>{
   expect(playTools(F97)).toEqual(playTools({...F97,[ID]:false}));
  });
  it("stays OFF in future bundles while its historical pending incumbent remains unchanged",()=>{
-  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
+  const read=(path:string):unknown=>JSON.parse(recipeText(new URL(`../../../${path}`,import.meta.url),"utf8"));
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[]};
    expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).not.toContain(ID);

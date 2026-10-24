@@ -15,12 +15,13 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
+import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
+import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
 
@@ -77,8 +78,8 @@ function loadText(deps: FixedCliDeps, id: string): string {
   return readFileSync(path, "utf8");
 }
 
-function load(deps: FixedCliDeps, id: string): { definition: FixedDefinition; sha256: string } {
-  const loaded = parseFixedDefinition(loadText(deps, id));
+function load(deps: FixedCliDeps, id: string): ReturnType<typeof readFixedDefinition> {
+  const loaded = readFixedDefinition(deps.root,id);
   for (const { start } of loaded.definition.phases) {
     if (start.kind !== "save_state") continue;
     const actual = deps.sha1File(join(deps.root, start.path));
@@ -100,14 +101,14 @@ function plan(argv: readonly string[], deps: FixedCliDeps, id: string): void {
   delete value["plan"];
   const seed = flag(argv, "--seed") ?? (typeof value["seed"] === "string" ? value["seed"] : deps.randomSeed());
   if (!/^[0-9a-f]{16}$/.test(seed)) throw new CliError("the seed must be 16 lowercase hex digits");
-  const draft = { ...value, seed };
+  const draft = materializeFixedSource({ ...value, seed },id=>readFeatureRecipe(deps.root,id));
   if (!Value.Check(FixedDraftSchema, draft)) {
     const [first] = Value.Errors(FixedDraftSchema, draft);
     throw new CliError(`not a fixed-run draft: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);
   }
   const def = { ...draft, seed, plan: generatePlan({ ...draft, seed }) };
-  const text = `${JSON.stringify(def, null, 1)}\n`;
-  parseFixedDefinition(text);
+  const text = `${JSON.stringify({ ...value, seed, plan:def.plan }, null, 1)}\n`;
+  parseFixedDefinition(text,id=>readFeatureRecipe(deps.root,id));
   writeFileSync(definitionPath(deps, id), text);
   deps.out(`planned ${String(def.plan.length)} trials with seed ${seed}`);
 }
@@ -173,7 +174,8 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
 async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const wallMs = msInt(flag(argv, "--wall-ms"), 120_000, "--wall-ms");
   const rom = requireRom(deps);
-  const target = load(deps, id).definition;
+  const targetLoaded=load(deps,id);
+  const target = targetLoaded.definition;
   const recipeId = flag(argv, "--feature-recipe");
   if (argv.includes("--feature-recipe") && recipeId === undefined) throw new CliError("--feature-recipe needs a definition id");
   const recipe = recipeId === undefined ? null : load(deps, recipeId);
@@ -194,11 +196,12 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   if(arm!==undefined&&!FIXED_ARMS.some(a=>a===arm))throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
   const dry=arm===undefined?paired:soloDefinition(paired,arm as FixedArm,lane??"",paired.phases[0]?.id??"",1);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
-  if (recipe !== null) {
+  const provenance=recipe===null?targetLoaded.featureRecipe:{id:recipeId,sha256:recipe.sha256};
+  if (provenance !== null) {
     const dir = experimentDir(deps, dry.id);
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "feature-recipe.json"), `${JSON.stringify({id:recipeId,commit:deps.head(),sha256:recipe.sha256,definition:dry},null,2)}\n`);
-    deps.out(`feature recipe ${String(recipeId)} sha256 ${recipe.sha256}; exact canonical flags, model lane and start retained`);
+    writeFileSync(join(dir, "feature-recipe.json"), `${JSON.stringify({...provenance,commit:deps.head(),definition:dry},null,2)}\n`);
+    deps.out(`feature recipe ${String(provenance.id)} sha256 ${provenance.sha256}; exact canonical flags, model lane and start retained`);
   }
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);
@@ -240,7 +243,7 @@ function status(deps: FixedCliDeps, id: string): void {
 }
 
 function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string): void {
-  const def = parseFixedDefinition(loadText(deps, id)).definition;
+  const def = readFixedDefinition(deps.root,id,true).definition;
   const phaseId = flag(argv, "--phase") ?? def.phases.find((p) => p.primary)?.id ?? def.phases[0]?.id ?? "";
   let phase;
   try {

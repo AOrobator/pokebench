@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {attachLoopGuard,Governor} from "./harness.js";
@@ -94,10 +95,10 @@ describe("trigger-script-loop-v1",()=>{
   const different=rig(true);different.trip(12,0x08100100);different.trip(13,0x08100120,0x4058);expect(different.notices).toEqual([]);
   const progressed=rig(true);progressed.trip(12,0x08100100);progressed.emit({type:"state",...field(15,10,{story:{...story,petalburg_gym_stage:1}})});progressed.trip(13,0x08100120);expect(progressed.notices).toEqual([]);
  });
- it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
+ it("is default OFF and included in both arms of the maintained baseline",()=>{
   expect(featureInfo("trigger-script-loop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
-  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features["trigger-script-loop-v1"]).toBe(false);expect(bundle.switches).toContain("trigger-script-loop-v1");
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features["trigger-script-loop-v1"]).toBe(true);expect(bundle.switches).not.toContain("trigger-script-loop-v1");
   expect(readFileSync(new URL("./live.ts",import.meta.url),"utf8")).toContain('features["trigger-script-loop-v1"]');
  });
 });

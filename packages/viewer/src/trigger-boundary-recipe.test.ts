@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { expect, it } from "vitest";
 import { armFeatures, armFeatureBits, armPreset, controlBaseProblems, definitionProblems, parseFixedDefinition } from "./fixed-design.js";
 
@@ -8,13 +8,13 @@ const controlBases = new Map<string, string>();
 function controlBase(path: string): string {
  let text = controlBases.get(path);
  if (text === undefined) {
-  text = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+  text = recipeText(new URL(`../../../${path}`, import.meta.url),"utf8");
   controlBases.set(path, text);
  }
  return text;
 }
 it.each(recipes)("%s enables trigger boundary navigation in both generated arms", name => {
- const def = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")).definition;
+ const def = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8")).definition;
  expect(definitionProblems(def)).toEqual([]);
  expect(controlBaseProblems(def, controlBase(def.controlBase.path))).toEqual([]);
  expect(def.onInBoth).toContain(id);

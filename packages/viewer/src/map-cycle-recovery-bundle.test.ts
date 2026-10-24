@@ -1,12 +1,12 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { describe, expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { dependencyProblems } from "@pokebench/agent/features";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "map-cycle-recovery-v1";
-// Current recipes whose bundle arm runs navigation-recovery-v1, the switch this one needs (glm53-flash-4h does not).
-const RECIPES = [["gym-rustboro-torchic-healed",47],["bundle-v-control",111],["bundle-cook-1h",112],["whole-map-cook-1h",112],["whole-map-pair-2h",51],["bundle-v-control-2h",53],["gym-rustboro-torchic",47]] as const;
+// Current shared configuration and retained historical recipes with navigation-recovery-v1.
+const RECIPES = [["glm53-flash-4h",54],["gym-rustboro-torchic-healed",48],["bundle-v-control",54],["bundle-cook-1h",113],["whole-map-cook-1h",113],["whole-map-pair-2h",52],["bundle-v-control-2h",54],["gym-rustboro-torchic",48]] as const;
 
 // Each recipe is parsed once and each control base read once, however many cases use them.
 const definitions = new Map<string, ReturnType<typeof parseFixedDefinition>["definition"]>();
@@ -14,7 +14,7 @@ const controlBases = new Map<string, string>();
 function definitionOf(name: string): ReturnType<typeof parseFixedDefinition>["definition"] {
   let definition = definitions.get(name);
   if (definition === undefined) {
-    definition = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")).definition;
+    definition = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8")).definition;
     definitions.set(name, definition);
   }
   return definition;
@@ -22,7 +22,7 @@ function definitionOf(name: string): ReturnType<typeof parseFixedDefinition>["de
 function controlBaseOf(path: string): string {
   let text = controlBases.get(path);
   if (text === undefined) {
-    text = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+    text = recipeText(new URL(`../../../${path}`, import.meta.url),"utf8");
     controlBases.set(path, text);
   }
   return text;
@@ -46,9 +46,5 @@ describe("map-cycle recovery bundle activation", () => {
       }
     });
   }
-  it("leaves glm53-flash-4h, whose bundle does not run navigation-recovery-v1, unchanged", () => {
-    const definition = definitionOf("glm53-flash-4h");
-    expect(definition.switches).not.toContain(ID);
-    expect(definition.switches).not.toContain("navigation-recovery-v1");
-  });
+
 });

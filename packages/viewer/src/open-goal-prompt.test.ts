@@ -1,3 +1,4 @@
+import {recipeText} from "../test-support/recipe-text.js";
 // open-goal-prompt-v1 in the viewer: default OFF for the next run, and its card links a tracked
 // explainer that carries the pre-registered Rustboro-before-mention diagnostic.
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -30,7 +31,7 @@ it("links the open goal card to its tracked explainer with the diagnostic to wat
   for (const event of log.events) view.apply(event);
   doc.body.innerHTML = harnessConfig(view, FEATURES.filter((f) => f.id === ID));
   expect(doc.querySelector(`[data-feature="${ID}"] a`)?.getAttribute("href")).toBe(`/explainers/${ID}.html`);
-  const html = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)), "utf8");
+  const html = recipeText(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url),"utf8");
   expect(html).toContain(ID);
   expect(html).toContain("LAB (Rustboro City)");
   expect(html).toContain("26 of 67 runs");
@@ -75,16 +76,16 @@ it("the viewer serves the tracked explainer byte for byte through the explainer 
 });
 
 it("the pending experiment's incumbent is exactly the bundle-v-control bundle cook arm, with only this switch off", () => {
-  const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
+  const { definition } = parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url),"utf8"));
   const arm = armPreset(definition, "cook", "bundle");
   expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
   expect(arm.features[ID]).toBe(true);
 });
 
-it("enables exploratory waypoint guidance only in future bundle treatments",()=>{
+it("preserves exploratory waypoint guidance treatment in archived protocols",()=>{
  const id="navigation-refusal-reasons-v3";
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const {definition}=parseFixedDefinition(readFileSync(fileURLToPath(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url)),"utf8"));
+ for(const name of ["bundle-cook-1h","whole-map-cook-1h"]){
+  const {definition}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(armPreset(definition,"cook","control").features[id],name).toBe(false);
   expect(armPreset(definition,"cook","bundle").features[id],name).toBe(true);
  }
@@ -92,7 +93,7 @@ it("enables exploratory waypoint guidance only in future bundle treatments",()=>
 
 it("enables Gym evidence only in future bundle arms",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const {definition}=parseFixedDefinition(readFileSync(fileURLToPath(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url)),"utf8"));
+  const {definition}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(armPreset(definition,"cook","control").features["gym-evidence-v1"],name).toBe(false);
   expect(armPreset(definition,"cook","bundle").features["gym-evidence-v1"],name).toBe(true);
  }

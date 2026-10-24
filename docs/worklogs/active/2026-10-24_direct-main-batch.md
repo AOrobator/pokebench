@@ -16,7 +16,7 @@ Ten pinned source candidates in runs/reviews/direct-main-batch-20261024/manifest
 - [x] CITATION: codex/citation-evidence at 855f9e611c514713cb6805240a26fc032a9cf3af
 - [x] GLM: codex/glm-reply-cap-feedback at 22747b80529d4bb4c95370fb9bc6020985fc8713
 - [x] OFFLINEPARTY: codex/offline-party-context-repair at db5fdf33f81c29aabc530a716256f55e7fb16987
-- [ ] NPC_CONFIG: codex/moving-npc-target at e906b2dec61107f6bb389b6f0983538a2b6d532b
+- [x] NPC_CONFIG: codex/moving-npc-target at e906b2dec61107f6bb389b6f0983538a2b6d532b
 
 ## Validation and review
 Deferred until all ten merges, per direct instruction. Then full normal test/lint/build/coverage90+protected cards/vendor, complete principles review, independent final combined cloud review (verified standing Grok outage waiver if required), one coordinated viewer refresh with background proof/protected process and lease evidence. No per-merge tests or refresh. Source owners' existing reviews/evidence retained; unverified repairs remain explicit.
@@ -46,3 +46,5 @@ Deferred until all ten merges, per direct instruction. Then full normal test/lin
 - Citation landede68c4d8de (7/10). GLM cutoff forwarding unions new optional cap notice with instruction-goal context/tools in live+offline factories; retains explicit replay-note repair and per-protocol bundleMaxTokens. Config three-way merge keeps bag3 and cutoffbothON, preserves baseline sampling. No checks run.
 
 - GLM landed658f33a0d (8/10). Offline-party resolution preserves compositeReadouts opt-in plus explicit GLM source-notice replay association, instruction-goal tools/context and rejecting battle ports. No gameplay or generic composite permissions added. No checks run.
+
+- Offline-party landed847113f03 (9/10). NPC/config last reconstitutes current.json from actual nine-merged donor source, union of both-arm promotions, movingNPC defaultOFF/bundleON. Three retained protocols reference current; GLM top-level bundle8192 retained/control4096 unchanged; three archive files copy pre-NPC bytes exactly and README records those hashes. Preserves exits/guidance/whiteout/native/modelgoals/citation bundle-only, bag3/cutoff/trigger/gym bothON. Final current-recipe tests will adapt counts/seams only after this tenth merge. NO tests/lint/build/coverage/proofs occurred between merges.

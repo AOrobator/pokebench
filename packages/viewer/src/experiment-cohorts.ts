@@ -25,7 +25,7 @@ function entries(dir: string, directories: boolean): string[] {
 // (hand drivers tag runs with the manifest label). The first definition of a key wins.
 export function experimentDefinitions(experimentsDir: string, runsRoot: string): Definitions {
   const found = new Map<string, Definition>(), add = (key: string, d: Definition): void => { if (!found.has(key)) found.set(key, d); };
-  for (const dir of [join(experimentsDir, "fixed"), experimentsDir]) {
+  for (const dir of [join(experimentsDir, "fixed"), join(experimentsDir,"archive/fixed"), experimentsDir]) {
     for (const name of entries(dir, false)) {
       const v = json(join(dir, name));
       if (record(v) && text(v.id)) add(v.id, { id: v.id, title: text(v.title) ? v.title : v.id });

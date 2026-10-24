@@ -1,3 +1,5 @@
+import {readFixedDefinition} from "./fixed-definition.js";
+import {recipeText} from "../test-support/recipe-text.js";
 import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,7 +22,7 @@ const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
 
 it("selects the operator's 80 FPS policy equally in future bundle and control runs",()=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
  const id="original-speed-pacing-v1";
  expect(def.onInBoth).toContain(id);
  expect(def.switches).not.toContain(id);
@@ -31,16 +33,16 @@ it("selects the operator's 80 FPS policy equally in future bundle and control ru
  }
 });
 
-it("keeps the improved blackout receipt out of control and in the bundle",()=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+it("historical archived protocol: keeps the improved blackout receipt out of control and in the bundle",()=>{
+ const {definition:def}=parseFixedDefinition(recipeText(new URL("../../../experiments/archive/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
  expect(def.switches).toContain("blackout-readout-v1");
  expect(def.onInBoth).not.toContain("blackout-readout-v1");
  expect(armFeatureBits(def,"control")["blackout-readout-v1"]).toBe(false);
  expect(armFeatureBits(def,"bundle")["blackout-readout-v1"]).toBe(true);
 });
 
-it("two recovery treatments stay ON in bundle only; the dropped two are OFF in both arms",()=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+it("historical archived protocol: two recovery treatments stay ON in bundle only; the dropped two are OFF in both arms",()=>{
+ const {definition:def}=parseFixedDefinition(recipeText(new URL("../../../experiments/archive/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
  for(const id of ["reachable-story-guidance-v1","text-only-supervisor-v2"]){
   expect(armFeatures(def,"control")[id]).toBe(false);expect(armFeatures(def,"bundle")[id]).toBe(true);
   expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
@@ -50,9 +52,9 @@ it("two recovery treatments stay ON in bundle only; the dropped two are OFF in b
  }
 });
 
-it("the next bundle: control gains the battle tools and exit reachability, the bundle adds stage-bound story goals and semantic exploration, and the cook is two one-hour pairs",()=>{
- for(const file of ["bundle-v-control","bundle-cook-1h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+it("historical archived protocol: the next bundle: control gains the battle tools and exit reachability, the bundle adds stage-bound story goals and semantic exploration, and the cook is two one-hour pairs",()=>{
+ for(const file of ["bundle-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
@@ -68,9 +70,9 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   expect(def.offInBoth).toContain("semantic-navigation-v1");
   for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["semantic-navigation-v1"]).toBe(false);
  }
- const {definition:cook}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
+ const {definition:cook}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
  expect(cook.phases.map(phase=>[phase.perArm,phase.maxWallMs])).toEqual([[2,3_600_000]]);
- expect(controlBaseProblems(cook,readFileSync(new URL(`../../../${cook.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(cook,recipeText(new URL(`../../../${cook.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
 });
 
 type Ending = "budget" | "model_error" | "never-started" | "milestone";
@@ -541,12 +543,12 @@ describe("runFixed", () => {
 });
 
 it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-time-prompt-v1"],[false,"jit-v2-10m","just-in-time-prompt-v2"],[true,"jit-v2-10m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: 24 outcomes, both GPUs, six of each arm per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
- const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
+ const parsed=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
  // These existing experiment definitions retain their original frozen measurement catalog.
  expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.slice(0,REQUIRED_FRONTIER_MILESTONES.indexOf("ROCK_TOMB_RECEIVED")+1).filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
- expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
  class JitFake extends Fake {
   override async launch(l:FixedLaunch):Promise<number|null>{
@@ -598,12 +600,12 @@ it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-tim
 });
 
 it.each([[false,"jit-v2-cache-20m","just-in-time-prompt-v2"],[true,"jit-v2-cache-20m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: two concurrent 20-minute outcomes, one per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
- const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
+ const parsed=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
  // These existing experiment definitions retain their original frozen measurement catalog.
  expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES.slice(0,REQUIRED_FRONTIER_MILESTONES.indexOf("ROCK_TOMB_RECEIVED")+1).filter(name=>name!=="ROXANNE_FIRST_INTERACTION"));
  expect(def.terminalErrorsAsOutcomes).toBe(true);
- expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
  class JitFake extends Fake {
   override async launch(l:FixedLaunch):Promise<number|null>{
@@ -677,10 +679,10 @@ it("holds both GPU lanes through finite extensions, then chains without replacem
 
 it("enables battle decision readiness identically in control and bundle, preserving the frozen control base",async()=>{
  const {armPreset}=await import("./fixed-design.js");
- const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
  const id="battle-decision-ready-v1";
  expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);
- expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  for(const arm of ["control","bundle"] as const){
   expect(armFeatureBits(def,arm)[id]).toBe(true);
   for(const phase of def.phases)expect(armPreset(def,phase.id,arm).features[id]).toBe(true);
@@ -690,11 +692,11 @@ it("enables battle decision readiness identically in control and bundle, preserv
  it("keeps visited navigation explicitly registered OFF for approved campaign overrides",async()=>{
  const {armPreset}=await import("./fixed-design.js");
  const {presetFeatures,parsePlayPreset}=await import("@pokebench/agent/play-preset");
- const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
  const id="visited-terrain-navigation-v1";
  expect(id in def.base.features).toBe(true);expect(def.base.features[id]).toBe(false);
  expect(def.offInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(def.onInBoth).not.toContain(id);
- expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const omitted=structuredClone(def);delete omitted.base.features["visited-terrain-navigation-v1"];omitted.offInBoth=omitted.offInBoth.filter(key=>key!==id);
  for(const arm of ["control","bundle"] as const)for(const phase of def.phases){
   const restored=armPreset(def,phase.id,arm),previous=armPreset(omitted,phase.id,arm);
@@ -704,15 +706,15 @@ it("enables battle decision readiness identically in control and bundle, preserv
  }
 });
 
-it("enables safe navigation strides only in the canonical bundle treatment",async()=>{
+it("historical archived protocol: enables safe navigation strides only in the canonical bundle treatment",async()=>{
  const {armPreset}=await import("./fixed-design.js");
  const {presetFeatures}=await import("@pokebench/agent/play-preset");
  const {playHarnessFeatures,dependencyProblems}=await import("@pokebench/agent/features");
- const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=parseFixedDefinition(recipeText(new URL("../../../experiments/archive/fixed/bundle-cook-1h.json",import.meta.url),"utf8")).definition;
  const id="safe-navigation-strides-v1";
  expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
  expect(def.offInBoth).not.toContain(id);expect(def.onInBoth).not.toContain(id);
- expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
   const features=presetFeatures(armPreset(def,phase.id,arm));
   expect(features[id]).toBe(arm==="bundle");expect(dependencyProblems(features)).toEqual([]);
@@ -721,12 +723,12 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
 });
 
 it("enables explicit evolution in both arms through the production arm builder",()=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
  expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(true);
  expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
  });
 it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8"));
  const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot,{ending:()=>"milestone",serving:()=>({...RECEIPT,...def.serving})},def.id);
  expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>false,pid:77})).toBe("finished");
  const ledger=readLedger(join(dir,"trials.jsonl")),finished=outcomes(ledger);
@@ -738,10 +740,10 @@ it("rehearses all sixteen starter diagnostic slots with one switch, native early
  expect(host.maxRunning).toBe(2);expect(def.replacementReserveMs).toBe(0);expect(def.terminalErrorsAsOutcomes).toBe(true);
 });
 
-it("enables native party-item confirmation only in the bundle of both current bundle definitions",()=>{
+it("historical archived protocol: enables native party-item confirmation only in the bundle of both current bundle definitions",()=>{
  const id="party-item-confirmation-v1";
- for(const file of ["bundle-v-control","bundle-cook-1h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ for(const file of ["bundle-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(armFeatures(def,"control")[id]).toBe(false);
@@ -751,10 +753,10 @@ it("enables native party-item confirmation only in the bundle of both current bu
  }
 });
 
-it("enables the YES/NO answer readout only in the bundle of the three current bundle definitions",()=>{
+it("historical archived protocol: enables the YES/NO answer readout only in the bundle of the three current bundle definitions",()=>{
  const id="yes-no-answer-readout-v1";
- for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ for(const file of ["bundle-cook-1h","bundle-cook-1h","whole-map-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(def.base.features[id]).toBe(false);
@@ -765,11 +767,11 @@ it("enables the YES/NO answer readout only in the bundle of the three current bu
  }
 });
 
-it("enables the five move-learn switches only in the bundle of the three current bundle definitions, and keeps them OFF in the next-run default",()=>{
+it("historical archived protocol: enables the five move-learn switches only in the bundle of the three current bundle definitions, and keeps them OFF in the next-run default",()=>{
  for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","effectiveness-heard-v1","game-said-goals-v1"] as const){
   expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
-  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  for(const file of ["bundle-cook-1h","bundle-cook-1h","whole-map-cook-1h"]){
+   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
    expect(def.base.features[id]).toBe(false);
@@ -785,7 +787,7 @@ it("enables the mart stock readout only in the bundle of the four current bundle
  const id="mart-stock-readout-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(def.base.features[id]).toBe(false);
@@ -800,7 +802,7 @@ it("enables the shop interface only in the bundle of the four current bundle def
  const id="shop-interface-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(def.base.features[id]).toBe(false);
@@ -815,7 +817,7 @@ it("enables the seven training and catching switches only in the bundle of the f
  const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   for(const id of ids){
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
@@ -831,7 +833,7 @@ it("enables the seven training and catching switches only in the bundle of the f
 it("enables five GLM-run fixes only in the bundle; cut-off feedback is shared; next-run defaults stay OFF",()=>{
  const ids=["story-goal-player-name-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"] as const;
  for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   const control=armFeatures(def,"control"),bundle=armFeatures(def,"bundle"),controlBits=armFeatureBits(def,"control"),bundleBits=armFeatureBits(def,"bundle");
   for(const id of ids){
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
@@ -851,8 +853,8 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
 });
 
 it.each([false,true])("rehearses the four-hour GLM pair serially and retains its stop boundary (stop after first: %s)", async stopAfterFirst=>{
- const source=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
- const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const source=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
+ const canonical=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
  const def=dryRunDefinition({...source,base:{...source.base,features:canonical.base.features},controlBase:canonical.controlBase,switches:canonical.switches,offInBoth:canonical.offInBoth,onInBoth:canonical.onInBoth},14_400_000,"cook");
  for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
  expect(def.plan.map(s=>s.arm)).toEqual(["control","bundle"]);
@@ -889,7 +891,7 @@ it.each([false,true])("rehearses the four-hour GLM pair serially and retains its
 
 it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","bundle-v-control-2h","whole-map-cook-1h"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(def.switches).toContain("progress-aware-cycles-v1");
   expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);
   expect(armFeatures(def,"bundle")["progress-aware-cycles-v1"]).toBe(true);
@@ -897,7 +899,7 @@ it("adds progress-aware cycles only to the bundle in canonical and current whole
 });
 
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
  for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1","birch-intro-pages-v1"] as const){
   expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
@@ -908,7 +910,7 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
 
 
 it("the active two-hour cook includes approved gym evidence and milestone memory only in the bundle",()=>{
- const {definition:source}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8"));
+ const {definition:source}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8"));
  const dry=dryRunDefinition(source,7_200_000,"cook");
  for(const arm of ["control","bundle"] as const){
   const def=soloDefinition(dry,arm,"A","dry-run",1);
@@ -924,7 +926,7 @@ it("the active two-hour cook includes approved gym evidence and milestone memory
 });
 
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts checked requested strides in %s normalized bundle only",file=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
  expect(def.switches).toContain("rejected-movement-stride-v1");
  for(const arm of ["control","bundle"] as const){
@@ -935,39 +937,47 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
 });
 
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts boundary facts in %s normalized bundle only",file=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
  for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["boundary-crossing-facts-v1"]).toBe(arm==="bundle");
 });
 
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("puts section alternatives in %s normalized bundle only",file=>{
- const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("missing phase");
  for(const arm of ["control","bundle"] as const)expect(armPreset(def,phase.id,arm).features["reachable-section-alternatives-v1"]).toBe(arm==="bundle");
 });
 
 it("enables observed trainer Pokémon only in every current bundle comparison arm",()=>{
  for(const id of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
   expect(armFeatureBits(def,"bundle")["trainer-observed-party-v1"],id).toBe(true);
   expect(armFeatureBits(def,"control")["trainer-observed-party-v1"],id).toBe(false);
  }
 });
 
-it("rehearses bundle-only reply caps through persisted presets and chained fake trials",async()=>{
- const original=definition();
- const def=definition({bundleMaxTokens:8192,base:{...original.base,features:{...original.base.features,"cut-off-reply-feedback-v1":true}},onInBoth:[...original.onInBoth,"cut-off-reply-feedback-v1"],lanes:original.lanes.slice(0,1),phases:[{id:"cook",perArm:1,maxWallMs:60000,primary:false,start:{kind:"boot"}}]});
- const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot);
+it("rehearses the current GLM protocol with shared features, serial chaining and durable matching receipts",async()=>{
+ const root=fileURLToPath(new URL("../../../",import.meta.url));
+ const loaded=readFixedDefinition(root,"glm53-flash-4h"),def=dryRunDefinition(loaded.definition,120000,"cook");
+ const {runsRoot,dir}=setup(def);
+ const host=new Fake(runsRoot,{serving:()=>({...RECEIPT,...def.serving,vision:true,fingerprint:"f".repeat(64)})},def.id);
+ const began=host.clock;
  try{
-  expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>false,pid:77})).toBe("finished");
-  expect(host.launches).toHaveLength(2);expect(host.maxRunning).toBe(1);
-  expect(outcomes(readLedger(join(dir,"trials.jsonl")))).toHaveLength(2);
-  for(const launch of host.launches){
-   const preset:unknown=JSON.parse(readFileSync(launch.presetPath,"utf8"));
-   const arm=(JSON.parse(launch.env["POKEBENCH_EXPERIMENT"]??"{}") as {arm:string}).arm;
-   expect(preset).toMatchObject({sampling:{maxTokens:arm==="bundle"?8192:4096},features:{"cut-off-reply-feedback-v1":true}});
+  expect(await runFixed({def,definitionSha256:loaded.sha256,runsRoot,host,stopRequested:()=>false,pid:77,dryRun:true})).toBe("finished");
+  const ledger=readLedger(join(dir,"trials.jsonl"));
+  expect(host.maxRunning).toBe(1);expect(host.launches).toHaveLength(2);
+  expect(outcomes(ledger).map(o=>o.valid)).toEqual([true,true]);
+  expect(launchesOf(ledger).map(l=>l.arm).sort()).toEqual(["bundle","control"]);
+  expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:2,total:2});
+  for(const arm of ["control","bundle"] as const){
+   const preset=JSON.parse(readFileSync(join(dir,`presets/dry-run-${arm}.json`),"utf8")) as {features:Record<string,boolean>;sampling:{maxTokens:number}};
+   expect(preset.features["moving-npc-target-v1"]).toBe(arm==="bundle");
+   expect(preset.features["cut-off-reply-feedback-v1"]).toBe(true);
+   expect(preset.sampling.maxTokens).toBe(arm==="bundle"?8192:4096);
+   expect(preset.features["trigger-navigation-boundary-v1"]).toBe(true);
   }
-  const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
-  expect(index.runs).toHaveLength(2);expect(experimentsAudit(runsRoot,index)).toEqual([]);
+  expect(host.clock-began).toBeLessThanOrEqual(2*120000);
+  const index=await cohortIndex(runsRoot,join(root,"experiments"));
+  expect(experimentsAudit(runsRoot,index)).toEqual([]);
  }finally{rmSync(runsRoot,{recursive:true,force:true});}
 });

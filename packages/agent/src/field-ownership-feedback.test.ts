@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // field-ownership-feedback-v1: run 2026-10-21T13-33-36_qwen36-gpu1_d548 called navigate_to_target on object 21 for
 // 85 turns at an evolution decision (seq 20511, 20531: "target is not listed in the current verified state", no
@@ -26,7 +27,7 @@ const EVOLUTION=parseGameState(SNAPSHOT);
 const CONTROLS="Evolution is waiting for choose_evolution: evolve or cancel. Ordinary button input is blocked.";
 // The readout observe returns for this state: the server's Screen and Interface lines, whole.
 const READOUT=`Location: ROUTE116\nScreen: evolution\nDialog: none\nMenu: no selectable menu is open\nInterface: evolution_decision; input ready; ${CONTROLS}\nBattle details: TRAINER single · turn 3 · finishing (outcome won)`;
-const fixed=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+const fixed=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
 const bundle=(on:boolean):FeatureSet=>({...normalizeFeatures({...fixed.base.features,...Object.fromEntries(fixed.switches.map(id=>[id,true]))} as Parameters<typeof normalizeFeatures>[0]),[ID]:on});
 
 // The production factory with the navigation switches the semantic tool needs (as semantic-navigation.test.ts builds it).

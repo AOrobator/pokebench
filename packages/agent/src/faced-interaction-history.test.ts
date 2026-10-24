@@ -1,9 +1,9 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // faced-interaction-history-v1: a movement-plus-A batch that opened attributed dialogue counts as trying
 // the exact faced target. Recorded case: 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84, seq 1537-1577.
 import {describe,expect,it} from "vitest";
-import {readFileSync} from "node:fs";
 import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
@@ -61,16 +61,17 @@ function pushbackBrief(on:boolean):string {
 const untried=(text:string):string=>text.split("\n").find(line=>line.startsWith("- Listed here that you have not tried yet:"))??"";
 
 describe("faced-interaction-history-v1",()=>{
- it("is registered without disturbing historical ordering, defaults off, remains off in control, and is flipped only by the bundle arm",()=>{
+ it("preserves registry ordering and defaults OFF, with shared control/bundle baseline activation",()=>{
   expect(SWITCHABLE_FEATURES.at(125)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-15)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,title:"FACED INTERACTION HISTORY"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.switches).toContain(ID);
+  // The shared config retains the newer control baseline; this feature is on in both arms.
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features[ID]).toBe(true);
+  expect(bundle.switches).not.toContain(ID);
  });
 
  it("OFF preserves the recorded cdb1 behavior: the already-read TV is still listed as untried",()=>{

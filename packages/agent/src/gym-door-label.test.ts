@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import { expect, it } from "vitest";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
 const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
@@ -13,7 +13,7 @@ it("is server-owned, recorded, default off and explicitly enabled per recipe", (
   expect(serverFeatureEnv({...ALL_ON,[id]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(id);
   for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h"]) {
     const both = name === "bundle-v-control";
-    const def = JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>}; switches:string[]; onInBoth:string[]};
+    const def = JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>}; switches:string[]; onInBoth:string[]};
     expect(def.base.features[id]).toBe(both);
     expect(def.switches.includes(id)).toBe(!both);
     expect(def.onInBoth.includes(id)).toBe(both);

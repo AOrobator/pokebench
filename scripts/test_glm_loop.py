@@ -15,10 +15,10 @@ root=pathlib.Path(os.environ['REPO']);runs=root/'runs';archive=pathlib.Path(os.e
 if sys.argv[1:] == ['viewer-main']: sys.exit(1 if os.environ.get('REHEARSAL_VIEWER_FAIL') else 0)
 if sys.argv[1:] == ['runs-disk']: (root/'disk-read').write_text('read');print('frames 1 GiB / cap (1%)');sys.exit(0)
 args=sys.argv[1:]
-assert args == ['fixed-run','dry-run','glm53-flash-4h','--phase','cook','--wall-ms','14400000','--feature-recipe','bundle-v-control'],args
+assert args == ['fixed-run','dry-run','glm53-flash-4h','--phase','cook','--wall-ms','14400000']+(['--feature-recipe',os.environ['FEATURE_RECIPE']] if os.environ.get('FEATURE_RECIPE') else []),args
 counter=root/'rounds';n=int(counter.read_text())+1 if counter.exists() else 1;counter.write_text(str(n))
 pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-with (root/'launches.jsonl').open('a') as out:out.write(json.dumps({'round':n,'pin':pin,'recipe':json.loads((pathlib.Path.cwd()/'experiments/fixed/bundle-v-control.json').read_text())})+'\\n')
+with (root/'launches.jsonl').open('a') as out:out.write(json.dumps({'round':n,'pin':pin,'recipe':json.loads((pathlib.Path.cwd()/'experiments/feature-configs/current.json').read_text())})+'\\n')
 ledger=runs/'experiments/glm53-flash-4h-dryrun-cook';ledger.mkdir(parents=True,exist_ok=True)
 rows=[]
 for arm in ['bundle','control']:
@@ -28,7 +28,7 @@ for arm in ['bundle','control']:
  rows.extend([{'kind':'launch','lane':'A','arm':arm,'run':run,'at':f'2026-10-21T00:00:0{n}.000Z'},{'kind':'outcome','valid':reason=='budget'}])
 (ledger/'trials.jsonl').write_text(''.join(json.dumps(r,separators=(',',':'))+'\\n' for r in rows))
 if n==1:
- p=root/'experiments/fixed/bundle-v-control.json';p.write_text(json.dumps({'revision':2}))
+ p=root/'experiments/feature-configs/current.json';p.write_text(json.dumps({'revision':2}))
  subprocess.run(['git','add',str(p)],cwd=root,check=True)
  subprocess.run(['git','commit','-qm','advance main between pairs'],cwd=root,check=True)
 if n==2:(archive/'glm-four-hour-loop.STOP').write_text('fake rehearsal complete')
@@ -50,15 +50,17 @@ class GlmLoopRehearsal(unittest.TestCase):
             p.chmod(0o755)
         definitions = self.root / "experiments/fixed"
         definitions.mkdir(parents=True)
-        (definitions / "glm53-flash-4h.json").write_text(json.dumps({"lanes": [{"gamePort": 8077, "modelUrl": "http://127.0.0.1:8099"}]}))
-        (definitions / "bundle-v-control.json").write_text(json.dumps({"revision": 1}))
+        (definitions / "glm53-flash-4h.json").write_text(json.dumps({"featureRecipe":"current","lanes": [{"gamePort": 8077, "modelUrl": "http://127.0.0.1:8099"}]}))
+        config = self.root / "experiments/feature-configs"
+        config.mkdir()
+        (config / "current.json").write_text(json.dumps({"revision": 1}))
         (self.root / "env").mkdir()
         (self.root / "env/.keep").write_text("")
         (self.root / ".env").write_text("")
         (self.root / ".gitignore").write_text("runs/\nrounds\nlaunches.jsonl\ndisk-read\n")
         for cmd in [["init", "-q", "-b", "main"], ["config", "user.name", "Rehearsal"], ["config", "user.email", "rehearsal@example.invalid"], ["add", "."], ["commit", "-qm", "fixture"]]:
             subprocess.run(["git", *cmd], cwd=self.root, check=True)
-        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "bundle-v-control", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0", "RETRY_SLEEP": "0", "MAX_FAILS": "1", "LATEST_MAIN_PER_TRIAL": "0"}
+        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0", "RETRY_SLEEP": "0", "MAX_FAILS": "1", "LATEST_MAIN_PER_TRIAL": "0"}
         self.children = []
 
     def tearDown(self):

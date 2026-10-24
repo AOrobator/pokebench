@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
@@ -46,7 +47,7 @@ it("registers default OFF, records ON, and puts only the bundle arms ON",()=>{
  expect(presetFeatures(parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:old}))[ID]).toBe(false);
  expect(playHarnessFeatures({...OFF,[ID]:true},null)).toContain(ID);
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const d=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
+  const d=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
   expect(d.base.features[ID]).toBe(false);expect(d.switches).toContain(ID);expect(d.onInBoth).not.toContain(ID);
  }
 });

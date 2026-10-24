@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
@@ -60,7 +61,7 @@ it.each([false,true])("replays the rival stair landing with exactly one DOWN and
 });
 it("enables the operator-promoted switch in both fixed arms",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const d=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
+  const d=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
   expect(d.base.features[ID]).toBe(true);expect(d.switches).not.toContain(ID);expect(d.onInBoth).toContain(ID);expect(d.offInBoth).not.toContain(ID);
  }
 });

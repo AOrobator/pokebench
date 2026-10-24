@@ -1,3 +1,4 @@
+import {recipeText} from "../test-support/recipe-text.js";
 import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {dirname,join} from "node:path";
@@ -35,7 +36,7 @@ it.each([
  try{
   const defs=new Map<string,FixedDefinition>(),starts=new Map<string,string>();
   for(const id of [scenario.id,...(scenario.recipe===undefined?[]:[scenario.recipe])]){
-   const text=readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"),def=parseFixedDefinition(text).definition;
+   const text=recipeText(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"),def=parseFixedDefinition(text).definition;
    defs.set(id,def);const path=join(root,"experiments/fixed",`${id}.json`);mkdirSync(dirname(path),{recursive:true});writeFileSync(path,text);
    const base=join(root,def.controlBase.path);mkdirSync(dirname(base),{recursive:true});writeFileSync(base,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url)));
    for(const phase of def.phases)if(phase.start.kind==="save_state")starts.set(join(root,phase.start.path),phase.start.sha1);

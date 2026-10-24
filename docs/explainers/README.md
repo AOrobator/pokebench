@@ -300,3 +300,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Bag ineffective loop](bag-ineffective-loop-v1.html)
 
 - [Quoted destination evidence](citation-evidence-v1.html) — separate copied game words from unverified rationale; default OFF, bundle only.
+
+- [Moving NPC target](moving-npc-target-v1.html): bounded live-position follow for a selected loaded object; default OFF, bundle ON.

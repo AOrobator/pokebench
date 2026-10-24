@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
@@ -784,7 +785,7 @@ it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle 
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);
  for(const name of ["bundle-v-control","bundle-cook-1h"]){
-  const raw=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const raw=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(raw.base.features[id]).toBe(false);expect(raw.switches).toContain(id);
  }
 });

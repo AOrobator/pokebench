@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import { expect, it } from "vitest";
 import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { serverFeatureEnv } from "@pokebench/agent/features";
@@ -8,11 +8,11 @@ import { DEFAULT_NEXT_RUN } from "./next-run.js";
 const ID = "gym-door-label-v1";
 for (const name of ["bundle-v-control", "bundle-v-control-2h"]) {
  it(`${name}: both normalized arms expose gym identity to the server`, () => {
-  const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
+  const { definition } = parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8"));
   expect(definition.onInBoth).toContain(ID);
   expect(definition.switches).not.toContain(ID);
   expect(definition.base.features[ID]).toBe(true);
-  expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
+  expect(controlBaseProblems(definition, recipeText(new URL(`../../../${definition.controlBase.path}`, import.meta.url),"utf8"))).toEqual([]);
   for (const phase of definition.phases) {
    for (const arm of ["control", "bundle"] as const) {
     const features = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, arm)));

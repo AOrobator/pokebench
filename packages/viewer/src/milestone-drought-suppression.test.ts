@@ -1,4 +1,4 @@
-import {readFileSync} from "node:fs";
+import {recipeText} from "../test-support/recipe-text.js";
 import {expect,it} from "vitest";
 import {BASE_MS,Log,START} from "../test-support/events.js";
 import {RunView} from "./model.js";
@@ -18,7 +18,7 @@ it("keeps suppressed droughts visible as diagnostics, without timeline marks or 
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
 });
 it("registers an unqueued one-switch experiment and enables only the current bundle arms",()=>{
- const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
+ const read=(path:string):unknown=>JSON.parse(recipeText(new URL(`../../../${path}`,import.meta.url),"utf8"));
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"]){
   const f=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
   expect(f.base.features[ID],name).toBe(false);expect(f.switches.indexOf(ID),name).toBeGreaterThan(f.switches.indexOf("berry-readout-v1"));

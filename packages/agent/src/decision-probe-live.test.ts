@@ -333,10 +333,12 @@ it.each([[false,false],[true,false],[true,true],[false,true]])("records and deli
  const note=run.events.find(e=>e.type==="text_only_supervisor");
  expect(note).toMatchObject({type:"text_only_supervisor",turn:4});
  if(note?.type!=="text_only_supervisor")throw new Error("missing recorded supervisor");
- expect(note.text.includes("Your last reply reached the output limit (100 tokens)")).toBe(on);
+ if(on)expect(note.text).toContain("Your last reply reached the output limit (100 tokens)");
+ else expect(note.text).not.toContain("output limit");
  expect(owner.contexts[4]?.messages).toContainEqual(expect.objectContaining({role:"user",content:note.text}));
  const recovery=run.events.filter(e=>e.type==="loop_breaker"&&e.trigger==="no_tool_call"&&e.stage===2);
- if(breaker){expect(recovery.length).toBeGreaterThan(0);for(const e of recovery)if(e.type==="loop_breaker")expect(e.text?.includes("output limit (100 tokens)")).toBe(on);}
+ expect(recovery).toHaveLength(breaker?1:0);
+ for(const e of recovery)if(e.type==="loop_breaker"){if(on)expect(e.text).toContain("output limit (100 tokens)");else expect(e.text).not.toContain("output limit");}
  const ports=await framePorts(dir);
  for(const derivation of breaker?["replayed"] as const:["recorded","replayed"] as const){
   const rebuilt=await decisionContext(run,5,recordedFeatures(run),ports,derivation);

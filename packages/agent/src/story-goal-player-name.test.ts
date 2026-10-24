@@ -123,7 +123,7 @@ describe("registry",()=>{
   expect(featureInfo("trainer-sight-check-v2")).toMatchObject({group:"guard",needs:"trainer-sight-check-v1"});
   expect(featureInfo("auto-talk-v2")).toMatchObject({group:"guard",needs:"auto-talk-v1"});
   for(const id of NEW){
-   expect(featureInfo(id).description).toContain("Bundle arm only, default off");
+   expect(featureInfo(id).description).toContain(id==="cut-off-reply-feedback-v1"?"Both arms of current fixed recipes":"Bundle arm only, default off");
    expect(featureInfo(id).description).toContain(" Off: ");
    expect(LEGACY_ALL_ON[id]).toBe(false);
    expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);

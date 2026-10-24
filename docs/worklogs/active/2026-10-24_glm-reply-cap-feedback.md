@@ -14,7 +14,7 @@ Governor, play wiring/live, fixed-point recovery, decision-probe wiring, fixed-d
 ## Milestone
 - [x] RED tests: Governor drops CUT when supervisor due; fixed-definition parser rejects bundleMaxTokens; recipe assertion fails. Added production delivery/replay tests. Initial viewer attempt lacked agent dist; built it before meaningful RED rerun.
 - [x] GREEN implementation: 35 targeted agent tests pass, fixed-design/recipe tests pass; fake-host audit helper corrected. Broader recipe index assertions updated for moving the existing switch into onInBoth.
-- [ ] Adversarial wiring deletion and restoration
+- [x] Six adversarial wiring/cap deletions failed as intended; each restored in finally (runs/glm-feedback-proof/mutations.json and individual logs).
 - [ ] Full tests/lint/build/coverage/vendor gates
 - [ ] Fake runner verifies arm presets and chaining
 - [ ] Principles self-review and frozen cloud review
@@ -31,3 +31,5 @@ Governor, play wiring/live, fixed-point recovery, decision-probe wiring, fixed-d
 - First full test retry: agent 4232 passed; viewer 15 failures were hardcoded recipe positions shifted by removing cut-off feedback from switches, now adjusted by one while GLM positions stay unchanged. Coverage under load average 81.72 hit unchanged live-human timeout/assertion failures; retained /tmp/glm-coverage.log and will rerun separately. Build and vendor checks passed. Headless explainer checked at 375/1280/1440; screenshots inspected, no outer horizontal overflow.
 
 - Sync main 2594c77ab (gym-door label shared in both arms). Resolved overlapping test expectations by retaining gym-label authorization and moving cut-off feedback to both arms too; positional assertions account for both removals. Prior lint overlapped the merge and saw conflict markers; discarded that attempt, rerun on resolved tree.
+
+- Tightened delivery test to exact one fixed-point recovery event and payload-bearing assertions; added viewer schema/history/raw-inspector/replay tests for 4096/8192 notices. Registry copy assertion now reflects both-arm authorization for only the cut-off switch. Build clean passed on d44bcdb9e tree. Full gates now run without overlapping source mutations/merges.

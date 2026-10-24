@@ -1,3 +1,7 @@
+import type {StreamFn} from "@mariozechner/pi-agent-core";
+import {createAssistantMessageEventStream,type Message,type Model} from "@mariozechner/pi-ai";
+import {assistant,userText} from "../test-support/pi.js";
+import {Governor,piLoop,play} from "./harness.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
@@ -103,6 +107,25 @@ describe(ID,()=>{
   b.observe(field);b.observe(field);
   expect(b.battles()).toHaveLength(1);
   expect(b.recap(field)).toContain("and whited out");
+ });
+ it.each([false,true])("delivers the corrected recorded note through pinned pi before the next decision, v2=%s",async on=>{
+  const observers:((e:RunEvent)=>void)[]=[],recorded:string[]=[],sent:string[]=[];
+  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},textOnlySupervisor:(_replies:number,_note:number,_limit:number,text:string)=>{recorded.push(text);}};
+  const supervisor=textOnlySupervisor(features(on),recorder);
+  for(const state of states)for(const observe of observers)observe(state);
+  const model:Model<"openai-completions">={id:"offline-fixture",name:"offline fixture",api:"openai-completions",provider:"test",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:65536,maxTokens:100};
+  const controller=new AbortController();
+  const governor=new Governor({limits:{maxTurns:4,maxWallMs:60000,failureLimit:3,replyFailuresEndRun:false},now:()=>0,retry:()=>undefined,abort:()=>{controller.abort();},textOnlySupervisor:supervisor});
+  const streamFn:StreamFn=(_model,context)=>{
+   sent.push(context.messages.filter(m=>m.role==="user").flatMap(m=>typeof m.content==="string"?[m.content]:m.content.flatMap(p=>p.type==="text"?[p.text]:[])).join("\n"));
+   const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:"stop",message:assistant({text:"Offline fixture response."})});return stream;
+  };
+  const loop=piLoop({systemPrompt:"Offline delivery proof.",tools:[],base:{model,convertToLlm:m=>m as Message[]},governor,transformContext:m=>Promise.resolve(m),emit:()=>undefined,signal:controller.signal,streamFn});
+  expect(await play(userText("Replay loss evidence."),governor,loop)).toBe("budget");
+  expect(sent).toHaveLength(4);expect(recorded).toHaveLength(1);
+  expect(sent[3]).toContain(recorded[0]);
+  expect(sent[3]).toContain(on?"Latest whiteout: at turn 754":"Latest whiteout: none recorded in this run");
+  expect(sent.slice(0,3).every(text=>!text.includes("Latest whiteout"))).toBe(true);
  });
  it("reaches existing supervisor briefings through both production factories, independent of blackout-transition-v1",()=>{
   for(const on of [false,true]){

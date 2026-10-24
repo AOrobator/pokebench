@@ -139,3 +139,11 @@ Separate compiled-source fake recipe captures passed for both arms of the reques
 
 Another actually ready reviewed branch was admitted for landing after this chain's release. R3 has not been dispatched on the soon-stale base. Wait for its final evidence commit, integrate it, then complete fresh required validation and cumulative review. No main hold, current-run edits, launches or viewer refresh occurred in this task.
 COMMIT: docs: record refusal-integrated whiteout validation (SHA in git log).
+
+
+## Party release integration
+
+Merged final released main `2114da000c884c98d0afda9d295aeed7fbc7b886` (reviewed, gated and served party source `2123341b1083c012d0b44819e3f66c21ed6d13f9`) after its landing release. Backup branch `codex/same-map-whiteout-v2-pre-party-sync` preserves the prior candidate. Conflict resolution starts from the complete incoming files and adds only this feature's original plumbing. All incoming Python production files are byte-identical to released main; BattleOutcomes remains byte-identical to the previous candidate and R2. Incoming registry prefix has 257 entries, with party at index 256; whiteout appends at 257. Both complete incoming recipe definitions retain every prior value and ordering, with only this feature's false base and final switch added.
+
+Focused integration RED found exactly the expected observation count and party-last-slot assertions. Updated observation count to 100 and froze both existing party registry/metadata assertions at original index 256, retaining their expected ID and the unchanged server-last assertion. All 72 cases across feature, party, whiteout and map-cycle tests pass. Independent adjacent-order mutations in the registry and metadata each make the corresponding party assertion fail; source restored and the party case passes. Receipts: `party-sync-red.log`, `party-sync-green.log`, `party-slot-{registry,metadata}-break.log` and `party-slot-restored.log`. No assertion removal or worker/threshold changes. Current integrated full gates, compiled viewer proof and fresh R3 review remain pending; no stale dist-based viewer check is claimed.
+COMMIT: merge: preserve released party feature and recipes (SHA in git log).

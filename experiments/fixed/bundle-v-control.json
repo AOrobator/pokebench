@@ -266,6 +266,7 @@
    "battle-action-history-v1": false,
    "leader-preparation-comparison-v1": false,
    "refusal-ledger-v1": false,
+   "party-menu-message-v1": false,
    "whiteout-outcomes-v2": false
   }
  },
@@ -398,6 +399,7 @@
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
+  "party-menu-message-v1",
   "whiteout-outcomes-v2"
  ],
  "offInBoth": [

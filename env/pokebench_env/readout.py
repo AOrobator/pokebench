@@ -175,6 +175,7 @@ SERVER_FEATURES = (
     SCREEN_CENTER,
     "blackout-transition-v1",
     "player-elevation-readout-v1",
+    "party-menu-message-v1",
 )
 
 
@@ -204,7 +205,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1",
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1",
     )
     if raw == "":
         return frozenset()

@@ -366,6 +366,7 @@ def read_active_ui(
     blackout_transition: bool = False,
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
+    party_menu_message: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
 ) -> ActiveUi | None:
@@ -505,7 +506,11 @@ def read_active_ui(
     if corner_ui is not None:
         return corner_ui
     menu_family = read_menu_family(
-        read, screen.callback2, truth=truth, party_item_confirmation=party_item_confirmation
+        read,
+        screen.callback2,
+        truth=truth,
+        party_item_confirmation=party_item_confirmation,
+        party_menu_message=party_menu_message,
     )
     if menu_family is not None:
         return menu_family

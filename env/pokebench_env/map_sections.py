@@ -7,8 +7,9 @@ Movement grounding: pret731ad5b GetCollisionAtCoords / MB_JUMP_*; topology.cross
 
 from collections import deque
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from pokebench_env.active_warps import warp_activation
 from pokebench_env.exit_labels import (
     DYNAMIC,
     DestinationGates,
@@ -21,6 +22,7 @@ from pokebench_env.exit_labels import (
 )
 from pokebench_env.field_moves import FloodRules
 from pokebench_env.game_screen import ReadMemory
+from pokebench_env.live_map import FullMap
 from pokebench_env.surf_gate import LEDGES
 from pokebench_env.topology import STEPS, SURFABLE, crossable
 
@@ -92,8 +94,15 @@ class Sections:
         return "terrain section unknown" if region is None else self.labels[region]
 
 
-def build_sections(rom: RomMap, rules: FloodRules | None = None) -> Sections:
-    warps = {(x, y) for x, y, *_ in rom.warps}
+def build_sections(
+    rom: RomMap, rules: FloodRules | None = None, *, active_warps: bool = False
+) -> Sections:
+    warps = {
+        (x, y)
+        for x, y, *_ in rom.warps
+        if not active_warps
+        or warp_activation(None if (block := rom.block(x, y)) is None else block[3]) is not False
+    }
     floor = {
         (x, y): b
         for y in range(rom.height)
@@ -220,6 +229,9 @@ def read_exit_sections(
     shown: Callable[[MapId], str | None],
     gates: DestinationGates | None = None,
     current_rules: FloodRules | None = None,
+    *,
+    active_warps: bool = False,
+    live_map: FullMap | None = None,
 ) -> ExitSections | None:
     cache: dict[MapId, Sections | None] = {}
 
@@ -229,6 +241,18 @@ def read_exit_sections(
             if rom is None:
                 cache[mid] = None
             else:
+                if active_warps and mid == map_id and live_map is not None:
+                    live = {(t.x, t.y): t for t in live_map.tiles}
+                    rom = replace(
+                        rom,
+                        blocks=tuple(
+                            (t.metatile, t.collision, t.elevation, t.behavior)
+                            if (t := live.get((x, y))) is not None
+                            else rom.blocks[y * rom.width + x]
+                            for y in range(rom.height)
+                            for x in range(rom.width)
+                        ),
+                    )
                 tiles = {
                     (x, y): (b[1], b[3])
                     for y in range(rom.height)
@@ -240,7 +264,7 @@ def read_exit_sections(
                     if mid == map_id
                     else destination_rules(read, rom, mid, tiles, gates)
                 )
-                cache[mid] = build_sections(rom, rules)
+                cache[mid] = build_sections(rom, rules, active_warps=active_warps)
         return cache[mid]
 
     here = section_map(map_id)
@@ -253,9 +277,17 @@ def read_exit_sections(
         part = "terrain section unknown" if sections is None else sections.label(region)
         return f"{name} (map {mid[0]}/{mid[1]}) — {part}"
 
+    def entrance(rom: RomMap, x: int, y: int, current: bool) -> bool:
+        if current and live_map is None:
+            return True
+        block = rom.block(x, y)
+        return not active_warps or warp_activation(None if block is None else block[3]) is not False
+
     def details(mid: MapId, target: Sections, start: Tile | None) -> str:
         parts: list[str] = []
         for x, y, wid, g, n in target.rom.warps:
+            if not entrance(target.rom, x, y, mid == map_id):
+                continue
             if not target.connected(start, target.landing((x, y))):
                 continue
             if (g, n) == map_id and wid < len(here.rom.warps):
@@ -295,10 +327,17 @@ def read_exit_sections(
             "Terrain exits after arrival: "
             + ("; ".join(parts) if parts else "none established")
             + ". Temporary objects and scripts may block these terrain paths."
+            + (
+                " Entrance activation uses the map’s default terrain; scripts may change entrances."
+                if active_warps and mid != map_id
+                else ""
+            )
         )
 
     warps: list[SectionExit] = []
     for x, y, wid, g, n in here.rom.warps:
+        if not entrance(here.rom, x, y, True):
+            continue
         if (g, n) == DYNAMIC:
             warps.append(
                 SectionExit(

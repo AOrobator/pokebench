@@ -17,7 +17,7 @@ SWITCH = "player-elevation-readout-v1"
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures/player-elevation-0d5d-21932.json").read_text()
 )
-OFF = frozenset(FIXTURE["off"])
+OFF = frozenset(FIXTURE["off"]) | {"active-warp-exits-v1", "available-exits-presentation-v1"}
 ON = OFF - {SWITCH}
 
 

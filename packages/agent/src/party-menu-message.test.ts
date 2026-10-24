@@ -11,7 +11,7 @@ it("registers a default OFF server treatment without changing tools or prompt",(
  expect(normalizeFeatures(legacy)[ID]).toBe(false);
  expect(SWITCHABLE_FEATURES.at(256)).toBe(ID);
  expect(FEATURES.filter(f=>f.switchable).at(256)?.id).toBe(ID);
- expect(SERVER_FEATURES.at(-1)).toBe(ID);
+ expect(SERVER_FEATURES.at(-3)).toBe(ID);
  expect(playHarnessFeatures(on,null)).toEqual([...playHarnessFeatures(off,null),ID]);
  expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
  expect(serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

@@ -265,6 +265,8 @@ export const SWITCHABLE_FEATURES = [
 
   "party-menu-message-v1",
   "drought-progress-facts-v1",
+  "active-warp-exits-v1",
+  "available-exits-presentation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -650,6 +652,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("player-elevation-readout-v1", "observation", "PLAYER ELEVATION", "live-player-position-v1", "Default off; bundle only. Adds verified current player elevation to the Position line. When the known tile at your own coordinates is elevation 0 or 15, states that the tile accepts any elevation. Uses current native object elevation, not the previous elevation or another sprite. No location interpretation or route advice. Off: the Position line and all readout bytes are unchanged."),
   on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
   on("drought-progress-facts-v1", "guard", "FACTUAL DROUGHT BRIEFING", "stall-briefing-v1", "Default off. Holds this stall briefing’s due drought feedback while a battle is on screen, then restarts its clock. Other drought notes state the recorded interval and retain observed exits and dialogue without claiming play is failing or requiring a different strategy. Use the existing campaign-progress-clock-v1 to credit earned post-Rustboro milestones. Off: previous drought timing and wording are unchanged."),
+  on("active-warp-exits-v1", "observation", "ACTIVE WARP EXITS", null, "Default off; bundle only. Checks the current entrance tile before advertising a warp record as an exit. Live map tiles govern the current map; arrival summaries use qualified ROM terrain and omit dormant entrances. Unknown or script-owned activation is not guessed inactive. No story conditions or hidden destination names are added. Off: every static warp remains listed as before."),
+  on("available-exits-presentation-v1", "observation", "AVAILABLE EXITS", "exit-reachability-v1", "Default off; bundle only. Separates confirmed blocked exits into one unavailable-facts line and removes their duplicated warp, interaction and connection choices and approach instructions. Unknown reachability stays listed under the existing caveat. Recorded state facts and model-selected navigation remain intact. Off: blocked exits stay in the original lists with their existing warnings."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -730,6 +734,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "blackout-transition-v1",
   "player-elevation-readout-v1",
   "party-menu-message-v1",
+  "active-warp-exits-v1",
+  "available-exits-presentation-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -980,6 +986,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
 
     ...when("party-menu-message-v1"),
     ...when("drought-progress-facts-v1"),
+    ...when("active-warp-exits-v1"),
+    ...when("available-exits-presentation-v1"),
   ];
 }
 

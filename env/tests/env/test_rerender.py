@@ -158,6 +158,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "exit_labels_enabled": False,
         "exit_sections_enabled": False,
         "gym_door_label_enabled": False,
+        "active_warp_exits_enabled": False,
         "caught_nickname_enabled": False,
         "caught_dex_enabled": False,
         "party_item_confirmation_enabled": False,

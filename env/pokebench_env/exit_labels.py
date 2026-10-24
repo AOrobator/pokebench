@@ -27,6 +27,7 @@ import struct
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
+from pokebench_env.active_warps import warp_activation
 from pokebench_env.character_presence import _flag
 from pokebench_env.displayed_names import _text
 from pokebench_env.field_moves import (
@@ -251,6 +252,8 @@ def arrival_text(
     shown: Shown,
     cache: dict[MapId, RomMap | None],
     gates: DestinationGates | None = None,
+    *,
+    active_warps: bool = False,
 ) -> str | None:
     """`, arriving at (x,y); from there, on foot: ...` for one warp, or None when unreadable."""
     group, number, warp = destination
@@ -283,7 +286,16 @@ def arrival_text(
     )
     foot = {tile for tile, how in reached.warps if how == FOOT}
     groups = _doorways(
-        [(x, y, (g, n)) for x, y, _w, g, n in rom.warps if (x, y) in foot and (g, n) != DYNAMIC]
+        [
+            (x, y, (g, n))
+            for x, y, _w, g, n in rom.warps
+            if (x, y) in foot
+            and (g, n) != DYNAMIC
+            and (
+                not active_warps
+                or warp_activation(None if (b := rom.block(x, y)) is None else b[3]) is not False
+            )
+        ]
     )
     backs_of: dict[Tile, Tile] = {
         (x, y): here.warps[w][:2]
@@ -301,8 +313,14 @@ def arrival_text(
         for (direction, to, _offset), how in reached.connections
         if how == FOOT
     ]
-    return f", arriving at {_at([start])}; from there, on foot: " + (
-        "; ".join(parts) if parts else "no exit of that map"
+    return (
+        f", arriving at {_at([start])}; from there, on foot: "
+        + ("; ".join(parts) if parts else "no exit of that map")
+        + (
+            ". Based on the map’s default terrain; scripts may change entrances"
+            if active_warps
+            else ""
+        )
     )
 
 
@@ -327,6 +345,8 @@ def read_exit_labels(
     topology: Topology | None,
     shown: Shown,
     gates: DestinationGates | None = None,
+    *,
+    active_warps: bool = False,
 ) -> ExitLabels:
     """Names for this map's warp destinations, and arrival reach for warps sharing a name.
 
@@ -365,7 +385,9 @@ def read_exit_labels(
         name = names.get(destination[:2])
         if here is None or name is None or counts.get(name, 0) < 2:
             continue
-        text = arrival_text(read, map_id, here, destination, shown, cache, gates)
+        text = arrival_text(
+            read, map_id, here, destination, shown, cache, gates, active_warps=active_warps
+        )
         if text is not None:
             arrivals.append((x, y, text))
     return ExitLabels(tuple((g, n, name) for (g, n), name in names.items()), tuple(arrivals))

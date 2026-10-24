@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-v-control",
- "title": "Harness-fixes bundle vs fixed control (CLOCK_SET \u2192 RIVAL_MET)",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -267,7 +267,9 @@
    "leader-preparation-comparison-v1": false,
    "refusal-ledger-v1": false,
    "party-menu-message-v1": false,
-   "drought-progress-facts-v1": false
+   "drought-progress-facts-v1": false,
+   "active-warp-exits-v1": false,
+   "available-exits-presentation-v1": false
   }
  },
  "switches": [
@@ -400,7 +402,9 @@
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
   "party-menu-message-v1",
-  "drought-progress-facts-v1"
+  "drought-progress-facts-v1",
+  "active-warp-exits-v1",
+  "available-exits-presentation-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

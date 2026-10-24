@@ -9,6 +9,7 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from pokebench_env.active_warps import warp_activation
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.map_rules import COUNTER_LINE, POINTER, TERRAIN_RULE, legend, warp_note
 
@@ -441,7 +442,12 @@ def _symbol(
 
 
 def read_local_map(
-    read: ReadMemory, position: tuple[int, int], map_id: tuple[int, int], radius: int = 7
+    read: ReadMemory,
+    position: tuple[int, int],
+    map_id: tuple[int, int],
+    radius: int = 7,
+    *,
+    active_warps: bool = False,
 ) -> LocalMap | None:
     if not 0 <= radius <= 7:
         raise ValueError("map radius must be 0..7")
@@ -475,13 +481,25 @@ def read_local_map(
             collision = (block >> 10) & 3
             behavior = _behavior(read, layout, cache, metatile)
             tiles.append(MapTile(cx, cy, metatile, collision, behavior, (block >> 12) & 15))
+            if active_warps and warp_activation(behavior) is False:
+                warp_coords.discard((cx, cy))
             row.append(_symbol((cx, cy), position, object_coords, warp_coords, collision, behavior))
         rows.append("".join(row))
-    return LocalMap(origin, tuple(rows), tuple(tiles), tuple(objects), tuple(warps))
+    return LocalMap(
+        origin,
+        tuple(rows),
+        tuple(tiles),
+        tuple(objects),
+        tuple(w for w in warps if w[:2] in warp_coords),
+    )
 
 
 def read_full_map(
-    read: ReadMemory, position: tuple[int, int], map_id: tuple[int, int]
+    read: ReadMemory,
+    position: tuple[int, int],
+    map_id: tuple[int, int],
+    *,
+    active_warps: bool = False,
 ) -> FullMap | None:
     layout = _layout(read)
     if layout is None:
@@ -504,8 +522,15 @@ def read_full_map(
             collision = (block >> 10) & 3
             behavior = _behavior(read, layout, cache, metatile)
             tiles.append(MapTile(cx, cy, metatile, collision, behavior, (block >> 12) & 15))
+            if active_warps and warp_activation(behavior) is False:
+                warp_coords.discard((cx, cy))
             row.append(_symbol((cx, cy), position, object_coords, warp_coords, collision, behavior))
         rows.append("".join(row))
     return FullMap(
-        layout.map_width, layout.map_height, tuple(rows), tuple(tiles), tuple(objects), tuple(warps)
+        layout.map_width,
+        layout.map_height,
+        tuple(rows),
+        tuple(tiles),
+        tuple(objects),
+        tuple(w for w in warps if w[:2] in warp_coords),
     )

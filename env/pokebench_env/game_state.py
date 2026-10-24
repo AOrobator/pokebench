@@ -374,6 +374,7 @@ def read_game_state(
     exit_labels_enabled: bool = False,
     exit_sections_enabled: bool = False,
     gym_door_label_enabled: bool = False,
+    active_warp_exits_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     caught_dex_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
@@ -517,7 +518,7 @@ def read_game_state(
     hours, minutes, seconds = struct.unpack("<HBB", read(save2 + 0x0E, 4))
     facing = body[0x18] & 0x0F
     nearby = (
-        read_local_map(read, (x, y), map_id)
+        read_local_map(read, (x, y), map_id, active_warps=active_warp_exits_enabled)
         if screen.kind == "overworld" and not in_battle
         else None
     )
@@ -533,6 +534,20 @@ def read_game_state(
         if nearby is not None
         else None
     )
+    active_full = (
+        read_full_map(read, (x, y), map_id, active_warps=True)
+        if active_warp_exits_enabled and nearby is not None
+        else None
+    )
+    if active_full is not None and targets is not None:
+        from pokebench_env.active_warps import warp_activation
+
+        behaviors = {(t.x, t.y): t.behavior for t in active_full.tiles}
+        targets = tuple(
+            t
+            for t in targets
+            if t.kind != "warp" or warp_activation(behaviors.get((t.x, t.y))) is not False
+        )
     party = _party(read, empty_move_pp=tutorial_owner_enabled)
     if (
         party_menu_message_enabled
@@ -661,7 +676,7 @@ def read_game_state(
         else None,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
-        full_map=read_full_map(read, (x, y), map_id)
+        full_map=(active_full if active_warp_exits_enabled else read_full_map(read, (x, y), map_id))
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
@@ -746,6 +761,8 @@ def read_game_state(
             ),
             None if gates is None else (gates.caps, save1, maps.name),
             None if gates is None else gates.rules(),
+            active_warps=active_warp_exits_enabled,
+            live_map=active_full,
         )
         if exit_sections_enabled
         and nearby is not None
@@ -764,6 +781,7 @@ def read_game_state(
                 enabled=gym_door_label_enabled,
             ),
             None if gates is None else (gates.caps, save1, maps.name),
+            active_warps=active_warp_exits_enabled,
         )
         if exit_labels_enabled and nearby is not None
         else None,

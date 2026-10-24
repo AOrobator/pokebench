@@ -1,3 +1,5 @@
+import {fileURLToPath} from "node:url";
+import {readFixedDefinition} from "./fixed-definition.js";
 import {recipeText} from "../test-support/recipe-text.js";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -363,6 +365,7 @@ describe("production host pieces", () => {
 });
 
 describe("exploratory current-main feature recipe", () => {
+  const sourceRoot=fileURLToPath(new URL("../../../",import.meta.url));
   it.each([
     ["bundle-v-control-2h", "bundle", "B", "86400000", false],
     ["bundle-v-control-2h", "control", "B", "86400000", false],
@@ -372,9 +375,11 @@ describe("exploratory current-main feature recipe", () => {
     const f = setup();
     const hashes = new Map([[f.deps.rom ?? "", ROM_SHA1]]);
     try {
+      mkdirSync(join(f.root,"experiments/feature-configs"),{recursive:true});
+      writeFileSync(join(f.root,"experiments/feature-configs/current.json"),readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url)));
       for (const name of ["bundle-v-control-2h", "bundle-v-control", "glm53-flash-4h"]) {
         const text = readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8");
-        const def = parseFixedDefinition(text).definition;
+        const def = readFixedDefinition(sourceRoot,name).definition;
         for (const phase of def.phases) if (phase.start.kind === "save_state") hashes.set(join(f.root, phase.start.path), phase.start.sha1);
         writeFileSync(join(f.root, "experiments/fixed", `${name}.json`), text);
         const base = join(f.root, def.controlBase.path);

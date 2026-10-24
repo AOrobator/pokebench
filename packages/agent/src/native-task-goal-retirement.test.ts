@@ -1,3 +1,5 @@
+import {fileURLToPath} from "node:url";
+import {readFixedDefinition} from "../../viewer/src/fixed-definition.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
@@ -12,6 +14,9 @@ import {TaskGoalCompletion} from "./task-goal-completion.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {StoryDestinations,type PlacesBody} from "./story-destinations.js";
 
+const sourceRoot=fileURLToPath(new URL("../../../",import.meta.url));
+const CURRENT=["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"];
+const ARCHIVED=["bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"];
 const ID="native-task-goal-retirement-v1";
 const fixture=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/native-task-goal-0517.json.gz",import.meta.url))).toString()) as {events:unknown[]};
 const events=fixture.events.map(checkEvent);
@@ -105,8 +110,8 @@ it("defaults OFF and enables only bundle arms",()=>{
  expect(omittedValue).toBe(false);
  expect(normalizeFeatures(omitted)[ID]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
- for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
-  const d=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+ for(const file of [...CURRENT,...ARCHIVED]){
+  const {definition:d}=readFixedDefinition(sourceRoot,file,ARCHIVED.includes(file));
   expect(d.base.features[ID],file).toBe(false);expect(d.switches,file).toContain(ID);
  }
 });

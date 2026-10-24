@@ -362,7 +362,7 @@ it("allows an explicit bundle reply cap without changing shared sampling or cont
 it("enables truthful cut-off feedback in both arms and the larger reply budget only for GLM bundles",()=>{
  const names=["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","bundle-v-control-2h","whole-map-pair-2h","random-starter-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed","glm53-flash-1h","glm53-flash-2h","glm53-flash-4h"];
  for(const name of names){
-  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
+  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(definitionProblems(def),name).toEqual([]);
   expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
   expect(def.onInBoth,name).toContain("cut-off-reply-feedback-v1");

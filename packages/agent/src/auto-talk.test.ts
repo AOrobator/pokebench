@@ -9,6 +9,7 @@ const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {AUTO_TALK_REPLIES,AUTO_TALK_TURNS,autoTalkContext} from "./auto-talk.js";
+import {withCitedDestination,type DestinationCitationFacts} from "./cited-destination.js";
 import {StoryCharacterGate} from "./stall-gate.js";
 
 const NONE=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
@@ -30,11 +31,13 @@ function world(targets:Target[],options:{walls?:readonly string[];battle?:boolea
   tool("press",a=>{const b=(a["buttons"] as string[])[0]??"";if(b!=="A"){s={...s,facing:b.toLowerCase()};return `pressed ${b}`;}const [dx,dy]=STEP[s.facing??"up"]??[0,0];const p=s.position??{x:0,y:0};const t=targets.find(t=>t.x===p.x+dx&&t.y===p.y+dy);return `pressed A\nDialogue shown during this call (1 page, in order, whole):\n1. "${t?.name??"nothing"} says hi"`;})];
  return {tools,calls,state:{read:()=>Promise.resolve(s)}};
 }
-function rig(targets:Target[],options:Parameters<typeof world>[1]={},features:FeatureSet=ON){
+function rig(targets:Target[],options:Parameters<typeof world>[1]={},features:FeatureSet=ON,wrapCitation=false){
  const w=world(targets,options);
  const subscribers:((e:RunEvent)=>void)[]=[];const talks:Talk[]=[];
  let fixed={turns:0,loop:"a",names:["navigate_to"] as readonly string[]},silent={replies:0,loop:"silent:0"};
- const transform=autoTalkContext(features,w.state,w.tools,m=>Promise.resolve(m),{fixedPoint:()=>fixed,noTool:()=>silent} as never,{subscribe:fn=>{subscribers.push(fn);},recordAutoTalk:b=>{talks.push(b);}});
+ const citations:DestinationCitationFacts[]=[];
+ const tools=wrapCitation?withCitedDestination(w.tools,features["cited-destination-v1"],{subscribe:fn=>{subscribers.push(fn);},destinationCitation:facts=>{citations.push(facts);}},{fullMap:false,exitReach:false,silenceMiss:true,structuredEvidence:features["citation-evidence-v1"]}):w.tools;
+ const transform=autoTalkContext(features,w.state,tools,m=>Promise.resolve(m),{fixedPoint:()=>fixed,noTool:()=>silent} as never,{subscribe:fn=>{subscribers.push(fn);},recordAutoTalk:b=>{talks.push(b);}});
  let seq=0;
  const emit=(body:EventBody):void=>{const e=checkEvent({v:1,run:"r",seq:++seq,t:"2026-10-20T03:40:00.000-04:00",...body});for(const fn of subscribers)fn(e);};
  // The readout the model last saw: MAY placed at (10,3) on this map.
@@ -42,7 +45,7 @@ function rig(targets:Target[],options:Parameters<typeof world>[1]={},features:Fe
  for(const fn of subscribers)fn(st);
  emit({type:"tool_result",turn:1,id:"c0",name:"observe",is_error:false,duration_ms:1,text:LINE,frames:[],state_seq:st.seq});
  const messages:AgentMessage[]=[userText("Play."),{role:"toolResult",toolCallId:"c0",toolName:"observe",content:[{type:"text",text:LINE}],isError:false,timestamp:0}];
- return {...w,talks,emit,messages,send:(m:AgentMessage[]=messages)=>transform([...m]),loop:(turns:number,loop="a")=>{fixed={...fixed,turns,loop};},silent:(replies:number,loop="silent:1")=>{silent={replies,loop};}};
+ return {...w,talks,citations,emit,messages,send:(m:AgentMessage[]=messages)=>transform([...m]),loop:(turns:number,loop="a")=>{fixed={...fixed,turns,loop};},silent:(replies:number,loop="silent:1")=>{silent={replies,loop};}};
 }
 const last=(out:readonly AgentMessage[]):string=>{const m=out.at(-1);return m!==undefined&&"role"in m&&m.role==="user"&&Array.isArray(m.content)?m.content.flatMap(p=>p.type==="text"?[p.text]:[]).join(""):"";};
 
@@ -152,4 +155,16 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
   gate.observe(checkEvent({v:1,run:"r",seq:2,t:"2026-10-20T03:40:00.000-04:00",type:"auto_talk",turn:1,trigger:"fixed_point",repeats:8,outcome:"none",target:null,walks:0,tried:0,text:null}));
   expect(gate.talkedTo("0/18#3")).toBe(false);
  });
+});
+
+
+it.each([[false,"fixed_point"],[true,"fixed_point"],[false,"text_only"],[true,"text_only"]] as const)("auto-talk ON with structured citations=%s trigger=%s uses the real cited wrapper without rejecting the internal walk",async(enabled,trigger)=>{
+ const features={...ON,"bounded-navigation-v1":true,"cited-destination-v1":true,"duplicate-turn-collapse-v1":true,"citation-evidence-v1":enabled};
+ const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3)],{},features,true);
+ if(trigger==="fixed_point")r.loop(AUTO_TALK_TURNS);else r.silent(AUTO_TALK_REPLIES);
+ const out=await r.send();
+ expect(r.calls).toEqual(['navigate_to {"x":10,"y":4,"map_id":[0,18]}','press {"buttons":["A"]}']);
+ expect(r.citations).toEqual([{tool_call_id:"auto-talk-1-walk",because:"the fixed-point breaker's auto-talk",verdict:"not_found",found_turn:null,x:10,y:4,map_id:[0,18]}]);
+ expect(r.talks).toHaveLength(1);expect(r.talks[0]).toMatchObject({trigger,outcome:"talked",walks:1,tried:1});
+ expect(last(out)).toContain('RIVAL_MAY_NORMAL says hi');
 });

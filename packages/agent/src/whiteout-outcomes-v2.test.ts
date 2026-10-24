@@ -22,7 +22,11 @@ const features=(on:boolean)=>normalizeFeatures({...LEGACY_ALL_ON,[ID]:on,"briefi
 function fold(events:readonly RunEvent[],on=true):BattleOutcomes {
  const b=new BattleOutcomes(features(on));for(const e of events)b.observe(e);return b;
 }
-const loss=states[0]!,field=states[1]!;
+function fixtureState(index:number):State {
+ const state=states[index];if(state===undefined)throw new Error(`missing fixture state ${String(index)}`);return state;
+}
+const loss=fixtureState(0),field=fixtureState(1),lostBattle=loss.battle,firstHealed=field.party[0];
+if(lostBattle==null||firstHealed===undefined)throw new Error("loss fixture requires battle and party evidence");
 const change=(s:State,fields:Partial<State>):State=>({...s,...fields});
 const receipt={frame:120,money_before:3615,notice:"Whited out"};
 
@@ -41,7 +45,7 @@ describe(ID,()=>{
   const on=fold(states),off=fold(states,false);
   expect(on.battles().map(b=>({turn:b.turn,whiteout:b.whiteout}))).toEqual([642,716,754].map((turn,i)=>({turn,whiteout:{place:"RUSTBORO CITY (map 0/3)",turn,party:[{species:"MARSHTOMP",hp:i===0?53:56,max_hp:i===0?53:56},{species:"TAILLOW",hp:20,max_hp:20}]}})));
   expect(on.briefingLines()).toContain("Latest whiteout: at turn 754");
-  expect(on.recap(states[5]!)).toContain("Whiting out restored your whole party: MARSHTOMP 56/56 HP, TAILLOW 20/20 HP.");
+  expect(on.recap(fixtureState(5))).toContain("Whiting out restored your whole party: MARSHTOMP 56/56 HP, TAILLOW 20/20 HP.");
   expect(off.battles().map(b=>b.whiteout)).toEqual([null,null,null]);
   expect(off.briefingLines()).toBe("- Latest battle against a story character: you lost to MAY (trainer 600) on RUSTBORO CITY (map 0/3) at turn 754\n- Latest whiteout: none recorded in this run\n");
  });
@@ -64,15 +68,15 @@ describe(ID,()=>{
   for(const fields of [{money:null},{money:0},{position:null},{party:[]},{party:loss.party.map(m=>({...m,identity:null}))},{party:loss.party.map(m=>({...m,max_hp:null}))},{party:loss.party.map(m=>({...m,max_hp:0}))},{party:loss.party.map(m=>({...m,identity:"duplicate"}))}] satisfies Partial<State>[]){
    expect(fold([change(loss,fields),field]).battles()[0]?.whiteout).toBeNull();
   }
-  expect(fold([loss,change(field,{party:[field.party[0]!]})]).battles()[0]?.whiteout).toBeNull();
+  expect(fold([loss,change(field,{party:[firstHealed]})]).battles()[0]?.whiteout).toBeNull();
   expect(fold([change(loss,{money:0}),change(field,{money:0})]).battles()[0]?.whiteout).toBeNull();
   const egg={...loss.party[0]!,is_egg:true};
   expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
  });
  it("does not infer a whiteout from a win, escape, surviving party or ordinary map change",()=>{
-  expect(fold([change(loss,{battle:{...loss.battle!,outcome:"drew"}}),field]).battles()[0]).toMatchObject({outcome:"drew",whiteout:{turn:642}});
+  expect(fold([change(loss,{battle:{...lostBattle,outcome:"drew"}}),field]).battles()[0]).toMatchObject({outcome:"drew",whiteout:{turn:642}});
   for(const outcome of ["won","ran","ongoing"]){
-   expect(fold([change(loss,{battle:{...loss.battle!,outcome}}),field]).battles()[0]?.whiteout).toBeNull();
+   expect(fold([change(loss,{battle:{...lostBattle,outcome}}),field]).battles()[0]?.whiteout).toBeNull();
   }
   expect(fold([change(loss,{party:field.party}),field]).battles()[0]?.whiteout).toBeNull();
   expect(fold([loss,change(field,{map_id:[2,2],party:loss.party,money:loss.money})]).battles()[0]?.whiteout).toBeNull();
@@ -84,7 +88,7 @@ describe(ID,()=>{
   expect(fold([loss,change(unknown,{blackout_receipt:receipt})]).battles()[0]?.whiteout?.turn).toBe(642);
   expect(fold([loss,change(unknown,{blackout_receipts:[receipt]})]).battles()[0]?.whiteout?.turn).toBe(642);
   expect(fold([loss,change(callback,{blackout_active:false,blackout_receipt:receipt}),unknown]).battles()[0]?.whiteout?.turn).toBe(642);
-  expect(fold([change(loss,{battle:{...loss.battle!,outcome:"ongoing"}}),change(unknown,{blackout_receipt:receipt})]).battles()[0]?.outcome).toBe("lost");
+  expect(fold([change(loss,{battle:{...lostBattle,outcome:"ongoing"}}),change(unknown,{blackout_receipt:receipt})]).battles()[0]?.outcome).toBe("lost");
  });
  it("does not reuse a carried receipt from before the battle, or let later healing rewrite its first field result",()=>{
   const unknown=change(field,{money:null,party:[],blackout_receipt:receipt});

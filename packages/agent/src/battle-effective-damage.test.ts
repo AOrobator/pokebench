@@ -1,3 +1,5 @@
+import {armPreset,parseFixedDefinition} from "../../viewer/src/fixed-design.js";
+import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
@@ -19,12 +21,20 @@ describe(ID,()=>{
   expect(playHarnessFeatures(ALL_ON,null)).toContain(ID);
  });
 
- it("is an isolated candidate in the fixed bundle and has tracked operator docs",()=>{
-  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+ it("preserves the archived isolated treatment and tracked operator docs",()=>{
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/archive/fixed/bundle-cook-1h.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
   expect(bundle.switches).toContain(ID);
   expect(root("docs/explainers/README.md")).toContain("battle-effective-damage-v1.html");
   expect(root("docs/explainers/battle-effective-damage-v1.html")).toContain("The harness does not rank moves");
   expect(root("docs/experiments/README.md")).toContain("battle-effective-damage.html");
  });
+});
+
+it("keeps the established newer whole-map baseline enabled in both materialized current arms",()=>{
+ const {definition}=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(definition.base.features[ID]).toBe(true);expect(definition.switches).not.toContain(ID);
+ for(const phase of definition.phases)for(const arm of ["control","bundle"] as const){
+  expect(presetFeatures(parsePlayPreset(armPreset(definition,phase.id,arm)))[ID],`${phase.id}/${arm}`).toBe(true);
+ }
 });

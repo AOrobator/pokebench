@@ -10,9 +10,9 @@ menus.py, ui_state.py, game_state.py, rerender.py, readout.py; TS feature regist
 Reference pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, clean checked 2026-10-24. party_menu.c Task_ReturnToChooseMonAfterText / Task_PrintAndWaitForText; strings.c gText_PkmnHasNoEnergy; text.c EXT_CTRL_CODE_PAUSE_UNTIL_PRESS. Exact US ROM SHA1 f3ae088181bf583e55daf962a92bb46f4f1d07b7. Report ram_audit.md item 2: GLM 0d5d event 39808 turn390 raw8360; post-A raw8367/event39857. Confirm archived memory hashes and ROM identity during fixture extraction.
 
 ## Milestone
-- [ ] RED fixture + negative cases committed
-- [ ] GREEN and production-wire deletion/restoration
-- [ ] Explainer + offline turn390 probe plan
+- [x] RED fixture + negative cases committed
+- [x] GREEN and production-wire deletion/restoration
+- [x] Explainer + offline turn390 probe plan
 - [ ] Gates (finite shared CPU window)
 - [ ] Principles, frozen cloud reviews; standing Grok outage fallback only with provenance
 - [ ] Landing board, ff-only, postmerge checks and coordinated viewer proof
@@ -37,3 +37,11 @@ First coordinated full-chain window e4056d3d8: build passed17.97s; test stopped2
 Additional source ownership check before freeze: return-after-message has other callers with ROM-backed text. ON now publishes STRING_VAR4 only after the active window6 printer cursor validates inside that buffer; an inactive/unrelated/invalid printer never publishes stale buffer text, including through diagnostic details→Dialog. Old item-message branch remains byte-identical OFF. Added explicit ROM-pointer/stale-buffer and diagnostic-message-absence assertions. 41 focused Python cases passed. This is the original truthful-message owner invariant, not generic text recovery. COMMIT: `fix(party-menu): publish text only after printer ownership validates`.
 Python SERVER_FEATURES/default-off list now append the id at the tail, matching TS transport ordering and preserving all original positions; exact native OFF readout unchanged. 41 focused Python tests passed. COMMIT: `fix(party-menu): append Python server feature in transport order`.
 Fixture8360 metadata now explicitly says related_event39808/earlier matching wait, rather than implying a direct pair. Exact event39808 regression remains8361. This corrects provenance only; retained memory/readout bytes unchanged. COMMIT: `test(party-menu): distinguish related archive from exact event pair`.
+
+Rebased own unlanded topic normally onto released main b8911c90e (reviewed approved sprite source4b4bbf7, evidence-only worklog commitb891). Backup ref codex/party-menu-message-before-sprite-20261024 preserves original history. No conflicts or approval bypass; own diff excludes every incoming protected baseline/guard file. Production file contents byte-identical to pre-rebase topic.
+
+Operand-level mutation receipts (unique runs/mutation-*-1.txt, runs/mutation-party-receipts.json): removing printer window, cursor bounds, render validity, WAIT-state, consumed FC09, fade, auto-scroll, unique text task, active printer, deferred message publication, or second-cursor mapping each exits1 with concrete assertion failure; all11 restored between trials. Restored receipt runs/mutation-restored-1.txt41passed. No receipt overwritten. Initial wire-delete/restore proof retained separately.
+
+Isolated background viewer proof (source build e4056d3, production bytes unchanged): scratch copies of original source events0/39807/39808/256707 plus frame039808_0, no source-log rewriting. Harness Config feature search→READ EXPLAINER opens exact title Party menu message; historical card remains NOT RECORDED; pageerrors[]. First receipt attempt failed on an ambiguous test locator after opening the right page; retained runs/card-proof.log, corrected selector is exact owned article and success runs/card-proof-2.log/card-receipt.json. Scratch server/browser closed. Final1280/1440/375 screenshots inspected. Shared8790 untouched.
+
+Full-gate dependency ready: private venv imports own pokebench_env and own mgba runtime; own pnpm links. Approved ignored card-art copied read-only into own runs/sprites/trainer-card-v1, manifestSHA256e3ee2d860670a15452769e679a41ac8dd941923919ed800757c325ed62c7c1cb. No approved baseline/source/timeout changes. COMMIT: `docs(party-menu): record integrated source and adversarial proof`.

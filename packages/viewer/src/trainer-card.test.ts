@@ -99,7 +99,7 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const art = { ...ART, trainers }, runs = [bundle, control];
     const picks = runs.map(run => cardInputFor(run, 1000, 1000, "live", runs, art).trainer);
     expect(new Set(picks).size, picks.join(",")).toBe(2);
-    const ended = recorded({ id: "old-gpu2-recording", status: "ended", experiment: { id: "unrelated", arm: "bundle", trial: 1, of: 1 } });
+    const ended = recorded({ id: "old-gpu0-recording", status: "ended", experiment: { id: "a-13", arm: "bundle", trial: 1, of: 1 } });
     expect(runs.map(run => cardInputFor(run, 1000, 2000, "watching", [ended, ...runs.toReversed()], art).trainer)).toEqual(picks);
   });
   it("hashes GPU, experiment and arm in order, independently of trial and model", () => {
@@ -120,6 +120,20 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const runs = [a, b];
     // Both ordered tuple hashes start at slot zero of this four-sprite palette.
     expect(runs.map(run => cardInputFor(run, 0, 0, "live", runs, ART).trainer)).toEqual(["brendan", "may"]);
+    expect(runs.map(run => cardInputFor(run, 0, 0, "live", runs.toReversed(), ART).trainer)).toEqual(["brendan", "may"]);
+  });
+  it("reserves a legacy current card across experiment boundaries", () => {
+    const gpu = recorded({ id: "owned-gpu0-current", status: "live", experiment: { id: "left", arm: "bundle", trial: 1, of: 1 } });
+    const local = recorded({ id: "owned-mac-current", model: "local", status: "live", experiment: null });
+    const runs = [gpu, local];
+    expect(runs.map(run => cardInputFor(run, 0, 0, "live", runs, ART).trainer)).toEqual(["may", "brendan"]);
+  });
+  it("isolates ended replay allocation from colliding current experiments", () => {
+    const replay = recorded({ id: "owned-gpu1-replay", status: "ended", experiment: { id: "archive", arm: "bundle", trial: 1, of: 1 } });
+    const live = recorded({ id: "owned-gpu0-current", status: "live", experiment: { id: "replay-collider-2", arm: "bundle", trial: 1, of: 1 } });
+    // Both full keys hash to slot two; the unrelated live key sorts first.
+    expect(cardInputFor(replay, 0, 0, "replay", [replay], ART).trainer).toBe("birch");
+    expect(cardInputFor(replay, 0, 0, "replay", [live, replay], ART).trainer).toBe("birch");
   });
   it("uses the run's GPU identity so same-model live cards are visually distinct", () => {
     const model = "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";

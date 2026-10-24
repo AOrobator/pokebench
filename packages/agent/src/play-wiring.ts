@@ -123,7 +123,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
  let latest:number|null=null,calls=0;
  const stop=new StallStop(control,STALL_STOP_MS,elapsed,()=>{
   if(latest===null)return;
-  const message="SUPERVISOR: No new milestone was recorded during the last 10 minutes of unpaused play. This does not establish that the game stopped changing. The run continues; no input or destination is selected for you.";
+  const message="SUPERVISOR: No newly observed milestone that resets this clock was recorded during the last 10 minutes of unpaused play. This does not establish that the game stopped changing. The run continues; no input or destination is selected for you.";
   if(!detector.stall("milestone_drought",()=>message,[latest]))recorder.recordLoopGuard({kind:"milestone_drought",message:`Not sent (another briefing is active or the guard is diagnostic): ${message}`,calls,evidence:[latest],mode:"diagnostic",phase:"would_warn"});
  });
  recorder.subscribe(event=>{latest=event.seq;if(event.type==="tool_result")calls++;stop.observe(event);},false,true);

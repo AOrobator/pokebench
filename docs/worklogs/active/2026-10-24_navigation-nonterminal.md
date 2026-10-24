@@ -59,3 +59,5 @@ Dependency proof: private copied package dependency links resolve owned agent wo
 Headless desktop/phone inspection caught overflow from an unbroken source hash and two uncontained SVG diagrams; fixed wrapping and local diagram scrolling before source freeze. Browser uses headless:true and never touches operator tabs/windows. No external page requests or page errors.
 
 Item3 source-grounded text correction before review: StallStop ignores MEASUREMENT_ONLY_MILESTONES, so the timer notice must say “newly observed milestone that resets this clock”, not claim no milestone of any kind was recorded. Live delivery assertion first changed and failed; clock policy remains identical.
+
+Timer wording correction GREEN: live delivery + play-wiring + run-control suites all pass (count in tool receipt); no timing-policy change. Full gate head remains pending slot.

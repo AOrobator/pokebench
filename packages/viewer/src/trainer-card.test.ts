@@ -48,8 +48,8 @@ describe("trainer card markup", () => {
     const html = cardHtml(input(), ART, "wide");
     expect(html).toContain('data-watch="run-a"'); expect(html).toContain('aria-pressed="true"');
     expect(html).toContain("/sprites/card/wide-silver.png"); expect(html).toContain('src="/sprites/trainers/may.png"');
-    expect(html).toContain('data-gt="bundle-v-control-dryrun-cook" data-c="tab"'); expect(html).toContain(">RED<"); expect(html).not.toContain(">BUNDLE<"); expect(html).not.toContain("TYPE/");
-    expect(html).toContain("Rival waits in Oldale"); expect(html).toContain("Oldale Town"); expect(html).not.toContain("trial 2/4");
+    expect(html).toContain('data-gt="bundle-v-control-dryrun-cook" data-c="tab"'); expect(html).toContain(">RED<"); expect(html).toContain(">BUNDLE<"); expect(html).toContain("--tyc:#7a3fb8");
+    expect(html).toContain("Rival waits in Oldale"); expect(html).toContain("Oldale Town"); expect(html).toContain("trial 2/4");
     expect(html).toContain(">27/45<"); expect(html).toContain('width:60.0%');
     expect(html.match(/class="tc-mon/g)).toHaveLength(2); expect(html).toContain("/sprites/icons/280.png"); expect(html).toContain("/sprites/icons/412.png"); expect(html).not.toContain("/sprites/icons/9.png");
     expect(html).toContain('title="Lv7"'); expect(html).toContain('title="Egg"');
@@ -83,7 +83,7 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const bundle = recorded({ id: "b", status: "live", experiment: exp("bundle", 2), card: { name: "RED", location: "OLDALE TOWN", party: [] } });
     const control = recorded({ id: "c", status: "live", experiment: exp("control", 1) });
     const input = cardInputFor(bundle, 1000, 1000, "live", [bundle, control, recorded({ id: "z", experiment: null })], { ...ART, trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"] });
-    expect(input).toMatchObject({ runId: "b", title: "Model <img onerror=x>", arm: null, trial: null, status: "live", trainer: "norman", card: { name: "RED" } });
+    expect(input).toMatchObject({ runId: "b", title: "bundle-v-control-dryrun-cook", arm: "bundle", trial: "trial 2/4", status: "live", trainer: "norman", card: { name: "RED" } });
     const plain = cardInputFor(recorded({ id: "p", experiment: null }), 1000, 1000, "paused", [], ART);
     expect(plain).toMatchObject({ title: "Model <img onerror=x>", arm: null, trial: null, card: null, status: "paused" });
     expect(cardInputFor(recorded({ id: "q", experiment: null, model: null }), 1000, 1000, "live", [], ART).title).toBe("q");

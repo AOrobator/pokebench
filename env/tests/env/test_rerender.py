@@ -161,6 +161,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "caught_nickname_enabled": False,
         "caught_dex_enabled": False,
         "party_item_confirmation_enabled": False,
+        "party_menu_message_enabled": False,
         "interface_guidance_enabled": False,
         "field_moves_enabled": False,
         "move_learning_enabled": False,

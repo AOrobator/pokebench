@@ -17,11 +17,11 @@ One implementation milestone: RED → GREEN → offline replay and production de
 Stale-goal chat owns task-goal-completion.ts/story-destinations.ts/harness-trust.ts/play-wiring.ts and shared switch/config registration until landing. Our modules remain separate; shared integration follows its landing. No shared CPU gate or viewer restart without coordination. All browser proof headless/background only.
 
 ## Evidence and checks
-Recorded control 2026-10-24T08-12-35_qwen36-gpu1_0517: seq39430 tutorial dialogue, seq39462 select request, seq39512 BAG, seq39566 PokéNav highlight, seq40378 trainer row. Source pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Offline replay may prove input/readout behavior; no gameplay benefit claim.
+Recorded control 2026-10-24T08-12-35_qwen36-gpu1_0517: seq39430 tutorial dialogue, seq39462 select request, seq39512 BAG, seq39570 PokéNav highlight, seq40378 trainer row. Source pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Offline replay may prove input/readout behavior; no gameplay benefit claim.
 
-- [ ] RED tests and commit
-- [ ] GREEN implementation with pinned pi model-delivery proof and recorded failure replay
-- [ ] OFF and independent switches; atomic invalid-update rejection; stale/missing/wrong-run proof rejection; context compaction/history restore; checked menu input interruption tests
+- [x] RED tests and commit
+- [x] GREEN implementation with pinned pi model-delivery proof and recorded failure replay
+- [x] OFF and independent switches; atomic invalid-update rejection; stale/missing/wrong-run proof rejection; context compaction/history restore; checked menu input interruption tests
 - [ ] ≥90% coverage, lint, build, tests, vendor; operand deletion/restoration receipts
 - [ ] Explainers, Activity History/raw event/replay proof on isolated viewer
 - [ ] Principles PB1–PB13 and Claude/Grok/GPT review, frozen packet
@@ -107,3 +107,5 @@ Goal ledger+bundle authorization: user message 00000000-0000-4000-8000-17d58bbbe
 - Synced actual released main ea8c54836, preserving the approved refusal feature in the two long-run bundle recipes and its absolute-position registry tests. Our three prepared feature switches append after that released recipe prefix; both new instruction/menu flags still default/control OFF and bundle ON. No test/build/browser slot started.
 - Synced actual party-menu final main2114da000. Preserved its observation/source code, server feature/default and approved two long-run recipe values. The three prepared switches append after the released party entry. Added observation/guidance counts compose independently; incoming party registration assertion now accounts for three appended registry entries. Small switch/recipe checks run only; full gates and browser remain awaiting explicit admission and final native dependency.
 - Human explicitly resumed completion on this chat: check repair, finish gates/review/landing, bundle-only bits and active-run preservation. Current released main2594c77ab (drought, trigger boundary and gym labels) integrated as source preparation; combined serial-test repair remains in R2, not yet landed/qualified. Incoming recipe values and shared source owners preserved; our three prepared bits append after the current released registry. Await explicit CPU handoff and final native dependency before freezing review. No active-run or inference actions.
+- Source-prep review reproduced an old coherence test combining raw ALL_ON with objective tracking and the new ledger; it fails at the intended single-authority validation. Its historical-preset fixture now explicitly leaves the new instruction ledger OFF, as the two previous historical fixtures do. No production guard changed. Coordinator clarified2594c77ab remains held by its landing owner; our sync is source preparation only, not a qualification or final-release claim.
+- Historical coherence fixture RED reproduced at single-authority validation, then GREEN1test after explicit ledger OFF; no retries, production guard changes or suppression. Shared full gates/review are still pending admission and dependency.

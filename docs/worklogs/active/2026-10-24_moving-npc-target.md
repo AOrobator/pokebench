@@ -35,3 +35,10 @@ Pending. No experiments authorized or launched.
 
 - GREEN commit ed28a6382. Integrated main 42edb3f22 (trigger boundary promotion and recipe-fixture caching) without conflicts. Its trigger-boundary both-arm promotion remains intact; this NPC switch stays bundle-only. Preparing exact clean integration tip for CPU admission.
 - Synced again to main 7133032cc after its landing evidence commit; final CPU-ready tip reported to coordinator.
+
+## Operator scope amendment: one maintained feature configuration
+The operator explicitly requested one maintained feature config, future-launcher migration, archive bundle-cook-1h/whole-map-cook-1h/whole-map-pair-2h, then review and land the NPC fix, leaving active runs untouched. Prior CPU READY withdrawn.
+
+Design: experiments/feature-configs/current.json owns the current two-hour control baseline and treatment switches. The retained Qwen and GLM protocol JSONs reference it; loader materializes a self-contained definition before approval/run and hashes both source and recipe. Existing complete historical definitions still parse without external configuration. The three archived protocol files preserve current-main bytes and live histories/pinned copies remain untouched. Current Qwen vs GLM treatment differs only in full-map navigation and pacing; future shared config uses the newer Qwen baseline (whole-map ON, original-speed pacing OFF). No existing run is reconfigured.
+
+New production path scope: fixed-design.ts pure source materialization/schema; fixed-definition.ts filesystem owner; fixed-cli.ts load/plan/receipt; tracked feature config and protocol refs; future launcher declarations/documentation and integration/rehearsal tests. No scheduler, lease, controller state or model endpoint mutations.

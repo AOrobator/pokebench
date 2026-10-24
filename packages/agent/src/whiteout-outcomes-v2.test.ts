@@ -5,7 +5,8 @@ import {BattleOutcomes} from "./battle-outcomes.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
-import {normalizeFeatures} from "./play-preset.js";
+import {ALL_ON,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
+import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
 const ID="whiteout-outcomes-v2";
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
@@ -22,6 +23,15 @@ const change=(s:State,fields:Partial<State>):State=>({...s,...fields});
 const receipt={frame:120,money_before:3615,notice:"Whited out"};
 
 describe(ID,()=>{
+ it("registers an optional default-OFF switch with independent both-arm applicability",()=>{
+  const older=Object.fromEntries(Object.entries(LEGACY_ALL_ON).filter(([id])=>id!==ID));
+  expect(normalizeFeatures(older)[ID]).toBe(false);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
+  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});
+  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(features(false),null)).not.toContain(ID);
+ });
  it("records all three retained Rustboro same-map losses; OFF retains exact existing output",()=>{
   expect(states.map(s=>s.seq)).toEqual([65354,65369,72982,72984,77543,77545]);
   const on=fold(states),off=fold(states,false);
@@ -46,6 +56,14 @@ describe(ID,()=>{
  ] satisfies [string,Partial<State>][]) ("refuses %s",(_label,fields)=>{
   expect(fold([loss,change(field,fields)]).battles()[0]?.whiteout).toBeNull();
  });
+ it("requires complete loss evidence, stable party identities and positive max HP",()=>{
+  for(const fields of [{money:null},{money:0},{position:null},{party:[]},{party:loss.party.map(m=>({...m,identity:null}))},{party:loss.party.map(m=>({...m,max_hp:null}))},{party:loss.party.map(m=>({...m,max_hp:0}))},{party:loss.party.map(m=>({...m,identity:"duplicate"}))}] satisfies Partial<State>[]){
+   expect(fold([change(loss,fields),field]).battles()[0]?.whiteout).toBeNull();
+  }
+  expect(fold([loss,change(field,{party:[field.party[0]!]})]).battles()[0]?.whiteout).toBeNull();
+  const egg={...loss.party[0]!,is_egg:true};
+  expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
+ });
  it("does not infer a whiteout from a win, escape, surviving party or ordinary map change",()=>{
   for(const outcome of ["won","ran","ongoing"]){
    expect(fold([change(loss,{battle:{...loss.battle!,outcome}}),field]).battles()[0]?.whiteout).toBeNull();
@@ -59,6 +77,8 @@ describe(ID,()=>{
   expect(fold([loss,callback,unknown]).battles()[0]?.whiteout?.turn).toBe(642);
   expect(fold([loss,change(unknown,{blackout_receipt:receipt})]).battles()[0]?.whiteout?.turn).toBe(642);
   expect(fold([loss,change(unknown,{blackout_receipts:[receipt]})]).battles()[0]?.whiteout?.turn).toBe(642);
+  expect(fold([loss,change(callback,{blackout_active:false,blackout_receipt:receipt}),unknown]).battles()[0]?.whiteout?.turn).toBe(642);
+  expect(fold([change(loss,{battle:{...loss.battle!,outcome:"ongoing"}}),change(unknown,{blackout_receipt:receipt})]).battles()[0]?.outcome).toBe("lost");
  });
  it("does not reuse a carried receipt from before the battle, or let later healing rewrite its first field result",()=>{
   const unknown=change(field,{money:null,party:[],blackout_receipt:receipt});
@@ -66,8 +86,18 @@ describe(ID,()=>{
   expect(fold([loss,change(field,{money:loss.money}),field]).battles()).toHaveLength(1);
   expect(fold([loss,change(field,{money:loss.money}),field]).battles()[0]?.whiteout).toBeNull();
  });
+ it("preserves OFF native-callback and receipt behavior, including old map-change inference",()=>{
+  const noEffects=change(field,{party:[],money:null});
+  expect(fold([loss,change(noEffects,{blackout_receipt:receipt})],false).battles()[0]?.whiteout).toBeNull();
+  expect(fold([loss,change(noEffects,{blackout_active:true})],false).battles()[0]?.whiteout).toBeNull();
+  expect(fold([loss,change(noEffects,{map_id:[2,2]})],false).battles()[0]?.whiteout).not.toBeNull();
+  const b=new BattleOutcomes({...features(true),"whiteout-healed-v1":false});b.observe(loss);b.observe(field);
+  expect(b.battles()[0]?.whiteout?.party).toEqual([]);
+  expect(b.recap(field)).not.toContain("restored your whole party");
+ });
  it("keeps recap previews read-only and commits the same evidence once",()=>{
   const b=fold([loss]);
+  expect(b.recap(field)).toContain("and whited out");
   expect(b.recap(field)).toContain("and whited out");
   expect(b.battles()).toHaveLength(0);
   b.observe(field);b.observe(field);

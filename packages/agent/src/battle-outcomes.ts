@@ -8,7 +8,7 @@ import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS} from "./script-line-presence.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"battle"|"trainer_opponent"|"blackout_active"|"party">;
+type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"battle"|"trainer_opponent"|"blackout_active"|"blackout_receipt"|"blackout_receipts"|"money"|"position"|"party">;
 // pokeemerald include/constants/battle.h BATTLE_TYPE_TRAINER.
 const BATTLE_TYPE_TRAINER=1<<3;
 const STORY=new Set(STORY_CHARACTERS.map(c=>c.name));
@@ -18,7 +18,7 @@ interface Running {
  trainer:{readonly id:number;readonly name:string|null}|null;foe:string|null;turn:number;
  // The trainer's defeated flag as the battle showed it: a win is the flag turning set afterwards.
  unbeaten:boolean;
- outcome:string|null;blackout:boolean;
+ outcome:string|null;blackout:boolean;loss:Snapshot|null;
 }
 export interface Battle {
  readonly trainerBattle:boolean;
@@ -49,6 +49,7 @@ export class BattleOutcomes {
  private running:Running|null=null;
  private readonly done:Battle[]=[];
  private storySeq=-1;
+ private receiptFrame=0;
  private readonly observations=new Map<number,TrainerObservation>();
  private readonly deliveredFoes=new Map<number,Map<number,ObservedFoe>>();
  private readonly pendingFaints=new Map<string,{readonly tool:string;readonly pages:readonly {readonly observation:TrainerObservation;readonly text:string}[]}>();
@@ -65,10 +66,13 @@ export class BattleOutcomes {
  // The battle a state ends (null when it ends none); with commit false nothing is kept, so a result can be
  // described from its own state before the recorder has written that state.
  private step(s:State|Snapshot,turn:number,seq:number,commit=true):Battle|null {
+  const receipts=[...(s.blackout_receipts??[]),...(s.blackout_receipt===undefined?[]:[s.blackout_receipt])];
+  const freshReceipt=receipts.some(r=>r.frame>this.receiptFrame);
+  if(commit)for(const r of receipts)this.receiptFrame=Math.max(this.receiptFrame,r.frame);
   if(inBattle(s)){
    if(!commit)return null;
    const b=s.battle??null;
-   const run=this.running??{trainerBattle:false,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false,unbeaten:false};
+   const run=this.running??{trainerBattle:false,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false,loss:null,unbeaten:false};
    this.running=run;
    run.turn=turn;
    // An initializing state can lack the battle type; a later state, or the opponent reading, settles it (review round 4).
@@ -80,19 +84,20 @@ export class BattleOutcomes {
    }
    run.foe??=b?.battlers?.find(x=>x.battler===1)?.species??null;
    if(b?.outcome!=null&&b.outcome!=="ongoing")run.outcome=b.outcome;
+   if(this.features["whiteout-outcomes-v2"]&&(b?.outcome==="lost"||b?.outcome==="drew"))run.loss=s;
    if(s.blackout_active===true)run.blackout=true;
    return null;
   }
   const run=this.running;
   if(run===null)return null;
-  if(s.blackout_active===true&&commit)run.blackout=true;
+  if((s.blackout_active===true||(this.features["whiteout-outcomes-v2"]&&freshReceipt))&&commit)run.blackout=true;
   if(!overworld(s))return null;
   const opponent=run.trainer===null?null:s.trainer_opponent;
   // pokeemerald CB2_EndTrainerBattle sets the trainer flag only when the player was not defeated.
-  const blackout=run.blackout||s.blackout_active===true;
+  const blackout=run.blackout||s.blackout_active===true||(this.features["whiteout-outcomes-v2"]&&freshReceipt);
   const won=!blackout&&run.unbeaten&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
   const outcome=run.outcome!==null?run.outcome:blackout?"lost":won?"won":null;
-  const whiteout=(outcome==="lost"||outcome==="drew")&&roomKey(s)!==run.key?{place:roomOf(s,this.features),turn:run.turn,party:this.features["whiteout-healed-v1"]?s.party.flatMap(m=>m.is_egg===true?[]:[{species:m.species,hp:m.hp,max_hp:m.max_hp}]):[]}:null;
+  const whiteout=(outcome==="lost"||outcome==="drew")&&(this.features["whiteout-outcomes-v2"]?blackout||whiteoutTransition(run.loss,s):roomKey(s)!==run.key)?{place:roomOf(s,this.features),turn:run.turn,party:this.features["whiteout-healed-v1"]?s.party.flatMap(m=>m.is_egg===true?[]:[{species:m.species,hp:m.hp,max_hp:m.max_hp}]):[]}:null;
   return {trainerBattle:run.trainerBattle,trainer:run.trainer,foe:run.foe,place:run.place,turn:run.turn,seq,outcome,whiteout};
  }
 
@@ -211,4 +216,19 @@ function healedParty(party:readonly PartyHp[]):string {
  const full=party.every(m=>m.hp!==null&&m.max_hp!==null&&m.hp===m.max_hp);
  const list=party.map(m=>`${m.species??"a Pokémon whose species was not read"} ${m.hp===null||m.max_hp===null?"HP not read":`${String(m.hp)}/${String(m.max_hp)} HP`}`).join(", ");
  return full?`Whiting out restored your whole party: ${list}.`:`After whiting out, the game state showed your party: ${list}.`;
+}
+
+// pret 731ad5bf overworld.c DoWhiteOut: halve money, heal party, warp to last heal.
+// A sampled transition needs all effects together; a new map alone establishes none.
+function whiteoutTransition(before:Snapshot|null,after:Snapshot):boolean {
+ if(before===null||before.money===null||before.money<=0||after.money!==Math.floor(before.money/2)||before.position===null||after.position===null)return false;
+ if(roomKey(before)===roomKey(after)&&before.position.x===after.position.x&&before.position.y===after.position.y)return false;
+ const party=before.party.filter(m=>m.is_egg!==true),healed=after.party.filter(m=>m.is_egg!==true);
+ if(party.length===0||party.length!==healed.length)return false;
+ const ids=new Set(party.map(m=>m.identity));
+ if(ids.size!==party.length)return false;
+ return party.every((m,i)=>{
+  const now=healed[i];
+  return m.is_egg===false&&m.identity!=null&&m.hp===0&&m.max_hp!==null&&m.max_hp>0&&now!==undefined&&now.is_egg===false&&now.identity===m.identity&&now.species===m.species&&now.max_hp===m.max_hp&&now.hp===now.max_hp;
+ });
 }

@@ -260,6 +260,7 @@ export const SWITCHABLE_FEATURES = [
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
+  "whiteout-outcomes-v2",
 
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -642,6 +643,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
+  on("whiteout-outcomes-v2", "observation", "NATIVE WHITEOUT OUTCOMES", null, "Default off; applicable to both arms. Records a lost or drawn battle as a whiteout after an observed native whiteout callback or fresh receipt, or after displacement, exact money halving and the same identified party all fainted then fully healed. Same-map respawns count. Healing, money changes and map changes alone do not count. Off: previous loss-plus-map-change whiteout inference and recap bytes unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -965,6 +967,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("leader-loss-immediate-v1"),
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
+    ...when("whiteout-outcomes-v2"),
 
   ];
 }

@@ -13,7 +13,7 @@ Retained GLM 2026-10-22T20-40-54_glm53-mac_0d5d, source pin 5bec91dcd. Fixture c
 
 ## Steps and receipts
 - [x] RED commit: native-shape fixture + negative cases + production factory delivery
-- [ ] GREEN: implementation, registration, explainer, adversarial wiring deletion/restoration
+- [x] GREEN: implementation, registration, explainer, adversarial wiring deletion/restoration
 - [ ] Gates, frozen cloud reviews and synthesis
 - [ ] Landing board ff-only landing, coordinated viewer proof
 
@@ -21,3 +21,25 @@ Retained GLM 2026-10-22T20-40-54_glm53-mac_0d5d, source pin 5bec91dcd. Fixture c
 Coordinator notified; no active Claude whiteout branch; whiteout-healed-v1 and blackout-transition-v1 already landed. Asked existing blackout owner directly. Shared registration edits append-only; heavy gates require finite coordinator CPU window.
 
 RED receipt: /tmp/item2-red.log: 5 intended failures, 4186 passes (command forwarding unexpectedly ran the full agent suite in 20.79s; future focused calls use direct vitest). Fails retained fixture outcomes, native receipt path, preview and supervisor delivery. COMMIT: test: pin same-map whiteout evidence (SHA in git log).
+
+GREEN preparation: 91 focused tests passed before final OFF adjunct. Seven independent adversarial deletions (v2 production selection, money, displacement, fainted, healed, identity and fresh-receipt checks) each failed then restored: runs/item2-proof/<operand>.log; restored.log passed. Fixture setup performs one read+gunzip, validates six whole state rows once per worker; test folds have 2–6 state steps with no filesystem/network/process work per step. Party comparisons are bounded by six slots. No aggregate cloning/transaction/persistence introduced.
+Explainer: pages-theme/check passed, 8791 candidate returned 200. Headless Chromium screenshots at 1280/1440/375, collapsed+expanded, all six inspected with image tool; mobile overflow corrected and rechecked at scrollWidth=viewport. No desktop/browser focus or gameplay calls. Screenshots main runs/mockups/whiteout-outcomes-v2/. Source and game references inspected clean. Tool-prompt-sync N/A: no tools/arguments/gates or system prompt changes.
+
+## Principles adherence (before reviewers)
+| ID | Result | Evidence |
+|---|---|---|
+| PB1 | PASS | Native outcomes/callback and source-owned transition effects; no model claims |
+| PB2 | PASS | Losses retained; original logs untouched |
+| PB3 | PASS | No gameplay benefit or trial claims; three fixtures show defect only |
+| PB4 | PASS | Default-OFF registered evidence switch, recorded feature ID |
+| PB5 | PASS | One evidence correction, both-arm contract, no activation |
+| PB6 | PASS | Bounded single current battle snapshot and scalar receipt watermark; no context growth |
+| PB7 | PASS | Existing recorded state→BattleOutcomes→supervisor consumers, no history rewriting |
+| PB8 | N/A | No input/retry/termination changes |
+| PB9 | PASS | Explicit item2 authorization, no new ownership domain |
+| PB10 | PASS | No skipped tests/coverage weakening; performed adversarial tests |
+| PB11 | PASS | Exact source 731ad5bf and production schemas parse real retained states |
+| PB12 | PASS | No protected folders or desktop focus; no ROM copy |
+| PB13 | PASS | RED commit plus GREEN proof; gates/review/landing pending explicitly |
+
+Review boundary: source path owner BattleOutcomes with its registry/preset/next-run defaults, legacy feature snapshots, feature-card explainer mapping and tests/docs. Every change maps to item2 native evidence fix or required feature-switch/explainer contract. Terminator: tested/reviewed local ff-only landing, coordinated live feature-card proof. Split triggers: new decoder owner, historical trace rewriting, run termination, model/tool additions, activation/launches. None included.

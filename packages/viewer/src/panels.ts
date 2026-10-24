@@ -376,6 +376,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "campaign-story-milestones-v1":"campaign-progress-clock-v1.html",
  "campaign-progress-clock-v1":"campaign-progress-clock-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",
+ "whiteout-outcomes-v2":"whiteout-outcomes-v2.html",
  "blackout-transition-v1":"blackout-transition-v1.html",
  "restored-memory-run-v1":"restored-memory-run-v1.html",
  "all-gym-story-milestones-v1":"all-gym-story-milestones-v1.html",

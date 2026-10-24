@@ -29,6 +29,7 @@ describe("next-run draft", () => {
   it("defaults, persists and rejects malformed or dependency-breaking drafts", () => {
     const runsRoot = root();
     expect(readDraft(runsRoot)).toEqual(DEFAULT_NEXT_RUN);
+    expect(DEFAULT_NEXT_RUN.features["whiteout-outcomes-v2"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["battle-triage-guidance-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["briefing-exits-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["instruction-ledger-v2"]).toBe(false);

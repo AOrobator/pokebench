@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
-import { parseFixedDefinition } from "./fixed-design.js";
+import { armFeatures, parseFixedDefinition } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
 import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1, MENU_SHA1, MENU_START } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
@@ -362,6 +362,37 @@ describe("production host pieces", () => {
 });
 
 describe("exploratory current-main feature recipe", () => {
+  it.each([
+    ["bundle-v-control-2h", "bundle", "B", "86400000", false],
+    ["bundle-v-control-2h", "control", "B", "86400000", false],
+    ["glm53-flash-4h", "bundle", "A", "604800000", true],
+    ["glm53-flash-4h", "control", "A", "604800000", true],
+  ] as const)("materializes approved whiteout recipe for %s %s through a fake runner", async (id, arm, lane, cap, recipe) => {
+    const f = setup();
+    const hashes = new Map([[f.deps.rom ?? "", ROM_SHA1]]);
+    try {
+      for (const name of ["bundle-v-control-2h", "bundle-v-control", "glm53-flash-4h"]) {
+        const text = readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8");
+        const def = parseFixedDefinition(text).definition;
+        for (const phase of def.phases) if (phase.start.kind === "save_state") hashes.set(join(f.root, phase.start.path), phase.start.sha1);
+        writeFileSync(join(f.root, "experiments/fixed", `${name}.json`), text);
+        const base = join(f.root, def.controlBase.path);
+        mkdirSync(join(base, ".."), { recursive: true });
+        writeFileSync(base, readFileSync(new URL(`../../../${def.controlBase.path}`, import.meta.url)));
+      }
+      const args = ["dry-run", id, "--phase", "cook", "--wall-ms", cap, "--arm", arm, "--lane", lane, ...(recipe ? ["--feature-recipe", "bundle-v-control"] : [])];
+      expect(await main(args, { ...f.deps, sha1File: path => hashes.get(path) ?? null }), f.err.join("\n")).toBe(0);
+      expect(f.runs).toHaveLength(1);
+      const captured = f.runs[0];
+      if (captured === undefined) throw new Error("fake runner must capture one trial");
+      expect(captured.dryRun).toBe(true);
+      expect(captured.def.plan.map(slot => ({ arm: slot.arm, lane: slot.lane }))).toEqual([{ arm, lane }]);
+      expect(captured.def.phases.map(phase => phase.maxWallMs)).toEqual([Number(cap)]);
+      expect(armFeatures(captured.def, arm)["whiteout-outcomes-v2"]).toBe(arm === "bundle");
+      expect(armFeatures(captured.def, arm)["briefing-battle-outcomes-v1"]).toBe(true);
+      expect(armFeatures(captured.def, arm)["battle-loss-recap-v1"]).toBe(true);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+  });
   it("materializes the donor's exact arms while retaining the model lane, start and cap", async () => {
     const f = setup();
     const donor = definition();

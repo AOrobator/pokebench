@@ -2,10 +2,10 @@
 
 User approved implementing the proposed observation-only repair and rebuilding turn390/391 contexts, active runs untouched, zero model calls. Scope: decision-probe result-text reconstruction and its caller, tests, immutable generated contexts/receipts. Only the exact party-menu-message-v1 comparison may rerender the final readout of a retained composite result. Preserve recorded action/page prefix, recorded trajectory/images, automatic-action semantics; keep rejecting other feature deltas, missing native provenance, malformed readouts. No gameplay feature/default/recipe/tool/prompt changes, model inference or cloud review calls, main landing, viewer/service restarts, active run/lease/controller changes. User no-model-calls overrides required cloud-review workflow for this task: leave implementation on isolated branch, report local verification separately. No new harness switch: this is an offline reconstruction permission, original game switch remains the only treatment.
 
-- [ ] RED production probe/caller regressions and rejection cases
-- [ ] GREEN bounded final-readout reconstruction
-- [ ] Local checks, performed adversarial deletion/restoration
-- [ ] Rebuild turn390/391 baseline+partyON with sampler=null, verify prefix preservation/readout-only diffs, hashes/repeatability, zero network/model calls
+- [x] RED production probe/caller regressions and rejection cases
+- [x] GREEN bounded final-readout reconstruction
+- [x] Local checks, performed adversarial deletion/restoration
+- [x] Rebuild turn390/391 baseline+partyON with sampler=null, verify prefix preservation/readout-only diffs, hashes/repeatability, zero network/model calls
 
 Worktree /private/tmp/pokebench-party-menu-message on codex/offline-party-context-repair, basea1d1fa3417d50ed140c2167b7dd185f1996de637. Earlier party implementation branch preserved. Original failed context attempt remains runs/party-menu-offline/context-build-1.log; sourceprefix SHA2565affa996488682c58d1d152b51915dd012565e8e63cc2c6dc7ad0623c243533b. Current source guard rejects composite results whenever visible readouts must rerender; auto branch skips fresh readout replacement. Native39391 turn384 battle_action has4pages/zeroautoB, finalstate39390/raw8300.
 
@@ -18,3 +18,20 @@ Checks-1 buildPASS12.9s/lintPASS65.98s; normal full agent coverage stopped at un
 Archived rebuild-2 exposed one further existing constructor precondition: source recorded story-battle-heal-first-v1 needs healFirstLine callback. Audited enabled source features and existing recorder interfaces; added only this rejecting callback to Replay. Regression now enables the actual battle-text/heal-first combination. Performed deletion of this callback fails, restored11PASS; explicit callback/tool execution rejects. No live tool or server implementation changed.
 
 Checks-2 build/lint/normal agentcoverage allPASS84.01s before the final one-line recorder addition; prior timing failure kept unchanged. Rebuild-3 actually produced bothturn contexts but verifier incorrectly required result39391 to remain in turn391window; it legitimately aged out. Turn390 pair40messages/6images,changed2readouts; turn391pair41messages/4images,changed3readouts. Prompts/tools/images/othermessages and all actual retained composite prefixes match acrossarms; verifier corrected to use retained window. Both arms use current replay renderer/wiring and baseline size fidelity to original recordedrequest isfalse, explicitly not claimed byte-identical historicalrequest fidelity. Finalcleanhead rebuild/verification and finalchecks pending. COMMIT: `fix(probe): keep historical heal recorder inert during replay`.
+
+## Final verified result
+
+Implemented source **902ec77fdb8449aab7acd69f7c389111c10a2399**, isolated branch codex/offline-party-context-repair. Final exactcleanhead buildPASS8.84s, lintPASS61.01s cumulative, normal agentcoveragePASS87.15s cumulative **4239tests**, global L99.14/B92.75/F97.51 (unchanged90floor); archived context verificationPASS91.18s cumulative. Source diff only decision-probe.ts, probe-decision-cli.ts, dedicated tests and this worklog. No source/live feature/default/recipe changes beyond offline replay owner/caller; defaultpermission stillnull. Earlier gate/rebuild/fixture/verifier failures retained, not suppressed.
+
+Final generated artifact directory: **/Users/user/dev/pokebench/runs/offline-contexts/party-menu-390-391-902ec77f/**. Four actual model-input contexts, receipt.json(native refs/hash/sizes/diff), verification.json(repeatability/protectedruntime/zero calls), readout diffs, raw reports, localcheck logs, runner source. Rebuild source lives runs/offline-party-repair/rebuild.mjs in ownedworktree; run from that worktree with its private built agent/env dependencies and original immutable prefix. Copied runner resolves compiled modules from cwd. No model selection/discovery; probe sampler=null, global fetch blocked, Python socket connect paths blocked; **modelcalls0/networkattempts0**. Originalprefix SHA2565affa996488682c58d1d152b51915dd012565e8e63cc2c6dc7ad0623c243533b unchanged before/after. Native archive loader validates refs during each arm. Allfour context values match the independently built previous raw reports.
+
+| Turn | Messages/images eacharm | OFF/ON estimated tokens | Changed result readouts |
+|---|---|---|---|
+|390|40/6|11356/11416|39615,39774|
+|391|41/4|9400/9497|39615,39774,39808|
+
+All other messagecontent, images, tools and systemprompt equal betweenarms. Every retained composite action/dialogue prefix exactly matches original source event text; turn390 retains39391/39437/39489/39549/39615, turn391 retains39549/39615 (39391 legitimately evicted). Turn39139808 ON explicitly contains Dialog:"MUDKIP has no energy left to battle!" and selectedA/B:CONTINUE. Historical original request-size fidelity isfalse for both; these are explicitly current-renderer/current-wiring A/B reconstructions along the recorded trajectory, not exact historical request reproductions or gameplay-outcome evidence.
+
+Hashes: turn390baseline2b187bf1d3ca154390ef16744ed35fb65022c9a4f466b755d53a315a7328f699; turn390ON49dad4fd9b2e4b22da9fc3fb8e6aad1bc74f7664cbd49b4fbb6855d08609bfc6; turn391baselined4a6e1227699aa4a552318f269ea1f956a097738d8c1c2c42779764e0447ce8b; turn391ON673f78c71b1e9357a62971e416fb1487d549f574eeb8b0427bff83c6a56ff7b9.
+
+**Active runs untouched:** exact10protectedpid/ppid/start/command identities,3leasehashes and controllerlog hash identical before/final. No viewer/browser/server restart, no game inputs, no active artifacts edited, no cloud reviewer or subagent/model calls. Nonblocking shared prepareflock held only for finite localcheck/rebuild batches, released on terminal. No main landing/boardjoin. User's no-model-call instruction prevents required cloud reviews, so keep private branch review/landing pending; requested implementation+localvalidation+contexts complete. Worklog notarchived. COMMIT: `docs: record offline party contexts and zero-call verification`.

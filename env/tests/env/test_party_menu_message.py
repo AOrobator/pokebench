@@ -152,8 +152,8 @@ def test_short_printer_and_undrawn_window_are_diagnostic():
     m, _ = fixture()
     for address in [PRINTER, 0x0202004C]:
 
-        def read(a, n):
-            return b"" if a == address else m.read(a, n)
+        def read(a, n, missing=address):
+            return b"" if a == missing else m.read(a, n)
 
         ui = read_menu_family(read, PARTY_CALLBACK, party_menu_message=True)
         assert ui.ready is None and ui.diagnostic

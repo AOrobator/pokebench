@@ -1,3 +1,4 @@
+import {TaskGoalCompletion} from "./task-goal-completion.js";
 import {instructionGoalTools,withInstructionGoalReview,type GoalTools} from "./instruction-goal-tools.js";
 import {withMenuOptionTool} from "./menu-option-tool.js";
 import {moveLearnGoalReminder} from "./move-learn-goal-reminder.js";
@@ -78,7 +79,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const breaker=fixedPointBreaker(features,memoryRecorder);
  const note=features["fixed-point-breaker-v1"];
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
- const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform);
+ const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext:instructionGoals?.transform??history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
@@ -186,7 +187,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const progress=withGymProgress(facts,features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"]});
- return withInstructionGoalReview(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]}),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),instructionGoals??null);
+ return withInstructionGoalReview(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]}),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),instructionGoals??null);
 }
 
 

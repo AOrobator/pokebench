@@ -22,6 +22,7 @@
    "maxTokens": 4096
   },
   "features": {
+   "native-task-goal-retirement-v1": false,
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
    "adjacent-tiles-v1": true,
@@ -267,7 +268,9 @@
    "trainer-observed-party-v1": false,
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
-   "leader-preparation-comparison-v1": false
+   "leader-preparation-comparison-v1": false,
+   "instruction-goal-ledger-v1": false,
+   "menu-option-tool-v1": false
   }
  },
  "switches": [
@@ -336,7 +339,10 @@
   "trainer-observed-party-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
-  "leader-preparation-comparison-v1"
+  "leader-preparation-comparison-v1",
+  "native-task-goal-retirement-v1",
+  "instruction-goal-ledger-v1",
+  "menu-option-tool-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

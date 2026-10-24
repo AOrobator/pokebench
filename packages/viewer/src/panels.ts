@@ -379,6 +379,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "blackout-transition-v1":"blackout-transition-v1.html",
  "restored-memory-run-v1":"restored-memory-run-v1.html",
  "refusal-ledger-v1":"refusal-ledger-v1.html",
+ "native-task-goal-retirement-v1":"native-task-goal-retirement-v1.html",
  "instruction-goal-ledger-v1":"instruction-goal-ledger-v1.html",
  "menu-option-tool-v1":"menu-option-tool-v1.html",
 

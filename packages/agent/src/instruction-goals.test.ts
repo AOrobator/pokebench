@@ -34,7 +34,7 @@ it.each(["parent","cycle","replacement","duplicate","page","schema"])("rejects i
 });
 it("defers a parent while completing a step as an explicitly provisional model report",()=>{
  const g=fresh();g.apply(review);const latest=events.find(e=>e.type==="tool_result"&&e.seq===39462)!;
- g.observe({...latest,seq:50000,id:"later",text:"Another observation"});g.apply({reviewed:[],updates:[{...review.updates[0]!,status:"deferred",reason:"Finish tutorial first"},{...review.updates[1]!,status:"reported_complete",evidence:[50000]}]});
+ g.observe(checkEvent({...latest,seq:50000,id:"later",text:"Another observation"}));g.apply({reviewed:[],updates:[{...review.updates[0]!,status:"deferred",reason:"Finish tutorial first"},{...review.updates[1]!,status:"reported_complete",evidence:[50000]}]});
  expect(g.archive(undefined,"call")).toContain('"status":"deferred"');expect(g.archive(undefined,"select")).toContain('"verification":"model_reported"');expect(g.archive()).toContain('"id":"select"');
  expect(()=>g.archive(99999)).toThrow();expect(()=>g.archive(undefined,"unknown")).toThrow();
 });

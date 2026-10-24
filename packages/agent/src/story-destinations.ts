@@ -3,6 +3,7 @@
 // env/pokebench_env/places.py) into the map and the door or edge that leads into it. A name the table does
 // not resolve to exactly one map is reported as not resolved. No people are listed (operator decision
 // 2026-10-17). Facts only, nothing clipped.
+import {TaskGoalCompletion,type GoalTask} from "./task-goal-completion.js";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
@@ -93,6 +94,7 @@ export interface StoryLine {
  readonly lives:Lives|null;
  readonly scriptedPlaces?:readonly {readonly quote:string;readonly resolution:string}[];
  readonly birchLabStage?:number;
+ readonly task?:GoalTask;
  readonly deliveredPlace?:{readonly dialogue_event:number;readonly result_event:number|null;readonly state_event:number|null;readonly map:string|null;readonly map_id:MapId|null;readonly speaker:string|null;readonly speaker_source:string|null;readonly exact_text:string;readonly map_display:string|null};
 }
 
@@ -136,9 +138,11 @@ export class StoryDestinations {
  // unfinished-activity-v1: the maps the player entered, in order, with the turn.
  private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false){}
+ private readonly taskCompletion:TaskGoalCompletion|null;
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
+   this.taskCompletion?.observe(event);
    const map=event.map_id;
    if(event.started&&map!==null){const last=this.arrivals.at(-1);if(last===undefined||!same(last.map,map))this.arrivals.push({map,turn:event.turn});}
    // An unreadable state is a boundary, not permission to reuse an older known stage for later dialogue.
@@ -179,6 +183,8 @@ export class StoryDestinations {
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
  private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
+  const tasks=this.taskCompletion?.tasks(pages);
+  const makeLine=(page:Page,line:StoryLine):StoryLine=>{const next=this.withBirchLabStage(page,line),task=tasks?.get(page);return task===undefined?next:{...next,task};};
   // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
   // coordinate triggers show this exact guidance and physically lead the player to the Gym.
   const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
@@ -190,9 +196,9 @@ export class StoryDestinations {
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
    if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
-    out.push(this.withBirchLabStage(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
+    out.push(makeLine(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
    }else if(this.deliveredPlaces&&speaker===null&&namedIn(text).length>0&&placePhrases(text,null,NAMES).length>0){
-    out.push(this.withBirchLabStage(page,{turn,speaker:"unnamed speaker",text,lives:null,deliveredPlace:{dialogue_event:dialogueEvent,result_event:null,state_event:page.state_seq,map:page.map,map_id:page.map_id,speaker:page.speaker,speaker_source:page.speaker_source,exact_text:page.text,map_display:page.map_display??null}}));
+    out.push(makeLine(page,{turn,speaker:"unnamed speaker",text,lives:null,deliveredPlace:{dialogue_event:dialogueEvent,result_event:null,state_event:page.state_seq,map:page.map,map_id:page.map_id,speaker:page.speaker,speaker_source:page.speaker_source,exact_text:page.text,map_display:page.map_display??null}}));
    }else if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
@@ -201,7 +207,7 @@ export class StoryDestinations {
      const others=before.filter(n=>n!==speaker);
      lives=subject==="He"||subject==="She"?{subject,owner:others.length===1?others[0] ?? null:null,others}:{subject,owner:subject,others:[]};
     }
-    out.push(this.withBirchLabStage(page,{turn,speaker,text,lives}));
+    out.push(makeLine(page,{turn,speaker,text,lives}));
    }
    for(const n of namedIn(page.text))if(!before.includes(n))before.push(n);
   }
@@ -223,7 +229,7 @@ export class StoryDestinations {
  // The latest story line naming a place, with each place it names resolved against the map table from map `here`.
  // retire: the story checklist retires the quote only when its resolved place's native milestone is finished.
  // A newer place-naming line supersedes it through latest(); incidental later dialogue does not.
- goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null,stageBound=false):StoryGoal|null {
+ goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null,stageBound=false,nativeState?:GameStateSnapshot):StoryGoal|null {
   const heads=headsOf(places);
   // unfinished-activity-v1: a newer line none of whose places resolves to a map does not replace an older one that does.
   let line:StoryLine|null=null,resolved:Resolved[]=[];
@@ -234,6 +240,8 @@ export class StoryDestinations {
   }
   if(line===null)return null;
   const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
+  const taskDone=this.taskCompletion?.completed(line.task,nativeState)??null;
+  if(taskDone!==null)return {line,resolved,done:true,doneReason:taskDone};
   const doneReason=stageBound?stageRetirement(line,resolved,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
   if(doneReason!==null)return {line,resolved,done:true,doneReason};
   const reached=this.activity?this.reached(line,resolved,here):null;
@@ -294,7 +302,7 @@ export class StoryDestinations {
   // Which line names a place depends on the map table's name endings, so without the table no line is
   // picked: one plain line instead of a guess or a looser rule.
   if(places instanceof Error)return this.latest(callId,null,state.name)===null?null:`${STORY_HEADER}: not known; the game's map table could not be read (${places.message}).`;
-  const goal=this.goal(state.map_id,state.name,callId,places,retireLab,state.story??null,stageBound);
+  const goal=this.goal(state.map_id,state.name,callId,places,retireLab,state.story??null,stageBound,state);
   if(goal===null)return null;
   if(stageBound&&goal.done===true)return null;
   const quote=`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`;
@@ -416,7 +424,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

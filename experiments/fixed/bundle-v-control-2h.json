@@ -271,7 +271,8 @@
    "leader-preparation-comparison-v1": false,
    "refusal-ledger-v1": false,
    "party-menu-message-v1": false,
-   "drought-progress-facts-v1": false
+   "drought-progress-facts-v1": false,
+   "whiteout-outcomes-v2": false
   }
  },
  "switches": [
@@ -342,7 +343,8 @@
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
   "party-menu-message-v1",
-  "drought-progress-facts-v1"
+  "drought-progress-facts-v1",
+  "whiteout-outcomes-v2"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

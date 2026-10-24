@@ -265,6 +265,7 @@ export const SWITCHABLE_FEATURES = [
 
   "party-menu-message-v1",
   "drought-progress-facts-v1",
+  "whiteout-outcomes-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -650,6 +651,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("player-elevation-readout-v1", "observation", "PLAYER ELEVATION", "live-player-position-v1", "Default off; bundle only. Adds verified current player elevation to the Position line. When the known tile at your own coordinates is elevation 0 or 15, states that the tile accepts any elevation. Uses current native object elevation, not the previous elevation or another sprite. No location interpretation or route advice. Off: the Position line and all readout bytes are unchanged."),
   on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
   on("drought-progress-facts-v1", "guard", "FACTUAL DROUGHT BRIEFING", "stall-briefing-v1", "Default off. Holds this stall briefing’s due drought feedback while a battle is on screen, then restarts its clock. Other drought notes state the recorded interval and retain observed exits and dialogue without claiming play is failing or requiring a different strategy. Use the existing campaign-progress-clock-v1 to credit earned post-Rustboro milestones. Off: previous drought timing and wording are unchanged."),
+  on("whiteout-outcomes-v2", "observation", "NATIVE WHITEOUT OUTCOMES", null, "Default off; applicable to both arms. Records a lost or drawn battle as a whiteout after an observed native whiteout callback or fresh receipt, or after displacement, exact money halving and the same identified party all fainted then fully healed. Same-map respawns count. Healing, money changes and map changes alone do not count. Off: previous loss-plus-map-change whiteout inference and recap bytes unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -980,6 +982,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
 
     ...when("party-menu-message-v1"),
     ...when("drought-progress-facts-v1"),
+    ...when("whiteout-outcomes-v2"),
   ];
 }
 

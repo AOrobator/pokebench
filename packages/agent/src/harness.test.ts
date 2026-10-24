@@ -1134,3 +1134,20 @@ it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi inste
   expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(60);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+it("bag-ineffective-loop-v1 records the warning and delivers it on the pinned pi path",async()=>{
+ const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");const {RunRecorder}=await import("./recorder.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-bag-pi-"));
+ try{
+ const state={...IN_GAME,screen:"bag_menu",active_ui:{phase:"bag_menu",selected:"CLOSE BAG",ready:true,diagnostic:null,value:null,controls:"Directions select; A accepts; B cancels",details:{pocket:"TMS HMS",bag_location:0,owner_task:0,selected_index:0,list_item_id:-2}}};
+ const log=RunLog.create(root,"2026-10-24T15-00-00_bag-delivery");const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(state)}});await recorder.start(RUN_START_META,false);recorder.recordState(state);
+ const {g}=governor({maxTurns:4});const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,false,false,false,{"bag-ineffective-loop-v1":true});
+ const tool:AgentTool={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.Literal("UP"))}),execute:(id)=>{recorder.buttonPress(id,["UP"],PRESS_TIMING,state);return Promise.resolve({content:[{type:"text",text:"interface unchanged"}],details:{state}});}};
+ const replies=Array.from({length:4},()=>{const msg=reply();return {...msg,content:msg.content.map(c=>c.type==="toolCall"?{...c,arguments:{buttons:["UP"]}}:c)};});
+ const seen:Message[][]=[];const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:new AbortController().signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
+ expect(await play(TASK,g,loop)).toBe("budget");
+ const delivered=seen[3]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");expect(delivered).toContain("Repeated equivalent single-button attempts");
+ const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));expect(events.filter(e=>e.type==="loop_guard"&&e.phase==="warning")).toEqual([expect.objectContaining({kind:"ineffective",calls:3})]);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

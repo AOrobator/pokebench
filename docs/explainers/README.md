@@ -294,3 +294,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Native task goal retirement](native-task-goal-retirement-v1.html): retires source-verified active instructions using known unfinished issuance and current native completion, preserving future dialogue.
 - [Instruction goals](instruction-goal-ledger-v1.html): cited model-maintained goals, dialogue review and separate completion evidence.
 - [Select menu option](menu-option-tool-v1.html): checked vertical cursor movement to a model-chosen visible option.
+
+- [Bag pocket truth](bag-pocket-truth-v1.html)
+- [Bag press feedback](bag-press-feedback-v1.html)
+- [Bag ineffective loop](bag-ineffective-loop-v1.html)

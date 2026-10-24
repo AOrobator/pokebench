@@ -175,7 +175,10 @@
    "heal-before-trainers-v2": false,
    "gym-heal-warning-v1": false,
    "respawn-readout-v1": false,
-   "trainer-sight-check-v1": false
+   "trainer-sight-check-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -256,7 +259,10 @@
   "battle-move-tool-v1",
   "battle-menu-loop-v1",
   "exit-reachability-v1",
-  "duplicate-turn-collapse-v1"
+  "duplicate-turn-collapse-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

@@ -178,7 +178,10 @@
    "trainer-sight-check-v1": false,
    "caught-nickname-prompt-v1": false,
    "fail-open-input-v1": false,
-   "whiteout-healed-v1": false
+   "whiteout-healed-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -262,7 +265,10 @@
   "battle-menu-loop-v1",
   "exit-reachability-v1",
   "duplicate-turn-collapse-v1",
-  "evolution-decision-v1"
+  "evolution-decision-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

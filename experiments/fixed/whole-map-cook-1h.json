@@ -264,7 +264,10 @@
    "leader-preparation-comparison-v1": false,
    "interface-guidance-v1": false,
    "instruction-goal-ledger-v1": false,
-   "menu-option-tool-v1": false
+   "menu-option-tool-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -434,7 +437,10 @@
   "field-ownership-feedback-v1",
   "move-learn-goal-reminder-v1",
   "field-move-gates-v1",
-  "trigger-navigation-boundary-v1"
+  "trigger-navigation-boundary-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

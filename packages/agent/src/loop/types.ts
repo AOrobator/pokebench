@@ -138,6 +138,7 @@ export interface LoopRuleFeatures {
 }
 
 export interface LoopCoordinatorOptions extends LoopRuleFeatures {
+  readonly bagLoops?: boolean;
   readonly progressAwareCycles?:boolean;
   readonly moveLearnLoops?: boolean;
   readonly ineffectiveNavigation?: boolean;

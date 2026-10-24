@@ -166,7 +166,10 @@
    "navigate-already-here-v1": false,
    "fixed-point-breaker-v1": false,
    "story-character-stall-gate-v1": false,
-   "positive-supervisor-v1": false
+   "positive-supervisor-v1": false,
+   "bag-pocket-truth-v1": true,
+   "bag-press-feedback-v1": true,
+   "bag-ineffective-loop-v1": true
   }
  },
  "switches": [
@@ -238,7 +241,10 @@
   "context-token-budget-v1",
   "battle-move-tool-v1",
   "battle-menu-loop-v1",
-  "exit-reachability-v1"
+  "exit-reachability-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1"
  ],
  "phases": [
   {

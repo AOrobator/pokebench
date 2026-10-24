@@ -272,6 +272,9 @@ export const SWITCHABLE_FEATURES = [
 
   "instruction-goal-ledger-v1",
   "menu-option-tool-v1",
+  "bag-pocket-truth-v1",
+  "bag-press-feedback-v1",
+  "bag-ineffective-loop-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -664,6 +667,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("native-task-goal-retirement-v1", "observation", "NATIVE TASK GOAL RETIREMENT", null, "Default off; bundle only. Retires a source-verified active instruction when native task evidence was known unfinished at issuance and now proves completion. Reuses audited task rules; preserves historical and future dialogue. Unknown wording or evidence stays unchanged. Off: existing story goal and away guidance are unchanged."),
   on("instruction-goal-ledger-v1", "guidance", "INSTRUCTION GOALS", "dialogue-auto-advance-v1", "Default off. Pins delivered dialogue and a cited, model-maintained multi-goal ledger before decisions. New dialogue is reviewed before game-changing input. Completion claims remain distinct from native proof. Off: no goal review bookkeeping, tools, context or action gate."),
   on("menu-option-tool-v1", "guidance", "SELECT MENU OPTION", "active-ui-ownership-v1", "Default off. Adds select_menu_option for visible vertical START and field menus, using checked UP/DOWN and one A press. The model chooses the option; changed menus stop execution. Off: menu selection uses the existing press tool."),
+  on("bag-pocket-truth-v1", "observation", "BAG POCKET TRUTH", "active-ui-ownership-v1", "Default off. Uses Emerald’s native pocket enum for the current bag pocket. Off: retains the legacy pocket labels."),
+  on("bag-press-feedback-v1", "observation", "BAG PRESS FEEDBACK", "press-result-v1", "Default off. Includes the verified bag pocket, list cursor and item in press comparisons. Off: compares only phase, selection, value and readiness."),
+  on("bag-ineffective-loop-v1", "guard", "BAG INEFFECTIVE LOOP", "deterministic-loop-guard-v1", "Default off. Qualifies owned, ready bag lists for the existing ineffective-action guard. Off: bag menus cannot establish equivalent ineffective actions."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -748,6 +754,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "interface-guidance-v1",
   "active-warp-exits-v1",
   "available-exits-presentation-v1",
+  "bag-pocket-truth-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1005,6 +1012,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
 
     ...when("instruction-goal-ledger-v1"),
     ...when("menu-option-tool-v1"),
+    ...when("bag-pocket-truth-v1"),
+    ...when("bag-press-feedback-v1"),
+    ...when("bag-ineffective-loop-v1"),
+
   ];
 }
 

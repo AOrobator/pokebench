@@ -1,3 +1,4 @@
+import {bagListState} from "../../bag-list-state.js";
 import type { CompletedCall, LoopHit, LoopKind, LoopPolicy, LoopRule, LoopRuleId, RuleContext } from "../types.js";
 import { battleState, isMoveLearning, menuRefusalState, semanticState, waitingState } from "../fingerprints.js";
 
@@ -78,8 +79,9 @@ export class BasicRules {
     const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions, this.moveLearning, this.bagLoops);
     const game = !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "navigate_to_target" || call.name === "explore_map" || call.name === "observe");
     const changed = game && fingerprint !== null && fingerprint !== this.previous;
-    const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
-    const waiting = this.ineffectiveLoops && game && call.state !== undefined ? waitingState(call.state) : null;
+    const bag = this.bagLoops && call.state !== undefined && bagListState(call.state) !== null;
+    const battle = !bag && this.battles && game && call.state !== undefined ? battleState(call.state) : null;
+    const waiting = !bag && this.ineffectiveLoops && game && call.state !== undefined ? waitingState(call.state) : null;
     const novel = (changed && !this.visited.includes(fingerprint)) ||
       (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle)) ||
       (waiting !== null && waiting !== this.previousWaiting && !this.waitingSeen.includes(waiting));

@@ -68,7 +68,7 @@ describe("battle-refusal-loop-v1",()=>{
   const call={name:"battle_action",args:{},isError:false,text:refusal,acted:false,state:waiting};
   guard.complete(call);guard.complete(call);expect(guard.context()).toContain("A or B");
   guard.complete(call);guard.complete(call);
-  expect(enforced.map(n=>n.phase)).toEqual(["warning","stop"]);expect(guard.stopped).toBe(true);
+  expect(enforced.map(n=>n.phase)).toEqual(["warning","supervisor"]);expect(guard.stopped).toBe(false);
  });
  it("replays the actual wrapped refusals and recovers only on qualified native change",()=>{
   const r=rig(true);for(const row of recorded)r.call(row.result.text,false,"battle_action",parseGameState(row.state));

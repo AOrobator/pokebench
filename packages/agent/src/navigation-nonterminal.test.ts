@@ -40,8 +40,8 @@ for(const enforced of [false,true])it(`keeps generic threshold nonterminal and b
  const governor=new Governor({limits:{maxTurns:200,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{throw Error("guard aborted run");},now:()=>0});
  const d=attachLoopGuard({subscribe:f=>{subscribers.push(f);},recordLoopGuard:n=>notices.push(n)},governor,undefined,enforced?"enforced":"diagnostic");
  for(const f of subscribers)f(recorded);
- for(let i=0;i<30;i++){d.context();d.complete({name:"observe",args:{},isError:false,text:"same observation",state,seq:8200+i});}
+ for(let i=0;i<30;i++){for(const f of subscribers)f(checkEvent({v:1,run:recorded.run,seq:8300+i,t:recorded.t,turn:i+1,type:"turn_start",context:{messages:1,images:0,est_tokens:1}}));d.context();d.complete({name:"observe",args:{},isError:false,text:"same observation",state,seq:8200+i});}
  expect(governor.stopReason).toBe(null);expect(d.stopped).toBe(false);
- expect(notices.map(n=>n.phase)).toEqual(enforced?["warning","supervisor"]:["would_warn"]);
+ expect(notices.map(n=>n.phase)).toEqual(enforced?["warning","supervisor"]:["would_warn","would_stop"]);
  if(enforced)expect(d.context()).toContain("run continues");else expect(d.context()).toBe(null);
 });

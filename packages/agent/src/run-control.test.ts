@@ -420,6 +420,20 @@ describe("milestone stall stop", () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it("does not repeat an expired notice on pause/resume and re-arms only on progress", async () => {
+    try {
+      const { h, expired, step, stop } = clocked();
+      step(STALL_STOP_MS);expect(expired).toHaveBeenCalledOnce();
+      h.control.apply(req(1,"pause"));void h.control.gate();
+      for(let i=0;i<5;i++)await Promise.resolve();
+      step(STALL_STOP_MS);h.control.apply(req(2,"resume"));
+      for(let i=0;i<5;i++)await Promise.resolve();
+      step(STALL_STOP_MS);expect(expired).toHaveBeenCalledOnce();
+      stop.observe(milestone(1,"NEW_GAME_CREATED","observed"));
+      step(STALL_STOP_MS);expect(expired).toHaveBeenCalledTimes(2);stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
   it("never fires once cleared, even if a milestone arrives afterwards", () => {
     try {
       const { expired, step, stop } = clocked();

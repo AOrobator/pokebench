@@ -23,6 +23,7 @@ const owner = vi.hoisted(() => ({
   exited: false,
   requests: [] as string[],
   inferences: 0,
+  received: [] as string[],
   spawn: null as {
     command: string;
     args: readonly string[];
@@ -116,7 +117,8 @@ vi.mock("./harness.js", async (load) => {
     piLoop: (options: Parameters<typeof actual.piLoop>[0]) =>
       actual.piLoop({
         ...options,
-        streamFn: () => {
+        streamFn: (_model,context) => {
+          owner.received.push(JSON.stringify(context.messages));
           owner.inferences++;
           const stream = createAssistantMessageEventStream();
           const message =
@@ -178,8 +180,8 @@ afterEach(() => {
 
 // milestone-stall-stop-v1 through the real live.ts play path: the run clock already
 // stands at ten minutes and no milestone is new (all present at start), so the switch
-// must end the run as stalled; OFF must leave the run to its other stops.
-it.each([true, false] as const)("live play honours milestone-stall-stop-v1=%s", async (on) => {
+// must brief or record a diagnostic; both arms reach the configured hard budget.
+it.each([[true,true],[true,false],[false,true],[false,false]] as const)("live play honours milestone-stall-stop-v1=%s with enforced=%s", async (on,enforced) => {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "live-stall-stop-"));
   const romPath = join(owner.root, "fixture.gba");
@@ -191,6 +193,7 @@ it.each([true, false] as const)("live play honours milestone-stall-stop-v1=%s", 
   owner.exited = false;
   owner.requests = [];
   owner.inferences = 0;
+  owner.received = [];
   owner.spawn = null;
   const preset = {
     version: 2,
@@ -198,7 +201,7 @@ it.each([true, false] as const)("live play honours milestone-stall-stop-v1=%s", 
     target: null,
     limits: { maxTurns: 3, maxWallMs: 45 * 60_000, failureLimit: 3 },
     sampling: { thinkingLevel: "medium", maxTokens: 100 },
-    features: { ...flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }), "milestone-stall-stop-v1": on },
+    features: { ...flagFeatures({ loopGuard: enforced, activeUi: true, interfaceDocs: true, objectives: false }), "milestone-stall-stop-v1": on },
   };
   const path = join(owner.root, "preset.json");
   writeFileSync(path, JSON.stringify(preset));
@@ -240,5 +243,6 @@ it.each([true, false] as const)("live play honours milestone-stall-stop-v1=%s", 
   expect(reason).toBe("budget");
   const notes=events.filter(e=>e.type==="loop_guard"&&e.kind==="milestone_drought");
   expect(notes).toHaveLength(on?1:0);
-  if(on)expect(notes[0]).toMatchObject({phase:"supervisor",message:expect.stringContaining("run continues")});
+  if(on){expect(notes[0]).toMatchObject({phase:enforced?"supervisor":"would_warn"});expect(notes[0]?.message).toContain("run continues");}
+  expect(owner.received.some(text=>text.includes("No new milestone was recorded during the last 10 minutes"))).toBe(on&&enforced);
 });

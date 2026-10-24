@@ -117,11 +117,16 @@ export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder
  return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT,replyFailuresEndRun);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 
-// milestone-stall-stop-v1: ends the run as stalled after STALL_STOP_MS of unpaused play
-// with no new observed milestone. elapsed is the same run clock the wall budget uses.
-export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,control:RunControl,elapsed:()=>number,stalled:()=>void):StallStop|null{
+// milestone-stall-stop-v1: a factual nonterminal note after ten unpaused minutes.
+export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLoopGuard">,control:RunControl,elapsed:()=>number,detector:Pick<LoopDetector,"stall">):StallStop|null{
  if(!features["milestone-stall-stop-v1"])return null;
- const stop=new StallStop(control,STALL_STOP_MS,elapsed,stalled);recorder.subscribe(event=>{stop.observe(event);});
+ let latest:number|null=null,calls=0;
+ const stop=new StallStop(control,STALL_STOP_MS,elapsed,()=>{
+  if(latest===null)return;
+  const message="SUPERVISOR: No new milestone was recorded during the last 10 minutes of unpaused play. This does not establish that the game stopped changing. The run continues; no input or destination is selected for you.";
+  if(!detector.stall("milestone_drought",()=>message,[latest]))recorder.recordLoopGuard({kind:"milestone_drought",message:`Not sent (another briefing is active or the guard is diagnostic): ${message}`,calls,evidence:[latest],mode:"diagnostic",phase:"would_warn"});
+ });
+ recorder.subscribe(event=>{latest=event.seq;if(event.type==="tool_result")calls++;stop.observe(event);},false,true);
  return stop;
 }
 

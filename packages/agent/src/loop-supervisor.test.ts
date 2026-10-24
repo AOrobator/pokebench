@@ -49,10 +49,10 @@ it("still recovers normally after a briefing and clears the context note",()=>{
  expect(detector.context()).toBeNull();
 });
 
-it("leaves the original stop untouched without a supervisor, and in diagnostic mode",()=>{
+it("uses a bounded nonterminal note without a supervisor and preserves diagnostic mode",()=>{
  const notices:LoopNotice[]=[];const plain=new LoopDetector(n=>notices.push(n),policy);
  loopUntilWarned(plain);plain.complete(planning());plain.complete(planning());
- expect(plain.stopped).toBe(true);expect(notices.at(-1)?.phase).toBe("stop");
+ expect(plain.stopped).toBe(false);expect(notices.at(-1)?.phase).toBe("supervisor");
  const diag:LoopNotice[]=[];const d=new LoopDetector(n=>diag.push(n),policy,"diagnostic",false,()=>"SUPERVISOR");
  d.complete(planning());d.complete(planning("get_objectives"));d.complete(planning());d.complete(planning());
  expect(diag.map(n=>n.phase)).not.toContain("supervisor");

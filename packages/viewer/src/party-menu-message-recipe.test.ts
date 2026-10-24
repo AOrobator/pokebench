@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
-import {normalizeFeatures} from "@pokebench/agent/play-preset";
+import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 import {serverFeatureEnv} from "@pokebench/agent/features";
 import {armFeatures,controlBaseProblems,parseFixedDefinition} from "./fixed-design.js";
 
@@ -14,8 +14,9 @@ for(const recipe of recipeIds){
   expect(def.base.features[ID]).toBe(false);
   expect(def.offInBoth).not.toContain(ID);
   expect(def.onInBoth).not.toContain(ID);
-  const control=normalizeFeatures(armFeatures(def,"control"));
-  const bundle=normalizeFeatures(armFeatures(def,"bundle"));
+  const normalized=(arm:"control"|"bundle")=>presetFeatures(parsePlayPreset({version:2,id:`party-recipe-${arm}`,...def.base,limits:{...def.base.limits,maxWallMs:1},features:armFeatures(def,arm)}));
+  const control=normalized("control");
+  const bundle=normalized("bundle");
   expect(control[ID]).toBe(false);
   expect(bundle[ID]).toBe(true);
   expect(serverFeatureEnv(control).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

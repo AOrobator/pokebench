@@ -348,3 +348,29 @@ it("enables navigation cycle stopping only in the seven evolving bundle arms",()
   expect(controlBaseProblems(d,readFileSync(new URL(`../../../${d.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
  }
 });
+
+it("allows an explicit bundle reply cap without changing shared sampling or control provenance",()=>{
+ const original=definition();
+ const def=parseFixedDefinition(JSON.stringify({...original,bundleMaxTokens:8192})).definition;
+ expect(controlBaseProblems(def,controlBaseText())).toEqual([]);
+ expect(armPreset(def,"cook","control").sampling).toEqual(original.base.sampling);
+ expect(armPreset(def,"cook","bundle").sampling).toEqual({...original.base.sampling,maxTokens:8192});
+ expect(armPreset(original,"cook","bundle").sampling).toEqual(original.base.sampling);
+ for(const invalid of [0,-1,1.5,"8192"])expect(()=>parseFixedDefinition(JSON.stringify({...original,bundleMaxTokens:invalid}))).toThrow();
+});
+
+it("enables truthful cut-off feedback in both arms and the larger reply budget only for GLM bundles",()=>{
+ const names=["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","bundle-v-control-2h","whole-map-pair-2h","random-starter-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed","glm53-flash-1h","glm53-flash-2h","glm53-flash-4h"];
+ for(const name of names){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
+  expect(definitionProblems(def),name).toEqual([]);
+  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
+  expect(def.onInBoth,name).toContain("cut-off-reply-feedback-v1");
+  expect(def.switches,name).not.toContain("cut-off-reply-feedback-v1");
+  for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
+   const preset=armPreset(def,phase.id,arm);
+   expect(preset.features["cut-off-reply-feedback-v1"],`${name}/${arm}`).toBe(true);
+   expect(preset.sampling.maxTokens,`${name}/${arm}`).toBe(name.startsWith("glm53-")&&arm==="bundle"?8192:4096);
+  }
+ }
+});

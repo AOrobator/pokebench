@@ -116,7 +116,7 @@ PC.before = { ...PC.before, route103_rival: null, story_progress:null }; PC.afte
 // The same place once the box is closed: no message, field controls free.
 const FREE = { ...PC.before, field_controls_locked: false, world_context: { ...(PC.before.world_context as Record<string, unknown>), dialogue: null, message: null } };
 
-async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff = false): Promise<string> {
+async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff = false, failureLimit = 3): Promise<string> {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "decision-probe-"));
   owner.launched = false;
@@ -127,7 +127,7 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9, cutOff
   const romPath = join(owner.root, "fixture.gba");
   writeFileSync(romPath, "test-owned ROM identity fixture");
   vi.stubEnv("POKEBENCH_ROM", romPath);
-  const preset = { version: 2, id: "probe", target: null, limits: { maxTurns, maxWallMs: 45 * 60_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 100 }, features };
+  const preset = { version: 2, id: "probe", target: null, limits: { maxTurns, maxWallMs: 45 * 60_000, failureLimit }, sampling: { thinkingLevel: "medium", maxTokens: 100 }, features };
   const path = join(owner.root, "preset.json");
   writeFileSync(path, JSON.stringify(preset));
   vi.stubEnv("POKEBENCH_PLAY_PRESET", path);
@@ -324,3 +324,22 @@ it("builds the run's tool definitions with ports that never touch a game", async
   expect(() => replay.recordState()).toThrow(/never execute/);
   expect(() => replay.recordDialogueAutoAdvance()).toThrow(/never execute/);
 });
+
+it.each([false,true])("records and delivers the cut-off cause when a supervisor briefing or fixed-point note is due (breaker %s)",async(breaker)=>{
+ const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":true,"text-only-supervisor-v1":true,"fixed-point-breaker-v1":breaker};
+ const dir=await recordRun(features,6,true,1);
+ const {parseRun,decisionContext,recordedFeatures}=await import("./decision-probe.js");
+ const run=parseRun(readFileSync(join(dir,"events.jsonl"),"utf8"));
+ const note=run.events.find(e=>e.type==="text_only_supervisor");
+ expect(note).toMatchObject({type:"text_only_supervisor",turn:4});
+ if(note?.type!=="text_only_supervisor")throw new Error("missing recorded supervisor");
+ expect(note.text).toContain("Your last reply reached the output limit (100 tokens)");
+ expect(owner.contexts[4]?.messages).toContainEqual(expect.objectContaining({role:"user",content:note.text}));
+ const recovery=run.events.filter(e=>e.type==="loop_breaker"&&e.trigger==="no_tool_call"&&e.stage===2);
+ if(breaker){expect(recovery.length).toBeGreaterThan(0);for(const e of recovery)expect(e.text).toContain("output limit (100 tokens)");}
+ const ports=await framePorts(dir);
+ for(const derivation of ["recorded","replayed"] as const){
+  const rebuilt=await decisionContext(run,5,recordedFeatures(run),ports,derivation);
+  expect(sent({systemPrompt:rebuilt.systemPrompt,messages:[...rebuilt.messages],tools:[...rebuilt.tools]})).toEqual(sent(owner.contexts[4] ?? {systemPrompt:"",messages:[],tools:[]}));
+ }
+},60000);

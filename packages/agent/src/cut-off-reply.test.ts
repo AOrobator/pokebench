@@ -48,12 +48,12 @@ describe("Governor",()=>{
   g.afterTurn(reply("length",1),ok);
   expect(await next(g)).toEqual([]);
  });
- it("ON: the text-only supervisor's note still takes the turn when it is due",async()=>{
+ it("ON: the due supervisor receives the cut-off cause along with its briefing",async()=>{
   const notice="CUT";
-  const {g}=governor({cutOffNotice:notice,textOnlySupervisor:(r,n)=>`NOTE ${String(r)} ${String(n)}`,textOnlyReminder:TEXT_ONLY_REMINDER});
+  const {g}=governor({cutOffNotice:notice,textOnlySupervisor:(r,n,cut)=>[cut,`NOTE ${String(r)} ${String(n)}`].filter(Boolean).join("\n"),textOnlyReminder:TEXT_ONLY_REMINDER});
   g.afterTurn(reply("length"),[]);expect(await next(g)).toEqual([notice]);
   g.afterTurn(reply("length"),[]);expect(await next(g)).toEqual([notice]);
-  g.afterTurn(reply("length"),[]);expect(await next(g)).toEqual(["NOTE 3 1"]);
+  g.afterTurn(reply("length"),[]);expect(await next(g)).toEqual(["CUT\nNOTE 3 1"]);
  });
 });
 

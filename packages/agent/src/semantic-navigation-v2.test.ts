@@ -28,7 +28,7 @@ describe("registry, presets and dependencies",()=>{
   expect(SWITCHABLE_FEATURES.at(150)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(150)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-62)).toBe(ID);
-  expect(SERVER_FEATURES.at(-32)).toBe(ID);
+  expect(SERVER_FEATURES.at(51)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);

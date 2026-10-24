@@ -779,7 +779,7 @@ describe("caught-dex-input-v1 archived registration page",()=>{
 
 it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
  const id="caught-dex-input-v1";
- expect(SWITCHABLE_FEATURES.at(184)).toBe(id);expect(SERVER_FEATURES.at(-18)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(184)).toBe(id);expect(SERVER_FEATURES.at(65)).toBe(id);
  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);

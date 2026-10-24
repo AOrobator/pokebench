@@ -45,7 +45,7 @@ describe(`${ID} registry`,()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
   expect(SWITCHABLE_FEATURES.at(235)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(235)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(259)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true,title:"TURN DROUGHT CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");

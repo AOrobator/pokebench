@@ -43,6 +43,7 @@ OFF = frozenset({"battle-details-v2"})
 # Switches registered after the c406 golden; OFF is their previous behavior.
 LATER = frozenset(
     {
+        "player-elevation-readout-v1",
         "coherent-battle-observation-v1",
         "readout-truth-v1",
         "birch-speech-pages-v1",

@@ -229,7 +229,7 @@ def test_off_golden_is_todays_readout() -> None:
             value="11:24 AM",
         )
     )
-    assert format_readout(state, OFF) == (
+    assert format_readout(state, OFF | {"player-elevation-readout-v1"}) == (
         "Screen: overworld\n"
         "Dialog: none\n"
         "Menu: clock_confirmation; selected NO\n"

@@ -31,7 +31,7 @@ FIXTURE = json.loads(
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
 RECORDED_OFF = (
-    frozenset({"coherent-battle-observation-v1"})
+    frozenset({"coherent-battle-observation-v1", "player-elevation-readout-v1"})
     | frozenset(FIXTURE["recorded_off"])
     | {
         "readout-truth-v1",

@@ -44,6 +44,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 # Switches registered after 224ee68; OFF is their previous behavior.
 LATER = (
+    "player-elevation-readout-v1",
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",

@@ -1712,3 +1712,15 @@ it("links the nonterminal deterministic guard to its shared supervisor explainer
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
  expect(doc.querySelector('[data-feature="deterministic-loop-guard-v1"] a')?.getAttribute("href")).toBe("/explainers/loop-guard-supervisor-v1.html");
 });
+
+it("links player elevation to its exact tracked explainer without inventing historical activation",()=>{
+ const id="player-elevation-readout-v1";
+ for(const enabled of [true,false]) {
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("tile that accepts any elevation (15)");
+});

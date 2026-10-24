@@ -113,6 +113,7 @@ class FixtureMemory:
 # Registered on main after these runs were recorded, so off for them.
 LATER = frozenset(
     {
+        "player-elevation-readout-v1",
         "exit-reachability-v1",
         "heal-before-trainers-v1",
         "battle-effective-damage-v1",

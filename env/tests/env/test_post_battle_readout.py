@@ -124,7 +124,10 @@ def test_registered_server_feature_default_off() -> None:
 
 def test_off_keeps_the_readout_bytes() -> None:
     golden = json.loads(GOLDEN.read_text())
-    assert {name: readout(state, OFF) for name, state in STATES.items()} == golden
+    assert {
+        name: readout(state, OFF | {"player-elevation-readout-v1"})
+        for name, state in STATES.items()
+    } == golden
 
 
 def test_on_after_the_battle_labels_the_block_ended_and_takes_moves_from_the_party() -> None:

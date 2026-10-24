@@ -109,6 +109,7 @@ def recorded(name: str, run: str, raw: int) -> tuple[dict[str, object], frozense
     frame = _frames(name)[(run, raw)]
     # Switches registered after these runs were recorded were off for them.
     later = {
+        "player-elevation-readout-v1",
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

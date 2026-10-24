@@ -174,6 +174,7 @@ SERVER_FEATURES = (
     ELEVATION_MAP,
     SCREEN_CENTER,
     "blackout-transition-v1",
+    "player-elevation-readout-v1",
     "party-menu-message-v1",
 )
 
@@ -204,7 +205,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,party-menu-message-v1",
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1",
     )
     if raw == "":
         return frozenset()
@@ -585,7 +586,20 @@ def format_readout(
         f"Location: {sections.current if sections is not None else location or state.location}",
     ]
     if "live-player-position-v1" not in off:
-        lines.append(f"Position: X={x}, Y={y}{facing}")
+        position = f"Position: X={x}, Y={y}{facing}"
+        if "player-elevation-readout-v1" not in off:
+            position += f", elevation {state.player_elevation}"
+            tile = (
+                next(
+                    (t for t in state.nearby.tiles if (t.x, t.y) == state.position),
+                    None,
+                )
+                if state.nearby is not None
+                else None
+            )
+            if tile is not None and tile.elevation in (0, 15):
+                position += f", on a tile that accepts any elevation ({tile.elevation})"
+        lines.append(position)
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
     owner = state.party_owner or "unknown"
     lines.append(f"Party ({owner}): {party or 'none'}")

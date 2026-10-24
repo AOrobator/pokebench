@@ -280,3 +280,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Immediate leader loss comparison](leader-loss-immediate-v1.html) — A verified loss reaches the very next decision, including outside the gym.
 - [Observed battle action history](battle-action-history-v1.html) — Keep what the game printed beside what the next observation measured.
 - [Preparation since the last attempt](leader-preparation-comparison-v1.html) — Show changes in the facts, leaving the choice to the model.
+
+- [Navigation refusal history](refusal-ledger-v1.html): default-OFF quoted route refusals, repeated attempts and current-observation precedence.

@@ -2,6 +2,7 @@ import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {roomKey,roomOf,speakerLabel} from "./dialogue-log.js";
 import type {BodyOf,RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
+import {RefusalLedger} from "./refusal-ledger.js";
 import type {RunRecorder} from "./recorder.js";
 
 // disproved-beliefs-v1: what the model pursued that the game already contradicted, with the game's own evidence.
@@ -252,11 +253,13 @@ export class DisprovedBeliefs {
 type BeliefRecorder=Pick<RunRecorder,"subscribe"|"recordBeliefLedger">;
 export function disprovedBeliefs(features:FeatureSet,recorder:BeliefRecorder,transform:(messages:AgentMessage[])=>Promise<AgentMessage[]>):{transformContext:(messages:AgentMessage[])=>Promise<AgentMessage[]>}|null {
  if(!features["disproved-beliefs-v1"])return null;
- const ledger=new DisprovedBeliefs(features);recorder.subscribe(event=>{ledger.observe(event);});
+ const ledger=new DisprovedBeliefs(features);
+ const refusals=features["refusal-ledger-v1"]?new RefusalLedger(features):null;
+ recorder.subscribe(event=>{ledger.observe(event);refusals?.observe(event);});
  return {transformContext:messages=>{
-  const text=ledger.text();
+  const text=[ledger.text(),refusals?.text()??null].filter((part):part is string=>part!==null).join("\n\n")||null;
   if(text===null)return transform(messages);
-  const body:Omit<BodyOf<"belief_ledger">,"type"|"turn">={text,entries:ledger.size(),evidence:ledger.evidence()};recorder.recordBeliefLedger(body);
+  const body:Omit<BodyOf<"belief_ledger">,"type"|"turn">={text,entries:ledger.size()+(refusals?.size()??0),evidence:[...new Set([...ledger.evidence(),...(refusals?.evidence()??[])])].sort((a,b)=>a-b)};recorder.recordBeliefLedger(body);
   return transform([...messages,{role:"user",content:text,timestamp:Date.now()}]);
  }};
 }

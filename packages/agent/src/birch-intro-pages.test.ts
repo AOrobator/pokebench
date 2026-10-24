@@ -9,7 +9,7 @@ const ID = "birch-intro-pages-v1";
 
 describe("birch-intro-pages-v1", () => {
   it("is appended last as a default-off observation", () => {
-    expect(SWITCHABLE_FEATURES.at(-49)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-50)).toBe(ID);
     expect(FEATURES.filter(feature => feature.switchable).at(-49)?.id).toBe(ID);
     expect(SERVER_FEATURES.at(-12)).toBe(ID);
     expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-15)).toBe(ID);

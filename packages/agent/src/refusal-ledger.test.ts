@@ -3,6 +3,7 @@ import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
 import {checkEvent,type BodyOf,type RunEvent} from "./events.js";
 import {featuresOf,featureInfo,dependencyProblems,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {playSystemPrompt} from "./play-config.js";
 import {contextTools} from "./play-wiring.js";
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
 
@@ -51,6 +52,8 @@ describe("refusal ledger production context",()=>{
  });
  it("OFF produces exactly the previous context and no extra events",async()=>{
   const s=setup(OFF);s.send(fixture("2aca"));expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);
+  expect(playSystemPrompt(ON,null)).toBe(playSystemPrompt(OFF,null));
+  expect(setup(ON).context.tools).toEqual(setup(OFF).context.tools);
  });
  it("uses semantic refusal history, never the guard's advice, and excludes successful walks and B-loop presses",async()=>{
   const s=setup();s.send(fixture("ee12").filter(e=>e.turn<=320));await s.decide();
@@ -62,13 +65,13 @@ describe("refusal ledger production context",()=>{
  it.each(["map","story","reached"])("expires history as soon as a native %s observation arrives",async kind=>{
   const events=fixture("2aca"),s=setup();s.send(events);
   await s.decide();expect(s.bodies).toHaveLength(1);s.bodies.length=0;
-  const state=stateOf(events);if(state===undefined||state.type!=="state"||!("started"in state))throw new Error("state missing");
+  const state=stateOf(events);if(state===undefined||!("started"in state))throw new Error("state missing");
   s.send([rewrite(state,{seq:90000,...(kind==="map"?{map_id:[0,9]}:kind==="reached"?{position:{x:14,y:5}}:{story:{...state.story,stone_badge:true}})})]);
   expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);
  });
  it("replaces a changed reason, preserving its whole line and restarting the count",async()=>{
   const events=fixture("2aca"),s=setup();s.send(events);
-  const call=events.find(e=>e.type==="tool_call"),result=events.find(e=>e.type==="tool_result");
+  const call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");
   if(call===undefined||result===undefined)throw new Error("missing call/result");
   s.send([rewrite(call,{seq:90001,id:"changed"}),rewrite(result,{seq:90002,id:"changed",text:"Navigation: no supported path on the current map; 0 bounded movement actions."})]);
   await s.decide();expect(s.bodies[0]?.text).toContain("1 time");expect(s.bodies[0]?.text).not.toContain("26,23");
@@ -81,4 +84,23 @@ describe("refusal ledger production context",()=>{
   s.send([checkEvent({v:1,run:state.run,t:state.t,seq:90001,type:"loop_guard",turn:200,kind:"same_target_no_progress",message:"STALE SUPERVISOR: go north",calls:8,evidence:[4879],mode:"enforced",phase:"supervisor"})]);
   expect(await s.decide()).toEqual(s.input);
  });
+ it.each(["error","no-state","wrong-map","stale-result","battle","locked","arrival","activation","no-receipt","wrong-name"])("does not invent refusal evidence from %s",async kind=>{
+  const events=fixture("2aca"),s=setup();
+  const call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result"),state=events.findLast(e=>e.type==="state");
+  if(call===undefined||result===undefined||state===undefined)throw new Error("fixture incomplete");
+  const before=rewrite(state,{seq:90000});
+  const after=rewrite(state,{seq:90002,...(kind==="battle"?{in_battle:true}:kind==="locked"?{field_controls_locked:true}:{})});
+  const alteredCall=rewrite(call,{seq:90001,...(kind==="wrong-map"?{args:{x:14,y:5,map_id:[0,9]}}:kind==="no-receipt"?{name:"navigate_to_target",args:{map_id:[24,11],target:{kind:"object",local_id:4}}}:{})});
+  const alteredResult={...result,seq:90003,state_seq:90002,...(kind==="error"?{is_error:true}:kind==="no-state"?{state_seq:undefined}:kind==="arrival"?{text:"Navigation: arrived at requested coordinate; 2 bounded movement actions."}:kind==="activation"?{semantic_navigation:{target:{kind:"warp",x:14,y:5},activation_attempted:true}}:kind==="no-receipt"?{name:"navigate_to_target"}:kind==="wrong-name"?{name:"observe"}:{})};
+  if(kind==="no-state")delete alteredResult.state_seq;
+  s.send([before,alteredCall,after,...(kind==="stale-result"?[rewrite(state,{seq:90004})]:[]),checkEvent(alteredResult)]);
+  expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);
+ });
+ it("retires an old refusal when a later valid result no longer refuses it",async()=>{
+  const events=fixture("2aca"),s=setup();s.send(events);await s.decide();expect(s.bodies).toHaveLength(1);s.bodies.length=0;
+  const call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");if(call===undefined||result===undefined)throw new Error("fixture incomplete");
+  s.send([rewrite(call,{seq:90001,id:"retry"}),rewrite(result,{seq:90002,id:"retry",text:"Navigation: action bound reached; inspect new state; 8 bounded movement actions."})]);
+  expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);
+ });
+
 });

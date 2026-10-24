@@ -1686,3 +1686,13 @@ it.each(["leader-loss-immediate-v1","battle-action-history-v1","leader-preparati
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
 });
+
+it("links the refusal-ledger card to its factual tracked explainer",()=>{
+ const id="refusal-ledger-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("Current observations take precedence");
+ expect(html).toContain("20519");
+});

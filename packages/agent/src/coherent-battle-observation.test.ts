@@ -3,7 +3,7 @@ import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInf
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 const id="coherent-battle-observation-v1";
 it("registers an appended server switch and preserves all historical OFF defaults",()=>{
- expect(SWITCHABLE_FEATURES.at(-20)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-21)).toBe(id);
  expect(SERVER_FEATURES.at(-5)).toBe(id);
  expect(featureInfo(id)).toMatchObject({group:"observation",needs:"transition-coherence-v1",switchable:true});
  const { [id]: omitted,...historical}=ALL_ON;

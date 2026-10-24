@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "gym-rustboro-torchic-healed",
- "title": "Gym practice from Rustboro, healed at the Pok\u00e9mon Center: bundle vs control (Torchic)",
+ "title": "Gym practice from Rustboro, healed at the Pokémon Center: bundle vs control (Torchic)",
  "worklog": "docs/worklogs/active/2026-10-22_gym-healed.md",
  "primaryMilestone": "STONE_BADGE",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -263,7 +263,8 @@
    "trainer-observed-party-v1": false,
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
-   "leader-preparation-comparison-v1": false
+   "leader-preparation-comparison-v1": false,
+   "interface-guidance-v1": false
   }
  },
  "switches": [
@@ -325,7 +326,8 @@
   "trainer-observed-party-v1",
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
-  "leader-preparation-comparison-v1"
+  "leader-preparation-comparison-v1",
+  "interface-guidance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

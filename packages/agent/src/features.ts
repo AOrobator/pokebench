@@ -261,6 +261,7 @@ export const SWITCHABLE_FEATURES = [
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
+  "interface-guidance-v1",
 
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -644,6 +645,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
   on("refusal-ledger-v1", "guidance", "NAVIGATION REFUSAL HISTORY", "disproved-beliefs-v1", "Default off. Extends the belief ledger with whole recorded navigate_to and navigate_to_target route refusal lines, target, attempts and evidence references. Repeated matching reasons count together. Current observations take precedence; history does not prohibit retries or choose actions. Clears on map or story change, reaching the tile, semantic activation, or a new result with another reason. Off: existing disproved-beliefs ledger and model context unchanged."),
+  on("interface-guidance-v1", "observation", "INTERFACE GUIDANCE", null, "Bundle arm only, default off. Qualified native interface owners report mode-specific controls in state and ordinary tool observations. During the PokéNav forced-call tutorial, B cannot exit and only MATCH CALL opens; after the call, exit is available. Recalls only a matching instruction page already delivered in this tutorial, with original speaker attribution, turn and result event, while the tutorial owns input. No JIT dependency, automatic inputs or guessed guidance for unknown screens. Off: existing controls and tool-result bytes are unchanged; no interface instruction reminder."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -722,6 +724,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "elevation-aware-map-v1",
   "screen-center-player-v1",
   "blackout-transition-v1",
+  "interface-guidance-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -968,6 +971,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
     ...when("refusal-ledger-v1"),
+    ...when("interface-guidance-v1"),
 
   ];
 }

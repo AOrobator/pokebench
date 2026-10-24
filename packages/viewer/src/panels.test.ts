@@ -1703,3 +1703,11 @@ it("links the nonterminal deterministic guard to its shared supervisor explainer
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
  expect(doc.querySelector('[data-feature="deterministic-loop-guard-v1"] a')?.getAttribute("href")).toBe("/explainers/loop-guard-supervisor-v1.html");
 });
+
+it("links the independent interface guidance card to its tracked explainer",()=>{
+ const id="interface-guidance-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("independent of JIT");
+});

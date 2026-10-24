@@ -227,7 +227,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-48] == SWITCH
+    assert SERVER_FEATURES[-49] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

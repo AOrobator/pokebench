@@ -96,7 +96,7 @@ def test_readout_off_is_unchanged_and_on_states_each_target():
 
 
 def test_switch_is_a_default_off_server_observation_switch():
-    assert SERVER_FEATURES[-31] == SWITCH
+    assert SERVER_FEATURES[-32] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

@@ -377,6 +377,7 @@ def read_game_state(
     caught_nickname_enabled: bool = False,
     caught_dex_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
+    interface_guidance_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
@@ -424,6 +425,10 @@ def read_game_state(
         blackout_transition=blackout_transition_enabled,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
+    if interface_guidance_enabled:
+        from pokebench_env.interface_guidance import interface_guidance
+
+        native_ui = interface_guidance(native_ui)
     if (
         caught_dex_enabled
         and native_ui is not None

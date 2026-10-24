@@ -13,7 +13,7 @@ it("future current recipes enable factual history in bundle only, preserve the p
  for(const name of RECIPES){
   const {definition:d}=parseFixedDefinition(read(`experiments/fixed/${name}.json`));
   let base=bases.get(d.controlBase.path);if(base===undefined){base=read(d.controlBase.path);bases.set(d.controlBase.path,base);}
-  expect(controlBaseProblems(d,base)).toEqual([]);expect(d.switches.slice(-3)).toEqual([...IDS]);
+  expect(controlBaseProblems(d,base)).toEqual([]);expect(d.switches.slice(-4,-1)).toEqual([...IDS]);
   for(const phase of d.phases){
    const control=presetFeatures(parsePlayPreset(armPreset(d,phase.id,"control"))),bundle=presetFeatures(parsePlayPreset(armPreset(d,phase.id,"bundle")));
    for(const id of IDS){expect(d.base.features[id]).toBe(false);expect(control[id]).toBe(false);expect(bundle[id]).toBe(true);}

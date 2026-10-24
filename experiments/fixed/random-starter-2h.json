@@ -258,7 +258,8 @@
    "current-map-display-name-v1": false,
    "window-escape-route-v1": false,
    "map-cycle-recovery-v1": false,
-   "random-starter-v1": false
+   "random-starter-v1": false,
+   "interface-guidance-v1": false
   }
  },
  "switches": [
@@ -316,7 +317,8 @@
   "current-map-display-name-v1",
   "window-escape-route-v1",
   "map-cycle-recovery-v1",
-  "random-starter-v1"
+  "random-starter-v1",
+  "interface-guidance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -1,7 +1,7 @@
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
-import type {Button} from "./events.js";
+import {StateBodySchema,type Button} from "./events.js";
 import type {BeforePressCheck} from "./game-tools.js";
 import {isCheckedPress} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
@@ -69,7 +69,10 @@ export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:M
  if(press===undefined||!isCheckedPress(press)||observe===undefined)throw new Error("select_menu_option requires checked press and observe");
  const annotate=(r:AgentToolResult<unknown>):AgentToolResult<unknown>=>{
   const d:unknown=r.details;if(typeof d!=="object"||d===null||!("state"in d)||d.state==null)return r;
-  const view=menuOptionView(parseGameState(d.state));
+  // This optional hint decorates heterogeneous results, including historical state shapes.
+  // Only annotate a fully qualified current state; execution still uses strict stateOf.
+  if(!Value.Check(StateBodySchema,d.state))return r;
+  const view=menuOptionView(d.state);
   return view===null?r:{...r,content:[...r.content,{type:"text",text:`Menu selection tool available: select_menu_option with phase ${JSON.stringify(view.phase)}, menu_id ${JSON.stringify(view.menu_id)}, and option copied exactly from ${JSON.stringify(view.options.filter(x=>x!==""))}.`} ]};
  };
  const shown=tools.map(tool=>{

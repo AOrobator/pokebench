@@ -111,3 +111,24 @@ it.each(["identity","cursor"])("checks pre-input %s independently",async kind=>{
  const tool=menuOptionTool({observe:()=>Promise.resolve(result(current)),press:(_id,b,check)=>{check(before);buttons.push(b);return Promise.resolve(result(at(3)));}});
  await tool.execute("changed-input",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});expect(buttons).toEqual([]);
 });
+
+it("optional hints leave unsupported historical states untouched while menu execution remains strict", async () => {
+    const { withMenuOptionTool } = await import("./menu-option-tool.js");
+    const { Type } = await import("typebox");
+    const inputs: Button[] = [];
+    for (const [supported, state] of [[false, undefined], [false, null], [false, {}], [false, { version: 1, active_ui: at(2).active_ui }], [false, { ...at(2), map_id: "invalid" }], [true, at(2)]] as const) {
+        const original = { content: [{ type: "text" as const, text: "historical observation" }], details: { state } };
+        const observe = { name: "observe", label: "Observe", description: "Observe", parameters: Type.Object({}), execute: () => Promise.resolve(original) };
+        const press = { ...observe, name: "press", executeChecked: (_id: string, args: {buttons: Button[]}) => { inputs.push(...args.buttons); return Promise.resolve(original); } };
+        const tools = withMenuOptionTool([observe, press], true);
+        const annotated = await must(tools[0]).execute("hint", {});
+        if (!supported) {
+            expect(annotated).toBe(original);
+            await expect(must(tools.find(t => t.name === "select_menu_option")).execute("select", { phase: "field_multichoice", menu_id: 86, option: "POKéNAV" })).rejects.toThrow();
+        } else {
+            expect(JSON.stringify(annotated)).toContain("Menu selection tool available");
+            expect(annotated.details).toBe(original.details);
+        }
+        expect(inputs).toEqual([]);
+    }
+});

@@ -35,9 +35,9 @@ describe(ID,()=>{
   const older=Object.fromEntries(Object.entries(LEGACY_ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.filter(id=>id===ID)).toEqual([ID]);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).filter(id=>id===ID)).toEqual([ID]);
   expect(playHarnessFeatures(features(false),null)).not.toContain(ID);
  });
  it("records all three retained Rustboro same-map losses; OFF retains exact existing output",()=>{

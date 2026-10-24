@@ -1,3 +1,4 @@
+import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
@@ -19,7 +20,7 @@ describe(ID,()=>{
  });
 
  it("is an isolated candidate in the fixed bundle and has tracked operator docs",()=>{
-  const bundle=JSON.parse(root("experiments/fixed/bundle-v-control.json")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
   expect(bundle.switches).toContain(ID);
   expect(root("docs/explainers/README.md")).toContain("battle-effective-damage-v1.html");

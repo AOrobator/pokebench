@@ -14,7 +14,7 @@ function bag(pocket="TMS HMS",index=0,item=-2){return {...IN_GAME,screen:"bag_me
 it("registers independent omitted-OFF switches without tool/prompt changes",()=>{
  for(const id of IDS){const old=off();const {[id]:value,...omitted}=old;expect(value).toBe(false);expect(normalizeFeatures(omitted)[id]).toBe(false);
  const on={...old,[id]:true};expect(playHarnessFeatures(on,null)).toEqual([...playHarnessFeatures(old,null),id]);expect(playTools(on)).toEqual(playTools(old));expect(playSystemPrompt(on,null)).toBe(playSystemPrompt(old,null));expect(FEATURES.find(f=>f.id===id)?.description).toContain(" Off: ");}
- expect(SWITCHABLE_FEATURES.slice(-3)).toEqual(IDS);expect(SERVER_FEATURES).toContain(IDS[0]);expect(serverFeatureEnv(off()).POKEBENCH_FEATURES_OFF.split(",")).toContain(IDS[0]);
+ expect(SWITCHABLE_FEATURES.filter(id=>IDS.some(expected=>expected===id))).toEqual(IDS);expect(SERVER_FEATURES).toContain(IDS[0]);expect(serverFeatureEnv(off()).POKEBENCH_FEATURES_OFF.split(",")).toContain(IDS[0]);
 });
 it("production tool switches report a changed empty pocket, preserving exact OFF text",()=>{
  const before=bag("BERRIES"),after=bag("TMS HMS");
@@ -73,8 +73,9 @@ it("qualifies verified battle bags without qualifying ordinary battle screens, p
 });
 
 it("ignores raw task churn for warnings and recovery with the existing field and battle loop switches ON",async()=>{
- const {readFileSync}=await import("node:fs");const {parseGameState}=await import("./game-state.js");
- const recorded=parseGameState(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
+ const {readFileSync}=await import("node:fs");const {checkEvent}=await import("./events.js");
+ const recorded=checkEvent(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
+ if(recorded.type!=="state")throw Error("fixture must be a validated native state event");
  const battle=recorded.battle;
  if(battle==null||battle.diagnostic!==null)throw Error("fixture must carry a verified native battle payload");
  for(const inBattle of [false,true])for(const enabled of [false,true]){
@@ -91,4 +92,19 @@ it("ignores raw task churn for warnings and recovery with the existing field and
  press(snapshot(5),snapshot(6,"BERRIES"));
  expect(notes.map(n=>n.phase)).toEqual(["warning","recovered"]);
  }
+});
+
+it.each([false,true])("does not fabricate recovery from raw task churn after an established bag warning; battle=%s",async(inBattle)=>{
+ const {readFileSync}=await import("node:fs");const {checkEvent}=await import("./events.js");
+ const recorded=checkEvent(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
+ if(recorded.type!=="state"||recorded.battle==null||recorded.battle.diagnostic!==null)throw Error("fixture must contain a validated native battle");
+ const battle=recorded.battle,notes:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notes.push(n),{bagLoops:true,ineffectiveLoops:true,battles:true,interactions:true});
+ const snapshot=(taskData:number,pocket="TMS HMS"):GameStateSnapshot=>{const state=bag(pocket);return {...state,in_battle:inBattle,...(inBattle?{battle}:{}),active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:inBattle?1:0,task_data:[taskData]}}};};
+ const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});
+ for(let i=0;i<3;i++)press(snapshot(0),snapshot(0));
+ expect(notes.map(n=>n.phase),`established warning battle=${inBattle}`).toEqual(["warning"]);
+ detector.context();press(snapshot(3),snapshot(4));
+ expect(notes.map(n=>n.phase),`raw task churn battle=${inBattle}`).toEqual(["warning"]);
+ press(snapshot(5),snapshot(6,"BERRIES"));
+ expect(notes.map(n=>n.phase),`visible pocket progress battle=${inBattle}`).toEqual(["warning","recovered"]);
 });

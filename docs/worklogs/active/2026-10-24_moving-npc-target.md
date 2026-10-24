@@ -54,3 +54,5 @@ New production path scope: fixed-design.ts pure source materialization/schema; f
 - Source-title preservation check against canonical current sources: {"before": 27, "after": 27, "removed": [], "added": [], "changed": {}}. This verifies title metadata only; built viewer/real-run proof remains pending coordinated qualification.
 
 - Integrated main 429375802 (reviewed startup/serial fixture repairs) cleanly. No feature/protocol policy changed by that merge; migration qualification still pending explicit CPU admission.
+
+- Static migration cleanup removed an obsolete fixture reader import; diff whitespace validation passes. Full checks remain queued, with no changed gate thresholds or retry suppression.

@@ -2,7 +2,6 @@ import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {describe,it,expect,vi} from 'vitest';
 import {IN_GAME} from '../test-support/events.js';
 import {Value} from 'typebox/value';
-import {readFileSync} from 'node:fs';
 import {gameTools} from './game-tools.js';
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems} from './features.js';
 const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};

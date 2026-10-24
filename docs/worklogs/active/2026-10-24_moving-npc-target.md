@@ -32,3 +32,5 @@ Pending. No experiments authorized or launched.
 
 - Final focused file: 24 passed, including stationary ON/OFF exact result, continuous drift bound, long route total cap, native recorder delivery, and sight exclusion/refusal from production-shaped game-server reply. /tmp/moving-npc-sight2.log.
 - Coordinator requested no heavy checks pending explicit CPU admission; stopped only this chat's owned qualification tree (root 62401) before test/coverage stages. No gameplay or shared viewer signals. Normal landing queue and designated viewer tree /private/tmp/pokebench-viewer-qwen36-20261024 apply. Final full gates await CPU window; no clean-gate claim.
+
+- GREEN commit ed28a6382. Integrated main 42edb3f22 (trigger boundary promotion and recipe-fixture caching) without conflicts. Its trigger-boundary both-arm promotion remains intact; this NPC switch stays bundle-only. Preparing exact clean integration tip for CPU admission.

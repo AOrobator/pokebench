@@ -58,10 +58,10 @@ it.each([false,true])("replays the rival stair landing with exactly one DOWN and
  const off=await run(start,false,semantic,"move",true);expect(off.posts).toEqual([]);expect(off.text).toContain("crosses a script-trigger tile");
  const on=await run(start,true,semantic,"move",true);expect(on.posts).toEqual([{buttons:["DOWN"],hold_frames:10,release_frames:8}]);expect(on.current.position).toEqual({x:2,y:4});expect(on.text).toContain("script-trigger step attempted at (2,4)");
 });
-it("enables the separate switch only in fixed bundle treatment",()=>{
+it("enables the operator-promoted switch in both fixed arms",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const d=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
-  expect(d.base.features[ID]).toBe(false);expect(d.switches).toContain(ID);expect(d.onInBoth).not.toContain(ID);expect(d.offInBoth).not.toContain(ID);
+  expect(d.base.features[ID]).toBe(true);expect(d.switches).not.toContain(ID);expect(d.onInBoth).toContain(ID);expect(d.offInBoth).not.toContain(ID);
  }
 });
 

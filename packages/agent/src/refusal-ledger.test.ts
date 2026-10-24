@@ -13,7 +13,11 @@ const OFF={...ON,[ID]:false};
 type Body=Omit<BodyOf<"belief_ledger">,"type"|"turn">;
 interface Fixture {source:string;events:RunEvent[]}
 const fixtures=JSON.parse(readFileSync(new URL("../test-support/refusals-frontier.json",import.meta.url),"utf8")) as Fixture[];
-const fixture=(suffix:string):RunEvent[]=>fixtures.find(f=>f.source.includes(`_${suffix}/`))?.events.map(checkEvent)??[];
+const fixture=(suffix:string):RunEvent[]=>{
+ const found=fixtures.find(f=>f.source.includes(`_${suffix}/`));
+ if(found===undefined)throw new Error(`Missing recorded refusal fixture ${suffix}`);
+ return found.events.map(checkEvent);
+};
 function setup(features:FeatureSet=ON){
  const subscribers:((e:RunEvent)=>void)[]=[],bodies:Body[]=[];
  const context=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:body=>{bodies.push(body);}},m=>Promise.resolve(m));
@@ -25,6 +29,7 @@ const stateOf=(events:RunEvent[])=>events.find(e=>e.type==="state"&&"started"in 
 const rewrite=(event:RunEvent,extra:Record<string,unknown>)=>checkEvent({...event,...extra});
 
 describe("refusal ledger production context",()=>{
+ it("rejects a missing source fixture before even a negative case can pass",()=>{expect(()=>fixture("missing-source")).toThrow("Missing recorded refusal fixture missing-source");});
  it("defaults OFF and requires the existing belief ledger",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"disproved-beliefs-v1"});
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
@@ -101,6 +106,25 @@ describe("refusal ledger production context",()=>{
   const call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");if(call===undefined||result===undefined)throw new Error("fixture incomplete");
   s.send([rewrite(call,{seq:90001,id:"retry"}),rewrite(result,{seq:90002,id:"retry",text:"Navigation: action bound reached; inspect new state; 8 bounded movement actions."})]);
   expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);
+ });
+
+ it("combines existing disproved beliefs with refusal history, with exact evidence union",async()=>{
+  const original=JSON.parse(readFileSync(new URL("../test-support/beliefs-sh02.json",import.meta.url),"utf8")) as Fixture;
+  const prior=original.events.filter(e=>e.turn<=88),s=setup(),previous=setup(OFF);s.send(prior);previous.send(prior);await previous.decide();
+  const old=previous.bodies.at(-1);expect(old?.entries).toBe(1);expect(old?.text).toContain("PROF. BIRCH");
+  const native=prior.findLast(e=>e.type==="state"&&"started"in e);if(native===undefined||!("started"in native))throw new Error("source state missing");
+  const refusals=fixture("2aca").map(e=>rewrite(e,{seq:e.seq+100000,...(e.type==="state"&&"started"in e?{story:native.story}:e.type==="tool_result"&&e.state_seq!==undefined?{state_seq:e.state_seq+100000}:{})}));
+  s.send(refusals);await s.decide();
+  const combined=s.bodies[0];expect(combined?.entries).toBe(2);expect(combined?.text).toContain("PROF. BIRCH");expect(combined?.text).toContain("Target (14,5)");
+  expect(combined?.evidence).toEqual([...new Set([...(old?.evidence??[]),...refusals.map(e=>e.seq)])].sort((a,b)=>a-b));
+ });
+ it("keeps a whole qualified semantic-object route refusal without asserting current presence",async()=>{
+  const events=fixture("2aca"),s=setup(),state=events.findLast(e=>e.type==="state"),call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");
+  if(state===undefined||call===undefined||result===undefined)throw new Error("source missing");
+  // semantic-navigation.ts template-approach qualification, for an object request (not a static_object receipt).
+  const line="Semantic navigation: object 4 template tile; current presence and position are unverified (it may have moved). No interaction is attempted; inspect the returned current state; no supported route to an adjacent tile. Selected map object 4.";
+  s.send([rewrite(state,{seq:90000}),rewrite(call,{seq:90001,name:"navigate_to_target",args:{map_id:[24,11],target:{kind:"object",local_id:4}}}),rewrite(state,{seq:90002}),rewrite(result,{seq:90003,state_seq:90002,name:"navigate_to_target",text:line,semantic_navigation:{target:{kind:"object",local_id:4},activation_attempted:false}})]);
+  await s.decide();expect(s.bodies[0]?.text).toContain(line);expect(s.bodies[0]?.text).toContain("map object 4");expect(s.bodies[0]?.text).toContain("Current observations take precedence");
  });
 
 });

@@ -24,7 +24,7 @@ function refusalLine(result:Result):string|null {
  // Preserve whole delivered lines, but only retain explicit route failures. Input
  // locks, battle interruptions, bounded progress and arrival are not refusals.
  if(navigation!==undefined&&/(?:no supported|no route|cannot be reached|cannot stand|cannot be entered|not a walkable|not walkable|not reachable|every route|blocked|route not converging|route cycle:)/.test(navigation))return navigation;
- return lines.find(line=>/^Semantic navigation: (?:no supported route|target is not listed|no valid approach)/.test(line))??null;
+ return lines.find(line=>/^Semantic navigation: .*?(?:no supported route|target is not listed|no valid approach)/.test(line))??null;
 }
 const reasonOf=(line:string):string=>line.replace(/^Navigation: walked from \([^)]*\) to \([^)]*\), then stopped: /,"Navigation: ").replace(/; \d+ (?:bounded movement actions|ordinary button attempts)\.$/,"");
 

@@ -169,3 +169,13 @@ Actual human confirmation was independently verified in the primary Claude trans
 
 Current main `ebed5a7f331a9c2501fb7a695994afc9be7cebd9` records Item 3's failed post-landing validation. It is not treated as a green release. Await the recovery owner's final qualified landing/evidence SHA before integration and the next normal full-gate admission; no heavy checks, main move, viewer refresh or review round has started on this stale base.
 COMMIT: docs: record human whiteout scope confirmation (SHA in git log).
+
+
+## Preparation during serial-repair qualification
+
+The human directly reiterated in this chat: after the serial-test repair lands, finish whiteout validation, reviews, landing and live viewer proof, with unchanged scope and active runs untouched. During the repair's qualification, integrated the completed gym release `a1d1fa3417d50ed140c2167b7dd185f1996de637` as offline source preparation only. This incorporates the truthful-drought and trigger/gym recipe changes without claiming the serial repair has landed or that this combined candidate is qualified. Backup branch `codex/same-map-whiteout-v2-pre-drought-sync` preserves the previous candidate.
+
+Conflict resolution starts from incoming complete registry, optional/default/legacy plumbing and both recipe definitions, then reapplies only whiteout's existing entries. All 258 incoming registry IDs remain in order, with whiteout appended at 258. Removing only its false base entry and final switch reconstructs each incoming recipe exactly, including both-arm trigger/gym settings. Incoming drought production owners are byte-identical to main; BattleOutcomes and the corrected 26-case whiteout test are byte-identical to `2d4596cb`. The map-cycle test is now exactly incoming main, dropping prior semantically redundant tuple/.at style divergence. No runtime logic, new activation or test assertion is added by this preparation.
+
+The moving-NPC owner was notified that its explicitly approved canonical-config migration must preserve whiteout's intended future bundle ON/control OFF values when those entries land, and must not activate an unknown feature before registration lands. That owner remains the sole migration owner. The serial repair's final qualified release must still be integrated before full validation and R4. No heavy job, review round, board entry, main move, viewer refresh or run change occurred here.
+COMMIT: merge: preserve released drought and recipe settings (SHA in git log).

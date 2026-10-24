@@ -2132,3 +2132,15 @@ it("shows production navigation recovery warning, recovery and nonterminal brief
  const scrub=ui("scrub") as HTMLInputElement;scrub.value="0";scrub.dispatchEvent(new Event("input"));
  expect(ui("trace").textContent).not.toContain("NAVIGATION RECOVERY");
 });
+
+it("mounts a factual drought battle hold in history and the inspector without adding a timeline mark",async()=>{
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ const held=log.add(2000,{type:"loop_guard",turn:278,kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:"Not sent (drought-progress-facts-v1): the active drought clock reached 5 minutes of play, but a battle is on screen.",calls:0,evidence:[26726,26728]});
+ log.add(70000,{type:"run_end",turn:278,reason:"budget",furthest_milestone:null,turns:278,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);expect(ui("trace").querySelector(`[data-seqs~="${String(held.seq)}"]`)).toBeNull();
+ app.tick(9000);const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(held.seq)}"]`));
+ expect(row.textContent).toContain("milestone drought diagnostic: would warn");expect(row.textContent).toContain("a battle is on screen");
+ expect(ui("lanes").querySelectorAll(".k-loop")).toHaveLength(0);
+ row.click();expect(ui("inspector").textContent).toContain("drought-progress-facts-v1");expect(ui("inspector").textContent).toContain("26726");expect(ui("inspector").textContent).toContain("26728");expect(row.classList.contains("sel")).toBe(true);
+});

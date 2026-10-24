@@ -70,7 +70,7 @@ describe(ID,()=>{
   }
   expect(fold([loss,change(field,{party:[firstHealed]})]).battles()[0]?.whiteout).toBeNull();
   expect(fold([change(loss,{money:0}),change(field,{money:0})]).battles()[0]?.whiteout).toBeNull();
-  const egg={...loss.party[0]!,is_egg:true};
+  const egg={...firstHealed,is_egg:true};
   expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
  });
  it("does not infer a whiteout from a win, escape, surviving party or ordinary map change",()=>{

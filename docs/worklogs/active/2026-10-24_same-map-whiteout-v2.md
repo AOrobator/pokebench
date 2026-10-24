@@ -70,3 +70,5 @@ Second full gate window at8e7d27ba1: build PASS; agent4196/viewer1802/Python4068
 
 Integrated source: after sprite source/evidence final release, preserved backup codex/same-map-whiteout-v2-pre-sprite-sync and normally rebased onto approved actual main b8911c90e. Own patch pre/post rebase is byte-for-byte identical, SHA25671bd2ddbdbbd58ecaaf3e645f3bd2e869bb99275a56c887b5848aa9d5c1f0706; no protected trainer baseline/approval/rendering paths in own diff. No approval rebind or hook bypass.
 Focused lint before next integrated full window found eight forbidden non-null assertions in new tests. Replaced with checked fixture access/required battle-party evidence; production unchanged. COMMIT: test: validate whiteout fixture access explicitly (SHA in git log).
+
+The first focused lint rerun still found one egg-fixture non-null assertion (not claimed green); changed it to the already checked member. COMMIT: test: use checked egg fixture member (SHA in git log).

@@ -33,7 +33,7 @@ describe("map-cycle recovery bundle activation", () => {
   for (const name of RECIPES) {
     it(`${name} enables it only in the normalized bundle arm, where navigation-recovery-v1 is on`, () => {
       const definition = definitionOf(name);
-      expect(definition.switches.filter(id=>id!=="trainer-observed-party-v1").at(-9)).toBe(ID);
+      expect(definition.switches.filter(id=>id!=="trainer-observed-party-v1"&&id!=="player-elevation-readout-v1").at(-9)).toBe(ID);
       expect(definition.base.features[ID]).toBe(false);
       expect(controlBaseProblems(definition, controlBaseOf(definition.controlBase.path))).toEqual([]);
       for (const phase of definition.phases) {

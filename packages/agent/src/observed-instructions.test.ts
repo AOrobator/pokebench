@@ -54,7 +54,7 @@ it("reads actual recorded Mom episode through the same production chain",async()
  const text=JSON.stringify(await h.wiring.transformContext([]));
  expect(text).toContain("PROF. BIRCH is his name.");expect(text).toContain(JSON.stringify(JSON.stringify("He lives right next door, so you should\ngo over and introduce yourself.")).slice(1,-1));
 });
-it("registers a default-OFF switch with state-only conflict and bundle treatment",()=>{
+it("registers a default-OFF switch with state-only conflict and shared baseline activation",()=>{
  expect(SWITCHABLE_FEATURES).toContain("observed-instructions-v1");
  const {"observed-instructions-v1":omitted,...legacy}=off;expect(omitted).toBe(false);
  expect(normalizeFeatures(legacy)["observed-instructions-v1"]).toBe(false);
@@ -62,7 +62,7 @@ it("registers a default-OFF switch with state-only conflict and bundle treatment
  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":true},null)).toContain("observed-instructions-v1");
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires observed-instructions-v1 OFF");
  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
- expect(bundle.base.features["observed-instructions-v1"]).toBe(false);expect(bundle.switches).toContain("observed-instructions-v1");
+ expect(bundle.base.features["observed-instructions-v1"]).toBe(true);expect(bundle.switches).not.toContain("observed-instructions-v1");
 });
 
 it("retains actual Norman pages after Rustboro arrival without inventing completion",async()=>{

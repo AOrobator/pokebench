@@ -225,7 +225,7 @@ describe("deterministic-warp-navigation-v1",()=>{
   expect(posted).toEqual([{url:"http://127.0.0.1/action",body:{buttons:["DOWN"],...PRESS_TIMING}}]);expect(modifiers).toEqual([{automatic_running:false}]);
  });
 
- it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{
+ it("is appended and default OFF, with shared control/bundle baseline activation",()=>{
   const id=ID as SwitchableFeature;
   expect(SWITCHABLE_FEATURES.at(132)).toBe(ID);expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(ID);
   expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true,title:"DETERMINISTIC WARP NAVIGATION"});expect(featureInfo(id).description).toContain(" Off: ");
@@ -233,8 +233,9 @@ describe("deterministic-warp-navigation-v1",()=>{
   const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
   const without=Object.fromEntries(Object.entries(legacy).filter(([key])=>key!==ID)) as FeatureSet;
   expect(presetFeatures(parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[id]).toBe(false);
+  // The shared config retains the newer control baseline; this feature is on in both arms.
   const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
-  expect(bundle.base.features[ID]).toBe(false);expect(bundle.switches).toContain(ID);expect(bundle.onInBoth).not.toContain(ID);
+  expect(bundle.base.features[ID]).toBe(true);expect(bundle.switches).not.toContain(ID);expect(bundle.onInBoth).not.toContain(ID);
   const explainer=readFileSync(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url),"utf8");expect(explainer).toContain("weighted terrain/ledge cost");expect(explainer).not.toContain("Route length wins");
  });
 });

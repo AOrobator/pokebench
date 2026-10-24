@@ -267,27 +267,27 @@ it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced s
  expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
 });
 
-it("enables both navigation treatments only in evolving bundle arms, with unchanged control provenance",()=>{
+it("preserves historical navigation treatments and their newer maintained control baseline",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
   const def=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(def)).toEqual([]);
   for(const phase of def.phases){
    const control=armPreset(def,phase.id,"control"),bundle=armPreset(def,phase.id,"bundle");
    for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
-    expect(def.switches).toContain(id);expect(control.features[id]).toBe(false);expect(bundle.features[id]).toBe(true);
+    if(name==="bundle-v-control")expect(def.switches).not.toContain(id);else expect(def.switches).toContain(id);expect(control.features[id]).toBe(name==="bundle-v-control");expect(bundle.features[id]).toBe(true);
    }
   }
  }
 });
 
-it("enables pending field dialogue only in each evolving bundle and preserves control provenance",()=>{
+it("preserves historical field-dialogue treatment and its newer maintained control baseline",()=>{
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
   const raw=recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
   const def=parseFixedDefinition(raw).definition;
   expect(definitionProblems(def)).toEqual([]);
-  expect(def.switches).toContain("pending-field-dialogue-v1");
+  if(name==="bundle-v-control")expect(def.switches).not.toContain("pending-field-dialogue-v1");else expect(def.switches).toContain("pending-field-dialogue-v1");
   for(const phase of def.phases){
-   expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(false);
+   expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(name==="bundle-v-control");
    expect(armPreset(def,phase.id,"bundle").features["pending-field-dialogue-v1"]).toBe(true);
   }
   expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);

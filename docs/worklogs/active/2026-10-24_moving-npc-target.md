@@ -56,3 +56,5 @@ New production path scope: fixed-design.ts pure source materialization/schema; f
 - Integrated main 429375802 (reviewed startup/serial fixture repairs) cleanly. No feature/protocol policy changed by that merge; migration qualification still pending explicit CPU admission.
 
 - Static migration cleanup removed an obsolete fixture reader import; diff whitespace validation passes. Full checks remain queued, with no changed gate thresholds or retry suppression.
+
+- Bounded targeted migration check terminal: agent 623 passed/14 failed, viewer 578 passed/7 failed (11.25s total; owned children released). New loader/CLI/runner tests passed. Failures were old donor feature promotions/switch positions. Updated explicit maintained-baseline expectations while retaining archived treatment assertions; GLM now receives the same navigation recovery as Qwen. Original heal-first control policy remains tested against archived bundle-cook bytes. No retries/weakening. Final checks pending.

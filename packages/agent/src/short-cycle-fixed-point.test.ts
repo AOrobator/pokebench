@@ -632,11 +632,11 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
    }
   }
  });
- it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
+ it("retains historical treatment activation and the newer shared both-arm baseline",()=>{
   for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
    const fixed=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
-   expect(fixed.base.features[ID],name).toBe(false);
-   expect(fixed.switches,name).toContain(ID);
+   expect(fixed.base.features[ID],name).toBe(name==="bundle-v-control");
+   if(name==="bundle-v-control")expect(fixed.switches,name).not.toContain(ID);else expect(fixed.switches,name).toContain(ID);
    expect(fixed.onInBoth,name).toContain("duplicate-turn-collapse-v1");
   }
  });

@@ -315,10 +315,11 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(ALL_ON[ID]).toBe(false);
  });
- it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
+ it("retains historical treatment activation and the newer shared both-arm baseline",()=>{
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
+   expect(fixed.base.features[ID]).toBe(name==="bundle-v-control");
+   if(name==="bundle-v-control")expect(fixed.switches).not.toContain(ID);else expect(fixed.switches).toContain(ID);
    expect(fixed.base.features["deterministic-loop-guard-v1"]).toBe(true);
   }
  });

@@ -5,8 +5,8 @@ import { dependencyProblems } from "@pokebench/agent/features";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "map-cycle-recovery-v1";
-// Current recipes whose bundle arm runs navigation-recovery-v1, the switch this one needs (glm53-flash-4h does not).
-const RECIPES = [["gym-rustboro-torchic-healed",48],["bundle-v-control",112],["bundle-cook-1h",113],["whole-map-cook-1h",113],["whole-map-pair-2h",52],["bundle-v-control-2h",54],["gym-rustboro-torchic",48]] as const;
+// Current shared configuration and retained historical recipes with navigation-recovery-v1.
+const RECIPES = [["glm53-flash-4h",54],["gym-rustboro-torchic-healed",48],["bundle-v-control",54],["bundle-cook-1h",113],["whole-map-cook-1h",113],["whole-map-pair-2h",52],["bundle-v-control-2h",54],["gym-rustboro-torchic",48]] as const;
 
 // Each recipe is parsed once and each control base read once, however many cases use them.
 const definitions = new Map<string, ReturnType<typeof parseFixedDefinition>["definition"]>();
@@ -46,9 +46,5 @@ describe("map-cycle recovery bundle activation", () => {
       }
     });
   }
-  it("leaves glm53-flash-4h, whose bundle does not run navigation-recovery-v1, unchanged", () => {
-    const definition = definitionOf("glm53-flash-4h");
-    expect(definition.switches).not.toContain(ID);
-    expect(definition.switches).not.toContain("navigation-recovery-v1");
-  });
+
 });

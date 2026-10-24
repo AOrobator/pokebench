@@ -260,6 +260,7 @@ export const SWITCHABLE_FEATURES = [
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
+  "party-menu-message-v1",
 
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -642,6 +643,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
+  on("party-menu-message-v1", "observation", "PARTY MENU MESSAGE", null, "Default off. Reads the game-owned party return message and verifies its A/B acknowledgement wait. Names the cursor Pokémon from the decoded party and labels both one-based slot and zero-based index. Printing, fades and handoffs remain not ready; no automatic input or selection. Off: previous party message, readiness and cursor readout unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -720,6 +722,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "elevation-aware-map-v1",
   "screen-center-player-v1",
   "blackout-transition-v1",
+  "party-menu-message-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -965,6 +968,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("leader-loss-immediate-v1"),
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
+    ...when("party-menu-message-v1"),
 
   ];
 }

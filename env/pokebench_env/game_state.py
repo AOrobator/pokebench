@@ -377,6 +377,7 @@ def read_game_state(
     caught_nickname_enabled: bool = False,
     caught_dex_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
+    party_menu_message_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
@@ -417,6 +418,7 @@ def read_game_state(
         battle_move_learn_input=battle_move_learn_input_enabled,
         truth=readout_truth_enabled,
         party_item_confirmation=party_item_confirmation_enabled,
+        party_menu_message=party_menu_message_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
         birch_intro_pages=birch_intro_pages_enabled,
@@ -532,6 +534,27 @@ def read_game_state(
         else None
     )
     party = _party(read, empty_move_pp=tutorial_owner_enabled)
+    if (
+        party_menu_message_enabled
+        and active_ui is not None
+        and active_ui.phase.startswith("party_")
+        and active_ui.details is not None
+        and active_ui.diagnostic is None
+    ):
+        details = dict(active_ui.details)
+        cursor = details.get("selected_index" if active_ui.phase == "party_menu" else "party_slot")
+        if type(cursor) is int and party is not None and 0 <= cursor < len(party):
+            mon = party[cursor]
+            details.update({"cursor_party_index": cursor, "cursor_party_number": cursor + 1})
+            if mon.species is not None and mon.diagnostic is None:
+                details["cursor_species"] = mon.species
+                details["cursor_fainted"] = mon.hp == 0 if mon.hp is not None else None
+                if active_ui.phase == "party_menu":
+                    suffix = " (fainted)" if mon.hp == 0 else ""
+                    active_ui = replace(
+                        active_ui, selected=f"{active_ui.selected}: {mon.species}{suffix}"
+                    )
+            active_ui = replace(active_ui, details=details)
     resources = read_resources(read, save1, save2)
     ownership = read_party_ownership(read, party)
     context = (

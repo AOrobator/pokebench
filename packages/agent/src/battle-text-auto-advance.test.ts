@@ -427,8 +427,8 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-186)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-186)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-187)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-187)?.id).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -602,7 +602,7 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-120)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-121)).toBe(id);
  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-6)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
@@ -735,8 +735,8 @@ describe("pending-field-dialogue-v1",()=>{
  });
  it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
   const id="pending-field-dialogue-v1";
-  expect(SWITCHABLE_FEATURES.at(-79)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-79)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-80)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-80)?.id).toBe(id);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[id]:true}),null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);
@@ -779,7 +779,7 @@ describe("caught-dex-input-v1 archived registration page",()=>{
 
 it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
  const id="caught-dex-input-v1";
- expect(SWITCHABLE_FEATURES.at(-70)).toBe(id);expect(SERVER_FEATURES.at(-17)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-71)).toBe(id);expect(SERVER_FEATURES.at(-18)).toBe(id);
  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);

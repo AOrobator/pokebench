@@ -210,7 +210,12 @@ PARTY_CONFIRM, PARTY_CANCEL = 6, 7
 
 
 def read_menu_family(
-    read: ReadMemory, callback: int, *, truth: bool = False, party_item_confirmation: bool = False
+    read: ReadMemory,
+    callback: int,
+    *,
+    truth: bool = False,
+    party_item_confirmation: bool = False,
+    party_menu_message: bool = False,
 ) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
@@ -361,7 +366,9 @@ def read_menu_family(
                     {"party_slot": slot, "party_action": action, "owner_task": owner_task}
                 )
                 phase = passive_phases[function]
-                if function == 0x081B6795 and any(task[1] == 0x081B1B8D for task in tasks):
+                if (
+                    function == 0x081B6795 or (party_menu_message and function == 0x081B1C1D)
+                ) and any(task[1] == 0x081B1B8D for task in tasks):
                     from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE, decode_message
 
                     if not _window_drawn(read, 6):
@@ -371,7 +378,7 @@ def read_menu_family(
                     if not message:
                         raise ValueError("Party item message buffer is empty")
                     details["message"] = message
-                    if party_item_confirmation:
+                    if party_item_confirmation or (party_menu_message and function == 0x081B1C1D):
                         from pokebench_env.battle_text import AUTO_SCROLL, PRINTERS, TEXT_FLAGS
 
                         printers = [t for t in tasks if t[1] == 0x081B1B8D]
@@ -483,6 +490,8 @@ def read_menu_family(
                     if selected_slot == 6
                     else f"PARTY SLOT {selected_slot + 1}"
                 )
+            if party_menu_message and phase == "party_menu" and selected_slot in range(6):
+                selected = f"PARTY SLOT {selected_slot + 1} (index {selected_slot})"
             return ActiveUi(
                 phase,
                 selected,

@@ -72,9 +72,9 @@ export function materializeFixedSource(value:unknown,readRecipe?:(id:string)=>st
  if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${value.featureRecipe} requires a source loader`);
  const recipe:unknown=JSON.parse(readRecipe(value.featureRecipe));
  if(!Value.Check(FeatureRecipeSchema,recipe))throw new FixedDesignError("invalid feature recipe");
- if(recipe.id!==value.featureRecipe)throw new FixedDesignError("feature recipe identity differs from its reference");
+ const {featureRecipe,...protocol}=value;
+ if(recipe.id!==featureRecipe)throw new FixedDesignError("feature recipe identity differs from its reference");
  if(recipe.romSha1!==value.romSha1)throw new FixedDesignError("feature recipe ROM differs from the protocol");
- const {featureRecipe,...protocol}=value;void featureRecipe;
  return {...protocol,controlBase:recipe.controlBase,base:{...value.base,features:recipe.features},switches:recipe.switches,offInBoth:recipe.offInBoth,onInBoth:recipe.onInBoth};
 }
 export type FixedDefinition = Static<typeof FixedDefinitionSchema>;
@@ -256,15 +256,15 @@ export function parseFixedDefinition(text: string, readRecipe?:(id:string)=>stri
   } catch (error) {
     throw new FixedDesignError(`not JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
-  let recipeText:string|null=null;
-  value=materializeFixedSource(value,id=>{if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${id} requires a source loader`);recipeText=readRecipe(id);return recipeText;});
+  const recipeSource:{text:string|null}={text:null};
+  value=materializeFixedSource(value,id=>{if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${id} requires a source loader`);recipeSource.text=readRecipe(id);return recipeSource.text;});
   if (!Value.Check(FixedDefinitionSchema, value)) {
     const [first] = Value.Errors(FixedDefinitionSchema, value);
     throw new FixedDesignError(`not a fixed-run definition: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);
   }
   const problems = definitionProblems(value);
   if (problems.length > 0) throw new FixedDesignError(problems.join("\n"));
-  return { definition: value, sha256: createHash("sha256").update(recipeText===null?text:JSON.stringify([text,recipeText])).digest("hex") };
+  return { definition: value, sha256: createHash("sha256").update(recipeSource.text===null?text:JSON.stringify([text,recipeSource.text])).digest("hex") };
 }
 
 export function dryRunDefinition(def: FixedDefinition, wallMs: number, phaseId: string = def.phases[0]?.id ?? ""): FixedDefinition {

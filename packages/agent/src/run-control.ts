@@ -318,10 +318,11 @@ export class BudgetTimer {
 
 export const STALL_STOP_MS = 10 * 60_000;
 
-// milestone-stall-stop-v1: ends the run after limitMs of unpaused play with no new
+// milestone-stall-stop-v1: reports once after limitMs of unpaused play with no new
 // observed milestone. The clock starts at run start; a milestone that was already
 // present at start does not reset it.
 export class StallStop {
+  private reported = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private lastProgress = 0;
   private done = false;
@@ -337,14 +338,15 @@ export class StallStop {
   observe(event: RunEvent): void {
     if (this.done || event.type !== "milestone" || event.origin === "present_at_start" || MEASUREMENT_ONLY_MILESTONES.has(event.name)) return;
     this.lastProgress = this.active();
+    this.reported = false;
     this.arm();
   }
 
   private arm(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    if (this.done || this.control.holding || this.control.state === "ended") return;
-    this.timer = setTimeout(this.expire, Math.max(0, this.lastProgress + this.limitMs - this.active()));
+    if (this.done || this.reported || this.control.holding || this.control.state === "ended") return;
+    this.timer = setTimeout(() => { this.reported = true; this.timer = null; this.expire(); }, Math.max(0, this.lastProgress + this.limitMs - this.active()));
   }
 
   clear(): void {

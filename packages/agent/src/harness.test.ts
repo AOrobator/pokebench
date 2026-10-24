@@ -1009,7 +1009,7 @@ for(const recover of [false,true])it(`delivers shop refusal feedback through pin
   const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
   await recorder.start(RUN_START_META,false);
   const controller=new AbortController();
-  const g=new Governor({limits:{maxTurns:recover?3:20,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
+  const g=new Governor({limits:{maxTurns:recover?3:10,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
   const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,()=>"SUPERVISOR: generic briefing",false,false,false,false,false,false,false,false,false,false,false,false,{"menu-refusal-recovery-v1":true});
   const observe=()=>Promise.resolve({content:[{type:"text" as const,text:"Recorded game state"}],details:{state}});
   const battle=battleActionTool({read:()=>Promise.resolve(state),observe,press:()=>{throw Error("No native input permitted from battle_action in this menu");}});
@@ -1020,13 +1020,20 @@ for(const recover of [false,true])it(`delivers shop refusal feedback through pin
   });
   const seen:Message[][]=[];
   const loop=piLoop({systemPrompt:"play",tools:[battle,press],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
-  expect(await play(TASK,g,loop)).toBe(recover?"budget":"stuck");
+  expect(await play(TASK,g,loop)).toBe("budget");
   const delivered=seen[2]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
   expect(delivered).toContain("No battle is active. Shop menu open; selected BUY. B quits this menu.");
   expect(delivered).not.toContain("generic briefing");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
-  expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(recover?["warning","recovered"]:["warning","stop"]);
-  expect(seen).toHaveLength(recover?3:8);expect(presses).toBe(recover?1:0);
+  expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(recover?["warning","recovered"]:["warning","supervisor"]);
+  if(!recover){
+   const note=events.find(e=>e.type==="loop_guard"&&e.phase==="supervisor");
+   if(note?.type!=="loop_guard")throw Error("missing nonterminal shop note");
+   expect(note.message).toContain("run continues");
+   const deliveredNote=seen[8]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
+   expect(deliveredNote).toContain(note.message);
+  }
+  expect(seen).toHaveLength(recover?3:10);expect(presses).toBe(recover?1:0);
   expect(events.filter(e=>e.type==="button_press").map(e=>e.buttons)).toEqual(recover?[["B"]]:[]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
@@ -1069,7 +1076,7 @@ function navigationRecoveryState():Promise<import("./game-state.js").GameStateSn
  return oldaleState;
 }
 
-for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"stale-map"} recovery through pinned pi and stops boundedly`,async()=>{
+for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"stale-map"} recovery through pinned pi and briefs boundedly`,async()=>{
  const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
  const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");
  const state=await navigationRecoveryState();
@@ -1078,23 +1085,23 @@ for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"sta
   const log=RunLog.create(root,"2026-10-21T00-00-00_navigation-delivery");
   const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
   await recorder.start({...RUN_START_META,harness_features:[...RUN_START_META.harness_features,"semantic-navigation-v2","navigation-recovery-v1"]},false);const controller=new AbortController();
-  const g=new Governor({limits:{maxTurns:25,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
+  const g=new Governor({limits:{maxTurns:20,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
   const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,()=>"generic supervisor",false,false,false,false,false,false,false,false,false,false,false,false,{"navigation-recovery-v1":true});
   const tool:AgentTool={name:"navigate_to_target",label:"navigate",description:"Recorded no-input navigation result",parameters:Type.Object({map_id:Type.Array(Type.Number())}),execute:()=>Promise.resolve({content:[{type:"text",text:"Current map: OLDALE TOWN (map 0/10). No input was sent."}],details:{state}})};
   recorder.recordState(state);
   if(cycle){detector.stall("map_cycle",()=>"Recorded repeated map crossings",[1]);}
   const replies=Array.from({length:20},()=>{const m=reply(["navigate_to_target"]);return {...m,content:m.content.map(p=>p.type==="toolCall"?{...p,arguments:{map_id:[0,16]}}:p)};});
   const seen:Message[][]=[];const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
-  expect(await play(TASK,g,loop)).toBe("stuck");
+  expect(await play(TASK,g,loop)).toBe("budget");
   const delivered=seen[cycle?0:2]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
   expect(delivered).toContain("NAVIGATION RECOVERY");expect(delivered).toContain("Current map: 0/10");expect(delivered).not.toContain("generic supervisor");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
-  expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(["warning","stop"]);
-  expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(cycle?12:14);
+  expect(events.filter(e=>e.type==="loop_guard").map(e=>e.phase)).toEqual(["warning","supervisor","warning"]);
+  expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(20);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
-it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi instead of stopping, then stops on a second cycle",async()=>{
+it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi instead of stopping, then briefs on a second cycle",async()=>{
  const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
  const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");
  const state=await navigationRecoveryState();
@@ -1114,16 +1121,16 @@ it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi inste
   detector.stall("map_cycle",()=>"Recorded repeated map crossings",[1]);
   const replies=Array.from({length:60},()=>{const m=reply(["navigate_to_target"]);return {...m,content:m.content.map(p=>p.type==="toolCall"?{...p,arguments:{map_id:[0,10]}}:p)};});
   const seen:Message[][]=[];const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel(replies,seen)});
-  expect(await play(TASK,g,loop)).toBe("stuck");
+  expect(await play(TASK,g,loop)).toBe("budget");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
   const guards=events.filter(e=>e.type==="loop_guard");
-  expect(guards.map(e=>e.phase)).toEqual(["warning","supervisor","warning","stop"]);
+  expect(guards.map(e=>e.phase)).toEqual(["warning","supervisor","warning","supervisor"]);
   const briefing=guards[1]?.message??"";
   expect(briefing).toMatch(/^NAVIGATION RECOVERY BRIEFING: /);
   const user=(i:number)=>seen[i]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n")??"";
   // Calls 1-12 carry the episode note; call 13 carries the briefing bytes the event records; call 14 neither.
   expect(user(11)).toContain("NAVIGATION RECOVERY: ");expect(user(12)).toContain(briefing);expect(user(12)).not.toContain("NAVIGATION RECOVERY: The repeated");
   expect(user(13)).not.toContain("NAVIGATION RECOVERY");
-  expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(32);
+  expect(events.filter(e=>e.type==="button_press")).toEqual([]);expect(seen).toHaveLength(60);
  }finally{rmSync(root,{recursive:true,force:true});}
 });

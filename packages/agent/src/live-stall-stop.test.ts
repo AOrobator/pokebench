@@ -6,7 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { Model } from "@mariozechner/pi-ai";
 import type { RunHost, RunPlan } from "./run.js";
 import type { RunRecorder } from "./recorder.js";
-import type { RunEndReason } from "./events.js";
+import type { RunEndReason,RunEvent } from "./events.js";
 import type { FrameStore } from "./frames.js";
 import { parseEvent } from "./events.js";
 import { NAME_CONFIRMED } from "../test-support/events.js";
@@ -241,7 +241,7 @@ it.each([[true,true],[true,false],[false,true],[false,false]] as const)("live pl
   if (end?.type !== "run_end") throw new Error("missing actual terminal");
   expect(end.reason).toBe(reason);
   expect(reason).toBe("budget");
-  const notes=events.filter(e=>e.type==="loop_guard"&&e.kind==="milestone_drought");
+  const notes=events.filter((e):e is Extract<RunEvent,{type:"loop_guard"}>=>e.type==="loop_guard"&&e.kind==="milestone_drought");
   expect(notes).toHaveLength(on?1:0);
   if(on){expect(notes[0]).toMatchObject({phase:enforced?"supervisor":"would_warn"});expect(notes[0]?.message).toContain("run continues");}
   expect(owner.received.some(text=>text.includes("No newly observed milestone that resets this clock was recorded during the last 10 minutes"))).toBe(on&&enforced);

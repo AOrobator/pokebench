@@ -174,6 +174,7 @@ def test_new_switch_owns_button_numbering_even_without_readout_truth():
 
 def test_cursor_labels_egg_without_exposing_underlying_species(monkeypatch):
     from dataclasses import replace
+
     import pokebench_env.game_state as reader
 
     m, _ = fixture(8367)

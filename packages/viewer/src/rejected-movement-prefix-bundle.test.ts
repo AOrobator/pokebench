@@ -4,14 +4,14 @@ import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "rejected-movement-prefix-v1";
-const RECIPES = ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "glm53-flash-4h"];
+const RECIPES = [["bundle-v-control",111],["bundle-cook-1h",110],["whole-map-cook-1h",110],["whole-map-pair-2h",49],["bundle-v-control-2h",51],["glm53-flash-4h",92]] as const;
 
 // the operator 2026-10-22: turn the longest-valid-prefix walk on in the bundle arm; the control arm keeps it off.
 describe("rejected movement prefix bundle activation", () => {
-  for (const name of RECIPES) {
+  for (const [name,index] of RECIPES) {
     it(`${name} enables it only in the normalized bundle arm, where the navigation guard it needs is on`, () => {
       const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
-      expect(definition.switches.filter((id) => id !== "interface-guidance-v1" && id !== "trainer-observed-party-v1" && id !== "navigation-cycle-stop-v1" && id !== "elevation-aware-map-v1" && id !== "screen-center-player-v1" && id !== "leader-loss-immediate-v1" && id !== "battle-action-history-v1" && id !== "leader-preparation-comparison-v1" && id !== "campaign-progress-clock-v1" && id !== "move-learn-offer-identity-v1" && id !== "map-cycle-recovery-v1").at(definition.switches.includes("turn-drought-clock-v1") ? -5 : -4)).toBe(ID);
+      expect(definition.switches.at(index)).toBe(ID);
       expect(definition.base.features[ID]).toBe(false);
       expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);
       for (const phase of definition.phases) {

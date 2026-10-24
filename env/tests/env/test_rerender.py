@@ -23,6 +23,7 @@ ROM_START = 0x08000000
 # Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1,
 # adjacent-tiles-v1 and battle-message-waiting-v1, so its recorded harness features leave them off.
 RECORDED_OFF = [
+    "player-elevation-readout-v1",
     *FIXTURE["recorded_off"],
     "displayed-place-names-v1",
     "battle-triage-guidance-v1",

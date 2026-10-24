@@ -229,7 +229,7 @@ def test_off_golden_is_todays_readout() -> None:
             value="11:24 AM",
         )
     )
-    assert format_readout(state, OFF) == (
+    assert format_readout(state, OFF | {"player-elevation-readout-v1"}) == (
         "Screen: overworld\n"
         "Dialog: none\n"
         "Menu: clock_confirmation; selected NO\n"
@@ -247,7 +247,7 @@ def test_off_golden_is_todays_readout() -> None:
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-26] == SWITCH
+    assert SERVER_FEATURES[57] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

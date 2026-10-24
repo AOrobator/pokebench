@@ -109,6 +109,7 @@ def recorded(name: str, run: str, raw: int) -> tuple[dict[str, object], frozense
     frame = _frames(name)[(run, raw)]
     # Switches registered after these runs were recorded were off for them.
     later = {
+        "player-elevation-readout-v1",
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",
@@ -150,7 +151,7 @@ def world_block(text: str) -> list[str]:
 
 def test_switch_is_a_default_off_server_observation_switch() -> None:
     assert SWITCH == "transition-coherence-v1"
-    assert SERVER_FEATURES[-48] == SWITCH
+    assert SERVER_FEATURES[35] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

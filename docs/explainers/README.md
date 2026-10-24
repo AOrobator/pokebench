@@ -283,4 +283,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Navigation refusal history](refusal-ledger-v1.html): default-OFF quoted route refusals, repeated attempts and current-observation precedence.
 
+- [Player elevation](player-elevation-readout-v1.html): verified player height in the Position line; known own-tile elevation 0/15 rule. Default OFF, bundle only.
 - [Interface guidance](interface-guidance-v1.html): mode-specific native controls and previously delivered tutorial instructions in ordinary observations; no JIT dependency.

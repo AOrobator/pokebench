@@ -6,7 +6,7 @@ import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-de
 
 const ID = "map-cycle-recovery-v1";
 // Current recipes whose bundle arm runs navigation-recovery-v1, the switch this one needs (glm53-flash-4h does not).
-const RECIPES = ["gym-rustboro-torchic-healed", "bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic"];
+const RECIPES = [["gym-rustboro-torchic-healed",49],["bundle-v-control",116],["bundle-cook-1h",114],["whole-map-cook-1h",114],["whole-map-pair-2h",53],["bundle-v-control-2h",56],["gym-rustboro-torchic",49]] as const;
 
 // Each recipe is parsed once and each control base read once, however many cases use them.
 const definitions = new Map<string, ReturnType<typeof parseFixedDefinition>["definition"]>();
@@ -30,10 +30,10 @@ function controlBaseOf(path: string): string {
 
 // the operator 2026-10-22 ("yes recovery over stopping the run"): on in the bundle arm only; the control arm keeps it off.
 describe("map-cycle recovery bundle activation", () => {
-  for (const name of RECIPES) {
+  for (const [name,index] of RECIPES) {
     it(`${name} enables it only in the normalized bundle arm, where navigation-recovery-v1 is on`, () => {
       const definition = definitionOf(name);
-      expect(definition.switches.filter(id=>id!=="interface-guidance-v1"&&id!=="trainer-observed-party-v1").at(-9)).toBe(ID);
+      expect(definition.switches.at(index)).toBe(ID);
       expect(definition.base.features[ID]).toBe(false);
       expect(controlBaseProblems(definition, controlBaseOf(definition.controlBase.path))).toEqual([]);
       for (const phase of definition.phases) {

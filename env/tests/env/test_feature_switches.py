@@ -79,7 +79,7 @@ def test_position_off_drops_only_the_position_line() -> None:
     state = map_state()
     assert dropped(
         format_readout(state), format_readout(state, frozenset({"live-player-position-v1"}))
-    ) == ["Position: X=1, Y=1, facing right"]
+    ) == ["Position: X=1, Y=1, facing right, elevation 0, on a tile that accepts any elevation (0)"]
 
 
 def test_grid_off_prints_unlabeled_rows() -> None:
@@ -235,6 +235,7 @@ def test_env_list_is_validated() -> None:
     assert features_off_from_env({}) == frozenset(
         {
             "blackout-transition-v1",
+            "player-elevation-readout-v1",
             "interface-guidance-v1",
             "coherent-battle-observation-v1",
             "named-interactions-v1",

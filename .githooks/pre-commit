@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pre-commit: two guards.
+# pre-commit: asset, worklog and approved trainer-card design guards.
 #
 # 1. Game assets (ROMs, battery saves, save states) are never committed. The
 #    Emerald ROM is copyrighted and operator-supplied.
@@ -48,6 +48,13 @@ mtime() {
     echo "pre-commit: cannot read mtime of $1" >&2
     return 1
 }
+
+# Use the committed guard so staging a weakened guard cannot approve itself.
+if git cat-file -e HEAD:scripts/check-trainer-card-design.py 2>/dev/null; then
+    git show HEAD:scripts/check-trainer-card-design.py | python3 -
+elif [[ -f scripts/check-trainer-card-design.py ]]; then
+    python3 scripts/check-trainer-card-design.py
+fi
 
 worklogs=()
 [[ -f WORKLOG.md ]] && worklogs+=("WORKLOG.md")

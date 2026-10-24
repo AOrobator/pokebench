@@ -112,3 +112,7 @@ Every HTML deliverable (explainer, UI mockup, report, review, gallery or index p
 - **Serve it locally.** `just pages` serves `runs/mockups/` at `http://127.0.0.1:8791/` and exposes `runs/reports/`, `runs/reviews/`, `docs/explainers/` and `docs/experiments/` under it by the same names. Put mockups in `runs/mockups/<slug>/`. A page that exists only in a worktree is copied to `runs/mockups/<slug>/` before linking.
 - **Link it.** Write `[Name](http://127.0.0.1:8791/<path>)` in the reply, one link per page, and check each returns 200 first. Add the `open ~/dev/pokebench/<path>.html` fallback after the links, never instead.
 - **Never use `SendUserFile`, `/mnt/project-files` or `attached_outputs`** for HTML pages, and never claude.ai artifacts or other hosted previews. Markdown or data files may still go through `SendUserFile`.
+
+## Protected trainer-card design
+
+Operator decision 2026-10-24: the October 21 trainer cards are the approved design. Follow `docs/design/trainer-cards/README.md`. Changing their appearance or displayed identity, protected assertions, fixtures or visual baselines requires the operator's explicit approval for that change. Queue cleanup and reviewer suggestions do not grant it. Preserve the experiment tab, arm type badge, trial line, sprites, six slots, bars, tier and milestone state. Run `just trainer-card-check` on viewer presentation changes; do not update baselines to silence a failure. The pre-commit approval guard binds protected staged changes to a new recorded approval.

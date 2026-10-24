@@ -44,6 +44,10 @@ describe("trainer card choices", () => {
 });
 
 describe("trainer card markup", () => {
+  it("retains the approved control palette and deterministic colors for other recorded arms", () => {
+    expect(cardHtml(input({ arm: "control" }), ART, "wide")).toContain("--tyc:#2f6fb0");
+    expect(cardHtml(input({ arm: "test" }), ART, "wide")).toContain("--tyc:hsl(215 45% 36%)");
+  });
   it("draws the wide card: tab, trainer, name and type, line two, bars, six boxes of party", () => {
     const html = cardHtml(input(), ART, "wide");
     expect(html).toContain('data-watch="run-a"'); expect(html).toContain('aria-pressed="true"');

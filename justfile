@@ -14,6 +14,7 @@ setup:
 test:
     pnpm -r test
     cd env && uv run pytest -q
+    just trainer-card-check
 
 # Coverage floor is 90% (project override of the global 95%; see CLAUDE.md).
 coverage:
@@ -227,3 +228,9 @@ run-human: build
 # Operator-approved adaptive Roxanne campaign; check is read-only, run requires frozen clearance.
 roxanne-campaign *args: build
     node scripts/run-roxanne-campaign.mjs {{args}}
+
+# Approved trainer-card visuals and protection checks (headless; art stays outside Git).
+trainer-card-check:
+    pnpm -r build
+    python3 scripts/test_trainer_card_design_guard.py
+    pnpm --filter @pokebench/viewer exec playwright test -c design-tests/playwright.config.mjs

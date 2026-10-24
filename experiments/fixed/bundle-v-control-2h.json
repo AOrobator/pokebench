@@ -93,7 +93,7 @@
    "game-evidence-priority-v1": true,
    "game-said-goals-v1": true,
    "grass-cost-navigation-v1": true,
-   "gym-door-label-v1": false,
+   "gym-door-label-v1": true,
    "gym-heal-warning-v1": true,
    "gym-readiness-readout-v1": true,
    "harness-trust-v1": true,
@@ -224,7 +224,7 @@
    "auto-talk-v2": false,
    "map-wide-triggers-v1": false,
    "drought-battle-heal-hold-v1": false,
-   "trigger-navigation-boundary-v1": false,
+   "trigger-navigation-boundary-v1": true,
    "gym-evidence-v1": false,
    "milestone-instruction-memory-v1": false,
    "birch-intro-pages-v1": false,
@@ -277,7 +277,6 @@
  },
  "switches": [
   "menu-refusal-recovery-v1",
-  "gym-door-label-v1",
   "mart-stock-readout-v1",
   "caught-dex-input-v1",
   "exp-next-level-v1",
@@ -297,7 +296,6 @@
   "auto-talk-v2",
   "map-wide-triggers-v1",
   "drought-battle-heal-hold-v1",
-  "trigger-navigation-boundary-v1",
   "gym-evidence-v1",
   "milestone-instruction-memory-v1",
   "birch-intro-pages-v1",
@@ -364,6 +362,7 @@
   "story-battle-heal-gate-v1"
  ],
  "onInBoth": [
+  "gym-door-label-v1",
   "battle-decision-ready-v1",
   "navigation-truth-v1",
   "surf-gated-exits-v1",
@@ -384,7 +383,8 @@
   "tool-prompt-docs-v1",
   "field-ownership-feedback-v1",
   "move-learn-goal-reminder-v1",
-  "field-move-gates-v1"
+  "field-move-gates-v1",
+  "trigger-navigation-boundary-v1"
  ],
  "phases": [
   {

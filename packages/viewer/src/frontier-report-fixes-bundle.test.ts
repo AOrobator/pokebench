@@ -10,7 +10,7 @@ const SWITCHES = [
   ["current-map-display-name-v1", "semantic-current-map-feedback-v1"],
   ["window-escape-route-v1", "bounded-navigation-v1"],
 ] as const;
-const RECIPES = [["bundle-v-control",113],["bundle-cook-1h",111],["whole-map-cook-1h",111],["whole-map-pair-2h",50],["bundle-v-control-2h",53],["glm53-flash-4h",93]] as const;
+const RECIPES = [["bundle-v-control",109],["bundle-cook-1h",110],["whole-map-cook-1h",110],["whole-map-pair-2h",49],["bundle-v-control-2h",51],["glm53-flash-4h",93]] as const;
 const read = (path: string): string => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
 
 describe("frontier report fixes bundle activation", () => {

@@ -132,7 +132,7 @@ export class Replay {
   }
   readonly recordLoopGuard = (body: LoopNotice): void => { this.own({ type: "loop_guard", ...body, evidence: [...body.evidence] }, this.current.turn); };
   readonly recordNavigationContext = (body: Omit<Extract<EventBody, { type: "navigation_context" }>, "type">): void => { this.own({ type: "navigation_context", ...body }, this.upcoming); };
-  readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, this.upcoming); };
+  readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, body.instruction_goals===undefined?this.upcoming:this.current.turn); };
   readonly recordMilestoneHint = (body: Omit<Extract<EventBody, { type: "milestone_hint" }>, "type">): void => { this.own({ type: "milestone_hint", ...body }, this.upcoming); };
   readonly recordBeliefLedger = (body: Omit<Extract<EventBody, { type: "belief_ledger" }>, "type">): void => { this.own({ type: "belief_ledger", ...body }, this.upcoming); };
   readonly recordLoopBreaker = (body: LoopBreakerBody): void => { this.own({ type: "loop_breaker", ...body }, this.upcoming); };
@@ -155,8 +155,8 @@ const inert = (): Promise<never> => Promise.reject(new Error("probe tools never 
 export function probeTools(features: FeatureSet, recorder: Replay): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
   const context = contextTools(features, recorder, (m) => Promise.resolve(m));
-  const tools = playGameTools(base, features, { read: inert }, recorder,undefined,[],context.training);
-  return { tools: [...tools, ...context.tools], transform: context.transformContext, window: context.window };
+  const tools = playGameTools(base, features, { read: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
+  return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
 }
 const asTool = (t: AgentTool): Tool => ({ name: t.name, description: t.description, parameters: t.parameters });
 
@@ -268,7 +268,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
   const wiring = probeTools(features, replay);
   for (const e of prior) {
-    if (DERIVED.includes(e.type)) continue;
+    if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }
     replay.dispatch(e);
   }

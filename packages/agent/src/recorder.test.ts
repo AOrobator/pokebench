@@ -776,3 +776,10 @@ it("requires campaign measurements on declared readable snapshots, while preserv
  expect(()=>recorder.recordState({...STATE,story_progress:null})).not.toThrow();
  expect(()=>recorder.recordState({...STATE,story_progress:{...old,variables:"00".repeat(512),avatar_flags:1}})).not.toThrow();
 });
+
+it("records model goal transactions on the action turn and context delivery on the upcoming turn",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);await recorder.transformContext([userText("continue")]);
+ recorder.recordLedgerContext({text:"Model review committed",evidence:[],instruction_goals:{call_id:"goal-review",review:{reviewed:[],updates:[]}}});
+ recorder.recordLedgerContext({text:"INSTRUCTION GOALS delivered",evidence:[]});
+ expect(events(log).filter(e=>e.type==="ledger_context").map(e=>({turn:e.turn,text:e.text}))).toEqual([{turn:1,text:"Model review committed"},{turn:2,text:"INSTRUCTION GOALS delivered"}]);
+});

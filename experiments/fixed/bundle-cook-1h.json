@@ -263,7 +263,9 @@
    "leader-loss-immediate-v1": false,
    "battle-action-history-v1": false,
    "leader-preparation-comparison-v1": false,
-   "interface-guidance-v1": false
+   "interface-guidance-v1": false,
+   "instruction-goal-ledger-v1": false,
+   "menu-option-tool-v1": false
   }
  },
  "switches": [
@@ -392,7 +394,9 @@
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
   "interface-guidance-v1",
-  "native-task-goal-retirement-v1"
+  "native-task-goal-retirement-v1",
+  "instruction-goal-ledger-v1",
+  "menu-option-tool-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

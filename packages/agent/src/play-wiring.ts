@@ -1,4 +1,7 @@
 import {withInterfaceGuidance} from "./interface-guidance.js";
+import {TaskGoalCompletion} from "./task-goal-completion.js";
+import {instructionGoalTools,withInstructionGoalReview,type GoalTools} from "./instruction-goal-tools.js";
+import {withMenuOptionTool} from "./menu-option-tool.js";
 import {moveLearnGoalReminder} from "./move-learn-goal-reminder.js";
 import {withMenuItemGuidance} from "./menu-item-guidance.js";
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
@@ -56,11 +59,11 @@ type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock;instructionGoals?:GoalTools}{
  const tools:AgentTool[]=[];
  const memoryRecorder:WiringRecorder={subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
 
- const observedBase=observedInstructions(features,memoryRecorder,base);
+ const observedBase=features["instruction-goal-ledger-v1"]?base:observedInstructions(features,memoryRecorder,base);
  const memory=navigationMemory(features,memoryRecorder,observedBase);
  if(memory!==null)tools.push(memory.tool);
  const dialogue=dialogueLog(features,memoryRecorder);
@@ -77,7 +80,9 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const breaker=fixedPointBreaker(features,memoryRecorder);
  const note=features["fixed-point-breaker-v1"];
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
- return {tools,transformContext:history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
+ const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
+ if(instructionGoals!==null)tools.push(...instructionGoals.tools);
+ return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext:instructionGoals?.transform??history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
@@ -172,18 +177,18 @@ function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder
  if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
  return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record},progressAware);
 }
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock):AgentTool[]{
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock,instructionGoals?:GoalTools):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
  const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
  const arm=features["story-battle-heal-gate-v1"]&&!features["factual-healing-guidance-v1"]?healArm(features,state):undefined;
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const progress=withGymProgress(facts,features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"]});
- return withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]}),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder);
+ return withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]}),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null);
 }
 
 

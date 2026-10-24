@@ -1,0 +1,114 @@
+# Instruction goals and menu option selection
+
+## Authorized outcome
+The operator approved the proposed evidence-grounded model-maintained multi-goal ledger, behind a new switch enabled only in bundle, coordination with stale-goal chat, preserved active runs, and recorded PokéNav failure proof. He additionally requested a menu-option selection tool behind its own switch, also bundle-only. No gameplay launches or inputs to measured runs are authorized.
+
+## Frozen scope
+One implementation milestone: RED → GREEN → offline replay and production delivery → gates → independent cloud review → serialized local landing. New instruction-goals schema/state/context/tool modules and menu-option-tool module; production play-wiring/play-config seams; feature registry/preset/default/config boilerplate; existing ledger_context event and Activity History/raw event consumers; tests/fixtures/explainers. No new route policy, objective catalog, hidden game facts, trainer-card changes, timeline marks or native matcher duplication. Reuse task-goal-completion.ts from stale-goal owner after its landing.
+
+## Design and invariants
+- `instruction-goal-ledger-v1`: delivered whole field dialogue, including unnamed speakers, enters review queue. The playing model interprets it and manages cited goals, parents and active/deferred/blocked/reported-complete/superseded/abandoned states. Native verification stays distinct. Ordinary action tools accept a structured goal_review, with review_goals as a standalone alternative. New delivered dialogue must be accounted for before the next game-changing call; observation/search remain available. Review may explicitly declare dialogue not a request. No goal/action is selected by the harness.
+- Persistent event-sourced ledger is pinned before every model decision and reconstructed from history; completion claims retain evidence and rationale. Unknown facts never certify completion, age/arrival/another active goal do not retire anything, and individual goals retain independent lifecycle.
+- Replace the extracted destination's authoritative goal wording in ON output; full quotes stay history. Archive tools retrieve exact older dialogue and goal records; bounded headers disclose counts.
+- `menu-option-tool-v1`: select_menu_option accepts menu identity and visible option, uses checked ordinary UP/DOWN and A on source-qualified vertical menus; no opening unseen menus, hidden options, wrap guesses, or success claims from a request alone. Stop on changed owner, missing readiness, no cursor movement, interruption or transition. Never select a next menu option automatically.
+- OFF prompt/tools/readout are byte-equivalent. Defaults/control false; only bundle recipes true. Menu and goal switches are independently testable.
+
+## Coordination
+Stale-goal chat owns task-goal-completion.ts/story-destinations.ts/harness-trust.ts/play-wiring.ts and shared switch/config registration until landing. Our modules remain separate; shared integration follows its landing. No shared CPU gate or viewer restart without coordination. All browser proof headless/background only.
+
+## Evidence and checks
+Recorded control 2026-10-24T08-12-35_qwen36-gpu1_0517: seq39430 tutorial dialogue, seq39462 select request, seq39512 BAG, seq39570 PokéNav highlight, seq40378 trainer row. Source pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Offline replay may prove input/readout behavior; no gameplay benefit claim.
+
+- [x] RED tests and commit
+- [x] GREEN implementation with pinned pi model-delivery proof and recorded failure replay
+- [x] OFF and independent switches; atomic invalid-update rejection; stale/missing/wrong-run proof rejection; context compaction/history restore; checked menu input interruption tests
+- [ ] ≥90% coverage, lint, build, tests, vendor; operand deletion/restoration receipts
+- [ ] Explainers, Activity History/raw event/replay proof on isolated viewer
+- [ ] Principles PB1–PB13 and Claude/Grok/GPT review, frozen packet
+- [ ] Coordinated landing and live proof, active run identities preserved
+
+## Session log
+- 2026-10-24: read rules/worklog and feature/tool-prompt/observability/explainer skills. Created isolated app-managed worktree branch codex/instruction-goal-ledger. User approved both independent bundle-only switches. Sent scope/owner messages to stale-goal chat and Claude coordinator; received TaskGoalCompletion interface and shared-path boundaries.
+- RED: two focused suites fail because instruction-goals.ts and menu-option-tool.ts do not exist; receipt /tmp/instruction-goals-red.log. Fixture holds exact event text/state plus per-event hashes and source pin; originals untouched.
+- Initial implementation: focused production-shaped suites pass 40 tests; a temporary schema-export test also passed and was removed after regenerating the tracked event schema. New-module coverage: lines 100%, branches 93.91%, functions 100%, statements 98.72%. This is focused coverage, not the full required gates.
+- Pinned pi HTTP fixture delivers the exact scientist request and goal_review schema, applies the scripted model's cited goal update before ordinary DOWN,A, and retains the ledger in the second request. This uses a loopback scripted model and simulated post-confirmation state, not live inference or historical PokéNav success.
+- Durable bookkeeping lives in optional ledger_context.instruction_goals transactions; existing history/raw event paths carry it, no new timeline marks. Native task completion uses the stale-goal owner's structural interface; import integration awaits safe dependency merge.
+- Stale-goal owner approved isolated dependency merge of prepared head 6f6f69aa545a447332a4705d946285517097cc91. Its final gates/review/landing remain pending. We must re-sync its final landed head before our review.
+- Found decision-probe's derived-event filter would erase goal transactions. Its existing projection seam now retains those transactions only under our switch, and its tool schema includes inline review fields. No probes launched.
+- Shared CPU slots are externally queued; no full gate/build/viewer restart begun. Small focused tests and no-emit type checks remain local preparation.
+- Prepared GREEN commit cd69dc462 follows RED adb1ba126. Before dependency integration, a no-emit typecheck found two test-only type issues (optional walking field and event-union narrowing); both corrected without changing runtime behavior.
+- Merged prepared stale-goal dependency 6f6f69aa545a447332a4705d946285517097cc91 into this isolated branch. Kept all of its native matchers/production behavior and main fixes intact; resolved additive registration/context seams. contextTools now passes a real TaskGoalCompletion into InstructionGoals; no copied native rules.
+- Both new switches are false in default/control base and appended to bundle switches in the same five canonical recipes authorized for the stale-goal treatment. Historical pinned recipes and active loop configs are untouched.
+- Shared native-proof factory test now passes against the stale-goal owner's exact Norman fixture: first-gym goal transitions to native_verified after delivered state/result34806/34807, while source page3's four-badge goal remains deferred.
+- Operand deletion/restoration receipts in runs/instruction-goal-proof: context-wiring, checked-menu-owner, native-completion, durable-review-replay each failed after deletion and passed restored. No failed receipt overwritten. Registration/prompt subset passed164 tests. Agent no-emit typecheck passed after fixture-only fixes.
+- Appended two switches; adjusted only literal registry positions/counts in older tests and disabled both in the shared legacy-feature test owner. Protected trainer-card assertions/baselines untouched.
+
+## Problem Statement
+The recorded 0517 model acknowledged “Please select the POKéNAV” while repeatedly choosing an escape plan. Place extraction still foregrounded an obsolete Norman instruction. Goals need explicit model-owned interpretation and lifecycle, and menu execution needs a separately switchable visible-option tool.
+
+## Skills Loaded
+feature-switch, tool-prompt-sync, agent-observability, feature-explainer, viewer-e2e, talk-to-claude, execute-worklog, close-the-loop, canonical multi-model-review. Earlier forensics/game-state work was read-only; current implementation is explicitly authorized.
+
+## Architecture
+Existing contextTools/playGameTools factories share one InstructionGoals instance. Dialogue/source and review transactions reconstruct from existing typed events; the new optional ledger_context field is schema-validated. Recorded observation IDs are supplied for completion citations. The shared native TaskGoalCompletion is injected, never duplicated. Menu selection drives ordinary checked input. Decision-probe projection preserves actual review transactions and exposes the same schemas without executing tools.
+
+## Invariants
+- INV-1 OFF restores original prompt/tools/readout/input; new flags default/control false. Exact OFF factory/context tests plus unchanged legacy baselines.
+- INV-2 model chooses goals and menu choices; no catalog/route/new matcher. Named/unnamed exact quotes and source attribution preserved.
+- INV-3 completion reports need newer delivered observation evidence; verified native completion uses the shared owner and remains independently labelled. Mixed future instructions stay unfinished.
+- INV-4 invalid reviews commit nothing; persistence failures commit neither memory nor game input. Review transactions precede input, survive compaction and history reconstruction.
+- INV-5 menu inputs revalidate identity/readiness/cursor before each press, verify adjacent movement, A once and stop. Interrupted states never receive a confirmation.
+- INV-6 active runs, original recordings, frozen checkouts, live controllers and GPU routes untouched. All browser proof headless, no focus changes.
+
+## Security Review
+Boundary JSON uses TypeBox; unknown/foreign evidence rejected. No subprocess shell interpolation in production, new dependency, remote service, save write, RAM write or story catalog. New model bookkeeping is untrusted interpretation, not grading evidence. Durable storage errors propagate and stop input rather than masquerading as invalid model requests.
+
+## Milestones
+M1 is the single approved implementation milestone. RED adb1ba126, prepared GREEN cd69dc462, dependency merge 3b580f47e. Focused runtime/native proof passes; full gates/review/landing remain unchecked above.
+
+## Closing the Loop
+- Source archive reparse receipts in runs/instruction-goal-proof/recorded-ram.json verify original hashes and exact BAG index2 / trainer-row index4. Original source files untouched.
+- Headless explainer screenshots at1280/1440/375 inspected for both pages; document widths equal viewport widths, no console errors. Mobile diagrams scroll within their cards. Card click-through and Activity History/raw event checks await built isolated viewer.
+- Four performed guard mutation receipts failed when deleted and passed restored; snapshots remain under runs/instruction-goal-proof.
+- Added a fifth correctness check: storage failure before transaction append leaves the ledger and game unchanged. Completion observation IDs now appear in decision headers.
+- Latest focused coverage:100% lines,92.91% branches,100% functions; full gates still pending CPU admission. Shared gate thresholds/exclusions unchanged.
+
+## Surprises
+The existing probe projection drops derived ledger_context events; transactions must be retained while display-only context is regenerated. The existing place-trust prompt also incorrectly describes the extracted goal as the latest instruction; the new switch replaces that sentence and disables its destination-away supervisor without affecting OFF.
+
+## Multi-Model Review Log
+Not started. Must sync final landed dependency/main and pass gates before freezing.
+
+## Boy Scout Log
+None. Existing positional registry tests shift by exactly two new switches; no unrelated assertions removed.
+
+## Archive Milestone
+- [ ] ASK USER: archive this worklog after completion
+
+## Authorization provenance
+Goal ledger+bundle authorization: user message 00000000-0000-4000-8000-17d58bbbe5bf. Menu tool:00000000-0000-4000-8000-c1d4f512d5e5. Separate menu switch+bundle ON:00000000-0000-4000-8000-24dc9f0e7cc0. Original human messages remain visible in chat 00000000-0000-4000-8000-1297530e0d96.
+- Prepared commit67e2b4681 is clean and READY was sent to coordinator for one MAX480s full gate admission; no idle CPU hold requested. Later isolated proof work includes durability-error rollback and explainer/reference checks, to be committed before the actual gate head is admitted.
+- Closed integration gaps before full qualification: menu selection now captures the existing dialogue-aware checked-press wrapper, so dialogue after confirmation is durably recorded; its focused factory test sees ordinary A then the existing automatic B and exact scientist text. Current interface is shown separately from the last historical dialogue. Archive listing is paginated (50 default,100 maximum); pending headers show at most16 IDs and counts, without deleting quotes.
+- Ledger reviews reserve their call ID during synchronous recorder broadcast, commit memory only after durable append succeeds, and allow the same call ID to retry after storage failure. No new persistence service was added. Native proof can upgrade a provisional completion later.
+- Legacy objective-tracking-v1 is rejected alongside the new ledger: its single native-catalog owner rewrites model-selected titles and would create competing goal authorities. Canonical five bundle recipes already keep it OFF. This is configuration validation, not a goal-selection rule.
+- Manual correctness review tightened native completion ownership: native_source_completion:true is an explicit model-selected completion condition, not inferred from merely citing a page. Without that binding, an arbitrary model goal stays active even if its cited native task completes. This verifies the chosen source-task condition, not the model's title/interpretation; unknown tasks remain provisional.
+- Each repeated delivered instruction now gets its own episode/result ID and issuance state, with repeated_of pointing to the prior occurrence. A reissued instruction after a completed task cannot inherit the original unfinished-at-issuance native proof. Full quotes and timestamps remain exact.
+- Consumer truthfulness: goal transactions are “Instruction goal review recorded,” while actual decision context remains “Instruction ledger delivered.” Activity History/raw inspection distinguish them. The timeline skips transaction-only ledger events; existing delivery marks remain unchanged and no new marks/lanes/categories were introduced. Added the existing timeline/trace owners only to preserve these pre-existing recording-vs-delivery and closed-timeline contracts.
+- Recorded menu executor proof now covers both exact native states: BAG index2 → DOWN,A; trainer-row overshoot index4 → UP,A using the captured POKéNAV index3 snapshot. Post-A transitions are explicitly simulated; no gameplay outcome is claimed.
+- Prepared isolated Python environment from the offline uv cache, local submodule clone at the pinned vendor SHA, and a private copy of the existing mGBA binding. No rebuild or mutation of shared Python environments/active executors. Future trainer-card check will use canonical art read-only and agent-owned headless Chrome.
+- Corrected transaction chronology in the existing recorder/probe projection: review transactions belong to the current action turn; only delivered context belongs to the upcoming decision turn. Historical/OFF events retain the original turn rule. A real RunRecorder test checks the exact [1,2] sequence.
+- Ten additional operand-level deletion/restoration receipts all failed deleted and passed restored: requested phase and ID independently, checked identity/cursor independently, native opt-in, current-source binding, evidence membership, atomic review writes, durable-before-memory order and parent cycles. Receipts are retained under runs/instruction-goal-proof/operand-*; no prior receipts were overwritten.
+- Scoped producer/native/menu suite passes90 tests, including real recorder transaction chronology. Latest module checks include separate phase/ID and identity/cursor operands, exact archived POKéNAV state39570, and a synthetic same-room renewed request to isolate already-complete issuance from map mismatch.
+- Candidate explainer copies return HTTP200 at http://127.0.0.1:8791/instruction-goals-candidate/{instruction-goal-ledger-v1,menu-option-tool-v1}.html. These are prepared branch documents, not evidence of canonical feature activation. No focus was taken.
+
+- Synced released main ab9107a (player-elevation readout) before qualification. Preserved its source/readout behavior and appended native retirement, instruction ledger and menu selection after the landed registry entries. Historical helper fixtures explicitly disable all prepared treatments, retaining their prior output indices; direct registry assertions account for the three appended switches. Two old synthetic ALL_ON dependency fixtures now explicitly leave instruction goals OFF because objective tracking remains their authority. Focused new/registry checks pass78+42 tests; a broad name-filtered discovery was stopped rather than treating it as a full gate. Native owner confirms matcher/API byte-identical through71bc5c8ac. Full gates, final dependency sync, browser rehearsal and frozen review still await coordination.
+- Isolated viewer subset cannot import workspace agent exports until the normal build creates private dist files; no tests executed in that attempted subset. Retain this as pending build-first verification during the admitted CPU slot, with no ad hoc shared-dist copies or rebuild.
+- Added final generated-arm coverage for both independent feature bits, recorded metadata and actual model tool lists across all five current recipes; pinned control-base equality and the exact set of activated recipe files are asserted. Historical definitions remain unmodified. Viewer execution awaits build-first gates.
+- Synced actual released main ea8c54836, preserving the approved refusal feature in the two long-run bundle recipes and its absolute-position registry tests. Our three prepared feature switches append after that released recipe prefix; both new instruction/menu flags still default/control OFF and bundle ON. No test/build/browser slot started.
+- Synced actual party-menu final main2114da000. Preserved its observation/source code, server feature/default and approved two long-run recipe values. The three prepared switches append after the released party entry. Added observation/guidance counts compose independently; incoming party registration assertion now accounts for three appended registry entries. Small switch/recipe checks run only; full gates and browser remain awaiting explicit admission and final native dependency.
+- Human explicitly resumed completion on this chat: check repair, finish gates/review/landing, bundle-only bits and active-run preservation. Current released main2594c77ab (drought, trigger boundary and gym labels) integrated as source preparation; combined serial-test repair remains in R2, not yet landed/qualified. Incoming recipe values and shared source owners preserved; our three prepared bits append after the current released registry. Await explicit CPU handoff and final native dependency before freezing review. No active-run or inference actions.
+- Source-prep review reproduced an old coherence test combining raw ALL_ON with objective tracking and the new ledger; it fails at the intended single-authority validation. Its historical-preset fixture now explicitly leaves the new instruction ledger OFF, as the two previous historical fixtures do. No production guard changed. Coordinator clarified2594c77ab remains held by its landing owner; our sync is source preparation only, not a qualification or final-release claim.
+- Historical coherence fixture RED reproduced at single-authority validation, then GREEN1test after explicit ledger OFF; no retries, production guard changes or suppression. Shared full gates/review are still pending admission and dependency.
+- Human reiterated completion/handoff ownership. Verified recovery qualification passed/released16:33:49 EDT and its separate MAX240 landing was admitted, not yet final. Requested terminal recovery pin directly, and concrete native-dependency -> goal/menu qualification sequence from coordinator. Source-synced actual gym evidence maina1d1fa341 (docs-only over2594); no main/runtime/active-run inputs or heavy checks. Single canonical feature-config migration is owned by NPC chat: future current.json will own effective matrix, self-contained historical definitions retained, three old recipes archived byte-preserved. Will migrate our own unlanded bits after that owner lands; no duplicate loader/config migration.
+- Test-quality source review pinned the production header/unfinished defaults (12/4/128) beside the existing injected2-goal overflow test. The refuse contract still exercises a tiny state; no production-size setup or new runtime behavior. Final execution stays queued under the admitted gate owner.
+- Recovery FINAL RELEASE verified directly from owner/coordinator at16:56:16 EDT: source4293758025, final evidence main65fc7dd6b2c51bf347b5585bf2cca9ef04f54a51. Fresh normal gates/selected reviews/canonicalbuild+test/ONErefresh passed;13protectedidentities/6hashes preserved. Recovery reports unrelated /api/models502, so this is not a general viewer-health claim. Integrated final65fc source, preserving its completion-neutral live export and our context wiring. No heavy job from this release alone; interface reserved first, whiteout next, then native -> goal/menu as coordinator confirmed. Native owner READY5fa6eb381 on65fc confirms matcher/API byte-identical to6f6; final native qualification/landing still pending.

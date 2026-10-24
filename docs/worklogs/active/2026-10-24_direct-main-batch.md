@@ -11,7 +11,7 @@ Ten pinned source candidates in runs/reviews/direct-main-batch-20261024/manifest
 - [x] GUIDANCE: codex/interface-guidance at aa552c794c9636628e8f9a80c429e0b7fac819f2
 - [x] EXITS: codex/actionable-exits at 7eb7f524348fd34b374ec47489dda5de5a2cbb8c
 - [x] NATIVEGOAL: codex/stale-goal-completion-v1 at 5fa6eb381eb5688ce2a378c1b3428c8debb4de8f
-- [ ] GOALMENU: codex/instruction-goal-ledger at 4d3c5041302693bf5a654f6b0a7ce28ceb9c0c61
+- [x] GOALMENU: codex/instruction-goal-ledger at 4d3c5041302693bf5a654f6b0a7ce28ceb9c0c61
 - [ ] BAGS: codex/bag-pocket-bugfixes at f62f90f780c0a47dce8c11f23327174eccfe4cba
 - [ ] CITATION: codex/citation-evidence at 855f9e611c514713cb6805240a26fc032a9cf3af
 - [ ] GLM: codex/glm-reply-cap-feedback at 22747b80529d4bb4c95370fb9bc6020985fc8713
@@ -36,3 +36,5 @@ Deferred until all ten merges, per direct instruction. Then full normal test/lin
 - GUIDANCE landed12e65038a (2/10). EXITS conflicts resolved by append-only unions/defaultOFF/runtime+type exclusions, exact server-OFF suffix/array updates and observation count102. Preserved absolute incumbent party index; all earlier flags remain registered. No tests/lint/build/proofs.
 
 - EXITS landeddc9c5b0e8 (3/10). Native-goal union preserves interface-guidance outer wrapper plus nativeTasks harness-trust option, exact runtime/type exclusions and defaultOFF/legacy contexts; observation count103. Shared matcher included once before goal/menu. No checks run.
+
+- Native landed1e91b97b7 (4/10). Goal/menu source merges two independent defaultOFF/bundleON bits, deduplicates native matcher/registration, retains nativeTasks and interface wrapper, disables old supervisor authority only when ledgerON, keeps goal review outer wrapper. Feature guidancetotal93; observation103. New concrete pure-observe integration patch delegated to source owner, applies only after all ten. No checks.

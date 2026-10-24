@@ -270,6 +270,8 @@ export const SWITCHABLE_FEATURES = [
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
 
+  "instruction-goal-ledger-v1",
+  "menu-option-tool-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -660,6 +662,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("active-warp-exits-v1", "observation", "ACTIVE WARP EXITS", null, "Default off; bundle only. Checks the current entrance tile before advertising a warp record as an exit. Live map tiles govern the current map; arrival summaries use qualified ROM terrain and omit dormant entrances. Unknown or script-owned activation is not guessed inactive. No story conditions or hidden destination names are added. Off: every static warp remains listed as before."),
   on("available-exits-presentation-v1", "observation", "AVAILABLE EXITS", "exit-reachability-v1", "Default off; bundle only. Separates confirmed blocked exits into one unavailable-facts line and removes their duplicated warp, interaction and connection choices and approach instructions. Unknown reachability stays listed under the existing caveat. Recorded state facts and model-selected navigation remain intact. Off: blocked exits stay in the original lists with their existing warnings."),
   on("native-task-goal-retirement-v1", "observation", "NATIVE TASK GOAL RETIREMENT", null, "Default off; bundle only. Retires a source-verified active instruction when native task evidence was known unfinished at issuance and now proves completion. Reuses audited task rules; preserves historical and future dialogue. Unknown wording or evidence stays unchanged. Off: existing story goal and away guidance are unchanged."),
+  on("instruction-goal-ledger-v1", "guidance", "INSTRUCTION GOALS", "dialogue-auto-advance-v1", "Default off. Pins delivered dialogue and a cited, model-maintained multi-goal ledger before decisions. New dialogue is reviewed before game-changing input. Completion claims remain distinct from native proof. Off: no goal review bookkeeping, tools, context or action gate."),
+  on("menu-option-tool-v1", "guidance", "SELECT MENU OPTION", "active-ui-ownership-v1", "Default off. Adds select_menu_option for visible vertical START and field menus, using checked UP/DOWN and one A press. The model chooses the option; changed menus stop execution. Off: menu selection uses the existing press tool."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -680,6 +684,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
   }),
+  ...(features["instruction-goal-ledger-v1"]&&features["objective-tracking-v1"]?["instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"]:[]),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
   ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : []),
   ...(features["deterministic-exploration-v1"] && !semanticNavigation(features) ? ["deterministic-exploration-v1 needs semantic-navigation-v1 or semantic-navigation-v2"] : [])];
@@ -998,6 +1003,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("available-exits-presentation-v1"),
     ...when("native-task-goal-retirement-v1"),
 
+    ...when("instruction-goal-ledger-v1"),
+    ...when("menu-option-tool-v1"),
   ];
 }
 
@@ -1008,5 +1015,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["native-task-goal-retirement-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

@@ -272,7 +272,9 @@
    "whiteout-outcomes-v2": false,
    "interface-guidance-v1": false,
    "active-warp-exits-v1": false,
-   "available-exits-presentation-v1": false
+   "available-exits-presentation-v1": false,
+   "instruction-goal-ledger-v1": false,
+   "menu-option-tool-v1": false
   }
  },
  "switches": [
@@ -406,7 +408,9 @@
   "interface-guidance-v1",
   "active-warp-exits-v1",
   "available-exits-presentation-v1",
-  "native-task-goal-retirement-v1"
+  "native-task-goal-retirement-v1",
+  "instruction-goal-ledger-v1",
+  "menu-option-tool-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

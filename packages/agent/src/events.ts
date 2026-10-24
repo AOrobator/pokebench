@@ -1,3 +1,4 @@
+import {GoalReviewSchema} from "./instruction-goal-schema.js";
 import {StridePlanSchema} from "./stride.js";
 import { Type, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
@@ -151,7 +152,7 @@ const NavigationContext = event("navigation_context", {text:Type.String(),eviden
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
 const MemoryCompletion = Type.Object({name:Type.String(),state_event:NonNegativeInt,result_event:NonNegativeInt},closed);
 const MemoryDecision = Type.Object({result_event:NonNegativeInt,reason:Type.Enum(["no_chapter","current_chapter","unknown","unresolved","completed"]),rule:Type.Union([Type.String(),Type.Null()])},closed);
-const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true}),retention:Type.Optional(Type.Object({chapter:Type.Union([MemoryCompletion,Type.Null()]),archive_count:NonNegativeInt,kept:Type.Array(MemoryDecision),retired:Type.Array(MemoryDecision),proofs:Type.Array(MemoryCompletion)},closed))});
+const LedgerContext = event("ledger_context", {instruction_goals:Type.Optional(Type.Object({call_id:Type.String({minLength:1}),review:GoalReviewSchema},closed)),text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true}),retention:Type.Optional(Type.Object({chapter:Type.Union([MemoryCompletion,Type.Null()]),archive_count:NonNegativeInt,kept:Type.Array(MemoryDecision),retired:Type.Array(MemoryDecision),proofs:Type.Array(MemoryCompletion)},closed))});
 // disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
 const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 

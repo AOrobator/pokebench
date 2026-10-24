@@ -79,10 +79,10 @@ it("qualifies only the first-gym page, preserving the four-badge future request"
  expect([...memory.tasks(wrongAttribution).keys()]).toEqual([]);
 });
 it("production factory delivers the new header with identical tools and OFF bytes",async()=>{
- async function deliver(on:boolean|undefined){
+ async function deliver(on:boolean|undefined,consumer:"harness-trust-v1"|"story-destinations-v1"){
   const subs:((e:RunEvent)=>void)[]=[];
   const observe:AgentTool={name:"observe",label:"observe",description:"recorded observation",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Location: ROUTE116"}],details:{state:current}})};
-  const f={...featuresOf(["harness-trust-v1","stale-story-goal-v1","stale-story-goal-v2","input-cuts-v1"]),...(on===undefined?{}:{[ID]:on})};
+  const f={...featuresOf([consumer,"stale-story-goal-v1","stale-story-goal-v2","input-cuts-v1"]),...(on===undefined?{}:{[ID]:on})};
   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>subs.push(fn),storyGoalAway:()=>undefined,destinationCitation:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1})} as unknown as Parameters<typeof playGameTools>[3];
   const tools=playGameTools([observe],f,{read:()=>Promise.resolve(current),places:()=>Promise.resolve(places)},recorder);
   for(const e of issue)for(const sub of subs)sub(e);
@@ -90,12 +90,14 @@ it("production factory delivers the new header with identical tools and OFF byte
   const r=await tool.execute("next",{});
   return {text:r.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"),tools:tools.map(t=>({name:t.name,description:t.description,parameters:t.parameters}))};
  }
- const off=await deliver(false),omitted=await deliver(undefined),on=await deliver(true);
- expect(off).toEqual(omitted);
- expect(off.text).toContain(`Story goal: "${quote}"`);
- expect(on.text).not.toContain(`Story goal: "${quote}"`);
- expect(on.tools).toEqual(off.tools);
- expect(on.text).toContain("Location: ROUTE116");
+ for(const consumer of ["harness-trust-v1","story-destinations-v1"] as const){
+  const off=await deliver(false,consumer),omitted=await deliver(undefined,consumer),on=await deliver(true,consumer);
+  expect(off,consumer).toEqual(omitted);
+  expect(off.text,consumer).toContain(quote);
+  expect(on.text,consumer).not.toContain(quote);
+  expect(on.tools,consumer).toEqual(off.tools);
+  expect(on.text,consumer).toContain("Location: ROUTE116");
+ }
 });
 it("defaults OFF and enables only bundle arms",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});

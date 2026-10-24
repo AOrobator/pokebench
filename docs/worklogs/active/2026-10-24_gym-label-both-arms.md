@@ -20,7 +20,7 @@ No new input, network, data access or persistence owner; JSON recipe activation 
 ## Milestones
 **M1 — Activation**
 - [x] RED production recipe test: both approved recipe activations fail before config change; omitted-default test corrected to include required flags.
-- [x] GREEN recipe amendment; focused agent 47 PASS, viewer affected batch 18 PASS; build and vendor checks PASS. Full gates pending.
+- [x] GREEN recipe amendment; focused agent 47 PASS, viewer affected batch 19 PASS; build and vendor checks PASS. Full gates pending.
 - [ ] Gates: test, lint, build, coverage >=90%, vendor
 - [ ] Frozen cloud review (Claude/Grok/fresh GPT)
 - [ ] Landing board, main test, coordinated viewer restart and receipts
@@ -45,6 +45,8 @@ None.
 
 - RED commit 91cdc1b55. Production recipe failures captured in /tmp/gym-label-red2.log; default check corrected to use the valid legacy preset shape (features omitted entirely).
 
-- GREEN: production normalized arm/server tests 3 PASS; affected viewer tests 18 PASS. Exact JSON structural comparison against ebed5a7f3 proves only intended gym/dependency base values, factor membership and onInBoth membership changed. Existing tests updated for authorized both-arm behavior and exact shifted factor indices. Initial full agent pass 4 failures, all expected changed recipe assertions (4224 passed); corrected.
+- GREEN: production normalized arm/server tests 3 PASS; affected viewer tests 19 PASS. Exact JSON structural comparison against ebed5a7f3 proves only intended gym/dependency base values, factor membership and onInBoth membership changed. Existing tests updated for authorized both-arm behavior and exact shifted factor indices. Initial full agent pass 4 failures, all expected changed recipe assertions (4224 passed); corrected.
 
 - Sync current main 42edb3f22 (independent trigger-boundary promotion) before review. Keep all incoming production recipes/tests; resolve only overlapping exact index expectations and gym=true assertion. Full prior pass: agent4228 PASS; viewer1830 PASS, two remaining shifted frontier index checks now corrected. Coverage failed unchanged live-human timeout/secondary leaked call and serial-comparison child stdout under concurrent load; no test suppression or threshold change. Focused eslint on gym test PASS after prior concurrent edit lint failure.
+
+- Integrated coverage: agent all4233 PASS and all floors PASS; viewer1839 PASS/1 FAIL solely incoming battle-history factor positions (our removed factors shift3/1); corrected those exact indices. Full rerun required after correction.

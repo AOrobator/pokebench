@@ -260,6 +260,7 @@ export const SWITCHABLE_FEATURES = [
   "leader-loss-immediate-v1",
   "battle-action-history-v1",
   "leader-preparation-comparison-v1",
+  "refusal-ledger-v1",
   "whiteout-outcomes-v2",
 
 ] as const;
@@ -643,6 +644,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("leader-loss-immediate-v1", "observation", "IMMEDIATE LEADER LOSS", "leader-loss-comparison-v1", "Default off; bundle only. Delivers the last verified leader loss comparison before the next post-loss decision, including outside the gym. Off: existing battle and training context is unchanged."),
   on("battle-action-history-v1", "observation", "OBSERVED BATTLE ACTIONS", null, "Default off; bundle only. Retains delivered player and foe move pages beside measured net HP changes for bounded observation intervals; damage attribution stays unknown. Off: existing battle and training context is unchanged."),
   on("leader-preparation-comparison-v1", "observation", "PREPARATION SINCE LAST ATTEMPT", "leader-loss-comparison-v1", "Default off; bundle only. Compares native party and bag evidence with the latest completed leader attempt, with unknowns for incomplete evidence and no recommendations. Off: existing battle and training context is unchanged."),
+  on("refusal-ledger-v1", "guidance", "NAVIGATION REFUSAL HISTORY", "disproved-beliefs-v1", "Default off. Extends the belief ledger with whole recorded navigate_to and navigate_to_target route refusal lines, target, attempts and evidence references. Repeated matching reasons count together. Current observations take precedence; history does not prohibit retries or choose actions. Clears on map or story change, reaching the tile, semantic activation, or a new result with another reason. Off: existing disproved-beliefs ledger and model context unchanged."),
   on("whiteout-outcomes-v2", "observation", "NATIVE WHITEOUT OUTCOMES", null, "Default off; applicable to both arms. Records a lost or drawn battle as a whiteout after an observed native whiteout callback or fresh receipt, or after displacement, exact money halving and the same identified party all fainted then fully healed. Same-map respawns count. Healing, money changes and map changes alone do not count. Off: previous loss-plus-map-change whiteout inference and recap bytes unchanged."),
 ];
 
@@ -967,6 +969,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("leader-loss-immediate-v1"),
     ...when("battle-action-history-v1"),
     ...when("leader-preparation-comparison-v1"),
+    ...when("refusal-ledger-v1"),
     ...when("whiteout-outcomes-v2"),
 
   ];
@@ -979,5 +982,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

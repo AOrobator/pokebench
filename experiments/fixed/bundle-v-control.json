@@ -277,7 +277,8 @@
    "menu-option-tool-v1": false,
    "bag-pocket-truth-v1": true,
    "bag-press-feedback-v1": true,
-   "bag-ineffective-loop-v1": true
+   "bag-ineffective-loop-v1": true,
+   "citation-evidence-v1": false
   }
  },
  "switches": [
@@ -413,7 +414,8 @@
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
   "instruction-goal-ledger-v1",
-  "menu-option-tool-v1"
+  "menu-option-tool-v1",
+  "citation-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

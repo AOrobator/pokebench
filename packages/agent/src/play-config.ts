@@ -150,6 +150,7 @@ const WHITEOUT_HEALED = ", with your whole party healed";
 // trainer-sight-check-v1: trainer_see.c CheckTrainer, in the player's terms; names no trainer, place or route.
 export const TRAINER_SIGHT_SECTION = "Trainer sight: a trainer you have not beaten battles you as soon as you step into its line of sight. Before navigate_to walks, it checks the route against every such trainer on this map; when one can see a tile of the route, it does not walk and says which trainer can see which tile. To walk that route anyway, call navigate_to again with confirm_trainer_sight: true.";
 // cited-destination-v1: navigate_to's required because, in one rule.
+export const CITATION_EVIDENCE_SECTION = "navigate_to’s because is an object: because.quote must contain only the exact words copied from a game observation that make this destination the place to go, with no added speaker name or explanation. Put your own explanation in optional because.rationale. Line breaks, case and curly quotes do not affect matching. The result checks the quotation only; it does not verify speaker identity, rationale or destination. Navigation still runs whether the quotation matches or not.";
 export const CITED_DESTINATION_SECTION = "navigate_to's because: quote, word for word, the line the game showed you that makes the destination the place to go. When nothing the game has shown you has those words, the result says so; the walk still runs.";
 
 export const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
@@ -250,7 +251,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && semanticNavigation(features) && features["static-npc-template-approach-v1"]) prompt += `\n\n${STATIC_NPC_APPROACH_SENTENCE}`;
   if (show("overworld") && semanticNavigation(features) && features["npc-approach-feedback-v1"]) prompt += `\n\n${NPC_TEMPLATE_APPROACH_SENTENCE}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
-  if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
+  if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${features["citation-evidence-v1"] ? CITATION_EVIDENCE_SECTION : CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
   if (show("overworld") && features["trainer-sight-check-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${TRAINER_SIGHT_SECTION}`;
   if (features["tool-prompt-docs-v1"]) {

@@ -1761,4 +1761,14 @@ it.each(["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+it("links citation evidence to its exact tracked explainer without inventing historical activation",()=>{
+ const id="citation-evidence-v1";
+ for(const enabled of [true,false]) {
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("because.quote");
 });

@@ -4,6 +4,7 @@
 // walk runs either way. Every check is recorded.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type,type TObject} from "typebox";
+import {Value} from "typebox/value";
 import type {RunEvent} from "./events.js";
 
 export type CitationVerdict="found"|"not_found"|"too_short";
@@ -15,7 +16,7 @@ export interface CitationRecorder {
  subscribe(listener:(event:RunEvent)=>void):void;
  destinationCitation?(facts:DestinationCitationFacts,text:string|null):void;
 }
-export interface CitationOptions {readonly fullMap:boolean;readonly exitReach:boolean;readonly silenceMiss?:boolean;readonly factualMiss?:boolean}
+export interface CitationOptions {readonly fullMap:boolean;readonly exitReach:boolean;readonly silenceMiss?:boolean;readonly factualMiss?:boolean;readonly structuredEvidence?:boolean}
 
 // Fewer words than this is a name, not a quote of a line.
 export const MIN_QUOTE_WORDS=2;
@@ -65,6 +66,16 @@ export function citationText(verdict:CitationVerdict,because:string):string|null
  return `Because: "${because}" is not in anything the game has shown you this run (results, readouts and dialogue). navigate_to walked anyway; nothing the game showed you supports this destination as you quoted it.`;
 }
 
+const StructuredBecause=Type.Object({
+ quote:Type.String({minLength:1,description:"Only the exact words copied from a game observation that make this destination the place to go. Do not add a speaker name or explanation. Line breaks, case and curly quotes are ignored."}),
+ rationale:Type.Optional(Type.String({description:"Optional explanation in your own words. This is not checked or treated as observed evidence."})),
+},{additionalProperties:false});
+function evidenceText(verdict:CitationVerdict,turn:number|null):string {
+ if(verdict==="found")return `Destination citation: quotation found in observations from turn ${String(turn)}. This checks the quoted words only; speaker identity, rationale and destination are not verified.`;
+ if(verdict==="too_short")return "Destination citation: because.quote is too short to check; copy at least two words from a game observation. Navigation still runs; speaker identity, rationale and destination are not verified.";
+ return "Destination citation: because.quote was not found in the game observations shown this run. Copy only the observed words into because.quote; put your own explanation in because.rationale. Navigation still runs; speaker identity, rationale and destination are not verified.";
+}
+
 interface Goal {readonly x:number;readonly y:number;readonly map_id:readonly [number,number]}
 function isGoal(value:unknown):value is Goal&{readonly because?:unknown} {
  if(typeof value!=="object"||value===null)return false;
@@ -80,12 +91,15 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
  return tools.map(tool=>{
   if(tool.name!=="navigate_to")return tool;
   const base=tool.parameters as TObject;
-  const parameters=Type.Object({...base.properties,because:Type.String({minLength:1,description:becauseDescription(options)})},{additionalProperties:false});
+  const parameters=Type.Object({...base.properties,because:options.structuredEvidence===true?Type.Object(StructuredBecause.properties,{additionalProperties:false,description:becauseDescription(options)+" Put only copied evidence in quote; rationale is optional and unverified."}):Type.String({minLength:1,description:becauseDescription(options)})},{additionalProperties:false});
   const execute=async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3]):Promise<AgentToolResult<unknown>>=>{
-   if(!isGoal(params)||typeof params.because!=="string")return tool.execute(id,params,signal,update);
-   const {because,...goal}=params;
+   if(!isGoal(params))return tool.execute(id,params,signal,update);
+   const {because:provided,...goal}=params;
+   if(options.structuredEvidence===true&&!Value.Check(StructuredBecause,provided))throw new Error("navigate_to requires because: {quote: string, rationale?: string}. Copy the game’s exact words into quote and put your explanation in rationale. No navigation was attempted.");
+   const because=options.structuredEvidence===true&&Value.Check(StructuredBecause,provided)?provided.quote:provided;
+   if(typeof because!=="string")return tool.execute(id,params,signal,update);
    const {verdict,turn}=citations.check(because);
-   const line=options.factualMiss===true&&verdict==="not_found"?"Destination citation: the supplied because text was not found in the game observations shown this run.":options.silenceMiss===true&&verdict==="not_found"?null:citationText(verdict,because);
+   const line=options.structuredEvidence===true?evidenceText(verdict,turn):options.factualMiss===true&&verdict==="not_found"?"Destination citation: the supplied because text was not found in the game observations shown this run.":options.silenceMiss===true&&verdict==="not_found"?null:citationText(verdict,because);
    if(line!==null)citations.echoed(line);
    record({tool_call_id:id,because,verdict,found_turn:turn,x:goal.x,y:goal.y,map_id:[goal.map_id[0],goal.map_id[1]]},line);
    const result=await tool.execute(id,goal,signal,update);
@@ -96,6 +110,6 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
    if(part?.type==="text")content[index]={...part,text:`${line}\n${part.text}`};else content.unshift({type:"text",text:line});
    return {...result,content};
   };
-  return {...tool,description:`${tool.description} Give because: the line the game showed you, quoted, that makes this the place to go.`,parameters,execute} as AgentTool;
+  return {...tool,description:options.structuredEvidence===true?`${tool.description} Give because: {quote, rationale?}; quote contains only exact observed words. Optional rationale is your unverified explanation. Matching verifies words only, not speaker identity or destination.`:`${tool.description} Give because: the line the game showed you, quoted, that makes this the place to go.`,parameters,execute} as AgentTool;
  });
 }

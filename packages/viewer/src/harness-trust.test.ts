@@ -46,3 +46,22 @@ describe("harness-trust-v1 and cited-destination-v1 in the viewer", () => {
     expect(view(log).errors).toEqual([]);
   });
 });
+
+it("structured citation evidence replays through Activity History, trace and raw inspection without verifying rationale",()=>{
+ const quote="You can usually find me in my cottage by the sea near PETALBURG WOODS.";
+ const rationale="object 1 is Mr. Briney";
+ const text="Destination citation: quotation found in observations from turn 314. This checks the quoted words only; speaker identity, rationale and destination are not verified.";
+ const log=new Log();log.add(0,{...START,harness_features:["cited-destination-v1","citation-evidence-v1"]});
+ log.add(10,{type:"tool_call",turn:389,id:"structured-cite",name:"navigate_to",args:{x:6,y:4,map_id:[17,0],because:{quote,rationale}}});
+ log.add(20,{...CITE,turn:389,tool_call_id:"structured-cite",because:quote,verdict:"found",found_turn:314,x:6,y:4,map_id:[17,0],text});
+ const event=must(log.events.at(-1)),call=must(log.events.at(-2));
+ expect(eventText(event)).toContain("found in the turn 314 result");
+ expect(eventText(event)).toContain(quote);expect(eventText(event)).toContain(text);
+ expect(inspector(event)).toContain("destination_citation");expect(inspector(event)).toContain("speaker identity, rationale and destination are not verified.");
+ expect(inspector(call)).toContain(rationale);expect(eventText(event)).not.toContain(rationale);
+ expect(steps(build(log.events)).filter(s=>s.kind==="destination_citation").map(s=>s.category)).toEqual(["act"]);
+ const without=new Log();without.add(0,{...START,harness_features:["cited-destination-v1","citation-evidence-v1"]});without.add(10,{type:"tool_call",turn:389,id:"structured-cite",name:"navigate_to",args:{x:6,y:4,map_id:[17,0],because:{quote,rationale}}});
+ expect(lanesSvg(view(log),BASE_MS+30)).toBe(lanesSvg(view(without),BASE_MS+30));
+ expect(view(log).errors).toEqual([]);
+ expect(DEFAULT_NEXT_RUN.features["citation-evidence-v1"]).toBe(false);
+});

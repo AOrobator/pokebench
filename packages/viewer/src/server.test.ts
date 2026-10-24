@@ -1531,5 +1531,8 @@ it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("serves the exact 
 it.each(["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"])("serves tracked bag explainer %s byte for byte",async id=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-bag-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
+it("serves the tracked citation evidence explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-elevation-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="citation-evidence-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
 });

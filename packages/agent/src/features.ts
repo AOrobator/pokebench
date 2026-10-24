@@ -275,6 +275,7 @@ export const SWITCHABLE_FEATURES = [
   "bag-pocket-truth-v1",
   "bag-press-feedback-v1",
   "bag-ineffective-loop-v1",
+  "citation-evidence-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -670,6 +671,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("bag-pocket-truth-v1", "observation", "BAG POCKET TRUTH", "active-ui-ownership-v1", "Default off. Uses Emerald’s native pocket enum for the current bag pocket. Off: retains the legacy pocket labels."),
   on("bag-press-feedback-v1", "observation", "BAG PRESS FEEDBACK", "press-result-v1", "Default off. Includes the verified bag pocket, list cursor and item in press comparisons. Off: compares only phase, selection, value and readiness."),
   on("bag-ineffective-loop-v1", "guard", "BAG INEFFECTIVE LOOP", "deterministic-loop-guard-v1", "Default off. Qualifies owned, ready bag lists for the existing ineffective-action guard. Off: bag menus cannot establish equivalent ineffective actions."),
+  on("citation-evidence-v1", "guidance", "QUOTED DESTINATION EVIDENCE", "cited-destination-v1", "Default off; bundle only. navigate_to takes because: {quote, rationale?}. Only quote is checked verbatim against non-error tool results already shown this run; existing case, curly-quote and whitespace normalization applies. Rationale stays unverified and neither field reaches navigation. Every result states whether the quotation was found, missing or too short, even with input-cuts-v1. A found quotation verifies words only, never speaker identity, rationale or destination. The existing destination_citation event records quote as because; original tool_call arguments retain rationale. Off: the prior string because schema, prompt, citation feedback and execution remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1016,6 +1018,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("bag-press-feedback-v1"),
     ...when("bag-ineffective-loop-v1"),
 
+    ...when("citation-evidence-v1"),
   ];
 }
 

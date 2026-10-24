@@ -235,7 +235,8 @@
    "interface-guidance-v1": false,
    "bag-pocket-truth-v1": true,
    "bag-press-feedback-v1": true,
-   "bag-ineffective-loop-v1": true
+   "bag-ineffective-loop-v1": true,
+   "citation-evidence-v1": false
   }
  },
  "switches": [
@@ -336,7 +337,8 @@
   "current-map-display-name-v1",
   "window-escape-route-v1",
   "trainer-observed-party-v1",
-  "interface-guidance-v1"
+  "interface-guidance-v1",
+  "citation-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -59,7 +59,7 @@ it("OFF preserves the prior schema, prompt, verdict and output byte for byte",as
  const features={...OFF,"cited-destination-v1":true,"bounded-navigation-v1":true};
  expect(playSystemPrompt(features,null)).toContain(CITED_DESTINATION_SECTION);
  const prompt=playSystemPrompt({...features,[ID]:true},null);
- expect(prompt).toContain("because.quote");expect(prompt).toContain("because.rationale");expect(prompt).not.toContain(CITED_DESTINATION_SECTION);
+ expect(prompt).toContain("that make this destination the place to go");expect(prompt).toContain("because.quote");expect(prompt).toContain("because.rationale");expect(prompt).not.toContain(CITED_DESTINATION_SECTION);
  expect(Value.Check(off.tool.parameters,{...goal,because:{quote}})).toBe(false);
 });
 it("does not accept commentary as evidence, invent words, trust error results, or learn from citation echoes",async()=>{

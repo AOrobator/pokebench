@@ -67,7 +67,7 @@ export function citationText(verdict:CitationVerdict,because:string):string|null
 }
 
 const StructuredBecause=Type.Object({
- quote:Type.String({minLength:1,description:"Only the exact words copied from a game observation. Do not add a speaker name or explanation. Line breaks, case and curly quotes are ignored."}),
+ quote:Type.String({minLength:1,description:"Only the exact words copied from a game observation that make this destination the place to go. Do not add a speaker name or explanation. Line breaks, case and curly quotes are ignored."}),
  rationale:Type.Optional(Type.String({description:"Optional explanation in your own words. This is not checked or treated as observed evidence."})),
 },{additionalProperties:false});
 function evidenceText(verdict:CitationVerdict,turn:number|null):string {
@@ -91,7 +91,7 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
  return tools.map(tool=>{
   if(tool.name!=="navigate_to")return tool;
   const base=tool.parameters as TObject;
-  const parameters=Type.Object({...base.properties,because:options.structuredEvidence===true?StructuredBecause:Type.String({minLength:1,description:becauseDescription(options)})},{additionalProperties:false});
+  const parameters=Type.Object({...base.properties,because:options.structuredEvidence===true?Type.Object(StructuredBecause.properties,{additionalProperties:false,description:becauseDescription(options)+" Put only copied evidence in quote; rationale is optional and unverified."}):Type.String({minLength:1,description:becauseDescription(options)})},{additionalProperties:false});
   const execute=async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3]):Promise<AgentToolResult<unknown>>=>{
    if(!isGoal(params))return tool.execute(id,params,signal,update);
    const {because:provided,...goal}=params;

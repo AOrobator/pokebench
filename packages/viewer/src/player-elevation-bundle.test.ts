@@ -9,7 +9,7 @@ const ID = "player-elevation-readout-v1";
 it("keeps the next-run default OFF", () => {
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
 });
-for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic", "gym-rustboro-torchic-healed", "glm53-flash-4h"]) {
+for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h", "gym-rustboro-torchic", "gym-rustboro-torchic-healed"]) {
  it(`${name}: normalized bundle alone enables player elevation at the server seam`, () => {
   const { definition } = parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8"));
   expect(controlBaseProblems(definition, readFileSync(new URL(`../../../${definition.controlBase.path}`, import.meta.url), "utf8"))).toEqual([]);

@@ -91,7 +91,7 @@ describe("refusal ledger production context",()=>{
   const before=rewrite(state,{seq:90000});
   const after=rewrite(state,{seq:90002,...(kind==="battle"?{in_battle:true}:kind==="locked"?{field_controls_locked:true}:{})});
   const alteredCall=rewrite(call,{seq:90001,...(kind==="wrong-map"?{args:{x:14,y:5,map_id:[0,9]}}:kind==="no-receipt"?{name:"navigate_to_target",args:{map_id:[24,11],target:{kind:"object",local_id:4}}}:{})});
-  const alteredResult={...result,seq:90003,state_seq:90002,...(kind==="error"?{is_error:true}:kind==="no-state"?{state_seq:undefined}:kind==="arrival"?{text:"Navigation: arrived at requested coordinate; 2 bounded movement actions."}:kind==="activation"?{semantic_navigation:{target:{kind:"warp",x:14,y:5},activation_attempted:true}}:kind==="no-receipt"?{name:"navigate_to_target"}:kind==="wrong-name"?{name:"observe"}:{})};
+  const alteredResult:Record<string,unknown>={...result,seq:90003,state_seq:90002,...(kind==="error"?{is_error:true}:kind==="no-state"?{state_seq:undefined}:kind==="arrival"?{text:"Navigation: arrived at requested coordinate; 2 bounded movement actions."}:kind==="activation"?{semantic_navigation:{target:{kind:"warp",x:14,y:5},activation_attempted:true}}:kind==="no-receipt"?{name:"navigate_to_target"}:kind==="wrong-name"?{name:"observe"}:{})};
   if(kind==="no-state")delete alteredResult.state_seq;
   s.send([before,alteredCall,after,...(kind==="stale-result"?[rewrite(state,{seq:90004})]:[]),checkEvent(alteredResult)]);
   expect(await s.decide()).toEqual(s.input);expect(s.bodies).toEqual([]);

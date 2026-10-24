@@ -171,8 +171,8 @@ describe("deterministic loop detection", () => {
     expect(detector.context()).toContain("does not execute buttons");
     detector.complete(call("observe", field()));
     detector.complete(call("get_objectives"));
-    expect(detector.stopped).toBe(true);
-    expect(events.at(-1)).toEqual({ kind: "planning", phase: "stop" });
+    expect(detector.stopped).toBe(false);
+    expect(events.at(-1)).toEqual({ kind: "planning", phase: "supervisor" });
   });
   it("allows warning to reach context before stopping a large same-turn batch", () => {
     const { detector, events } = fixture();
@@ -182,7 +182,7 @@ describe("deterministic loop detection", () => {
     detector.context();
     detector.complete(call("set_objective"));
     detector.complete(call("set_objective"));
-    expect(detector.stopped).toBe(true);
+    expect(detector.stopped).toBe(false);
   });
   it("actual press recovers planning, whereas objective wording never does", () => {
     const { detector, events } = fixture();
@@ -207,7 +207,7 @@ describe("deterministic loop detection", () => {
     detector.context();
     detector.complete(call("observe", field()));
     detector.complete(call("observe", field()));
-    expect(detector.stopped).toBe(true);
+    expect(detector.stopped).toBe(false);
   });
   it("does not treat missing or unobservable states as unchanged", () => {
     const { detector, events } = fixture();
@@ -229,7 +229,7 @@ describe("deterministic loop detection", () => {
     detector.context();
     detector.complete(call("press", field(), ["UP"]));
     detector.complete(call("press", field(), ["UP"]));
-    expect(detector.stopped).toBe(true);
+    expect(detector.stopped).toBe(false);
     const other = fixture();
     other.detector.complete(call("observe", field()));
     for (let i = 0; i < 10; i++)
@@ -274,7 +274,7 @@ describe("deterministic loop detection", () => {
         ...call("press", field((i + 1) % 2), [i % 2 === 0 ? "RIGHT" : "LEFT"]),
         beforeState: field(i % 2),
       });
-    expect(detector.stopped).toBe(true);
+    expect(detector.stopped).toBe(false);
     const other = fixture();
     other.detector.complete(call("observe", field()));
     let previous = 0;
@@ -301,7 +301,7 @@ describe("deterministic loop detection", () => {
     detector.context();
     detector.complete(bad);
     detector.complete(bad);
-    expect(detector.stopped).toBe(true);
+    expect(detector.stopped).toBe(false);
     const other = fixture();
     for (let i = 0; i < 12; i++)
       other.detector.complete({
@@ -331,8 +331,8 @@ it("bounds unknown observation recovery without claiming equivalence", () => {
   detector.context();
   detector.complete(call("observe", { ...field(), screen: "unknown" }));
   detector.complete(call("observe", { ...field(), screen: "unknown" }));
-  expect(detector.stopped).toBe(true);
-  expect(events.at(-1)).toEqual({ kind: "planning", phase: "stop" });
+  expect(detector.stopped).toBe(false);
+  expect(events.at(-1)).toEqual({ kind: "planning", phase: "supervisor" });
 });
 it("compares actual pre/post press, including the initial press and asynchronous changes", () => {
   const { detector, events } = fixture();

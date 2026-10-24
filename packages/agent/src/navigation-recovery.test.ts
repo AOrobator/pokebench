@@ -30,7 +30,7 @@ describe("navigation-recovery-v1 production recorded windows",()=>{
   expect(r.detector.context()).toContain("Current map: 0/10");expect(r.detector.context()).toContain("NORTH");
  });
  it("bounds the recorded stale-map refusal window despite the generic supervisor",()=>{
-  const r=rig(true);r.replay(172,191);expect(r.governor.stopReason).toBe("stuck");expect(r.notices.at(-1)?.phase).toBe("stop");
+  const r=rig(true);r.replay(172,191);expect(r.governor.stopReason).toBe(null);expect(r.notices.some(n=>n.phase==="supervisor")).toBe(true);expect(r.notices.some(n=>n.phase==="stop")).toBe(false);
  });
  it("keeps cycle feedback active after the recorded south/north backtrack without blocking its inputs",()=>{
   const r=rig(true);r.replay(252,257);
@@ -56,10 +56,10 @@ describe("navigation recovery preserves evidence-based backtracking",()=>{
   r.recovery.complete(call(field,{name:"navigate_to_target",args:{map_id:[0,16]},beforeState:other,acted:true}),2);
   expect(r.notices).toEqual([]);expect(r.recovery.active).toBe(false);
  });
- it("retains a cycle across visited detours, rotation and unknown readouts, then stops boundedly",()=>{
+ it("retains a cycle across visited detours, rotation and unknown readouts, then briefs boundedly",()=>{
   const r=direct();r.recovery.state(state({map_id:[0,16]}));r.recovery.state(field);r.recovery.cycle("recorded cycle",[10,20],2);r.recovery.context();
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)r.recovery.complete(call(i%2?undefined:state({map_id:[0,16],position:{x:5,y:5}})),i+3);
-  expect(r.notices.map(n=>n.phase)).toEqual(["warning","stop"]);expect(r.recovery.stopped).toBe(true);
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);expect(r.recovery.stopped).toBe(false);
  });
  it("does not charge battle/menu decisions to the field recovery budget",()=>{
   const r=direct();r.recovery.cycle("cycle",[1],1);r.recovery.context();
@@ -128,13 +128,13 @@ it("updates current-map feedback after backtracking and never offers unsupported
  const r=direct();r.recovery.state(state({map_id:[0,16]}));r.recovery.state(field);r.recovery.cycle("cycle",[1],1);
  const reach=field.exit_reach;if(reach===undefined)throw Error("fixture has no exit reach");const next=state({map_id:[0,16],exit_reach:{...reach,connections:reach.connections.map(c=>({...c,reach:"none" as const}))}});
  r.recovery.state(next);r.recovery.complete(call(next),2);
- expect(r.recovery.context()).toContain("Current map: 0/16");expect(r.recovery.context()).toContain("none qualified");
+ expect(r.recovery.context()).toContain("Current map: 0/16");expect(r.recovery.context()).toContain("warp (5,7)");expect(r.recovery.context()).not.toContain("NORTH ->");
  r.recovery.unavailable();expect(r.recovery.context()).toContain("Current map unavailable");
 });
 it("bounds the second recorded window if known-map decisions keep repeating after the warning",()=>{
  const r=rig(true);r.replay(252,257);
  for(let i=0;i<12;i++){r.detector.context();r.detector.complete(call(field,{seq:10000+i}));}
- expect(r.governor.stopReason).toBe("stuck");expect(r.notices.at(-1)).toMatchObject({kind:"map_cycle",phase:"stop"});
+ expect(r.governor.stopReason).toBe(null);expect(r.notices.at(-1)).toMatchObject({kind:"map_cycle",phase:"supervisor"});
 });
 
 
@@ -161,6 +161,6 @@ it("labels visit history by its actual story-progress epoch",()=>{
 
 it("preserves both recorded windows with the newer progress-aware cycle guard enabled",()=>{
  const features={...LEGACY_ALL_ON,"progress-aware-cycles-v1":true,"navigation-recovery-v1":true};
- const stale=rig(true,features);stale.replay(172,191);expect(stale.governor.stopReason).toBe("stuck");
+ const stale=rig(true,features);stale.replay(172,191);expect(stale.governor.stopReason).toBe(null);
  const cycle=rig(true,features);cycle.replay(252,261);expect(cycle.notices.filter(n=>n.kind==="map_cycle").map(n=>n.phase)).toEqual(["warning"]);expect(cycle.detector.context()).toContain("repeated map cycle remains unresolved");
 });

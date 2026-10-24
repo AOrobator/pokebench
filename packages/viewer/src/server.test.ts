@@ -1497,3 +1497,11 @@ it("serves the exact tracked refusal ledger explainer through the feature allowl
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
 });
+
+it("serves the shared nonterminal guard explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-nonterminal-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const file="loop-guard-supervisor-v1.html",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));writeFileSync(join(docs,file),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS["deterministic-loop-guard-v1"]).toBe(file);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+});

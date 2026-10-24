@@ -1696,3 +1696,10 @@ it("links the refusal-ledger card to its factual tracked explainer",()=>{
  expect(html).toContain("Current observations take precedence");
  expect(html).toContain("20519");
 });
+
+it("links the nonterminal deterministic guard to its shared supervisor explainer",()=>{
+ expect(FEATURE_EXPLAINERS["deterministic-loop-guard-v1"]).toBe("loop-guard-supervisor-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["deterministic-loop-guard-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(doc.querySelector('[data-feature="deterministic-loop-guard-v1"] a')?.getAttribute("href")).toBe("/explainers/loop-guard-supervisor-v1.html");
+});

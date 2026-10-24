@@ -162,3 +162,10 @@ The existing preview test now covers both the original sampled transition and a 
 
 R1 and R3 are the two accepted blocker-producing rounds; R2 ultimately all LGTM after a withdrawn representation-only objection. The canonical skill `/Users/user/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md:49` requires: “A self-authored checkpoint is insufficient: after two complete rounds with new blockers, obtain the operator’s scope confirmation before round three.” The authorized minimal correction is now concrete and reviewable. STOP before another review round pending actual human confirmation of unchanged scope. Further normal gates, review, landing and live proof are pending; no main hold, heavy job, viewer refresh or gameplay launch is active.
 COMMIT: test: prove receipt previews preserve fresh whiteout evidence (SHA in git log).
+
+## Human scope checkpoint answered
+
+Actual human confirmation was independently verified in the primary Claude transcript `00000000-0000-4000-8000-1bb4e739f4f4.jsonl`, lines 15549/15551: server-copied user `the operator`, message `[private message reference]`, 2026-10-24T19:07:59Z (15:07:59 EDT), “same scope, continue”. This answers the two-blocker-round scope checkpoint and permits the next review and landing within the unchanged Item 2 boundary. It is actual human provenance, not elapsed time, preselection or a coordinator waiver. The existing receipt-only preview correction remains test-only at `2d4596cb9520ac2a93b35e994587a27ed2a7fc65`; production and the two previously approved recipe conditions remain unchanged.
+
+Current main `ebed5a7f331a9c2501fb7a695994afc9be7cebd9` records Item 3's failed post-landing validation. It is not treated as a green release. Await the recovery owner's final qualified landing/evidence SHA before integration and the next normal full-gate admission; no heavy checks, main move, viewer refresh or review round has started on this stale base.
+COMMIT: docs: record human whiteout scope confirmation (SHA in git log).

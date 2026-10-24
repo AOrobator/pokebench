@@ -60,3 +60,14 @@ it("replays 3b6e through production guard attachment and supplies warning before
  if(enabled){expect(notices.find(n=>n.phase==="warning")?.evidence.at(-1)).toBeLessThan(54200);expect(delivered.join("\n")).toContain("Repeated equivalent single-button attempts");}else expect(delivered).toEqual([]);
  }
 });
+
+it("qualifies verified battle bags without qualifying ordinary battle screens, preserving OFF",()=>{
+ const battleBag=(pocket="TMS HMS",index=0)=>{const state=bag(pocket,index);return {...state,in_battle:true,active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:1}}};};
+ for(const enabled of [false,true]){const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:enabled});
+ const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
+ press(battleBag(),battleBag());press(battleBag(),battleBag());press(battleBag(),battleBag("BERRIES"));press(battleBag("BERRIES"),battleBag("BERRIES"));expect(notices).toEqual([]);
+ press(battleBag("BERRIES"),battleBag("BERRIES"));press(battleBag("BERRIES"),battleBag("BERRIES"));expect(notices.some(n=>n.kind==="ineffective"&&n.phase==="warning")).toBe(enabled);
+ if(enabled){detector.context();press(battleBag("BERRIES"),battleBag("BERRIES",1));expect(notices.at(-1)?.phase).toBe("recovered");}
+ }
+ const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});const battle={...IN_GAME,in_battle:true,screen:"battle",active_ui:null};for(let i=0;i<5;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:battle,state:battle});expect(notices).toEqual([]);
+});

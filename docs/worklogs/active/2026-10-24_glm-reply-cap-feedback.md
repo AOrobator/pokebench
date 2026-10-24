@@ -13,7 +13,7 @@ Governor, play wiring/live, fixed-point recovery, decision-probe wiring, fixed-d
 
 ## Milestone
 - [x] RED tests: Governor drops CUT when supervisor due; fixed-definition parser rejects bundleMaxTokens; recipe assertion fails. Added production delivery/replay tests. Initial viewer attempt lacked agent dist; built it before meaningful RED rerun.
-- [ ] GREEN implementation and commit
+- [x] GREEN implementation: 35 targeted agent tests pass, fixed-design/recipe tests pass; fake-host audit helper corrected. Broader recipe index assertions updated for moving the existing switch into onInBoth.
 - [ ] Adversarial wiring deletion and restoration
 - [ ] Full tests/lint/build/coverage/vendor gates
 - [ ] Fake runner verifies arm presets and chaining
@@ -25,3 +25,7 @@ Governor, play wiring/live, fixed-point recovery, decision-probe wiring, fixed-d
 
 ## Session log
 - Read CLAUDE, active pointer/body, feature-switch, feature-explainer, agent-observability, close-the-loop, talk-to-claude and review contracts. Isolated worktree from 7133032cc. No changes in canonical checkout.
+
+- RED commit da8f38ef4. Production delivery tests failed on missing cap text in recorded supervisor. The existing recorded-context probe bypasses fixed-point collapse; full equality for that mode is not claimed when breaker is ON. Production-replayed derivation is tested instead; recorder/model payload equality remains required.
+
+- First full test retry: agent 4232 passed; viewer 15 failures were hardcoded recipe positions shifted by removing cut-off feedback from switches, now adjusted by one while GLM positions stay unchanged. Coverage under load average 81.72 hit unchanged live-human timeout/assertion failures; retained /tmp/glm-coverage.log and will rerun separately. Build and vendor checks passed. Headless explainer checked at 375/1280/1440; screenshots inspected, no outer horizontal overflow.

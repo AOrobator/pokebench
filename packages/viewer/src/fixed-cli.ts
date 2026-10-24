@@ -130,6 +130,7 @@ function check(deps: FixedCliDeps, id: string): void {
   }
   for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}`);
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
+  deps.out(`reply token caps: control ${String(def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
   const approval = readApproval(deps, id);
   deps.out(`approval: ${approval === null ? "none" : approval.definitionSha256 === digest ? `${approval.approvedBy} at ${approval.approvedAt}` : "stale (the definition changed since)"}`);

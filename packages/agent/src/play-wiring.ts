@@ -55,7 +55,7 @@ type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform,cutOffNotice?:string):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock}{
  const tools:AgentTool[]=[];
  const memoryRecorder:WiringRecorder={subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
 
@@ -73,7 +73,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
  // fixed-point-breaker-v1 or duplicate-turn-collapse-v1: duplicate turns collapse before every other step;
  // fixed-point-breaker-v1 alone ends the request with its note.
- const breaker=fixedPointBreaker(features,memoryRecorder);
+ const breaker=fixedPointBreaker(features,memoryRecorder,cutOffNotice);
  const note=features["fixed-point-breaker-v1"];
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
  return {tools,transformContext:history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
@@ -111,10 +111,10 @@ export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"sub
 }
 
 // text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.
-export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">,replyFailuresEndRun=true):((replies:number,note:number)=>string)|undefined {
+export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">,replyFailuresEndRun=true):((replies:number,note:number,cutOffNotice?:string)=>string)|undefined {
  if(!features["text-only-supervisor-v1"])return undefined;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true,false,true);
- return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT,replyFailuresEndRun);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
+ return (replies,note,cutOffNotice)=>{const briefingText=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT,replyFailuresEndRun);const text=cutOffNotice===undefined?briefingText:`${cutOffNotice}\n${briefingText}`;recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 
 // milestone-stall-stop-v1: a factual nonterminal note after ten unpaused minutes.

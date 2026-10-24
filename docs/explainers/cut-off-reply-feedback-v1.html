@@ -116,7 +116,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>Cut-off reply feedback</h1>
-<p><code>cut-off-reply-feedback-v1</code> · guard · default OFF · bundle arm only</p>
+<p><code>cut-off-reply-feedback-v1</code> · guard · registry default OFF · enabled in both arms of current recipes</p>
 <p>When a reply stops at the max_tokens limit before it makes any tool call, the next message tells the model so, instead of the plain "Keep playing" nudge.</p>
 
 <section class="card">
@@ -177,7 +177,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </section>
 
 <section class="card">
-<h2>Which message wins</h2>
+<h2>Keep the cut-off cause in every recovery</h2>
 <figure>
 <svg viewBox="0 0 900 260" role="img" aria-label="Precedence of follow-up messages after a reply with no tool call">
 <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#36735b"/></marker></defs>
@@ -187,7 +187,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <path class="arrow" d="M170 130 H210" marker-end="url(#b)"/>
 <rect class="notebox" x="215" y="15" width="200" height="70" rx="8"/>
 <text x="228" y="42">1. Text-only</text>
-<text x="228" y="64">supervisor note, if due</text>
+<text x="228" y="64">cap notice + briefing</text>
 <rect class="onbox" x="215" y="105" width="200" height="60" rx="8"/>
 <text x="228" y="132">2. Cut-off notice</text>
 <text x="228" y="152" class="small">stopReason "length" only</text>
@@ -195,15 +195,16 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <text x="228" y="210">3. Reminder or NUDGE</text>
 <text x="228" y="232" class="small">ordinary text-only reply</text>
 <text x="440" y="42" class="small">A streak of replies with no tool call reaching the failure limit</text>
-<text x="440" y="60" class="small">(3 in the test) earns a note; the note replaces the notice that turn.</text>
+<text x="440" y="60" class="small">(3 in the test) earns a briefing after the cut-off notice.</text>
 <text x="440" y="132" class="small">Replaces NUDGE, and also the text-only reminder sent after the</text>
 <text x="440" y="150" class="small">third note (TEXT_ONLY_NOTE_LIMIT = 3).</text>
 <text x="440" y="212" class="small">A reply that stopped normally ("stop") with no tool call still</text>
 <text x="440" y="230" class="small">gets NUDGE, or the reminder after the third note.</text>
 </svg>
-<figcaption>Precedence in <code>Governor.nudge()</code>. The test drives three cut-off replies in a row with failure limit 3: the first two get the notice, the third gets "NOTE 3 1".</figcaption>
+<figcaption>Precedence in <code>Governor.nudge()</code>. The test drives three cut-off replies in a row with failure limit 3: all three name the cap; the third also gets the supervisor briefing.</figcaption>
 </figure>
 <ul>
+<li>With the switch ON, fixed-point recovery also names the configured cap after a cut-off; its recorded text matches the delivered message. With it OFF, both supervisors retain their previous text.</li>
 <li>The failure count is unchanged: a cut-off reply still counts as "reply hit max_tokens" toward the failure limit.</li>
 <li>A cut-off reply that did make a tool call gets no follow-up message, as before.</li>
 <li>Decision probes rebuild the same follow-up with <code>followUpText</code>: a recorded supervisor note after the reply first, then the notice for a <code>"length"</code> reply, else NUDGE. The probe builds the notice from the probed switches and the recorded max tokens.</li>
@@ -213,10 +214,10 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <section class="card">
 <h2>Status</h2>
 <ul>
-<li>Branch <code>claude/glm-harness-bugs</code>; commit f2f79d77 (M3 GREEN) and f9625228 (end-to-end live.ts test). Not yet merged into main.</li>
-<li>Default OFF. Not in any bundle yet; that waits for the operator's OK.</li>
-<li>Tests: <code>cut-off-reply.test.ts</code>, <code>decision-probe-live.test.ts</code> (a scripted reply that stops at max_tokens goes through live.ts; the next request carries the notice ON and NUDGE OFF). Review: Claude, Grok and GPT lanes LGTM after round 3.</li>
-<li>Not yet measured in runs.</li>
+<li>Original implementation: f2f79d77. Current repair: <code>codex/glm-reply-cap-feedback</code>; tests and review tracked in its worklog. No new gameplay runs authorized.</li>
+<li>Operator-authorized 2026-10-24: cut-off feedback enabled in both arms of current recipes. GLM 1h/2h/4h definitions use 4,096 tokens in control and an optional bundleMaxTokens of 8,192 in bundle. Other model caps are unchanged.</li>
+<li>Tests: <code>cut-off-reply.test.ts</code>, <code>decision-probe-live.test.ts</code> (a scripted reply that stops at max_tokens goes through live.ts; the next request carries the notice ON and NUDGE OFF). Original implementation had cloud review; current repair review is tracked separately in its worklog.</li>
+<li>The larger cap has not been measured. A short reply can still finish before either cap. A long reply can now spend more time generating before its next tool call.</li>
 </ul>
 </section>
 </main>

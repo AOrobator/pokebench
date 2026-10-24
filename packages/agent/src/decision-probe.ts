@@ -152,9 +152,9 @@ const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context"
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
-export function probeTools(features: FeatureSet, recorder: Replay): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
+export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
-  const context = contextTools(features, recorder, (m) => Promise.resolve(m));
+  const context = contextTools(features, recorder, (m) => Promise.resolve(m),cutOff);
   const tools = playGameTools(base, features, { read: inert }, recorder,undefined,[],context.training);
   return { tools: [...tools, ...context.tools], transform: context.transformContext, window: context.window };
 }
@@ -252,7 +252,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender);
   const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff);
   if (derivation === "recorded") {
-    const wiring = probeTools(features, new Replay(start));
+    const wiring = probeTools(features, new Replay(start),cutOff);
     const tools = wiring.tools.map(asTool);
     const window = slideWindow(history, wiring.window);
     const messages = (features["fresh-retry-v1"] ? withoutTextOnlyReplies(window) : window).filter(isMessage);
@@ -266,7 +266,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"],features);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
-  const wiring = probeTools(features, replay);
+  const wiring = probeTools(features, replay,cutOff);
   for (const e of prior) {
     if (DERIVED.includes(e.type)) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }

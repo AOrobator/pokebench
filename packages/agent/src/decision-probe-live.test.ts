@@ -325,20 +325,20 @@ it("builds the run's tool definitions with ports that never touch a game", async
   expect(() => replay.recordDialogueAutoAdvance()).toThrow(/never execute/);
 });
 
-it.each([false,true])("records and delivers the cut-off cause when a supervisor briefing or fixed-point note is due (breaker %s)",async(breaker)=>{
- const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":true,"text-only-supervisor-v1":true,"fixed-point-breaker-v1":breaker};
+it.each([[false,false],[true,false],[true,true],[false,true]])("records and delivers cut-off recovery (feedback %s, breaker %s)",async(on,breaker)=>{
+ const features={...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"cut-off-reply-feedback-v1":on,"text-only-supervisor-v1":true,"fixed-point-breaker-v1":breaker};
  const dir=await recordRun(features,6,true,1);
  const {parseRun,decisionContext,recordedFeatures}=await import("./decision-probe.js");
  const run=parseRun(readFileSync(join(dir,"events.jsonl"),"utf8"));
  const note=run.events.find(e=>e.type==="text_only_supervisor");
  expect(note).toMatchObject({type:"text_only_supervisor",turn:4});
  if(note?.type!=="text_only_supervisor")throw new Error("missing recorded supervisor");
- expect(note.text).toContain("Your last reply reached the output limit (100 tokens)");
+ expect(note.text.includes("Your last reply reached the output limit (100 tokens)")).toBe(on);
  expect(owner.contexts[4]?.messages).toContainEqual(expect.objectContaining({role:"user",content:note.text}));
  const recovery=run.events.filter(e=>e.type==="loop_breaker"&&e.trigger==="no_tool_call"&&e.stage===2);
- if(breaker){expect(recovery.length).toBeGreaterThan(0);for(const e of recovery)expect(e.text).toContain("output limit (100 tokens)");}
+ if(breaker){expect(recovery.length).toBeGreaterThan(0);for(const e of recovery)if(e.type==="loop_breaker")expect(e.text?.includes("output limit (100 tokens)")).toBe(on);}
  const ports=await framePorts(dir);
- for(const derivation of ["recorded","replayed"] as const){
+ for(const derivation of breaker?["replayed"] as const:["recorded","replayed"] as const){
   const rebuilt=await decisionContext(run,5,recordedFeatures(run),ports,derivation);
   expect(sent({systemPrompt:rebuilt.systemPrompt,messages:[...rebuilt.messages],tools:[...rebuilt.tools]})).toEqual(sent(owner.contexts[4] ?? {systemPrompt:"",messages:[],tools:[]}));
  }

@@ -47,6 +47,7 @@ const draftShape = {
     sampling: Type.Object({ thinkingLevel: Type.Enum(["off", "minimal", "low", "medium", "high", "xhigh"] as const), maxTokens: positive }, closed),
     features: Type.Record(Type.String(), Type.Boolean()),
   }, closed),
+  bundleMaxTokens: Type.Optional(positive),
   switches: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, uniqueItems: true }),
   offInBoth: Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }),
   // Fixes on in both arms: the only features allowed to differ from the control base outside the switches.
@@ -133,7 +134,7 @@ export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm):
     target: def.base.target,
     ...(def.base.stopAt===undefined?{}:{stopAt:def.base.stopAt}),
     limits: { maxTurns, maxWallMs: phase.maxWallMs, failureLimit, replyFailuresEndRun },
-    sampling: def.base.sampling,
+    sampling: { ...def.base.sampling, ...(arm==="bundle"&&def.bundleMaxTokens!==undefined?{maxTokens:def.bundleMaxTokens}:{}) },
     features: armFeatures(def, arm) as PlayPresetV2["features"],
     ...(phase.start.kind === "save_state" ? { start: phase.start } : {}),
   };

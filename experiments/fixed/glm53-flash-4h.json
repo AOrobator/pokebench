@@ -231,7 +231,8 @@
    "away-note-buildings-v1": false,
    "current-map-display-name-v1": false,
    "window-escape-route-v1": false,
-   "trainer-observed-party-v1": false
+   "trainer-observed-party-v1": false,
+   "cut-off-reply-feedback-v1": true
   }
  },
  "switches": [
@@ -367,7 +368,8 @@
   "evolution-decision-v1",
   "counter-talk-v1",
   "story-battle-heal-first-v1",
-  "field-move-gates-v1"
+  "field-move-gates-v1",
+  "cut-off-reply-feedback-v1"
  ],
  "phases": [
   {
@@ -415,5 +417,6 @@
    "lane": "A",
    "arm": "control"
   }
- ]
+ ],
+ "bundleMaxTokens": 8192
 }

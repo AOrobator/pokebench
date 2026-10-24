@@ -151,7 +151,7 @@ export interface GovernorDeps {
   readonly pausedMs?: () => number;
   readonly wallLimit?: () => number;
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
-  readonly textOnlySupervisor?: (replies: number, note: number) => string;
+  readonly textOnlySupervisor?: (replies: number, note: number, cutOffNotice?: string) => string;
   readonly textOnlyReminder?: string;
   // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
   readonly cutOffNotice?: string;
@@ -213,7 +213,7 @@ export class Governor {
     this.note = null;
     // The note is built, and recorded, only when it is actually delivered.
     const plain = this.cutOff && this.deps.cutOffNotice !== undefined ? this.deps.cutOffNotice : this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE;
-    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note);
+    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note, this.cutOff ? this.deps.cutOffNotice : undefined);
     return [{ role: "user", content, timestamp: Date.now() }];
   }
 

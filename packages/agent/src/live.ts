@@ -338,7 +338,7 @@ async function playAgent(): Promise<void> {
       try {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
-      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
+      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext,cutOff);
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools,context.training);
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);

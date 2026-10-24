@@ -94,6 +94,7 @@ LEGEND = "@ player; N live object; "
 ADJACENT = "adjacent-tiles-v1"
 LATER = frozenset(
     {
+        "player-elevation-readout-v1",
         "battle-triage-guidance-v1",
         ADJACENT,
         "offscreen-objects-v1",

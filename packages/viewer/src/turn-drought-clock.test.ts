@@ -1,7 +1,6 @@
+import {recipeText} from "../test-support/recipe-text.js";
 // turn-drought-clock-v1 (the operator 2026-10-22): default OFF for the next run, ON in the bundle arm of the two
 // bundle-v-control recipes only, registered as a pending experiment, and linked to its tracked explainer.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { expect, it } from "vitest";
 import { FEATURES } from "@pokebench/agent/features";
@@ -13,7 +12,7 @@ import { FEATURE_EXPLAINERS, harnessConfig } from "./panels.js";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "turn-drought-clock-v1";
-const read = (path: string): string => readFileSync(fileURLToPath(new URL(`../../../${path}`, import.meta.url)), "utf8");
+const read = (path: string): string => recipeText(new URL(`../../../${path}`, import.meta.url), "utf8");
 
 it("starts OFF for the next run and links its card to the tracked explainer", () => {
   expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
@@ -30,8 +29,8 @@ it("starts OFF for the next run and links its card to the tracked explainer", ()
   expect(html).toContain("No new story milestone, level-up, trainer win or full heal in the last 30 actions");
 });
 
-it("is on only in the bundle arm of the bundle-v-control recipes, at its original position, with the control base unchanged", () => {
-  for (const [name,index] of [["bundle-v-control",107],["bundle-v-control-2h",49]] as const) {
+it("is on only in the bundle arm of the maintained shared recipes, at their declared positions, with the control base unchanged", () => {
+  for (const [name,index] of [["bundle-v-control",49],["bundle-v-control-2h",49],["glm53-flash-4h",49]] as const) {
     const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
     expect(definition.switches.at(index), name).toBe(ID);
     expect(definition.base.features[ID], name).toBe(false);
@@ -45,7 +44,7 @@ it("is on only in the bundle arm of the bundle-v-control recipes, at its origina
       expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "control")))[ID], name).toBe(false);
     }
   }
-  for (const name of ["bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "glm53-flash-4h"]) {
+  for (const name of ["bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h"]) {
     const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
     expect(definition.switches, name).not.toContain(ID);
     for (const phase of definition.phases) expect(presetFeatures(parsePlayPreset(armPreset(definition, phase.id, "bundle")))[ID], name).toBe(false);

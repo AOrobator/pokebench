@@ -77,8 +77,9 @@ describe("next run", () => {
     expect(features.status).toBe(200);
     expect((features.json as { features: { id: string }[] }).features).toHaveLength(FEATURES.length);
     expect(await call(v, "GET", "/api/next-run")).toEqual({ status: 200, json: { draft: DEFAULT_NEXT_RUN, queue: { state: "idle" } } });
-    const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen", features: { ...ALL_ON, "state-only-decisions-v1":false, "story-state-v1": false, "disproved-beliefs-v1": false, "refusal-ledger-v1": false } };
+    const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen", features: { ...ALL_ON, "instruction-goal-ledger-v1":false, "state-only-decisions-v1":false, "story-state-v1": false, "disproved-beliefs-v1": false, "refusal-ledger-v1": false } };
     expect(await call(v, "PUT", "/api/next-run", draft)).toEqual({ status: 200, json: { draft, queue: { state: "idle" } } });
+    expect(await call(v,"PUT","/api/next-run",{...draft,features:{...draft.features,"instruction-goal-ledger-v1":true}})).toEqual({status:409,json:{error:"invalid next run: instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"}});
     expect(await call(v, "PUT", "/api/next-run", {...draft,features:{...draft.features,"refusal-ledger-v1":true}})).toEqual({status:409,json:{error:"invalid next run: refusal-ledger-v1 needs disproved-beliefs-v1"}});
     expect((await call(v, "PUT", "/api/next-run", { ...draft, features: { ...ALL_ON, "state-only-decisions-v1":false, "ram-state-v1": false } })).status).toBe(409);
     const history = await call(v, "GET", "/api/features/history");

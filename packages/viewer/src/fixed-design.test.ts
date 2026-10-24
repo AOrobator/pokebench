@@ -364,7 +364,7 @@ it("enables truthful cut-off feedback in both arms and the larger reply budget o
  for(const name of names){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(definitionProblems(def),name).toEqual([]);
-  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
+  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
   expect(def.onInBoth,name).toContain("cut-off-reply-feedback-v1");
   expect(def.switches,name).not.toContain("cut-off-reply-feedback-v1");
   for(const phase of def.phases)for(const arm of ["control","bundle"] as const){

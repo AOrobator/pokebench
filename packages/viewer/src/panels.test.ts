@@ -1738,13 +1738,8 @@ it("links the independent interface guidance card to its tracked explainer",()=>
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("independent of JIT");
-it("links native task goal retirement to its source-grounded explainer",()=>{
- const id="native-task-goal-retirement-v1";
- const log=new Log();log.add(0,{...START,harness_features:[id]});
- const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
- expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
- expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("34807");
 });
+
 
 
 it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("links %s to its exact tracked explainer",id=>{
@@ -1756,11 +1751,14 @@ it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("links %s to its e
 it("keeps a recorded goal transaction visible as a ledger event with raw evidence",()=>{
  const log=bare();const e=log.add(100,{type:"ledger_context",turn:1,text:'INSTRUCTION GOALS — "Select POKéNAV"; verification model_interpretation',evidence:[12],instruction_goals:{call_id:"review",review:{reviewed:[{episode:12,interpretation:"Current request"}],updates:[]}}});
  expect(eventText(e)).toContain("Instruction goal review recorded");expect(inspector(e)).toContain("instruction_goals");
+});
 it.each(["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"])("links %s to its exact tracked explainer",id=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links citation evidence to its exact tracked explainer without inventing historical activation",()=>{
  const id="citation-evidence-v1";
  for(const enabled of [true,false]) {

@@ -69,6 +69,7 @@ describe(ID,()=>{
   expect(fold([change(loss,{party:[...loss.party,egg]}),change(field,{party:[...field.party,egg]})]).battles()[0]?.whiteout).not.toBeNull();
  });
  it("does not infer a whiteout from a win, escape, surviving party or ordinary map change",()=>{
+  expect(fold([change(loss,{battle:{...loss.battle!,outcome:"drew"}}),field]).battles()[0]).toMatchObject({outcome:"drew",whiteout:{turn:642}});
   for(const outcome of ["won","ran","ongoing"]){
    expect(fold([change(loss,{battle:{...loss.battle!,outcome}}),field]).battles()[0]?.whiteout).toBeNull();
   }

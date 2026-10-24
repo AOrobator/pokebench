@@ -78,6 +78,17 @@ describe("production wiring",()=>{
  it("decision probes pass the same notice, from the probed switches and the recorded max tokens, to both histories",()=>{
   const probe=source("decision-probe.ts");
   expect(probe).toContain("const cutOff = cutOffReplyNotice(features, start.sampling.max_tokens);");
-  expect(probe.match(/conversation\(prior, goal, byId, notes, .*?, start\.model\.id, cutOff\)/g)).toHaveLength(2);
+  expect(probe.match(/conversation\(prior, goal, byId, notes, .*?, start\.model\.id, cutOff(?:,|\))/g)).toHaveLength(2);
  });
+});
+
+it("replayed supervisor notes honor the target cut-off switch while recorded notes retain exact history",()=>{
+ const reply={seq:10,stop_reason:"length"};
+ const onNote={seq:11,text:"CUT\nNOTE"};
+ expect(followUpText(reply,onNote,undefined)).toBe("CUT\nNOTE");
+ expect(followUpText(reply,onNote,undefined,{cutOff:"CUT"})).toBe("NOTE");
+ expect(followUpText(reply,{seq:11,text:"NOTE"},"CUT",{cutOff:undefined})).toBe("CUT\nNOTE");
+ expect(followUpText(reply,onNote,"CUT",{cutOff:"CUT"})).toBe("CUT\nNOTE");
+ expect(followUpText(reply,{seq:11,text:"OTHER NOTE"},undefined,{cutOff:"CUT"})).toBe("OTHER NOTE");
+ expect(followUpText({seq:10,stop_reason:"stop"},{seq:11,text:"NOTE"},"CUT",{cutOff:undefined})).toBe("NOTE");
 });

@@ -52,3 +52,6 @@ Governor, play wiring/live, fixed-point recovery, decision-probe wiring, fixed-d
 - Offline R2 qualification preparation also covers the normal failureLimit3 threshold: bind a recorded supervisor to its exact assistant turn before stripping/recomposing its cut-off prefix. Without this existing event-owner binding, a future due note is attached to the first silent reply and the ON/OFF repair is incomplete for normal settings. Added an eight-turn fixture at threshold3 plus consecutive threshold1 notes, all in the existing live fixture seam; candidate patch remains unapplied pending RED/grant.
 
 - Recovery implementation reached main429375802 while its post-landing verification/refresh continues. Its diff repairs live-human and serial-comparison fixtures plus the existing live entrypoint dispatch seam. Integrating it offline before this branch's granted qualification; no tests/builds started here.
+
+## R2 RED
+- Explicit MAX5-second pure-function slot granted by coordinator. One admitted command executed once; exit1 after1.5706s, with expected assertion: replayed OFF received CUT\nNOTE instead of NOTE. No timeout/retry; owned process group terminal and slot released directly. Retained r2-red-unit.log and r2-red-unit-result.json. Regression tests are now observed RED before implementation; broader live/normal-threshold cases remain unrun until larger grant.

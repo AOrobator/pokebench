@@ -93,7 +93,7 @@
    "game-evidence-priority-v1": true,
    "game-said-goals-v1": true,
    "grass-cost-navigation-v1": true,
-   "gym-door-label-v1": false,
+   "gym-door-label-v1": true,
    "gym-heal-warning-v1": true,
    "gym-readiness-readout-v1": true,
    "harness-trust-v1": true,
@@ -278,7 +278,6 @@
  },
  "switches": [
   "menu-refusal-recovery-v1",
-  "gym-door-label-v1",
   "mart-stock-readout-v1",
   "caught-dex-input-v1",
   "exp-next-level-v1",
@@ -365,6 +364,7 @@
   "story-battle-heal-gate-v1"
  ],
  "onInBoth": [
+  "gym-door-label-v1",
   "battle-decision-ready-v1",
   "navigation-truth-v1",
   "surf-gated-exits-v1",

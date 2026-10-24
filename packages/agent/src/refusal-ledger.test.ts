@@ -129,4 +129,14 @@ describe("refusal ledger production context",()=>{
   await s.decide();expect(s.bodies[0]?.text).toContain(line);expect(s.bodies[0]?.text).toContain("map object 4");expect(s.bodies[0]?.text).toContain("Current observations take precedence");
  });
 
+ it("counts the same recorded reason across walked-from prefixes and different action counts without clipping the latest line",async()=>{
+  const events=fixture("2aca"),s=setup(),state=events.findLast(e=>e.type==="state"),call=events.findLast(e=>e.type==="tool_call"),result=events.findLast(e=>e.type==="tool_result");
+  if(state===undefined||call===undefined||result?.type!=="tool_result")throw new Error("fixture incomplete");
+  s.send(events);
+  // The prefix/action shape of original result 20468, turn 556; reason text is the same as 20519.
+  const line=result.text.replace("Navigation: ","Navigation: walked from (19,24) to (20,24), then stopped: ").replace("0 bounded movement actions.","1 bounded movement actions.");
+  s.send([rewrite(state,{seq:90000,position:{x:19,y:24}}),rewrite(call,{seq:90001,id:"walked"}),rewrite(state,{seq:90002}),rewrite(result,{seq:90003,id:"walked",state_seq:90002,text:line})]);
+  await s.decide();expect(s.bodies[0]?.entries).toBe(1);expect(s.bodies[0]?.text).toContain("3 times");expect(s.bodies[0]?.text).toContain(line);
+ });
+
 });

@@ -1,21 +1,11 @@
 {
-  "parent": "5894373da1e3233162377f2a15e0e6dc933be0f6",
+  "parent": "9094991127313ec021f1347e45d70faba0134e1c",
   "user_quote": "restore the trainer cards to how they look in my screenshot and add those protections so this doesn't happen again. get it reviewed, land it, and verify it's live",
-  "source": "User message in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24",
+  "source": "User message in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24; review fixes remain within requested protections",
   "files": {
-    ".githooks/pre-commit": "90fa3425ca30a3788152f358c81472bbf2ecb5f1cfbf3cc22820aa173ff020e0",
-    "docs/design/trainer-cards/README.md": "35adbddbc48d268e87564de8221f2a7296e6de26d9f30be1f0214b7b446cf2ee",
-    "docs/design/trainer-cards/reference-2026-10-21.png": "c52e7a240f7342c68df32099df4bf0c8a7867c3fefb98d09cb82a68fea562db5",
-    "justfile": "2d98b299ea422e7afa14957a5144879f0a576ad9be814a954f8b37c82eac9317",
-    "packages/viewer/design-tests/baselines/cards-1280.png": "1000f0df0c9287ec6f62c7cedc0cd9c646fde975c583eacba1cc8514ec21ce85",
-    "packages/viewer/design-tests/baselines/cards-1440.png": "57b554f75cbaa39e45762c72cd858777c8b25f987100c03f248b851ef39fef6d",
-    "packages/viewer/design-tests/baselines/cards-375.png": "de07e86679810e88b5aae2f14adecd32fc8f4a6fea1cd95641f307f017a5fbce",
-    "packages/viewer/design-tests/playwright.config.mjs": "2c0fdcd74243e2182e11fd87ec98b63c565b342e9793bc872b4a866087d136e0",
-    "packages/viewer/design-tests/serve.mjs": "755614c74b6fa2eeb1a1ebc25fbfed331989511f7a05e43aa1a97ae67670d6de",
-    "packages/viewer/design-tests/trainer-cards.spec.mjs": "9878c07014fc06248aed181a98f2a89a7c30d70e6ae36d3cf3c843e4012e67f1",
-    "packages/viewer/src/trainer-card.test.ts": "6811da909b72c1158addbc2e18423d4526f36caefb3fd05a1aba982948ee381e",
-    "packages/viewer/src/workbench.test.ts": "e440c805a30785f2dfefbe74151ef395d1bf492d3cc4fa98f712bdf389524860",
-    "scripts/check-trainer-card-design.py": "71ce99e0f1148c6bcf36f06836a5b72c2b69f922d2cb2c5b1a7ca359b772ab57",
-    "scripts/test_trainer_card_design_guard.py": "c56789b98a014266ba11b585dcc01fb531dadc8f1124e7373961818633a65f31"
+    "packages/viewer/src/trainer-card-app.test.ts": "c968aa550d124445e7e16df5c1f424bc7e7391357e5dbaf08506dae3ee29b7d3",
+    "packages/viewer/src/workbench.test.ts": "a778c97e9cb9e958b17c84218cacf9148fa99e1d3d513998a4399e8d25b87d17",
+    "scripts/check-trainer-card-design.py": "e5599cf477a45637dfd030327d04c0f7d4ccc597f34b95c84e40e6081e0ac47c",
+    "scripts/test_trainer_card_design_guard.py": "902ae4653fc24347e56278b7767abd400960438be2ddcc4801ce5b01e6d8c2eb"
   }
 }

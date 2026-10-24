@@ -24,10 +24,13 @@ class DesignGuardTest(unittest.TestCase):
                     .strip()
                 )
 
-            def run():
-                return subprocess.run(
-                    ["bash", str(HOOK)], cwd=root, capture_output=True
-                ).returncode
+            def run(reason=None):
+                result = subprocess.run(
+                    ["bash", str(HOOK)], cwd=root, capture_output=True, text=True
+                )
+                if reason is not None:
+                    self.assertIn(reason, result.stderr)
+                return result.returncode
 
             path = "docs/design/trainer-cards/baseline.txt"
             target = Path(root, path)
@@ -54,7 +57,9 @@ class DesignGuardTest(unittest.TestCase):
             guard_copy.write_text("raise SystemExit(0)")
             git("add", str(guard_copy))
             self.assertEqual(
-                run(), 1, "committed guard rejects staging a weakened guard"
+                run("stage a new operator approval receipt"),
+                1,
+                "committed guard rejects staging a weakened guard",
             )
             git("restore", "--staged", "--worktree", str(guard_copy))
             gate = Path(root, "justfile")
@@ -63,12 +68,26 @@ class DesignGuardTest(unittest.TestCase):
             )
             git("add", "justfile")
             self.assertEqual(
-                run(), 1, "cannot remove the design gate from normal tests"
+                run("stage a new operator approval receipt"),
+                1,
+                "cannot remove the design gate from normal tests",
             )
             git("restore", "--staged", "--worktree", "justfile")
+            for disabled in [
+                "# just trainer-card-check",
+                "echo just trainer-card-check",
+            ]:
+                gate.write_text(
+                    f"test:\n    {disabled}\n\ntrainer-card-check:\n    check-design\n"
+                )
+                git("add", "justfile")
+                self.assertEqual(
+                    run("stage a new operator approval receipt"), 1, disabled
+                )
+                git("restore", "--staged", "--worktree", "justfile")
             target.write_text("changed")
             git("add", path)
-            self.assertEqual(run(), 1)
+            self.assertEqual(run("stage a new operator approval receipt"), 1)
             approval = {
                 "parent": git("rev-parse", "HEAD"),
                 "source": "test-owned user message",
@@ -77,12 +96,20 @@ class DesignGuardTest(unittest.TestCase):
             }
             receipt = Path(root, "docs/design/trainer-card-approval.json")
             receipt.write_text(json.dumps(approval))
-            self.assertEqual(run(), 1, "unstaged receipt cannot authorize a commit")
+            self.assertEqual(
+                run("stage a new operator approval receipt"),
+                1,
+                "unstaged receipt cannot authorize a commit",
+            )
             git("add", str(receipt))
             self.assertEqual(run(), 0)
             target.write_text("changed again")
             git("add", path)
-            self.assertEqual(run(), 1, "approval binds staged bytes")
+            self.assertEqual(
+                run("approval hashes must exactly match"),
+                1,
+                "approval binds staged bytes",
+            )
             approval["files"][path] = hashlib.sha256(b"changed again").hexdigest()
             receipt.write_text(json.dumps(approval))
             git("add", str(receipt))
@@ -98,7 +125,11 @@ class DesignGuardTest(unittest.TestCase):
             )
             target.unlink()
             git("add", path)
-            self.assertEqual(run(), 1, "prior receipt cannot authorize deletion")
+            self.assertEqual(
+                run("stage a new operator approval receipt"),
+                1,
+                "prior receipt cannot authorize deletion",
+            )
             approval["parent"] = git("rev-parse", "HEAD")
             approval["files"] = {path: None}
             receipt.write_text(json.dumps(approval))
@@ -107,7 +138,7 @@ class DesignGuardTest(unittest.TestCase):
             approval["parent"] = "0" * 40
             receipt.write_text(json.dumps(approval))
             git("add", str(receipt))
-            self.assertEqual(run(), 1)
+            self.assertEqual(run("approval must name the current parent commit"), 1)
 
 
 if __name__ == "__main__":

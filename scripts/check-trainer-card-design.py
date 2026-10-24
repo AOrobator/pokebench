@@ -42,11 +42,15 @@ def check() -> None:
             match = re.search(r"^" + name + r":\n(?:[ \t].*\n|\n)*", text, re.MULTILINE)
             return "" if match is None else match.group()
 
+        def invokes_check(text: str) -> bool:
+            return any(
+                line.strip() == "just trainer-card-check"
+                for line in recipe(text, "test").splitlines()
+            )
+
         if recipe(before, "trainer-card-check") != recipe(
             after, "trainer-card-check"
-        ) or ("just trainer-card-check" in recipe(before, "test")) != (
-            "just trainer-card-check" in recipe(after, "test")
-        ):
+        ) or invokes_check(before) != invokes_check(after):
             protected.append("justfile")
             protected.sort()
     if not protected:

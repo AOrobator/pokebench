@@ -167,6 +167,9 @@ describe("live runs as trainer cards on the comparisons page", () => {
     const cards = [...ui("current").querySelectorAll<HTMLAnchorElement>("a.tc.tc-wide")];
     expect(cards.map(c => c.getAttribute("href"))).toEqual(["/#replay=run_live", "/#replay=run_other"]);
     expect(cards[0]?.innerHTML).toContain("/sprites/trainers/norman.png"); expect(cards[0]?.innerHTML).toContain('data-gt="LIVE"'); expect(cards[1]?.innerHTML).toContain('data-gt="PAUSED"');
+    expect(cards[0]?.querySelector('.tc-tab [data-gt]')?.getAttribute("data-gt")).toBe("bundle-v-control-dryrun-cook");
+    expect(cards[0]?.querySelector(".tc-ty")?.textContent).toBe("TYPE/BUNDLE");
+    expect(cards[1]?.querySelector(".tc-ty")?.textContent).toBe("TYPE/CONTROL");
     expect(cards[0]?.innerHTML).toContain("trial 2/4"); expect(cards[0]?.textContent).toContain("RED");
     expect(ui("current").textContent).toContain("NOT FROM ZERO"); expect(ui("current").textContent).toContain("2 CURRENT RUNS");
     expect(ui("current").querySelector(".wb-plate")).toBeNull();

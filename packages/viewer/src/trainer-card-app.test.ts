@@ -101,6 +101,9 @@ describe("trainer cards in the viewer", () => {
     const mine = card(row, LIVE_ID), other = card(row, OTHER_ID);
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
     expect(mine.innerHTML).toContain("/sprites/trainers/wattson.png"); expect(other.innerHTML).toContain("/sprites/trainers/sidney.png");
+    expect(mine.querySelector('.tc-tab [data-gt]')?.getAttribute("data-gt")).toBe("bundle-v-control-dryrun-cook");
+    expect(mine.querySelector(".tc-ty")?.textContent).toBe("TYPE/BUNDLE");
+    expect(other.querySelector(".tc-ty")?.textContent).toBe("TYPE/CONTROL");
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
   });
 
@@ -268,6 +271,10 @@ describe("trainer cards in the viewer", () => {
   it("on a phone, the sheet reuses the full trainer cards; tapping one watches it and closes the sheet", async () => {
     const { streams } = await mount(375, { fresh: true });
     const body = ui("run-sheet-body"), cards = body.querySelectorAll<HTMLElement>(".tc.tc-wide");
+    const mine = card(body, LIVE_ID);
+    expect(mine.querySelector('.tc-tab [data-gt]')?.getAttribute("data-gt")).toBe("bundle-v-control-dryrun-cook");
+    expect(mine.querySelector(".tc-ty")?.textContent).toBe("TYPE/BUNDLE");
+    expect(mine.textContent).toContain("trial 2/4");
     expect(cards).toHaveLength(2); expect(cards[0]?.dataset.watch).toBe(LIVE_ID);
     expect(cards[0]?.innerHTML).toBe(card(ui("run-cards"), LIVE_ID).innerHTML);
     expect(body.querySelector(".rs-now, .rs-other")).toBeNull();

@@ -4,8 +4,8 @@ User authorization 2026-10-25: reuse existing Extend dialog, choose additional t
 
 One bounded feature: operator budget controls and faithful projection. No model prompts, tools, navigation or automatic gameplay changes. Operator-only control has no experiment treatment switch: unchanged until explicit operator request, same as existing time extension. No trainer-card redesign, timeline additions, new runs or gameplay restart. Original evaluation horizon retained separately from continuation.
 
-- [ ] Tests for control application/refusal, projection, dialog and source capability.
-- [ ] Implementation through existing control/event/viewer path, validated Astra override receipt.
+- [x] Tests for control application/refusal, projection, dialog and source capability.
+- [x] Implementation through existing control/event/viewer path, validated Astra override receipt.
 - [ ] Targeted and full gates, independent review, headless browser proof, queued local landing and safe viewer refresh.
 
 Active Astra pin cannot acquire source updates automatically. Its actual turn override is audited in its run sidecar; compatibility/capability must be explicit, never queue unsupported actions as successful. No inspector mutation as a viewer endpoint.
@@ -26,3 +26,9 @@ Performed R2 RED mutations, restoring each: production turn callback; production
 Grok attempt exit1 ActionRequiredError out of usage. Standing waiver original user provenance independently read from milestone-prerequisites receipt, and coordinator explicitly reconfirmed applicability to this item. User authorized sparing Claude with subagents. Use normalGPT plus two distinct fresh independent fallback reviewers; disclose reduced vendor diversity, never Grok LGTM.
 
 Factory extraction required updating the preexisting cutoff notice wiring assertion to locate controlledRun rather than new Governor; the asserted FeatureSet/maxTokens/cutOffNotice behavior is unchanged.
+
+
+R2 final packet27dbe7921a1934f9432ce479343a1f8647d61693 / base dc2039d0b93e27eac3eafa99cb6c3d3068491a8b / diffSHA2564b12f549a7744a8b6a85382462c04a9b5940fe65a65be9bac4940b83fb94f4ff: build,test,lint,coverage,verify-vendor all PASS. Counts4448 agent,2011 viewer,4425Python plus protected trainer baselines. Final legacy/phone preview screenshot inspected after correction; no pending candidate screenshot gap.
+Independent R2 reviewers /root/budget_review_sol(gpt-6.1-sol), /root/budget_review_astra(gpt-6-astra), /root/budget_review_gpt_final(gpt-6-sol normalGPT) each VERDICT: LGTM. Reduced vendor diversity under user subagent authorization and independently verified Grok waiver; Grok failed out-of-usage, never approved. R2 synthesis in canonical ignored runs/reviews/viewer-budget-extension/r2-synthesis.md. Optional wall heading clarity deferred, no remaining blocker before landing.
+Landed FF exact reviewed27dbe7921 at #1 board, actual Codex session 00000000-0000-4000-8000-90582e228b42. Main build PASS. Postmerge main just test FAILED: agent4448PASS; viewer2010PASS/1timeout in unchanged fixed-runner.test.ts:224, "pauses only the lane that cannot serve, says why, and retries it with growing backoff while the other lane plays",5000ms exceeded at5956ms. This file has zero diff from original main. No retry/timeout widening/skip performed. Python/card portion not reached on main. Logs main-build.log/main-test.log retained. Per execute-worklog Landing rule, STOP before viewer refresh; no claim live. Served viewer still231ba7a, actual new20k display not activated. No refresh or actual control POST occurred. Protected10PID baseline all alive immediately before stop; final check recorded separately. Implementation is merged, activation incomplete pending diagnosis of postmerge gate.
+COMMIT: record review approval, exact merge and postmerge gate failure (evidence-only, docs/worklogs only).

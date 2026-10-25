@@ -35,3 +35,5 @@ Source reference: clean pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; mat
 - Unified contract sent before provider implementation. Source research corrected several traps: Mossdeep button-adjacent blank tiles are not buttons; Petalburg/ship door collision does not establish lock state; source rotating-gate pivot is a tile junction and arms are edges; header layout ID does not track all script layout swaps.
 
 - RED42cd92003: five missing Python modules and generated TS schema fail collection as expected. Provider GREEN checks independently reported52 tile/29 rotating/43 terrain-layout tests; parent verification pending. Secondary config RED: production both-arm/default test fails2 assertions before registry wiring.
+
+- Additional production-copy RED: map-observation-navigation-copy.test.ts proves OFF exact refusal bytes and zero inputs; ON fails because slippery floor is still called a spin tile. Narrow observation-only wording fix follows. Legacy Python fixtures explicitly disable the newly default-ON feature; 361 focused tests pass with zero skips and original golden assertions intact.

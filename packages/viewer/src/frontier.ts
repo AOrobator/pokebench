@@ -66,6 +66,7 @@ export function frontierVersions(runs: readonly WorkbenchRun[], previous: Readon
 const OTHER_COLOR = "#536d85";
 const versionLabel = (run: WorkbenchRun, versions: VersionIndex): string => versions.byRun.get(run.id)?.name ?? modelName(run);
 export function preciseTime(ms: number): string {
+  if (ms < 0) return `-${preciseTime(-ms)}`;
   const whole = Math.floor(ms / 1000), fraction = String(Math.round(ms % 1000)).padStart(3, "0");
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, "0")}.${fraction}`;
 }

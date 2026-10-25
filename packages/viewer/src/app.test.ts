@@ -1507,6 +1507,43 @@ describe("agent trace page", () => {
     expect(again.classList.contains("sel")).toBe(true);
   });
 
+  it("holds a phone reader beyond the rolling window and resumes only at the top or Jump to latest", async () => {
+    const { app, streams, setNow } = await harness();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 60; turn += 1) log.add(turn * 10, assistantAt(turn));
+    feed(must(streams[0]), log.events);
+    setNow(BASE_MS + 10_000);
+    app.tick(10);
+    const box = ui("trace");
+    const jump = ui("trace-latest");
+    const reading = must(box.querySelector<HTMLDetailsElement>('[data-group="t20"] details'));
+    must(reading.querySelector("summary")).click();
+    box.dispatchEvent(new Event("touchstart"));
+    box.scrollTop = 1600;
+    box.dispatchEvent(new Event("scroll"));
+    for (let turn = 61; turn <= 120; turn += 1) {
+      feed(must(streams[0]), [log.add(turn * 10, assistantAt(turn))], false);
+      app.tick(10);
+    }
+    expect(reading.isConnected).toBe(true);
+    expect(reading.open).toBe(true);
+    expect(jump.hidden).toBe(false);
+    expect(jump.textContent).toContain("New activity");
+    box.scrollTop = 0;
+    box.dispatchEvent(new Event("scroll"));
+    expect(jump.hidden).toBe(true);
+    feed(must(streams[0]), [log.add(1210, assistantAt(121))], false);
+    app.tick(10);
+    expect(box.scrollTop).toBe(0);
+    box.scrollTop = 500;
+    box.dispatchEvent(new Event("scroll"));
+    expect(jump.hidden).toBe(false);
+    jump.click();
+    expect(box.scrollTop).toBe(0);
+    expect(jump.hidden).toBe(true);
+  });
+
   it("keeps the row being read in place when turns change above or below it", async () => {
     const { app, streams, setNow } = await harness();
     const log = new Log();

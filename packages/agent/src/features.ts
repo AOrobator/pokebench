@@ -280,6 +280,8 @@ export const SWITCHABLE_FEATURES = [
   "caught-nickname-prompt-v2",
   "mauville-puzzle-readout-v1",
   "cutscene-journal-v1",
+  "instruction-goal-advisory-v1",
+  "goal-review-repair-feedback-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -680,6 +682,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("caught-nickname-prompt-v2", "observation", "CAUGHT NICKNAME INPUT V2", "caught-nickname-prompt-v1", "Enabled in both maintained arms. Projects the verified ready nickname YES/NO prompt into the shared Interface/Menu state, including its live cursor. The model chooses; no answer is pressed automatically. Off: retains V1 battle-prompt detection and the previous generic interface readout."),
   on("mauville-puzzle-readout-v1", "observation", "MAUVILLE PUZZLE TILES", null, "Default on in control and bundle by operator request (2026-10-25). Distinguishes raised/pressed floor switches and currently open/blocked electric doors in Mauville Gym using the paired live map. Names switch targets and current tile coordinates without selecting switches or routes. Off: retains anonymous coordinate triggers and ordinary floor/wall glyphs."),
   on("cutscene-journal-v1", "observation", "CUTSCENE JOURNAL", null, "Default off; enabled in the bundle by operator request. Captures visible field objects and displayed text at the emulator frame boundary, then delivers their chronological appearance, tile movement and departure with the next game-tool result. Sprite descriptions and map-local object IDs do not establish a character or speaker name. Includes visual samples every 120 emulated frames during locked field scenes and supported cinematic/unknown callbacks; at most six images per delivery. Retains 512 events; reports lost events, failed reads and omitted visual samples explicitly. Preserves existing inputs and dialogue advancement. Off: no scene frame hook, endpoint, extra images or scene history in model results."),
+  on("instruction-goal-advisory-v1", "guidance", "ADVISORY INSTRUCTION GOALS", null, "Default off; bundle only. With instruction-goal-ledger-v1 enabled, keeps dialogue and goal bookkeeping without making pending or rejected goal reviews a prerequisite for gameplay. Invalid reviews do not commit; ordinary action validation still applies. Inactive when the ledger is OFF. Off: pending dialogue and rejected reviews block game-changing calls as before."),
+  on("goal-review-repair-feedback-v1", "guidance", "GOAL REVIEW REPAIR FEEDBACK", null, "Default off; bundle only. With instruction-goal-ledger-v1 enabled, rejected reviews name the failing field and actual delivered references. Evidence validation and atomic rejection remain unchanged; no goal or route is assigned. Inactive when the ledger is OFF. Off: original rejection messages are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1034,6 +1038,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("caught-nickname-prompt-v2"),
     ...when("mauville-puzzle-readout-v1"),
     ...when("cutscene-journal-v1"),
+    ...when("instruction-goal-advisory-v1"),
+    ...when("goal-review-repair-feedback-v1"),
   ];
 }
 

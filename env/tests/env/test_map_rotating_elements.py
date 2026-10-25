@@ -174,6 +174,12 @@ def test_other_maps_do_not_read_reused_temp_variables(map_id):
         (SAVE + 4, b"\x1d\x08"),
         (0x0858E8B0, b"\xff"),
         (0x080FB854, b"\xff"),
+        (0x0809D67C, b"\xff"),
+        (0x080FB8EC, b"\xff"),
+        (0x080FB918, b"\xff"),
+        (0x080FBAE4, b"\xff"),
+        (0x0858E8F0, b"\xff"),
+        (0x08592078, b"\xff"),
     ],
 )
 def test_unqualified_or_uninitialized_owner_never_becomes_a_default_gate(address, data):

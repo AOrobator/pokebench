@@ -67,6 +67,7 @@ class Scene:
     locked: bool
     actors: tuple[Actor, ...]
     message: str | None
+    message_active: bool = False
 
 
 def _exact(read: ReadMemory, address: int, count: int) -> bytes:
@@ -129,7 +130,7 @@ def read_scene(read: ReadMemory) -> Scene:
         )
         if not message.ready:
             visible_text = None
-    return Scene(screen, map_id, locked, tuple(actors), visible_text)
+    return Scene(screen, map_id, locked, tuple(actors), visible_text, message is not None)
 
 
 class SceneJournal:
@@ -176,6 +177,15 @@ class SceneJournal:
         prev = self.previous
         field = scene.screen == "overworld"
         active = scene.locked or (prev is not None and prev.locked and field)
+        # An owned printer remains active while printing/scrolling. Only its
+        # disappearance or a scene boundary ends prefix continuity.
+        if (
+            not scene.message_active
+            or prev is None
+            or prev.map_id != scene.map_id
+            or not prev.locked
+        ):
+            self.last_message = None
         if active:
             prefix = f"map {scene.map_id}: "
             same_map = (
@@ -211,8 +221,6 @@ class SceneJournal:
                 if text:
                     self._add(prefix + f'field text (speaker not established): "{text}"')
                 self.last_message = scene.message
-            elif scene.message is None and (prev is None or prev.message is None):
-                self.last_message = None
             if not scene.locked:
                 self._add(prefix + "field controls returned")
         cinematic = scene.screen in VISUAL_SCREENS

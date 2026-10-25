@@ -164,7 +164,7 @@ const inert = (): Promise<never> => Promise.reject(new Error("probe tools never 
 export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
   const context = contextTools(features, recorder, (m) => Promise.resolve(m),cutOff);
-  const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
+  const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert, sceneEvents: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
   return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
 }
 const asTool = (t: AgentTool): Tool => ({ name: t.name, description: t.description, parameters: t.parameters });

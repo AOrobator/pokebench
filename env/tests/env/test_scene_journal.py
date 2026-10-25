@@ -230,6 +230,7 @@ def test_native_field_text_only_delivers_printed_prefix_and_keeps_event_order(mo
     first = j.last_id
     message = FieldMessage("printing", 6, False)
     j.advance(m.read)
+    j.advance(m.read)
     message = FieldMessage("page_wait", 13, True)
     actor(m, 1, 9, 20, 21)
     j.advance(m.read)
@@ -256,3 +257,31 @@ def test_busy_frames_and_encoder_failures_are_explicit(monkeypatch):
     j.advance(m.read, broken)
     assert j.snapshot(0)["errors"] == 2
     assert j.snapshot(0)["last_error"] == "encoder failed"
+
+
+def test_identical_text_after_message_closes_or_scene_ends_is_delivered_again(monkeypatch):
+    import pokebench_env.scene_journal as module
+    from pokebench_env.gba_text import GBA_TEXT
+    from pokebench_env.world_context import FieldMessage
+
+    m = field()
+    encode = {s: b for b, s in GBA_TEXT.items()}
+    m.put(0x02021FC4, bytes(encode[c] for c in "Wait!") + b"\xff")
+    message = FieldMessage("page_wait", 5, True)
+    monkeypatch.setattr(module, "read_field_message", lambda read: message)
+    j = SceneJournal()
+    j.advance(m.read)
+    message = None
+    j.advance(m.read)
+    message = FieldMessage("page_wait", 5, True)
+    j.advance(m.read)
+    m.put(0x03000F2C, b"\x00")
+    message = None
+    for _ in range(3):
+        j.advance(m.read)
+    m.put(0x03000F2C, b"\x01")
+    message = FieldMessage("page_wait", 5, True)
+    j.advance(m.read)
+    quotations = [e["text"] for e in j.entries if "field text" in e["text"]]
+    assert len(quotations) == 3, quotations
+    assert all(line.endswith('"Wait!"') for line in quotations), quotations

@@ -361,3 +361,71 @@ def test_shared_map_and_nearby_use_the_same_base_glyph_switches(behavior, collis
     assert row.split()[column + 1] == base, (feature, row, text)
     expected = "clear (.)" if base == "." else "collision (#)"
     assert f"right (2,1) {expected}" in text, text
+
+
+@pytest.mark.parametrize(
+    "behavior",
+    [
+        0xD0,
+        0xD1,
+        0xD2,
+        0x66,
+        0x0F,
+        0x13,
+        0x20,
+        0x26,
+        0x27,
+        0x48,
+        0xBB,
+        0xBC,
+        *range(0xD3, 0xD7),
+        *range(0x40, 0x48),
+        *range(0x50, 0x54),
+    ],
+)
+def test_shared_map_preserves_enabled_terrain_consequences_in_legend_and_nearby(behavior):
+    from pokebench_env.terrain_visibility import TERRAIN
+
+    memory = map_memory()
+    memory.put(0x02005000 + 2 * (8 * 39 + 2 + 7), struct.pack("<H", 0x200))
+    memory.put(0x02008000, struct.pack("<I", behavior))
+    off = off_set() - {"field-move-gates-v1"}
+    state = read_state(memory.read, MAPS, active_ui=False, off=off)
+    text = render(state, off)
+    consequence = TERRAIN[behavior][2]
+    legend = next(line for line in text.splitlines() if line.startswith("Element legend:"))
+    nearby = next(line for line in text.splitlines() if line.startswith("Next tiles:"))
+    assert consequence in legend, (hex(behavior), legend, text)
+    assert consequence in nearby.split("right (2,1)", 1)[1], (hex(behavior), nearby)
+    old = read_state(memory.read, MAPS, active_ui=False, off=off | {SWITCH})
+    assert consequence in render(old, off | {SWITCH})
+    assert state_json(state)["navigation_grid"] == state_json(old)["navigation_grid"]
+    disabled = render(state, off | {"field-move-gates-v1"})
+    assert consequence not in disabled, disabled
+    if behavior == 0x48:
+        assert "slippery floor" in text and "spin tile" not in text, text
+
+
+@pytest.mark.parametrize("warp", [False, True])
+def test_shared_map_preserves_enabled_elevation_consequences_and_warp_qualification(warp):
+    memory = elevation_memory()
+    if warp:
+        # Native directional warp under player answers right instead of a step.
+        memory.put(0x02005000 + 2 * (8 * 39 + 1 + 7), struct.pack("<H", 0x201 | 3 << 12))
+        memory.put(0x02008004, struct.pack("<I", 0x62))
+        memory.put(0x02002000, bytes([0, 1, 0, 0]) + struct.pack("<II", 0, 0x0200A000))
+        memory.put(0x0200A000, struct.pack("<hhBBBB", 1, 1, 0, 0, 9, 0))
+    off = off_set() - {"elevation-aware-map-v1"}
+    state = read_state(memory.read, MAPS, active_ui=False, off=off)
+    text = render(state, off)
+    assert "The game refuses a step onto a tile at an elevation other than yours" in text, text
+    assert "tiles at elevation 0 or 15 accept any elevation" in text, text
+    nearby = next(line for line in text.splitlines() if line.startswith("Next tiles:"))
+    right = nearby.split("right (2,1)", 1)[1]
+    assert "elevation 4 (yours is 3)" in right, right
+    assert ("cannot be entered from here" in right) is not warp, right
+    assert ("but you stand on a warp" in right) is warp, right
+    disabled = render(state, off | {"elevation-aware-map-v1"})
+    assert "other level (4)" in disabled
+    assert "The game refuses a step" not in disabled
+    assert "cannot be entered from here" not in disabled

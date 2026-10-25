@@ -2,6 +2,7 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFile
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { RunView } from "./model.js";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { RECENT_EVENT_BYTES, RECENT_EVENT_TURNS, RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, readHeadEvents, runDir } from "./runs.js";
@@ -500,4 +501,30 @@ it("keeps the head cursor at the last complete byte including multibyte text", (
   const head = readRecentEvents(runsRoot, "cursor", 30, 8000, cursor);
   expect(cursor.offset).toBe(end);
   expect(head.map(e => e.seq)).toEqual(log.events.map(e => e.seq));
+});
+
+it("hydrates PokéNav party and milestones outside the recent trace without a control sidecar", async () => {
+  const runsRoot = root(), log = new Log(); log.add(0, START);
+  const roster = log.add(10, state({ name: "RED", party: [{ species: "COMBUSKEN", species_id: 281, level: 20, hp: 42, max_hp: 60 }] }));
+  log.add(20, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [roster.seq] });
+  const partial = log.add(30, state({ turn: 1, name: null, location: null, party: [], play_time_s: null }));
+  for (const turn of [2, 3]) { log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } }); log.add(turn * 1000 + 1, assistant({ turn, thinking: "recent trace payload".repeat(8) })); }
+  const path = writeRun(runsRoot, "pokenav-context", log), bytes = readFileSync(path, "utf8");
+  const cursor = { offset: 0 }, head = await readHeadEvents(runsRoot, "pokenav-context", cursor, 1, 800);
+  const view = new RunView(); for (const event of head) view.apply(event);
+  expect(view.partyMembers).toEqual([{ species: "COMBUSKEN", species_id: 281, level: 20, hp: 42, max_hp: 60 }]);
+  expect(view.partyState?.seq).toBe(roster.seq); expect(view.state?.seq).toBe(partial.seq);
+  expect(view.milestones.filter(mark => mark.name === "PLAYER_NAME_CONFIRMED")).toEqual([{ name: "PLAYER_NAME_CONFIRMED", ms: Date.parse(log.events[0]?.t ?? "") + 20, seq: 2, kind: "story", origin: "observed", evidence: [1] }]);
+  expect(head.filter(event => event.type === "assistant").map(event => event.turn)).toEqual([3]);
+  expect(head.map(event => event.seq)).toEqual([0, 1, 2, 3, 6, 7]);
+  expect(cursor.offset).toBe(Buffer.byteLength(bytes)); expect(readFileSync(path, "utf8")).toBe(bytes);
+});
+
+it("preserves a recorded empty pregame roster instead of reviving an old party", async () => {
+  const runsRoot = root(), log = new Log(); log.add(0, START); log.add(10, state());
+  const title = log.add(20, state({ started: false, screen: "title", name: null, party: [], play_time_s: null }));
+  for (const turn of [2, 3]) { log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } }); log.add(turn * 1000 + 1, assistant({ turn, thinking: "tail payload".repeat(8) })); }
+  writeRun(runsRoot, "pokenav-reset", log);
+  const view = new RunView(); for (const event of await readHeadEvents(runsRoot, "pokenav-reset", { offset: 0 }, 1, 800)) view.apply(event);
+  expect(view.partyMembers).toEqual([]); expect(view.partyState?.seq).toBe(title.seq);
 });

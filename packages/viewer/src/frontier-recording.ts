@@ -20,7 +20,7 @@ type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
 // last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
-export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
+export interface NativeRecording { clockProblem?: string; view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
 export interface RecordingFileIdentity { dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number }
 export interface NativeRecordingTailer { read(): NativeRecording; fileIdentity(): RecordingFileIdentity | null }
 function compact(state: State): State {
@@ -61,17 +61,18 @@ export function readStartlessLog(path: string, id: string): { view: RunView; ski
   return { view, skipped };
 }
 // tolerate: step over schema-rejected events whose envelope is in order (never run_start or run_end) instead of failing.
-export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false): NativeRecording {
-  return createNativeRecordingTailer(path, id, qualified, evidenceLimit, tolerate, () => undefined, true).read();
+export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false, clockPolicy: "strict" | "display" = "strict"): NativeRecording {
+  return createNativeRecordingTailer(path, id, qualified, evidenceLimit, tolerate, () => undefined, true, clockPolicy).read();
 }
 
 // Incremental equivalent of readNativeRecording for an append-only live log. A tailer owns the
 // reducer state and consumes each appended byte once; callers must discard it after a rewrite,
 // truncation, replacement, or auxiliary-evidence change. readNativeRecording deliberately creates
 // a fresh tailer so one-shot validation retains its historical behavior.
-export function createNativeRecordingTailer(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false, observeRead: (offset: number, bytes: number) => void = () => undefined, verifyPrefix = false): NativeRecordingTailer {
+export function createNativeRecordingTailer(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false, observeRead: (offset: number, bytes: number) => void = () => undefined, verifyPrefix = false, clockPolicy: "strict" | "display" = "strict"): NativeRecordingTailer {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   let progressSupported=false,campaignSupported=false;
+  let clockProblem: string | undefined;
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
   const restoration = restorationSignature(path);
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
@@ -82,7 +83,10 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
   const ordered = (event: EventEnvelope): number => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
-    if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
+    if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || (ms < previousMs && clockPolicy === "strict") || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
+    // Sequence remains authoritative for display. Raw timestamps stay untouched and
+    // anomalous recordings never export graded splits, even after the clock recovers.
+    if (ms < previousMs && clockProblem === undefined) clockProblem = `Recording timestamp moved backward ${String(previousMs - ms)} ms at seq ${String(event.seq)}; timing is unverified; no split graded`;
     expected = event.type === "run_start" ? restorationNextSequence(path, event as Extract<RunEvent, { type: "run_start" }>) : expected + 1; previousMs = ms; return ms;
   };
   const skip = (line: number, problem: string, value: unknown): void => {
@@ -191,6 +195,6 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     const outputView = Object.assign(new RunView(), structuredClone(view));
     Object.defineProperty(outputView, "control", { value: Object.assign(new ControlView(), structuredClone(view.control)), enumerable: true, configurable: true });
     outputView.state = null;
-    return { view: outputView, last, splits: outputSplits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...((progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)||campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE))?{recoveredFeatures:[...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?[STORY_PROGRESS_FEATURE]:[]),...(campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE)?[CAMPAIGN_PROGRESS_FEATURE]:[])]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: outputRaw }, skipped: skipped === null ? null : { ...skipped } };
+    return { ...(clockProblem === undefined ? {} : { clockProblem }), view: outputView, last, splits: clockProblem === undefined ? outputSplits : [], measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...((progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)||campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE))?{recoveredFeatures:[...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?[STORY_PROGRESS_FEATURE]:[]),...(campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE)?[CAMPAIGN_PROGRESS_FEATURE]:[])]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: clockProblem === undefined ? outputRaw : [] }, skipped: skipped === null ? null : { ...skipped } };
   } };
 }

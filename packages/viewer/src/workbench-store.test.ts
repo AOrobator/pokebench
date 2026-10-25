@@ -3,9 +3,9 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, s
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Log, START, assistant, state } from "../test-support/events.js";
+import { BASE_MS, Log, START, assistant, state, tAt } from "../test-support/events.js";
 import { frontierReferences } from "./frontier.js";
-import { cardWorkbench, createIncrementalRunLoader, workbenchSnapshot } from "./workbench-store.js";
+import { cardWorkbench, createIncrementalRunLoader, loadRun, workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
@@ -390,6 +390,8 @@ describe("run-tagged experiment cohorts", () => {
   const C1 = "3bab9746".padEnd(40, "1"), C2 = "ca37a392".padEnd(40, "2"), C3 = "014f1853".padEnd(40, "3");
   function tagged(r: string, id: string, experiment: string, commit: string, at: string, arm = "control"): void {
     const log = named(); const first = log.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
+    const shift = Date.parse(at) - Date.parse(first.t);
+    for (let i = 1; i < log.events.length; i++) { const event = log.events[i]; if (event !== undefined) log.events[i] = { ...event, t: tAt(Date.parse(event.t) - BASE_MS + shift) }; }
     log.events[0] = { ...first, t: at, harness: { commit, dirty: false }, evaluation: { preset_id: "p", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: experiment, arm, trial: 1, of: 4 } } };
     write(r, id, log);
   }
@@ -594,6 +596,7 @@ describe("live card clock regression recovery", () => {
     const r = root(), log = named();
     log.add(3957, state({ name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE", turn: 1955 }));
     write(r, "clock_run", log);
+    expect(loadRun(r, "clock_run").run).toMatchObject({ status: "unresponsive", problem: expect.stringContaining("43 ms"), splits: [] });
     const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
     const card = cardWorkbench(snapshot, null).runs.find(run => run.id === "clock_run");
     expect(card).toMatchObject({ status: "live", turn: 1955, model: START.model.id, card: { name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE" }, splits: [] });

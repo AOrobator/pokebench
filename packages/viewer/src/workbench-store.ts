@@ -97,12 +97,17 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
+    if (recording.clockProblem !== undefined) {
+      run.problem = recording.clockProblem;
+      run.excluded = [run.excluded, recording.clockProblem].filter(Boolean).join("; ");
+      run.splits = []; delete run.measurement;
+    }
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };
 }
 export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
-  return loadRunWith(root, id, viewer, (path, run, tolerate) => readNativeRecording(path, run, qualifiedNativeMilestone, undefined, tolerate));
+  return loadRunWith(root, id, viewer, (path, run, tolerate) => readNativeRecording(path, run, qualifiedNativeMilestone, undefined, tolerate, "display"));
 }
 
 // A worker-local loader for live append-only logs. Each append is reduced exactly once; inode
@@ -128,7 +133,7 @@ export function createIncrementalRunLoader(options: { observeRead?: (path: strin
     let tail = tails.get(key);
     const append = tail !== undefined && tail.dev === stat.dev && tail.ino === stat.ino && stat.size >= tail.size && (stat.size > tail.size || (stat.mtimeMs === tail.mtimeMs && stat.ctimeMs === tail.ctimeMs)) && tail.evidence === evidence;
     if (!append) {
-      tail = { path, dev: stat.dev, ino: stat.ino, size: 0, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, evidence, tailer: createNativeRecordingTailer(path, run, qualifiedNativeMilestone, undefined, tolerate, (offset, bytes) => { options.observeRead?.(path, offset, bytes); }) };
+      tail = { path, dev: stat.dev, ino: stat.ino, size: 0, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, evidence, tailer: createNativeRecordingTailer(path, run, qualifiedNativeMilestone, undefined, tolerate, (offset, bytes) => { options.observeRead?.(path, offset, bytes); }, false, "display") };
       tails.set(key, tail);
       while (tails.size > 8) { const oldest = tails.keys().next().value; if (oldest === undefined) break; tails.delete(oldest); }
     }

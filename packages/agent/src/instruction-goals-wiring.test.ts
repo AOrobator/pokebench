@@ -9,6 +9,7 @@ import { featuresOf, dependencyProblems, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, jitTools } from "./play-config.js";
 import { checkEvent, type BodyOf, type RunEvent } from "./events.js";
+import {GoalReviewError} from "./instruction-goals.js";
 import { withInstructionGoalReview } from "./instruction-goal-tools.js";
 const data = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pokenav-instruction-goals.json.gz", import.meta.url))).toString()) as {
     events: unknown[];
@@ -188,4 +189,32 @@ it("new switches are inert when the ledger is OFF and default OFF",()=>{
  }
  const f={...features(false),"instruction-goal-advisory-v1":true,"goal-review-repair-feedback-v1":true};
  const s=setup(false,[],f);expect(s.context.tools).toEqual([]);expect(s.context.instructionGoals).toBeUndefined();expect(playSystemPrompt(f,null)).toBe(playSystemPrompt(features(false),null));expect(playTools(f)).toEqual(playTools(features(false)));expect(dependencyProblems(f)).toEqual([]);
+});
+
+const baseGoal=must(review.updates[0]);
+const feedbackCases:readonly {name:string;input:unknown;original:string;detail:string}[]=[
+ {name:"schema",input:{},original:"Invalid goal review; supply reviewed episodes and full goal updates",detail:"Invalid goal review at /: must have required properties reviewed, updates"},
+ {name:"unknown reviewed episode",input:{reviewed:[{episode:123,interpretation:"unknown"}],updates:[]},original:"Review must cite unique delivered dialogue episodes",detail:"reviewed[0].episode 123 was not delivered; recent delivered episode IDs: [39430,39462]"},
+ {name:"duplicate reviewed episode",input:{reviewed:[{episode:39430,interpretation:"first"},{episode:39430,interpretation:"second"}],updates:[]},original:"Review must cite unique delivered dialogue episodes",detail:"reviewed[1].episode 39430 duplicates an earlier entry; cite each episode once"},
+ {name:"unknown source episode",input:{reviewed:[],updates:[{...baseGoal,sources:[{episode:123,page:0}]}]},original:"Goal source must cite a delivered episode and zero-based page",detail:'Goal "select" sources[0].episode 123 was not delivered; recent delivered episode IDs: [39430,39462]'},
+ {name:"invalid source page",input:{reviewed:[],updates:[{...baseGoal,sources:[{episode:39462,page:99}]}]},original:"Goal source must cite a delivered episode and zero-based page",detail:'Goal "select" sources[0].page 99 is outside delivered episode 39462; valid zero-based pages: 0–0'},
+ {name:"unknown observation evidence",input:{reviewed:[],updates:[{...baseGoal,evidence:[123]}]},original:"Goal evidence must cite delivered observations in this run",detail:'Goal "select" evidence[0] 123 was not delivered; latest delivered observation result: 39462'},
+ {name:"no prior completion goal",input:{reviewed:[],updates:[{...baseGoal,id:"new",status:"reported_complete",evidence:[39462]}]},original:"Reported completion needs a prior goal and newer delivered observation evidence",detail:'Goal "new" has no prior record; register it before reporting completion, then cite a newer delivered observation result'},
+ {name:"missing completion evidence",input:{reviewed:[],updates:[{...baseGoal,status:"reported_complete"}]},original:"Reported completion needs a prior goal and newer delivered observation evidence",detail:'Goal "select" evidence needs a delivered observation result newer than 39462; none has been delivered yet'},
+ {name:"stale completion evidence",input:{reviewed:[],updates:[{...baseGoal,status:"reported_complete",evidence:[39462]}]},original:"Reported completion needs a prior goal and newer delivered observation evidence",detail:'Goal "select" evidence needs a delivered observation result newer than 39462; none has been delivered yet'},
+ {name:"unknown parent",input:{reviewed:[],updates:[{...baseGoal,parent:"missing"}]},original:"Unknown parent goal",detail:'Goal "select" parent "missing" is unknown; existing or submitted goal IDs: ["select"]'},
+ {name:"unknown replacement",input:{reviewed:[],updates:[{...baseGoal,status:"superseded",superseded_by:"missing"}]},original:"Unknown or self replacement",detail:'Goal "select" superseded_by "missing" must name a different existing or submitted goal; available goal IDs: ["select"]'},
+ {name:"self replacement",input:{reviewed:[],updates:[{...baseGoal,status:"superseded",superseded_by:"select"}]},original:"Unknown or self replacement",detail:'Goal "select" superseded_by "select" must name a different existing or submitted goal; available goal IDs: ["select"]'},
+];
+it.each(feedbackCases)("repair feedback exact contract: $name",({input,original,detail})=>{
+ for(const enabled of [false,true]){
+  const s=setup(true,events.filter(e=>e.seq<=39462),{"goal-review-repair-feedback-v1":enabled});
+  const ledger=must(s.context.instructionGoals).ledger;ledger.apply(review);
+  const before=ledger.text(),pending=ledger.pending();let caught:unknown;
+  try{ledger.apply(input);}catch(error){caught=error;}
+  expect(caught,JSON.stringify({enabled,input})).toBeInstanceOf(GoalReviewError);
+  if(!(caught instanceof GoalReviewError))throw new Error(`Expected goal review rejection; observed ${String(caught)}`);
+  expect(caught.message,JSON.stringify({enabled,input})).toBe(enabled?detail:original);
+  expect(ledger.text()).toBe(before);expect(ledger.pending()).toEqual(pending);expect(s.records).toEqual([]);
+ }
 });

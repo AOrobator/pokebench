@@ -290,3 +290,38 @@ it("restores pending native changes and tutorial ownership without turning loans
   expect(restored.checkpoint()).toEqual(ledgerOf(log).checkpoint());
   expect(() => BagLedger.restore({ ...saved, totals: { gained: "invalid" } })).toThrow("Invalid saved bag summary");
 });
+
+it("continues an item change saved before its confirming state", () => {
+  const events = bagRun().events, cut = 3;
+  const before = new BagLedger(); for (const event of events.slice(0, cut)) before.add(event);
+  expect(before.waiting).toBe(1);
+  const restored = BagLedger.restore(before.checkpoint());
+  for (const event of events.slice(cut)) restored.add(event);
+  expect(restored.checkpoint()).toEqual(ledgerOf(bagRun()).checkpoint());
+});
+
+it.each([3, 4])("preserves a human tutorial boundary across a restart at event %i", cut => {
+  const log = new Log(); log.add(0, START);
+  const bag = resources([[4, 5, "poke_balls", "POKé BALL"]]);
+  log.add(1, state({ turn: 1, resources: bag }));
+  log.add(2, state({ turn: 2, in_battle: true, party_owner: "tutorial", resources: resources([[4, 1, "poke_balls", "POKé BALL"], [13, 1, "items", "POTION"]]) }));
+  log.add(3, state({ turn: 3, party_owner: "player", resources: bag }));
+  log.add(4, itemChange(3, 4, "POKé BALL", 1, 5));
+  log.add(5, itemChange(3, 13, "POTION", 1, 0));
+  log.add(6, state({ turn: 4, resources: bag }));
+  const first = new BagLedger(); for (const event of log.events.slice(0, cut)) first.add(event);
+  const restored = BagLedger.restore(first.checkpoint());
+  for (const event of log.events.slice(cut)) restored.add(event);
+  expect(headline(restored)).toEqual({ gained: 0, used: 0, spent: 0, buys: 0 });
+  expect(restored.changes).toEqual([]);
+});
+
+it("keeps the previous snapshot needed by human state-before-action recordings", () => {
+  const log = new Log(); log.add(0, START);
+  log.add(1, state({ money: 1000, resources: resources([]) }));
+  log.add(2, state({ turn: 2, money: 700, resources: resources([[13, 1, "items", "POTION"]]) }));
+  const restored = BagLedger.restore(ledgerOf(log).checkpoint());
+  restored.add(log.add(3, itemChange(2, 13, "POTION", 0, 1)));
+  expect(headline(restored)).toEqual({ gained: 1, used: 0, spent: 300, buys: 1 });
+  expect(restored.waiting).toBe(0);
+});

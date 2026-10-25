@@ -72,3 +72,34 @@ it("rejects a file replaced during the snapshot read and validates chunk bounds"
   await expect(read(run)).rejects.toThrow("Bag source changed during reading");
   expect(() => createBagHistoryReader(root, { chunkBytes: 0 })).toThrow("Bag chunk size must be positive");
 });
+
+
+it("invalidates the actual reader checkpoint when an imported parser module changes", async () => {
+  const { root, run } = fixture(); const entry = join(root, "reducer.js"), parser = join(root, "parser.js");
+  writeFileSync(entry, 'import { parse } from "./parser.js";\nexport const reduce = parse;\n');
+  writeFileSync(parser, 'export const parse = 1;\n');
+  let bytes = 0;
+  const options = { codeEntry: entry, observeRead: (_offset: number, count: number) => { bytes += count; } };
+  await createBagHistoryReader(root, options)(run); expect(bytes).toBeGreaterThan(0); bytes = 0;
+  await createBagHistoryReader(root, options)(run); expect(bytes).toBe(0);
+  writeFileSync(parser, 'export const parse = 2;\n');
+  expect(headline((await createBagHistoryReader(root, options)(run)).ledger).gained).toBe(7);
+  expect(bytes).toBeGreaterThan(0);
+});
+
+it("fails visibly before reading the log when the summary parent cannot be created", async () => {
+  const { root, run } = fixture(); writeFileSync(join(root, ".viewer-cache"), "not a directory");
+  const reads: number[] = [];
+  const read = createBagHistoryReader(root, { observeRead: offset => { reads.push(offset); } });
+  await expect(read(run)).rejects.toThrow(); await expect(read(run)).rejects.toThrow();
+  expect(reads).toEqual([]);
+});
+
+it("reports failed atomic checkpoint replacement and removes its incomplete temporary file", async () => {
+  const { root, run } = fixture(); const read = createBagHistoryReader(root); await read(run);
+  const parent = join(root, ".viewer-cache", "bag");
+  const directory = join(parent, readdirSync(parent)[0] ?? "missing");
+  const saved = join(directory, `${run}.json`); rmSync(saved); mkdirSync(saved);
+  await expect(read(run)).rejects.toThrow("Could not save bag history summary");
+  expect(readdirSync(directory)).toEqual([`${run}.json`]);
+});

@@ -1566,3 +1566,13 @@ it("serves complete BAG history without trace paging and updates its persisted s
   expect((JSON.parse(next.body.toString()) as { throughSeq: number }).throughSeq).toBe(event.seq);
   expect((await get(viewer, "/api/runs/not-there/bag")).status).toBe(503);
 });
+
+it("reports unusable BAG summary storage through the real HTTP endpoint without false totals", async () => {
+  const { bagRun } = await import("../test-support/bag.js");
+  const { runsRoot, viewer } = await fixture(); const log = bagRun(), run = log.events[0]?.run ?? "missing";
+  writeRun(runsRoot, run, log); writeFileSync(join(runsRoot, ".viewer-cache"), "blocked");
+  const reply = await get(viewer, `/api/runs/${run}/bag`);
+  expect(reply.status).toBe(503);
+  expect(reply.body.toString()).toContain("Bag history unavailable");
+  expect(reply.body.toString()).not.toContain("ITEMS GAINED");
+});

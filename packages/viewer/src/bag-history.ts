@@ -1,7 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rename, rm, stat, writeFile, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { codeIdentity } from "./baseline-store.js";
 import { setImmediate as yieldImmediate } from "node:timers/promises";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
@@ -22,11 +23,12 @@ const appended = (a: Identity, b: Identity): boolean => a.dev === b.dev && a.ino
 
 // Viewer-owned derived files only. A code-keyed, atomic checkpoint includes the reducer's
 // unconfirmed item changes and shop transaction, not just the visible totals.
-export function createBagHistoryReader(root: string, options: { readonly chunkBytes?: number; readonly observeRead?: (offset: number, bytes: number) => void } = {}): BagHistoryReader {
+export function createBagHistoryReader(root: string, options: { readonly chunkBytes?: number; readonly codeEntry?: string; readonly observeRead?: (offset: number, bytes: number) => void } = {}): BagHistoryReader {
   const chunkBytes = options.chunkBytes ?? 256 * 1024;
   if (!Number.isSafeInteger(chunkBytes) || chunkBytes < 1) throw new RangeError("Bag chunk size must be positive");
-  const extension = import.meta.url.endsWith(".ts") ? "ts" : "js";
-  const hash = createHash("sha256").update(readFileSync(new URL(import.meta.url))).update(readFileSync(new URL(`./bag.${extension}`, import.meta.url))).digest("hex");
+  // Fingerprint the built dependency graph, including the event parser. src/ tests and
+  // dist/ runtime both address this same built entry; codeEntry isolates tiny test graphs.
+  const hash = codeIdentity(options.codeEntry ?? fileURLToPath(new URL("../dist/bag-history.js", import.meta.url)));
   const directory = join(root, ".viewer-cache", "bag", hash);
   const active = new Map<string, Promise<BagHistory>>();
 
@@ -46,7 +48,10 @@ export function createBagHistoryReader(root: string, options: { readonly chunkBy
       await mkdir(directory, { recursive: true });
       await writeFile(temp, JSON.stringify({ run, identity: tail.identity, offset: tail.offset, seq: tail.seq, ledger: tail.ledger.checkpoint() }));
       await rename(temp, path);
-    } catch { await rm(temp, { force: true }).catch(() => undefined); }
+    } catch (error) {
+      await rm(temp, { force: true }).catch(() => undefined);
+      throw new Error("Could not save bag history summary", { cause: error });
+    }
   }
 
   async function reduce(file: FileHandle, run: string, tail: Tail, end: number): Promise<void> {
@@ -78,6 +83,7 @@ export function createBagHistoryReader(root: string, options: { readonly chunkBy
   async function read(run: string): Promise<BagHistory> {
     // eventsPath owns run-id/path validation before any cache filename is constructed.
     const path = eventsPath(root, run);
+    await mkdir(directory, { recursive: true });
     const file = await open(path, "r");
     try {
       const before = identityOf(await file.stat());

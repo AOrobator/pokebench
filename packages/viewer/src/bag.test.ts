@@ -234,3 +234,32 @@ describe("bag page", () => {
     expect(doc.querySelector(".bg-legend")?.textContent).toBe("found / given");
   });
 });
+
+
+describe("delayed mart payment", () => {
+  it("matches the native shop confirmation to a later debit, excluding unrelated fees", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1, state({ turn: 1, money: 4000, resources: resources([]) }));
+    log.add(2, { ...itemChange(2, 13, "POTION", 0, 1), kind: "menu_changed", details: { phase: "shop_purchase_confirmation", action: "buy_item", selected: "YES", item_id: 13, quantity: 1 } });
+    log.add(3, itemChange(2, 13, "POTION", 0, 1));
+    log.add(4, state({ turn: 2, screen: "shop_menu", money: 4000, resources: resources([[13, 1, "items", "POTION"]]) }));
+    const ledger = ledgerOf(log);
+    const resumed = BagLedger.restore(JSON.parse(JSON.stringify(ledger.checkpoint())) as unknown);
+    const paid = log.add(5, state({ turn: 3, screen: "shop_menu", money: 3700, resources: resources([[13, 1, "items", "POTION"]]) }));
+    resumed.add(paid);
+    expect(headline(resumed)).toEqual({ gained: 1, used: 0, spent: 300, buys: 1 });
+    resumed.add(log.add(6, state({ turn: 4, money: 3650, resources: resources([[13, 1, "items", "POTION"]]) })));
+    expect(headline(resumed)).toEqual({ gained: 1, used: 0, spent: 300, buys: 1 });
+    expect(resumed.changes.map(brief)).toEqual(["T2 POTION 0→1 bought"]);
+  });
+
+  it("does not turn a found item into a purchase after an unrelated loss of money", () => {
+    const log = new Log(); log.add(0, START);
+    log.add(1, state({ money: 1000, resources: resources([]) }));
+    log.add(2, itemChange(2, 13, "POTION", 0, 1));
+    log.add(3, state({ turn: 2, money: 1000, resources: resources([[13, 1, "items", "POTION"]]) }));
+    log.add(4, state({ turn: 3, money: 500, resources: resources([[13, 1, "items", "POTION"]]) }));
+    expect(headline(ledgerOf(log))).toEqual({ gained: 1, used: 0, spent: 0, buys: 0 });
+  });
+});

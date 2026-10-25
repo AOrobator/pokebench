@@ -396,7 +396,9 @@ def test_shared_map_preserves_enabled_terrain_consequences_in_legend_and_nearby(
     legend = next(line for line in text.splitlines() if line.startswith("Element legend:"))
     nearby = next(line for line in text.splitlines() if line.startswith("Next tiles:"))
     assert consequence in legend, (hex(behavior), legend, text)
-    assert consequence in nearby.split("right (2,1)", 1)[1], (hex(behavior), nearby)
+    right = nearby.split("right (2,1)", 1)[1]
+    assert right.count(consequence) == 1, (hex(behavior), right)
+    assert f"({TERRAIN[behavior][0]})" not in right, (hex(behavior), right)
     old = read_state(memory.read, MAPS, active_ui=False, off=off | {SWITCH})
     assert consequence in render(old, off | {SWITCH})
     assert state_json(state)["navigation_grid"] == state_json(old)["navigation_grid"]
@@ -467,3 +469,32 @@ def test_shared_elevation_refusal_is_bound_to_the_mismatched_target_not_another_
     right = nearby.split("right (2,1)", 1)[1]
     assert "yellow switch" in right, right
     assert "other level" not in right and "cannot be entered from here" not in right, right
+
+
+@pytest.mark.parametrize("behavior", [0xD0, 0xD5])
+@pytest.mark.parametrize("nearby_blocked", [False, True])
+def test_shared_terrain_legend_qualifies_effect_when_clear_and_blocked_tiles_share_a_token(
+    behavior, nearby_blocked
+):
+    from pokebench_env.map_observation import element_label, element_token
+    from pokebench_env.terrain_visibility import TERRAIN
+
+    memory = map_memory()
+    for x, collision in ((2, int(nearby_blocked)), (20, int(not nearby_blocked))):
+        memory.put(0x02005000 + 2 * (8 * 39 + x + 7), struct.pack("<H", 0x200 | collision << 10))
+    memory.put(0x02008000, struct.pack("<H", behavior))
+    off = off_set() - {"field-move-gates-v1"}
+    state = read_state(memory.read, MAPS, active_ui=False, off=off)
+    assert state.map_observation is not None
+    element = next(e for e in state.map_observation.elements if (e.x, e.y) == (2, 1))
+    text = render(state, off)
+    token, label = element_token(element), element_label(element)
+    assert f"./{token}" in text and f"#/{token}" in text, text
+    effect = TERRAIN[behavior][2]
+    legend = next(line for line in text.splitlines() if line.startswith("Element legend:"))
+    assert f"{token} = {label}; on collision-clear tiles: {effect}" in legend, legend
+    right = next(line for line in text.splitlines() if line.startswith("Next tiles:")).split(
+        "right (2,1)", 1
+    )[1]
+    assert (effect in right) is not nearby_blocked, right
+    assert ("collision set" in right) is nearby_blocked, right

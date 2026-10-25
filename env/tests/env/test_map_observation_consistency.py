@@ -188,3 +188,44 @@ def test_other_closed_field_obstacles_are_not_mislabeled_as_sandstorm():
     assert not any(
         e.kind == "sandstorm_boundary" for e in observed_elements(shown, (0, 26), field_gates=gates)
     )
+
+
+def test_terrain_effects_require_matching_clear_current_terrain_not_an_override():
+    from pokebench_env.map_terrain_elements import terrain_effect
+
+    tile = MapTile(2, 1, 0x200, 0, 0xD0)
+    element = terrain_elements(tile)[0]
+    assert terrain_effect(element, tile) == (
+        "slides south on foot; climbing north requires sufficient speed"
+    )
+    assert terrain_effect(MapElement("switch", 2, 1, color="yellow"), tile) is None
+    assert terrain_effect(element, MapTile(2, 1, 0x200, 1, 0xD0)) is None
+    ordinary = MapTile(2, 1, 0, 0, 0x10)
+    assert terrain_effect(terrain_elements(ordinary)[0], ordinary) is None
+
+
+def test_common_terrain_legend_keeps_occupants_but_nearby_withholds_their_entry_effects():
+    from pokebench_env.terrain_visibility import TERRAIN
+
+    for glyph in ("N", "W"):
+        tile = MapTile(0, 0, 0x200, 0, 0xD0)
+        shown = LocalMap((0, 0), (glyph, "@"), (tile, MapTile(0, 1, 0, 0, 0)), (), ())
+        observation = build_observation(shown, (1, 1), observed_elements(shown, (1, 1)))
+        text = render_observation(shown, observation, terrain=True)
+        assert f"{glyph}/Ms" in text, text
+        assert TERRAIN[0xD0][2] in text, text
+        nearby = next_tiles(
+            shown,
+            (0, 1),
+            coordinates=True,
+            ledges=True,
+            edge_walls=True,
+            counters=True,
+            warp_guidance=True,
+            topology=None,
+            on_foot=True,
+            terrain=True,
+            observation=observation,
+        )
+        assert TERRAIN[0xD0][2] not in nearby, nearby
+        assert "muddy slope" in nearby, nearby

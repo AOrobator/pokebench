@@ -177,13 +177,26 @@ def next_tiles(
         if observation is not None and tile is not None:
             from pokebench_env.map_observation import labels_at
 
-            observed = labels_at(observation, x, y)
+            observed = labels_at(
+                observation, x, y, tile=tile, terrain=terrain and glyph not in ("N", "W")
+            )
             if observed:
                 name = "; ".join(observed) + (
                     f"; {name}"
                     if glyph in ("@", "N", "W", "#", "+", "=", "~", "L", *ARROWS)
                     else ""
                 )
+                if (
+                    elevation is not None
+                    and glyph in (".", "g")
+                    and any(
+                        e.kind == "other_level" and (e.x, e.y) == (x, y)
+                        for e in observation.elements
+                    )
+                ):
+                    name += f"; elevation {tile.elevation} (yours is {elevation})"
+                    if shut:
+                        name += f", {SHUT}"
                 if tile.collision and glyph not in ("N", "W"):
                     name += ", collision set"
             crossed = tuple(

@@ -700,12 +700,18 @@ def format_readout(
         # elevation-aware-map-v1: tiles the player cannot step onto from this elevation draw L.
         elevation_note = ""
         elevation = ELEVATION_MAP not in off and shown is not None and observation is None
-        if elevation and shown is not None:
-            shown, elevation_note = elevation_view(
+        if ELEVATION_MAP not in off and shown is not None:
+            elevation_shown, elevation_note = elevation_view(
                 shown,
                 state.player_elevation,
                 None if state.running is None else state.running.avatar_flags,
             )
+            if elevation:
+                shown = elevation_shown
+            elif observation is not None:
+                elevation_note = elevation_note.replace(
+                    "Other levels (L)", "Other levels (Lv tokens)"
+                )
         puzzle_note = ""
         if puzzle and shown is not None:
             puzzle_map = shown
@@ -724,7 +730,7 @@ def format_readout(
                 if world_destinations and "world-destinations-v1" not in off
                 else None,
                 on_foot=walking(None if state.running is None else state.running.avatar_flags),
-                terrain=terrain,
+                terrain=FIELD_MOVES not in off,
                 elevation=state.player_elevation if elevation_note else None,
                 observation=observation,
             )
@@ -743,7 +749,12 @@ def format_readout(
                 dynamic=dynamic,
                 next_tiles=neighbours,
                 rendered=render_observation(
-                    shown, observation, ledges=ledges, edge_walls=edge_walls, counters=counters
+                    shown,
+                    observation,
+                    ledges=ledges,
+                    edge_walls=edge_walls,
+                    counters=counters,
+                    terrain=FIELD_MOVES not in off,
                 )
                 if observation is not None
                 else None,

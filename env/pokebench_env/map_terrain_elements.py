@@ -142,3 +142,13 @@ def terrain_elements(
         if state is not None:
             template = MapElement("bridge", 0, 0, state=state)
     return () if template is None else (replace(template, x=tile.x, y=tile.y),)
+
+
+def terrain_effect(element: MapElement, tile: MapTile) -> str | None:
+    """Existing entry consequences, only for matching collision-clear terrain facts."""
+    if tile.collision or replace(element, x=0, y=0) != _TERRAIN.get(tile.behavior):
+        return None
+    from pokebench_env.terrain_visibility import TERRAIN
+
+    terrain = TERRAIN.get(tile.behavior)
+    return None if terrain is None else terrain[2]

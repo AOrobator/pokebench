@@ -4,10 +4,10 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
-from pokebench_env.live_map import FullMap, LocalMap
+from pokebench_env.live_map import FullMap, LocalMap, MapTile
 from pokebench_env.map_layout import LayoutContext
 from pokebench_env.map_observation_types import MapElement
-from pokebench_env.map_terrain_elements import terrain_elements
+from pokebench_env.map_terrain_elements import terrain_effect, terrain_elements
 from pokebench_env.map_tile_elements import tile_elements
 from pokebench_env.mauville_puzzle import HORIZONTAL, MAP, SWITCHES, VERTICAL
 
@@ -200,9 +200,21 @@ def observed_elements(
     return tuple(result)
 
 
-def labels_at(observation: MapObservation, x: int, y: int) -> tuple[str, ...]:
+def labels_at(
+    observation: MapObservation,
+    x: int,
+    y: int,
+    *,
+    tile: MapTile | None = None,
+    terrain: bool = False,
+) -> tuple[str, ...]:
     return tuple(
         element_label(e)
+        + (
+            f"; {effect}"
+            if terrain and tile is not None and (effect := terrain_effect(e, tile)) is not None
+            else ""
+        )
         for e in observation.elements
         if (e.x, e.y) == (x, y) and e.edge is None and e.kind != "rotating_gate"
     )
@@ -215,6 +227,7 @@ def render_observation(
     ledges: bool = True,
     edge_walls: bool = True,
     counters: bool = True,
+    terrain: bool = False,
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -223,11 +236,16 @@ def render_observation(
     legend: dict[str, str] = {}
     groups: dict[str, list[str]] = defaultdict(list)
     detailed: set[str] = set()
+    tiles = {(tile.x, tile.y): tile for tile in shown.tiles}
+    effects: dict[str, str] = {}
     for element in observation.elements:
         token, label = element_token(element), element_label(element)
         if token in legend and legend[token] != label:
             raise ValueError(f"ambiguous map token {token}")
         legend[token] = label
+        tile = tiles.get((element.x, element.y))
+        if terrain and tile is not None and (effect := terrain_effect(element, tile)) is not None:
+            effects[token] = effect
         at = f"({element.x},{element.y})"
         if element.edge is not None:
             ax, ay, bx, by = element.edge
@@ -299,7 +317,13 @@ def render_observation(
         "A + inside a cell remains a base edge wall."
     )
     if legend:
-        lines.append("Element legend: " + "; ".join(f"{k} = {v}" for k, v in legend.items()))
+        lines.append(
+            "Element legend: "
+            + "; ".join(
+                f"{k} = {v}" + (f"; {effects[k]}" if k in effects else "")
+                for k, v in legend.items()
+            )
+        )
         lines.extend(
             f"Now {label}: "
             + (

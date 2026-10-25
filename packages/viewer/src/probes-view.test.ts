@@ -214,6 +214,25 @@ describe("mounting the page", () => {
     expect(still.ticks).toHaveLength(0);
   });
 
+  it("keeps sample reading position, focus and open problems on passive polls", async () => {
+    const initial = probe({ samples: probe().samples.map(x => ({ ...x, thinking: "reasoning\n".repeat(40) })), problems: ["Recorded warning"] });
+    const next = { ...initial, lanes: initial.lanes.map(x => ({ ...x, completed: x.completed + 1 })) };
+    const h = await mount("#cited-destination-v1/case-07", [initial, next]);
+    await click(h, '[data-sample="gpu0/case-07/on/0"]');
+    const dialog = h.doc.querySelector<HTMLElement>(".pr-dialog"), button = h.doc.querySelector<HTMLElement>('[data-sample="gpu0/case-07/on/0"]');
+    if (dialog === null || button === null) throw Error("missing reader");
+    dialog.scrollTop = 180; dialog.scrollLeft = 12;
+    const problems = h.doc.querySelector<HTMLDetailsElement>(".pr-problems"); if (problems === null) throw Error("missing problems"); problems.open = true;
+    button.focus();
+    await h.ticks[0]?.();
+    expect(h.doc.querySelector<HTMLElement>(".pr-dialog")?.scrollTop).toBe(180);
+    expect(h.doc.querySelector<HTMLElement>(".pr-dialog")?.scrollLeft).toBe(12);
+    expect(h.doc.querySelector<HTMLDetailsElement>(".pr-problems")?.open).toBe(true);
+    expect(h.doc.activeElement?.getAttribute("data-sample")).toBe("gpu0/case-07/on/0");
+    await click(h, '[data-sample="gpu0/case-07/on/1"]');
+    expect(h.doc.querySelector<HTMLElement>(".pr-dialog")?.scrollTop).toBe(0);
+  });
+
   it("switches probe from the picker and refetches it", async () => {
     const other = probe({ id: "older", title: "Older probe", lanes: probe().lanes.map((l) => ({ ...l, state: "complete" as const })) });
     const list = [{ id: "cited-destination-v1", title: "T", feature: "f", started: null, live: true, lanes: [] }, { id: "older", title: "O", feature: "f", started: null, live: false, lanes: [] }];

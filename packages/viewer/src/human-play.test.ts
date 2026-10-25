@@ -144,3 +144,14 @@ it('Start run unlocks audio in the click and claims keyboard after Resume applie
  stream.send(log.add(200,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:100}));await settle();
  expect(document.activeElement).toBe(ui('surface'));expect(ui('focus').textContent).toBe('Controls active');expect(key('KeyO').defaultPrevented).toBe(true);await settle();expect(send.mock.calls.at(-1)?.[1]).toMatchObject({buttons:['A']});play.close();
 });
+
+it('restores game focus after an acknowledged resume without scrolling',async()=>{
+ const {play,stream}=await harness();const log=new Log();log.add(0,START);
+ stream.send(log.add(100,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));
+ ui('pause').click();await settle();
+ const focus=vi.spyOn(ui('surface'),'focus');
+ try {
+  stream.send(log.add(200,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:100}));
+  expect(focus).toHaveBeenCalledExactlyOnceWith({preventScroll:true});
+ } finally {focus.mockRestore();play.close();await settle();}
+});

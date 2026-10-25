@@ -2081,6 +2081,19 @@ describe("BAG page", () => {
   });
 });
 
+it("keeps expanded run details and its reading position through a state refresh", async () => {
+  const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+  const log = new Log(); log.add(0, START); log.add(1000, state()); feed(must(streams[0]), log.events);
+  const details = ui("run-details"), pane = must(details.closest<HTMLElement>(".page-content"));
+  must(details.querySelectorAll("details")[2]).open = true;
+  pane.scrollTop = 180;
+  must(streams[0]).send("ev", log.add(2000, state({ money: 1234 })));
+  app.render();
+  expect(details.querySelectorAll("details")[2]?.open).toBe(true);
+  expect(details.querySelectorAll("details")[2]?.textContent).toContain("1234");
+  expect(pane.scrollTop).toBe(180);
+});
+
 describe("POKéMON PARTY page", () => {
   const RATES = Array.from({ length: 101 }, (_, n) => (n <= 1 ? n : n ** 3));
   const DATA = {

@@ -35,3 +35,26 @@ Pre-battle production test exposed decision_input schema's existing maxItems1 co
 The expanded durable pre-decision test now passes. Generated schema check caught a stale intermediate schema emitted during a source edit; regenerate from the final restored source before gates. No requested-button cap change is intended or retained. Sync Safari sprite main change (viewer-only, no feature-registry conflict) before freezing review.
 
 Final full test gate PASS4414agent/1963viewer/4195Python and3exact protected-card baselines after canonical ignored art linked. Lint caught an untyped Vitest asymmetric matcher in the added test, replaced by an explicit typed text assertion; runtime source unchanged. Separate pre-battle delivery and recording mutations rerun from verified GREEN baseline with unique *-final-deletion.log receipts, each RED and restored GREEN. Earlier baseline-invalid mutation attempts are retained and do not count. Pinned pi0.73.1 integration proof uses the real loop and factory/HTTP client, two mocked model requests, zero external calls; native scene text plus current-first and historical images reach request2. Repeated final PNG is explicitly a transport fixture, not reconstructed cutscene imagery.
+
+Final source gates: full tests4414agent/1963viewer/4195Python and3protected-card baselines PASS (frozen-test.log); lint/types/format PASS (accepted-lint.log); TS coverage PASS, Python coverage completing under accepted-coverage.log. Vendor checked pristine. Main Safari follow-up is evidence-only f719017b5; sync it without changing runtime source. Original/native, current-first images and model request delivery proofs remain valid. No ablation/inputs/restarts performed.
+
+# Principles adherence
+Current CLAUDE.md explicitly scores PB1-PB13 (the older draft header in the principles file is superseded). Principles file unchanged.
+
+| ID | Score | Concrete evidence |
+|---|---|---|
+| PB1 | PASS | No grading/milestone change; SceneJournal reports native object/text facts. Raw Astra archives hashes validated with matching external ROM. |
+| PB2 | PASS | Original logs untouched. Capture failures, missing ring entries and omitted images explicit in delivered text. |
+| PB3 | PASS | No benefit claim. Operator defers ablation; native/factory proof is observation correctness only. |
+| PB4 | PASS | Registered cutscene-journal-v1, server/recorded metadata, exact OFF path, current bundle recipe ON/control OFF. No inputs or RAM writes. |
+| PB5 | PASS | One scene capture/delivery mechanism, one switch. No gameplay launch or unrelated fixes; main Mauville feature preserved in sync. |
+| PB6 | PASS | 512-event ring, bounded six historical images per delivery, explicit dropped samples. Ordinary context pruning remains the established owner. |
+| PB7 | PASS | Ordinary durable tool_result text/images preserve actual model output; production recorder test retains current frame0 and source state. Existing trace/raw inspector/replay checked in isolated browser fixture labeled offline reparse. |
+| PB8 | PASS | Cursor/schema validation and fetch timeout; failure appends a capture-unavailable notice without retrying already executed input. |
+| PB9 | PASS | User approved shared mechanism and bundle activation. Unknown speaker stays unknown, no destination/character/story inference. General visual sampling limitations stated. |
+| PB10 | PASS | No skips, timeouts, thresholds or baseline changes. Tests updated only for appended registry/default-OFF metadata; final combined gates recorded separately. |
+| PB11 | PASS | Pinned vendor unchanged and verified. Existing Sprite/ObjectEvent/text printer addresses checked against clean pret731ad5bf and seven real archived RAM samples. Production serve factory adapts actual frozen ScreenshotFn contract. |
+| PB12 | PASS | External ROM at ~/.roms via configured resolver; no protected Downloads path and no ROM copied/committed. |
+| PB13 | PASS | RED6d7a9e484, implementation7591eb6c9, main syncbf40ccf14, corrective metadata tests8ef402151/fe3c0a550. Two wiring mutations observed RED then restored GREEN. Gates, review, landing and activation are separate receipts; no completion claim yet. |
+
+Nine test-quality checks: caller seam tests cover serve frame hook, StateWatcher HTTP and playGameTools; performed agent/native hook deletion/restoration receipts under runs/cutscene-proof/*deletion.log; per-test journal/emulator/temp directory identities; monkeypatch owns environment restoration; no new concurrent tests or timing assertions; no retries/sleeps/serialization or skipped tests added; payload assertions carry actual results where fallback could pass; fixture loops bounded 2-8 samples (no growing durable prefixes), one recorder adapter test uses real disk; ring loss uses capacity2, visual sampling uses interval1 and8 frames rather than filling production caps. Browser proof uses isolated headless Chromium. Initial missing-ROM env and existing app timeout under parallel gate load retained, not claimed as passes. Final gates run on the combined tree. Additional existing owners touched for the same delivery contract: recorder.ts, state-decision.ts and the decision_input image cardinality in events.ts/generated schema.

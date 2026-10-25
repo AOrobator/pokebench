@@ -1569,15 +1569,16 @@ describe("agent trace page", () => {
       app.tick(10);
       expect(reading.isConnected).toBe(true);
       expect(reading.getBoundingClientRect().top).toBe(offset);
-      // At the top the newest turn shows, unless the pointer is over the list.
+      // Scrolling to the top resumes following; expanding a row holds even at the top.
       box.scrollTop = 0;
+      box.dispatchEvent(new Event("scroll"));
       const top = must(items()[0]);
       feed(must(streams[0]), [log.add(810, assistantAt(72))], false);
       app.tick(10);
       expect(top.getBoundingClientRect().top).toBeGreaterThan(0);
       box.scrollTop = 0;
       const held = must(items()[0]);
-      box.dispatchEvent(new Event("mouseenter"));
+      must(box.querySelector<HTMLElement>("details > summary")).click();
       feed(must(streams[0]), [log.add(820, assistantAt(73))], false);
       app.tick(10);
       expect(held.getBoundingClientRect().top).toBe(0);
@@ -1604,7 +1605,7 @@ describe("agent trace page", () => {
     expect(again.open).toBe(true);
   });
 
-  it("ignores the scroll its own redraw makes while holding a list at the top", async () => {
+  it("ignores its own synchronous and delayed scroll events while holding a list", async () => {
     const { app, streams, setNow } = await harness();
     const log = new Log();
     log.add(0, START);
@@ -1622,27 +1623,22 @@ describe("agent trace page", () => {
     let top = 0;
     Object.defineProperty(box, "scrollTop", { configurable: true, get: () => top, set: (value: number) => { top = value; box.dispatchEvent(new Event("scroll")); } });
     try {
-      box.dispatchEvent(new Event("mouseenter"));
+      must(box.querySelector<HTMLElement>("details > summary")).click();
       feed(must(streams[0]), [log.add(800, assistantAt(6))], false);
       app.tick(10);
       expect(box.scrollTop).toBe(40);
       box.dispatchEvent(new Event("scroll"));
-      box.dispatchEvent(new Event("mouseleave"));
-      expect(box.scrollTop).toBe(0);
-      // The snap back is the viewer's own scroll too: a new hold at the top survives its late scroll event.
-      box.dispatchEvent(new Event("mouseenter"));
-      box.dispatchEvent(new Event("scroll"));
-      feed(must(streams[0]), [log.add(810, assistantAt(7))], false);
-      app.tick(10);
-      box.dispatchEvent(new Event("mouseleave"));
-      expect(box.scrollTop).toBe(0);
-      // The reader's own wheel cancels the return.
-      box.dispatchEvent(new Event("mouseenter"));
-      box.dispatchEvent(new Event("wheel"));
-      feed(must(streams[0]), [log.add(820, assistantAt(8))], false);
-      app.tick(10);
+      expect(ui("trace-latest").hidden).toBe(false);
       box.dispatchEvent(new Event("mouseleave"));
       expect(box.scrollTop).toBe(40);
+      feed(must(streams[0]), [log.add(810, assistantAt(7))], false);
+      app.tick(10);
+      expect(box.scrollTop).toBe(80);
+      box.scrollTop = 0;
+      expect(ui("trace-latest").hidden).toBe(true);
+      feed(must(streams[0]), [log.add(820, assistantAt(8))], false);
+      app.tick(10);
+      expect(box.scrollTop).toBe(0);
     } finally {
       spy.mockRestore();
     }
@@ -1685,25 +1681,19 @@ describe("agent trace page", () => {
     expect(must(ui("side-trace").querySelector<HTMLDetailsElement>('details[data-key="5"] details.res-d')).open).toBe(false);
   });
 
-  it("goes back to the newest turn when the pointer leaves a list it held at the top", async () => {
+  it("does not resume reading on mouse leave, and resets following on a run switch", async () => {
     const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     const box = ui("trace");
-    box.dispatchEvent(new Event("mouseenter"));
     box.scrollTop = 120;
-    box.dispatchEvent(new Event("mouseleave"));
-    expect(box.scrollTop).toBe(0);
-    box.scrollTop = 120;
-    box.dispatchEvent(new Event("mouseenter"));
-    box.dispatchEvent(new Event("mouseleave"));
-    expect(box.scrollTop).toBe(120);
-    box.scrollTop = 0;
-    box.dispatchEvent(new Event("mouseenter"));
-    box.scrollTop = 300;
     box.dispatchEvent(new Event("scroll"));
     box.dispatchEvent(new Event("mouseleave"));
-    expect(box.scrollTop).toBe(300);
+    expect(box.scrollTop).toBe(120);
+    expect(ui("trace-latest").hidden).toBe(false);
+    app.select(RUNS[0]?.id ?? "");
+    expect(ui("trace-latest").hidden).toBe(true);
+    expect(box.scrollTop).toBe(0);
   });
 
   it("remembers a row opened by a click even if a redraw lands before its toggle event", async () => {

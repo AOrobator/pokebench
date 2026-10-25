@@ -10,7 +10,7 @@ import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
-import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
+import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -91,7 +91,7 @@ function applyState(group: HTMLElement, state: RowState): void {
 }
 
 // The row (or turn heading) at the top of the visible list, so it can stay put.
-// At the very top the newest turn is shown, unless the pointer is over the list.
+// At the very top the newest turn is shown, unless reading has been held.
 function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLElement | null; readonly offset: number } | null {
   if (box.scrollTop <= 0 && !held) return null;
   const top = box.getBoundingClientRect().top;
@@ -108,6 +108,7 @@ function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLE
 // `scrollTo` records a position as the viewer's own before setting it, so the scroll event it causes,
 // whenever the browser fires it, is not mistaken for the reader's.
 function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean, state: RowState, scrollTo: (top: number) => void): void {
+  const following = box.scrollTop <= 0 && !held;
   const anchor = anchorOf(box, held);
   const existing = new Map<string, HTMLElement>();
   for (const child of [...box.children] as HTMLElement[]) {
@@ -135,6 +136,7 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
   for (const stale of existing.values()) stale.remove();
   const moved = anchor?.find();
   if (anchor !== null && moved !== null && moved !== undefined) scrollTo(box.scrollTop + moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset);
+  else if (following) scrollTo(0);
 }
 
 // Unended runs whose game server no longer answers are not live.
@@ -238,9 +240,10 @@ export class App {
   private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
   private traceLimit = TRACE_TURNS;
   private readonly stamps = new WeakMap<HTMLElement, string>();
-  // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
+  // Reading stays held until the reader returns to the top or asks for the latest.
   private readonly held = new Set<HTMLElement>();
-  private readonly heldAtTop = new Set<HTMLElement>();
+  private readonly tracePending = new Set<HTMLElement>();
+  private readonly traceVersions = new WeakMap<HTMLElement, number>();
   // The BAG page: folded from every recorded event of the view (not the replay cursor), drawn only while open.
   private bag = new BagLedger();
   private bagView: RunView | null = null;
@@ -779,18 +782,14 @@ export class App {
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
     for (const name of ["trace", "side-trace"]) {
       const list = this.ui(name);
-      list.addEventListener("mouseenter", () => {
-        this.held.add(list);
-        if (list.scrollTop <= 0) this.heldAtTop.add(list);
+      list.addEventListener("scroll", () => {
+        if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) <= 1) return;
+        this.autoScroll.set(list, list.scrollTop);
+        if (list.scrollTop <= 1) this.resumeTrace(list);
+        else this.holdTrace(list);
       });
-      // A list held at the top goes back to following the newest turn, unless the reader scrolled away.
-      list.addEventListener("mouseleave", () => {
-        this.held.delete(list);
-        if (this.heldAtTop.delete(list)) this.scrollTo(list, 0);
-      });
-      // Any scroll the reader makes (not one reconcile made) cancels the return to the top.
-      list.addEventListener("scroll", () => { if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) > 1) this.heldAtTop.delete(list); });
-      for (const type of ["wheel", "touchmove"]) list.addEventListener(type, () => { this.heldAtTop.delete(list); }, { passive: true });
+      list.addEventListener("click", () => { this.holdTrace(list); });
+      this.ui(`${name}-latest`).addEventListener("click", () => { this.resumeTrace(list); });
       // Recorded on click, before the toggle event, so a redraw in between cannot lose it.
       list.addEventListener("click", (event) => {
         const summary = (event.target as HTMLElement).closest("summary");
@@ -1233,7 +1232,50 @@ export class App {
     this.sideKey = "";
     this.traceLimit = TRACE_TURNS;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
-    for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
+    this.held.clear();
+    this.tracePending.clear();
+    for (const name of ["trace", "side-trace"]) {
+      const list = this.ui(name);
+      this.traceVersions.delete(list);
+      list.replaceChildren();
+      this.scrollTo(list, 0);
+      this.traceFollowButton(list);
+    }
+  }
+
+  private holdTrace(list: HTMLElement): void {
+    this.held.add(list);
+    this.traceFollowButton(list);
+  }
+
+  private resumeTrace(list: HTMLElement): void {
+    this.held.delete(list);
+    this.tracePending.delete(list);
+    this.scrollTo(list, 0);
+    this.traceFollowButton(list);
+    this.traceKey = this.sideKey = "";
+    this.render();
+    this.scrollTo(list, 0);
+  }
+
+  private traceFollowButton(list: HTMLElement): void {
+    const button = this.ui(`${list.dataset.ui ?? "trace"}-latest`);
+    button.hidden = !this.held.has(list);
+    button.textContent = this.tracePending.has(list) ? "New activity · Jump to latest" : "Jump to latest";
+  }
+
+  private traceUpdated(list: HTMLElement, version: number): void {
+    const previous = this.traceVersions.get(list);
+    if (previous !== undefined && previous !== version && this.held.has(list)) this.tracePending.add(list);
+    this.traceVersions.set(list, version);
+    this.traceFollowButton(list);
+  }
+
+  private readingLimit(list: HTMLElement, turns: readonly TraceTurn[], limit: number): number {
+    if (!this.held.has(list)) return limit;
+    const oldest = [...list.querySelectorAll<HTMLElement>("[data-group]")].filter((el) => el.dataset.group !== "tail").at(-1)?.dataset.group;
+    const index = turns.findIndex((turn) => `t${String(turn.turn)}` === oldest);
+    return index < 0 ? limit : Math.max(limit, turns.length - index + 1);
   }
 
   private scrollTo(list: HTMLElement, top: number): void {
@@ -1295,10 +1337,11 @@ export class App {
     const box = this.ui("trace");
     if (key !== this.traceKey) {
       this.traceKey = key;
+      this.traceUpdated(box, this.trace.version);
       this.renderChips();
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
-      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit), page: TRACE_TURNS });
       reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
     }
     const sideView = this.recordedThinking;
@@ -1306,9 +1349,10 @@ export class App {
     const boxTurn = sideView === null || sideView.isThinking ? null : sideView.lastThought?.turn ?? null;
     const sideKey = `${this.mode}|${String(sideTrace?.version ?? -1)}|${String(boxTurn ?? "")}`;
     if (sideKey !== this.sideKey) {
-      this.sideKey = sideKey;
       const side = this.ui("side-trace");
-      const groups = sideTrace === null ? [] : sideGroups(sideTrace.turns, SIDE_TURNS, boxTurn);
+      this.sideKey = sideKey;
+      this.traceUpdated(side, sideTrace?.version ?? -1);
+      const groups = sideTrace === null ? [] : sideGroups(sideTrace.turns, this.readingLimit(side, sideTrace.turns, SIDE_TURNS), boxTurn);
       const empty = this.mode === "loading" && sideTrace === null ? '<p class="nodata">loading recorded thinking…</p>' : '<p class="nodata">no steps yet</p>';
       reconcile(side, groups, groups.length === 0 ? empty : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
     }

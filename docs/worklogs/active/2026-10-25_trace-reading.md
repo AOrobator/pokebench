@@ -12,10 +12,12 @@ Single milestone: regression tests, implementation, background desktop/phone bro
 
 ## Progress
 - [x] RED regression: phone reading test fails because no trace-latest control exists.
-- [ ] GREEN implementation
+- [x] GREEN implementation: explicit reading hold, top/jump resume, retained oldest displayed turn, native anchoring disabled, hover snap removed.
 - [ ] Gates and browser proof
 - [ ] Cloud review
 - [ ] Landing and live proof
 
 ## Evidence
 Pending.
+
+Initial full test attempt: 4389 agent and 1915 viewer tests passed. Python failed because isolated worktree lacked ROM env and native mGBA package; supplied the existing ROM configuration and read-only native package link in the isolated worktree, then reran via coverage. Inherited lint issue at workbench-store.test.ts:599 will be rechecked after synchronization with the milestone owner.

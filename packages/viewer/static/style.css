@@ -406,7 +406,7 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .config-tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}.config-tool{border:1px solid #a3b4c5;border-radius:7px;background:#f6f8fb;padding:16px;min-width:0}.config-tool h5{font:700 13px/1.5 'JetBrains Mono',monospace;color:#344e71;margin:0 0 10px;overflow-wrap:anywhere}.config-tool p,.config-tool dd{font:12px/1.7 'Inter',sans-serif;color:#344154;overflow-wrap:anywhere}.config-tool dt{font-size:8px;color:#69778a;margin:14px 0 6px}.config-tool dd{margin:0}.config-tool summary{font-size:8px;line-height:1.7;cursor:pointer;margin-top:14px;color:#344e71}.config-tool pre{font:11px/1.7 'JetBrains Mono',monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:10px;background:#e9eff6;border-radius:5px}
 
 /* AGENT TRACE: one row anatomy for every event (icon · title · summary · desc · status). */
-.trace { display: flex; flex-direction: column; font: 12px/1.55 Inter, sans-serif; color: #283038; }
+.trace { overflow-anchor: none; display: flex; flex-direction: column; font: 12px/1.55 Inter, sans-serif; color: #283038; }
 .trace .tl { min-width: 0; flex-shrink: 0; }
 .trace > .tgroup { display: contents; }
 .tl > summary { list-style: none; } .tl > summary::-webkit-details-marker { display: none; }
@@ -1076,3 +1076,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   .pv-card { grid-template-columns: auto minmax(0, 1fr); }
   .pv-bars { grid-column: 1 / -1; }
 }
+
+.trace-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between; }
+.trace-latest { font:11px/1.4 Inter,sans-serif; min-height:44px; width:220px; max-width:100%; white-space:normal; }
+.trace-latest[hidden] { display:inline-block; visibility:hidden; pointer-events:none; }

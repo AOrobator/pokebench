@@ -70,8 +70,15 @@ export async function readTraceHistory(runsRoot: string, run: string, before: nu
       events.push(line.event); offset = line.end;
     }
     if (end > 0 && events.length === 0) throw new RunsError("No complete history event fits in this page; the original recording remains on disk.");
-    const turns = new Set([...new Set(events.map(event => event.turn))].slice(-maxTurns));
-    const selected = events.filter(event => turns.has(event.turn));
+    // Keep a contiguous sequence suffix: late events may belong to earlier turns.
+    const turns = new Set<number>();
+    let start = events.length;
+    for (const event of events.toReversed()) {
+      if (!turns.has(event.turn) && turns.size === maxTurns) break;
+      turns.add(event.turn);
+      start--;
+    }
+    const selected = events.slice(start);
     const oldest = selected[0]?.seq ?? 0;
     return { run, events: selected, before: oldest === 0 ? null : oldest };
   } finally { await file.close(); }

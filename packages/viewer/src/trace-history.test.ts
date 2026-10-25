@@ -40,6 +40,22 @@ it("bounds a large recording by bytes, handles multibyte text and incomplete app
   const earlier = await readTraceHistory(root, RUN, page.before ?? 0, { maxBytes: 2000 });
   expect(earlier.events.at(-1)?.seq).toBe((page.before ?? 0) - 1);
 });
+it("keeps late earlier-turn events reachable across contiguous pages", async () => {
+  const { root, log, path } = fixture(4);
+  log.add(1, assistant({ turn: 1, thinking: "Late earlier-turn event" }));
+  log.add(1, assistant({ turn: 1, thinking: "Another late earlier-turn event" }));
+  writeFileSync(path, log.events.map(event => JSON.stringify(event)).join("\n") + "\n");
+  let before: number | null = log.events.length;
+  const pages = [];
+  while (before !== null) {
+    const page = await readTraceHistory(root, RUN, before, { maxTurns: 2 });
+    expect(new Set(page.events.map(event => event.turn)).size).toBeLessThanOrEqual(2);
+    expect(page.events).toEqual(log.events.slice(page.before ?? 0, before));
+    pages.unshift(...page.events);
+    before = page.before;
+  }
+  expect(pages).toEqual(log.events);
+});
 it.each([-1, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN])("rejects invalid cursor %s", async before => {
   const { root } = fixture(1);
   await expect(readTraceHistory(root, RUN, before)).rejects.toThrow("cursor");

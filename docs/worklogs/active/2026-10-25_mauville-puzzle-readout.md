@@ -28,3 +28,5 @@ RED: production-readout and arm-materialization regressions added. Python collec
 - Coordinator confirms live9e33/d41e/6bbd/429f and runner84389/97487 remain frozen; queued swapped pair also captured old pin. Only future fresh launches inherit the fix. One eventual coordinated viewer refresh permitted at number1, using /private/tmp/pokebench-viewer-qwen36-20261024. Another branch landed f6da68cf3 while this branch gated; sync before freezing and rerun combined gates.
 
 Sync: GREEN f06c74d10; main f6da68cf3 adds caught-nickname-prompt-v2 in the same append-only registries. Resolved by retaining main first and appending Mauville; preserved V2’s own defaults/recipe. Combined gate run supersedes all pre-sync receipts.
+
+Final main evidence sync: nickname owner replaced its evidence-only46afb8914 with3f926f129; kept their current worklog exactly. Runtime/test trees are unchanged from f11c6efd9, the combined gate source. No candidate production delta changed.

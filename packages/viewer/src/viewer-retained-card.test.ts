@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { mountApp, type AppDeps } from "./app.js";
-import type { WorkbenchRun } from "./workbench-data.js";
+import { parseWorkbench, type WorkbenchRun } from "./workbench-data.js";
 import { BASE_MS, must } from "../test-support/events.js";
 
 it("keeps the selected recorded trainer card during health gaps and recovers live presentation", async () => {
@@ -46,6 +46,7 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
   }
   snapshot.runs = ready;
   await app.pollCards();
+  expect(parseWorkbench(Reflect.get(app, "workbench") as unknown).runs.map(run => run.id)).toEqual([id, other, historical]);
   selected.status = "unresponsive"; must(snapshot.runs[1]).status = "unresponsive";
   await app.pollCards();
   for (const host of hosts()) {

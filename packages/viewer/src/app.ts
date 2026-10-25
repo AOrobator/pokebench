@@ -1145,7 +1145,7 @@ export class App {
       const merged = new Map([...events, ...this.view.events].map(event => [event.seq, event]));
       for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
       this.view = view;
-      this.historyBefore = page.before as number | null;
+      this.historyBefore = page.before;
       this.setRecordedThinking(view, view.events);
       this.shown = this.mode === "replay" ? new RunView() : view;
       this.trace = this.newTrace();

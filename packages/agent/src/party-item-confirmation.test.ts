@@ -10,7 +10,7 @@ it("appends a default-OFF party message server switch and transports explicit ON
  expect(FEATURES.filter(f=>f.switchable).at(163)?.id).toBe(ID);
  expect(SERVER_FEATURES.at(56)).toBe(ID);
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
- const off=flagFeatures(flags),on={...off,[ID]:true};
+ const off={...flagFeatures(flags),"mauville-puzzle-readout-v1":false},on={...off,[ID]:true};
  expect(off[ID]).toBe(false);
  const {[ID]:omitted,...legacy}=off;expect(omitted).toBe(false);
  expect(normalizeFeatures(legacy)[ID]).toBe(false);

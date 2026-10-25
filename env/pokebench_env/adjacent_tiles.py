@@ -82,6 +82,14 @@ def _tile(
         if way == direction:
             return f"ledge ({glyph}), hop over it moving {way}, landing 2 tiles on"
         return f"ledge ({glyph}), hops {way} only" + (f", {SHUT}" if collision and shut else "")
+    if glyph in {"S", "s"}:
+        return "floor switch (" + ("raised" if glyph == "S" else "pressed") + f", {glyph})"
+    if glyph in {"E", "e"}:
+        return (
+            "electric door (E), blocked now" + (f", {SHUT}" if shut else "")
+            if glyph == "E"
+            else "electric door (e), open now"
+        )
     if glyph == "#":
         return "collision (#)" + (f", {SHUT}" if shut and not _hopped(behavior, direction) else "")
     if glyph == "+":

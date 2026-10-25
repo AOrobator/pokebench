@@ -130,7 +130,8 @@
   "cut-off-reply-feedback-v1",
   "named-warp-destinations-v1",
   "exit-labels-v2",
-  "original-speed-pacing-v1"
+  "original-speed-pacing-v1",
+  "mauville-puzzle-readout-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -394,6 +395,7 @@
   "bag-press-feedback-v1": true,
   "bag-ineffective-loop-v1": true,
   "citation-evidence-v1": false,
-  "moving-npc-target-v1": false
+  "moving-npc-target-v1": false,
+  "mauville-puzzle-readout-v1": true
  }
 }

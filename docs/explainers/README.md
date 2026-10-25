@@ -302,3 +302,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Quoted destination evidence](citation-evidence-v1.html) — separate copied game words from unverified rationale; default OFF, bundle only.
 
 - [Moving NPC target](moving-npc-target-v1.html): bounded live-position follow for a selected loaded object; default OFF, bundle ON.
+
+- [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.

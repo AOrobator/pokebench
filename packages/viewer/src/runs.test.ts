@@ -528,3 +528,14 @@ it("preserves a recorded empty pregame roster instead of reviving an old party",
   const view = new RunView(); for (const event of await readHeadEvents(runsRoot, "pokenav-reset", { offset: 0 }, 1, 800)) view.apply(event);
   expect(view.partyMembers).toEqual([]); expect(view.partyState?.seq).toBe(title.seq);
 });
+
+it.each(["identity", "schema"] as const)("rejects invalid old PokéNav metadata: %s", async defect => {
+  const runsRoot = root(), log = new Log(); log.add(0, START); log.add(10, state());
+  for (const turn of [2, 3]) { log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } }); log.add(turn * 1000 + 1, assistant({ turn, thinking: "tail payload".repeat(8) })); }
+  const path = writeRun(runsRoot, "pokenav-invalid", log), rows = readFileSync(path, "utf8").trim().split("\n");
+  const old: unknown = JSON.parse(rows[1] ?? "null");
+  if (typeof old !== "object" || old === null) throw new Error("missing metadata fixture");
+  rows[1] = JSON.stringify(defect === "identity" ? { ...old, run: "other-run" } : { ...old, started: "invalid" });
+  writeFileSync(path, rows.join("\n") + "\n");
+  await expect(readHeadEvents(runsRoot, "pokenav-invalid", { offset: 0 }, 1, 800)).rejects.toThrow(defect === "identity" ? "other-run" : "head metadata");
+});

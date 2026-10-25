@@ -38,11 +38,11 @@ import { StateWatcher } from "./game-state.js";
 import {terminationTarget,flagFeatures,parsePlayPreset,presetFeatures,presetFlags,presetStart} from "./play-preset.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {NativeTargetStop} from "./target-stop.js";
-import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
+import { BudgetTimer, ControlFile, controlledRun, type RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
-import { attachLoopGuard, Governor, TEXT_ONLY_REMINDER, piLoop, play, playFromHistory } from "./harness.js";
+import { attachLoopGuard, TEXT_ONLY_REMINDER, piLoop, play, playFromHistory } from "./harness.js";
 import { autoTalkContext } from "./auto-talk.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig, playLoopBase } from "./provider.js";
@@ -281,7 +281,10 @@ async function playAgent(): Promise<void> {
       let control: RunControl | null = null;
       const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
       const cutOff = cutOffReplyNotice(features,maxTokens);
-      const governor = new Governor({
+      const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
+      let startedAt = elapsed();
+      const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
+      const {governor,control:runControl} = controlledRun({
         limits,
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
         retry: (why, attempt, limit) => {
@@ -293,24 +296,14 @@ async function playAgent(): Promise<void> {
         },
         now: elapsed,
         ...(preset===null?{}:{startedAt:0}),
-        takeStop: () => control?.takeStop() ?? false,
-        pausedMs: () => control?.pausedMs() ?? 0,
-        wallLimit: () => control?.wallLimit(limits.maxWallMs) ?? limits.maxWallMs,
-        turnLimit: () => control?.turnLimit(limits.maxTurns) ?? limits.maxTurns,
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
-      });
-      const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
-      let startedAt = elapsed();
-      const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
-      const runControl = new RunControl({
-        budget: { maxWallMs: limits.maxWallMs, maxTurns:limits.maxTurns, turns:()=>governor.turnCount, activeMs, stopped: () => governor.stopReason !== null },
+      }, {
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
-        end: (reason) => { governor.abort(reason); },
         now: () => Date.now(),
-      });
+      }, activeMs);
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, linkExclusive:linkSync,remove:unlinkSync,rename: renameSync },startMeta);

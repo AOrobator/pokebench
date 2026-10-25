@@ -1,3 +1,4 @@
+import {Governor,type GovernorDeps} from "./harness.js";
 import { TIME_EXTENSIONS, TURN_EXTENSIONS, isExtensionAction, isTimeExtension } from "./budget-extensions.js";
 // Operator run control. The viewer appends typed requests to
 // runs/<id>/control.jsonl; the running agent polls that file and applies them:
@@ -145,7 +146,7 @@ export class RunControl {
       const previous = original === undefined ? 0 : time ? this.wallLimit(original) : this.turnLimit(original);
       const addition = isTimeExtension(action) ? TIME_EXTENSIONS[action] : TURN_EXTENSIONS[action];
       const next = previous + addition;
-      const expired = budget === undefined || budget.activeMs() >= this.wallLimit(budget.maxWallMs) || (budget.maxTurns!==undefined && budget.turns!==undefined && budget.turns()>=this.turnLimit(budget.maxTurns)) || (!time && (budget.turns === undefined || budget.turns() >= previous));
+      const expired = budget === undefined || budget.activeMs() >= this.wallLimit(budget.maxWallMs) || (budget.maxTurns!==undefined && budget.turns!==undefined && budget.turns()>=this.turnLimit(budget.maxTurns)) || (!time && budget.turns === undefined);
       if (original === undefined || seq <= this.lastExtensionRequest || this.current === "stop_pending" || budget?.stopped() || expired || !Number.isSafeInteger(next)) { ignore(); return; }
       this.deps.record(time ? { action, status:"applied",request:seq,previous_max_wall_ms:previous,max_wall_ms:next } : {action,status:"applied",request:seq,previous_max_turns:previous,max_turns:next});
       this.lastExtensionRequest = seq;
@@ -295,6 +296,19 @@ export class RunControl {
   private notify(): void {
     for (const listener of this.listeners) listener();
   }
+}
+
+// Shared production construction: tests exercise the same effective-budget wiring as live play.
+export function controlledRun(governorDeps:Omit<GovernorDeps,"takeStop"|"pausedMs"|"wallLimit"|"turnLimit">, controlDeps:Omit<RunControlDeps,"budget"|"end">, activeMs:()=>number):{governor:Governor;control:RunControl} {
+ let control:RunControl|null=null;
+ const {limits}=governorDeps;
+ const governor=new Governor({...governorDeps,
+  takeStop:()=>control?.takeStop()??false,pausedMs:()=>control?.pausedMs()??0,
+  wallLimit:()=>control?.wallLimit(limits.maxWallMs)??limits.maxWallMs,
+  turnLimit:()=>control?.turnLimit(limits.maxTurns)??limits.maxTurns,
+ });
+ control=new RunControl({...controlDeps,budget:{maxWallMs:limits.maxWallMs,maxTurns:limits.maxTurns,turns:()=>governor.turnCount,activeMs,stopped:()=>governor.stopReason!==null},end:reason=>{governor.abort(reason);}});
+ return {governor,control};
 }
 
 // The wall-clock budget counts only unpaused time.

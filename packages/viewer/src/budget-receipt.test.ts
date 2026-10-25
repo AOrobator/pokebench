@@ -15,7 +15,7 @@ it("serves only verified matching budget overrides through the production endpoi
 });
 it("rejects missing, malformed, oversized and inconsistent operator receipts",()=>{
  const f=fixture();expect(readTurnBudgetReceipt(f.dir,f.id)).toBeNull();
- for(const value of ["bad-json","x".repeat(65537),JSON.stringify({...f.value,status:"prepared"}),JSON.stringify({...f.value,run:"another"}),JSON.stringify({...f.value,agent_pid:99}),JSON.stringify({...f.value,new_turn_ceiling:21000}),JSON.stringify({...f.value,old_turn_ceiling:30000}),JSON.stringify({...f.value,apply_receipt:{after:{limits:{maxTurns:123}}}})]){
+ for(const value of ["bad-json","x".repeat(65537),JSON.stringify({...f.value,status:"prepared"}),JSON.stringify({...f.value,temporary_inspector_closed:false}),JSON.stringify({...f.value,run:"another"}),JSON.stringify({...f.value,agent_pid:99}),JSON.stringify({...f.value,new_turn_ceiling:21000}),JSON.stringify({...f.value,old_turn_ceiling:30000}),JSON.stringify({...f.value,independent_readback:{...f.value.independent_readback,before:{...f.value.independent_readback.before,limits:{maxTurns:19999}}}}),JSON.stringify({...f.value,apply_receipt:{after:{limits:{maxTurns:123}}}})]){
  writeFileSync(f.path,value);expect(readTurnBudgetReceipt(f.dir,f.id),value.slice(0,150)).toBeNull();
  }
 });

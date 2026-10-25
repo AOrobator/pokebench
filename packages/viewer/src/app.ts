@@ -221,7 +221,9 @@ export class App {
   private followThinking = true;
   private runId: string | null = null;
   private stream: StreamLike | null = null;
-  private historyStream: StreamLike | null = null;
+  private historyBefore: number | null = null;
+  private historyLoading = false;
+  private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
   private baselineRequest = 0;
@@ -686,7 +688,7 @@ export class App {
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
       this.select((preferredRun(runs, this.deps.hash) ?? newest).id, !this.deps.hash.startsWith("#replay="));
-    } else if (this.following && this.view.end !== null) {
+    } else if (this.following && this.view.end !== null && this.ui("run-sheet").hidden && this.held.size === 0) {
       this.select(newest.id, true);
     }
   }
@@ -773,7 +775,9 @@ export class App {
     this.ui("trace").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
       if (target.closest("[data-trace-more]") !== null) {
+        this.holdTrace(this.ui("trace"));
         this.traceLimit += TRACE_TURNS;
+        if (target.closest("[data-history-more]") !== null) void this.loadOlderHistory();
         this.render();
         return;
       }
@@ -1000,8 +1004,9 @@ export class App {
     this.extensionPending = null;
     this.extensionMessage = "";
     this.stream?.close();
-    this.historyStream?.close();
-    this.historyStream = null;
+    this.historyRequest += 1;
+    this.historyLoading = false;
+    this.historyBefore = null;
     this.headReady = false;
     this.closeFrameStream();
     this.runId = runId;
@@ -1046,20 +1051,22 @@ export class App {
       try {
         const events = recordedHead(JSON.parse(message.data), runId);
         if (this.headReady && (events.at(-1)?.seq ?? -1) <= (this.view.events.at(-1)?.seq ?? -1)) return;
-        this.historyStream?.close();
-        this.historyStream = null;
+        this.historyRequest += 1;
+        this.historyLoading = false;
         this.clock = null;
         this.trace = this.newTrace();
         this.traced = 0;
         this.traceKey = this.sideKey = "";
         this.recordedThinkingRequest += 1;
         const view = new RunView();
-        for (const event of events) view.apply(event);
+        const merged = new Map([...this.view.events, ...events].map(event => [event.seq, event]));
+        for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
+        this.historyBefore = this.historyCursor(events);
         this.view = this.shown = view;
         this.headReady = true;
         this.mode = view.end === null && this.runs.some(run => run.id === runId && isLive(run)) ? "live" : "loading";
-        this.setRecordedThinking(view, events);
-        this.loadHistory(runId, stream);
+        this.setRecordedThinking(view, view.events);
+        if (view.end !== null) this.startReplay(true);
         this.render();
       } catch (error) { this.problem(`head: ${String(error)}`); }
     });
@@ -1096,7 +1103,7 @@ export class App {
       stream.close();
       if (this.stream !== stream) return;
       this.closeFrameStream();
-      if (this.headReady && this.historyStream !== null) return;
+
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
@@ -1105,52 +1112,58 @@ export class App {
     this.render();
   }
 
-  // History has its own fold: old events never overwrite the current head. The
-  // tail remains live while the prefix streams, including controls and deltas.
-  private loadHistory(runId: string, primary: StreamLike): void {
-    const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
-    this.historyStream = stream;
-    const history = new RunView();
-    const label = (event: Extract<RunEvent, { type: "loop_guard" }>): string => history.loopLabel(event).replace(`: ${event.message}`, "");
-    const trace = new TraceBuilder(label), side = new TraceBuilder(label);
-    const apply = (event: RunEvent): void => {
-      const count = history.events.length;
-      history.apply(event);
-      if (history.events.length > count) { trace.add(event); side.add(event); }
-    };
-    const current = (): boolean => this.stream === primary && this.historyStream === stream;
-    stream.addEventListener("ev", message => {
-      if (!current()) return;
-      try {
-        const event: unknown = JSON.parse(message.data);
-        if (!isRunEvent(event) || event.run !== runId) throw new Error("invalid history event");
-        apply(event);
-      } catch (error) { this.problem(`history: ${String(error)}`); }
-    });
-    stream.addEventListener("problem", message => {
-      if (current()) {
-        const detail = JSON.parse(message.data) as { line?: unknown; problem?: unknown };
-        this.problem(`line ${String(detail.line)}: ${String(detail.problem)}`);
+  private historyCursor(events: readonly RunEvent[]): number | null {
+    let before = events.at(-1)?.seq ?? 0;
+    for (let i = events.length - 2; i >= 0; i -= 1) {
+      const seq = events[i]?.seq;
+      if (seq === undefined || seq !== before - 1) break;
+      before = seq;
+    }
+    return before === 0 ? null : before;
+  }
+
+  private async loadOlderHistory(): Promise<void> {
+    const run = this.runId, before = this.historyBefore;
+    if (run === null || before === null || this.historyLoading) return;
+    const request = ++this.historyRequest;
+    this.historyLoading = true;
+    this.render();
+    try {
+      const raw = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(run)}/trace-history?before=${String(before)}`);
+      if (request !== this.historyRequest || this.runId !== run) return;
+      if (typeof raw !== "object" || raw === null) throw new Error("invalid history page");
+      const page = raw as { run?: unknown; events?: unknown; before?: unknown };
+      if (page.run !== run || !Array.isArray(page.events) || (page.before !== null && (typeof page.before !== "number" || !Number.isSafeInteger(page.before) || page.before < 0 || page.before >= before))) throw new Error("invalid history page");
+      const events: RunEvent[] = [];
+      for (const value of page.events as unknown[]) {
+        if (!isRunEvent(value) || value.run !== run || value.seq >= before || value.seq <= (events.at(-1)?.seq ?? -1)) throw new Error("invalid history event");
+        events.push(value);
       }
-    });
-    stream.addEventListener("caught_up", () => {
-      if (!current()) return;
-      stream.close();
-      this.historyStream = null;
-      // The tail may already be ahead of this scan. Conversely the scan can
-      // have read a newer append first; RunView's sequence guard deduplicates.
-      for (const event of this.view.events) apply(event);
-      this.view = history;
-      this.shown = history;
-      this.setRecordedThinking(history, history.events, side);
-      if (history.end !== null) this.startReplay(true);
-      else this.mode = "live";
-      this.shown = history;
-      this.trace = trace;
-      this.traced = history.events.length;
+      if (events.length === 0 || (page.before === null ? events[0]?.seq !== 0 : events[0]?.seq !== page.before)) throw new Error("history page did not advance");
+      const position = this.clock?.positionMs, playing = this.clock?.playing;
+      const view = new RunView();
+      const merged = new Map([...events, ...this.view.events].map(event => [event.seq, event]));
+      for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
+      this.view = view;
+      this.historyBefore = page.before as number | null;
+      this.setRecordedThinking(view, view.events);
+      this.shown = this.mode === "replay" ? new RunView() : view;
+      this.trace = this.newTrace();
+      this.traced = 0;
       this.traceKey = this.sideKey = "";
-      this.render();
-    });
+      if (this.mode === "replay") {
+        this.makeReplayClock();
+        if (position !== undefined) this.clock?.seek(position);
+        if (playing === true) this.clock?.play();
+      }
+    } catch (error) {
+      if (request === this.historyRequest && this.runId === run) this.problem(`older history: ${String(error)}`);
+    } finally {
+      if (request === this.historyRequest && this.runId === run) {
+        this.historyLoading = false;
+        this.render();
+      }
+    }
   }
 
   private receive(data: string): void {
@@ -1182,14 +1195,17 @@ export class App {
     box.textContent = this.problems.slice(-100).join("\n");
   }
 
+  private makeReplayClock(): void {
+    const first = this.historyBefore === null ? this.view.startMs : this.view.events.find(event => event.seq >= (this.historyBefore ?? 0));
+    const startMs = first !== null && typeof first === "object" ? eventMs(first) : first;
+    const lastMs = this.view.lastMs;
+    this.clock = startMs === null || lastMs === null || startMs === undefined ? null : new ReplayClock(startMs, lastMs);
+  }
+
   private startReplay(atEnd: boolean): void {
-    const { startMs, lastMs } = this.view;
-    if (startMs === null || lastMs === null) {
-      this.mode = "idle";
-      return;
-    }
-    this.clock = new ReplayClock(startMs, lastMs);
-    if (atEnd) this.clock.seek(lastMs);
+    this.makeReplayClock();
+    if (this.clock === null) { this.mode = "idle"; return; }
+    if (atEnd) this.clock.seek(this.clock.endMs);
     else this.clock.play();
     this.mode = "replay";
     this.shown = new RunView();
@@ -1334,7 +1350,7 @@ export class App {
     const events = this.shown.events;
     for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
     const live = this.shown.isThinking ? { turn: this.shown.turn } : null;
-    const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
+    const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}|${String(this.historyBefore)}|${String(this.historyLoading)}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
       this.traceKey = key;
@@ -1343,7 +1359,8 @@ export class App {
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit), page: TRACE_TURNS });
-      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+      const older = more > 0 ? moreButton(more, TRACE_TURNS) : this.historyBefore === null ? "" : `<button type="button" class="pbtn trace-more" data-trace-more data-history-more${this.historyLoading ? " disabled" : ""}>${this.historyLoading ? "LOADING OLDER TURNS…" : "LOAD OLDER TURNS"}</button>`;
+      reconcile(box, groups, (groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
     }
     const sideView = this.recordedThinking;
     const sideTrace = this.recordedThinkingTrace;
@@ -1399,7 +1416,9 @@ export class App {
     mode.textContent = label.text;
     mode.className = `mode ${label.cls}`;
     this.setHtml("run-controls", controlBar(view, live, this.holdFraction()));
-    this.ui("history-status").hidden = !this.headReady || this.historyStream === null;
+    const historyStatus = this.ui("history-status");
+    historyStatus.hidden = this.historyBefore === null;
+    historyStatus.textContent = this.historyLoading ? "Loading older history…" : "Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
     if (layer !== null) {
@@ -1411,7 +1430,7 @@ export class App {
     }
     this.setHtml("stats", sideStats(view, nowMs));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
-    const recordedSplits = this.mode === "loading" || this.historyStream !== null ? this.recordedSplits() : undefined;
+    const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
     this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));

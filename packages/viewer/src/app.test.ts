@@ -1850,35 +1850,33 @@ describe("head-first startup", () => {
     log.add(4000, { type: "assistant_delta", turn: 2, thinking: "Current head", text: "" });
     return log;
   }
-  it("enables controls and renders the current timeline before history arrives; tail wins the handoff", async () => {
-    const { app, streams, fetched, setNow } = await harness("", RUNS, null, {}, undefined, false);
+  const flushHistory = async (): Promise<void> => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+  it("does not download full history while idle or with the phone sheet open; pages only on request", async () => {
     const recorded = log();
+    const replies = { [`/api/runs/${run}/trace-history?before=3`]: { run, events: own(recorded.events.slice(0, 3)), before: null } };
+    const { app, streams, fetched, setNow } = await harness("", RUNS, null, {}, undefined, false, replies);
     setNow(BASE_MS + 4500);
     const primary = must(streams[0]);
     primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
-    app.tick(0);
     expect(app.mode).toBe("live");
-    expect([...ui("run-controls").querySelectorAll("button")].map(b => [b.textContent, b.disabled])).toEqual([
-      ["⏸PAUSE", false], ["＋EXTEND", false], ["■STOP", false], ["✖ABORT hold to abort", false],
-    ]);
     expect(ui("think-body").textContent).toContain("Current head");
-    expect(ui("lanes").innerHTML).toContain("m-think open");
-    expect(fetched.some(url => url.endsWith("/head"))).toBe(false);
-    const history = must(streams[1]);
-    expect(history.url).toBe(`/api/runs/${run}/events`);
-    feed(history, recorded.events.slice(0, 3), false);
-    app.tick(0);
-    expect(ui("think-body").textContent).toContain("Current head");
+    expect(streams).toHaveLength(1);
+    ui("run-head").click();
+    for (let i = 0; i < 10; i++) app.tick(100);
+    expect(ui("run-sheet").hidden).toBe(false);
+    expect(fetched.some(url => url.includes("trace-history"))).toBe(false);
+    expect(streams).toHaveLength(1);
+    ui("run-sheet-close").click();
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
     const fresh = recorded.add(5000, { type: "assistant_delta", turn: 2, thinking: " plus live tail", text: "" });
     feed(primary, [fresh], false);
-    feed(history, recorded.events.slice(3, -1));
-    app.tick(0);
+    await flushHistory();
     expect(ui("think-body").textContent).toContain("Current head plus live tail");
     expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
-    expect(history.closed).toBe(true);
     expect(ui("trace").textContent).toContain("Old thought");
+    expect(ui("trace").querySelector("[data-history-more]")).toBeNull();
+    expect(fetched.filter(url => url.includes("trace-history"))).toHaveLength(1);
     primary.send("head", own(recorded.events.slice(0, 3)));
-    expect(streams).toHaveLength(2);
     expect(ui("think-body").textContent).toContain("Current head plus live tail");
   });
   it("keeps cached full splits while the recent head's history is incomplete", async () => {
@@ -1894,33 +1892,45 @@ describe("head-first startup", () => {
     app.tick(0);
     expect(ui("split-strip").textContent).toContain("NAME ✔");
   });
-  it("accepts a newer reconnect head and replaces an unfinished history scan", async () => {
+  it("retains loaded older events when a newer reconnect head arrives", async () => {
     const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
     const primary = must(streams[0]), recorded = log();
     primary.send("head", own(recorded.events));
-    const oldHistory = must(streams[1]);
     recorded.add(5000, assistant({ turn: 2, thinking: "Reconnected present" }));
-    primary.send("head", own(recorded.events));
-    expect(oldHistory.closed).toBe(true);
-    expect(streams).toHaveLength(3);
-    feed(oldHistory, recorded.events.slice(0, 3));
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(-2)]));
+    expect(streams).toHaveLength(1);
     expect(ui("think-body").textContent).toContain("Reconnected present");
-    feed(must(streams[2]), recorded.events);
     expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
   });
-  it("closes old history on a run switch and rejects stale primary/head/history messages", async () => {
-    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
-    const primary = must(streams[0]);
-    primary.send("head", own(log().events));
-    const history = must(streams[1]);
+  it("ignores an older page and primary messages after a run switch", async () => {
+    let resolvePage: (value: unknown) => void = () => undefined;
+    const pending = new Promise<unknown>(resolve => { resolvePage = resolve; });
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/trace-history?before=3`]: pending });
+    const primary = must(streams[0]), recorded = log();
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
     app.select(M4_ID);
     expect(primary.closed).toBe(true);
-    expect(history.closed).toBe(true);
-    feed(history, log().events);
-    primary.send("head", own(log().events));
-    feed(primary, log().events, false);
+    resolvePage({ run, events: own(recorded.events.slice(0, 3)), before: null });
+    await flushHistory();
+    primary.send("head", own(recorded.events));
+    feed(primary, recorded.events, false);
     expect(app.view.start).toBeNull();
     expect(app.mode).toBe("loading");
+  });
+  it.each([new Error("offline"), { run, events: [], before: 3 }, { run: "foreign", events: [], before: null }])("keeps the current view and permits retry after a failed history page %s", async reply => {
+    const response = reply instanceof Error ? Promise.reject(reply) : reply;
+    // The injected promise is consumed only after the explicit click.
+    if (response instanceof Promise) void response.catch(() => undefined);
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/trace-history?before=3`]: response });
+    const recorded = log();
+    must(streams[0]).send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
+    await flushHistory();
+    expect(ui("think-body").textContent).toContain("Current head");
+    expect(ui("problems").textContent).toContain("older history:");
+    expect(must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).disabled).toBe(false);
+    app.tick(0);
   });
   it("rejects malformed or foreign heads before enabling controls", async () => {
     const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
@@ -1936,7 +1946,7 @@ describe("head-first startup", () => {
     expect(ui("think-body").textContent).toContain("Again.");
     expect(ui("lanes").innerHTML).toContain("m-think");
     must(streams[0]).send("done", {});
-    feed(must(streams[1]), events);
+    expect(streams).toHaveLength(1);
     expect(app.clock?.positionMs).toBe(app.view.lastMs);
     app.clock?.seek(BASE_MS);
     app.tick(0);
@@ -1980,17 +1990,19 @@ describe("BAG page", () => {
     expect(ui("bag").innerHTML).toBe(drawn);
   });
 
-  it("refolds when the recent head is replaced by the full history, and draws names without art", async () => {
-    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+  it("refolds when older history is requested, and draws names without art", async () => {
     const run = RUNS[0]?.id ?? "missing";
     const events = bagRun().events.map((event) => ({ ...event, run }));
+    const before = events.at(-3)?.seq ?? 0;
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/trace-history?before=${String(before)}`]: { run, events: events.slice(0, -3), before: null } });
     const primary = must(streams[0]);
     must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
     await flush();
     primary.send("head", [must(events[0]), ...events.slice(-3)]);
     app.tick(0);
     expect(ui("bag").querySelectorAll(".bg-lab")).toHaveLength(1);
-    feed(must(streams[1]), events);
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
+    await flush();
     app.tick(0);
     expect([...ui("bag").querySelectorAll(".bg-lab")].map((l) => l.textContent)).toEqual(["POTION", "POKé BALL", "GREAT BALL"]);
     expect(ui("bag").querySelector("img")).toBeNull();

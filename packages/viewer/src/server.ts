@@ -1,3 +1,4 @@
+import { readTraceHistory } from "./trace-history.js";
 import { setImmediate as yieldImmediate } from "node:timers/promises";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import { Timing } from "./frame-diagnostics.js";
@@ -578,6 +579,14 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       }
       if (res.destroyed) return;
       streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset);
+      return;
+    }
+    if (parts.length === 4 && leaf === "trace-history") {
+      const value = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("before");
+      if (value === null || !/^(0|[1-9][0-9]*)$/.test(value) || !Number.isSafeInteger(Number(value))) {
+        sendJson(res, 400, { error: "invalid history cursor" }); return;
+      }
+      sendJson(res, 200, await readTraceHistory(options.runsRoot, id, Number(value)));
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fillCards, loadCardArt, syncCards } from "./card-dom.js";
 import type { LoadedArt } from "./card-dom.js";
 import type { CardInput } from "./trainer-card.js";
@@ -62,6 +62,18 @@ describe("card rows", () => {
     expect(row.children).toHaveLength(3); expect(document.activeElement).toBe(row.querySelector('[data-watch="b"]'));
     syncCards(row, [card("a", "1")], memo);
     expect(row.children).toHaveLength(1); expect(row.children[0]).toBe(a);
+  });
+  it("restores a refreshed Watch link without scrolling its page or sheet", () => {
+    document.body.innerHTML = '<div id="row"></div>';
+    const row = document.getElementById("row") as HTMLElement, memo = new WeakMap<Element, string>();
+    syncCards(row, [card("a", "before")], memo);
+    (row.querySelector('[data-watch="a"]') as HTMLElement).focus();
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    try {
+      syncCards(row, [card("a", "after")], memo);
+      expect(document.activeElement).toBe(row.querySelector('[data-watch="a"]'));
+      expect(focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true });
+    } finally { focus.mockRestore(); }
   });
   it("fills each card's clock and time bar in place and paints game text when the font is loaded", () => {
     document.body.innerHTML = `<div id="row">${card("a", '<span class="gtx" data-gt="A" data-c="tab" data-h="14">A</span>')}</div>`;

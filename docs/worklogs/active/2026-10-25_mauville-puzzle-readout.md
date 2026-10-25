@@ -9,8 +9,8 @@ No puzzle solver, route policy, foreknowledge of switch effects, input changes, 
 - [x] RED tests committed (22f42e155).
 - [x] GREEN implementation, shared arm config, explainer.
 - [x] Native archived-state proof and mutation check.
-- [ ] Full gates and principles PASS; cloud review pending.
-- [ ] Serialized landing and viewer proof.
+- [x] Full gates and principles PASS; independent review completed.
+- [x] Serialized landing and viewer proof.
 
 Reference: clean pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, matching US ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Sources: MauvilleCity_Gym/scripts.inc, field_specials.c MauvilleGymPressSwitch/SetDefaultBarriers, metatile_labels.h. Evidence d41e #193989/#194138/#195466 reproduces recorded full grids exactly from hash-validated raw RAM.
 
@@ -57,3 +57,24 @@ Repo CLAUDE.md selects PB1-PB13; the old draft header in agent-principles.md is 
 | PB11 | PASS | Verified clean source731ad5bf, ROM and archive hashes; replay uses existing production reader/formatter. No new library/API dependency. |
 | PB12 | PASS | Existing external ~/.roms ROM read in place; no ROM copy or TCC access. Background Chromium only; screenshots inspected with image tool. |
 | PB13 | PASS | RED22f42e155, GREENf06c74d10, combined gates/native/mutation/browser receipts recorded. Independent frozen review now required before landing; no premature completed/live claim. |
+
+## Multi-Model Review Log — round 1
+
+Frozen reviewed HEAD `1fbfd04181a43f67680b86dd48a8ea43d9169c57`, base `3f926f1295e179b3f6ee178da90431286f7f4b15`, binary diff SHA256 `7833ee9394fb08a2a4a8a03563968c2872b3b604071ebe270b38f9bb5f751735`. Candidate stayed clean and unchanged throughout review; each reviewer independently verified identity. Receipts: `runs/reviews/mauville-puzzle-readout/round1/`.
+
+- Claude Opus 5.5 CLI (plan/read-only), exit0, empty stderr: VERDICT: LGTM.
+- Normal isolated GPT lane, gpt-5.6-sol xhigh: VERDICT: LGTM.
+- Availability fallback gpt-6.1-sol high: VERDICT: LGTM.
+- Availability fallback gpt-6-astra high: VERDICT: LGTM.
+- Grok4.5-high and Grok4.7-high each exit1, ActionRequiredError exhausted Cursor usage. These are outages, not approvals. Fallbacks have reduced vendor diversity and are not Grok approval.
+- Independently verified original standing human authorization to land without Grok during the outage (server-copied user entries, including “land without grok. you're not a very good coordinator if you force me to go into chats”); current coordinator explicitly confirmed scope and non-revocation. Original authorization payload receipts retained at `grok-authorization-source.json` and `grok-authorization-scope.json`.
+- Zero required fixes. Claude optional extra OFF golden is a follow-up; actual archived-base byte comparisons already pass. Authorized default ON is intentional. Existing terrain handling protects the reused lowercase s outside Mauville. No review-driven scope changes.
+
+## Landing and served proof — 2026-10-25 13:12 EDT
+
+- Took landing slot with actual Codex thread 00000000-0000-4000-8000-90ca69b45a28. Fast-forwarded clean local main to exact reviewed `1fbfd04181a43f67680b86dd48a8ea43d9169c57`; no remote or PR.
+- `just build` then `just test` on main PASS: agent4408, viewer1958, Python4184, approved exact trainer-card screenshots3/3. Main receipt `gates/main-test.log`; prior combined coverage/lint/vendor receipts remain applicable to unchanged production/test tree.
+- One coordinated `just viewer-main`, clean detached `/private/tmp/pokebench-viewer-capture-f6da68c`, serves clean1fbfd0418. Single8790 listener9871 parent1. Served app/panels bytes exactly match disk. APIs runs/workbench/next-run200; new draft featuretrue. All four original runs still live with no catalog problems. All10 captured gameplay/server/runner process identities survived; restart guard also confirms4 gameplay processes preserved. Receipts `pre-refresh.json`, `live-proof.json`, `gates/viewer-refresh.log`.
+- Headless real viewer selected d41e: Harness Config shows NOT RECORDED for the new switch, preserving historical identity; actual READ EXPLAINER opens the tracked page. Desktop1280/phone375 screenshots inspected, no page errors or outer overflow. Local8791 canonical explainer returns200; pages-check clean. Screenshot/interaction receipts in `runs/mockups/mauville-puzzle-readout/shots/live-*`.
+- Fresh future control and bundle definitions enable the fix. Active trials and already queued frozen pair remain at their previous pins; no gameplay input, restart, trial launch or queue mutation. No measured gameplay benefit claimed.
+- This final commit changes this worklog only and records evidence after the exact reviewed source landed. Served runtime remains the reviewed1fbfd0418; this evidence commit changes no runtime content.

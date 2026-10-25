@@ -82,7 +82,8 @@
   "instruction-goal-ledger-v1",
   "menu-option-tool-v1",
   "citation-evidence-v1",
-  "moving-npc-target-v1"
+  "moving-npc-target-v1",
+  "cutscene-journal-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -397,6 +398,7 @@
   "bag-ineffective-loop-v1": true,
   "citation-evidence-v1": false,
   "moving-npc-target-v1": false,
-  "caught-nickname-prompt-v2": true
+  "caught-nickname-prompt-v2": true,
+  "cutscene-journal-v1": false
  }
 }

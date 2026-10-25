@@ -10,10 +10,12 @@ Production boundary: new env scene_journal.py and agent scene-journal.ts; serve.
 
 Verification: RED/GREEN; tiny-cap gap/failure tests; production factory ON/OFF; real archived RAM reader proof; exact model text/images, recorder and existing viewer consumption; wiring deletion/restoration; full tests/lint/build/coverage/vendor, cloud review. Bundle activation means future materialized bundle presets, not current running sessions. No benefit claim before the user's later ablation.
 
-- [x] RED: production reader/journal tests fail because the feature module does not exist. RED commit: cutscene transient actor, visible sprite and tiny ring tests.
-- [ ] GREEN and source/raw-RAM proof
+- [x] RED: production reader/journal tests fail because the feature module does not exist. RED commit 6d7a9e484: cutscene transient actor, visible sprite and tiny ring tests.
+- [x] GREEN and source/raw-RAM proof: seven hash-validated Astra snapshots 13917-13937 reparse through read_scene; Aqua object10 appears, employee object9 moves north and leaves, three text pages preserved. Sparse archives are decoder proof, not per-frame historical reconstruction.
 - [ ] Complete gates and adversarial wiring checks
 - [ ] Explainer/card/replay background proof
 - [ ] Independent review and serialized landing
 
 All browser proof remains headless/background; never take desktop focus.
+
+Implementation checkpoint: frame hook/HTTP snapshot -> validated StateWatcher -> outer playGameTools -> ordinary durable tool_result text and images. Current screenshot remains frame0; historical samples follow with explicit labels. Factory and recorder tests pass (9 focused checks); native 11 tests pass. Full gates in progress; initial failures were explicit legacy server-feature expectations, not behavior changes. Own venv and copied native binding; pinned vendor initialized. No current runs touched.

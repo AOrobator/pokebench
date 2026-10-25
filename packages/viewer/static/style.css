@@ -1079,4 +1079,4 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 
 .trace-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between; }
 .trace-latest { font:11px/1.4 Inter,sans-serif; min-height:44px; width:220px; max-width:100%; white-space:normal; }
-.trace-latest[hidden] { display:inline-block; visibility:hidden; pointer-events:none; }
+.trace-latest[hidden] { display:inline-block !important; visibility:hidden; pointer-events:none; }

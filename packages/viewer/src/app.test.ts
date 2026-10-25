@@ -1725,6 +1725,8 @@ describe("agent trace page", () => {
     const rows = [...ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")];
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.open)).toBe(true);
+    expect(ui("trace-latest").hidden).toBe(false);
+    expect(ui("side-trace-latest").hidden).toBe(false);
     must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-collapse]")).click();
     expect(rows.every((row) => !row.open)).toBe(true);
   });

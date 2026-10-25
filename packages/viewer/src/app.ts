@@ -811,6 +811,7 @@ export class App {
       const all = target.closest("[data-trace-expand],[data-trace-collapse]");
       if (all !== null) {
         const open = all.hasAttribute("data-trace-expand");
+        if (open) for (const name of ["trace", "side-trace"]) this.holdTrace(this.ui(name));
         for (const row of this.doc.querySelectorAll<HTMLDetailsElement>('[data-ui="trace"] details[data-key], [data-ui="side-trace"] details[data-key]')) {
           this.remember(row, open);
           row.open = open;

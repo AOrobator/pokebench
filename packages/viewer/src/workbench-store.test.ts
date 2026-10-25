@@ -654,3 +654,21 @@ it("preserves signed raw wall time across run start without breaking the full Fr
   expect(() => parseWorkbench({ ...snapshot, runs: [{ ...full, clockWarning: undefined }] })).toThrow("Invalid workbench");
   expect(readFileSync(path, "utf8")).toBe(original);
 });
+
+it("retains trainer and party card data across missing battle/transition reads, updates fresh data, and clears on reset", () => {
+  const r = root(), log = new Log(); log.add(0, START);
+  log.add(1, state({ party: [{ species: "TORCHIC", species_id: 280, level: 5, hp: 18, max_hp: 20 }] }));
+  const path = write(r, "retained", log), loader = createIncrementalRunLoader();
+  const card = () => loader(r, "retained").run.card;
+  const expected = { name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: 280, level: 5, egg: false }] };
+  expect(card()).toEqual(expected);
+  const append = (body: Parameters<typeof state>[0]) => { const e = log.add(log.events.length, state(body)); appendFileSync(path, JSON.stringify({ ...e, run: "retained" }) + "\n"); };
+  for (const screen of ["battle", "field_transition", "unknown"] as const) {
+    append({ screen, in_battle: screen === "battle", name: null, location: null, party: [], play_time_s: screen === "unknown" ? 755 : null });
+    expect(card()).toEqual(expected); expect(loadRun(r, "retained").run.card).toEqual(expected);
+  }
+  append({ name: "MAY", location: "OLDALE TOWN", party: [{ species: "COMBUSKEN", species_id: 281, level: 16, hp: 40, max_hp: 45 }] });
+  expect(card()).toEqual({ name: "MAY", location: "OLDALE TOWN", party: [{ speciesId: 281, level: 16, egg: false }] });
+  append({ started: false, screen: "title", name: null, location: null, party: [], play_time_s: null });
+  expect(card()).toEqual({ name: null, location: null, party: [] });
+});

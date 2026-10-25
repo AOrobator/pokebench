@@ -429,3 +429,11 @@ it("does not mistake an uninitialized field transition for a new game", () => {
   log.add(2, state({ started: false, screen: "field_transition", party: [], play_time_s: null }));
   expect(fold(log).partyState).toEqual(prior);
 });
+
+ it.each(["battle", "field_transition", "unknown"] as const)("retains a roster through empty %s samples even with a readable clock", screen => {
+   const log = new Log(); log.add(0, START); const prior = log.add(1, state());
+   const partial = log.add(2, state({ screen, in_battle: screen === "battle", party: [], play_time_s: 755, name: null, location: null }));
+   const v = fold(log);
+   expect(v.state).toEqual(partial); expect(v.partyState).toEqual(prior);
+   expect(v.partyMembers).toEqual([{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }]);
+ });

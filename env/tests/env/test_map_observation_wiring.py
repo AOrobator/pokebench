@@ -453,3 +453,17 @@ def test_shared_elevation_consequences_do_not_turn_water_into_a_grounded_step(
     assert "cannot be entered from here" not in right, right
     assert ("The game refuses a step" in text) is (clear_elsewhere and not surfing), text
     assert ("other level (4)" in right) is not surfing, right
+
+
+def test_shared_elevation_refusal_is_bound_to_the_mismatched_target_not_another_tile():
+    memory = elevation_memory()
+    # The remote switch remains at4 and keeps the elevation rule visible; nearby switch is3.
+    memory.put(0x02005000 + 2 * (8 * 39 + 2 + 7), struct.pack("<H", 0x254 | 3 << 12))
+    off = off_set() - {"elevation-aware-map-v1"}
+    state = read_state(memory.read, MAPS, active_ui=False, off=off)
+    text = render(state, off)
+    assert "The game refuses a step" in text, text
+    nearby = next(line for line in text.splitlines() if line.startswith("Next tiles:"))
+    right = nearby.split("right (2,1)", 1)[1]
+    assert "yellow switch" in right, right
+    assert "other level" not in right and "cannot be entered from here" not in right, right

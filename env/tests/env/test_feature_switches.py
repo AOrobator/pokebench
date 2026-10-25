@@ -234,6 +234,7 @@ def test_server_feature_list_matches_the_agent_registry() -> None:
 def test_env_list_is_validated() -> None:
     assert features_off_from_env({}) == frozenset(
         {
+            "cutscene-journal-v1",
             "blackout-transition-v1",
             "player-elevation-readout-v1",
             "party-menu-message-v1",

@@ -101,6 +101,7 @@ def read_state(
         and "named-warp-destinations-v1" not in off,
         caught_dex_enabled="caught-dex-input-v1" not in off,
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
+        caught_nickname_v2_enabled="caught-nickname-prompt-v2" not in off,
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         party_menu_message_enabled="party-menu-message-v1" not in off,
         interface_guidance_enabled="interface-guidance-v1" not in off,

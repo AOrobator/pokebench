@@ -1800,7 +1800,7 @@
               "RIGHT"
             ]
           },
-          "maxItems": 1
+          "maxItems": 7
         },
         "buttons": {
           "type": "array",
@@ -2406,7 +2406,7 @@
             "additionalProperties": false
           },
           "minItems": 1,
-          "maxItems": 1
+          "maxItems": 7
         }
       },
       "additionalProperties": false

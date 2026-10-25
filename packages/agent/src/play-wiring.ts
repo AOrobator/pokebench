@@ -215,7 +215,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
   const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text},...(features["cutscene-journal-v1"]?result.content.filter(c=>c.type==="image").slice(1):[])]} as const;
   recorder.recordDecisionSnapshot(snapshot);
   observedAt=anchor;
-  retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()};
+  retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...(features["cutscene-journal-v1"]?result.content:snapshot.content)],timestamp:Date.now()};
   return base([...messages,retained]);
  };
 }

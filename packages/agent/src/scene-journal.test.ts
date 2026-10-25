@@ -82,7 +82,7 @@ it("records delivered scene text and images durably with current frame first",as
  const messages=await transform([]);const delivered=messages.at(-1);
  expect(delivered?.role).toBe("user");
  if(delivered?.role!=="user"||typeof delivered.content==="string")throw new Error("missing decision image parts");
- expect(delivered.content.filter(c=>c.type==="image")).toHaveLength(2);
+ expect(delivered.content.filter(c=>c.type==="image")).toHaveLength(2);expect(delivered.content.at(-1)).toMatchObject({type:"text",text:expect.stringContaining("End of historical scene samples")});
  const last=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).findLast(e=>e.type==="decision_input");
  expect(last?.type==="decision_input"?last.frames.map(f=>f.path):[]).toEqual(last?.type==="decision_input"?[`frames/${String(last.seq).padStart(6,"0")}_0.png`,`frames/${String(last.seq).padStart(6,"0")}_1.png`]:["missing decision"]);
 });

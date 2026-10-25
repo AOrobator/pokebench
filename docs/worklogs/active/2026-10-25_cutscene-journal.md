@@ -25,3 +25,5 @@ Synced main 1fbfd04181a43f67680b86dd48a8ea43d9169c57 (Mauville puzzle feature) b
 Combined-tree gate: 4414 agent and 1961 viewer checks passed (exact count reconfirm below); Python 4194 passed with one expected default-OFF-set assertion missing the new ID, corrected explicitly. No runtime source change. Native journal isolated coverage 99% incl branch; 11 tests. Browser real card->explainer clicks work at1280/1440/375; trace/raw inspector contain scene evidence; screenshots inspected. Mobile expanded source hash overflow fixed with wrapping; diagram made horizontally scrollable for readable labels. Current-frame-first recorder test passes. Scratch offline replay is labeled sparse native reparse/no inference, not benchmark evidence.
 
 The native default-OFF test also pins SERVER_FEATURES count, updated90->91 along with the exact set. Runtime source unchanged.
+
+Coordinator completed a pending Mauville evidence-only main commit42b68ef7b after the hold request. Sync includes that worklog only; source is unchanged. Final runtime gates apply to the same source; frozen review base will be42b68ef7b.

@@ -1498,7 +1498,7 @@ export class App {
       if (pane !== null && anchor !== undefined && next != null && next.getBoundingClientRect().height > 0) pane.scrollTop += next.getBoundingClientRect().top - pane.getBoundingClientRect().top - offset;
     }
     this.renderParty(view);
-    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE LIMITS</summary><pre>${esc(JSON.stringify({ max_turns:view.effectiveTurnLimit, max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
+    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_turns:view.effectiveTurnLimit, max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));

@@ -16,6 +16,7 @@ const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "ut
 // The ★ NEXT RUN page loads these on mount; tests of the watch view answer them.
 const NEXT_RUN_DRAFT = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} };
 function nextRunReply(url: string): Promise<unknown> | null {
+  if(url.endsWith("/budget"))return Promise.resolve({max_turns:null});
   if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
   if (url === "/api/next-run") return Promise.resolve({ draft: NEXT_RUN_DRAFT, queue: { state: "idle" } });
   if (url === "/api/models") return Promise.resolve({ models: [] });

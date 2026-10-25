@@ -11,7 +11,7 @@ function fixture(){const root=mkdtempSync(join(tmpdir(),"turn-budget-"));roots.p
 it("serves only verified matching budget overrides through the production endpoint",async()=>{
  const f=fixture();writeFileSync(f.path,JSON.stringify(f.value));const log=new Log();log.add(0,START);writeFileSync(join(f.dir,"events.jsonl"),log.events.map(e=>JSON.stringify({...e,run:f.id})).join("\n")+"\n");
  const v=await startViewer({runsRoot:f.root,staticDir:f.root,appDir:f.root,port:0});
- try{const r=await fetch(`http://127.0.0.1:${v.port}/api/runs/${f.id}/budget`);expect(r.status).toBe(200);expect(await r.json()).toEqual({max_turns:20000});}finally{await v.close();}
+ try{const r=await fetch(`http://127.0.0.1:${String(v.port)}/api/runs/${f.id}/budget`);expect(r.status).toBe(200);expect(await r.json()).toEqual({max_turns:20000});}finally{await v.close();}
 });
 it("rejects missing, malformed, oversized and inconsistent operator receipts",()=>{
  const f=fixture();expect(readTurnBudgetReceipt(f.dir,f.id)).toBeNull();

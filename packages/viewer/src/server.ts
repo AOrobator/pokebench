@@ -37,7 +37,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
+export const BROWSER_MODULES = ["budget-extensions","visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;

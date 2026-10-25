@@ -31,7 +31,7 @@ describe("extension capability", () => {
 
 it("shows acknowledged turn limits without changing original horizons or applying ignored requests",()=>{
  const log=new Log();log.add(0,{...START,extend_run:true,extend_budget:true});
- const view=new RunView();view.apply(log.events[0]!);
+ const view=new RunView();for(const e of log.events)view.apply(e);
  expect(availableActions(view,true).has("extend_1000t")).toBe(true);
  expect(availableActions(view,true).has("extend_240m")).toBe(true);
  const ack=log.add(100,{type:"operator_control",turn:1,action:"extend_1000t",status:"applied",request:1,previous_max_turns:300,max_turns:1300});

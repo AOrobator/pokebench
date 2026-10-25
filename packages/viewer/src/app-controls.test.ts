@@ -322,14 +322,14 @@ it("does not accept another request's acknowledgement while this HTTP response i
 
 it("reuses Extend for turn increments, showing only acknowledged changes",async()=>{
  const {app,writes,send}=await mount({},false,true,true,undefined,true,20000);
- await vi.waitFor(()=>expect(ui("stats").textContent).toContain("20000"));
+ await vi.waitFor(()=>{expect(ui("stats").textContent).toContain("20000");});
  document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
  const kind=ui("extend-kind") as HTMLSelectElement;kind.value="turns";kind.dispatchEvent(new Event("change"));
  expect(ui("extend-time-label").hidden).toBe(true);expect(ui("extend-turn-label").hidden).toBe(false);
  const turns=ui("extend-turns") as HTMLSelectElement;turns.value="extend_2000t";turns.dispatchEvent(new Event("change"));
  expect(ui("extend-preview").textContent).toContain("20,000 → 22,000");
  turns.focus();app.tick(1);expect(document.activeElement).toBe(turns);
- ui("extend-confirm").click();ui("extend-confirm").click();await vi.waitFor(()=>expect(writes).toHaveLength(1));
+ ui("extend-confirm").click();ui("extend-confirm").click();await vi.waitFor(()=>{expect(writes).toHaveLength(1);});
  expect(writes[0]?.[2]).toEqual({action:"extend_2000t"});
  send(6000,{type:"operator_control",turn:1,action:"extend_2000t",status:"applied",request:1,previous_max_turns:20000,max_turns:22000});app.tick(0);
  expect(ui("extend-preview").textContent).toContain("22,000");expect(ui("stats").textContent).toContain("22000");

@@ -58,7 +58,10 @@ export class InstructionGoals {
  pending():number[]{return [...this.episodes.values()].filter(e=>e.reviewed_result<e.latest_result).map(e=>e.id);}
  apply(input:unknown,callId?:string,beforeCommit?:()=>void):void {
   if(callId!==undefined&&this.applied.has(callId))return;
-  if(!Value.Check(GoalReviewSchema,input))throw new GoalReviewError("Invalid goal review; supply reviewed episodes and full goal updates");
+  if(!Value.Check(GoalReviewSchema,input)){
+   const [first]=this.options.repairFeedback?Value.Errors(GoalReviewSchema,input):[];
+   this.reject("Invalid goal review; supply reviewed episodes and full goal updates",`Invalid goal review at ${first?.instancePath||"/"}: ${first?.message??"schema mismatch"}`);
+  }
   const nativeGoals=new Map(this.nativeGoals);
   const goals=new Map(this.goals),reviewed=new Set<number>(),updated=new Set<string>();
   for(const [index,r] of input.reviewed.entries()){

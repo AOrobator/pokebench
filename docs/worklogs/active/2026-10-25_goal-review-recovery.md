@@ -22,7 +22,7 @@ Performed deletions/restorations: advisory pending gate, rejected-review branch,
 
 Setup receipts: initial broad command incorrectly collected unbuilt exports and was aborted; focused RED replaces it. Schema exclusion/default typing errors fixed normally; initial lint found four void-expression test arrows and was corrected. Existing legacy explorer registry list needed explicit exclusion of the two new switches; original prompt hashes unchanged. Native binding copied only into owned venv; source binding contained a recursive convenience link, so copy excludes that link. Shared venv/vendor/runtime not modified.
 
-Headless preview18826 reads only owned offline recording. Real card links open both explainers at 1280/1440/375; collapsed/expanded screenshots and Agent Trace/raw-event detail retain exact rejection and ordinary result. Zero page errors. Desktop first selector matched NEXT RUN checkbox as well as Harness Config card; narrowed to article. Mobile uses the real PokéNav select, not hidden desktop buttons. These were proof-selector errors; no viewer interaction code changed. Preview served built candidate. Screenshots under owned runs/goal-review-proof/shots; inspection pending below. No new timeline marks.
+Headless preview18826 reads only owned offline recording. Real card links open both explainers at 1280/1440/375; collapsed/expanded screenshots and Agent Trace/raw-event detail retain exact rejection and ordinary result. Zero page errors. Desktop first selector matched NEXT RUN checkbox as well as Harness Config card; narrowed to article. Mobile uses the real PokéNav select, not hidden desktop buttons. These were proof-selector errors; no viewer interaction code changed. Preview served built candidate. Screenshots under owned runs/goal-review-proof/shots; all21screenshots inspected via3contact sheets; layout is readable at all widths, no clipping or broken cards. No new timeline marks.
 
 ## Principles self-review
 
@@ -43,3 +43,5 @@ Repo CLAUDE.md explicitly selects PB1–PB13; older draft header is superseded. 
 | PB11 | PASS | Actual pinned pi0.73.1 delivery/validation test with4bounded cases, factory/recorder and no endpoint calls. |
 | PB12 | PASS | ROM not copied or accessed via protected paths; only existing .env reference and native test binding in own venv. |
 | PB13 | PASS | RED34716277d, focused GREEN, performed deletions/restoration and background browser proof retained; gates/review/landing explicitly tracked. |
+
+Final pre-review self-audit made malformed schema feedback identify its validation path and first schema error too; generic OFF text remains exact.36focused tests pass; changed-source lint/type/build and final coverage rerun qualify this tiny final correction. New treatment byte identity is sealed only after these checks.

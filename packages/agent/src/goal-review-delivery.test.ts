@@ -40,7 +40,7 @@ it.each([
   const before=must(wiring.instructionGoals).ledger.pending();
   const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
   let decisions=0,delivered="";
-  const feedback=invalidAction?'Validation failed for tool "press"':malformed?"Invalid goal review; supply reviewed episodes and full goal updates":"reviewed[0].episode 123 was not delivered; recent delivered episode IDs: [39430,39462]";
+  const feedback=invalidAction?'Validation failed for tool "press"':malformed?"Invalid goal review at /:":"reviewed[0].episode 123 was not delivered; recent delivered episode IDs: [39430,39462]";
   const streamFn:StreamFn=(_model,context)=>{
    decisions++;
    if(decisions===2){delivered=context.messages.filter(m=>m.role==="toolResult").flatMap(m=>m.content.filter(c=>c.type==="text").map(c=>c.text)).join("\n");expect(delivered).toContain(feedback);expect(delivered.includes("ordinary validated action result")).toBe(advisory&&!invalidAction);}

@@ -9,7 +9,7 @@ No puzzle solver, route policy, foreknowledge of switch effects, input changes, 
 - [x] RED tests committed (22f42e155).
 - [x] GREEN implementation, shared arm config, explainer.
 - [x] Native archived-state proof and mutation check.
-- [ ] Full gates, principles, cloud review.
+- [ ] Full gates and principles PASS; cloud review pending.
 - [ ] Serialized landing and viewer proof.
 
 Reference: clean pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, matching US ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Sources: MauvilleCity_Gym/scripts.inc, field_specials.c MauvilleGymPressSwitch/SetDefaultBarriers, metatile_labels.h. Evidence d41e #193989/#194138/#195466 reproduces recorded full grids exactly from hash-validated raw RAM.
@@ -30,3 +30,30 @@ RED: production-readout and arm-materialization regressions added. Python collec
 Sync: GREEN f06c74d10; main f6da68cf3 adds caught-nickname-prompt-v2 in the same append-only registries. Resolved by retaining main first and appending Mauville; preserved V2’s own defaults/recipe. Combined gate run supersedes all pre-sync receipts.
 
 Final main evidence sync: nickname owner replaced its evidence-only46afb8914 with3f926f129; kept their current worklog exactly. Runtime/test trees are unchanged from f11c6efd9, the combined gate source. No candidate production delta changed.
+
+## Final combined verification before review
+
+- Combined main3f926f129 + candidate production/test content byte-identical to f11c6efd9 (later merges change only the other worklog). `just test`:4408 agent,1958 viewer,4184 Python, three approved trainer-card screenshots pass at1280/1440/375. `just coverage`: agent L/B/F99.17/92.74/97.58%; viewer98.20/91.81/95.37%; Python97.41/93.46/100%. `just lint`, build and verify-vendor PASS. Receipts canonical runs/reviews/mauville-puzzle-readout/gates/.
+- The isolated visual check initially failed because art was missing; configured the canonical read-only trainer-card-v1 path, then full `just test` and all exact baselines passed. No source fix, baseline update or gate bypass.
+- Explainer mobile diagram uses an internal horizontal scroller for readable labels;1280/1440/375 screenshots rechecked, no page overflow or page errors. pages-check silent. Config card->READ EXPLAINER real click verified. Offline trace row#195467 and raw JSON contain the new coordinate lists and named targets, with recorded frame visible. These offline receipts are not a live model trial.
+- Activation boundary: fresh launches only, both arm materializations ON. Active and already queued frozen sources unmodified.
+
+## Principles Adherence
+
+Repo CLAUDE.md selects PB1-PB13; the old draft header in agent-principles.md is superseded.
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Current live metatile/collision facts; three hash-validated native snapshots and paired frames, not model narration. |
+| PB2 | PASS | Original run logs/checkpoints/frames preserved, including the struggling gym trace; no new measured trial or hidden failure. |
+| PB3 | N/A | Correctness proof only; no claim that the model solves the gym faster or more often. |
+| PB4 | PASS | Named recorded switch, explicit exact-OFF behavior, source-bounded factual observations; vendor clean, no RAM writes or solver. |
+| PB5 | PASS | One observation correction, shared ON in both arms per explicit user; no navigation or experiment protocol changes. |
+| PB6 | N/A | Context budget/history/compaction unchanged; bounded map footprint lists replace no history owner. |
+| PB7 | PASS | Existing tool-result text remains the durable feedback channel; offline trace/raw-inspector/replay proof labelled NOT MODEL DELIVERY, originals immutable. |
+| PB8 | N/A | Tool input/activation/validation/retry/stop behavior unchanged. |
+| PB9 | PASS | User explicitly approved implementation and ON in control/bundle; observational labels chosen from source/paired live tiles, no unresolved policy proxy. |
+| PB10 | PASS | Final full tests/build/lint/coverage/vendor/three exact protected visual baselines pass; no skips, lowered gates, timeout increases or baseline edits. |
+| PB11 | PASS | Verified clean source731ad5bf, ROM and archive hashes; replay uses existing production reader/formatter. No new library/API dependency. |
+| PB12 | PASS | Existing external ~/.roms ROM read in place; no ROM copy or TCC access. Background Chromium only; screenshots inspected with image tool. |
+| PB13 | PASS | RED22f42e155, GREENf06c74d10, combined gates/native/mutation/browser receipts recorded. Independent frozen review now required before landing; no premature completed/live claim. |

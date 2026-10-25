@@ -160,7 +160,13 @@ def next_tiles(
                 on_foot=on_foot,
                 shut=shut,
             )
-        if terrain and tile is not None and not tile.collision and glyph not in ("N", "W"):
+        if (
+            observation is None
+            and terrain
+            and tile is not None
+            and not tile.collision
+            and glyph not in ("N", "W")
+        ):
             # Local import: terrain presentation depends on the map/field-obstacle types.
             from pokebench_env.terrain_visibility import SANDSTORM, terrain_description
 

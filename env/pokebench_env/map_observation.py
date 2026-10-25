@@ -320,7 +320,7 @@ def render_observation(
         lines.append(
             "Element legend: "
             + "; ".join(
-                f"{k} = {v}" + (f"; {effects[k]}" if k in effects else "")
+                f"{k} = {v}" + (f"; on collision-clear tiles: {effects[k]}" if k in effects else "")
                 for k, v in legend.items()
             )
         )

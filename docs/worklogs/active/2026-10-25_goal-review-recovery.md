@@ -8,7 +8,7 @@ Owners: instruction-goals.ts, instruction-goal-tools.ts, play-config.ts; normal 
 
 - [x] RED: three focused production-context tests fail on missing advisory execution, old generic error text, and absent defaults. Initial command accidentally collected broad unbuilt exports; aborted and retained /tmp/goal-review-red.log. Valid focused receipt /tmp/goal-review-red-focused.log.
 - [x] GREEN and production proof: independent options in existing ledger/tool owners, registry/default/prompt wiring; maintained recipe ledger OFF in both arms, new switches bundle ON/control OFF, cutscene retained. Focused pinned pi tests cover semantic and malformed review rejection, ordinary input rejection, exact next-request and durable-result feedback; no endpoint traffic.
-- [ ] Gates and principles
+- [x] Gates and principles
 - [ ] Independent review
 - [ ] Landing and live proof
 
@@ -45,3 +45,11 @@ Repo CLAUDE.md explicitly selects PB1–PB13; older draft header is superseded. 
 | PB13 | PASS | RED34716277d, focused GREEN, performed deletions/restoration and background browser proof retained; gates/review/landing explicitly tracked. |
 
 Final pre-review self-audit made malformed schema feedback identify its validation path and first schema error too; generic OFF text remains exact.36focused tests pass; changed-source lint/type/build and final coverage rerun qualify this tiny final correction. New treatment byte identity is sealed only after these checks.
+
+## Frozen final gates
+
+Synced main5c45e046f via merge6ff26c897 (only unrelated benchmark-rubric worklog evidence; no runtime changes). Final source81885669f plus this evidence. Build PASS; full lint PASS and changed-file lint/typecheck after final schema-feedback correction PASS. justtest PASS4422agent/1971viewer/4196Python plus3exact protected-card baselines; final full coverage exercises4423agent tests (additional storage-mode case),1971viewer,4196Python, all PASS. Coverage L/B/F: agent99.18/92.76/97.62%; viewer98.20/91.80/95.37%; Python97.44/93.51/100%; all>=90. Vendor pin clean. pages-check empty.
+
+Retained intermediate coverage timeout: unchanged battle-text-auto-advance press-cap test exceeded5000ms (observed5894ms) under V8 coverage; source/test diff to main is empty. Focused unchanged test passes, and one unchanged full coverage rerun passes all4423tests plus viewer/Python under the original limits. No timeout, retry, skip, concurrency or baseline change. Preliminary success/timeout/final success all retained; only the final full gate qualifies the final source. Owned scratch viewer stopped after proof. Captured background desktop/phone explainers, cards and raw-event inspector inspected in3contact sheets covering21screenshots. No focus taken.
+
+Standing Grok-outage provenance independently read from original server-copied user messages at 00000000-0000-4000-8000-1bb4e739f4f4.jsonl lines4145/4964/6309: human “yes dont wait for grok” and “land without grok”; general roster context attached. Stored exact lines and hashes in owned runs/goal-review-proof/standing-grok-authorization.json. Try the current Grok lane first; an outage is never LGTM. Normal Claude/GPT retained; any fallback follows the authorized independent-model roster and is disclosed.

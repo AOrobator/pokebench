@@ -37,3 +37,5 @@ Source reference: clean pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; mat
 - RED42cd92003: five missing Python modules and generated TS schema fail collection as expected. Provider GREEN checks independently reported52 tile/29 rotating/43 terrain-layout tests; parent verification pending. Secondary config RED: production both-arm/default test fails2 assertions before registry wiring.
 
 - Additional production-copy RED: map-observation-navigation-copy.test.ts proves OFF exact refusal bytes and zero inputs; ON fails because slippery floor is still called a spin tile. Narrow observation-only wording fix follows. Legacy Python fixtures explicitly disable the newly default-ON feature; 361 focused tests pass with zero skips and original golden assertions intact.
+
+- Production consistency regression exposes another real seam: new-map switch target identity is decoded but candidate text hides the label when legacy named-interactions is OFF. Additional current elevation/viewport/surf exclusions pass18/19 cases; one RED label assertion before narrow presentation fix.

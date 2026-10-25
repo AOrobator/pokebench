@@ -436,16 +436,20 @@ def test_shared_map_preserves_enabled_elevation_consequences_and_warp_qualificat
 
 
 @pytest.mark.parametrize("surfing", [False, True])
-def test_shared_elevation_consequences_do_not_turn_water_into_a_grounded_step(surfing):
+@pytest.mark.parametrize("clear_elsewhere", [False, True])
+def test_shared_elevation_consequences_do_not_turn_water_into_a_grounded_step(
+    surfing, clear_elsewhere
+):
     memory = elevation_memory(surfing=surfing)
     memory.put(0x02005000 + 2 * (8 * 39 + 2 + 7), struct.pack("<H", 0x200 | 4 << 12))
     memory.put(0x02008000, struct.pack("<H", 0x10))
-    memory.put(0x02005000 + 2 * (8 * 39 + 20 + 7), bytes(2))
+    if not clear_elsewhere:
+        memory.put(0x02005000 + 2 * (8 * 39 + 20 + 7), bytes(2))
     off = off_set() - {"elevation-aware-map-v1"}
     state = read_state(memory.read, MAPS, active_ui=False, off=off)
     text = render(state, off)
     nearby = next(line for line in text.splitlines() if line.startswith("Next tiles:"))
     right = nearby.split("right (2,1)", 1)[1]
     assert "cannot be entered from here" not in right, right
-    assert "The game refuses a step" not in text, text
+    assert ("The game refuses a step" in text) is (clear_elsewhere and not surfing), text
     assert ("other level (4)" in right) is not surfing, right

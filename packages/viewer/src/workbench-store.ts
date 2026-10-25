@@ -97,11 +97,7 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
-    if (recording.clockProblem !== undefined) {
-      run.problem = recording.clockProblem;
-      run.excluded = [run.excluded, recording.clockProblem].filter(Boolean).join("; ");
-      run.splits = []; delete run.measurement;
-    }
+    if (recording.clockProblem !== undefined) run.clockWarning = recording.clockProblem;
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };

@@ -349,3 +349,24 @@ it("refreshes a selected graph when checkpoints outside the filters change its g
   data = { ...data, at: 2000, runs: [...normal.map(r => ({ ...r, splits: r.splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 50 })) })), leader, selected] };
   await wb.refresh(); expect(points()).toHaveLength(2); wb.destroy();
 });
+
+it("updates a plotted split's clock warning without changing its recorded time or hiding progress", async () => {
+  const original = run({ id: "clock-warning", measurement: { controller: "agent", features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: 120000, evidence: [18] }] } });
+  const state: { warning?: string } = {};
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at: 1000, milestones: [], problems: [], runs: [{ ...original, ...(state.warning === undefined ? {} : { clockWarning: state.warning }) }] }), now: () => 1000, width: () => 900 });
+  await wb.refresh();
+  const selector = '[data-run="clock-warning"][data-split="PLAYER_NAME_CONFIRMED"]';
+  const before = ui("frontier-full").querySelector(selector)?.getAttribute("aria-label");
+  expect(before).toContain("2:00.000");
+  state.warning = "Recording timestamp moved backward 43 ms at seq 4; split times use recorded wall-clock timestamps <test>";
+  await wb.refresh();
+  const point = ui("frontier-full").querySelector(selector);
+  expect(point?.getAttribute("aria-label")).toContain(state.warning);
+  expect(point?.getAttribute("aria-label")).toContain("2:00.000");
+  point?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  expect(ui("detail").hidden).toBe(false);
+  expect(ui("detail-body").textContent).toContain(state.warning);
+  expect(ui("detail-body").querySelector("test")).toBeNull();
+  expect(ui("detail-body").textContent).toContain("2:00.000");
+  wb.destroy();
+});

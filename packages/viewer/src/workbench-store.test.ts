@@ -4,8 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BASE_MS, Log, START, assistant, state, tAt } from "../test-support/events.js";
-import { frontierReferences } from "./frontier.js";
+import { frontierReferences, shownAgent, frontierPlot } from "./frontier.js";
 import { cardWorkbench, createIncrementalRunLoader, loadRun, workbenchSnapshot } from "./workbench-store.js";
+import { plateFacts, runDetails } from "./workbench-view.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
@@ -592,25 +593,36 @@ it("refreshes cached extension projections only for applied acknowledgements and
 
 
 describe("live card clock regression recovery", () => {
-  it("keeps a health-confirmed anomalous run visible without grading its timing", async () => {
+  it("keeps health-confirmed progress and Frontier splits visible with a clock warning", async () => {
     const r = root(), log = named();
     log.add(3957, state({ name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE", turn: 1955 }));
     write(r, "clock_run", log);
-    expect(loadRun(r, "clock_run").run).toMatchObject({ status: "unresponsive", problem: expect.stringContaining("43 ms"), splits: [] });
+    expect(loadRun(r, "clock_run").run).toMatchObject({ status: "unresponsive", problem: null, excluded: null, splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
     const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
     const card = cardWorkbench(snapshot, null).runs.find(run => run.id === "clock_run");
-    expect(card).toMatchObject({ status: "live", turn: 1955, model: START.model.id, card: { name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE" }, splits: [] });
-    expect(card?.problem).toContain("43 ms");
-    expect(card?.problem).toContain("seq 4");
-    expect(card?.excluded).toContain("timestamp");
+    expect(card).toMatchObject({ status: "live", turn: 1955, model: START.model.id, card: { name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE" }, splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
+    expect(card?.clockWarning).toContain("43 ms");
+    expect(card?.clockWarning).toContain("seq 4");
+    expect(card?.problem).toBeNull(); expect(card?.excluded).toBeNull();
     expect(card?.measurement).toBeUndefined();
+    const full = snapshot.runs.find(run => run.id === "clock_run");
+    if (full === undefined) throw new Error("missing Frontier run");
+    expect(full.measurement?.rawSplits[0]?.name).toBe("PLAYER_NAME_CONFIRMED");
+    if (card === undefined) throw new Error("missing clock card");
+    expect(plateFacts(card, snapshot.at, snapshot.at).reached?.split.name).toBe("PLAYER_NAME_CONFIRMED");
+    expect(plateFacts(card, snapshot.at, snapshot.at).level).toBeGreaterThan(0);
+    expect(frontierReferences(snapshot.runs).best?.id).toBe("clock_run");
+    expect(shownAgent(full)).toBe(true);
+    expect(frontierPlot(frontierReferences(snapshot.runs), [full], 900)).toContain("43 ms");
+    expect(runDetails(card, "PLAYER_NAME_CONFIRMED")).toContain("43 ms");
+    expect(() => parseWorkbench({ ...snapshot, runs: [{ ...card, clockWarning: 43 }] })).toThrow("Invalid workbench");
     const offline = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
     expect(offline.runs.find(run => run.id === "clock_run")?.status).toBe("unresponsive");
   });
   it("keeps incremental appends, pauses and terminal status after a clock regression", () => {
     const r = root(), log = named(); log.add(3957, state()); const path = write(r, "clock_tail", log);
     const reads: number[] = [], load = createIncrementalRunLoader({ observeRead: (_path, offset) => reads.push(offset) });
-    expect(load(r, "clock_tail").run.problem).toContain("43 ms");
+    expect(load(r, "clock_tail").run.clockWarning).toContain("43 ms");
     const before = reads.length, length = Buffer.byteLength(readFileSync(path));
     const paused = log.add(5000, { type: "operator_control", turn: 2, action: "pause", status: "applied", request: 1, emulator_frozen: true });
     appendFileSync(path, JSON.stringify({ ...paused, run: "clock_tail" }) + "\n");
@@ -619,8 +631,26 @@ describe("live card clock regression recovery", () => {
     const ended = log.add(6000, { type: "run_end", turn: 2, reason: "budget", furthest_milestone: null, turns: 2, wall_ms: 6000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     appendFileSync(path, JSON.stringify({ ...ended, run: "clock_tail" }) + "\n");
     const terminal = load(r, "clock_tail");
-    expect(terminal.run).toMatchObject({ status: "ended", reason: "budget", splits: [] });
-    expect(terminal.run.problem).toContain("43 ms"); expect(terminal.run.measurement).toBeUndefined();
+    expect(terminal.run).toMatchObject({ status: "ended", reason: "budget", splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
+    expect(terminal.run.clockWarning).toContain("43 ms"); expect(terminal.run.measurement?.rawSplits[0]?.name).toBe("PLAYER_NAME_CONFIRMED");
     expect(load.retained()).toBe(0);
   });
+});
+
+it("preserves signed raw wall time across run start without breaking the full Frontier parser", async () => {
+  const r = root(), log = named();
+  const witness = log.events[2], milestone = log.events[3];
+  if (witness === undefined || milestone === undefined) throw new Error("missing clock witnesses");
+  witness.t = tAt(-200); milestone.t = tAt(-100);
+  const path = write(r, "clock-crosses-start", log), original = readFileSync(path, "utf8");
+  const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
+  const full = parseWorkbench(snapshot).runs.find(run => run.id === "clock-crosses-start");
+  if (full === undefined) throw new Error("missing signed-clock run");
+  expect(full.problem).toBeNull();
+  expect(full.clockWarning).toContain("1200 ms");
+  expect(full.splits.map(split => ({ name: split.name, elapsedMs: split.elapsedMs }))).toEqual([{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: 0 }]);
+  expect(full.measurement?.rawSplits).toEqual([{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: -100, evidence: [2] }]);
+  expect(runDetails(full, "PLAYER_NAME_CONFIRMED")).toContain("-0:00.100");
+  expect(() => parseWorkbench({ ...snapshot, runs: [{ ...full, clockWarning: undefined }] })).toThrow("Invalid workbench");
+  expect(readFileSync(path, "utf8")).toBe(original);
 });

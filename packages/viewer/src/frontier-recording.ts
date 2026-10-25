@@ -84,9 +84,9 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || (ms < previousMs && clockPolicy === "strict") || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
-    // Sequence remains authoritative for display. Raw timestamps stay untouched and
-    // anomalous recordings never export graded splits, even after the clock recovers.
-    if (ms < previousMs && clockProblem === undefined) clockProblem = `Recording timestamp moved backward ${String(previousMs - ms)} ms at seq ${String(event.seq)}; timing is unverified; no split graded`;
+    // Sequence remains authoritative for display. Keep qualified progress and raw
+    // timestamps; clock anomalies are disclosed without hiding earned milestones or split times.
+    if (ms < previousMs && clockProblem === undefined) clockProblem = `Recording timestamp moved backward ${String(previousMs - ms)} ms at seq ${String(event.seq)}; split times use recorded wall-clock timestamps`;
     expected = event.type === "run_start" ? restorationNextSequence(path, event as Extract<RunEvent, { type: "run_start" }>) : expected + 1; previousMs = ms; return ms;
   };
   const skip = (line: number, problem: string, value: unknown): void => {
@@ -195,6 +195,6 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     const outputView = Object.assign(new RunView(), structuredClone(view));
     Object.defineProperty(outputView, "control", { value: Object.assign(new ControlView(), structuredClone(view.control)), enumerable: true, configurable: true });
     outputView.state = null;
-    return { ...(clockProblem === undefined ? {} : { clockProblem }), view: outputView, last, splits: clockProblem === undefined ? outputSplits : [], measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...((progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)||campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE))?{recoveredFeatures:[...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?[STORY_PROGRESS_FEATURE]:[]),...(campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE)?[CAMPAIGN_PROGRESS_FEATURE]:[])]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: clockProblem === undefined ? outputRaw : [] }, skipped: skipped === null ? null : { ...skipped } };
+    return { ...(clockProblem === undefined ? {} : { clockProblem }), view: outputView, last, splits: outputSplits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], ...((progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)||campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE))?{recoveredFeatures:[...(progressSupported&&!view.start.harness_features.includes(STORY_PROGRESS_FEATURE)?[STORY_PROGRESS_FEATURE]:[]),...(campaignSupported&&!view.start.harness_features.includes(CAMPAIGN_PROGRESS_FEATURE)?[CAMPAIGN_PROGRESS_FEATURE]:[])]}:{}), logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: outputRaw }, skipped: skipped === null ? null : { ...skipped } };
   } };
 }

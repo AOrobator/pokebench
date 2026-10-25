@@ -40,7 +40,7 @@ Stop at exact correction above and requested persisted summary. Review advice ad
 - Final restored full tests PASS:4435agent,1994viewer,4196Python;3exact protected-card screenshots PASS. Complete coverage PASS: agent lines99.18/branches92.76/functions97.62%; viewer98.17/91.58/95.27%; Python97.44/93.51/100%. All>=90; no threshold/exclusion edits. Final lint/vendor confirmation pending in the same serial gate chain.
 
 - Final restored lint/build/vendor PASS. Real-data before/after same498MBprefix:36gained/13removed unchanged, spent0→6300, buys0→4;35quantity changes before/after, identical current inventory item-set/order/quantities (exact map comparison). No changes lost or duplicated; original frozen recording only read. See real-before-after.json for exact current item count rather than this narrative.
-- Review-boundary source set remains initial six production paths (new bag-history.ts expressly authorized persistence owner); no review-driven growth. RED commit d3b7e60c4. GREEN commits and frozen review identity follow below. Source append-only assumption and explicit preview limitation recorded in Principles Adherence artifact.
+- Review-boundary source set remains initial five named production paths (new bag-history.ts expressly authorized persistence owner); no review-driven growth. RED commit d3b7e60c4. GREEN commits and frozen review identity follow below. Source append-only assumption and explicit preview limitation recorded in Principles Adherence artifact.
 
 ## Round 1 review and bounded correction
 
@@ -53,3 +53,7 @@ No new production file, dependency, persistence owner or runtime interface beyon
 - R2 performed13mutations, each intended assertion failed and source restored: saved/restored shop, pending, tutorial ownership, return-from-tutorial marker and previous snapshot; transitive key; persistence error propagation; cache preflight before raw reads. Logs/tmp/bag-r2-mutation-*.log and runs/bag-preview/mutations-r2.json.
 
 - Synced current main 5c09ba3f30b24062cc24fe456cde43166da1a17c before R2 final gates/review; preserved new qualified-map work. No canonical-main move or viewer refresh by this task yet.
+
+- R2 real498116344-byte prefix: cold1.7445s/1901reads; two independent warm readers2.84/1.82ms with0rawreads/bytes, exact36gained/13removed/6300spent/4buys throughseq36971 unchanged. Receipt runs/bag-preview/r2-reader-proof.json. R2 production app.ts/bag.ts/style.css diff against R1 is empty, so inspected six presentation screenshots remain the same candidate presentation. Full R2 browser/live checks still follow the final build/landing.
+
+- Full restored R2 gates on qualified-map source PASS:4443agent/2005viewer/4425Python tests plus3exact protected-card images. Coverage L/B/F agent99.18/92.78/97.62, viewer98.19/91.60/95.31, Python97.47/93.58/100%; lint/build/vendor PASS. Synced subsequent b00044915 map evidence-only commit (only docs/worklogs/active/2026-10-25_map-observability.md changed from5c09ba3f3), source/test/compiled reducer behavior byte-identical. Repeating required final gates on that joined tip before sealing R2. Coordinator released board4:13PM NY; no competing landing currently queued.

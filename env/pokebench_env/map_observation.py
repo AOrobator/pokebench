@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from typing import TYPE_CHECKING
 
 from pokebench_env.live_map import FullMap, LocalMap
 from pokebench_env.map_layout import LayoutContext
@@ -9,6 +10,9 @@ from pokebench_env.map_observation_types import MapElement
 from pokebench_env.map_terrain_elements import terrain_elements
 from pokebench_env.map_tile_elements import tile_elements
 from pokebench_env.mauville_puzzle import HORIZONTAL, MAP, SWITCHES, VERTICAL
+
+if TYPE_CHECKING:
+    from pokebench_env.field_moves import MapGates
 
 SWITCH = "map-observability-v1"
 KIND_TOKENS = {
@@ -44,6 +48,7 @@ KIND_TOKENS = {
     "ground": "Gr",
     "decoration": "Dc",
     "other_level": "Lv",
+    "sandstorm_boundary": "Ss",
 }
 STATE_TOKENS = {
     "raised": "up",
@@ -91,7 +96,12 @@ def element_label(element: MapElement) -> str:
         words.append(f"({element.state.replace('_', ' ')})")
     if element.orientation is not None:
         words.append(f"orientation {element.orientation * 90} degrees")
-    return " ".join(words)
+    label = " ".join(words)
+    if element.kind == "sandstorm_boundary":
+        from pokebench_env.terrain_visibility import SANDSTORM
+
+        label += f"; {SANDSTORM[2]}"
+    return label
 
 
 def _element_json(element: MapElement) -> dict[str, object]:
@@ -150,8 +160,18 @@ def observed_elements(
     map_id: tuple[int, int],
     player_elevation: int | None = None,
     avatar_flags: int | None = None,
+    *,
+    field_gates: "MapGates | None" = None,
 ) -> tuple[MapElement, ...]:
     result: list[MapElement] = []
+    sand = {
+        tile
+        for obstacle in (() if field_gates is None else field_gates.obstacles)
+        if obstacle.gate == "go_goggles"
+        and field_gates is not None
+        and field_gates.closed(obstacle)
+        for tile in obstacle.tiles
+    }
     for tile in shown.tiles:
         specific = tile_elements(map_id, tile)
         if map_id == MAP:
@@ -165,6 +185,8 @@ def observed_elements(
                     ),
                 )
         result.extend(specific or terrain_elements(tile, map_id))
+        if (tile.x, tile.y) in sand and not tile.collision:
+            result.append(MapElement("sandstorm_boundary", tile.x, tile.y, state="blocked"))
         if (
             player_elevation is not None
             and avatar_flags is not None
@@ -186,7 +208,14 @@ def labels_at(observation: MapObservation, x: int, y: int) -> tuple[str, ...]:
     )
 
 
-def render_observation(shown: LocalMap | FullMap, observation: MapObservation) -> str:
+def render_observation(
+    shown: LocalMap | FullMap,
+    observation: MapObservation,
+    *,
+    ledges: bool = True,
+    edge_walls: bool = True,
+    counters: bool = True,
+) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
     horizontal: dict[tuple[int, int], str] = {}
@@ -225,7 +254,8 @@ def render_observation(shown: LocalMap | FullMap, observation: MapObservation) -
             detailed.add(grouped_label)
     ox, oy = observation.origin
     rendered: list[list[str]] = []
-    for row_index, row in enumerate(shown.rows):
+    base_cells = shown.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
+    for row_index, row in enumerate(base_cells):
         output = []
         for column, glyph in enumerate(row):
             underlying = cells.get((ox + column, oy + row_index), [])
@@ -244,10 +274,10 @@ def render_observation(shown: LocalMap | FullMap, observation: MapObservation) -
         (ox + x, oy - 1) in horizontal or (ox + x, oy) in junctions
         for x in range(observation.width + 1)
     ):
-        boundary = "    " + ("+" if (ox, oy) in junctions else " ")
+        boundary = "    " + ("*" if (ox, oy) in junctions else " ")
         for x in range(observation.width):
             boundary += ("-" * widths[x]) if (ox + x, oy - 1) in horizontal else " " * widths[x]
-            boundary += "+" if (ox + x + 1, oy) in junctions else " "
+            boundary += "*" if (ox + x + 1, oy) in junctions else " "
         lines.append(boundary.rstrip())
     for y, cell_row in enumerate(rendered):
         text = f"{oy + y:4}" + vertical.get((ox - 1, oy + y), " ")
@@ -258,14 +288,15 @@ def render_observation(shown: LocalMap | FullMap, observation: MapObservation) -
             (ox + x, oy + y) in horizontal or (ox + x, oy + y + 1) in junctions
             for x in range(observation.width + 1)
         ):
-            boundary = "    " + ("+" if (ox, oy + y + 1) in junctions else " ")
+            boundary = "    " + ("*" if (ox, oy + y + 1) in junctions else " ")
             for x in range(observation.width):
                 boundary += ("-" * widths[x]) if (ox + x, oy + y) in horizontal else " " * widths[x]
-                boundary += "+" if (ox + x + 1, oy + y + 1) in junctions else " "
+                boundary += "*" if (ox + x + 1, oy + y + 1) in junctions else " "
             lines.append(boundary.rstrip())
     lines.append(
         "Base glyph / element token preserves both layers; @ player, N object, W warp. "
-        "Gate | and - marks are edges; + marks a junction, not a solid cell."
+        "Gate | and - between cells mark edges; * marks a gate junction, not a solid cell. "
+        "A + inside a cell remains a base edge wall."
     )
     if legend:
         lines.append("Element legend: " + "; ".join(f"{k} = {v}" for k, v in legend.items()))

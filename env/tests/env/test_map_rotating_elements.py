@@ -193,15 +193,18 @@ def test_invalid_orientation_is_unknown_and_does_not_erase_other_gates():
     assert unavailable and "gate:0" in unavailable[0]
 
 
-@pytest.mark.parametrize("pending,ended", [(1, True), (2, True), (0, False)])
-def test_rotating_sprite_does_not_report_a_settled_future_footprint(pending, ended):
+@pytest.mark.parametrize(
+    "pending,ended,beginning",
+    [(1, True, False), (2, True, False), (0, False, False), (0, True, True)],
+)
+def test_rotating_sprite_does_not_report_a_settled_future_footprint(pending, ended, beginning):
     memory = GateMemory()
     memory.put(0x0203A038, b"\x02")
     sprite = bytearray(0x44)
     struct.pack_into("<I", sprite, 0x1C, 0x080FBAE5)
     struct.pack_into("<hhh", sprite, 0x2E, 0, pending, 1)
     sprite[0x3E] = 1
-    sprite[0x3F] = 0x20 if ended else 0
+    sprite[0x3F] = (0x20 if ended else 0) | (8 if beginning else 0)
     memory.put(0x02020630 + 2 * 0x44, sprite)
     elements, unavailable = read_rotating_elements(memory.read, (12, 1), room())
     assert unavailable == ()
@@ -228,7 +231,9 @@ def test_no_gate_in_view_does_not_read_unrelated_live_data():
     assert memory.calls == []
 
 
-@pytest.mark.parametrize("fault", ["slot", "unused", "callback", "gate_id", "pending"])
+@pytest.mark.parametrize(
+    "fault", ["slot", "valid_looking_invalid_slot", "unused", "callback", "gate_id", "pending"]
+)
 def test_loaded_sprite_identity_and_animation_values_are_validated(fault):
     memory = GateMemory()
     memory.put(0x0203A038, b"\x02")
@@ -236,7 +241,7 @@ def test_loaded_sprite_identity_and_animation_values_are_validated(fault):
     struct.pack_into("<I", sprite, 0x1C, 0x080FBAE5)
     sprite[0x3E] = 1
     sprite[0x3F] = 0x20
-    if fault == "slot":
+    if fault in ("slot", "valid_looking_invalid_slot"):
         memory.put(0x0203A038, b"\xff")
     elif fault == "unused":
         sprite[0x3E] = 0
@@ -247,6 +252,8 @@ def test_loaded_sprite_identity_and_animation_values_are_validated(fault):
     else:
         sprite[0x30] = 3
     memory.put(0x02020630 + 2 * 0x44, sprite)
+    if fault == "valid_looking_invalid_slot":
+        memory.put(0x02020630 + 255 * 0x44, sprite)
     elements, unavailable = read_rotating_elements(memory.read, (12, 1), room())
     assert not any(e.group == "gate:0" for e in elements)
     assert unavailable and "gate:0" in unavailable[0]
@@ -279,3 +286,18 @@ def test_incomplete_memory_never_becomes_zero_orientation(fault):
     elements, unavailable = read_rotating_elements(read, (12, 1), room())
     assert elements == ()
     assert unavailable == ("rotating gate memory unavailable",)
+
+
+@pytest.mark.parametrize("invalid_save", [0x02010001, 0x01010000, 0x0203F000])
+def test_save_owner_bounds_reject_even_valid_looking_aliased_bytes(invalid_save):
+    memory = GateMemory()
+    memory.put(0x03005D8C, struct.pack("<I", invalid_save))
+
+    def read(address, size):
+        if invalid_save <= address < invalid_save + 0x1400:
+            return memory.read(SAVE + address - invalid_save, size)
+        return memory.read(address, size)
+
+    elements, unavailable = read_rotating_elements(read, (12, 1), room())
+    assert elements == (), (invalid_save, elements, unavailable)
+    assert unavailable == ("rotating gate live owner unavailable",)

@@ -742,7 +742,9 @@ def format_readout(
                 warp_labels=warp_labels,
                 dynamic=dynamic,
                 next_tiles=neighbours,
-                rendered=render_observation(shown, observation)
+                rendered=render_observation(
+                    shown, observation, ledges=ledges, edge_walls=edge_walls, counters=counters
+                )
                 if observation is not None
                 else None,
                 # A local-map fallback keeps its legend: the prompt describes the whole map.

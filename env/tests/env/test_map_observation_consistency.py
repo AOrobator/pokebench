@@ -110,7 +110,7 @@ def test_transition_anchor_does_not_invent_a_pivot_at_the_anchor_coordinate():
         (MapElement("rotating_gate", 7, 7, state="transitioning", group="gate:0"),),
     )
     text = render_observation(shown, observation)
-    assert "+" not in text.split("Base glyph", 1)[0]
+    assert "*" not in text.split("Base glyph", 1)[0]
     assert "junction (7,7)" not in text
     assert "transitioning" in text
 
@@ -142,3 +142,49 @@ def test_adjacent_element_identity_preserves_collision_and_water_constraints():
         )
         assert element_label(element) in line
         assert constraint in line
+
+
+def test_gate_junction_and_base_edge_wall_use_different_marks():
+    shown = LocalMap((0, 0), ("+.", ".."), (MapTile(0, 0, 0, 0, 0x30),), (), ())
+    observation = build_observation(
+        shown, (12, 1), (MapElement("rotating_gate", 1, 1, state="pivot"),)
+    )
+    text = render_observation(shown, observation)
+    grid = text.split("Base glyph", 1)[0]
+    assert "+" in grid and "*" in grid, text
+    assert "A + inside a cell remains a base edge wall" in text, text
+
+
+def test_field_boundary_requires_current_closed_gate_and_retains_underlying_layers():
+    from pokebench_env.field_moves import GATES, Capabilities, map_gates
+
+    shown = LocalMap((11, 61), ("@",), (MapTile(11, 61, 0, 0, 0x21),), (), ())
+    for available in (False, True, None):
+        caps = Capabilities(tuple((g.id, available) for g in GATES))
+        gates = map_gates(caps, (), {(11, 61): (0, 0x21)}, "ROUTE111")
+        elements = observed_elements(shown, (0, 26), field_gates=gates)
+        assert any(e.kind == "sandstorm_boundary" for e in elements) is (available is False), (
+            elements
+        )
+        if available is False:
+            text = render_observation(shown, build_observation(shown, (0, 26), elements))
+            assert "@/Gr:sand/Ss:X" in text, text
+            collision = LocalMap((11, 61), ("#",), (MapTile(11, 61, 0, 1, 0x21),), (), ())
+            assert not any(
+                e.kind == "sandstorm_boundary"
+                for e in observed_elements(collision, (0, 26), field_gates=gates)
+            )
+
+
+def test_other_closed_field_obstacles_are_not_mislabeled_as_sandstorm():
+    from pokebench_env.field_moves import GATES, Capabilities, MapGates, Obstacle
+
+    shown = LocalMap((11, 61), (".",), (MapTile(11, 61, 0, 0, 0),), (), ())
+    gates = MapGates(
+        Capabilities(tuple((g.id, False) for g in GATES)),
+        (Obstacle("mach_bike", "rail", ((11, 61),), None, None),),
+    )
+    assert gates.closed(gates.obstacles[0])
+    assert not any(
+        e.kind == "sandstorm_boundary" for e in observed_elements(shown, (0, 26), field_gates=gates)
+    )

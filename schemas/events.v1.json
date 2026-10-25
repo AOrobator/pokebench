@@ -11143,7 +11143,8 @@
                       "encounter_ground",
                       "ground",
                       "decoration",
-                      "other_level"
+                      "other_level",
+                      "sandstorm_boundary"
                     ]
                   },
                   "x": {

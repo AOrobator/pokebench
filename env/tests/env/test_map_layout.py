@@ -82,3 +82,49 @@ def test_invalid_flash_level_is_unknown_and_cannot_invent_a_layout_variant():
     assert context.layout_id == 89
     assert context.flash_level is None
     assert context.variant is None
+
+
+@pytest.mark.parametrize("invalid_save", [0x02010001, 0x01010000, 0x0203FFF0])
+def test_layout_save_owner_bounds_reject_valid_looking_aliased_bytes(invalid_save):
+    memory = context_memory()
+    memory.put(0x03005D8C, struct.pack("<I", invalid_save))
+
+    def read(address, size):
+        if invalid_save <= address < invalid_save + 0x34:
+            return memory.read(0x02010000 + address - invalid_save, size)
+        return memory.read(address, size)
+
+    assert read_layout_context(read, (24, 46)) is None
+
+
+@pytest.mark.parametrize("layout_id", [0, 442])
+def test_layout_id_bounds_cannot_be_satisfied_by_a_matching_out_of_table_entry(layout_id):
+    assert read_layout_context(context_memory(layout_id).read, (24, 46)) is None
+
+
+@pytest.mark.parametrize("pointer", [0x02010000, 0x0A000000])
+def test_layout_pointer_must_be_rom_even_if_table_entry_matches(pointer):
+    memory = context_memory()
+    memory.put(0x02037318, struct.pack("<I", pointer))
+    memory.put(0x08481DD4 + 4 * 163, struct.pack("<I", pointer))
+    assert read_layout_context(memory.read, (24, 46)) is None
+
+
+def test_missing_current_map_does_not_read_or_infer_layout_context():
+    calls = []
+    memory = context_memory()
+
+    def read(address, size):
+        calls.append((address, size))
+        return memory.read(address, size)
+
+    assert read_layout_context(read, None) is None
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "declared,backup",
+    [((257, 1), (272, 15)), ((1, 257), (16, 271)), ((-1, 1), (14, 15)), ((1, 0), (16, 14))],
+)
+def test_each_dimension_bound_applies_before_matching_padding(declared, backup):
+    assert effective_dimensions(declared, backup, (0, 1), 1) is None

@@ -876,6 +876,7 @@ def read_game_state(
                 map_id,
                 state.player_elevation,
                 None if state.running is None else state.running.avatar_flags,
+                field_gates=None if state.field_obstacles is None else state.field_obstacles.gates,
             )
             + rotating_elements,
             unavailable,

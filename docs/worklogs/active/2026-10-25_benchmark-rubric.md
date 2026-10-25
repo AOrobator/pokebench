@@ -9,8 +9,10 @@ Scope: documentation only. No grader, detector, feature, prompt, model input, vi
 - [x] Record evidence protocol and distinguish specification from implemented grading.
 - [x] Save private notes project overview with repository references.
 - [x] Verify relative links, whitespace and agreement between both records.
-- [ ] Commit documentation on isolated branch; record commit result.
+- [x] Commit documentation on isolated branch; record commit result.
 
 Validation: documentation checks only; no gameplay launches, inference, runtime probes or application tests required for prose-only additions. Existing active Astra and local-model runs remain untouched.
 
 Validation: all relative repository links resolve; private notes files read back byte-for-byte; badge, Elite Four, Champion/Hall of Fame and Rayquaza objective terms present in both records.
+
+COMMIT: `docs: record badge-based benchmark rubric and Mission Ray-Ray` (`b45260ba4`). Whitespace and all relative-link checks passed. No application behavior changed; no application tests were run. Branch remains isolated and unmerged.

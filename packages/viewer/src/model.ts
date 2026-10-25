@@ -15,6 +15,11 @@ export type RunStartEvent = Of<"run_start">;
 export type RunEndEvent = Of<"run_end">;
 type AnyStateEvent = Of<"state">;
 export type StateEvent = Extract<AnyStateEvent, { started: boolean }>;
+// Shared by the live-head bootstrap and panel reducer: an unread transition is
+// not an empty roster; a known pregame screen can genuinely clear the party.
+export function hasPartySample(event: StateEvent): boolean {
+  return (!event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen)) || event.play_time_s !== null || event.party.length > 0;
+}
 export type Button = Of<"button_press">["buttons"][number] | Of<"human_input">["buttons"][number];
 
 // The pinned vendor's "normal" preset; M4 logs predate recorded timing.
@@ -473,7 +478,7 @@ export class RunView {
       this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true });
     }
     // game_state.py PRE_GAME: an unread field transition can also have started=false.
-    if ((!event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen)) || event.play_time_s !== null || event.party.length > 0) this.partyState = event;
+    if (hasPartySample(event)) this.partyState = event;
     this.updatePartyHealth(event);
     const previous = this.state;
     // Recover the old route-label mismatch only from a confirmed field map.

@@ -9,7 +9,7 @@ import { createInterface } from "node:readline";
 import { RUN_ID_PATTERN, eventEnvelope, parseEvent, startIdentity, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
-import { RunView, MILESTONE_ORDER } from "./model.js";
+import { RunView, MILESTONE_ORDER, hasPartySample } from "./model.js";
 import type { BaselineStore } from "./baseline-store.js";
 import { recoveredAttacher, recoveredSignature } from "./recovered-fields.js";
 import { skewOf, type ViewerBuild } from "./build-stamp.js";
@@ -486,28 +486,35 @@ export async function readRecentEventsAsync(runsRoot: string, runId: string, max
   } finally { steps.return([]); }
 }
 
-// Operator requests are sparse but their acknowledgements can predate the recent
-// turns (notably an extension). When this run has received controls, recover only
-// that metadata asynchronously, without validating/replaying its gameplay prefix.
-// The sidecar's existence is owned by appendControl; absence means no viewer requests.
+// A recent trace may contain no state or milestone at all (for example repeated
+// tool refusals). Hydrate sparse recorded panel context separately from trace
+// history, retaining the same party-sample rule the panel reducer owns.
 export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cancelled: () => boolean = () => false): Promise<RunEvent[]> {
   const recent = await readRecentEventsAsync(runsRoot, runId, maxTurns, maxBytes, cursor, RECENT_SLICE_LINES, cancelled);
   if (cancelled()) return [];
-  if (cursor.offset === 0 || !existsSync(join(runDir(runsRoot, runId), "control.jsonl"))) return recent;
+  if (cursor.offset === 0) return recent;
   const input = createReadStream(eventsPath(runsRoot, runId), { encoding: "utf8", end: cursor.offset - 1 });
   const lines = createInterface({ input, crlfDelay: Infinity });
-  const controls: RunEvent[] = [];
+  const controls: RunEvent[] = [], milestones = new Map<string, RunEvent>();
+  let lastState: Extract<RunEvent, { type: "state" }> | undefined, partyState: Extract<RunEvent, { type: "state" }> | undefined;
   try {
     for await (const line of lines) {
       if (cancelled()) return [];
-      if (!/"type"\s*:\s*"operator_control"/.test(line)) continue;
+      if (!/"type"\s*:\s*"(?:operator_control|milestone|state)"/.test(line)) continue;
       const parsed = parseLine(line, 0);
-      if (!parsed.ok) throw new RunsError(`run ${runId} control metadata: ${parsed.problem}`);
-      if (parsed.event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${parsed.event.run}`);
-      if (parsed.event.type === "operator_control") controls.push(parsed.event);
+      if (!parsed.ok) throw new RunsError(`run ${runId} head metadata: ${parsed.problem}`);
+      const event = parsed.event;
+      if (event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${event.run}`);
+      if (event.type === "operator_control") controls.push(event);
+      if (event.type === "milestone" && !milestones.has(event.name)) milestones.set(event.name, event);
+      if (event.type === "state") {
+        lastState = event;
+        if ("started" in event && hasPartySample(event)) partyState = event;
+      }
     }
   } finally { lines.close(); input.destroy(); }
-  const bySeq = new Map([...recent, ...controls].map(event => [event.seq, event]));
+  const anchors = [lastState, partyState].filter((event): event is Extract<RunEvent, { type: "state" }> => event !== undefined);
+  const bySeq = new Map([...controls, ...milestones.values(), ...anchors, ...recent].map(event => [event.seq, event]));
   return [...bySeq.values()].sort((a, b) => a.seq - b.seq);
 }
 

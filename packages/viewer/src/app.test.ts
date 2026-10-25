@@ -2145,6 +2145,26 @@ describe("POKéMON PARTY page", () => {
     expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it.each(["slot", "tab", "move"] as const)("restores party %s focus without scrolling on live redraws", async (control) => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await app.loadPartyArt();
+    if (control === "move") must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).click();
+    const selector = `[data-pv-${control}="0"]`;
+    must(ui("party").querySelector<HTMLElement>(selector)).focus();
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    try {
+      stream.send("ev", { ...must(partyRun(3)[1]), run: must(RUNS[0]).id, seq: 9, turn: 2 });
+      app.render();
+      expect(document.activeElement).toBe(ui("party").querySelector(selector));
+      expect(focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true });
+      app.render();
+      expect(focus).toHaveBeenCalledTimes(1);
+    } finally { focus.mockRestore(); }
+  });
+
   it("keeps the rich party sample through a mid-frame read and updates its HP afterwards", async () => {
     const { app, streams } = await harness("", RUNS, null, {}, undefined, false, ART);
     const stream = must(streams[0]);

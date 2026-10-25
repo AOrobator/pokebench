@@ -2,6 +2,7 @@
 
 import os
 from dataclasses import asdict
+from functools import cache
 from pathlib import Path
 
 import pytest
@@ -22,11 +23,21 @@ ARCHIVES = [
 ]
 
 
+@cache
+def rom():
+    return resolve_rom(os.environ).read_bytes()
+
+
 def archive(number=4973, digest=ARCHIVES[0][1]):
+    return cached_archive(number, digest)
+
+
+@cache
+def cached_archive(number, digest):
     return load_raw_ram(
         Path(__file__).parent / f"fixtures/astra-429f-{number}.json.gz",
         digest,
-        rom=resolve_rom(os.environ).read_bytes(),
+        rom=rom(),
     )
 
 
@@ -106,3 +117,20 @@ def test_v2_cannot_enable_prompt_recognition_without_v1():
 
 def test_server_defaults_keep_omitted_v2_off():
     assert ID in features_off_from_env({})
+
+
+def test_unrelated_ready_battle_question_retains_its_original_owner():
+    read = archive()
+    script = int.from_bytes(read(bt.SCRIPT_PC, 4), "little")
+
+    def patched(start, length):
+        raw = bytearray(read(start, length))
+        if start <= script < start + length:
+            raw[script - start] = 0x67  # Cmd_yesnobox, not Cmd_trygivecaughtmonnick.
+        return bytes(raw)
+
+    off = switches() | {ID}
+    before = read_state(patched, MapNames({}), active_ui=True, off=off)
+    assert before.battle.prompt.kind == "yes_no"
+    assert before.battle.prompt.ready is True
+    assert before == read_state(patched, MapNames({}), active_ui=True, off=off - {ID})

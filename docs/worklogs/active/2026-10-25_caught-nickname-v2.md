@@ -61,3 +61,19 @@ User gated; not requested.
 
 - Coverage gates passed: agent 4408 tests, lines/branches/functions 99.17/92.74/97.61%; viewer 1955 tests 98.20/91.80/95.37%; Python 4076 tests 97.00/93.02/99.20%. Python ruff/mypy, build and vendor checks passed; final TS lint passed. All floors 90%.
 - Explainer: self-contained check passed; tracked card mapping and exact-byte route tests passed. Headless desktop/phone rendering; adjusted hash wrapping and diagram scrolling after phone inspection. Canonical served click not yet claimed.
+
+## Review round 1 (frozen implementation 0c54ff72d)
+Packet base 63e47426b03a427361467040ebf0741740cade79; SHA256 85ead4f263ce851f10ee239199b9f31d13e74d1cac5cc304ba364d5d49640b99. Claude CLI and isolated GPT reviewer: VERDICT: LGTM. Grok 4.7 High and Grok 4.5 Cursor attempts both returned account usage-limit ActionRequiredError, no verdict. Normal cloud roster incomplete; no self-merge authorization.
+
+Standing fallback: fresh gpt-6-sol and gpt-6-astra reviewers returned VERDICT: BLOCKING on test-only issues. Reduced vendor diversity explicitly retained.
+
+Triage:
+- FIX: repeated immutable fixture reads. Cache verified ROM once and each canonical archive key once; no change to real SHA/region validation. Negative cases wrap immutable readers without mutating shared bytes.
+- FIX: add an unrelated ready opcode 0x67 question case within the existing prompt-ownership boundary. Removing the nickname-kind predicate demonstrably fails this case; restore passes. Receipts /tmp/caught-nickname-v2-kind-deletion-1.log and /tmp/caught-nickname-v2-kind-restored-1.log (1 failed/11 passed; restored 12 passed).
+- REBUT: the request for universal operand-level mutation receipts exceeds the feature-switch skill's explicit wiring-deletion requirement and is not present in the canonical review-contract prompt. Wiring deletion and the independently meaningful prompt-kind guard both have RED/GREEN receipts. Null/readiness/cursor predicates partly enforce the same native prompt invariant; no claim of comprehensive individual-operand mutation proof is made.
+
+Round-two delta: test setup caching, unrelated-prompt regression and review/evidence record only; production diff from 0c54ff72d is empty. Re-review cumulative packet before claiming review complete.
+
+Additional proof: remaining Python gates/tooling/root tests 94 passed (4170 total before the extra unrelated-prompt test). Full branch coverage above applies to restored production code. Candidate Harness Config click opened the exact V2 explainer on an isolated ephemeral viewer with synthetic data, zero page errors. Headless only. Shared viewer and measured run untouched. Local copy at runs/mockups/caught-nickname-v2 on canonical pages service returns 200 with exact document bytes.
+
+- Round-two affected checks: native V2 tests 12 passed; ruff check/format passed. Full Python suite including gates/tooling/root tests 4171 passed in 48.29s after the test-only fix. Production code unchanged; previous build/lint and full coverage gates remain applicable.

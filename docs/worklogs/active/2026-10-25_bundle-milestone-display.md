@@ -9,8 +9,8 @@ Single milestone: RED tests, GREEN, full gates, read-only real-data headless bro
 - [x] RED: restored milestone expectations fail at reader and both loader callers; existing no-measurement assertions retained. Receipt /tmp/milestone-red.log.
 - [x] GREEN: 97 recording/store tests and13mounted Frontier tests pass.
 - [x] Gates and browser proof
-- [ ] Review
-- [ ] Landing/live proof
+- [x] Review
+- [x] Landing/live proof for clock/card/Frontier repair; newly reported PokéNav bootstrap issue remains a separate follow-up milestone in this chat.
 
 ## Operator correction: Frontier visibility
 
@@ -30,3 +30,8 @@ Frozen e0d315ca4 diff f4a63068cb64cefb6765f3a639b2570b752667585a339a495b2b4359d4
 Claude follow-ups: coexistingproblem can maskclockwarning in card/detail; larger clockjumps can affecttimeorder/referencechoice; separate future policy, no source change for this repair. Dirtybuild artifactstamp follows precommit code; final shared build must prove exactreviewedtree. Two earlier card-only mutation logs share prefix; seven current Frontier mutation cases are explicitly enumerated above, not allglobfiles.
 
 Round2 RED ba5424f41: /tmp/milestone-round2-red.log fails at real fullsnapshot parser. GREEN /tmp/milestone-round2-green.log111pass. Full justtest passed4389agent+1915viewer+4159Python+protectedguard+3unchanged screenshots with canonicalart; viewer lint and coverage passed, build passed. Viewer lines98.05/branches91.76/functions95.20; unchangedagent/Python coverage/vendor/agentlint pass from prior exactsameagent/Pythontree. Three added independent mutations (signedrawallowance, warningrequired, signedformat) fail as intended, restored111pass /tmp/milestone-round2-restored.log. Rawnegative100ms preserved and displayed -0:00.100; active split remains0asexistingprojection; unsignedrun contract stillrejectsnegative rawelapsed. No originaltimestamprewrite. PB2/PB7 nowPASS; all13principles and9qualitydimensions resolved for review stage. Final sharedbuild/liveproof stillrequired.
+
+## Final landing/live receipt
+Round2 cumulative exactbinarydiff b0250309524c6dc8287292b5943e6ef313fe2d4bb2600e88ec4dc017b9975521 at c2b72ef475d32c4851745efd22b3aa50a438381a approved Claude cloud + fresh GPT cloud + distinctSol/Astrafallback, allterminalLGTM. Both Grok routes account-quota unavailable; already verified operator waiver, reducedvendor diversity recorded. Synthesis and receipts canonical runs/bundle-milestone-evidence/. No furthercodechange afterfreeze. Board#1withactualsession, exactff mainc2b72ef47; postmergejusttest4389+1915+4159+protectedguard+3screenshots passed. Exactlyone coordinatedviewer-only refresh using existing /private/tmp/pokebench-viewer-qwen36-20261024. Servedstamp exactc2b72ef47/dirtyfalse and5publicmodulebytes verified; all11protectedPID/startidentities unchanged. Sharedheadless8790 pointer/keyboard9e33 selection ->RUNNING/frame, stableacross2pollcycles; actualcomparisonlink ->plottedRoxannepoint ->raw/active192:27.789/nativeevidence andwarning. LiveheaderRockTomb49/203,6party sprites;67qualifiedsplits. Live screenshotsdesktop/mobile/Frontier inspected under runs/mockups/bundle-milestone-display/shots/live*. Historycatalog stillloading445/540atFrontiercapture, but targetrunpoint/detailverified. Original usertab untouched. No game/controller restart, source logs untouched.
+
+New user clarification: missingparty/wrongmilestonecount is inside RED PokéNav panels, notheader. ExactreadHeadEvents productiondiagnostic yields1073events atturn4186, no state events andno milestoneevents, hencepartyMembers[]/milestones[]. Header fullrecording retains6party/67splits. This is a separate sparse-bootstrap contextloss, notclockrejection. New repair must preserve latestqualifiedparty state and milestonehistory outside recenttail without fullhistory replay. Trace-reading chat is changingapp/scrollretention, notthismetadataowner; overlapnotice relayed. Do not claimPokéNavpanelrepair complete fromheaderproof.

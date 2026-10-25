@@ -16,3 +16,5 @@ Validation: documentation checks only; no gameplay launches, inference, runtime 
 Validation: all relative repository links resolve; private notes files read back byte-for-byte; badge, Elite Four, Champion/Hall of Fame and Rayquaza objective terms present in both records.
 
 COMMIT: `docs: record badge-based benchmark rubric and Mission Ray-Ray` (`b45260ba4`). Whitespace and all relative-link checks passed. No application behavior changed; no application tests were run. Branch remains isolated and unmerged.
+
+Operator refinement: audit Qwen bundle duplicate catches and include purposeful team composition in grading. Added marginal contribution, role feasibility, intention/outcome separation, resources/slot opportunity costs and actual deployment. Source confirms Zigzagoon lacks Flash compatibility in Emerald; duplicates not categorically prohibited. No numeric grade or runtime change.

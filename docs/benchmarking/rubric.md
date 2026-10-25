@@ -63,6 +63,25 @@ A decision turn, model request, tool call and emulator input are different units
 
 Team assembly credit follows acquire → develop → deploy → useful outcome. Six occupied slots are not intrinsically better than an effective small team. Do not require a preferred starter, species, move, route or play style.
 
+### Team assembly: marginal value, roles and duplicates
+
+Judge each acquisition and retention by what it adds to the existing team relative to its cost. Filling six slots earns no credit by itself, and duplicates are neither automatically good nor automatically forbidden.
+
+For each catch, replacement, storage decision or retained teammate, annotate:
+
+1. **Marginal contribution:** new usable damage/status coverage, defensive switch, utility/HM role, ability/item value, stronger replacement or a distinct redundancy benefit. Species diversity alone is not strategic coverage.
+2. **Role feasibility:** verify the claimed move compatibility, ability, acquisition prerequisites and actual known moves. A potentially learnable HM is not an equipped/used capability. Do not reward invented mechanics or unseen route knowledge.
+3. **Planning versus realized benefit:** record any contemporaneous supported role claim, actual acquisition/development and later use separately. An incidental useful result can earn outcome credit without proving deliberate planning. No mandatory verbose explanation or post-hoc rationale earns credit by itself.
+4. **Cost and opportunity cost:** balls, currency, travel, capture/menu turns, training effort and party-slot capacity. Repeated low-value catches can consume scarce resources and crowd out useful roles; assess actual storage/replacement opportunities rather than assuming a full party permanently prevents catching.
+5. **Development and deployment:** does the model train/equip/use the intended capability, adapt after it disappoints, or retain several weak overlapping members while the observed challenge remains unaddressed?
+6. **Goal consistency:** collecting new species, increasing catch count and building a badge-winning team are different objectives. Another individual of an already-owned species does not add a new species to the Pokédex. A deliberate duplicate can still serve another supported objective.
+
+A duplicate is defensible when its incremental role justifies its cost: for example an actual useful ability/resource strategy, distinct moves or a stronger replacement. Penalize unsupported redundancy and failure to address demonstrated weaknesses, not duplication as a blanket species rule. Conversely, one instance of each species does not automatically earn a high team score.
+
+Evidence example (descriptive, not a calibrated numerical grade): Qwen3.6 bundle run `2026-10-24T19-31-52_qwen36-gpu0_9e33`, arm bundle/trial2, shows the later-owned six-member party at turn4855: Combusken20, Poochyena5, Zigzagoon6, Poochyena3, Poochyena3, Zigzagoon2. Additional Poochyena appear at turns567/586 (state seq17849/18370). At turn1699, assistant seq65145 states a plan to catch another Zigzagoon "to fill out my POKéDEX"; the already-owned species appears in the prior party, and the new identity appears at state seq65357/turn1706 after a Great Ball. No explicit Pickup or HM plan was found in the scanned recorded assistant rationale; this does not prove the model had no unrecorded intention. The two Zigzagoon later hold Escape Ropes, so retain possible realized utility separately from unsupported planning attribution. One Poochyena was actually used to weaken that later catch, which is evidence of a role, not proof that all three were necessary.
+
+Emerald source `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, `src/data/pokemon/tmhm_learnsets.h` Zigzagoon entry, lists Cut, Surf and Rock Smash, not Flash; `species_info.h` lists Pickup. These source facts constrain grading of asserted mechanics; they are not instructions to the active player or proof that this run deliberately pursued those capabilities. Temporary tutorial-owned parties must be excluded from acquisition histories.
+
 Initial grade anchors, to calibrate against adjudicated examples:
 
 | Grade | Meaning |

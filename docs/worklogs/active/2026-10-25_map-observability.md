@@ -16,10 +16,10 @@ Non-goals: planner route changes, warp execution changes, movement automation, p
 
 ## Contract and gates
 
-- [ ] RED: production schema/render/propagation and provider regressions fail before implementation.
-- [ ] GREEN: canonical schema, decoders, coherent wiring, both-arm/default/OFF metadata and explainer.
-- [ ] Proof: source+exact-ROM qualification, available native archives, adversarial wiring removal, honest unavailable/native gaps, desktop/phone headless browser.
-- [ ] Full test/lint/build/coverage >=90% L/B/F/vendor/protected-card gates; PB1-PB13 zeroFAIL.
+- [x] RED: production schema/render/propagation and provider regressions fail before implementation.
+- [x] GREEN: canonical schema, decoders, coherent wiring, both-arm/default/OFF metadata and explainer.
+- [x] Proof: source+exact-ROM qualification, available native archives, adversarial wiring removal, honest unavailable/native gaps, desktop/phone headless browser.
+- [x] Full test/lint/build/coverage >=90% L/B/F/vendor/protected-card gates; PB1-PB13 zeroFAIL.
 - [ ] Frozen independent reviews include explicit cross-provider/schema/render/label/recording consistency audit. Claude/Grok/GPT lanes per execute-worklog; any outage handled only by verified standing human authorization.
 - [ ] Serialized exact-reviewed-head landing, main tests, coordinated single viewer refresh, original live process/pin preservation and evidence-only worklog commit.
 
@@ -45,3 +45,11 @@ Source reference: clean pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; mat
 - Preliminary full Python gate with explicit external ROM:4343passed, zero skipped. A discarded direct invocation lacking .env caused missing-ROM errors; it is not candidate evidence. Current wiring+consistency26passed after concrete bug fixes. Full combined gates follow current-main sync.
 
 - Synced main5c45e046 (rubric docs and viewer scroll fix; no feature registry collision). Final TScopy checks146passed; OFF tool options omit new optional field. Blocked-input element references use post-input observation so vanished edges are not called current. Performed producer-enable and viewport-selection deletion mutations each fail the real read_state wiring assertion; restored exact source and all20wiring tests pass (adversarial.json).
+
+- Final combined gates on synced candidate: build/schema, test4423agent/1969viewer/4354Python (zero skips), protected trainer cards3, lint/ruff/format/mypy and pristine vendor all PASS. Coverage L/B/F: agent99.18/92.75/97.62; viewer98.20/91.81/95.37; Python97.45/93.54/100. Rotating/tile providers100%. First test run had one unchanged live-human cold-import timeout; isolated7test diagnostic and unchanged full suite both pass, no timeout/retry/test-policy edits. Original failure retained.
+- Headless config ON and explainer click/replay inspector pass with zero page errors. Expanded/collapsed explainer screenshots at1280/1440/375 inspected; no horizontal overflow. Legacy precedence page inspected all3widths. Local8791explainer200. Offline fixture prominently declares NOTGAMEPLAY/NOTMODELDELIVERY; no agent benefit evidence implied.
+- PB1–PB13 self-review zeroFAIL, full test-quality/boundary artifacts and source/native/adversarial/gate receipts at runs/reviews/map-observability. Independent review must audit consistency across producers/schema/render/overlay/nearby/interaction/refusal/history/config/recordings. Coordinator declined main holds under board policy; syncedmain5c45e046, will re-sync/re-review if another landing changes the packet. No slot held yet. One viewer-only8790refresh owned by eventual #1; source-approved capture worktree per relay.
+
+## Multi-Model Review Log
+
+Round1: candidate frozen after gates; Claude-family review first, then normal isolated GPT and Grok. Retry actual Grok harness; only verified standing human outage authorization may substitute distinct fallback reviewers, with reduced vendor diversity explicit. Await verdicts; no implementation mutations after seal.

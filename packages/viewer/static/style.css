@@ -969,8 +969,10 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .wb-date-range [aria-invalid=true] { border-color: #ad3838; }
 .wb-date-range [data-wb=date-problem] { color: #ad3838; }
 @media(max-width: 600px) {
-  .wb-date-fields { display: grid; grid-template-columns: minmax(0, 1fr); }
-  .wb-date-fields label { max-width: none; }
+  .wb-date-range { min-width: 0; }
+  .wb-date-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 4px; }
+  .wb-date-fields label { width: 100%; max-width: none; }
+  .wb-date-fields input[type=date] { appearance: none; box-sizing: border-box; max-width: 100%; min-height: 48px; padding: 12px 16px; }
   .wb-date-fields .wb-button { justify-self: start; }
 }
 [data-frontier-coverage] { overflow-wrap: anywhere; }

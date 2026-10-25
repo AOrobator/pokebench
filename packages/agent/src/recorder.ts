@@ -193,9 +193,10 @@ export class RunRecorder {
   recordDecisionSnapshot(snapshot:DecisionSnapshot):void {
     const state=this.recordState(snapshot.state);
     const seq=this.log.nextSeq;
-    const frame=this.frames.save(this.log,seq,0,snapshot.content[0].data);
-    this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(snapshot.content[0].data,"base64").length};
-    this.append({type:"decision_input",turn:this.turn,decision_turn:this.turn+1,state_seq:state.seq,text:snapshot.content[1].text,frames:[frame]});
+    const images=snapshot.content.filter((part):part is ImageContent=>part.type==="image");
+    const frames=images.map((image,index)=>this.frames.save(this.log,seq,index,image.data));
+    this.saved={saved:this.saved.saved+images.length,bytes:this.saved.bytes+images.reduce((sum,image)=>sum+Buffer.from(image.data,"base64").length,0)};
+    this.append({type:"decision_input",turn:this.turn,decision_turn:this.turn+1,state_seq:state.seq,text:snapshot.content[1].text,frames});
   }
   recordNavigationContext(body:Omit<BodyOf<"navigation_context">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"navigation_context",turn:this.turn+1,...body});}
   recordLedgerContext(body:Omit<BodyOf<"ledger_context">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"ledger_context",turn:this.turn+(body.instruction_goals===undefined?1:0),...body});}

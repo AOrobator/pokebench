@@ -121,7 +121,7 @@ const AssistantDelta = event("assistant_delta", { thinking: Type.String(), text:
 
 const ToolCall = Type.Union([event("tool_call",{id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()}),event("tool_call", { id: Type.String(), name: Type.String(), args: Args })]);
 
-const DecisionInput = event("decision_input",{decision_turn:Type.Integer({minimum:1}),state_seq:NonNegativeInt,text:Type.String(),frames:Type.Array(Type.Object({path:Type.String(),sha1:Sha1},closed),{minItems:1,maxItems:1})});
+const DecisionInput = event("decision_input",{decision_turn:Type.Integer({minimum:1}),state_seq:NonNegativeInt,text:Type.String(),frames:Type.Array(Type.Object({path:Type.String(),sha1:Sha1},closed),{minItems:1,maxItems:7})});
 const WaitInput = event("wait_input",{tool_call_id:Type.String(),duration_ms:Type.Integer({minimum:1,maximum:2000})});
 
 const Frames = Type.Integer({ minimum: 1, maximum: 255 });

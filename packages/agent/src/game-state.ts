@@ -1,3 +1,4 @@
+import {parseSceneJournal,type SceneJournalReply} from "./scene-journal.js";
 import type { Static } from "typebox";
 import { Value } from "typebox/value";
 import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, LearnWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
@@ -10,6 +11,7 @@ export class GameStateError extends Error {
 export type GameStateSnapshot = Static<typeof StateBodySchema>;
 
 export interface StateSource {
+  sceneEvents?(after:number,signal?:AbortSignal):Promise<SceneJournalReply>;
   read(signal?:AbortSignal): Promise<GameStateSnapshot>;
   nativeActions?(after:number):Promise<Static<typeof NativeActionJournalSchema>>;
   battleChoices?(after:number):Promise<Static<typeof BattleJournalSchema>>;
@@ -38,6 +40,12 @@ export class StateWatcher implements StateSource {
     private readonly gameServerUrl: string,
     private readonly fetchFn: typeof fetch = fetch,
   ) {}
+
+  async sceneEvents(after:number,signal?:AbortSignal):Promise<SceneJournalReply> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/scene/events?after=${String(after)}`,{signal:signal===undefined?AbortSignal.timeout(5000):AbortSignal.any([signal,AbortSignal.timeout(5000)])});
+    if(!response.ok)throw new GameStateError(`Scene journal returned HTTP ${String(response.status)}`);
+    return parseSceneJournal(await response.json());
+  }
 
   async nativeActions(after:number):Promise<Static<typeof NativeActionJournalSchema>> {
     const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/actions?after=${String(after)}`,{signal:AbortSignal.timeout(5000)});

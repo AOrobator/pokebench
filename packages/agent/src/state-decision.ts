@@ -17,7 +17,7 @@ export type StateAction = Static<typeof StateActionSchema>;
 const ActionParameters=Type.Object({kind:Type.Enum(["press","wait"]),buttons:Type.Optional(Type.Array(ButtonSchema,{minItems:1,maxItems:8})),duration_ms:Type.Optional(Type.Integer({minimum:1,maximum:2000}))},closed);
 export interface DecisionSnapshot {
   readonly state: GameStateSnapshot;
-  readonly content: readonly [ImageContent, TextContent];
+  readonly content: readonly [ImageContent, TextContent, ...ImageContent[]];
 }
 export interface StateDecisionOptions {
   readonly systemPrompt: string;

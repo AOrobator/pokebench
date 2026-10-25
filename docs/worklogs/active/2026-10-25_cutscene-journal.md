@@ -1,0 +1,77 @@
+# Cutscene journal
+
+User authorization: "Okay, go for it. Make sure that the switch is on in the bundle" after the read-only Rustboro investigation. One bounded milestone: frame-owned scene journal, native capture to model tool result and existing replay/Activity History, switch registry and current bundle recipe, tests and explainer. No ablation launch, no input to or restart of measured runs.
+
+Contract: cutscene-journal-v1 defaults OFF, enabled only by the maintained bundle recipe. Observe every emulated frame under the existing frame lock. Preserve visible field actors appearing, moving and leaving with map/local object identity; exact displayed field text in chronological order; bounded intermediate visual samples for locked scenes and cinematic callbacks. Never infer unnamed speakers, semantic character identity, offscreen destinations or gameplay instructions. Surface buffer gaps, unsupported reads and visual sampling limits. Do not change input execution or dialogue advancement. OFF installs no capture hook or endpoint and returns identical tool objects/results. Reuse existing durable tool_result text/images and existing Activity History/replay; no new timeline marks.
+
+Native source: clean pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; US ROM f3ae088181bf583e55daf962a92bb46f4f1d07b7. Existing addresses for object events, sprites, callbacks, field lock and message printer. Rustboro StolenGoodsScene and Movement_GruntEscape are regression evidence, not implementation routing rules.
+
+Production boundary: new env scene_journal.py and agent scene-journal.ts; serve.py installation, game-state.ts client, play-wiring.ts outer result composition; feature registry/presets/defaults/current recipe; explainer link. Single journal owner, bounded ring, no dependencies, no save manipulation, no movie/story lookup table.
+
+Verification: RED/GREEN; tiny-cap gap/failure tests; production factory ON/OFF; real archived RAM reader proof; exact model text/images, recorder and existing viewer consumption; wiring deletion/restoration; full tests/lint/build/coverage/vendor, cloud review. Bundle activation means future materialized bundle presets, not current running sessions. No benefit claim before the user's later ablation.
+
+- [x] RED: production reader/journal tests fail because the feature module does not exist. RED commit 6d7a9e484: cutscene transient actor, visible sprite and tiny ring tests.
+- [x] GREEN and source/raw-RAM proof: seven hash-validated Astra snapshots 13917-13937 reparse through read_scene; Aqua object10 appears, employee object9 moves north and leaves, three text pages preserved. Sparse archives are decoder proof, not per-frame historical reconstruction.
+- [ ] Complete gates and adversarial wiring checks
+- [ ] Explainer/card/replay background proof
+- [ ] Independent review and serialized landing
+
+All browser proof remains headless/background; never take desktop focus.
+
+Implementation checkpoint: frame hook/HTTP snapshot -> validated StateWatcher -> outer playGameTools -> ordinary durable tool_result text and images. Current screenshot remains frame0; historical samples follow with explicit labels. Factory and recorder tests pass (9 focused checks); native 11 tests pass. Full gates in progress; initial failures were explicit legacy server-feature expectations, not behavior changes. Own venv and copied native binding; pinned vendor initialized. No current runs touched.
+
+Synced main 1fbfd04181a43f67680b86dd48a8ea43d9169c57 (Mauville puzzle feature) before review. Preserved its registry order/defaults/recipe and appended cutscene afterward; legacy CSV expectations include both. Prior gate runs are not final combined-tree evidence. Initial Python gate lacked ROM env and is discarded; resolved via canonical .env symlink. Under concurrent checks, one existing viewer app test hit its 5-second bound; no timeout/retry/serialization changes made. Final gates will run sequentially after sync.
+
+Combined-tree gate: 4414 agent and 1961 viewer checks passed (exact count reconfirm below); Python 4194 passed with one expected default-OFF-set assertion missing the new ID, corrected explicitly. No runtime source change. Native journal isolated coverage 99% incl branch; 11 tests. Browser real card->explainer clicks work at1280/1440/375; trace/raw inspector contain scene evidence; screenshots inspected. Mobile expanded source hash overflow fixed with wrapping; diagram made horizontally scrollable for readable labels. Current-frame-first recorder test passes. Scratch offline replay is labeled sparse native reparse/no inference, not benchmark evidence.
+
+The native default-OFF test also pins SERVER_FEATURES count, updated90->91 along with the exact set. Runtime source unchanged.
+
+Coordinator completed a pending Mauville evidence-only main commit42b68ef7b after the hold request. Sync includes that worklog only; source is unchanged. Final runtime gates apply to the same source; frozen review base will be42b68ef7b.
+
+Final delivery audit found the existing pre-battle observation projection discarded every image after the first, consuming the journal without delivering its visual samples. In-contract fix: allow trailing historical images in DecisionSnapshot, pass them only with the cutscene switch ON, record every delivered image in existing decision_input (current remains frame0). Added journal-vs-state-only conflict. Production recorder/factory pre-battle test and separate delivery/recording deletion proofs cover both seams; no new event/API owner. Native/agent normal tests4195/4414 and viewer1961 passed before this audit; trainer-card check initially lacked ignored art assets, linked canonical art without changing baselines. Coverage viewer5-second test timeout under concurrent workload retained; final gates run without concurrent gate jobs and without timeout/serialization changes.
+
+Pre-battle production test exposed decision_input schema's existing maxItems1 constraint; extended it to7 (current+six historical images), regenerated schema, and preserved original content order in the gameplay model's pre-decision message. This is the existing recording contract, not a new event. Earlier failing pre-battle tests were caught by the durable validator and are not GREEN receipts.
+
+The expanded durable pre-decision test now passes. Generated schema check caught a stale intermediate schema emitted during a source edit; regenerate from the final restored source before gates. No requested-button cap change is intended or retained. Sync Safari sprite main change (viewer-only, no feature-registry conflict) before freezing review.
+
+Final full test gate PASS4414agent/1963viewer/4195Python and3exact protected-card baselines after canonical ignored art linked. Lint caught an untyped Vitest asymmetric matcher in the added test, replaced by an explicit typed text assertion; runtime source unchanged. Separate pre-battle delivery and recording mutations rerun from verified GREEN baseline with unique *-final-deletion.log receipts, each RED and restored GREEN. Earlier baseline-invalid mutation attempts are retained and do not count. Pinned pi0.73.1 integration proof uses the real loop and factory/HTTP client, two mocked model requests, zero external calls; native scene text plus current-first and historical images reach request2. Repeated final PNG is explicitly a transport fixture, not reconstructed cutscene imagery.
+
+Final source gates: full tests4414agent/1963viewer/4195Python and3protected-card baselines PASS (frozen-test.log); lint/types/format PASS (accepted-lint.log); TS coverage PASS, Python coverage completing under accepted-coverage.log. Vendor checked pristine. Main Safari follow-up is evidence-only f719017b5; sync it without changing runtime source. Original/native, current-first images and model request delivery proofs remain valid. No ablation/inputs/restarts performed.
+
+# Principles adherence
+Current CLAUDE.md explicitly scores PB1-PB13 (the older draft header in the principles file is superseded). Principles file unchanged.
+
+| ID | Score | Concrete evidence |
+|---|---|---|
+| PB1 | PASS | No grading/milestone change; SceneJournal reports native object/text facts. Raw Astra archives hashes validated with matching external ROM. |
+| PB2 | PASS | Original logs untouched. Capture failures, missing ring entries and omitted images explicit in delivered text. |
+| PB3 | PASS | No benefit claim. Operator defers ablation; native/factory proof is observation correctness only. |
+| PB4 | PASS | Registered cutscene-journal-v1, server/recorded metadata, exact OFF path, current bundle recipe ON/control OFF. No inputs or RAM writes. |
+| PB5 | PASS | One scene capture/delivery mechanism, one switch. No gameplay launch or unrelated fixes; main Mauville feature preserved in sync. |
+| PB6 | PASS | 512-event ring, bounded six historical images per delivery, explicit dropped samples. Ordinary context pruning remains the established owner. |
+| PB7 | PASS | Ordinary durable tool_result text/images preserve actual model output; production recorder test retains current frame0 and source state. Existing trace/raw inspector/replay checked in isolated browser fixture labeled offline reparse. |
+| PB8 | PASS | Cursor/schema validation and fetch timeout; failure appends a capture-unavailable notice without retrying already executed input. |
+| PB9 | PASS | User approved shared mechanism and bundle activation. Unknown speaker stays unknown, no destination/character/story inference. General visual sampling limitations stated. |
+| PB10 | PASS | No skips, timeouts, thresholds or baseline changes. Tests updated only for appended registry/default-OFF metadata; final combined gates recorded separately. |
+| PB11 | PASS | Pinned vendor unchanged and verified. Existing Sprite/ObjectEvent/text printer addresses checked against clean pret731ad5bf and seven real archived RAM samples. Production serve factory adapts actual frozen ScreenshotFn contract. |
+| PB12 | PASS | External ROM at ~/.roms via configured resolver; no protected Downloads path and no ROM copied/committed. |
+| PB13 | PASS | RED6d7a9e484, implementation7591eb6c9, main syncbf40ccf14, corrective metadata tests8ef402151/fe3c0a550. Two wiring mutations observed RED then restored GREEN. Gates, review, landing and activation are separate receipts; no completion claim yet. |
+
+Nine test-quality checks: caller seam tests cover serve frame hook, StateWatcher HTTP and playGameTools; performed agent/native hook deletion/restoration receipts under runs/cutscene-proof/*deletion.log; per-test journal/emulator/temp directory identities; monkeypatch owns environment restoration; no new concurrent tests or timing assertions; no retries/sleeps/serialization or skipped tests added; payload assertions carry actual results where fallback could pass; fixture loops bounded 2-8 samples (no growing durable prefixes), one recorder adapter test uses real disk; ring loss uses capacity2, visual sampling uses interval1 and8 frames rather than filling production caps. Browser proof uses isolated headless Chromium. Initial missing-ROM env and existing app timeout under parallel gate load retained, not claimed as passes. Final gates run on the combined tree. Additional existing owners touched for the same delivery contract: recorder.ts, state-decision.ts and the decision_input image cardinality in events.ts/generated schema.
+
+## Review round 1 synthesis and bounded corrections
+Frozen cb5101d43 /18579620b65d7a9c7dbb091a646cb92dbc97840efad40b05dabe95492fae9c31. Claude, normal GPT and two independent fallback reviewers returned BLOCKING; Grok4.5/4.7 were unavailable (usage), never LGTM. Standing human Grok-outage waiver independently verified from original session records; coordinator confirmed current. Reduced vendor diversity disclosed to operator.
+
+Contract/boundary remains the original frame-owned visible scene history, exact OFF and future bundle ON; no new capability, input policy, story inference, runtime owner or ablation. Principles PB1-PB13 above all apply; PB7 dialogue correctness and replay caller continuity required repair before approval.
+
+Consensus in-contract defect: null ready-text conflated printer-in-progress with message disappearance, duplicating scrolling prefixes or omitting identical reopened messages. Native test reproduced both RED. Reuse existing read_field_message ownership via a Scene boolean; preserve continuity while owned printing, clear on absent printer/map/scene boundary. Multi-frame printing and identical close/reopen/new-scene fixtures now GREEN. Exact printing/close operand mutations independently RED then restored GREEN in printing-continuity-exact-deletion.log and message-close-exact-deletion.log.
+
+Unique Claude in-contract defect: existing decision-probe factory lacked inert sceneEvents port and crashed with switch ON. Added existing inert port, no new probe behavior; production probeTools test RED before correction, GREEN after. probe-port-exact-deletion.log reproduces throw after deleting only port, restored GREEN. decision-probe.ts is additional production path solely to preserve its pre-existing caller invariant; no new owner/API/domain.
+
+Consensus evidence gap: previous accepted decision-delivery mutation accidentally proved recorder arm again. Those two old *-final-deletion.log receipts prove recording only; withdraw their separate model-delivery claim. retained-content-exact-deletion.log deletes only retained.content ON selection, now fails exactly at model-message footer assertion line85; recording still succeeds. Restored sources GREEN under review-agent-restored.log and review-native-restored.log.
+
+Claude unique evidence naming gap: accepted-* logs were passing but prompt named frozen-* including stale failed lint. Retain all old receipts and rerun full gates on corrected source under unique round2-frozen-* names; round2 prompt will name them explicitly. No claim that old frozen lint passed.
+
+No contradictions on code defects; receipt interpretation corrected with exact operand evidence. Nine test checks: real serve/HTTP/factory/probe/model-message/recorder seams; operand deletion/restoration; monkeypatch-owned globals; unique recorder temp/run identity; no concurrency mechanism changes; no retries/sleeps/timeout relaxations; exact quotations/message footer diagnostics; loops bounded2-8 plus3 unlocked frames, in-memory reads only, one bounded real-disk recorder adapter (atomic batch unnecessary); cap2/interval1 fixtures, no production cap fill. Temporary recorder directory cleanup and earliest-image selection are hardening follow-ups; reset-cursor notices and encoder cost are disclosed residuals, not demonstrated defects. No benchmark answers or grading changes involved. Round1: two concrete bugs and two evidence gaps fixed in one bounded batch; second cumulative review required. Stop/checkpoint if round2 produces further blockers per review policy.
+
+Round2 corrected-source gates all PASS (round2-gates.json, unique round2-frozen-{build,test,lint,coverage,verify-vendor}.log): 4415 agent,1963 viewer,4196 Python tests;3 protected exact card baselines; all lint/types/format, >=90% coverage per metric, pristine vendor. Corrected native reparse retains all3 Rustboro pages and silent actor evidence (round2-reparse.txt); sparse sampling limitation unchanged. Original failed or mismatched receipts remain retained and superseded explicitly. Cumulative packet now freezes for round2 review.

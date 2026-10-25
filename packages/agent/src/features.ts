@@ -279,6 +279,7 @@ export const SWITCHABLE_FEATURES = [
   "moving-npc-target-v1",
   "caught-nickname-prompt-v2",
   "mauville-puzzle-readout-v1",
+  "cutscene-journal-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -678,6 +679,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("moving-npc-target-v1", "guard", "MOVING NPC TARGET", null, "Default off; bundle treatment. Follows a model-selected loaded NPC using its verified live position after each bounded movement action. Rechecks identity and the native interaction recipient before facing and pressing A once. At most 32 movement, facing or activation attempts, including changed-state retries, per call. Returns on disappearance, changed identity, interruption, unsupported route or the bound. Off: preserve the original semantic navigation, including aborting when the target moves."),
   on("caught-nickname-prompt-v2", "observation", "CAUGHT NICKNAME INPUT V2", "caught-nickname-prompt-v1", "Enabled in both maintained arms. Projects the verified ready nickname YES/NO prompt into the shared Interface/Menu state, including its live cursor. The model chooses; no answer is pressed automatically. Off: retains V1 battle-prompt detection and the previous generic interface readout."),
   on("mauville-puzzle-readout-v1", "observation", "MAUVILLE PUZZLE TILES", null, "Default on in control and bundle by operator request (2026-10-25). Distinguishes raised/pressed floor switches and currently open/blocked electric doors in Mauville Gym using the paired live map. Names switch targets and current tile coordinates without selecting switches or routes. Off: retains anonymous coordinate triggers and ordinary floor/wall glyphs."),
+  on("cutscene-journal-v1", "observation", "CUTSCENE JOURNAL", null, "Default off; enabled in the bundle by operator request. Captures visible field objects and displayed text at the emulator frame boundary, then delivers their chronological appearance, tile movement and departure with the next game-tool result. Sprite descriptions and map-local object IDs do not establish a character or speaker name. Includes visual samples every 120 emulated frames during locked field scenes and supported cinematic/unknown callbacks; at most six images per delivery. Retains 512 events; reports lost events, failed reads and omitted visual samples explicitly. Preserves existing inputs and dialogue advancement. Off: no scene frame hook, endpoint, extra images or scene history in model results."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -765,6 +767,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "bag-pocket-truth-v1",
   "caught-nickname-prompt-v2",
   "mauville-puzzle-readout-v1",
+  "cutscene-journal-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1030,6 +1033,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("moving-npc-target-v1"),
     ...when("caught-nickname-prompt-v2"),
     ...when("mauville-puzzle-readout-v1"),
+    ...when("cutscene-journal-v1"),
   ];
 }
 
@@ -1040,5 +1044,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

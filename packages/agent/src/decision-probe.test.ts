@@ -1,15 +1,22 @@
+import {RUN_START_META} from "../test-support/events.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
 import type { AssistantMessage, completeSimple } from "@mariozechner/pi-ai";
 import { checkEvent, type RunEvent } from "./events.js";
 import {} from "./features.js";
-import { contextDiff, decisionOf, distribution, parseRun, parseSwitch, recordedAction, recordedNotes, withSwitches, type DecisionContext, type RecordedRun } from "./decision-probe.js";
+import { Replay, probeTools, contextDiff, decisionOf, distribution, parseRun, parseSwitch, recordedAction, recordedNotes, withSwitches, type DecisionContext, type RecordedRun } from "./decision-probe.js";
 import { MAX_SAMPLES, filePorts, gatewaySampler, parseArgs, reportLines, resolveRun, thinkingLevel, type ProbeReport } from "./probe-decision-cli.js";
 import { assistant, toolCall } from "../test-support/pi.js";
 import { GATEWAY_PROVIDER, type GatewayModel } from "./gateway.js";
 
 const ev = (body: Record<string, unknown>, seq: number, turn = 1): RunEvent => checkEvent({ v: 1, run: "probe-test", t: "2026-10-15T15:00:00.000-04:00", turn, seq, ...body });
 const guard = (phase: string, message: string, seq: number, mode: "enforced" | "diagnostic" = "enforced") => ev({ type: "loop_guard", mode, phase, kind: "cycle", calls: 6, message, evidence: [seq] }, seq);
+
+it("constructs replay tools when the frame journal is enabled", () => {
+  const start = ev({type:"run_start",...RUN_START_META},0);
+  if(start.type!=="run_start")throw new Error("missing start");
+  expect(probeTools({...ALL_ON,"cutscene-journal-v1":true},new Replay(start)).tools.length).toBeGreaterThan(0);
+});
 
 it("parses --switch as a known switch id set on or off", () => {
   expect(parseSwitch("transition-press-result-v1=on")).toEqual({ id: "transition-press-result-v1", on: true });
@@ -103,7 +110,7 @@ it("re-renders through the env renderer with argv only and the server switch env
   expect(ports.frame("frames/1.png")).toBe(Buffer.from("/runs/x/frames/1.png").toString("base64"));
   expect(ports.thinkingSignature).toBe("reasoning_content");
   expect(await ports.rerender([{ path: "raw-ram/1.json.gz", sha256: "s" }], { ...ALL_ON, "battle-details-v2": false })).toEqual(["one"]);
-  expect(calls).toEqual([{ file: "uv", args: ["run", "--project", "/repo/env", "python", "-m", "pokebench_env.rerender"], cwd: "/repo/env", off: "battle-details-v2,safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1,elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,caught-nickname-prompt-v2,mauville-puzzle-readout-v1", input: JSON.stringify({ run_dir: "/runs/x", raw_ram: [{ path: "raw-ram/1.json.gz", sha256: "s" }] }) }]);
+  expect(calls).toEqual([{ file: "uv", args: ["run", "--project", "/repo/env", "python", "-m", "pokebench_env.rerender"], cwd: "/repo/env", off: "battle-details-v2,safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1,elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,caught-nickname-prompt-v2,mauville-puzzle-readout-v1,cutscene-journal-v1", input: JSON.stringify({ run_dir: "/runs/x", raw_ram: [{ path: "raw-ram/1.json.gz", sha256: "s" }] }) }]);
   for (const body of ["{}", "[]", "null", JSON.stringify({ readouts: [1] }), JSON.stringify({ readouts: ["a", "b"] })]) {
     expect(() => filePorts("/r", "/e", "s", () => body).rerender([{ path: "p", sha256: "s" }], ALL_ON)).toThrow(/unexpected body/);
   }

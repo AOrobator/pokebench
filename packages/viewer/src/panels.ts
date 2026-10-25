@@ -390,6 +390,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "bag-ineffective-loop-v1":"bag-ineffective-loop-v1.html",
 
  "moving-npc-target-v1":"moving-npc-target-v1.html",
+ "cutscene-journal-v1":"cutscene-journal-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",
  "whiteout-outcomes-v2":"whiteout-outcomes-v2.html",
  "blackout-transition-v1":"blackout-transition-v1.html",

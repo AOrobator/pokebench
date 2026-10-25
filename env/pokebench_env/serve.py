@@ -61,6 +61,8 @@ from pokebench_env.raw_ram import (
 )
 from pokebench_env.readout import features_off_from_env
 from pokebench_env.rom import resolve_rom
+from pokebench_env.scene_journal import FEATURE as SCENE_FEATURE
+from pokebench_env.scene_journal import install_scene_journal
 from pokebench_env.screen_settle import (
     COHERENT_BATTLE_FEATURE,
     WARP_FEATURE,
@@ -327,6 +329,22 @@ def run(
             install_deadline_pacing(pacing)
     if battle_text is not None:
         install_battle_text(*battle_text)
+    if (
+        observation is not None
+        and frames is not None
+        and SCENE_FEATURE not in features_off_from_env(os.environ)
+    ):
+        scene_source = observation[1]
+
+        def scene_screenshot() -> str:
+            frozen = scene_source()
+            shot = frozen() if callable(frozen) else frozen
+            image = shot.model_dump().get("screenshot_base64")
+            if not isinstance(image, str):
+                raise ValueError("scene screenshot unavailable")
+            return image
+
+        install_scene_journal(observation[0], frames, observation[2], scene_screenshot)
     settle = None
     battle_wait = None
     learn_wait = None

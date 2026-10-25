@@ -1,7 +1,7 @@
 import {campaignCatalog,CAMPAIGN_ADDITIONS} from "./campaign-catalog.js";
 import type {GameStateSnapshot} from "./game-state.js";
 export const STORY_PROGRESS_FEATURE = "all-gym-story-milestones-v1";
-export interface ProgressDefinition { readonly name:string; readonly label:string; readonly flag?:number; readonly anyFlags?:readonly number[]; readonly allFlags?:readonly number[]; readonly optional?:boolean; readonly settled?:boolean; readonly land?:boolean; readonly bounds?:readonly number[]; readonly variable?:number; readonly maximum?:number; readonly requireVariable?:number; readonly requireValues?:readonly number[]; readonly requireMaximum?:number; readonly map?:readonly number[]; readonly requiresBadge?:string; readonly field?:"letter"|"rustboro_stage"|"devon_stage"; readonly values?:readonly number[] }
+export interface ProgressDefinition { readonly name:string; readonly label:string; readonly prerequisites?:readonly string[]; readonly flag?:number; readonly anyFlags?:readonly number[]; readonly allFlags?:readonly number[]; readonly optional?:boolean; readonly settled?:boolean; readonly land?:boolean; readonly bounds?:readonly number[]; readonly variable?:number; readonly maximum?:number; readonly requireVariable?:number; readonly requireValues?:readonly number[]; readonly requireMaximum?:number; readonly map?:readonly number[]; readonly requiresBadge?:string; readonly field?:"letter"|"rustboro_stage"|"devon_stage"; readonly values?:readonly number[] }
 // pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; exact US ROM f3ae0881.
 // Completion writers and address proof: docs/findings/all-gym-story-milestones.md.
 const BASE_PROGRESS_CATALOG:readonly ProgressDefinition[] = [
@@ -397,6 +397,9 @@ const PROGRESS_BY_NAME=new Map(PROGRESS_CATALOG.map(m=>[m.name,m]));
 export function progressReached(name:string,state:GameStateSnapshot):boolean|null {
  if(!state.started||state.screen==="field_transition"||state.screen==="unknown")return null;
  const m=PROGRESS_BY_NAME.get(name);if(m===undefined)return null;
+ const prerequisites=(m.prerequisites??[]).map(required=>progressReached(required,state));
+ if(prerequisites.includes(false))return false;
+ if(prerequisites.includes(null))return null;
  const variable=(n:number,maximum:number):number|null=>{
   const raw=state.story_progress?.variables;if(raw===undefined)return null;
   const at=4*(n-0x4000),value=Number.parseInt(raw.slice(at+2,at+4)+raw.slice(at,at+2),16);

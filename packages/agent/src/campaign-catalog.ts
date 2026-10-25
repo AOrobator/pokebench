@@ -407,6 +407,7 @@ export const CAMPAIGN_ADDITIONS:readonly (ProgressDefinition & {readonly anchor:
   },
   {
     "name": "SLATEPORT_HARBOR",
+    "prerequisites": ["MAGMA_HIDEOUT_STORY_COMPLETE"],
     "label": "Slateport Harbor",
     "map": [
       9,

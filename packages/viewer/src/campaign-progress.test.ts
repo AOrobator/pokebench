@@ -25,7 +25,8 @@ it.each([false,true])("qualifies recorded harbor visits before they reach replay
  const s=log.add(1000,state({location:"SLATEPORT CITY HARBOR",map_id:[9,9],story_progress:{...progress,flags:flags.toString("hex")}}));
  log.add(2000,{type:"milestone",turn:1,name:"SLATEPORT_HARBOR",kind:"navigation",origin:"observed",evidence:[s.seq],server_timestamp:2});
  const view=new RunView();for(const event of log.events)view.apply(event);
- expect(view.milestones.filter(m=>m.name==="SLATEPORT_HARBOR")).toHaveLength(unlocked?1:0);
+ expect(view.milestones.filter(m=>m.name==="SLATEPORT_HARBOR")).toEqual(unlocked?[expect.objectContaining({seq:s.seq+1,evidence:[s.seq]})]:[]);
+ if(unlocked)expect(view.milestones.find(m=>m.name==="SLATEPORT_HARBOR")?.derived).toBeUndefined();
  const root=mkdtempSync(join(tmpdir(),"harbor-prerequisite-")),id="harbor";mkdirSync(join(root,id));
  try{
   writeFileSync(join(root,id,"events.jsonl"),log.events.map(e=>JSON.stringify({...e,run:id})).join("\n")+"\n");
@@ -36,10 +37,11 @@ it.each([false,true])("qualifies recorded harbor visits before they reach replay
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
-it("recovers an old early harbor visit only at the later qualifying visit",()=>{
+it.each([false,true])("recovers a formerly premature harbor event only at a later qualifying visit (modern=%s)",modern=>{
  const flags=Buffer.alloc(300);flags[0x6f>>3]=128;
- const log=new Log();log.add(0,START);
- log.add(1000,state({map_id:[9,9],story_progress:progress}));
+ const log=new Log();log.add(0,{...START,harness_features:modern?["campaign-story-milestones-v1"]:[]});
+ const early=log.add(1000,state({map_id:[9,9],story_progress:progress}));
+ log.add(1500,{type:"milestone",turn:1,name:"SLATEPORT_HARBOR",kind:"navigation",origin:"observed",evidence:[early.seq],server_timestamp:1.5});
  log.add(2000,state({map_id:[0,1],story_progress:{...progress,flags:flags.toString("hex")}}));
  const late=log.add(3000,state({map_id:[9,9],story_progress:{...progress,flags:flags.toString("hex")}}));
  const view=new RunView();for(const e of log.events)view.apply(e);
@@ -55,4 +57,14 @@ it("renders optional achievements separately and excludes them from campaign fro
  expect(rendered.table.indexOf("Optional achievements")).toBeLessThan(rendered.table.indexOf("hm flash received"));
  expect(DEPTH_ORDER).not.toContain("HM_FLASH_RECEIVED");
  expect(FRONTIER_MILESTONES.some(m=>m.id==="HM_FLASH_RECEIVED")).toBe(false);
+});
+
+it.each(["missing state","missing evidence","stale evidence","unknown prerequisite"])("rejects a harbor receipt with %s",mode=>{
+ const flags=Buffer.alloc(300);flags[0x6f>>3]=128;
+ // Probe metadata disables state recovery, isolating validation of the logged receipt.
+ const log=new Log();log.add(0,{...START,harness_features:["campaign-story-milestones-v1","probe"]});
+ if(mode!=="missing state")log.add(1000,state({map_id:[9,9],story_progress:mode==="unknown prerequisite"?null:{...progress,flags:flags.toString("hex")}}));
+ log.add(2000,{type:"milestone",turn:1,name:"SLATEPORT_HARBOR",kind:"navigation",origin:"observed",evidence:mode==="missing evidence"?[]:mode==="stale evidence"?[0]:[1],server_timestamp:2});
+ const view=new RunView();for(const e of log.events)view.apply(e);
+ expect(view.milestones.filter(m=>m.name==="SLATEPORT_HARBOR")).toEqual([]);
 });

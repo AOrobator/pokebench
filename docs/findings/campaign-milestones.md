@@ -4,7 +4,7 @@ Reference: clean pret/pokeemerald `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`; US
 
 ## Contract
 
-94 campaign additions and eight optional capability/reward additions extend the existing shared catalog. Existing milestones retain their IDs and predicates. Catalog order is a display order, not a compulsory route. Each event is observed once in a run; checkpoint predicates already true are present_at_start, unknown data supplies no negative baseline. First-observation timestamps are upper bounds. Arrival means newly observed in this run, not proof that a resumed save never visited elsewhere before its checkpoint.
+94 campaign additions and eight optional capability/reward additions extend the existing shared catalog. Existing milestones retain their IDs; the source-backed harbor prerequisite correction below supersedes its former map-only predicate. Catalog order is a display order, not a compulsory route. Each event is observed once in a run; checkpoint predicates already true are present_at_start, unknown data supplies no negative baseline. First-observation timestamps are upper bounds. Arrival means newly observed in this run, not proof that a resumed save never visited elsewhere before its checkpoint.
 
 Measurement-only `campaign-story-milestones-v1` adds the locked 512-byte saved-variable block (save1+0x139c) and avatar flags (gPlayerAvatar at 0x02037590) to story_progress. Existing flags use save1+0x1270. No raw measurement bytes enter the model readout. Native recording rejects missing nonnull modern payload fields. Historical sparse memory may lack the avatar byte: unknown is omitted, never replaced by on-foot. Exact short native reads still raise.
 
@@ -83,7 +83,7 @@ Production reader -> typed state/events -> StateMilestones -> recorder -> native
 | `MAGMA_HIDEOUT_MAXIE_CHAMBER` | `{"map":[24,91],"settled":false}` | campaign |
 | `MAGMA_HIDEOUT_MAXIE_DEFEATED` | `{"flag":1881}` | campaign |
 | `MAGMA_HIDEOUT_STORY_COMPLETE` | `{"flag":111}` | campaign |
-| `SLATEPORT_HARBOR` | `{"map":[9,9],"settled":false}` | campaign |
+| `SLATEPORT_HARBOR` | `{"map":[9,9],"settled":false,"prerequisites":["MAGMA_HIDEOUT_STORY_COMPLETE"]}` | campaign |
 | `SLATEPORT_SUBMARINE_THEFT_WITNESSED` | `{"flag":97}` | campaign |
 | `AQUA_HIDEOUT_ACCESS_OPENED` | `{"allFlags":[821,822]}` | campaign |
 | `AQUA_HIDEOUT` | `{"map":[24,23],"settled":false}` | campaign |
@@ -146,3 +146,11 @@ Production reader -> typed state/events -> StateMilestones -> recorder -> native
 ## Proof limits
 
 Later campaign predicates are source-grounded and exercised synthetically through production consumers. Historical raw-RAM replay provides native proof only for states actually retained; no new emulator/gameplay/GPU run is authorized or launched. Native proof does not establish full-campaign gameplay benefit.
+
+## Harbor prerequisite correction (2026-10-25)
+
+`SLATEPORT_HARBOR` now requires `MAGMA_HIDEOUT_STORY_COMPLETE` as well as map [9,9]. `MagmaHideout_4F_EventScript_Maxie` (MagmaHideout_4F/scripts.inc, lines 55-57 at the reference revision) sets VAR_SLATEPORT_CITY_STATE=1, FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT (0x6f), and VAR_SLATEPORT_HARBOR_STATE=1 together after closing dialogue. SlateportCity_EventScript_CaptStern subsequently warps the player into the harbor for the theft scene. Entering this publicly accessible building early is not this story checkpoint. The existing submarine-theft milestone retains its separate completion flag.
+
+Definitions may declare an all-of `prerequisites` list naming persistent catalog predicates. They resolve against the same native snapshot, including on checkpoint starts; prerequisite rows need not have been recorded earlier. Unknown evidence does not establish completion or a resumed negative baseline. The catalog test rejects unknown references, cycles, optional dependencies and location-only prerequisites. Do not derive prerequisites from display order or make optional trainers compulsory.
+
+The recorder, native evidence qualification and browser recovery share the evaluator. Historical map-only harbor rows fail qualification; replay excludes them from completed splits. For this newly gated definition only, replay can recover the first qualifying observation even if the old recorder declared campaign support but already spent its one harbor row on an early visit. Such recovery is labeled derived, with observation-time upper-bound provenance; original logs and screenshots stay unchanged. Other modern missing events retain the existing no-repair policy. Early location visits remain in state/map history. The trainer-card design and checkpoint ordering are unchanged; its numerator still denotes catalog position, not percent of game length.

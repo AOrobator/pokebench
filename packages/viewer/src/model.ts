@@ -379,8 +379,10 @@ export class RunView {
       case "activity": this.activities.push(event); break;
       case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
+        const gated = PROGRESS_CATALOG.find(m => m.name === event.name)?.prerequisites !== undefined;
+        if (gated && (this.state === null || event.evidence?.at(-1) !== this.state.seq || progressReached(event.name, this.state) !== true)) break;
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_FIRST_INTERACTION|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|RIVAL_BATTLE_STARTED|RIVAL_BATTLE_DEFEATED|RIVAL_OLDALE_SEND_OFF|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (gated || /^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_FIRST_INTERACTION|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|RIVAL_BATTLE_STARTED|RIVAL_BATTLE_DEFEATED|RIVAL_OLDALE_SEND_OFF|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
@@ -597,7 +599,7 @@ export class RunView {
   private recoverExtendedProgress(event:StateEvent):void {
     if(this.start===null||this.start.harness_features.includes("probe"))return;
     for(const m of PROGRESS_CATALOG) {
-      if(this.start.harness_features.includes(CAMPAIGN_ADDITION_NAMES.has(m.name)?CAMPAIGN_PROGRESS_FEATURE:STORY_PROGRESS_FEATURE))continue;
+      if(m.prerequisites===undefined&&this.start.harness_features.includes(CAMPAIGN_ADDITION_NAMES.has(m.name)?CAMPAIGN_PROGRESS_FEATURE:STORY_PROGRESS_FEATURE))continue;
       if(!EXTENDED_PROGRESS_NAMES.has(m.name)||this.milestones.some(mark=>mark.name===m.name))continue;
       const value=progressReached(m.name,event);
       if(value===false)this.progressNegative.add(m.name);

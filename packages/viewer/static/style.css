@@ -731,8 +731,15 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .tc .tc-track i { display: block; height: 100%; background: var(--fill); }
 .tc .tc-ribbon { display: flex; justify-content: center; align-items: center; height: 100%; }
 /* Party icons: both frames stacked in one sheet, hopping like the game's party menu. */
-.tc .tc-mon { display: block; width: 100%; height: 100%; background-size: 100% 200%; background-position: 0 0; image-rendering: pixelated; animation: tc-bob .5s steps(1) infinite; }
+.tc .tc-mon { display: block; width: 100%; height: 100%; background-image: var(--tc-icon); background-size: 100% 200%; background-position: 0 0; image-rendering: pixelated; animation: tc-bob .5s steps(1) infinite; }
+.tc .tc-mon img { display: none; }
 @keyframes tc-bob { 0% { background-position: 0 0; } 50% { background-position: 0 100%; } }
+/* iOS may smooth background sheets despite image-rendering. Its image path keeps pixels sharp. */
+@supports (-webkit-touch-callout: none) {
+  .tc .tc-mon { background-image: none; animation: none; overflow: hidden; }
+  .tc .tc-mon img { display: block; position: relative; top: 0; height: 200%; animation: tc-image-bob .5s steps(1) infinite; }
+}
+@keyframes tc-image-bob { 0% { top: 0; } 50% { top: -100%; } }
 @keyframes tc-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: .15; } }
 /* A new milestone: a soft glow plus a 2-pixel gold border that follows the card's stepped pixel corners. */
 .tc.tc-new .tc-art { animation: tc-ring 1.6s ease-in-out infinite; }
@@ -740,7 +747,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   0%, 100% { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060) drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060) drop-shadow(0 0 4px rgba(255, 216, 64, .5)); }
   50% { filter: drop-shadow(var(--u) 0 0 #fff3a0) drop-shadow(calc(var(--u) * -1) 0 0 #fff3a0) drop-shadow(0 var(--u) 0 #fff3a0) drop-shadow(0 calc(var(--u) * -1) 0 #fff3a0) drop-shadow(var(--u) 0 0 #fff3a0) drop-shadow(calc(var(--u) * -1) 0 0 #fff3a0) drop-shadow(0 var(--u) 0 #fff3a0) drop-shadow(0 calc(var(--u) * -1) 0 #fff3a0) drop-shadow(0 0 10px rgba(255, 216, 64, .95)); }
 }
-@media (prefers-reduced-motion: reduce) { .tc .tc-dot, .tc .tc-mon, .tc.tc-new .tc-art { animation: none !important; } .tc.tc-new .tc-art { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060); } }
+@media (prefers-reduced-motion: reduce) { .tc .tc-dot, .tc .tc-mon, .tc .tc-mon img, .tc.tc-new .tc-art { animation: none !important; } .tc.tc-new .tc-art { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060); } }
 
 :root[data-phone] .bar { padding: 9px 12px; gap: 8px; }
 :root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .ident { display: none; }

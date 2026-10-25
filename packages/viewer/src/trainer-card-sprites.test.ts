@@ -15,9 +15,8 @@ it.each<CardKind>(["wide", "mini"])("renders %s party sprites as decorative imag
     source: sprite.querySelector("img")?.getAttribute("src"),
     alt: sprite.querySelector("img")?.getAttribute("alt"),
     title: sprite.getAttribute("title"),
-    background: sprite.getAttribute("style"),
   }))).toEqual((kind === "wide" ? [
-    { source: "/sprites/icons/281.png", alt: "", title: "Lv15", background: null },
-    { source: "/sprites/icons/412.png", alt: "", title: "Egg", background: null },
-  ] : [{ source: "/sprites/icons/281.png", alt: "", title: "Lv15", background: null }]));
+    { source: "/sprites/icons/281.png", alt: "", title: "Lv15" },
+    { source: "/sprites/icons/412.png", alt: "", title: "Egg" },
+  ] : [{ source: "/sprites/icons/281.png", alt: "", title: "Lv15" }]));
 });

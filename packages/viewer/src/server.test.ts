@@ -1531,7 +1531,7 @@ it("serves the tracked native task retirement explainer through the existing all
 });
 
 
-it.each(["instruction-goal-ledger-v1","menu-option-tool-v1"])("serves the exact tracked %s explainer through the feature allowlist",async id=>{
+it.each(["instruction-goal-ledger-v1","menu-option-tool-v1","mauville-puzzle-readout-v1"])("serves the exact tracked %s explainer through the feature allowlist",async id=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-goal-menu-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);

@@ -890,7 +890,7 @@ export class App {
     const refocus = active === null ? null : active.dataset.pvSlot !== undefined ? `[data-pv-slot="${String(this.partyUi.slot)}"]` : active.dataset.pvTab !== undefined ? `[data-pv-tab="${String(this.partyUi.tab)}"]` : active.dataset.pvMove !== undefined ? `[data-pv-move="${active.dataset.pvMove}"]` : null;
     this.setHtml("party", html);
     for (const { key, font, sheet } of this.partyFonts) paintGameText(root, font, sheet, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); }, `[data-gt][data-f="${key}"]`);
-    if (refocus !== null) root.querySelector<HTMLElement>(refocus)?.focus();
+    if (refocus !== null) root.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: true });
   }
 
   private partyClick(target: HTMLElement): void {

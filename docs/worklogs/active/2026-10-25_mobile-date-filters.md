@@ -29,3 +29,11 @@ Bounded contract: CSS only, <=600px date fields use one full-width grid column, 
 | PB11 | PASS | Installed pinned Playwright engines exercised. |
 | PB12 | PASS | No protected ROM or OS focus actions. |
 | PB13 | PASS | Before/after browser proof, worklog, build and checks tracked; review/landing kept distinct. |
+
+## Initial landing and operator correction
+
+Frozen head/landing 6d19a2dc51de11a654c22176da6c7390af69328b; exact diff SHA256 365bcd15135aa83fd8a8190518f33c440727ac8e26f6de8b004609415936c4b6. Claude, fresh isolated GPT, distinct fallback Sol6.1/Astra6 each LGTM. Cursor Grok and GPT account out of usage; normal GPT supplied by isolated review. Applied verified standing human Grok waiver ([private message reference], 2026-10-22T14:47:31Z), confirmed by coordinator. Reduced vendor diversity. Gate results: agent4407/viewer1951/Python4159; lint/build/vendor, all coverage metrics>=90 and3protected card baselines pass. Initial Python ROM-less invocation discarded; proper ROM export gave4159pass/no skips. Post-merge just test passes same counts and protected baselines.
+
+One coordinator-cleared viewer refresh from /private/tmp/pokebench-viewer-qwen36-20261024 serves clean6d19a2dc5; viewer PID14252 has PPID1. All25 protected processes survive. Live WebKit 375/1280/1440 geometry, clear button, two mobile polling intervals and zero page errors pass, screenshots inspected. These checks used desktop WebKit at narrow viewports, not native iPhone Safari.
+
+Operator reports the stacked native mobile date controls still overlap the card and lack padding. The earlier desktop-WebKit proof did not reproduce this surface; initial fix is not accepted as complete. Continue with iPhone-emulated context, explicit inner-card containment and padding checks, and corrected Safari sizing, then new frozen review and serialized landing. No baseline or gate weakening. Receipts under runs/reviews/mobile-date-filters and runs/mockups/mobile-date-filters/shots.

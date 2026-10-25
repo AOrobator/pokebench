@@ -18,7 +18,7 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
     hash: `#run=${id}`, now: () => BASE_MS + 1000,
     fetchJson: url => {
       if (url === "/api/runs") return Promise.resolve(choices);
-      if (url.startsWith("/api/cards")) return Promise.resolve(snapshot);
+      if (url.startsWith("/api/cards")) return Promise.resolve(structuredClone(snapshot));
       if (url === "/sprites/manifest.json") return Promise.resolve({ version: 1, tiers: ["green", "bronze", "copper", "silver", "gold"], trainers: ["may"], icons: [280], egg: 412 });
       if (url === "/sprites/font/glyphs.json") return Promise.resolve({ widths: Array.from({ length: 512 }, () => 4), cmap: { A: 1 } });
       if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
@@ -37,6 +37,15 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
     expect(mine(host).querySelector('[data-gt="WATCHING"]')).not.toBeNull();
     expect(host.querySelector(`[data-watch="${historical}"]`)).toBeNull();
   }
+  const ready = snapshot.runs;
+  snapshot.runs = [];
+  await app.pollCards();
+  for (const host of hosts()) {
+    expect([...host.querySelectorAll("[data-watch]")].map(e => (e as HTMLElement).dataset.watch)).toEqual([id, other]);
+    expect(mine(host).querySelector('img[src="/sprites/icons/280.png"]')).not.toBeNull();
+  }
+  snapshot.runs = ready;
+  await app.pollCards();
   selected.status = "unresponsive"; must(snapshot.runs[1]).status = "unresponsive";
   await app.pollCards();
   for (const host of hosts()) {

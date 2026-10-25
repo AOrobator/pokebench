@@ -644,7 +644,15 @@ export class App {
     if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
     this.workbenchSelection = selected;
     const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
-      .then((value) => { if (this.runId === selected && this.workbenchLoad === load) { this.workbench = parseWorkbench(value); this.cardsProblem = false; this.render(); } })
+      .then((value) => {
+        if (this.runId !== selected || this.workbenchLoad !== load) return;
+        const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
+        const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
+          && (run.id === selected || this.knownLiveCards.has(run.id))) ?? [];
+        this.workbench = { ...next, runs: [...next.runs, ...retained] };
+        this.cardsProblem = false;
+        this.render();
+      })
       .catch(() => { if (this.runId === selected && this.workbenchLoad === load) { this.cardsProblem = true; this.render(); } })
       .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
     this.workbenchLoad = load;

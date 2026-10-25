@@ -444,7 +444,7 @@ it("never credits a pre-existing resumed Roxanne encounter after an unreadable f
 
 
 describe("display-only clock policy", () => {
-  it("keeps strict timing readers strict and never exports splits under a clock warning", () => {
+  it("preserves verified milestones for display while strict timing readers still reject the clock warning", () => {
     const log = new Log(); log.add(0, START); log.add(100, assistant());
     const witness = log.add(150, state({ story: clocked }));
     log.add(200, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [witness.seq] });
@@ -453,7 +453,7 @@ describe("display-only clock policy", () => {
     expect(() => readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone)).toThrow("order");
     const display = readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone, undefined, false, "display");
     expect(display.clockProblem).toContain("43 ms"); expect(display.clockProblem).toContain("seq 4");
-    expect(display.last?.name).toBe("KENNY"); expect(display.splits).toEqual([]); expect(display.measurement.rawSplits).toEqual([]);
+    expect(display.last?.name).toBe("KENNY"); expect(display.splits).toMatchObject([{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }]); expect(display.measurement.rawSplits).toEqual([]);
     expect(readFileSync(path, "utf8")).toBe(raw);
   });
   it.each(["gap", "identity", "second-start", "after-end"] as const)("still rejects %s in display mode", defect => {

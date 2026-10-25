@@ -72,7 +72,7 @@ describe("production wiring",()=>{
  it("live.ts builds the Governor's notice from the FeatureSet and the run's max tokens",()=>{
   const live=source("live.ts");
   expect(live).toContain("const cutOff = cutOffReplyNotice(features,maxTokens);");
-  const call=live.slice(live.indexOf("new Governor("));
+  const call=live.slice(live.indexOf("controlledRun("));
   expect(call.slice(0,call.indexOf("});"))).toContain("{ cutOffNotice: cutOff }");
  });
  it("decision probes pass the same notice, from the probed switches and the recorded max tokens, to both histories",()=>{

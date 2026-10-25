@@ -117,8 +117,8 @@ it("reuses the native owner to retire Norman's first-gym request while retaining
     ledger.apply({reviewed:[{episode:90001,interpretation:"A renewed instruction, after the original task completed"}],updates:[{id:"gym-again",native_source_completion:true,title:"New gym request",sources:[{episode:90001,page:0}],parent:null,status:"active",reason:"Newly issued request",completion:"This renewed request is satisfied"}]});
     expect(ledger.archive(undefined,"gym-again")).toContain('"status":"active"');
 });
-it("does not commit in-memory review or send input when durable recording fails",async()=>{
- const s=setup(),ledger=must(s.context.instructionGoals).ledger,before=ledger.text();let actions=0;
+it.each([false,true])("does not commit or send input when durable recording fails (advisory=%s)",async advisory=>{
+ const s=setup(true,events.filter(e=>e.seq<=39462),{"instruction-goal-advisory-v1":advisory}),ledger=must(s.context.instructionGoals).ledger,before=ledger.text();let actions=0;
  const originalRecord=s.record.recordLedgerContext;s.record.recordLedgerContext=()=>{throw new Error("storage failure");};
  const action:AgentTool={name:"press",label:"Press",description:"Press",parameters:Type.Object({}),execute:()=>{actions++;return Promise.resolve({content:[],details:undefined});}};
  const wrapped=must(withInstructionGoalReview([action],s.context.instructionGoals??null)[0]);
@@ -174,14 +174,17 @@ it("repair feedback distinguishes unknown and duplicate episodes and names actua
  await expect(tool.execute("duplicate",{reviewed:[{episode:39430,interpretation:"one"},{episode:39430,interpretation:"two"}],updates:[]})).rejects.toThrow("reviewed[1].episode 39430 duplicates an earlier entry");
  ledger.apply(review);
  const completion={reviewed:[],updates:[{...review.updates[0],status:"reported_complete",evidence:[123]}]};
- expect(()=>ledger.apply(completion)).toThrow('Goal "select" evidence[0] 123 was not delivered; latest delivered observation result: 39462');
- expect(()=>ledger.apply({reviewed:[],updates:[{...review.updates[0],status:"reported_complete"}]})).toThrow('Goal "select" evidence needs a delivered observation result newer than 39462; none has been delivered yet');
- expect(()=>ledger.apply({reviewed:[],updates:[{...review.updates[0],sources:[{episode:39462,page:99}]}]})).toThrow('Goal "select" sources[0].page 99 is outside delivered episode 39462');
+ expect(()=>{ledger.apply(completion);}).toThrow('Goal "select" evidence[0] 123 was not delivered; latest delivered observation result: 39462');
+ expect(()=>{ledger.apply({reviewed:[],updates:[{...review.updates[0],status:"reported_complete"}]});}).toThrow('Goal "select" evidence needs a delivered observation result newer than 39462; none has been delivered yet');
+ expect(()=>{ledger.apply({reviewed:[],updates:[{...review.updates[0],sources:[{episode:39462,page:99}]}]});}).toThrow('Goal "select" sources[0].page 99 is outside delivered episode 39462');
  expect(before).toContain("39462");expect(s.records).toEqual([]);
+ s.send([source,checkEvent({...must(events.find(e=>e.seq===39462)),seq:39513,id:"new-observation",state_seq:39512})]);
+ expect(()=>{ledger.apply({reviewed:[],updates:[{...review.updates[0],status:"reported_complete"}]});}).toThrow('Goal "select" evidence needs a delivered observation result newer than 39462; latest available: 39513');
+ ledger.apply({reviewed:[],updates:[{...review.updates[0],status:"reported_complete",evidence:[39513]}]});expect(ledger.archive(undefined,"select")).toContain('"verification":"model_reported"');
 });
 it("new switches are inert when the ledger is OFF and default OFF",()=>{
  for(const id of ["instruction-goal-advisory-v1","goal-review-repair-feedback-v1"] as const){
-  expect(normalizeFeatures(featuresOf([]))[id]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);
+  expect(normalizeFeatures(Object.fromEntries(Object.entries(featuresOf([])).filter(([key])=>key!==id)) as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);
  }
  const f={...features(false),"instruction-goal-advisory-v1":true,"goal-review-repair-feedback-v1":true};
  const s=setup(false,[],f);expect(s.context.tools).toEqual([]);expect(s.context.instructionGoals).toBeUndefined();expect(playSystemPrompt(f,null)).toBe(playSystemPrompt(features(false),null));expect(playTools(f)).toEqual(playTools(features(false)));expect(dependencyProblems(f)).toEqual([]);

@@ -307,3 +307,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.
 
 - [Cutscene journal](cutscene-journal-v1.html) — frame-owned visible action and dialogue history.
+
+- [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
+- [Goal review repair feedback](goal-review-repair-feedback-v1.html) — Show the invalid field and real references.

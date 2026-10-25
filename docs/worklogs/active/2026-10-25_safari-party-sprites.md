@@ -12,7 +12,7 @@ Smallest intended paths: trainer-card.ts sprite markup and style.css sprite draw
 - [x] RED -> GREEN tests and narrow implementation.
 - [x] Unit/coverage/lint/build plus exact protected card baselines.
 - [x] Built candidate screenshots desktop1280/1440, phone375 and native430; both frames, reopening/scrolling and reduced motion.
-- [ ] Principles self-review and independent review.
+- [x] Principles self-review and independent review.
 
 ## Evidence
 
@@ -56,4 +56,13 @@ Current CLAUDE.md selects repoPB1-PB13, superseding the historical draft header.
 
 Only trainer-card.ts and style.css production paths; one unit test file and this worklog. Native diagnostic fixture is four cards, at most6sprites each; bounded captures inspect known screenshot regions. No new production module, dependency, runtime owner, feature switch, identity allocation, new UI control, card layout, baseline/fixture/protected assertion change, gameplay action or main landing. User authorization is correction and verification, not a requested merge. Terminator: final gates and reviewed isolated candidate, with native touch/version limitations disclosed. Any additional infrastructure or new visual design is a separate scope.
 
-Final gates: justtest4407agent/1953viewer/4159Python and3exactcardbaselines; justcoverage same counts/allfloors; justlint; justbuild; justverify-vendor PASS. Removing only the new sprite img makes both wide/mini regression cases fail on missing source/alt, then exact restoration passes2/2 (/tmp/pb-sprites-{mutation,restored}.log). Candidate fixture and real preview served CSS/renderer byte-identical to the built worktree (served-hashes.json). No protected fixture/assertion/baseline changed. Final browser/native captures inspected. Independent review pending.
+Final gates: justtest4407agent/1953viewer/4159Python and3exactcardbaselines; justcoverage same counts/allfloors; justlint; justbuild; justverify-vendor PASS. Removing only the new sprite img makes both wide/mini regression cases fail on missing source/alt, then exact restoration passes2/2 (/tmp/pb-sprites-{mutation,restored}.log). Candidate fixture and real preview served CSS/renderer byte-identical to the built worktree (served-hashes.json). No protected fixture/assertion/baseline changed. Final browser/native captures inspected. Independent review complete; see closure below.
+
+
+## Closure
+
+Reviewed source commit fc13848679d85ef08333941520464552959272ad, baseline63e47426b03a427361467040ebf0741740cade79. Frozen binarydiffSHA256 78eea7917a032b1aa2d0979c12bceed3d7bcf86aec34d71226af381bf916b866. Claude CLI actualclaude-opus-5-5, fresh GPT5.6Sol/xhigh, fresh fallback6.1Sol/high and6Astra/high each returned literal VERDICT: LGTM on the same independently checked clean packet. Grok Cursor exit1 out-of-usage; only approved installed Grok harness unavailable, documented two-distinct-model fallback used. Reduced vendor diversity, never Grok LGTM. Final synthesis and receipts in canonical runs/reviews/safari-party-sprites. No source changes after review.
+
+Post-freeze build stampfc13848, repeated native phase0/phase1/120pxscroll/reopen captures126additional visible samples all crisp; verified-quality.json binds source commit. Repeated final real-viewer headless Chromium pointer/keyboard/replay-frame/poll/reduced-motion checks pass at1280/1440/375. One final phone screenshot was taken before its finite opening animation finished; retained as viewer-375-open-early.png, then genuine pointer recheck awaited card visibility and animation completion. Corrected viewer-375-open.png opened and inspected, phone-open-receipt.json records visible sheet bounding box. No production code change or baseline update.
+
+All requested correction/verification complete in isolated branch fix/safari-party-sprites. Implementation fc1384867; final commit contains this review/proof receipt only. Existing168-sample native proof plus final126 samples, both frames and layout proof retained under canonical runs/mockups/safari-sprite-fix. Simulator is27.0, exact physical27.0.1 and native genuine touch unverified. Candidate is not on main or live8790. No shared viewer restart, original recording write, gameplay input, run launch/stop or focus-taking operation performed. Owned preview/fixture services and simulator shut down after proof; worktree and saved simulator remain reusable.

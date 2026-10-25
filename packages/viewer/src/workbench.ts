@@ -14,7 +14,24 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   const found = active instanceof HTMLElement && root.contains(active) ? (active.tagName === "SUMMARY" ? active.parentElement : active) : null;
   const key = found === null ? undefined : keys.find(k => found.dataset[k] !== undefined);
   const selector = found === null || key === undefined ? null : `[data-${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}${found.dataset[key] === "" ? "" : `="${found.dataset[key] ?? ""}"`}]`;
+  const panel = root.querySelector<HTMLElement>(".wb-vpanel"), top = panel?.scrollTop ?? 0, left = panel?.scrollLeft ?? 0;
+  const page = panel !== null && root.ownerDocument.defaultView?.getComputedStyle(panel).overflowY === "visible" ? root.ownerDocument.scrollingElement : null;
+  const bounds = page === null ? panel?.getBoundingClientRect() : { top: 0, bottom: root.ownerDocument.defaultView?.innerHeight ?? 0 };
+  const anchor = bounds === undefined ? undefined : [...panel?.querySelectorAll<HTMLElement>(".wb-ver") ?? []].find(card => {
+    const rect = card.getBoundingClientRect();
+    return rect.bottom > bounds.top && rect.top < bounds.bottom;
+  });
+  const version = anchor?.dataset.ver, offset = anchor === undefined ? 0 : anchor.getBoundingClientRect().top - (bounds?.top ?? 0);
   root.innerHTML = html; root.dataset.html = html;
+  const nextPanel = root.querySelector<HTMLElement>(".wb-vpanel");
+  if (nextPanel !== null) {
+    nextPanel.scrollTop = top; nextPanel.scrollLeft = left;
+    const nextAnchor = version === undefined ? null : nextPanel.querySelector<HTMLElement>(`.wb-ver[data-ver="${CSS.escape(version)}"]`);
+    if (nextAnchor !== null && nextAnchor.getBoundingClientRect().height > 0) {
+      const delta = nextAnchor.getBoundingClientRect().top - (page === null ? nextPanel.getBoundingClientRect().top : 0) - offset;
+      if (page === null) nextPanel.scrollTop += delta; else page.scrollTop += delta;
+    }
+  }
   if (selector === null) return;
   const next = root.querySelector<HTMLElement>(selector);
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });

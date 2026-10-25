@@ -29,7 +29,30 @@ export async function mountProbes(doc: Document, deps: ProbesDeps): Promise<void
     probe: p.id, group: defaultGroup(p), caseId: p.cases.find((c) => c.id === caseId)?.id ?? p.cases[0]?.id ?? "", sample: null, blind: false, plot: false,
   });
   let state = fresh(detail, wanted.caseId);
-  const render = (): void => { app.innerHTML = pageHtml(detail, state, deps.now(), deps.phone, list); };
+  const render = (refresh = false): void => {
+    const dialog = refresh ? app.querySelector<HTMLElement>(".pr-dialog") : null;
+    const top = dialog?.scrollTop ?? 0, left = dialog?.scrollLeft ?? 0;
+    const problemsOpen = refresh && app.querySelector<HTMLDetailsElement>(".pr-problems")?.open === true;
+    const active = refresh && app.contains(doc.activeElement) ? doc.activeElement : null;
+    const key = ["data-probe", "data-group", "data-blind", "data-sample", "data-case"].find(name => active?.hasAttribute(name));
+    const focus = key === undefined ? [".pr-problems > summary", ".pr-more > summary"].find(selector => active?.matches(selector)) ?? null : `[${key}="${CSS.escape(active?.getAttribute(key) ?? "")}"]`;
+    const scroller = refresh ? doc.scrollingElement : null, pageTop = scroller?.scrollTop ?? 0;
+    const anchor = pageTop === 0 ? undefined : [".pr-dialog", ".pr-more", ".pr-main", ".pr-scene", ".pr-slots"].find(selector => {
+      const rect = app.querySelector(selector)?.getBoundingClientRect();
+      return rect !== undefined && rect.bottom > 0 && rect.top < (doc.defaultView?.innerHeight ?? 0);
+    });
+    const offset = anchor === undefined ? 0 : app.querySelector(anchor)?.getBoundingClientRect().top ?? 0;
+    app.innerHTML = pageHtml(detail, state, deps.now(), deps.phone, list);
+    if (!refresh) return;
+    const nextDialog = app.querySelector<HTMLElement>(".pr-dialog"), problems = app.querySelector<HTMLDetailsElement>(".pr-problems");
+    if (nextDialog !== null) { nextDialog.scrollTop = top; nextDialog.scrollLeft = left; }
+    if (problems !== null) problems.open = problemsOpen;
+    if (focus !== null) app.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
+    if (scroller !== null) {
+      const nextAnchor = anchor === undefined ? null : app.querySelector(anchor);
+      scroller.scrollTop = nextAnchor === null ? pageTop : nextAnchor.getBoundingClientRect().top + scroller.scrollTop - offset;
+    }
+  };
   let stop: (() => void) | null = null, busy = false;
   const sync = (): void => {
     const live = detail.lanes.some((l) => l.state === "running");
@@ -41,7 +64,7 @@ export async function mountProbes(doc: Document, deps: ProbesDeps): Promise<void
         try {
           const next = await load(id);
           // A probe switch while this refresh was in flight wins over the older probe's reply.
-          if (id === state.probe) { state = { ...state, group: keepGroup(detail, next, state.group) }; detail = next; render(); sync(); }
+          if (id === state.probe) { state = { ...state, group: keepGroup(detail, next, state.group) }; detail = next; render(true); sync(); }
         } finally { busy = false; }
       }, REFRESH_MS);
     } else if (!live && stop !== null) { stop(); stop = null; }

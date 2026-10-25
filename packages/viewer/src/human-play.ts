@@ -53,7 +53,7 @@ export class HumanPlay {
    let value:unknown;try{value=JSON.parse(message.data);}catch{this.fail(Error('Invalid recording event'));return;}
    if(!isRunEvent(value)||value.run!==this.runId)return;
    this.view.apply(value);
-   if(value.type==='operator_control'&&value.action==='resume'&&value.status==='applied'&&this.startRequested){this.startRequested=false;this.ui('surface').focus();this.beginClaim();}
+   if(value.type==='operator_control'&&value.action==='resume'&&value.status==='applied'&&this.startRequested){this.startRequested=false;this.ui('surface').focus({preventScroll:true});this.beginClaim();}
    if(value.type==='run_end')this.stream?.close();
    if(value.type==='run_end'||(value.type==='operator_control'&&value.action==='pause'))this.suspend();
    this.render();

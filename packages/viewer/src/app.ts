@@ -510,7 +510,17 @@ export class App {
     const element = this.ui(name);
     if (this.html.get(element) === html) return;
     this.html.set(element, html);
+    const keepDetails = name === "run-details" || name === "harness-config";
+    const details = keepDetails ? [...element.querySelectorAll("details")].map(row => ({ open: row.open, focused: row.querySelector("summary") === this.doc.activeElement })) : [];
+    const pane = keepDetails ? element.closest<HTMLElement>(".page-content") : null, top = pane?.scrollTop ?? 0;
     element.innerHTML = html;
+    if (details.length > 0) element.querySelectorAll("details").forEach((row, i) => {
+      const before = details[i];
+      if (before === undefined) return;
+      row.open = before.open;
+      if (before.focused) row.querySelector("summary")?.focus({ preventScroll: true });
+    });
+    if (pane !== null) pane.scrollTop = top;
   }
 
   // On a phone the controls sit under the screen and the run picker in the
@@ -1035,6 +1045,8 @@ export class App {
     this.liveFailedAt = null;
     this.bagView = null;
     this.bagKey = "";
+    this.setHtml("run-details", "");
+    this.setHtml("harness-config", "");
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     // References are eligible only after the owned server validates their logs.
@@ -1453,8 +1465,21 @@ export class App {
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
-    this.setHtml("harness-config", harnessConfig(view, this.next.registry));
-    this.filterFeatures();
+    {
+      const root = this.ui("harness-config"), html = harnessConfig(view, this.next.registry), pane = root.closest<HTMLElement>(".page-content");
+      const bounds = pane?.getBoundingClientRect();
+      const anchor = this.html.get(root) === html || bounds === undefined ? undefined : [...root.querySelectorAll<HTMLElement>(".config-feature, .config-tool, .config-raw")].find(row => {
+        const rect = row.getBoundingClientRect(); return rect.bottom > bounds.top && rect.top < bounds.bottom;
+      });
+      const feature = anchor?.dataset.feature, tool = anchor?.dataset.tool;
+      const selector = feature !== undefined ? `[data-feature="${CSS.escape(feature)}"]` : tool !== undefined ? `[data-tool="${CSS.escape(tool)}"]` : null;
+      const raw = anchor === undefined ? -1 : [...root.querySelectorAll(".config-raw")].indexOf(anchor);
+      const offset = anchor === undefined ? 0 : anchor.getBoundingClientRect().top - (bounds?.top ?? 0);
+      this.setHtml("harness-config", html);
+      this.filterFeatures();
+      const next = selector === null ? root.querySelectorAll<HTMLElement>(".config-raw")[raw] : root.querySelector<HTMLElement>(selector);
+      if (pane !== null && anchor !== undefined && next != null && next.getBoundingClientRect().height > 0) pane.scrollTop += next.getBoundingClientRect().top - pane.getBoundingClientRect().top - offset;
+    }
     this.renderParty(view);
     this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;

@@ -40,7 +40,7 @@ export function syncCards(row: Element, htmls: readonly string[], memo: WeakMap<
     memo.set(next, html);
     const active = doc.activeElement, focused = current !== undefined && active !== null && current.contains(active) ? active.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
     if (current === undefined) row.append(next); else current.replaceWith(next);
-    if (focused !== undefined) (next.matches(`[data-watch="${CSS.escape(focused)}"]`) ? next : next.querySelector(`[data-watch="${CSS.escape(focused)}"]`))?.closest<HTMLElement>("[data-watch]")?.focus();
+    if (focused !== undefined) (next.matches(`[data-watch="${CSS.escape(focused)}"]`) ? next : next.querySelector(`[data-watch="${CSS.escape(focused)}"]`))?.closest<HTMLElement>("[data-watch]")?.focus({ preventScroll: true });
   });
   for (const extra of kept.slice(htmls.length)) extra.remove();
 }

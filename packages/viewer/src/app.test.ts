@@ -1425,6 +1425,20 @@ it("opens the selected run configuration without changing playback or writing ne
 });
 
 
+it("retains open configuration sections when delayed feature descriptions arrive", async () => {
+  const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+  const log = new Log(); log.add(0, { ...START, harness_features: ["navigation-evidence-memory-v1"] }); feed(must(streams[0]), log.events);
+  const config = ui("harness-config"), pane = must(config.closest<HTMLElement>(".page-content"));
+  must(config.querySelector<HTMLDetailsElement>(".config-raw")).open = true; pane.scrollTop = 180;
+  app.next.registry = [{ id: "navigation-evidence-memory-v1", title: "NAVIGATION MEMORY", description: "Delayed description.", group: "guidance", switchable: true, needs: null }];
+  app.render();
+  expect(config.textContent).toContain("Delayed description.");
+  expect(config.querySelector<HTMLDetailsElement>(".config-raw")?.open).toBe(true);
+  expect(pane.scrollTop).toBe(180);
+  app.select(must(RUNS[1]).id);
+  expect([...config.querySelectorAll("details")].every(row => !row.open)).toBe(true);
+});
+
 it("filters harness features by literal name or ID and retains search through live rendering",async()=>{
  const {app,streams}=await harness();const log=new Log();log.add(0,START);feed(must(streams[0]),log.events);
  app.next.registry=[{id:"navigation-evidence-memory-v1",title:"Navigation Memory",description:"Retains facts.",group:"guidance",switchable:true,needs:null},{id:"deterministic-loop-guard-v1",title:"Loop Guard",description:"Navigation Memory appears in this description only.",group:"guard",switchable:true,needs:null}];app.tick(1000);
@@ -2087,11 +2101,13 @@ it("keeps expanded run details and its reading position through a state refresh"
   const details = ui("run-details"), pane = must(details.closest<HTMLElement>(".page-content"));
   must(details.querySelectorAll("details")[2]).open = true;
   pane.scrollTop = 180;
-  must(streams[0]).send("ev", log.add(2000, state({ money: 1234 })));
+  feed(must(streams[0]), [log.add(2000, state({ money: 1234 }))], false);
   app.render();
   expect(details.querySelectorAll("details")[2]?.open).toBe(true);
   expect(details.querySelectorAll("details")[2]?.textContent).toContain("1234");
   expect(pane.scrollTop).toBe(180);
+  app.select(must(RUNS[1]).id);
+  expect([...details.querySelectorAll("details")].every(row => !row.open)).toBe(true);
 });
 
 describe("POKéMON PARTY page", () => {

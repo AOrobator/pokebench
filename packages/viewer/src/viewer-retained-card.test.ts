@@ -14,8 +14,9 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
   const choices = [choice(id), choice(other), { ...choice(historical), live: false }];
   const run = (run: string): WorkbenchRun => ({ id: run, cohort: null, arm: null, model: "fixture", started: null, status: "live", reason: null, problem: null, excluded: null, elapsedMs: 1000, turn: 1, config: null, splits: [], card: { name: "MAY", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }] } });
   const selected = run(id), snapshot = { version: 1, at: BASE_MS, milestones: [], problems: [], runs: [selected, run(other), { ...run(historical), status: "unresponsive" as const }] };
+  let now = BASE_MS + 1000;
   const deps: AppDeps = {
-    hash: `#run=${id}`, now: () => BASE_MS + 1000,
+    hash: `#run=${id}`, now: () => now,
     fetchJson: url => {
       if (url === "/api/runs") return Promise.resolve(choices);
       if (url.startsWith("/api/cards")) return Promise.resolve(structuredClone(snapshot));
@@ -38,13 +39,14 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
     expect(host.querySelector(`[data-watch="${historical}"]`)).toBeNull();
   }
   const ready = snapshot.runs;
-  snapshot.runs = [];
+  snapshot.runs = []; snapshot.at = BASE_MS + 5000; now = snapshot.at;
   await app.pollCards();
   for (const host of hosts()) {
     expect([...host.querySelectorAll("[data-watch]")].map(e => (e as HTMLElement).dataset.watch)).toEqual([id, other]);
     expect(mine(host).querySelector('img[src="/sprites/icons/280.png"]')).not.toBeNull();
+    expect(mine(host).querySelector("[data-clock]")?.textContent).toBe("0:06");
   }
-  snapshot.runs = ready;
+  snapshot.runs = ready; selected.elapsedMs = 6000; must(snapshot.runs[1]).elapsedMs = 6000;
   await app.pollCards();
   expect(parseWorkbench(Reflect.get(app, "workbench") as unknown).runs.map(run => run.id)).toEqual([id, other, historical]);
   selected.status = "unresponsive"; must(snapshot.runs[1]).status = "unresponsive";

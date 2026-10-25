@@ -21,6 +21,7 @@ import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type Gly
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
+import { plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -647,8 +648,10 @@ export class App {
       .then((value) => {
         if (this.runId !== selected || this.workbenchLoad !== load) return;
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
+        const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
-          && (run.id === selected || this.knownLiveCards.has(run.id))) ?? [];
+          && (run.id === selected || this.knownLiveCards.has(run.id)))
+          .map(run => ({ ...run, elapsedMs: run.elapsedMs === null ? null : plateFacts(run, previousAt, next.at).elapsed })) ?? [];
         this.workbench = { ...next, runs: [...next.runs, ...retained] };
         this.cardsProblem = false;
         this.render();

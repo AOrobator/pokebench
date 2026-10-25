@@ -33,3 +33,5 @@ Source reference: clean pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; mat
 
 - Started from clean main b0adeb3606117e3b7bb0480b524054054ccddd43 on owned branch codex/map-observability-v1. Existing isolated dependencies/art paths retained. Coordinator notified via talk-to-claude; no landing slot held during implementation.
 - Unified contract sent before provider implementation. Source research corrected several traps: Mossdeep button-adjacent blank tiles are not buttons; Petalburg/ship door collision does not establish lock state; source rotating-gate pivot is a tile junction and arms are edges; header layout ID does not track all script layout swaps.
+
+- RED42cd92003: five missing Python modules and generated TS schema fail collection as expected. Provider GREEN checks independently reported52 tile/29 rotating/43 terrain-layout tests; parent verification pending. Secondary config RED: production both-arm/default test fails2 assertions before registry wiring.

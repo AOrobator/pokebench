@@ -307,6 +307,8 @@ describe("viewer server", () => {
     const streamed = text.split("\n").filter((l) => l.startsWith("data: {\"")).map((l) => JSON.parse(l.slice(6)) as { seq?: number; route103_rival?: unknown });
     expect(streamed.find((e) => e.seq === target.seq)?.route103_rival).toEqual({ battle_active: true, defeated: false, oldale_stage: 0 });
     expect(streamed.filter((e) => e.route103_rival !== undefined)).toHaveLength(1);
+    const paged = JSON.parse((await get(viewer, "/api/runs/recovered/trace-history?before=4")).body.toString()) as { events: RunEvent[] };
+    expect(paged.events.find(event => event.seq === target.seq)).toMatchObject({ route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } });
   });
 
   it("tails a live run until run_end and reports invalid lines", async () => {

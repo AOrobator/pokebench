@@ -575,7 +575,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       let head: RunEvent[] | undefined;
       if (new URL(req.url ?? "/", "http://viewer.invalid").searchParams.has("head")) {
         try { head = await readHeadEvents(options.runsRoot, id, cursor, undefined, undefined, () => res.destroyed); }
-        catch { cursor.offset = 0; } // The diagnostic stream still reports malformed/skewed lines.
+        catch (error) {
+          if (!res.destroyed) send(res, 200, "text/event-stream; charset=utf-8", `event: problem\ndata: ${JSON.stringify({ line: "recent head", problem: skew?.head ?? String(error) })}\n\n`);
+          return;
+        }
       }
       if (res.destroyed) return;
       streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset);
@@ -586,7 +589,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       if (value === null || !/^(0|[1-9][0-9]*)$/.test(value) || !Number.isSafeInteger(Number(value))) {
         sendJson(res, 400, { error: "invalid history cursor" }); return;
       }
-      sendJson(res, 200, await readTraceHistory(options.runsRoot, id, Number(value)));
+      const page = await readTraceHistory(options.runsRoot, id, Number(value));
+      const recovered = recoveredAttacher(dir);
+      sendJson(res, 200, { ...page, events: page.events.map(recovered) });
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {

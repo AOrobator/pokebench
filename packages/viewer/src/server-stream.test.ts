@@ -394,15 +394,15 @@ it("tails a line torn across the head cursor exactly once", async () => {
 });
 
 
-it("falls back to the diagnostic stream when the compact head is malformed", async () => {
+it("reports a malformed compact head without falling back to the entire recording", async () => {
   const viewer = await serve("bad-head", longRun(2), 128);
   const path = join(roots.at(-1) ?? "", "runs", "bad-head", "events.jsonl");
   const lines = fs.readFileSync(path, "utf8").split("\n");
   lines.splice(1, 0, "{broken"); fs.writeFileSync(path, lines.join("\n"));
   const text = await (await fetch(new URL("api/runs/bad-head/events?head=1", viewer.url))).text();
-  expect(text).toContain('event: problem\ndata: {"line":2');
-  expect(text).toContain("event: done");
-  expect(events(text)).toHaveLength(4);
+  expect(text).toContain('event: problem\ndata: {"line":"recent head"');
+  expect(text).not.toContain("event: done");
+  expect(events(text)).toHaveLength(0);
 });
 
 it("labels malformed appends relative to the head byte cursor after history catch-up", async () => {

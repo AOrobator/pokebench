@@ -1061,7 +1061,7 @@ export class App {
         const view = new RunView();
         const merged = new Map([...this.view.events, ...events].map(event => [event.seq, event]));
         for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
-        this.historyBefore = this.historyCursor(events);
+        this.historyBefore = this.historyCursor(view.events);
         this.view = this.shown = view;
         this.headReady = true;
         this.mode = view.end === null && this.runs.some(run => run.id === runId && isLive(run)) ? "live" : "loading";
@@ -1288,11 +1288,11 @@ export class App {
     this.traceFollowButton(list);
   }
 
-  private readingLimit(list: HTMLElement, turns: readonly TraceTurn[], limit: number): number {
+  private readingLimit(list: HTMLElement, turns: readonly TraceTurn[], limit: number, extra = 0): number {
     if (!this.held.has(list)) return limit;
     const oldest = [...list.querySelectorAll<HTMLElement>("[data-group]")].filter((el) => el.dataset.group !== "tail").at(-1)?.dataset.group;
     const index = turns.findIndex((turn) => `t${String(turn.turn)}` === oldest);
-    return index < 0 ? limit : Math.max(limit, turns.length - index + 1);
+    return index < 0 ? limit : Math.max(limit, turns.length - index + extra);
   }
 
   private scrollTo(list: HTMLElement, top: number): void {
@@ -1358,7 +1358,7 @@ export class App {
       this.renderChips();
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
-      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit), page: TRACE_TURNS });
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0), page: TRACE_TURNS });
       const older = more > 0 ? moreButton(more, TRACE_TURNS) : this.historyBefore === null ? "" : `<button type="button" class="pbtn trace-more" data-trace-more data-history-more${this.historyLoading ? " disabled" : ""}>${this.historyLoading ? "LOADING OLDER TURNS…" : "LOAD OLDER TURNS"}</button>`;
       reconcile(box, groups, (groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
     }

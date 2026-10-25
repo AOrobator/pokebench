@@ -1901,6 +1901,21 @@ describe("head-first startup", () => {
     expect(streams).toHaveLength(1);
     expect(ui("think-body").textContent).toContain("Reconnected present");
     expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
+    expect(ui("history-status").hidden).toBe(true);
+    expect(ui("trace").querySelector("[data-history-more]")).toBeNull();
+    primary.send("done", {});
+    expect(app.clock?.startMs).toBe(BASE_MS);
+  });
+  it("keeps a partially loaded cursor across sparse reconnect heads", async () => {
+    const recorded = log();
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const primary = must(streams[0]);
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(2)]));
+    recorded.add(5000, assistant({ turn: 2 }));
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(-2)]));
+    expect(ui("history-status").hidden).toBe(false);
+    primary.send("done", {});
+    expect(app.clock?.startMs).toBe(BASE_MS + 2000);
   });
   it("ignores an older page and primary messages after a run switch", async () => {
     let resolvePage: (value: unknown) => void = () => undefined;
@@ -1917,6 +1932,21 @@ describe("head-first startup", () => {
     feed(primary, recorded.events, false);
     expect(app.view.start).toBeNull();
     expect(app.mode).toBe("loading");
+  });
+  it("ignores a stale page after a newer head of the same run", async () => {
+    let resolvePage: (value: unknown) => void = () => undefined;
+    const pending = new Promise<unknown>(resolve => { resolvePage = resolve; });
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/trace-history?before=3`]: pending });
+    const primary = must(streams[0]), recorded = log();
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
+    recorded.add(5000, assistant({ turn: 2 }));
+    primary.send("head", own(recorded.events));
+    resolvePage({ run, events: own(recorded.events.slice(2, 3)), before: 2 });
+    await flushHistory();
+    app.tick(0);
+    expect(ui("history-status").hidden).toBe(true);
+    expect(ui("trace").querySelector("[data-history-more]")).toBeNull();
   });
   it.each([new Error("offline"), { run, events: [], before: 3 }, { run: "foreign", events: [], before: null }])("keeps the current view and permits retry after a failed history page %s", async reply => {
     const response = reply instanceof Error ? Promise.reject(reply) : reply;

@@ -1800,7 +1800,7 @@
               "RIGHT"
             ]
           },
-          "maxItems": 7
+          "maxItems": 1
         },
         "buttons": {
           "type": "array",

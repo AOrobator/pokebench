@@ -10,7 +10,6 @@
  "switches": [
   "menu-refusal-recovery-v1",
   "mart-stock-readout-v1",
-  "caught-dex-input-v1",
   "exp-next-level-v1",
   "pokedex-own-v1",
   "exp-earned-ledger-v1",
@@ -131,6 +130,9 @@
   "named-warp-destinations-v1",
   "exit-labels-v2",
   "original-speed-pacing-v1",
+  "caught-dex-input-v1",
+  "caught-nickname-prompt-v1",
+  "caught-nickname-prompt-v2",
   "mauville-puzzle-readout-v1"
  ],
  "features": {
@@ -161,7 +163,7 @@
   "briefing-exits-v1": true,
   "briefing-repeat-count-v1": true,
   "cache-aligned-window-v1": false,
-  "caught-dex-input-v1": false,
+  "caught-dex-input-v1": true,
   "caught-nickname-prompt-v1": true,
   "character-presence-v1": true,
   "cited-destination-v1": true,
@@ -396,6 +398,7 @@
   "bag-ineffective-loop-v1": true,
   "citation-evidence-v1": false,
   "moving-npc-target-v1": false,
+  "caught-nickname-prompt-v2": true,
   "mauville-puzzle-readout-v1": true
  }
 }

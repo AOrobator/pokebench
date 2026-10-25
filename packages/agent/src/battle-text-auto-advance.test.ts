@@ -778,7 +778,7 @@ describe("caught-dex-input-v1 archived registration page",()=>{
 });
 
 
-it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
+it("registers caught-dex-input-v1 global default OFF and promotes maintained arms",()=>{
  const id="caught-dex-input-v1";
  expect(SWITCHABLE_FEATURES.at(184)).toBe(id);expect(SERVER_FEATURES.at(65)).toBe(id);
  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
@@ -786,7 +786,22 @@ it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle 
  expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);
  for(const name of ["bundle-v-control","bundle-cook-1h"]){
   const raw=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(raw.base.features[id]).toBe(false);expect(raw.switches).toContain(id);
+  expect(raw.base.features[id]).toBe(name==="bundle-v-control");if(name==="bundle-v-control")expect(raw.switches).not.toContain(id);else expect(raw.switches).toContain(id);
  }
 });
 function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}
+
+it("native Astra V2 prompt returns both requested DOWN,A inputs without a busy wait or automatic answer",async()=>{
+ const native=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/caught-nickname-v2-astra.json.gz",import.meta.url))).toString("utf8")) as {on:{state:unknown;readout:string}};
+ const state=parseGameState(native.on.state);
+ expect(state.active_ui).toMatchObject({phase:"battle_yes_no",selected:"YES",ready:true});
+ expect(battleEngaged(state)).toBe(false);
+ expect(classifyBattle(state)).toMatchObject({kind:"stop",stop:"battle_prompt"});
+ const server=new ScriptServer([state],[]);server.readout=()=>native.on.readout;
+ const {tool}=wire(server,{...ON,"caught-nickname-prompt-v1":true,"caught-nickname-prompt-v2":true});
+ const result=await tool("press").execute("native-nickname",{buttons:["DOWN","A"]});
+ expect(server.posts.map(p=>p.button)).toEqual(["DOWN","A"]);
+ expect(server.battlePaths()).not.toContain("/pokebench/battle/wait");
+ expect(textOf(result)).toContain("Interface: battle_yes_no; input ready; selected YES");
+ expect(textOf(result)).not.toContain("remaining input not sent");
+});

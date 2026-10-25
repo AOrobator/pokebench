@@ -376,6 +376,7 @@ def read_game_state(
     gym_door_label_enabled: bool = False,
     active_warp_exits_enabled: bool = False,
     caught_nickname_enabled: bool = False,
+    caught_nickname_v2_enabled: bool = False,
     caught_dex_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     party_menu_message_enabled: bool = False,
@@ -430,6 +431,31 @@ def read_game_state(
         blackout_transition=blackout_transition_enabled,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
+    # Cmd_trygivecaughtmonnick state 1 owns input while battle controllers are busy.
+    # Reuse the coherent battle read instead of decoding a second prompt owner.
+    prompt = None if battle is None else battle.prompt
+    if (
+        caught_nickname_v2_enabled
+        and caught_nickname_enabled
+        and screen.callback2 == 0x08038421
+        and battle is not None
+        and battle.diagnostic is None
+        and battle.text_phase == "prompt"
+        and prompt is not None
+        and prompt.kind == "nickname_caught"
+        and prompt.ready
+        and prompt.selected in {"YES", "NO"}
+        and native_ui is not None
+        and native_ui.phase == "battle_resolving"
+        and native_ui.diagnostic is None
+    ):
+        native_ui = ActiveUi(
+            "battle_yes_no",
+            prompt.selected,
+            True,
+            "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO",
+            details={"prompt_kind": prompt.kind},
+        )
     if interface_guidance_enabled:
         from pokebench_env.interface_guidance import interface_guidance
 

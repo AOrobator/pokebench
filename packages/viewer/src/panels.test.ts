@@ -1483,11 +1483,11 @@ it("links the recorded Gym door label treatment to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
 });
 
-it("links the caught Pokédex input to its explainer without changing feature status",()=>{
- const log=new Log();log.add(0,{...START,harness_features:["caught-dex-input-v1"]});
+it.each(["caught-dex-input-v1","caught-nickname-prompt-v2"])("links %s to its explainer without changing feature status",(id)=>{
+ const log=new Log();log.add(0,{...START,harness_features:[id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
- const card=doc.querySelector('[data-feature="caught-dex-input-v1"]');
- expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/caught-dex-input-v1.html");expect(card?.textContent).toContain("ON");
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
 });
 
 it("links each GLM-run harness bug switch to its tracked explainer without changing feature status",()=>{

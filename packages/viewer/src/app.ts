@@ -212,6 +212,7 @@ export class App {
   private artProblem = false;
   private cardsProblem = false;
   private workbench: WorkbenchData | null = null;
+  private knownLiveCards = new Set<string>();
   private workbenchLoad: Promise<void> | null = null;
   private workbenchSelection: string | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
@@ -670,11 +671,13 @@ export class App {
     const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
     if (recordedReplay !== undefined) return [cardInputFor(recordedReplay, workbench.at, now, "replay", workbench.runs, art.art)];
     // An explicitly opened replay is separate from the default live-run row.
-    const live = this.runs.filter(isLive);
+    const live = this.runs.filter(run => run.ended === false && run.problem === null
+      && (isLive(run) || this.knownLiveCards.has(run.id) || run.id === this.runId));
     const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
-      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
-      const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      if (recorded === undefined || !["live", "paused", "unresponsive"].includes(recorded.status)) return [];
+      const status: CardInput["status"] = !isLive(run) || recorded.status === "unresponsive" ? "replay"
+        : run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);
       // Applied controls arrive on the selected stream before the next card snapshot.
       // A snapshot may also be ahead of that stream, so never reduce its cap.
@@ -685,6 +688,7 @@ export class App {
   }
 
   private listRuns(runs: RunChoice[]): void {
+    this.knownLiveCards = new Set(runs.filter(run => isLive(run) || (run.ended === false && this.knownLiveCards.has(run.id))).map(run => run.id));
     this.runs = runs;
     const picker = this.picker("run");
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
@@ -1531,7 +1535,7 @@ export class App {
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
     const watched = cards.filter((c) => c.status === "watching" || c.status === "replay");
-    const sheetCardHtml = art === null || cards.length === 0 ? [] : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "wide"));
+    const sheetCardHtml = art === null || cards.length === 0 ? [] : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "wide", null, c.runId === this.runId));
     this.setHtml("run-sheet-body", sheetHtml());
     const sheetBody = this.ui("run-sheet-body");
     const sheetCards = sheetBody.querySelector(".rs-cards");
@@ -1542,7 +1546,7 @@ export class App {
       status.textContent = cardStatus;
       status.hidden = cardStatus === "";
     }
-    syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
+    syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide", null, c.runId === this.runId)), this.cardHtml);
     this.ui("run-cards").hidden = cards.length === 0;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     if (clock !== null) {

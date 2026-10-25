@@ -507,7 +507,7 @@ it("hydrates PokéNav party and milestones outside the recent trace without a co
   const runsRoot = root(), log = new Log(); log.add(0, START);
   const roster = log.add(10, state({ name: "RED", party: [{ species: "COMBUSKEN", species_id: 281, level: 20, hp: 42, max_hp: 60 }] }));
   log.add(20, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [roster.seq] });
-  const partial = log.add(30, state({ turn: 1, name: null, location: null, party: [], play_time_s: null }));
+  const partial = log.add(30, state({ turn: 1, name: null, location: null, screen: "battle", in_battle: true, party: [], play_time_s: 755 }));
   for (const turn of [2, 3]) { log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } }); log.add(turn * 1000 + 1, assistant({ turn, thinking: "recent trace payload".repeat(8) })); }
   const path = writeRun(runsRoot, "pokenav-context", log), bytes = readFileSync(path, "utf8");
   const cursor = { offset: 0 }, head = await readHeadEvents(runsRoot, "pokenav-context", cursor, 1, 800);

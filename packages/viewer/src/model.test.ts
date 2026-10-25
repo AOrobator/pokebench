@@ -430,10 +430,21 @@ it("does not mistake an uninitialized field transition for a new game", () => {
   expect(fold(log).partyState).toEqual(prior);
 });
 
- it.each(["battle", "field_transition", "unknown"] as const)("retains a roster through empty %s samples even with a readable clock", screen => {
+ it.each([{ screen: "battle", in_battle: true }, { screen: "battle", in_battle: false }, { screen: "overworld", in_battle: true }, { screen: "field_transition", in_battle: false }, { screen: "unknown", in_battle: false }] as const)("retains a roster through empty $screen samples (battle=$in_battle) even with a readable clock", ({screen, in_battle}) => {
    const log = new Log(); log.add(0, START); const prior = log.add(1, state());
-   const partial = log.add(2, state({ screen, in_battle: screen === "battle", party: [], play_time_s: 755, name: null, location: null }));
+   const partial = log.add(2, state({ screen, in_battle, party: [], play_time_s: 755, name: null, location: null }));
    const v = fold(log);
    expect(v.state).toEqual(partial); expect(v.partyState).toEqual(prior);
    expect(v.partyMembers).toEqual([{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }]);
  });
+
+it("retains card fields independently without reading ahead or crossing a pregame reset", () => {
+  const log = new Log(); log.add(0, START); log.add(1, state());
+  log.add(2, state({ name: null, location: "OLDALE TOWN" }));
+  log.add(3, state({ name: "RED", location: null }));
+  expect(foldUntil(log.events, BASE_MS).cardState).toBeNull();
+  expect(foldUntil(log.events, BASE_MS + 2).cardState).toMatchObject({ name: "MAY", location: "OLDALE TOWN" });
+  expect(fold(log).cardState).toMatchObject({ name: "RED", location: "OLDALE TOWN" });
+  log.add(4, state({ started: false, screen: "title", name: null, location: null, party: [], play_time_s: null }));
+  expect(fold(log).cardState).toEqual({ name: null, location: null, party: [] });
+});

@@ -151,7 +151,7 @@ function bar(label: string, fill: string, width: string, value: string, clock: b
 }
 
 // href: the card is a link there (the comparisons page links to the viewer); without it, a button that watches the run.
-export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: string | null = null): string {
+export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: string | null = null, selected = input.status === "watching" || input.status === "replay"): string {
   const { facts } = input, wide = kind === "wide", ribbon = !wide && facts.fresh;
   const g: Geometry = wide ? { w: 388, h: 180 } : { w: 288, h: ribbon ? 94 : 76 };
   const image = `/sprites/card/${wide ? "wide" : ribbon ? "mini-ribbon" : "mini"}-${tierOf(facts.level, facts.total)}.png`;
@@ -173,6 +173,6 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const label = `Watch run ${input.runId}: ${input.title}${input.arm === null ? "" : `, ${input.arm}`}`;
   const cls = `tc tc-${kind}${facts.fresh ? " tc-new" : ""}`, frame = `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span>`;
   return href === null
-    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching" || input.status === "replay")}" aria-label="${esc(label)}">${frame}</button>`
+    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(selected)}" aria-label="${esc(label)}">${frame}</button>`
     : `<a class="${cls}" href="${esc(href)}" data-watch="${esc(input.runId)}" aria-label="${esc(label)}">${frame}</a>`;
 }

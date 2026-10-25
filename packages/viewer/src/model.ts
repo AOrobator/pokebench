@@ -18,8 +18,12 @@ type AnyStateEvent = Of<"state">;
 export type StateEvent = Extract<AnyStateEvent, { started: boolean }>;
 // Shared by the live-head bootstrap and panel reducer: an unread transition is
 // not an empty roster; a known pregame screen can genuinely clear the party.
+function pregameState(event: StateEvent): boolean {
+  return !event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen);
+}
 export function hasPartySample(event: StateEvent): boolean {
-  return (!event.started && ["intro", "title", "main_menu", "birch_speech", "naming"].includes(event.screen)) || event.play_time_s !== null || event.party.length > 0;
+  return pregameState(event) || event.party.length > 0 ||
+    (!event.in_battle && !["battle", "field_transition", "unknown"].includes(event.screen) && event.play_time_s !== null);
 }
 export type Button = Of<"button_press">["buttons"][number] | Of<"human_input">["buttons"][number];
 
@@ -238,6 +242,7 @@ export class RunView {
   humanFrame: number | null = null;
   state: StateEvent | null = null;
   partyState: StateEvent | null = null;
+  cardState: Pick<StateEvent, "name" | "location" | "party"> | null = null;
   // Viewer-only overlay; roster/profile and raw event provenance stay in partyState.
   partyHealth: { source: StateEvent; party: StateEvent["party"]; slots: number[] } | null = null;
   get partyMembers(): StateEvent["party"] { return this.partyHealth?.party ?? this.partyState?.party ?? []; }
@@ -487,6 +492,12 @@ export class RunView {
     // game_state.py PRE_GAME: an unread field transition can also have started=false.
     if (hasPartySample(event)) this.partyState = event;
     this.updatePartyHealth(event);
+    const reset = pregameState(event);
+    this.cardState = {
+      name: reset ? event.name : event.name ?? this.cardState?.name ?? null,
+      location: reset ? event.location : event.location ?? this.cardState?.location ?? null,
+      party: this.partyMembers,
+    };
     const previous = this.state;
     // Recover the old route-label mismatch only from a confirmed field map.
     // Retain the state receipt and first observation time without editing logs.

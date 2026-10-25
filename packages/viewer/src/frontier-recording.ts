@@ -19,7 +19,7 @@ export interface RecordingMeasurement {
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
-// last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
+// last: retained trainer-card display state; raw view.state is dropped from the result.
 export interface NativeRecording { clockProblem?: string; view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
 export interface RecordingFileIdentity { dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number }
 export interface NativeRecordingTailer { read(): NativeRecording; fileIdentity(): RecordingFileIdentity | null }
@@ -191,7 +191,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     }
     outputSplits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
     let previousSplit = 0; for (const split of outputSplits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
-    const last = view.state === null || !("started" in view.state) ? null : { name: view.state.name, location: view.state.location, party: structuredClone(view.state.party) };
+    const last = structuredClone(view.cardState);
     const outputView = Object.assign(new RunView(), structuredClone(view));
     Object.defineProperty(outputView, "control", { value: Object.assign(new ControlView(), structuredClone(view.control)), enumerable: true, configurable: true });
     outputView.state = null;

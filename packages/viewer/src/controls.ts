@@ -1,3 +1,5 @@
+import { isExtensionAction, TIME_EXTENSIONS, TURN_EXTENSIONS } from "./budget-extensions.js";
+import type { ControlAction as AgentControlAction } from "@pokebench/agent/run-control";
 // Run controls and the next-run switchboard: pure HTML renderers for the
 // top bar, the game-screen overlays, the live side panel and the PokéNav
 // ★ NEXT RUN page. app.ts owns state, keys and requests.
@@ -6,7 +8,7 @@ import { esc, hms, num } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import { MILESTONE_ORDER, deeperMilestone, type RunView } from "./model.js";
 
-export type ControlAction = "pause" | "resume" | "stop" | "cancel_stop" | "abort" | "extend_30m" | "extend_60m";
+export type ControlAction = AgentControlAction;
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
 export const ABORT_HOLD_MS = 1_500;
 
@@ -50,6 +52,7 @@ export function availableActions(view: RunView, live: boolean): Set<ControlActio
   if (!live || view.end !== null) return new Set();
   const state = view.control.state;
   const extensions: ControlAction[] = view.start?.extend_run === true && view.start.controller?.kind !== "human" ? ["extend_30m", "extend_60m"] : [];
+  if(view.start?.extend_budget===true && extensions.length>0) for(const action of [...Object.keys(TIME_EXTENSIONS),...Object.keys(TURN_EXTENSIONS)]) if(isExtensionAction(action)&&!extensions.includes(action))extensions.push(action);
   if (state === "running") return new Set(["pause", "stop", "abort", ...extensions]);
   if (state === "pause_pending") return new Set(["resume", "stop", "abort", ...extensions]);
   if (state === "paused") return new Set(["resume", "stop", "abort", ...extensions]);
@@ -133,7 +136,7 @@ function bar(label: string, fraction: number, value: string, of: string): string
 
 export function sideStats(view: RunView, nowMs: number): string {
   const start = view.start;
-  const turns = start?.budgets.max_turns;
+  const turns = view.effectiveTurnLimit ?? undefined;
   const wall = view.control.maxWallMs ?? start?.budgets.max_wall_ms;
   const seconds = runSeconds(view, nowMs);
   const failures = view.retry === null ? 0 : view.retry.attempt;
@@ -146,6 +149,7 @@ export function sideStats(view: RunView, nowMs: number): string {
     bar("TIME", wall === undefined ? 0 : (seconds * 1000) / wall, hms(seconds), wall === undefined ? "" : `of ${hms(wall / 1000)}`),
     `<div class="stat">FAILURES<b>${String(failures)}</b>of ${String(limit)}</div>`,
     bar("CONTEXT", window === 0 ? 0 : context / window, `${readout?.measured === false ? "~" : ""}${num(Math.round(context / 1000))}k`, window === 0 ? "" : `of ${num(Math.round(window / 1000))}k`),
+    ...(view.control.maxTurns===null && view.operatorTurnLimit===null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${String(start?.budgets.max_turns ?? "unknown")} turns</p>`]),
     ...(view.control.maxWallMs === null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${hms((start?.budgets.max_wall_ms ?? 0) / 1000)}</p>`]),
   ].join("");
 }

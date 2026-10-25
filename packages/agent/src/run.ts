@@ -19,6 +19,7 @@ export function humanLeasePath(repoRoot: string, commonDir: string): string {
 
 export interface RunPlan {
   readonly extend_run?: true;
+  readonly extend_budget?: true;
   readonly continuation?:{readonly prior:readonly RunEvent[];readonly sourceTurn:number;readonly sourceRun:string;readonly prefix:string};
   readonly runsRoot: string;
   readonly runId: string;
@@ -116,6 +117,7 @@ export async function withRun(
       start_state: plan.startState,
       harness_features: [...plan.harnessFeatures],
       ...(plan.extend_run === true ? { extend_run: true as const } : {}),
+      ...(plan.extend_budget === true ? { extend_budget:true as const } : {}),
       budgets: plan.budgets,
       isolation: { server_dir: server?.serverDir ?? join(log.runDir, "server"), run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
     };

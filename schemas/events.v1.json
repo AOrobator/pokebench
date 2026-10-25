@@ -50,7 +50,11 @@
             "cancel_stop",
             "abort",
             "extend_30m",
-            "extend_60m"
+            "extend_60m",
+            "extend_120m",
+            "extend_240m",
+            "extend_1000t",
+            "extend_2000t"
           ]
         },
         "status": {
@@ -64,6 +68,14 @@
         "request": {
           "type": "integer",
           "minimum": 1
+        },
+        "previous_max_turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 0
         },
         "previous_max_wall_ms": {
           "type": "integer",
@@ -776,6 +788,10 @@
           "const": "run_start"
         },
         "extend_run": {
+          "type": "boolean",
+          "const": true
+        },
+        "extend_budget": {
           "type": "boolean",
           "const": true
         },

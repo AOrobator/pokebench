@@ -150,6 +150,7 @@ export interface GovernorDeps {
   readonly takeStop?: () => boolean;
   readonly pausedMs?: () => number;
   readonly wallLimit?: () => number;
+  readonly turnLimit?: () => number;
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number, cutOffNotice?: string) => string;
   readonly textOnlyReminder?: string;
@@ -238,12 +239,14 @@ export class Governor {
     this.stopReason ??= "model_error";
   }
 
+  get turnCount():number { return this.turns; }
+
   private countTurn(): boolean {
     this.turns += 1;
     const { maxTurns, maxWallMs } = this.deps.limits;
     if (this.deps.takeStop?.() === true) this.stopReason ??= "operator_stop";
     const active = this.deps.now() - this.startedAt - (this.deps.pausedMs?.() ?? 0);
-    if (this.turns >= maxTurns || active >= (this.deps.wallLimit?.() ?? maxWallMs)) this.stopReason ??= "budget";
+    if (this.turns >= (this.deps.turnLimit?.() ?? maxTurns) || active >= (this.deps.wallLimit?.() ?? maxWallMs)) this.stopReason ??= "budget";
     return this.stopReason !== null;
   }
 }

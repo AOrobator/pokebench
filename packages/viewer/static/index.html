@@ -81,8 +81,11 @@
   <div class="emer-name">POKéNAV · RUN CONTROL</div>
   <h2 id="extend-title">EXTEND THIS RUN?</h2>
   <p class="extend-id" data-ui="extend-run"></p>
-  <p>Add active run time. Pauses still stop the clock.</p>
-  <label>Additional time <select data-ui="extend-duration"><option value="extend_30m">30 minutes</option><option value="extend_60m">1 hour</option></select></label>
+  <p>Add active run time or decision turns. Pauses still stop the clock.</p>
+  <label>Extend by <select data-ui="extend-kind"><option value="time">Additional time</option><option value="turns">Additional turns</option></select></label>
+  <label data-ui="extend-time-label">Additional time <select data-ui="extend-duration"><option value="extend_30m">30 minutes</option><option value="extend_60m">1 hour</option><option value="extend_120m">2 hours</option><option value="extend_240m">4 hours</option></select></label>
+  <label data-ui="extend-turn-label" hidden>Additional turns <select data-ui="extend-turns"><option value="extend_1000t">1,000 turns</option><option value="extend_2000t">2,000 turns</option></select></label>
+  <p data-ui="extend-capability"></p>
   <p data-ui="extend-preview"></p>
   <p>The current run keeps its GPU until it finishes. The original evaluation horizon and turn limit stay recorded.</p>
   <p role="status" aria-live="polite" data-ui="extend-status"></p>

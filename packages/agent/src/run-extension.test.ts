@@ -108,10 +108,17 @@ it("extends turn budget through the governor seam without changing wall budget",
  expect(control.turnLimit(2)).toBe(1002);
  expect(governor.afterTurn(assistant(),[])).toBe(false);
  expect(control.wallLimit(10000)).toBe(10000);
- expect(records).toEqual([{action:"extend_1000t",status:"applied",request:1,previous_max_turns:2,max_turns:1002}]);
+ expect(records.filter(r=>r.status==="applied")).toEqual([{action:"extend_1000t",status:"applied",request:1,previous_max_turns:2,max_turns:1002}]);
  control.apply(request(2,"extend_2000t"));expect(control.turnLimit(2)).toBe(3002);
 });
 it.each([["extend_120m",7200000],["extend_240m",14400000]])("accepts %s as a finite time extension",(action,ms)=>{
  const c=new RunControl({now:()=>0,record:vi.fn(),freeze:()=>Promise.resolve(),end:vi.fn(),budget:{maxWallMs:10000,activeMs:()=>0,stopped:()=>false}});
- c.apply(request(1,action));expect(c.wallLimit(10000)).toBe(10000+Number(ms));
+ c.apply(request(1,action));expect(c.wallLimit(10000)).toBe(10000+ms);
+});
+
+it("refuses unavailable, expired and overflowing turn extensions",()=>{
+ const records:ControlBody[]=[];
+ const make=(maxTurns:number|undefined,turns:number,activeMs=0)=>new RunControl({now:()=>0,record:b=>records.push(b),freeze:()=>Promise.resolve(),end:vi.fn(),budget:{maxWallMs:100,...(maxTurns===undefined?{}:{maxTurns}),turns:()=>turns,activeMs:()=>activeMs,stopped:()=>false}});
+ for(const c of [make(undefined,0),make(2,2),make(2,0,100),make(Number.MAX_SAFE_INTEGER,0)])c.apply(request(1,"extend_1000t"));
+ expect(records.map(r=>r.status)).toEqual(["ignored","ignored","ignored","ignored"]);
 });

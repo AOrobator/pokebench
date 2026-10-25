@@ -269,6 +269,7 @@ async function playAgent(): Promise<void> {
       harnessFeatures: playHarnessFeatures(features,target),
 
       extend_run: true,
+      extend_budget: true,
       budgets: { max_turns: limits.maxTurns, max_wall_ms: limits.maxWallMs },
       piVersion: piVersion(),
     },
@@ -295,6 +296,7 @@ async function playAgent(): Promise<void> {
         takeStop: () => control?.takeStop() ?? false,
         pausedMs: () => control?.pausedMs() ?? 0,
         wallLimit: () => control?.wallLimit(limits.maxWallMs) ?? limits.maxWallMs,
+        turnLimit: () => control?.turnLimit(limits.maxTurns) ?? limits.maxTurns,
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
       });
@@ -302,7 +304,7 @@ async function playAgent(): Promise<void> {
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       const runControl = new RunControl({
-        budget: { maxWallMs: limits.maxWallMs, activeMs, stopped: () => governor.stopReason !== null },
+        budget: { maxWallMs: limits.maxWallMs, maxTurns:limits.maxTurns, turns:()=>governor.turnCount, activeMs, stopped: () => governor.stopReason !== null },
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),

@@ -1,3 +1,4 @@
+import {isExtensionAction} from "./budget-extensions.js";
 // The append-only trial ledger of a fixed-run experiment, the queue derived from it,
 // and the infrastructure-only rule that judges each finished trial valid or invalid.
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -243,7 +244,7 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
     if (start === undefined) { start = e; t0 = Date.parse(String(e.t)); }
     if (start.type !== "run_start") break;
     if (e.type === "retry") lastRetry = e;
-    if (e.type === "operator_control" && (e["action"] === "extend_30m" || e["action"] === "extend_60m") && e["status"] === "applied") extended = true;
+    if (e.type === "operator_control" && (typeof e["action"]==="string" && isExtensionAction(e["action"])) && e["status"] === "applied") extended = true;
     if (e.type === "operator_control" && e["status"] === "applied" && typeof e["paused_ms"] === "number") pausedMs += e["paused_ms"];
     if (e.type !== "milestone" || e["origin"] === "present_at_start" || typeof e["name"] !== "string" || reached.has(e["name"])) continue;
     const ms = Date.parse(String(e.t)) - t0 - pausedMs;

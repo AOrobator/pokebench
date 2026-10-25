@@ -38,8 +38,8 @@ function call(v: Viewer, method: string, path: string, body?: unknown, headers: 
 }
 
 // Each run owns its own game-server port (INV-7); a second live run gets 8012.
-function liveRun(runsRoot: string, id: string, extend = false, port = 8011): void {
-  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port }, ...(extend ? { extend_run: true as const } : {}) });
+function liveRun(runsRoot: string, id: string, extend = false, port = 8011, budget=false): void {
+  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port }, ...(extend ? { extend_run: true as const } : {}), ...(budget?{extend_budget:true as const}:{}) });
   mkdirSync(join(runsRoot, id), { recursive: true });
   writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
 }
@@ -225,4 +225,13 @@ it("enqueues only finite extensions for capable live agents", async () => {
     { v: 1, seq: 1, at: "2026-10-19T17:00:00.000Z", action: "extend_30m" },
     { v: 1, seq: 2, at: "2026-10-19T17:00:00.000Z", action: "extend_60m" },
   ]);
+});
+
+it("queues new extension actions only for a declared capable running agent",async()=>{
+ const {viewer:v,runsRoot}=await viewer({fetchFn:gameUp});liveRun(runsRoot,"modern-budget",true,8011,true);liveRun(runsRoot,"legacy-budget",true,8012);
+ const actions=["extend_120m","extend_240m","extend_1000t","extend_2000t"];
+ for(const [i,action] of actions.entries())expect(await call(v,"POST","/api/runs/modern-budget/control",{action})).toEqual({status:200,json:{request:i+1}});
+ const requests=readFileSync(join(runsRoot,"modern-budget","control.jsonl"),"utf8").trim().split("\n").map((l:string)=>JSON.parse(l) as {action:string});
+ expect(requests.map(r=>r.action)).toEqual(actions);
+ for(const action of actions)expect((await call(v,"POST","/api/runs/legacy-budget/control",{action})).status).toBe(409);
 });

@@ -115,6 +115,7 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   if (catalog().find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
   if (isExtension(action)) {
     const start = readStart(runsRoot, runId);
+    if(action!=="extend_30m"&&action!=="extend_60m"&&start.extend_budget!==true) throw new NextRunError("this running build does not support this extension");
     if (start.extend_run !== true || start.controller?.kind === "human") throw new NextRunError("this run does not support extensions; start a run on the newer build");
   }
   const path = join(runDir(runsRoot, runId), "control.jsonl");

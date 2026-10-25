@@ -1,3 +1,4 @@
+import {isExtensionAction,isTimeExtension} from "./budget-extensions.js";
 import {PROGRESS_CATALOG, EXTENDED_PROGRESS_NAMES, OPTIONAL_PROGRESS_NAMES, CAMPAIGN_ADDITION_NAMES, CAMPAIGN_PROGRESS_FEATURE, progressReached, STORY_PROGRESS_FEATURE} from "./story-progress.js";
 import { roxanneFirstInteraction } from "./roxanne-interaction.js";
 // A run's events folded into what the panels show. Shared by the browser and
@@ -164,14 +165,16 @@ export type ControlState = "running" | "pause_pending" | "paused" | "stop_pendin
 // Operator control as recorded by the agent (operator_control events).
 export class ControlView {
   maxWallMs: number | null = null;
+  maxTurns: number | null = null;
   lastExtensionRequest: number | null = null;
   state: ControlState = "running";
   emulatorFrozen: boolean | null = null;
   readonly pauses: { startMs: number; endMs: number | null }[] = [];
 
   apply(event: Of<"operator_control">, ms: number): void {
-    if (event.action === "extend_30m" || event.action === "extend_60m") {
-      if (event.status === "applied" && event.max_wall_ms !== undefined) {
+    if (isExtensionAction(event.action)) {
+      if(event.status==="applied" && !isTimeExtension(event.action) && event.max_turns!==undefined){this.maxTurns=event.max_turns;this.lastExtensionRequest=event.request;}
+      if (event.status === "applied" && isTimeExtension(event.action) && event.max_wall_ms !== undefined) {
         this.maxWallMs = event.max_wall_ms;
         this.lastExtensionRequest = event.request;
       }
@@ -220,6 +223,8 @@ export interface RequestSample {
 }
 
 export class RunView {
+  operatorTurnLimit:number|null=null;
+  get effectiveTurnLimit():number|null { const values=[this.control.maxTurns,this.operatorTurnLimit,this.start?.budgets.max_turns].filter((n):n is number=>typeof n==="number"); return values.length===0?null:Math.max(...values); }
   readonly requestSamples: RequestSample[] = [];
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;

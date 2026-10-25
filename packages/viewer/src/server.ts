@@ -1,3 +1,4 @@
+import {readTurnBudgetReceipt} from "./budget-receipt.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
@@ -183,7 +184,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
   try {
     const body = await jsonBody(req, origin);
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
-      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch), catalog) });
       return;
     }
@@ -539,7 +540,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
   }
-  if(parts.length===2 && head==="app" && (second==="story-progress.js"||second==="campaign-catalog.js")) {
+  if(parts.length===2 && head==="app" && (second==="story-progress.js"||second==="campaign-catalog.js"||second==="budget-extensions.js")) {
     sendFile(res,join(options.appDir,"../../agent/dist/",second),"text/javascript; charset=utf-8");return;
   }
   if(parts.length===2 && head==="app" && second==="roxanne-interaction.js") {
@@ -573,6 +574,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       sendJson(res, 200, { run: id, throughSeq: history.throughSeq, range: bagRange(input), html: bagPage(input) });
       return;
     }
+    if(parts.length===4 && leaf==="budget") {sendJson(res,200,{max_turns:readTurnBudgetReceipt(dir,id)});return;}
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
     if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed), options.streamChunkBytes); return; }
     if (parts.length === 4 && leaf === "events") {

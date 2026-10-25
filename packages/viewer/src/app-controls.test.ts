@@ -17,7 +17,7 @@ class Stream implements StreamLike {
   send(type: string, data: unknown): void { for (const l of this.listeners.get(type) ?? []) l({ data: JSON.stringify(data) }); }
 }
 
-async function mount(history: unknown = {}, refuse = false, gameUp = true, extend = false, controlReply?: () => Promise<unknown>) {
+async function mount(history: unknown = {}, refuse = false, gameUp = true, extend = false, controlReply?: () => Promise<unknown>, budget = false, override:number|null=null) {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const writes: [string, string, unknown][] = [];
   const streams: Stream[] = [];
@@ -25,6 +25,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true, exten
   let draft: unknown = DRAFT;
   const app: App = await mountApp(document, {
     fetchJson: (url) => {
+      if(url.endsWith("/budget"))return Promise.resolve({max_turns:override});
       if (url === "/api/runs") return Promise.resolve([{ id: RUN, model: "Qwen", started: "x", ended: false, reason: null, problem: null, live: gameUp }]);
       if (url === "/api/features") return Promise.resolve({ features: FEATURES, milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft, queue: { state: "idle" } });
@@ -49,7 +50,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true, exten
   if (stream === undefined) throw new Error("no stream");
   const log = new Log();
   const send = (offset: number, body: Parameters<Log["add"]>[1]): void => { stream.send("ev", { ...log.add(offset, body), run: RUN }); };
-  send(0, { ...START, ...(extend ? { extend_run: true as const } : {}), harness_features: FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id) });
+  send(0, { ...START, ...(extend ? { extend_run: true as const, ...(budget?{extend_budget:true as const}:{}) } : {}), harness_features: FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id) });
   stream.send("caught_up", {});
   await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
   app.tick(0);
@@ -317,4 +318,26 @@ it("does not accept another request's acknowledgement while this HTTP response i
   app.tick(0);
   expect(ui("extend-status").textContent).toBe("Extension applied.");
   expect(ui("extend-confirm").hidden).toBe(true);
+});
+
+it("reuses Extend for turn increments, showing only acknowledged changes",async()=>{
+ const {app,writes,send}=await mount({},false,true,true,undefined,true,20000);
+ await vi.waitFor(()=>expect(ui("stats").textContent).toContain("20000"));
+ document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
+ const kind=ui("extend-kind") as HTMLSelectElement;kind.value="turns";kind.dispatchEvent(new Event("change"));
+ expect(ui("extend-time-label").hidden).toBe(true);expect(ui("extend-turn-label").hidden).toBe(false);
+ const turns=ui("extend-turns") as HTMLSelectElement;turns.value="extend_2000t";turns.dispatchEvent(new Event("change"));
+ expect(ui("extend-preview").textContent).toContain("20,000 → 22,000");
+ turns.focus();app.tick(1);expect(document.activeElement).toBe(turns);
+ ui("extend-confirm").click();ui("extend-confirm").click();await vi.waitFor(()=>expect(writes).toHaveLength(1));
+ expect(writes[0]?.[2]).toEqual({action:"extend_2000t"});
+ send(6000,{type:"operator_control",turn:1,action:"extend_2000t",status:"applied",request:1,previous_max_turns:20000,max_turns:22000});app.tick(0);
+ expect(ui("extend-preview").textContent).toContain("22,000");expect(ui("stats").textContent).toContain("22000");
+});
+it("does not enqueue unsupported extensions on an older running build",async()=>{
+ const {writes}=await mount({},false,true,true);
+ document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
+ const kind=ui("extend-kind") as HTMLSelectElement;kind.value="turns";kind.dispatchEvent(new Event("change"));
+ expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(true);expect(ui("extend-capability").textContent).toContain("does not support");
+ ui("extend-confirm").click();expect(writes).toEqual([]);
 });

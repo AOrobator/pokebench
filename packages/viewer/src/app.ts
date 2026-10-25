@@ -1,3 +1,4 @@
+import {isExtensionAction,isTimeExtension,TIME_EXTENSIONS,TURN_EXTENSIONS,type ExtensionAction} from "./budget-extensions.js";
 import { visualSplitView } from "./visual-split-view.js";
 import { metricHistory } from "./metric-history.js";
 // Browser glue: picks a run, follows its event stream, and renders the Open
@@ -271,7 +272,7 @@ export class App {
   private frameLoadBound = false;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
-  private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
+  private extensionPending: { run: string; action: ExtensionAction; afterSeq: number; request: number | null } | null = null;
   private extensionMessage = "";
   private holdStart: number | null = null;
   private overlayClosed = false;
@@ -419,6 +420,8 @@ export class App {
     }
   }
 
+  private selectedExtension():ExtensionAction { const value=this.picker(this.picker("extend-kind").value==="turns"?"extend-turns":"extend-duration").value; return isExtensionAction(value)?value:"extend_30m"; }
+
   private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
 
   private openExtension(): void {
@@ -447,23 +450,31 @@ export class App {
       }
     }
     const wall = this.view.control.maxWallMs ?? this.view.start?.budgets.max_wall_ms ?? 0;
-    const addition = (this.ui("extend-duration") as HTMLSelectElement).value === "extend_60m" ? 3_600_000 : 1_800_000;
+    const action=this.selectedExtension();
+    const time=isTimeExtension(action);
+    const addition=isTimeExtension(action)?TIME_EXTENSIONS[action]:TURN_EXTENSIONS[action];
+    const turnLimit=this.view.effectiveTurnLimit ?? 0;
+    this.ui("extend-time-label").hidden=!time;
+    this.ui("extend-turn-label").hidden=time;
+    const supported=availableActions(this.view,this.live).has(action);
+    this.ui("extend-capability").textContent=supported?"":"This running build does not support this extension. Its current limits are shown below.";
     this.ui("extend-run").textContent = this.runId;
-    this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    this.ui("extend-preview").textContent = !time ? `Turn limit: ${turnLimit.toLocaleString("en-US")} → ${(turnLimit+addition).toLocaleString("en-US")} · remaining after extension: ${Math.max(0,turnLimit+addition-this.view.turn).toLocaleString("en-US")}` : `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
     const waiting = this.extensionPending !== null;
     const applied = this.extensionMessage === "Extension applied.";
     this.ui("extend-confirm").hidden = applied;
-    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !availableActions(this.view, this.live).has("extend_30m");
-    (this.ui("extend-duration") as HTMLSelectElement).disabled = waiting || applied;
+    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !supported;
+    for(const name of ["extend-duration","extend-turns","extend-kind"])this.picker(name).disabled=waiting||applied;
     this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
-    if (applied) this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    if (applied) this.ui("extend-preview").textContent = !time ? `Turn limit: ${turnLimit.toLocaleString("en-US")} · remaining: ${Math.max(0,turnLimit-this.view.turn).toLocaleString("en-US")}` : `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
     this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
   }
 
   private async extendRun(): Promise<void> {
     if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
-    const value = (this.ui("extend-duration") as HTMLSelectElement).value;
-    const pending = { run: this.runId, action: value === "extend_60m" ? "extend_60m" as const : "extend_30m" as const, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    const value = this.selectedExtension();
+    if(!availableActions(this.view,this.live).has(value))return;
+    const pending = { run: this.runId, action: value, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
     this.extensionPending = pending;
     this.extensionMessage = "";
     this.updateExtension();
@@ -702,7 +713,7 @@ export class App {
 
   private wire(): void {
     const controls = this.ui("run-controls");
-    this.ui("extend-duration").addEventListener("change", () => { this.updateExtension(); });
+    for(const name of ["extend-duration","extend-turns","extend-kind"])this.ui(name).addEventListener("change",()=>{this.updateExtension();});
     this.ui("extend-confirm").addEventListener("click", () => { void this.extendRun(); });
     this.ui("extend-cancel").addEventListener("click", () => { this.closeExtension(); });
     this.extensionDialog().addEventListener("cancel", (event) => { event.preventDefault(); this.closeExtension(); });
@@ -1059,6 +1070,10 @@ export class App {
     this.stream = stream;
     this.ensureFrameStream(this.deps.now());
     void this.pollCards();
+    void this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/budget`).then(value=>{
+      if(this.runId!==runId||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;
+      this.view.operatorTurnLimit=value.max_turns;this.render();
+    }).catch(()=>{ /* Original recorded limits remain when no verified override exists. */ });
     stream.addEventListener("head", (message) => {
       if (this.stream !== stream) return;
       try {
@@ -1072,6 +1087,7 @@ export class App {
         this.traceKey = this.sideKey = "";
         this.recordedThinkingRequest += 1;
         const view = new RunView();
+        view.operatorTurnLimit=this.view.operatorTurnLimit;
         const merged = new Map([...this.view.events, ...events].map(event => [event.seq, event]));
         for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
         this.historyBefore = this.historyCursor(view.events);
@@ -1482,7 +1498,7 @@ export class App {
       if (pane !== null && anchor !== undefined && next != null && next.getBoundingClientRect().height > 0) pane.scrollTop += next.getBoundingClientRect().top - pane.getBoundingClientRect().top - offset;
     }
     this.renderParty(view);
-    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
+    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE LIMITS</summary><pre>${esc(JSON.stringify({ max_turns:view.effectiveTurnLimit, max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));

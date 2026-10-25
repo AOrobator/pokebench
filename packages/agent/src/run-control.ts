@@ -1,3 +1,4 @@
+import { TIME_EXTENSIONS, TURN_EXTENSIONS, isExtensionAction, isTimeExtension } from "./budget-extensions.js";
 // Operator run control. The viewer appends typed requests to
 // runs/<id>/control.jsonl; the running agent polls that file and applies them:
 //   pause       hold before the next model call, emulator frozen, time cap paused
@@ -11,10 +12,8 @@ import { Value } from "typebox/value";
 import { CONTROL_ACTIONS, type BodyOf, type RunEvent } from "./events.js";
 import { MEASUREMENT_ONLY_MILESTONES } from "./milestones.js";
 
-export const EXTENSION_MS = { extend_30m: 1_800_000, extend_60m: 3_600_000 } as const;
-export function isExtension(action: string): action is keyof typeof EXTENSION_MS {
-  return action === "extend_30m" || action === "extend_60m";
-}
+export const EXTENSION_MS = TIME_EXTENSIONS;
+export const isExtension = isExtensionAction;
 
 export type ControlAction = (typeof CONTROL_ACTIONS)[number];
 export const ControlRequestSchema = Type.Object(
@@ -82,7 +81,7 @@ export class ControlFile {
 export type ControlBody = Omit<BodyOf<"operator_control">, "type" | "turn">;
 
 export interface RunControlDeps {
-  budget?: { readonly maxWallMs: number; activeMs(): number; stopped(): boolean };
+  budget?: { readonly maxWallMs: number; readonly maxTurns?:number; readonly turns?:()=>number; activeMs(): number; stopped(): boolean };
   record(body: ControlBody): void;
   freeze(paused: boolean): Promise<void>;
   end(reason: "operator_stop" | "operator_abort"): void;
@@ -96,6 +95,7 @@ export type ControlState = "running" | "pause_pending" | "paused" | "stop_pendin
 
 export class RunControl {
   private extensionMs = 0;
+  private extensionTurns = 0;
   private lastExtensionRequest = 0;
   private current: ControlState = "running";
   private pauseRequest = 0;
@@ -112,6 +112,8 @@ export class RunControl {
   private release: (() => void) | null = null;
   private readonly listeners: (() => void)[] = [];
   constructor(private readonly deps: RunControlDeps) {}
+
+  turnLimit(original: number): number { return original + this.extensionTurns; }
 
   wallLimit(original: number): number { return original + this.extensionMs; }
 
@@ -138,13 +140,16 @@ export class RunControl {
     if (this.current === "ended") { ignore(); return; }
     if (isExtension(action)) {
       const budget = this.deps.budget;
-      const previous = budget === undefined ? 0 : this.wallLimit(budget.maxWallMs);
-      const next = previous + EXTENSION_MS[action];
-      if (budget === undefined || seq <= this.lastExtensionRequest || this.current === "stop_pending" || budget.stopped() || budget.activeMs() >= previous || !Number.isSafeInteger(next)) { ignore(); return; }
-      // The acknowledgement is durable before the effective budget changes.
-      this.deps.record({ action, status: "applied", request: seq, previous_max_wall_ms: previous, max_wall_ms: next });
+      const time = isTimeExtension(action);
+      const original = time ? budget?.maxWallMs : budget?.maxTurns;
+      const previous = original === undefined ? 0 : time ? this.wallLimit(original) : this.turnLimit(original);
+      const addition = isTimeExtension(action) ? TIME_EXTENSIONS[action] : TURN_EXTENSIONS[action];
+      const next = previous + addition;
+      const expired = budget === undefined || budget.activeMs() >= this.wallLimit(budget.maxWallMs) || (budget.maxTurns!==undefined && budget.turns!==undefined && budget.turns()>=this.turnLimit(budget.maxTurns)) || (!time && (budget.turns === undefined || budget.turns() >= previous));
+      if (original === undefined || seq <= this.lastExtensionRequest || this.current === "stop_pending" || budget?.stopped() || expired || !Number.isSafeInteger(next)) { ignore(); return; }
+      this.deps.record(time ? { action, status:"applied",request:seq,previous_max_wall_ms:previous,max_wall_ms:next } : {action,status:"applied",request:seq,previous_max_turns:previous,max_turns:next});
       this.lastExtensionRequest = seq;
-      this.extensionMs += EXTENSION_MS[action];
+      if(time)this.extensionMs += addition; else this.extensionTurns += addition;
       this.notify();
       return;
     }

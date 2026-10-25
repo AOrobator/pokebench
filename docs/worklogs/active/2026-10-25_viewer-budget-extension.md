@@ -9,3 +9,7 @@ One bounded feature: operator budget controls and faithful projection. No model 
 - [ ] Targeted and full gates, independent review, headless browser proof, queued local landing and safe viewer refresh.
 
 Active Astra pin cannot acquire source updates automatically. Its actual turn override is audited in its run sidecar; compatibility/capability must be explicit, never queue unsupported actions as successful. No inspector mutation as a viewer endpoint.
+
+RED commit1d0278f28: three new cases failed on unsupported actions before implementation. GREEN targeted controller/governor, reducer/dialog and HTTP tests cover independent turn/time increments, deduplication, expired/unsupported/overflow refusal, original horizons, durable acknowledgement and verified operator receipt. No gameplay requests sent.
+
+Compatibility: new run_start.extend_budget advertises expanded actions. Legacy pins retain original30m/1h controls; unsupported2h/4h/turn actions are disabled and rejected409, never queued indefinitely. Astra's audited sidecar is schema-checked (matching run, PID/readbacks, applied status, safe increasing total) through read-only /budget and projects effective20000 without altering its original recording or process. No new inspector endpoint or restart.

@@ -63,6 +63,10 @@
     "./story-progress": {
       "types": "./src/story-progress.ts",
       "default": "./dist/story-progress.js"
+    },
+    "./budget-extensions": {
+      "types": "./src/budget-extensions.ts",
+      "default": "./dist/budget-extensions.js"
     }
   },
   "scripts": {

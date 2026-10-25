@@ -79,11 +79,12 @@
   "active-warp-exits-v1",
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
-  "instruction-goal-ledger-v1",
   "menu-option-tool-v1",
   "citation-evidence-v1",
   "moving-npc-target-v1",
-  "cutscene-journal-v1"
+  "cutscene-journal-v1",
+  "instruction-goal-advisory-v1",
+  "goal-review-repair-feedback-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -98,7 +99,8 @@
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
   "positive-supervisor-v1",
-  "story-battle-heal-gate-v1"
+  "story-battle-heal-gate-v1",
+  "instruction-goal-ledger-v1"
  ],
  "onInBoth": [
   "gym-door-label-v1",
@@ -403,6 +405,8 @@
   "caught-nickname-prompt-v2": true,
   "mauville-puzzle-readout-v1": true,
   "cutscene-journal-v1": false,
+  "instruction-goal-advisory-v1": false,
+  "goal-review-repair-feedback-v1": false,
   "map-observability-v1": true
  }
 }

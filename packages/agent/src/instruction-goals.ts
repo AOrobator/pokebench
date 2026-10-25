@@ -18,7 +18,9 @@ export const GOAL_LIMITS={headerGoals:12,headerEpisodes:4,maxUnfinished:128} as 
 export class GoalReviewError extends Error {}
 
 export class InstructionGoals {
- constructor(private readonly native?:InstructionNativeProof,private readonly limits:Readonly<{headerGoals:number;headerEpisodes:number;maxUnfinished:number}>=GOAL_LIMITS){}
+ constructor(private readonly native?:InstructionNativeProof,private readonly limits:Readonly<{headerGoals:number;headerEpisodes:number;maxUnfinished:number}>=GOAL_LIMITS,private readonly options:Readonly<{advisory?:boolean;repairFeedback?:boolean}>={}){}
+ private reject(original:string,detail:string):never {throw new GoalReviewError(this.options.repairFeedback?detail:original);}
+ private recentEpisodes():string {return JSON.stringify([...this.episodes.keys()].slice(-16));}
  private readonly states=new Map<number,Extract<RunEvent,{type:"state";started:boolean}>>();
  private readonly nativeSources=new Map<number,ReadonlyMap<Dialogue["pages"][number],NativeGoalTask>>();
  private readonly nativeGoals=new Map<string,readonly NativeGoalTask[]>();
@@ -56,24 +58,35 @@ export class InstructionGoals {
  pending():number[]{return [...this.episodes.values()].filter(e=>e.reviewed_result<e.latest_result).map(e=>e.id);}
  apply(input:unknown,callId?:string,beforeCommit?:()=>void):void {
   if(callId!==undefined&&this.applied.has(callId))return;
-  if(!Value.Check(GoalReviewSchema,input))throw new GoalReviewError("Invalid goal review; supply reviewed episodes and full goal updates");
+  if(!Value.Check(GoalReviewSchema,input)){
+   const [first]=this.options.repairFeedback?Value.Errors(GoalReviewSchema,input):[];
+   this.reject("Invalid goal review; supply reviewed episodes and full goal updates",`Invalid goal review at ${first?.instancePath||"/"}: ${first?.message??"schema mismatch"}`);
+  }
   const nativeGoals=new Map(this.nativeGoals);
   const goals=new Map(this.goals),reviewed=new Set<number>(),updated=new Set<string>();
-  for(const r of input.reviewed){if(!this.episodes.has(r.episode)||reviewed.has(r.episode))throw new GoalReviewError("Review must cite unique delivered dialogue episodes");reviewed.add(r.episode);}
+  for(const [index,r] of input.reviewed.entries()){
+   if(!this.episodes.has(r.episode))this.reject("Review must cite unique delivered dialogue episodes",`reviewed[${String(index)}].episode ${String(r.episode)} was not delivered; recent delivered episode IDs: ${this.recentEpisodes()}`);
+   if(reviewed.has(r.episode))this.reject("Review must cite unique delivered dialogue episodes",`reviewed[${String(index)}].episode ${String(r.episode)} duplicates an earlier entry; cite each episode once`);
+   reviewed.add(r.episode);
+  }
   for(const g of input.updates){
    if(updated.has(g.id))throw new GoalReviewError("Only one update per goal per review");updated.add(g.id);
-   for(const s of g.sources){const e=this.episodes.get(s.episode);if(e===undefined||e.pages[s.page]===undefined)throw new GoalReviewError("Goal source must cite a delivered episode and zero-based page");}
-   for(const ref of g.evidence??[])if(!this.results.has(ref))throw new GoalReviewError("Goal evidence must cite delivered observations in this run");
+   for(const [index,s] of g.sources.entries()){
+    const e=this.episodes.get(s.episode);
+    if(e===undefined)this.reject("Goal source must cite a delivered episode and zero-based page",`Goal ${JSON.stringify(g.id)} sources[${String(index)}].episode ${String(s.episode)} was not delivered; recent delivered episode IDs: ${this.recentEpisodes()}`);
+    if(e.pages[s.page]===undefined)this.reject("Goal source must cite a delivered episode and zero-based page",`Goal ${JSON.stringify(g.id)} sources[${String(index)}].page ${String(s.page)} is outside delivered episode ${String(s.episode)}; valid zero-based pages: 0–${String(e.pages.length-1)}`);
+   }
+   for(const [index,ref] of (g.evidence??[]).entries())if(!this.results.has(ref))this.reject("Goal evidence must cite delivered observations in this run",`Goal ${JSON.stringify(g.id)} evidence[${String(index)}] ${String(ref)} was not delivered; latest delivered observation result: ${String(this.latestResult)}`);
    const previous=goals.get(g.id);
-   if(g.status==="reported_complete"&&(previous===undefined||(g.evidence??[]).length===0||!(g.evidence??[]).some(ref=>ref>previous.updated_result)))throw new GoalReviewError("Reported completion needs a prior goal and newer delivered observation evidence");
+   if(g.status==="reported_complete"&&(previous===undefined||(g.evidence??[]).length===0||!(g.evidence??[]).some(ref=>ref>previous.updated_result)))this.reject("Reported completion needs a prior goal and newer delivered observation evidence",previous===undefined?`Goal ${JSON.stringify(g.id)} has no prior record; register it before reporting completion, then cite a newer delivered observation result`:`Goal ${JSON.stringify(g.id)} evidence needs a delivered observation result newer than ${String(previous.updated_result)}; ${this.latestResult>previous.updated_result?`latest available: ${String(this.latestResult)} (a valid reference does not itself prove completion)`:"none has been delivered yet"}`);
    if(g.status==="superseded"&&g.superseded_by===undefined)throw new GoalReviewError("Superseded goals must name their replacement");
    const tasks=g.sources.map(source=>{const page=this.episodes.get(source.episode)?.pages[source.page];return page===undefined?undefined:this.nativeSources.get(source.episode)?.get(page);});
    if(g.native_source_completion===true&&tasks.every((task):task is NativeGoalTask=>task!==undefined))nativeGoals.set(g.id,tasks);else nativeGoals.delete(g.id);
    goals.set(g.id,{...g,updated_result:this.latestResult,verification:g.status==="reported_complete"?"model_reported":"model_interpretation"});
   }
   for(const g of goals.values()){
-   if(g.parent!==null&&!goals.has(g.parent))throw new GoalReviewError("Unknown parent goal");
-   if(g.superseded_by!==undefined&&(!goals.has(g.superseded_by)||g.superseded_by===g.id))throw new GoalReviewError("Unknown or self replacement");
+   if(g.parent!==null&&!goals.has(g.parent))this.reject("Unknown parent goal",`Goal ${JSON.stringify(g.id)} parent ${JSON.stringify(g.parent)} is unknown; existing or submitted goal IDs: ${JSON.stringify([...goals.keys()].slice(-16))}`);
+   if(g.superseded_by!==undefined&&(!goals.has(g.superseded_by)||g.superseded_by===g.id))this.reject("Unknown or self replacement",`Goal ${JSON.stringify(g.id)} superseded_by ${JSON.stringify(g.superseded_by)} must name a different existing or submitted goal; available goal IDs: ${JSON.stringify([...goals.keys()].slice(-16))}`);
    const seen=new Set<string>([g.id]);let p=g.parent;
    while(p!==null){if(seen.has(p))throw new GoalReviewError("Goal parents cannot form cycles");seen.add(p);p=goals.get(p)?.parent??null;}
   }
@@ -110,7 +123,7 @@ export class InstructionGoals {
    `Latest delivered observation result: ${this.results.size===0?"none":String(this.latestResult)}; native state: ${this.deliveredState===undefined?"unavailable":String(this.deliveredState.seq)}. Cite delivered result IDs for observation evidence.`,
    `Current observed interface: ${this.deliveredState===undefined?"unavailable":JSON.stringify({screen:this.deliveredState.screen,phase:this.deliveredState.active_ui?.phase??null,selected:this.deliveredState.active_ui?.selected??null,ready:this.deliveredState.active_ui?.ready??null})}`,
    `Last delivered field dialogue (historical; not proof the interaction is still active): ${this.current===null?"none recorded":JSON.stringify(this.current)}`,
-   `Dialogue awaiting your interpretation (${String(pending.length)}): ${JSON.stringify(pending.slice(-16))} (up to 16 recent IDs shown; archive lists the rest). Account for each new episode with goal_review or review_goals before a game-changing action; you may explain that it is not a request.`,
+   `Dialogue awaiting your interpretation (${String(pending.length)}): ${JSON.stringify(pending.slice(-16))} (up to 16 recent IDs shown; archive lists the rest). ${this.options.advisory?"Reviews are optional bookkeeping and never a prerequisite for gameplay; you may explain that an episode is not a request.":"Account for each new episode with goal_review or review_goals before a game-changing action; you may explain that it is not a request."}`,
    `Recent pending episodes (${String(shown.length)} shown; get_instruction_goals retrieves any episode): ${JSON.stringify(shown)}`,
    `Unfinished goals (${String(unfinished.length)} total, ${String(Math.min(ordered.length,this.limits.headerGoals))} shown): ${JSON.stringify(ordered.slice(0,this.limits.headerGoals))}`,
    `Recently closed goals (model claims unless native proof is explicitly labelled): ${JSON.stringify(goals.filter(terminal).slice(-4))}`,

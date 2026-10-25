@@ -392,6 +392,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
 
  "moving-npc-target-v1":"moving-npc-target-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
+ "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",
+ "goal-review-repair-feedback-v1":"goal-review-repair-feedback-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",
  "whiteout-outcomes-v2":"whiteout-outcomes-v2.html",
  "blackout-transition-v1":"blackout-transition-v1.html",

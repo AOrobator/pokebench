@@ -1,4 +1,4 @@
-import {INSTRUCTION_GOALS_SECTION} from "./instruction-goal-tools.js";
+import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
@@ -273,7 +273,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
   if(features["instruction-goal-ledger-v1"]){
     prompt=prompt.replace("1. The latest thing a story character told you. Each result starts with it as the Story goal line, read from game memory, with the place it names.","1. Current game observations and exact delivered dialogue. Historical place mentions are context; you interpret and maintain your active goals in the instruction ledger.").replace("A SUPERVISOR note under the header says when your last two moves took you farther from the place the Story goal line names.","");
-    prompt += `\n\n${INSTRUCTION_GOALS_SECTION}`;
+    prompt += `\n\n${instructionGoalsSection(features)}`;
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   return prompt;

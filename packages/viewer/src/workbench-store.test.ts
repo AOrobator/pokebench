@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BASE_MS, Log, START, assistant, state, tAt } from "../test-support/events.js";
-import { frontierReferences, shownAgent } from "./frontier.js";
+import { frontierReferences, shownAgent, frontierPlot } from "./frontier.js";
 import { cardWorkbench, createIncrementalRunLoader, loadRun, workbenchSnapshot } from "./workbench-store.js";
-import { plateFacts } from "./workbench-view.js";
+import { plateFacts, runDetails } from "./workbench-view.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
@@ -593,30 +593,33 @@ it("refreshes cached extension projections only for applied acknowledgements and
 
 
 describe("live card clock regression recovery", () => {
-  it("keeps a health-confirmed anomalous run visible without grading its timing", async () => {
+  it("keeps health-confirmed progress and Frontier splits visible with a clock warning", async () => {
     const r = root(), log = named();
     log.add(3957, state({ name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE", turn: 1955 }));
     write(r, "clock_run", log);
-    expect(loadRun(r, "clock_run").run).toMatchObject({ status: "unresponsive", problem: expect.stringContaining("43 ms"), splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
+    expect(loadRun(r, "clock_run").run).toMatchObject({ status: "unresponsive", problem: null, excluded: null, splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
     const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
     const card = cardWorkbench(snapshot, null).runs.find(run => run.id === "clock_run");
     expect(card).toMatchObject({ status: "live", turn: 1955, model: START.model.id, card: { name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE" }, splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
-    expect(card?.problem).toContain("43 ms");
-    expect(card?.problem).toContain("seq 4");
-    expect(card?.excluded).toContain("timestamp");
-    expect(card?.measurement).toBeUndefined();
+    expect(card?.clockWarning).toContain("43 ms");
+    expect(card?.clockWarning).toContain("seq 4");
+    expect(card?.problem).toBeNull(); expect(card?.excluded).toBeNull();
+    expect(card?.measurement?.rawSplits[0]?.name).toBe("PLAYER_NAME_CONFIRMED");
     if (card === undefined) throw new Error("missing clock card");
     expect(plateFacts(card, snapshot.at, snapshot.at).reached?.split.name).toBe("PLAYER_NAME_CONFIRMED");
     expect(plateFacts(card, snapshot.at, snapshot.at).level).toBeGreaterThan(0);
-    expect(frontierReferences(snapshot.runs).best).toBeNull();
-    expect(shownAgent(card)).toBe(false);
+    expect(frontierReferences(snapshot.runs).best?.id).toBe("clock_run");
+    expect(shownAgent(card)).toBe(true);
+    expect(frontierPlot(frontierReferences(snapshot.runs), [card], 900)).toContain("43 ms");
+    expect(runDetails(card, "PLAYER_NAME_CONFIRMED")).toContain("43 ms");
+    expect(() => parseWorkbench({ ...snapshot, runs: [{ ...card, clockWarning: 43 }] })).toThrow("Invalid workbench");
     const offline = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
     expect(offline.runs.find(run => run.id === "clock_run")?.status).toBe("unresponsive");
   });
   it("keeps incremental appends, pauses and terminal status after a clock regression", () => {
     const r = root(), log = named(); log.add(3957, state()); const path = write(r, "clock_tail", log);
     const reads: number[] = [], load = createIncrementalRunLoader({ observeRead: (_path, offset) => reads.push(offset) });
-    expect(load(r, "clock_tail").run.problem).toContain("43 ms");
+    expect(load(r, "clock_tail").run.clockWarning).toContain("43 ms");
     const before = reads.length, length = Buffer.byteLength(readFileSync(path));
     const paused = log.add(5000, { type: "operator_control", turn: 2, action: "pause", status: "applied", request: 1, emulator_frozen: true });
     appendFileSync(path, JSON.stringify({ ...paused, run: "clock_tail" }) + "\n");
@@ -626,7 +629,7 @@ describe("live card clock regression recovery", () => {
     appendFileSync(path, JSON.stringify({ ...ended, run: "clock_tail" }) + "\n");
     const terminal = load(r, "clock_tail");
     expect(terminal.run).toMatchObject({ status: "ended", reason: "budget", splits: [{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }] });
-    expect(terminal.run.problem).toContain("43 ms"); expect(terminal.run.measurement).toBeUndefined();
+    expect(terminal.run.clockWarning).toContain("43 ms"); expect(terminal.run.measurement?.rawSplits[0]?.name).toBe("PLAYER_NAME_CONFIRMED");
     expect(load.retained()).toBe(0);
   });
 });

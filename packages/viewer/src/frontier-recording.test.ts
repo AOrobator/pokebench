@@ -449,11 +449,13 @@ describe("display-only clock policy", () => {
     const witness = log.add(150, state({ story: clocked }));
     log.add(200, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [witness.seq] });
     log.add(157, state({ name: "KENNY" }));
+    const route = log.add(250, state({ name: "KENNY", location: "ROUTE101", map_id: [0, 16] }));
+    log.add(260, { type: "milestone", turn: 1, name: "ROUTE_101", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [route.seq] });
     const raw = log.events.map(event => JSON.stringify(event)).join("\n") + "\n", path = write(raw);
     expect(() => readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone)).toThrow("order");
     const display = readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone, undefined, false, "display");
     expect(display.clockProblem).toContain("43 ms"); expect(display.clockProblem).toContain("seq 4");
-    expect(display.last?.name).toBe("KENNY"); expect(display.splits).toMatchObject([{ name: "PLAYER_NAME_CONFIRMED", seq: 3 }]); expect(display.measurement.rawSplits).toEqual([]);
+    expect(display.last?.name).toBe("KENNY"); expect(display.splits.map(split => ({ name: split.name, seq: split.seq }))).toEqual([{ name: "CLOCK_SET", seq: 2 }, { name: "PLAYER_NAME_CONFIRMED", seq: 3 }, { name: "ROUTE_101", seq: 6 }]); expect(display.measurement.rawSplits.map(split => split.name)).toEqual(["CLOCK_SET", "PLAYER_NAME_CONFIRMED", "ROUTE_101"]);
     expect(readFileSync(path, "utf8")).toBe(raw);
   });
   it.each(["gap", "identity", "second-start", "after-end"] as const)("still rejects %s in display mode", defect => {

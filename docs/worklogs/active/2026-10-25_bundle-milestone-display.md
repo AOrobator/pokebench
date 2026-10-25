@@ -11,3 +11,7 @@ Single milestone: RED tests, GREEN, full gates, read-only real-data headless bro
 - [ ] Gates and browser proof
 - [ ] Review
 - [ ] Landing/live proof
+
+## Operator correction: Frontier visibility
+
+User challenged the blanket timing exclusion and explicitly wants Frontier splits viewable. The pending card-only repair was insufficient. New scope: a typed optional clockWarning, preserved raw/display splits, warning in Frontier point and run details; wall-clock regression alone no longer sets problem/excluded or deletes measurement in the viewer. No per-run IDs, thresholds, timestamp rewrites or new milestone qualifications. Strict reader remains strict, malformed identity/order/terminal sequences still rejected. Broader presentation boundary now includes workbench-data.ts, frontier.ts and workbench-view.ts. Original restriction to two production files is superseded by this explicit user request.

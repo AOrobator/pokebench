@@ -17,10 +17,10 @@ const events = data.events.map(checkEvent), source = must(events.find(e => e.seq
 const state = snapshot(source);
 const features = (goal: boolean, menu = false): FeatureSet => ({ ...featuresOf([]), "ram-state-v1": true, "instruction-goal-ledger-v1": goal, "menu-option-tool-v1": menu });
 const review = { reviewed: [{ episode: 39430, interpretation: "Scientist asks for Match Call" }, { episode: 39462, interpretation: "Select POKéNAV" }], updates: [{ id: "select", title: "Select POKéNAV", sources: [{ episode: 39462, page: 0 }], parent: null, status: "active", reason: "Scientist asks", completion: "POKéNAV opens" }] };
-function setup(on = true, initial: readonly RunEvent[] = events.filter(e => e.seq <= 39462)) {
+function setup(on = true, initial: readonly RunEvent[] = events.filter(e => e.seq <= 39462), overrides: Partial<FeatureSet> = {}) {
     const subscribers: ((e: RunEvent) => void)[] = [], records: Omit<BodyOf<"ledger_context">, "type" | "turn">[] = [];
     const record = { subscribe: (fn: (e: RunEvent) => void) => { subscribers.push(fn); }, recordLedgerContext: (b: Omit<BodyOf<"ledger_context">, "type" | "turn">) => { records.push(b); }, recordNavigationContext: () => { }, recordMilestoneHint: () => { }, recordBeliefLedger: () => { }, recordLoopBreaker: () => undefined };
-    const f = features(on), context = contextTools(f, record, m => Promise.resolve(m));
+    const f = {...features(on), ...overrides}, context = contextTools(f, record, m => Promise.resolve(m));
     const send = (es: readonly RunEvent[]) => { for (const e of es)
         for (const fn of subscribers)
             fn(e); };
@@ -151,4 +151,38 @@ it("does not advance initial field dialogue to a menu and choose an unseen optio
  const result=await must(tools.find(tool=>tool.name==="select_menu_option")).execute("no-unseen-menu",{phase:"field_multichoice",menu_id:86,option:"POKéNAV"});
  expect(presses).toEqual([]);expect(transcripts).toEqual([]);
  expect(result.details).toMatchObject({state:{active_ui:null,world_context:{dialogue:said}},menu_selection:{buttons:[],confirmation_sent:false}});
+});
+
+it("advisory factory retains pending dialogue but passes actions through ordinary validation after rejected bookkeeping",async()=>{
+ const s=setup(true,events.filter(e=>e.seq<=39462),{"instruction-goal-advisory-v1":true});
+ let actions=0;const received:unknown[]=[];
+ const action:AgentTool={name:"press",label:"Press",description:"Press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(_id,args)=>{actions++;received.push(args);return Promise.resolve({content:[{type:"text",text:"ordinary validated action result"}],details:{state}});}};
+ const wrapped=must(withInstructionGoalReview([action],s.context.instructionGoals??null)[0]);
+ const before=must(s.context.instructionGoals).ledger.text();
+ await wrapped.execute("pending",{buttons:["B"]});
+ const result=await wrapped.execute("invalid-review",{buttons:["DOWN"],goal_review:{reviewed:[{episode:123,interpretation:"unknown"}],updates:[]}});
+ expect(actions).toBe(2);expect(received).toEqual([{buttons:["B"]},{buttons:["DOWN"]}]);
+ expect(JSON.stringify(result)).toContain("Goal review rejected:");expect(JSON.stringify(result)).toContain("ordinary validated action result");expect(result.details).toEqual({state});
+ expect(s.context.instructionGoals?.ledger.pending()).toEqual([39430,39462]);expect(s.context.instructionGoals?.ledger.text()).toBe(before);expect(s.records).toEqual([]);
+ const prompt=playSystemPrompt(s.f,null);expect(prompt).toContain("Reviews are optional bookkeeping and never a prerequisite for gameplay");expect(prompt).not.toContain("Account for new dialogue before changing the game");expect(before).not.toContain("before a game-changing action");
+});
+it("repair feedback distinguishes unknown and duplicate episodes and names actual delivered references",async()=>{
+ const s=setup(true,events.filter(e=>e.seq<=39462),{"goal-review-repair-feedback-v1":true});
+ const ledger=must(s.context.instructionGoals).ledger;const before=ledger.text();
+ const tool=must(s.context.tools.find(t=>t.name==="review_goals"));
+ await expect(tool.execute("unknown",{reviewed:[{episode:123,interpretation:"not delivered"}],updates:[]})).rejects.toThrow("reviewed[0].episode 123 was not delivered; recent delivered episode IDs: [39430,39462]");
+ await expect(tool.execute("duplicate",{reviewed:[{episode:39430,interpretation:"one"},{episode:39430,interpretation:"two"}],updates:[]})).rejects.toThrow("reviewed[1].episode 39430 duplicates an earlier entry");
+ ledger.apply(review);
+ const completion={reviewed:[],updates:[{...review.updates[0],status:"reported_complete",evidence:[123]}]};
+ expect(()=>ledger.apply(completion)).toThrow('Goal "select" evidence[0] 123 was not delivered; latest delivered observation result: 39462');
+ expect(()=>ledger.apply({reviewed:[],updates:[{...review.updates[0],status:"reported_complete"}]})).toThrow('Goal "select" evidence needs a delivered observation result newer than 39462; none has been delivered yet');
+ expect(()=>ledger.apply({reviewed:[],updates:[{...review.updates[0],sources:[{episode:39462,page:99}]}]})).toThrow('Goal "select" sources[0].page 99 is outside delivered episode 39462');
+ expect(before).toContain("39462");expect(s.records).toEqual([]);
+});
+it("new switches are inert when the ledger is OFF and default OFF",()=>{
+ for(const id of ["instruction-goal-advisory-v1","goal-review-repair-feedback-v1"] as const){
+  expect(normalizeFeatures(featuresOf([]))[id]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);
+ }
+ const f={...features(false),"instruction-goal-advisory-v1":true,"goal-review-repair-feedback-v1":true};
+ const s=setup(false,[],f);expect(s.context.tools).toEqual([]);expect(s.context.instructionGoals).toBeUndefined();expect(playSystemPrompt(f,null)).toBe(playSystemPrompt(features(false),null));expect(playTools(f)).toEqual(playTools(features(false)));expect(dependencyProblems(f)).toEqual([]);
 });

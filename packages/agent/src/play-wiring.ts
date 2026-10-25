@@ -212,7 +212,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
   const details:unknown=result.details;
   if(image===undefined||typeof details!=="object"||details===null||!("state" in details))throw new Error("Battle readiness observation lacks a coherent snapshot");
   const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
-  const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text}]} as const;
+  const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text},...(features["cutscene-journal-v1"]?result.content.filter(c=>c.type==="image").slice(1):[])]} as const;
   recorder.recordDecisionSnapshot(snapshot);
   observedAt=anchor;
   retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()};

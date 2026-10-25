@@ -4,7 +4,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
 import {StateWatcher} from "./game-state.js";
-import {featureInfo,playHarnessFeatures,serverFeatureEnv} from "./features.js";
+import {featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems} from "./features.js";
 import {parseSceneJournal,withSceneJournal,type SceneJournalReply} from "./scene-journal.js";
 import {RUN_START_META,IN_GAME} from "../test-support/events.js";
 const OFF=flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false});
@@ -15,7 +15,7 @@ const base:AgentTool={name:"observe",label:"observe",description:"observe",param
 const reply=(entries:SceneJournalReply["entries"]=[],last=entries.at(-1)?.id??0):SceneJournalReply=>({first_id:1,last_id:last,entries,errors:0,last_error:null,omitted_images:0});
 function png():string {const b=Buffer.alloc(33);Buffer.from("89504e470d0a1a0a","hex").copy(b);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");}
 it("defaults OFF, metadata and server gate agree, without changing legacy tools",async()=>{
- expect(OFF[ID]).toBe(false);const {[ID]:omitted,...old}=OFF;expect(omitted).toBe(false);
+ expect(OFF[ID]).toBe(false);expect(stateOnlyProblems({...OFF,[ID]:true,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires cutscene-journal-v1 OFF");const {[ID]:omitted,...old}=OFF;expect(omitted).toBe(false);
  expect(normalizeFeatures(old)[ID]).toBe(false);
  expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});
  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
@@ -62,7 +62,7 @@ it("records delivered scene text and images durably with current frame first",as
  const {mkdtempSync,readFileSync}=await import("node:fs");const {tmpdir}=await import("node:os");const {join}=await import("node:path");
  const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");const {RunRecorder}=await import("./recorder.js");const {parseEvent}=await import("./events.js");
  const root=mkdtempSync(join(tmpdir(),"scene-record-"));const log=RunLog.create(root,"2026-10-25T00-00-00_scene_probe");
- const state={read:()=>Promise.resolve(IN_GAME),sceneEvents:()=>Promise.resolve(reply([{id:1,frame:7,text:"AQUA_MEMBER_M moved east",image:png()}]))};
+ const state={read:()=>Promise.resolve(IN_GAME),sceneEvents:(after:number)=>Promise.resolve(reply([{id:after+1,frame:7,text:"AQUA_MEMBER_M moved east",image:png()}]))};
  const recorder=new RunRecorder({log,frames:new FrameStore(root,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:state});
  const current={...base,execute:()=>Promise.resolve({content:[{type:"image" as const,data:png(),mimeType:"image/png"},{type:"text" as const,text:"current screen"}],details:{state:IN_GAME}})};
  await recorder.start(RUN_START_META,false);
@@ -76,4 +76,13 @@ it("records delivered scene text and images durably with current frame first",as
  expect(event.frames.map(f=>f.path)).toEqual([`frames/${String(event.seq).padStart(6,"0")}_0.png`,`frames/${String(event.seq).padStart(6,"0")}_1.png`]);
  expect(result.content[0]).toEqual({type:"image",data:png(),mimeType:"image/png"});
  expect(event.state_seq).toBeDefined();
+ const {battleDecisionContext}=await import("./play-wiring.js");
+ const battleState={...IN_GAME,in_battle:false,screen:"battle_transition"};
+ const transform=battleDecisionContext({...OFF,[ID]:true,"battle-decision-ready-v1":true},{read:()=>Promise.resolve(battleState)},[tool],messages=>Promise.resolve(messages),recorder);
+ const messages=await transform([]);const delivered=messages.at(-1);
+ expect(delivered?.role).toBe("user");
+ if(delivered?.role!=="user"||typeof delivered.content==="string")throw new Error("missing decision image parts");
+ expect(delivered.content.filter(c=>c.type==="image")).toHaveLength(2);
+ const last=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).findLast(e=>e.type==="decision_input");
+ expect(last?.type==="decision_input"?last.frames.map(f=>f.path):[]).toEqual(last?.type==="decision_input"?[`frames/${String(last.seq).padStart(6,"0")}_0.png`,`frames/${String(last.seq).padStart(6,"0")}_1.png`]:["missing decision"]);
 });

@@ -305,6 +305,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Caught nickname input V2](caught-nickname-prompt-v2.html): coherent live nickname selection in both maintained arms.
 - [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.
+- [One current map](map-observability-v1.html): one shared observation schema and vocabulary for puzzle elements, terrain, gate edges, and current layout facts; enabled in both arms.
 
 - [Cutscene journal](cutscene-journal-v1.html) — frame-owned visible action and dialogue history.
 

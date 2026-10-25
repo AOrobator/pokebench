@@ -23,6 +23,7 @@ ROM_START = 0x08000000
 # Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1,
 # adjacent-tiles-v1 and battle-message-waiting-v1, so its recorded harness features leave them off.
 RECORDED_OFF = [
+    "map-observability-v1",
     "player-elevation-readout-v1",
     *FIXTURE["recorded_off"],
     "displayed-place-names-v1",
@@ -159,6 +160,8 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "exit_sections_enabled": False,
         "gym_door_label_enabled": False,
         "active_warp_exits_enabled": False,
+        "map_observability_enabled": False,
+        "map_observability_full": False,
         "caught_nickname_enabled": False,
         "caught_nickname_v2_enabled": False,
         "caught_dex_enabled": False,

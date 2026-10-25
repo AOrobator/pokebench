@@ -80,6 +80,7 @@ OFF_SETS: tuple[frozenset[str], ...] = (
 
 def observe(name: str, off: frozenset[str]) -> str:
     """The production server path: decode with the run's switches, then render."""
+    off = off | {"map-observability-v1"}
     state: GameState = read_state(MEMORIES[name]().read, MAPS, active_ui=False, off=off)
     if name == "triggers":
         state = replace(state, field_controls_locked=True)
@@ -94,6 +95,7 @@ LEGEND = "@ player; N live object; "
 ADJACENT = "adjacent-tiles-v1"
 LATER = frozenset(
     {
+        "map-observability-v1",
         "player-elevation-readout-v1",
         "battle-triage-guidance-v1",
         ADJACENT,
@@ -184,7 +186,7 @@ def test_a_drawn_counter_keeps_its_own_legend_line_because_it_depends_on_the_map
 
 def test_a_whole_map_fallback_to_the_local_map_keeps_its_own_legend() -> None:
     # The prompt describes the whole map (no "?"); a local-map fallback must not lose "?".
-    off: frozenset[str] = frozenset()
+    off: frozenset[str] = frozenset({"map-observability-v1"})
     state = replace(read_state(map_memory().read, MAPS, active_ui=False, off=off), full_map=None)
     text = render(state, off)
     assert legend_of(text) is not None and "? outside current map." in text

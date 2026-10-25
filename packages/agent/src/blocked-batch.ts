@@ -6,7 +6,7 @@ import { COUNTER, EDGE_WALLS, GAME_RULE, LEDGES, OPPOSITE, type Direction } from
 // with field controls free in both snapshots, says so and names what the readout shows on the way.
 // Each map fact is named only when the run's switches draw it for the model: ledges (ledge-hops-v1),
 // edge walls (one-way-tiles-v1), counters (counter-talk-v1) and map connections (world-destinations-v1).
-export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly elevation?: boolean }
+export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
 
 type Point = { readonly x: number; readonly y: number };
 type Tile = { readonly collision: number; readonly behavior: number; readonly elevation: number };
@@ -38,7 +38,7 @@ const onFoot = (state: GameStateSnapshot): boolean => {
 
 interface Blocker { readonly text: string; readonly kind: "terrain" | "occupied" | "unknown" }
 
-function blocker(state: GameStateSnapshot, here: Point, direction: Direction, show: BlockedBatchFacts): Blocker | null {
+function blocker(state: GameStateSnapshot, here: Point, direction: Direction, show: BlockedBatchFacts, observed: GameStateSnapshot = state): Blocker | null {
   const grid = state.navigation_grid;
   const next = { x: here.x + STEP[direction].x, y: here.y + STEP[direction].y };
   const named = show.position ? `The tile ${WHERE[direction]}, ${at(next)},` : `The tile ${WHERE[direction]}`;
@@ -47,6 +47,8 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
   const tileAt = (p: Point): Tile | undefined => grid.tiles.find(t => t.x === p.x && t.y === p.y);
   const same = (p: Point): boolean => p.x === next.x && p.y === next.y;
   const map = state.map_id;
+  const observation = show.mapObservability === true && map !== null && observed.map_observation?.map_id[0] === map[0] && observed.map_observation.map_id[1] === map[1] ? observed.map_observation : null;
+  const currentLevel = observation?.elements.some(element => element.kind === "other_level" && element.x === next.x && element.y === next.y && element.state === String(tileAt(next)?.elevation)) === true;
   // elevation-aware-map-v1: objects on the next tile whose elevations all differ from yours (neither 0) do not collide.
   const listed = grid.objects.filter(same);
   const passable = show.elevation === true && listed.length > 0 && listed.every(o => o.elevation !== undefined && o.elevation !== 0 && grid.elevation !== 0 && o.elevation !== grid.elevation);
@@ -81,11 +83,15 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
       : { text: `${named} is water (~ on the local map); what stopped you is not known.`, kind: "unknown" };
   }
   if (show.edgeWalls === true && (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false)) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
-  if (show.elevation === true && !surfing(state) && GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
-    return { text: `${named} is at elevation ${String(tile.elevation)} while you are at elevation ${String(grid.elevation)} (L on the local map), and the game refuses a step onto a tile at another elevation`, kind: "terrain" };
+  if ((show.elevation === true || currentLevel) && !surfing(state) && GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
+    return { text: `${named} is at elevation ${String(tile.elevation)} while you are at elevation ${String(grid.elevation)} (${show.mapObservability === true ? (currentLevel ? `Lv:${String(tile.elevation)} on the current map` : "different elevations") : "L on the local map"}), and the game refuses a step onto a tile at another elevation`, kind: "terrain" };
   }
   // pokeemerald ForcedMovement_MuddySlope: on foot the slope slides the player back south.
   if (show.elevation === true && direction === "UP" && tile.behavior === MUDDY_SLOPE && onFoot(state)) return { text: `${named} is a muddy slope, which slides a walker back down`, kind: "terrain" };
+  if (observation?.elements.some(element => {
+    const edge = element.kind === "rotating_gate" ? element.edge : undefined;
+    return edge != null && ((edge[0] === here.x && edge[1] === here.y && edge[2] === next.x && edge[3] === next.y) || (edge[2] === here.x && edge[3] === here.y && edge[0] === next.x && edge[1] === next.y));
+  }) === true) return { text: "The current map shows a rotating gate arm across this edge; whether it stopped this input is unverified.", kind: "unknown" };
   return { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" };
 }
 
@@ -103,7 +109,7 @@ export function blockedBatchResult(before: GameStateSnapshot, after: GameStateSn
   const pressed = `${direction} ×${String(buttons.length)}`;
   const here = before.position;
   const tile = show.position ? `at ${at(here)}` : "on the same tile";
-  const found = show.liveMap === true ? blocker(before, here, direction, show) : null;
+  const found = show.liveMap === true ? blocker(before, here, direction, show, after) : null;
   const head = before.facing !== null && before.facing !== after.facing
     ? `${show.position ? `turned ${before.facing} -> ${after.facing}` : "turned"} but did not move: ${pressed} left you ${tile}${show.position ? `, now facing ${after.facing}` : ""}.`
     : `${found !== null && found.kind === "terrain" ? "blocked" : "no movement"}: ${pressed} did not move you; you are still ${tile}${show.position ? ` facing ${after.facing}` : ""}.`;
@@ -118,7 +124,7 @@ export function blockedBatchResult(before: GameStateSnapshot, after: GameStateSn
 export function refusedPressResult(before: GameStateSnapshot, after: GameStateSnapshot, buttons: readonly Button[], show: BlockedBatchFacts): string | null {
   const direction = buttons.length === 1 && isDirection(buttons[0]) ? buttons[0] : null;
   if (direction === null || show.liveMap !== true || before.position === null || after.position === null || after.facing !== direction.toLowerCase() || before.facing !== after.facing) return null;
-  const found = blocker(before, before.position, direction, show);
+  const found = blocker(before, before.position, direction, show, after);
   if (found === null || found.kind !== "terrain") return null;
   const tile = show.position ? `at ${at(before.position)} facing ${after.facing}` : "on the same tile";
   return `blocked: ${direction} did not move you; you are still ${tile}. ${found.text}, so ${direction} cannot move you from here.`;

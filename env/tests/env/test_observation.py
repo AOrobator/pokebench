@@ -8,6 +8,7 @@ from test_view import get
 
 from pokebench_env.game_state import MapNames
 from pokebench_env.observation import install_observation
+from pokebench_env.readout import features_off_from_env
 
 NAMING = struct.pack("<II", 0, 0x080E4F59)
 
@@ -159,10 +160,16 @@ def test_native_frame_adapter_without_video_is_unavailable() -> None:
         (0x00, "activation unknown"),
     ],
 )
-def test_live_warp_activation_reaches_model_text_and_recorded_state(behavior, guidance) -> None:
+def test_live_warp_activation_reaches_model_text_and_recorded_state(
+    behavior, guidance, monkeypatch
+) -> None:
     from test_game_state import MAPS, OVERWORLD, SB1, game
     from test_live_map import loaded
 
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        ",".join(sorted(features_off_from_env({}) | {"map-observability-v1"})),
+    )
     m = loaded()
     m.cells.update(game(OVERWORLD).cells)
     m.put(SB1, struct.pack("<hhbb", 1, 1, 0, 9))

@@ -26,6 +26,7 @@ function symbol(tile:Tile|undefined):string {
 
 export class VisitedTerrain {
  private readonly maps=new Map<string,MapMemory>();
+ constructor(private readonly mapObservability=false){}
 
  private map(id:readonly [number,number]):MapMemory {
   const idKey=mapKey(id),existing=this.maps.get(idKey);
@@ -74,7 +75,8 @@ export class VisitedTerrain {
    return `${String(y).padStart(4," ")} ${row}`;
   });
   const clipped=natural.left!==left||natural.right!==right||natural.top!==top||natural.bottom!==bottom;
-  return `Visited terrain on map ${mapKey(state.map_id)}; only cells shown to you this run, north is up; ? unknown${clipped?`; view clipped to ${String(MAX_RENDER_WIDTH)}x${String(MAX_RENDER_HEIGHT)} around you`:""}:\n     x ${String(left)}..${String(right)}\n${rows.join("\n")}\n@ player; N current live object; W current warp; # solid; . clear; " grass; ~ water; arrows are ledges. Loading a game checkpoint does not restore this harness memory.`;
+  const detail=this.mapObservability?"\nCoarse historical terrain memory: tiles retain their last observed geometry and can be stale. This view omits switches, doors, rotating gate arms and other element states; . means collision-clear geometry, not ordinary floor. Use the current map observation for current element state.":"";
+  return `${this.mapObservability?"Coarse historical terrain memory":"Visited terrain"} on map ${mapKey(state.map_id)}; only cells shown to you this run, north is up; ? unknown${clipped?`; view clipped to ${String(MAX_RENDER_WIDTH)}x${String(MAX_RENDER_HEIGHT)} around you`:""}:\n     x ${String(left)}..${String(right)}\n${rows.join("\n")}\n@ player; N current live object; W current warp; # solid; . ${this.mapObservability?"collision-clear":"clear"}; " grass; ~ water; arrows are ledges. Loading a game checkpoint does not restore this harness memory.${detail}`;
  }
 }
 

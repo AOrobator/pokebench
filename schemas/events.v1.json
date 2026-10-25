@@ -11044,6 +11044,210 @@
           },
           "maxItems": 16
         },
+        "map_observation": {
+          "type": "object",
+          "required": [
+            "version",
+            "map_id",
+            "origin",
+            "width",
+            "height",
+            "elements",
+            "unavailable"
+          ],
+          "properties": {
+            "version": {
+              "type": "number",
+              "const": 1
+            },
+            "map_id": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              ],
+              "minItems": 2
+            },
+            "origin": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "minItems": 2
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "switch",
+                      "arrow",
+                      "barrier",
+                      "door",
+                      "generator",
+                      "rotating_gate",
+                      "ice",
+                      "slippery_floor",
+                      "cracked_floor",
+                      "hole",
+                      "forced_walk",
+                      "forced_slide",
+                      "current",
+                      "muddy_slope",
+                      "bumpy_slope",
+                      "rail",
+                      "water",
+                      "waterfall",
+                      "bridge",
+                      "log",
+                      "jump_mat",
+                      "spin_mat",
+                      "warp",
+                      "puzzle_door",
+                      "room_door",
+                      "closed_door",
+                      "pyramid_exit",
+                      "secret_base_entrance",
+                      "encounter_ground",
+                      "ground",
+                      "decoration",
+                      "other_level",
+                      "sandstorm_boundary"
+                    ]
+                  },
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "direction": {
+                    "enum": [
+                      "north",
+                      "east",
+                      "south",
+                      "west"
+                    ]
+                  },
+                  "color": {
+                    "enum": [
+                      "yellow",
+                      "blue",
+                      "green",
+                      "purple",
+                      "red"
+                    ]
+                  },
+                  "group": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "orientation": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "edge": {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ],
+                    "minItems": 4
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 20480
+            },
+            "unavailable": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "maxItems": 32
+            },
+            "layout": {
+              "type": "object",
+              "required": [
+                "layout_id"
+              ],
+              "properties": {
+                "layout_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 441
+                },
+                "flash_level": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8
+                },
+                "variant": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "navigation_grid": {
           "anyOf": [
             {

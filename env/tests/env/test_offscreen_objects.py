@@ -33,6 +33,7 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/offscreen-objects-sh02.j
 ROM_START = 0x08000000
 # Server switches registered after cook run #2 were off for it.
 RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    "map-observability-v1",
     "active-warp-exits-v1",
     "available-exits-presentation-v1",
     "player-elevation-readout-v1",

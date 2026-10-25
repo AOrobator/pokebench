@@ -51,3 +51,5 @@ Accepted normalGPT findings within original contract: transitive parser code cha
 No new production file, dependency, persistence owner or runtime interface beyond the initially authorized BAG endpoint/cache. Pruning, art caching and arbitrary in-place edits disguised as append growth remain separate follow-ups; no reviewer-driven scope growth accepted. R2 is the final bounded review round under the skill's round cap.
 
 - R2 performed13mutations, each intended assertion failed and source restored: saved/restored shop, pending, tutorial ownership, return-from-tutorial marker and previous snapshot; transitive key; persistence error propagation; cache preflight before raw reads. Logs/tmp/bag-r2-mutation-*.log and runs/bag-preview/mutations-r2.json.
+
+- Synced current main 5c09ba3f30b24062cc24fe456cde43166da1a17c before R2 final gates/review; preserved new qualified-map work. No canonical-main move or viewer refresh by this task yet.

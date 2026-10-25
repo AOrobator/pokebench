@@ -9,7 +9,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const IDS=["bag-pocket-truth-v1","bag-press-feedback-v1","bag-ineffective-loop-v1"] as const;
-const off=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"mauville-puzzle-readout-v1":false});
+const off=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"mauville-puzzle-readout-v1":false,"map-observability-v1":false});
 function bag(pocket="TMS HMS",index=0,item=-2){return {...IN_GAME,screen:"bag_menu",active_ui:{phase:"bag_menu",selected:item===-2?"CLOSE BAG":"TM39",ready:true,diagnostic:null,value:null,controls:"Directions select; A accepts; B cancels",details:{pocket,bag_location:0,owner_task:0,selected_index:index,list_item_id:item}}};}
 it("registers independent omitted-OFF switches without tool/prompt changes",()=>{
  for(const id of IDS){const old=off();const {[id]:value,...omitted}=old;expect(value).toBe(false);expect(normalizeFeatures(omitted)[id]).toBe(false);

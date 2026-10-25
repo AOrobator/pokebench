@@ -13,6 +13,10 @@ elevation-aware-map-v1 draws L (IsElevationMismatchAt refuses it from the player
 """
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pokebench_env.map_observation import MapObservation
 
 from pokebench_env.live_map import (
     EDGE_WALLS,
@@ -118,6 +122,7 @@ def next_tiles(
     on_foot: bool,
     terrain: bool = False,
     elevation: int | None = None,
+    observation: "MapObservation | None" = None,
 ) -> str:
     """One line naming the tiles up, down, left and right of the player, in that order."""
     cells = shown.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -155,7 +160,13 @@ def next_tiles(
                 on_foot=on_foot,
                 shut=shut,
             )
-        if terrain and tile is not None and not tile.collision and glyph not in ("N", "W"):
+        if (
+            observation is None
+            and terrain
+            and tile is not None
+            and not tile.collision
+            and glyph not in ("N", "W")
+        ):
             # Local import: terrain presentation depends on the map/field-obstacle types.
             from pokebench_env.terrain_visibility import SANDSTORM, terrain_description
 
@@ -169,6 +180,38 @@ def next_tiles(
             name = f"another level (L), elevation {tile.elevation} (yours is {elevation})" + (
                 f", {SHUT}" if shut else ""
             )
+        if observation is not None and tile is not None:
+            from pokebench_env.map_observation import labels_at
+
+            observed = labels_at(
+                observation, x, y, tile=tile, terrain=terrain and glyph not in ("N", "W")
+            )
+            if observed:
+                name = "; ".join(observed) + (
+                    f"; {name}"
+                    if glyph in ("@", "N", "W", "#", "+", "=", "~", "L", *ARROWS)
+                    else ""
+                )
+                if (
+                    elevation is not None
+                    and glyph in (".", "g")
+                    and any(
+                        e.kind == "other_level" and (e.x, e.y) == (x, y)
+                        for e in observation.elements
+                    )
+                ):
+                    name += f"; elevation {tile.elevation} (yours is {elevation})"
+                    if shut:
+                        name += f", {SHUT}"
+                if tile.collision and glyph not in ("N", "W"):
+                    name += ", collision set"
+            crossed = tuple(
+                e
+                for e in observation.elements
+                if e.edge is not None and {e.edge[:2], e.edge[2:]} == {(px, py), (x, y)}
+            )
+            if crossed:
+                name += "; rotating gate arm across this edge"
         if not shut:
             name += ", but you stand on a warp" + (
                 f" whose listed activation is pressing {direction}" if warp_guidance else ""

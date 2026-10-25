@@ -136,7 +136,8 @@
   "caught-dex-input-v1",
   "caught-nickname-prompt-v1",
   "caught-nickname-prompt-v2",
-  "mauville-puzzle-readout-v1"
+  "mauville-puzzle-readout-v1",
+  "map-observability-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -405,6 +406,7 @@
   "mauville-puzzle-readout-v1": true,
   "cutscene-journal-v1": false,
   "instruction-goal-advisory-v1": false,
-  "goal-review-repair-feedback-v1": false
+  "goal-review-repair-feedback-v1": false,
+  "map-observability-v1": true
  }
 }

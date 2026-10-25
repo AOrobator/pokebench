@@ -153,6 +153,7 @@ def recorded_off(seq: int) -> frozenset[str]:
         | {"active-warp-exits-v1", "available-exits-presentation-v1"}
         | TRAINING
         | {
+            "map-observability-v1",
             "static-npc-template-approach-v1",
             "elevation-aware-map-v1",
             "screen-center-player-v1",

@@ -118,6 +118,7 @@ class LocalMap:
         dynamic: str | None = None,
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
+        rendered: str | None = None,
     ) -> str:
         x, y = self.origin
         cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -132,8 +133,11 @@ class LocalMap:
             else "\n".join(cells)
         )
         return (
-            f"Local map from live memory; top-left ({x},{y}), north is up:\n"
-            + rows
+            (
+                rendered
+                if rendered is not None
+                else f"Local map from live memory; top-left ({x},{y}), north is up:\n" + rows
+            )
             + ("" if next_tiles is None else f"\n{next_tiles}")
             + _details(
                 self.tiles,
@@ -191,6 +195,7 @@ class FullMap:
         dynamic: str | None = None,
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
+        rendered: str | None = None,
     ) -> str:
         cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
         if grid:
@@ -208,9 +213,12 @@ class FullMap:
         else:
             rows = "\n".join(cells)
         return (
-            f"Whole current map from live memory ({self.width}x{self.height}),"
-            " top-left (0,0), north is up:\n"
-            + rows
+            (
+                rendered
+                if rendered is not None
+                else f"Whole current map from live memory ({self.width}x{self.height}),"
+                " top-left (0,0), north is up:\n" + rows
+            )
             + ("" if next_tiles is None else f"\n{next_tiles}")
             + _details(
                 self.tiles,
@@ -346,13 +354,27 @@ class _Layout:
     events: int
 
 
-def _layout(read: ReadMemory) -> _Layout | None:
+def _layout(
+    read: ReadMemory, map_id: tuple[int, int] | None = None, *, observability: bool = False
+) -> _Layout | None:
     width, height, buffer = struct.unpack("<III", read(BACKUP_LAYOUT, 12))
     layout, events = struct.unpack("<II", read(MAP_HEADER, 8))
     if not _pointer(layout) or not _pointer(buffer) or width * height > MAX_MAP_DATA_SIZE:
         return None
     map_width, map_height, _, _, primary, secondary = struct.unpack("<IIIIII", read(layout, 24))
-    if width != map_width + 15 or height != map_height + 14:
+    if observability:
+        from pokebench_env.map_layout import effective_dimensions
+
+        dimensions = effective_dimensions(
+            (map_width, map_height),
+            (width, height),
+            map_id,
+            int.from_bytes(read(MAP_HEADER + 0x12, 2), "little"),
+        )
+        if dimensions is None:
+            return None
+        map_width, map_height = dimensions
+    elif width != map_width + 15 or height != map_height + 14:
         return None
     if not _pointer(primary) or not _pointer(secondary):
         return None
@@ -448,10 +470,11 @@ def read_local_map(
     radius: int = 7,
     *,
     active_warps: bool = False,
+    map_observability: bool = False,
 ) -> LocalMap | None:
     if not 0 <= radius <= 7:
         raise ValueError("map radius must be 0..7")
-    layout = _layout(read)
+    layout = _layout(read, map_id, observability=map_observability)
     if layout is None:
         return None
     x, y = position
@@ -500,8 +523,9 @@ def read_full_map(
     map_id: tuple[int, int],
     *,
     active_warps: bool = False,
+    map_observability: bool = False,
 ) -> FullMap | None:
-    layout = _layout(read)
+    layout = _layout(read, map_id, observability=map_observability)
     if layout is None:
         return None
     if not (1 <= layout.map_width <= 256 and 1 <= layout.map_height <= 256):

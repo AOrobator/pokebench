@@ -30,6 +30,14 @@ from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
+from pokebench_env.map_layout import read_layout_context
+from pokebench_env.map_observation import (
+    MapObservation,
+    build_observation,
+    element_label,
+    observed_elements,
+)
+from pokebench_env.map_rotating_elements import read_rotating_elements
 from pokebench_env.map_sections import ExitSections, read_exit_sections
 from pokebench_env.mart_stock import MartStock, read_mart_stock
 from pokebench_env.move_learn import MoveLearning, read_move_learning
@@ -137,6 +145,7 @@ class GameState:
     interaction_targets: tuple[InteractionTarget, ...] | None = None
     # semantic-navigation-v1 only: complete native A-recipient slot order.
     interaction_object_slots: tuple[InteractionObjectSlot, ...] | None = None
+    map_observation: MapObservation | None = None
     nearby: LocalMap | None = None
     full_map: FullMap | None = None
     topology: Topology | None = None
@@ -375,6 +384,8 @@ def read_game_state(
     exit_sections_enabled: bool = False,
     gym_door_label_enabled: bool = False,
     active_warp_exits_enabled: bool = False,
+    map_observability_enabled: bool = False,
+    map_observability_full: bool = False,
     caught_nickname_enabled: bool = False,
     caught_nickname_v2_enabled: bool = False,
     caught_dex_enabled: bool = False,
@@ -551,7 +562,13 @@ def read_game_state(
     hours, minutes, seconds = struct.unpack("<HBB", read(save2 + 0x0E, 4))
     facing = body[0x18] & 0x0F
     nearby = (
-        read_local_map(read, (x, y), map_id, active_warps=active_warp_exits_enabled)
+        read_local_map(
+            read,
+            (x, y),
+            map_id,
+            active_warps=active_warp_exits_enabled,
+            map_observability=map_observability_enabled,
+        )
         if screen.kind == "overworld" and not in_battle
         else None
     )
@@ -568,7 +585,9 @@ def read_game_state(
         else None
     )
     active_full = (
-        read_full_map(read, (x, y), map_id, active_warps=True)
+        read_full_map(
+            read, (x, y), map_id, active_warps=True, map_observability=map_observability_enabled
+        )
         if active_warp_exits_enabled and nearby is not None
         else None
     )
@@ -623,7 +642,15 @@ def read_game_state(
     )
     badges = _badges(read, save1)
     topology = (
-        read_topology(read, maps, edges=connection_edges_enabled) if nearby is not None else None
+        read_topology(
+            read,
+            maps,
+            edges=connection_edges_enabled,
+            map_observability=map_observability_enabled,
+            map_id=map_id,
+        )
+        if nearby is not None
+        else None
     )
     # One flood read for surf-gated-exits-v1 and exit-reachability-v1.
     flood = (
@@ -709,7 +736,11 @@ def read_game_state(
         else None,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
-        full_map=(active_full if active_warp_exits_enabled else read_full_map(read, (x, y), map_id))
+        full_map=(
+            active_full
+            if active_warp_exits_enabled
+            else read_full_map(read, (x, y), map_id, map_observability=map_observability_enabled)
+        )
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
@@ -825,6 +856,56 @@ def read_game_state(
         if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,
     )
+    if map_observability_enabled and state.nearby is not None:
+        observation_view = (
+            state.full_map
+            if map_observability_full and state.full_map is not None
+            else state.nearby
+        )
+        rotating_elements, unavailable = read_rotating_elements(read, map_id, observation_view)
+        layout_context = read_layout_context(read, map_id)
+        if state.interaction_targets is None:
+            unavailable += ("interaction target coverage unavailable",)
+        if layout_context is None:
+            unavailable += ("current layout identity not verified",)
+        observation = build_observation(
+            observation_view,
+            map_id,
+            observed_elements(
+                observation_view,
+                map_id,
+                state.player_elevation,
+                None if state.running is None else state.running.avatar_flags,
+                field_gates=None if state.field_obstacles is None else state.field_obstacles.gates,
+            )
+            + rotating_elements,
+            unavailable,
+            layout_context,
+        )
+        labeled = []
+        for target in state.interaction_targets or ():
+            facts = tuple(
+                e
+                for e in observation.elements
+                if (e.x, e.y) == (target.x, target.y) and e.edge is None
+            )
+            switches = tuple(e for e in facts if e.kind == "switch")
+            objects = tuple(e for e in facts if e.kind in ("door", "generator"))
+            if target.kind == "coordinate_trigger" and switches:
+                target = replace(target, name="; ".join(element_label(e) for e in switches))
+            elif (target.kind == "background" or target.kind.startswith("metatile_")) and objects:
+                target = replace(
+                    target,
+                    name="; ".join(
+                        [target.name or target.kind, *(element_label(e) for e in objects)]
+                    ),
+                )
+            labeled.append(target)
+        state = replace(
+            state,
+            map_observation=observation,
+            interaction_targets=tuple(labeled) if state.interaction_targets is not None else None,
+        )
     return _with_training(
         read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )

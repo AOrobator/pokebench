@@ -19,7 +19,7 @@ function interfaceProjection(state: GameStateSnapshot, bagFeedback = false): str
 // blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
 // topology say which map facts the model is shown. elevation (elevation-aware-map-v1) names elevation and slope
 // refusals, and the terrain cause of a single refused direction press.
-export interface PressFacts { readonly bagPressFeedback?: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean }
+export interface PressFacts { readonly bagPressFeedback?: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;

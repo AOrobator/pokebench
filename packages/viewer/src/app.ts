@@ -466,7 +466,7 @@ export class App {
     (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !supported;
     for(const name of ["extend-duration","extend-turns","extend-kind"])this.picker(name).disabled=waiting||applied;
     this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
-    if (applied) this.ui("extend-preview").textContent = !time ? `Turn limit: ${turnLimit.toLocaleString("en-US")} · remaining: ${Math.max(0,turnLimit-this.view.turn).toLocaleString("en-US")}` : `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    if (applied || !supported) this.ui("extend-preview").textContent = !time ? `Turn limit: ${turnLimit.toLocaleString("en-US")} · remaining: ${Math.max(0,turnLimit-this.view.turn).toLocaleString("en-US")}` : `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
     this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
   }
 

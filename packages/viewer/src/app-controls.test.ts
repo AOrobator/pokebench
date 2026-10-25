@@ -338,6 +338,6 @@ it("does not enqueue unsupported extensions on an older running build",async()=>
  const {writes}=await mount({},false,true,true);
  document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
  const kind=ui("extend-kind") as HTMLSelectElement;kind.value="turns";kind.dispatchEvent(new Event("change"));
- expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(true);expect(ui("extend-capability").textContent).toContain("does not support");
+ expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(true);expect(ui("extend-capability").textContent).toContain("does not support");expect(ui("extend-preview").textContent).not.toContain("→");
  ui("extend-confirm").click();expect(writes).toEqual([]);
 });

@@ -1,4 +1,5 @@
 """429f archived native Cmd_trygivecaughtmonnick YES/NO, no emulator input."""
+
 import os
 from dataclasses import asdict
 from pathlib import Path
@@ -23,13 +24,18 @@ ARCHIVES = [
 
 def archive(number=4973, digest=ARCHIVES[0][1]):
     return load_raw_ram(
-        Path(__file__).parent / f"fixtures/astra-429f-{number}.json.gz", digest,
+        Path(__file__).parent / f"fixtures/astra-429f-{number}.json.gz",
+        digest,
         rom=resolve_rom(os.environ).read_bytes(),
     )
 
 
 def switches():
-    return features_off_from_env({}) - {V1, "expanded-menu-battle-information-v1", "battle-details-v2"}
+    return features_off_from_env({}) - {
+        V1,
+        "expanded-menu-battle-information-v1",
+        "battle-details-v2",
+    }
 
 
 @pytest.mark.parametrize("number,digest,selected", ARCHIVES)
@@ -57,22 +63,33 @@ def test_native_prompt_has_one_coherent_state_and_model_readout(number, digest, 
     assert bt.wait_phase(read, turn_action_script=True) == "prompt"
 
 
-@pytest.mark.parametrize("address,value", [
-    (bt.COMMUNICATION, b"\x00"), (bt.COMMUNICATION, b"\x02"),
-    (bt.COMMUNICATION + 1, b"\x02"), (bt.MAIN_FUNC, bytes(4)),
-    (0x02024083, b"\x0c"), (0x030022C4, bytes(4)),
-])
+@pytest.mark.parametrize(
+    "address,value",
+    [
+        (bt.COMMUNICATION, b"\x00"),
+        (bt.COMMUNICATION, b"\x02"),
+        (bt.COMMUNICATION + 1, b"\x02"),
+        (bt.MAIN_FUNC, bytes(4)),
+        (0x02024083, b"\x0c"),
+        (0x030022C4, bytes(4)),
+    ],
+)
 def test_unready_invalid_or_wrong_owner_does_not_claim_input(address, value):
     read = archive()
+
     def patched(start, length):
         raw = bytearray(read(start, length))
         for index, byte in enumerate(value):
             if start <= address + index < start + length:
                 raw[address + index - start] = byte
         return bytes(raw)
+
     off = switches() | {ID}
     assert read_state(patched, MapNames({}), active_ui=True, off=off) == read_state(
-        patched, MapNames({}), active_ui=True, off=off - {ID},
+        patched,
+        MapNames({}),
+        active_ui=True,
+        off=off - {ID},
     )
 
 
@@ -80,7 +97,10 @@ def test_v2_cannot_enable_prompt_recognition_without_v1():
     read = archive()
     off = switches() | {V1, ID}
     assert read_state(read, MapNames({}), active_ui=True, off=off) == read_state(
-        read, MapNames({}), active_ui=True, off=off - {ID},
+        read,
+        MapNames({}),
+        active_ui=True,
+        off=off - {ID},
     )
 
 

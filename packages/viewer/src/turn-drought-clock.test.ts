@@ -30,7 +30,7 @@ it("starts OFF for the next run and links its card to the tracked explainer", ()
 });
 
 it("is on only in the bundle arm of the maintained shared recipes, at their declared positions, with the control base unchanged", () => {
-  for (const [name,index] of [["bundle-v-control",49],["bundle-v-control-2h",49],["glm53-flash-4h",49]] as const) {
+  for (const [name,index] of [["bundle-v-control",48],["bundle-v-control-2h",48],["glm53-flash-4h",48]] as const) {
     const { definition } = parseFixedDefinition(read(`experiments/fixed/${name}.json`));
     expect(definition.switches.at(index), name).toBe(ID);
     expect(definition.base.features[ID], name).toBe(false);

@@ -9,3 +9,5 @@ The shared baseline is the current two-hour Qwen control (including full-map nav
 Future launchers use the protocol reference automatically; the older `--feature-recipe` option still supports historical full-definition donors. Existing running controllers, environment, leases, run pins, artifacts and schedules are not changed by this migration. Updating tracked source affects only future launchers built from the landed pin.
 
 Read-only historical analysis explicitly permits `readFixedDefinition(root,id,true)` to fall back to `experiments/archive/fixed/`; launch/plan/approve paths do not. The viewer's existing provenance index reads archived titles after current titles so recorded runs remain discoverable.
+
+Capture UI correctness is shared: caught-dex-input-v1, caught-nickname-prompt-v1 and caught-nickname-prompt-v2 are explicit onInBoth promotions. V2 keeps the nickname Interface/Menu cursor coherent with the native battle prompt. Older frozen presets retain their recorded settings.

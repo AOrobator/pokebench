@@ -636,3 +636,21 @@ describe("live card clock regression recovery", () => {
     expect(load.retained()).toBe(0);
   });
 });
+
+it("preserves signed raw wall time across run start without breaking the full Frontier parser", async () => {
+  const r = root(), log = named();
+  const witness = log.events[2], milestone = log.events[3];
+  if (witness === undefined || milestone === undefined) throw new Error("missing clock witnesses");
+  witness.t = tAt(-200); milestone.t = tAt(-100);
+  const path = write(r, "clock-crosses-start", log), original = readFileSync(path, "utf8");
+  const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
+  const full = parseWorkbench(snapshot).runs.find(run => run.id === "clock-crosses-start");
+  if (full === undefined) throw new Error("missing signed-clock run");
+  expect(full.problem).toBeNull();
+  expect(full.clockWarning).toContain("1200 ms");
+  expect(full.splits.map(split => ({ name: split.name, elapsedMs: split.elapsedMs }))).toEqual([{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: 0 }]);
+  expect(full.measurement?.rawSplits).toEqual([{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: -100, evidence: [2] }]);
+  expect(runDetails(full, "PLAYER_NAME_CONFIRMED")).toContain("-0:00.100");
+  expect(() => parseWorkbench({ ...snapshot, runs: [{ ...full, clockWarning: undefined }] })).toThrow("Invalid workbench");
+  expect(readFileSync(path, "utf8")).toBe(original);
+});

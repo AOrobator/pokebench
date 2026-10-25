@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, rmSync, renameSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, rmSync, renameSync, readdirSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -48,4 +48,27 @@ describe("saved incremental bag history", () => {
     await expect(read(run)).rejects.toThrow(/run/i);
     writeFileSync(path, "broken\n"); await expect(read(run)).rejects.toThrow();
   });
+});
+
+
+it("discards corrupt checkpoints and same-size source rewrites", async () => {
+  const { root, path, run } = fixture(); const read = createBagHistoryReader(root); await read(run);
+  const cacheRoot = join(root, ".viewer-cache", "bag");
+  const cache = join(cacheRoot, readdirSync(cacheRoot)[0] ?? "missing", `${run}.json`);
+  writeFileSync(cache, JSON.stringify({ run, ledger: "broken" }));
+  expect(headline((await read(run)).ledger).gained).toBe(7);
+  const text = readFileSync(path, "utf8");
+  // Same-sized valid data with a changed native item name: rebuilding must reach the chart consumer.
+  writeFileSync(path, text.replaceAll("GREAT BALL", "OTHER BALL")); utimesSync(path, new Date(1000), new Date(1000));
+  expect((await read(run)).ledger.changes.find(c => c.itemId === 3)?.name).toBe("OTHER BALL");
+});
+
+it("rejects a file replaced during the snapshot read and validates chunk bounds", async () => {
+  const { root, path, run } = fixture(); let moved = false;
+  const read = createBagHistoryReader(root, { observeRead: () => {
+    if (moved) return; moved = true;
+    writeFileSync(path + ".new", readFileSync(path)); renameSync(path + ".new", path);
+  } });
+  await expect(read(run)).rejects.toThrow("Bag source changed during reading");
+  expect(() => createBagHistoryReader(root, { chunkBytes: 0 })).toThrow("Bag chunk size must be positive");
 });

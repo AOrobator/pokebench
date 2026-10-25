@@ -2,6 +2,8 @@
 // numbers and the bag's quantities by turn, one step chart per item grouped under the game's pocket
 // labels. Reads only recorded state (resources.bag, resources.pc_items, money, party_owner) and the
 // game's item_quantity_changed native actions.
+import { Type, type Static } from "typebox";
+import { Value } from "typebox/value";
 import type { RunEvent } from "@pokebench/agent/events";
 import { esc, num } from "./format.js";
 
@@ -85,12 +87,49 @@ function snapshotOf(event: StateWithBag): Snapshot | null {
   return { seq: event.seq, key, money: event.money, bag: held, pc };
 }
 
+const Natural = Type.Integer({ minimum: 0 });
+const HeldSchema = Type.Object({ quantity: Natural, pocket: Type.Enum(POCKETS.map(p => p.id)), name: Type.String(), slot: Natural });
+const SnapshotSchema = Type.Object({ seq: Natural, key: Type.String(), money: Type.Union([Natural, Type.Null()]), bag: Type.Array(Type.Tuple([Natural, HeldSchema])), pc: Type.Union([Type.Array(Type.Tuple([Natural, Natural])), Type.Null()]) });
+const PendingSchema = Type.Object({ seq: Natural, turn: Natural, itemId: Natural, name: Type.String(), before: Natural, after: Natural });
+const CheckpointSchema = Type.Object({
+  changes: Type.Array(Type.Intersect([PendingSchema, Type.Object({ cause: Type.Enum(["found", "bought", "sold", "used", "from_pc", "to_pc"]), step: Natural, moneyDrop: Type.Number() })])),
+  latest: Type.Union([SnapshotSchema, Type.Null()]), beforeLatest: Type.Union([SnapshotSchema, Type.Null()]),
+  firstTurn: Type.Union([Natural, Type.Null()]), lastTurn: Natural, recorded: Type.Boolean(), version: Natural, pockets: Type.Array(Type.Tuple([Natural, Type.Enum(POCKETS.map(p => p.id))])),
+  pending: Type.Array(PendingSchema), inTutorial: Type.Boolean(), leftTutorial: Type.Boolean(),
+  shop: Type.Union([Type.Object({ itemId: Natural, quantity: Natural, money: Type.Union([Natural, Type.Null()]), changeSeq: Type.Union([Natural, Type.Null()]) }), Type.Null()]),
+  totals: Type.Object({ gained: Natural, used: Natural, spent: Natural, buys: Natural }),
+});
+export type BagCheckpoint = Static<typeof CheckpointSchema>;
+type SavedSnapshot = NonNullable<BagCheckpoint["latest"]>;
+const saveSnapshot = (s: Snapshot | null): SavedSnapshot | null => s === null ? null : { ...s, bag: [...s.bag], pc: s.pc === null ? null : [...s.pc] };
+const loadSnapshot = (s: SavedSnapshot | null): Snapshot | null => s === null ? null : { ...s, bag: new Map(s.bag), pc: s.pc === null ? null : new Map(s.pc) };
+
 export class BagLedger {
   readonly changes: BagChange[] = [];
   latest: Snapshot | null = null;
+  firstTurn: number | null = null;
   lastTurn = 0;
   recorded = false;
   version = 0;
+  readonly totals: { gained: number; used: number; spent: number; buys: number } = { gained: 0, used: 0, spent: 0, buys: 0 };
+  private shop: BagCheckpoint["shop"] = null;
+
+  checkpoint(): BagCheckpoint {
+    return { changes: this.changes.map(c => ({ ...c })), latest: saveSnapshot(this.latest), beforeLatest: saveSnapshot(this.beforeLatest), firstTurn: this.firstTurn, lastTurn: this.lastTurn, recorded: this.recorded, version: this.version, pockets: [...this.pockets], pending: this.pending.map(p => ({ ...p })), inTutorial: this.inTutorial, leftTutorial: this.leftTutorial, shop: this.shop === null ? null : { ...this.shop }, totals: { ...this.totals } };
+  }
+
+  static restore(value: unknown): BagLedger {
+    if (!Value.Check(CheckpointSchema, value)) throw new Error("Invalid saved bag summary");
+    const ledger = new BagLedger();
+    for (const change of value.changes) ledger.changes.push(change);
+    ledger.latest = loadSnapshot(value.latest); ledger.beforeLatest = loadSnapshot(value.beforeLatest);
+    ledger.firstTurn = value.firstTurn; ledger.lastTurn = value.lastTurn; ledger.recorded = value.recorded; ledger.version = value.version;
+    for (const [id, pocket] of value.pockets) ledger.pockets.set(id, pocket);
+    ledger.pending = value.pending; ledger.inTutorial = value.inTutorial; ledger.leftTutorial = value.leftTutorial;
+    ledger.shop = value.shop; Object.assign(ledger.totals, value.totals);
+    return ledger;
+  }
+
   private readonly pockets = new Map<number, Pocket>();
   private pending: Pending[] = [];
   private inTutorial = false;
@@ -103,6 +142,13 @@ export class BagLedger {
 
   add(event: RunEvent): void {
     this.lastTurn = Math.max(this.lastTurn, event.turn);
+    if (event.type === "native_action" && event.kind === "menu_changed") {
+      const d = event.details;
+      if (d.phase === "shop_purchase_confirmation") {
+        this.shop = d.action === "buy_item" && d.selected === "YES" && typeof d.item_id === "number" && typeof d.quantity === "number"
+          ? { itemId: d.item_id, quantity: d.quantity, money: this.latest?.money ?? null, changeSeq: null } : null;
+      }
+    }
     if (event.type === "native_action" && event.kind === "item_quantity_changed") {
       const pending = pendingOf(event);
       if (pending === null) return;
@@ -132,11 +178,27 @@ export class BagLedger {
     const snapshot = snapshotOf(event);
     if (snapshot === null) return;
     const previous = this.latest;
+    // shop.c adds the item before BuyMenuSubtractMoney runs after its receipt message.
+    // Only a matching native purchase confirmation can associate a later debit.
+    if (this.shop !== null) {
+      const shop = this.shop;
+      if (shop.changeSeq !== null && shop.money !== null && snapshot.money !== null && snapshot.money < shop.money && event.screen === "shop_menu") {
+        const index = this.changes.findIndex(c => c.seq === shop.changeSeq);
+        const change = this.changes[index];
+        if (change !== undefined) {
+          const paid = shop.money - snapshot.money;
+          this.changes[index] = { ...change, step: snapshot.seq, moneyDrop: paid };
+          this.totals.spent += paid; this.version += 1;
+        }
+        this.shop = null;
+      } else if (event.screen !== "shop_menu") this.shop = null;
+    }
     // The player's bag coming back after the tutorial is the swap back, not a gain.
     if (this.inTutorial && previous?.key === snapshot.key) this.pending = [];
     this.leftTutorial = this.inTutorial;
     this.inTutorial = false;
     for (const [id, held] of snapshot.bag) this.pockets.set(id, held.pocket);
+    this.firstTurn ??= event.turn;
     this.recorded = true;
     this.beforeLatest = previous;
     this.latest = snapshot;
@@ -168,6 +230,18 @@ export class BagLedger {
       let cause: Cause;
       if (delta > 0) cause = pcMoved >= delta ? "from_pc" : moneyDrop > 0 ? "bought" : "found";
       else cause = -pcMoved >= -delta ? "to_pc" : moneyDrop < 0 ? "sold" : "used";
+      const purchase = delta > 0 && this.shop?.changeSeq === null && this.shop.itemId === p.itemId && this.shop.quantity === delta;
+      if (purchase && this.shop !== null) {
+        cause = "bought";
+        if (moneyDrop > 0) this.shop = null;
+        else this.shop.changeSeq = p.seq;
+      }
+      if (cause === "found" || cause === "bought") this.totals.gained += Math.abs(delta);
+      if (cause === "used") this.totals.used += Math.abs(delta);
+      if (cause === "bought") {
+        this.totals.buys += 1;
+        if (!this.changes.some(c => c.cause === "bought" && c.step === next.seq)) this.totals.spent += Math.max(0, moneyDrop);
+      }
       this.changes.push({ seq: p.seq, turn: p.turn, itemId: p.itemId, name: p.name, before: p.before, after: p.after, cause, step: next.seq, moneyDrop });
     }
   }
@@ -181,12 +255,7 @@ export interface Headline {
 }
 
 export function headline(ledger: BagLedger): Headline {
-  const changes = ledger.changes;
-  const sum = (causes: readonly Cause[]): number => changes.filter((c) => causes.includes(c.cause)).reduce((total, c) => total + Math.abs(c.after - c.before), 0);
-  const bought = ledger.changes.filter((c) => c.cause === "bought");
-  // One mart purchase can bring several items in one step; count each step's money drop once.
-  const spent = new Map(bought.map((c) => [c.step, c.moneyDrop]));
-  return { gained: sum(["found", "bought"]), used: sum(["used"]), spent: [...spent.values()].reduce((a, b) => a + b, 0), buys: bought.length };
+  return { ...ledger.totals };
 }
 
 // Item ids `just bag-art` built icons for; empty when the art was never built.
@@ -234,27 +303,32 @@ function seriesOf(ledger: BagLedger, changes: readonly BagChange[]): Series[] {
 const pct = (n: number): string => `${n.toFixed(2)}%`;
 const DOT: Record<Cause, string> = { found: "got", from_pc: "got", bought: "buy", used: "use", sold: "use", to_pc: "use" };
 const LABEL: Record<Cause, string> = { found: "FOUND / GIVEN", bought: "BOUGHT", sold: "SOLD", used: "USED / TOSSED", from_pc: "FROM PC", to_pc: "TO PC" };
-const TRACK_TOP = 4;
-const TRACK_SPAN = 30;
+const TRACK_TOP = 12;
+const TRACK_SPAN = 32;
 
 function track(series: Series, x: (turn: number) => number): string {
-  const max = Math.max(1, series.start, ...series.steps.map((s) => s.after));
-  const y = (q: number): number => 100 - (q / max) * 100;
+  const max = series.steps.reduce((max, step) => Math.max(max, step.after), Math.max(1, series.start));
+  const y = (q: number): number => 90 - (q / max) * 80;
   let line = `M0,${y(series.start).toFixed(1)}`;
   for (const step of series.steps) line += `H${(x(step.turn) * 10).toFixed(1)}V${y(step.after).toFixed(1)}`;
   line += "H1000";
-  const dots = series.steps.map((step) => {
+  let lastLabel = -100;
+  const dots = series.steps.map((step, index) => {
     const at = `left:${pct(x(step.turn))};top:${(TRACK_TOP + (1 - step.after / max) * TRACK_SPAN).toFixed(1)}px`;
-    return `<i class="bg-dot ${DOT[step.cause]}" style="${at}" title="T${String(step.turn)} · ${LABEL[step.cause]} · ${String(step.before)} → ${String(step.after)}"></i><span class="bg-dlab" style="${at}">${String(step.after)}</span>`;
+    const showLabel = x(step.turn) - lastLabel >= 9 || index === series.steps.length - 1;
+    if (showLabel) lastLabel = x(step.turn);
+    const label = showLabel ? `<span class="bg-dlab" style="${at}">${String(step.after)}</span>` : "";
+    return `<i class="bg-dot ${DOT[step.cause]}" style="${at}" title="T${String(step.turn)} · ${LABEL[step.cause]} · ${String(step.before)} → ${String(step.after)}"></i>${label}`;
   }).join("");
-  return `<div class="bg-track"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="${line}V100H0Z"/><path d="${line}"/></svg>${dots}</div>`;
+  const description = `${series.name}: scale 0 to ${String(max)}, now ${String(series.now)}. ` + series.steps.map(s => `Turn ${String(s.turn)}: ${String(s.before)} to ${String(s.after)}, ${LABEL[s.cause]}`).join("; ");
+  return `<div class="bg-track" role="img" aria-label="${esc(description)}"><span class="bg-scale bg-max">${String(max)}</span><span class="bg-scale bg-zero">0</span><div class="bg-plot"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="${line}V100H0Z"/><path d="${line}"/></svg>${dots}</div></div>`;
 }
 
 // Turn labels for the shared axis: the ends plus change turns that do not crowd an earlier label.
-function axisTurns(last: number, changes: readonly BagChange[]): number[] {
-  const turns = [0, last];
+function axisTurns(first: number, last: number, changes: readonly BagChange[]): number[] {
+  const turns = [...new Set([first, last])];
   for (const change of [...changes].sort((a, b) => a.turn - b.turn)) {
-    if (turns.every((t) => Math.abs(t - change.turn) / last >= 0.1)) turns.push(change.turn);
+    if (turns.every((t) => Math.abs(t - change.turn) / Math.max(1, last - first) >= 0.1)) turns.push(change.turn);
   }
   return turns.sort((a, b) => a - b);
 }
@@ -266,18 +340,20 @@ export interface BagPageInput {
 }
 
 export function bagRange({ ledger, run }: BagPageInput): string {
-  return run === null ? "" : `RUN ${esc(run.split("_").at(-1) ?? "")} · T0–T${String(ledger.lastTurn)}`;
+  return run === null ? "" : `RUN ${esc(run.split("_").at(-1) ?? "")} · T${String(ledger.firstTurn ?? 0)}–T${String(ledger.lastTurn)}`;
 }
 
 export function bagPage({ ledger, art }: BagPageInput): string {
   if (!ledger.recorded) return '<p class="nodata">No bag recorded yet. Runs record the bag in every state once the game has started (resources.bag).</p>';
   const changes = ledger.changes;
-  const last = Math.max(1, ledger.lastTurn);
-  const x = (turn: number): number => Math.min(100, Math.max(0, (turn / last) * 100));
+  const first = ledger.firstTurn ?? 0;
+  const last = Math.max(first, ledger.lastTurn);
+  const x = (turn: number): number => Math.min(100, Math.max(0, ((turn - first) / Math.max(1, last - first)) * 100));
   const head = headline(ledger);
   const kpis = [
+    [ledger.latest?.money === null || ledger.latest?.money === undefined ? "UNKNOWN" : yen(ledger.latest.money), "CASH NOW"],
     [String(head.gained), "ITEMS GAINED"],
-    [String(head.used), "USED OR TOSSED"],
+    [String(head.used), "USED OR REMOVED"],
     [yen(head.spent), `SPENT AT MARTS (${String(head.buys)} ${head.buys === 1 ? "BUY" : "BUYS"})`],
   ].map(([value, label]) => `<div class="bg-kpi"><b>${value ?? ""}</b><span>${label ?? ""}</span></div>`).join("");
   const series = seriesOf(ledger, changes);
@@ -291,12 +367,12 @@ export function bagPage({ ledger, art }: BagPageInput): string {
     const header = `<div class="bg-pk${held.length === 0 ? " empty" : ""}" data-pocket="${pocket.id}"><span class="bg-pn">${esc(pocket.label)}</span><span class="bg-pm">${meta}</span></div>`;
     return header + rows.map((s) => `<div class="bg-lab">${itemIcon(art, s.itemId)}<span>${esc(s.name)}</span></div>${track(s, x)}<div class="bg-now">${String(s.now)}</div>`).join("");
   }).join("");
-  const axis = `<div></div><div class="bg-axis">${axisTurns(last, changes).map((t) => `<span style="left:${pct(x(t))}">T${String(t)}</span>`).join("")}</div><div></div>`;
+  const axis = `<div></div><div class="bg-axis"><div class="bg-axis-plot">${axisTurns(first, last, changes).map((t) => `<span style="left:${pct(x(t))}">T${String(t)}</span>`).join("")}</div></div><div></div>`;
   const kinds = new Set(changes.map((c) => DOT[c.cause]));
   const legend = [
     '<span><i></i>found / given</span>',
     kinds.has("buy") ? '<span><i class="buy"></i>bought</span>' : "",
     kinds.has("use") ? '<span><i class="use"></i>used, sold or stored</span>' : "",
   ].join("");
-  return `<div class="bg-kpis">${kpis}</div><h4>QUANTITY BY TURN · BY POCKET</h4><div class="bg-sm">${grid}${axis}</div><div class="bg-legend">${legend}</div><p class="bg-inf">BOUGHT is inferred when money drops in the step the item arrives. The run records the quantities, not why they changed.</p>`;
+  return `<div class="bg-kpis">${kpis}</div><p class="bg-inf">Complete history through T${String(ledger.lastTurn)} · ${String(changes.length)} recorded quantity changes · scales start at 0.</p><h4>QUANTITY BY TURN · HELD NOW →</h4><div class="bg-sm">${axis}${grid}</div><div class="bg-legend">${legend}</div><p class="bg-inf">Full recorded history · ${String(changes.length)} quantity changes. Each row shows its own 0–maximum scale; the right column is held now. BOUGHT uses a matching shop confirmation and its later debit, or a same-step money drop. Other causes are inferred; removals may include use, gifts or tossing. Checkpoint starting items are a baseline, not gains.</p>`;
 }

@@ -178,7 +178,7 @@ describe("BagLedger", () => {
 describe("bag page", () => {
   it("shows the headline, the game's pocket labels in order with empty ones grey, and a shared turn axis", () => {
     const doc = page(ledgerOf(bagRun()));
-    expect([...doc.querySelectorAll(".bg-kpi")].map((k) => k.textContent)).toEqual(["7ITEMS GAINED", "1USED OR TOSSED", "¥200SPENT AT MARTS (1 BUY)"]);
+    expect([...doc.querySelectorAll(".bg-kpi")].map((k) => k.textContent)).toEqual(["¥3,100CASH NOW", "7ITEMS GAINED", "1USED OR REMOVED", "¥200SPENT AT MARTS (1 BUY)"]);
     expect([...doc.querySelectorAll(".bg-pk")].map((p) => `${p.querySelector(".bg-pn")?.textContent ?? ""}|${p.querySelector(".bg-pm")?.textContent ?? ""}|${String(p.classList.contains("empty"))}`)).toEqual([
       "ITEMS|EMPTY|true",
       "POKé BALLS|1 KIND · 5|false",
@@ -191,11 +191,14 @@ describe("bag page", () => {
     expect([...doc.querySelectorAll(".bg-now")].map((n) => n.textContent)).toEqual(["0", "5", "0"]);
     expect([...doc.querySelectorAll(".bg-axis span")].map((s) => s.textContent)).toEqual(["T0", "T10", "T30", "T40", "T50", "T60", "T70", "T80"]);
     expect(doc.querySelector(".bg-legend")?.textContent).toBe("found / givenboughtused, sold or stored");
-    expect(doc.querySelector(".bg-inf")?.textContent).toContain("BOUGHT is inferred");
+    expect(doc.querySelector(".bg-inf")?.textContent).toContain("Complete history through T80");
+    expect(doc.body.textContent).toContain("Each row shows its own 0–maximum scale");
+    expect([...doc.querySelectorAll(".bg-max")].map(e => e.textContent)).toEqual(["1", "6", "1"]);
+    expect(doc.querySelectorAll(".bg-zero")).toHaveLength(3);
     const ball = must(doc.querySelectorAll(".bg-track")[1]);
     expect([...ball.querySelectorAll(".bg-dot")].map((d) => d.className)).toEqual(["bg-dot got", "bg-dot buy", "bg-dot use"]);
     expect([...ball.querySelectorAll(".bg-dlab")].map((d) => d.textContent)).toEqual(["5", "6", "5"]);
-    expect(ball.querySelector("path:not(.area)")?.getAttribute("d")).toBe("M0,100.0H125.0V16.7H500.0V0.0H1000.0V16.7H1000");
+    expect(ball.querySelector("path:not(.area)")?.getAttribute("d")).toBe("M0,90.0H125.0V23.3H500.0V10.0H1000.0V23.3H1000");
   });
 
   it("has no tutorial band, no tutorial count and no change list", () => {
@@ -230,7 +233,7 @@ describe("bag page", () => {
     empty.add(1, state({ turn: 1, resources: resources([[4, 2, "poke_balls", "POKé BALL"]]) }));
     const doc = page(ledgerOf(empty));
     expect(doc.querySelector(".bg-now")?.textContent).toBe("2");
-    expect([...doc.querySelectorAll(".bg-axis span")].map((s) => s.textContent)).toEqual(["T0", "T1"]);
+    expect([...doc.querySelectorAll(".bg-axis span")].map((s) => s.textContent)).toEqual(["T1"]);
     expect(doc.querySelector(".bg-legend")?.textContent).toBe("found / given");
   });
 });
@@ -262,4 +265,28 @@ describe("delayed mart payment", () => {
     log.add(4, state({ turn: 3, money: 500, resources: resources([[13, 1, "items", "POTION"]]) }));
     expect(headline(ledgerOf(log))).toEqual({ gained: 1, used: 0, spent: 0, buys: 0 });
   });
+});
+
+it.each([
+  { item_id: 3, quantity: 1, selected: "YES", screen: "shop_menu" },
+  { item_id: 13, quantity: 2, selected: "YES", screen: "shop_menu" },
+  { item_id: 13, quantity: 1, selected: "NO", screen: "shop_menu" },
+  { item_id: 13, quantity: 1, selected: "YES", screen: "overworld" },
+])("does not attribute an unmatched or departed shop transaction: %j", ({ item_id, quantity, selected, screen }) => {
+  const log = new Log(); log.add(0, START);
+  log.add(1, state({ money: 1000, resources: resources([]) }));
+  log.add(2, { ...itemChange(2, 13, "POTION", 0, 1), kind: "menu_changed", details: { phase: "shop_purchase_confirmation", action: "buy_item", item_id, quantity, selected } });
+  log.add(3, itemChange(2, 13, "POTION", 0, 1));
+  log.add(4, state({ turn: 2, screen, money: 1000, resources: resources([[13, 1, "items", "POTION"]]) }));
+  log.add(5, state({ turn: 3, screen, money: 700, resources: resources([[13, 1, "items", "POTION"]]) }));
+  expect(headline(ledgerOf(log))).toEqual({ gained: 1, used: 0, spent: 0, buys: 0 });
+});
+
+it("restores pending native changes and tutorial ownership without turning loans into gains", () => {
+  const log = bagRun(), cut = 5;
+  const first = new BagLedger(); for (const event of log.events.slice(0, cut)) first.add(event);
+  const saved = first.checkpoint(); const restored = BagLedger.restore(saved);
+  for (const event of log.events.slice(cut)) restored.add(event);
+  expect(restored.checkpoint()).toEqual(ledgerOf(log).checkpoint());
+  expect(() => BagLedger.restore({ ...saved, totals: { gained: "invalid" } })).toThrow("Invalid saved bag summary");
 });

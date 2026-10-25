@@ -1,3 +1,5 @@
+import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
+import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
 import { setImmediate as yieldImmediate } from "node:timers/promises";
 import { monitorEventLoopDelay } from "node:perf_hooks";
@@ -34,7 +36,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
+export const BROWSER_MODULES = ["visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -404,7 +406,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -563,6 +565,14 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   try {
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
+    if (parts.length === 4 && leaf === "bag") {
+      const history = await readBag(id);
+      let art = NO_ART;
+      try { art = parseBagArt(JSON.parse(readFileSync(join(options.runsRoot, "sprites", "bag-v1", "manifest.json"), "utf8")) as unknown); } catch { /* Names remain usable without optional ROM art. */ }
+      const input = { ledger: history.ledger, run: id, art };
+      sendJson(res, 200, { run: id, throughSeq: history.throughSeq, range: bagRange(input), html: bagPage(input) });
+      return;
+    }
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
     if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed), options.streamChunkBytes); return; }
     if (parts.length === 4 && leaf === "events") {
@@ -638,8 +648,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       await liveScreen(res, live, options.fetchFn ?? fetch);
       return;
     }
-  } catch {
-    sendJson(res, 404, { error: "not found" });
+  } catch (error) {
+    sendJson(res, leaf === "bag" ? 503 : 404, { error: leaf === "bag" ? `Bag history unavailable: ${error instanceof Error ? error.message : String(error)}` : "not found" });
     return;
   }
   sendJson(res, 404, { error: "not found" });
@@ -651,6 +661,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
+  const readBag = createBagHistoryReader(options.runsRoot);
   const catalog = createRunCatalog(options.runsRoot, null);
   const strictCatalog = options.build === null ? catalog : createRunCatalog(options.runsRoot, options.build ?? null);
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
@@ -694,7 +705,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, catalog, strictCatalog).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, catalog, strictCatalog, readBag).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

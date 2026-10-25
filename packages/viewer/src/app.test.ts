@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
+import { BagLedger, bagPage, bagRange, NO_ART } from "./bag.js";
 import { bagRun } from "../test-support/bag.js";
 import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
 import { readHeadEvents } from "./runs.js";
@@ -2041,58 +2042,63 @@ describe("head-first startup", () => {
 });
 
 describe("BAG page", () => {
-  beforeEach(() => {
-    document.body.innerHTML = "";
-  });
-
-  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
-
-  function endedBagRun(): RunEvent[] {
-    const log = bagRun();
-    log.add(900_000, { type: "run_end", turn: 80, reason: "budget", furthest_milestone: null, turns: 80, wall_ms: 900_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
-    return log.events;
+  const flush = async (): Promise<void> => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); };
+  function summary(run: string) {
+    const ledger = new BagLedger(); for (const e of bagRun().events) ledger.add(e);
+    const input = { ledger, run, art: NO_ART };
+    return { run, throughSeq: 100, range: bagRange(input), html: bagPage(input) };
   }
 
-  it("draws the whole run's bag with the game's item icons once the page is open", async () => {
-    const { app, streams, fetched } = await harness(`#replay=${M4_ID}`, RUNS, null, {}, undefined, false, { "/sprites/bag/manifest.json": { items: [4, 13] } });
-    const stream = must(streams[0]);
-    feed(stream, endedBagRun(), false);
-    stream.send("done", {});
-    app.tick(0);
+  it("uses the full saved bag summary even when the head has no historical item events", async () => {
+    const run = must(RUNS[0]).id, reply = summary(run);
+    const { app, streams, fetched, setNow } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/bag`]: reply });
+    const events = bagRun().events.map(e => ({ ...e, run }));
+    must(streams[0]).send("head", [must(events[0]), ...events.slice(-1)]);
     expect(ui("bag").innerHTML).toBe("");
-    expect(fetched).not.toContain("/sprites/bag/manifest.json");
     must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    expect(ui("bag").textContent).toContain("Loading complete bag history");
     await flush();
-    expect(fetched).toContain("/sprites/bag/manifest.json");
-    expect(ui("bag-range").textContent).toBe("RUN 890b · T0–T80");
-    expect([...ui("bag").querySelectorAll(".bg-kpi b")].map((b) => b.textContent)).toEqual(["7", "1", "¥200"]);
-    expect([...ui("bag").querySelectorAll(".bg-pk .bg-pn")].map((p) => p.textContent)).toEqual(["ITEMS", "POKé BALLS", "TMs & HMs", "BERRIES", "KEY ITEMS"]);
-    expect([...ui("bag").querySelectorAll(".bg-lab img")].map((i) => i.getAttribute("src"))).toEqual(["/sprites/bag/items/13.png", "/sprites/bag/items/4.png"]);
-    // A replay moving its cursor leaves the page alone: it shows the whole run.
-    const drawn = ui("bag").innerHTML;
-    app.clock?.seek(BASE_MS);
-    app.tick(0);
-    expect(ui("bag").innerHTML).toBe(drawn);
+    expect([...ui("bag").querySelectorAll(".bg-kpi b")].map(b => b.textContent)).toEqual(["¥3,100", "7", "1", "¥200"]);
+    expect(ui("bag-range").textContent).toBe("RUN live · T0–T80");
+    expect(fetched.filter(u => u.endsWith("/bag"))).toHaveLength(1);
+    const pane = must(ui("bag").closest<HTMLElement>(".page-content")); pane.scrollTop = 81;
+    reply.html = reply.html.replace("¥3,100", "¥3,200");
+    setNow(BASE_MS + 5000); app.tick(5000); await flush();
+    expect(ui("bag").textContent).toContain("¥3,200"); expect(pane.scrollTop).toBe(81);
+    expect(fetched.filter(u => u.endsWith("/bag"))).toHaveLength(2);
+    must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
+    setNow(BASE_MS + 10000); app.tick(5000); await flush();
+    expect(fetched.filter(u => u.endsWith("/bag"))).toHaveLength(2);
   });
 
-  it("refolds when older history is requested, and draws names without art", async () => {
-    const run = RUNS[0]?.id ?? "missing";
-    const events = bagRun().events.map((event) => ({ ...event, run }));
-    const before = events.at(-3)?.seq ?? 0;
-    const { app, streams } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/trace-history?before=${String(before)}`]: { run, events: events.slice(0, -3), before: null } });
-    const primary = must(streams[0]);
-    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
-    await flush();
-    primary.send("head", [must(events[0]), ...events.slice(-3)]);
-    app.tick(0);
-    expect(ui("bag").querySelectorAll(".bg-lab")).toHaveLength(1);
-    must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
-    await flush();
-    app.tick(0);
-    expect([...ui("bag").querySelectorAll(".bg-lab")].map((l) => l.textContent)).toEqual(["POTION", "POKé BALL", "GREAT BALL"]);
-    expect(ui("bag").querySelector("img")).toBeNull();
-    expect(ui("bag").querySelectorAll(".bg-noicon")).toHaveLength(3);
+  it("shows unavailable instead of zero totals and recovers on its next poll", async () => {
+    const run = must(RUNS[0]).id;
+    const replies: Record<string, unknown> = {};
+    const { app, setNow } = await harness("", RUNS, null, {}, undefined, false, replies);
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click(); await flush();
+    expect(ui("bag").textContent).toContain("Bag history unavailable");
+    expect(ui("bag").querySelectorAll(".bg-kpi")).toHaveLength(0);
+    replies[`/api/runs/${run}/bag`] = summary(run);
+    setNow(BASE_MS + 5000); app.tick(5000); await flush();
+    expect(ui("bag").textContent).not.toContain("unavailable");
+    expect(ui("bag").querySelectorAll(".bg-kpi")).toHaveLength(4);
+    replies[`/api/runs/${run}/bag`] = { ...summary(run), run: "wrong" };
+    setNow(BASE_MS + 10000); app.tick(5000); await flush();
+    expect(ui("bag").textContent).toContain("Invalid bag summary");
+    expect(ui("bag").querySelectorAll(".bg-kpi")).toHaveLength(4);
   });
+  it("discards a late summary after the selected run changes", async () => {
+    const run = must(RUNS[0]).id, other = must(RUNS[1]).id;
+    let resolve: (value: unknown) => void = () => undefined;
+    const pending = new Promise<unknown>(yes => { resolve = yes; });
+    const { app } = await harness("", RUNS, null, {}, undefined, false, { [`/api/runs/${run}/bag`]: pending, [`/api/runs/${other}/bag`]: summary(other) });
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    app.select(other); await flush();
+    resolve({ ...summary(run), html: "WRONG RUN" }); await flush();
+    expect(ui("bag-range").textContent).toBe("RUN 890b · T0–T80");
+    expect(ui("bag").textContent).not.toContain("WRONG RUN");
+  });
+
 });
 
 it("keeps expanded run details and its reading position through a state refresh", async () => {

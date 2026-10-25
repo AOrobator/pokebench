@@ -821,7 +821,7 @@ it("serves only the allowlisted bag item icons from runs/sprites/bag-v1",async()
  const manifest=await get(viewer,"/sprites/bag/manifest.json");expect(manifest.status).toBe(200);expect(manifest.type).toContain("application/json");expect(manifest.body.toString()).toBe('{"items":[4]}');
  for(const path of ["/sprites/bag/items/4.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
  for(const path of ["/sprites/bag/items/notes.txt","/sprites/bag/items/0.png","/sprites/bag/items/1000.png","/sprites/bag/items/5.png","/sprites/bag/pockets/pc.png","/sprites/bag/pockets/tm_hm.png","/sprites/bag/../manifest.json","/sprites/bag/items/..%2f..%2fmanifest.json","/sprites/bag","/sprites/bag/manifest.json/x"])expect((await get(viewer,path)).status,path).toBe(404);
- expect(BROWSER_MODULES).toContain("bag");
+ expect(BROWSER_MODULES).not.toContain("bag");
 });
 
 it("serves only the allowlisted party art from runs/sprites/party-v1",async()=>{
@@ -1548,4 +1548,21 @@ it("serves the tracked citation evidence explainer byte for byte",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-elevation-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const id="citation-evidence-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+});
+
+it("serves complete BAG history without trace paging and updates its persisted summary on append", async () => {
+  const { bagRun, resources } = await import("../test-support/bag.js");
+  const { runsRoot, viewer } = await fixture(); const log = bagRun(), run = log.events[0]?.run ?? "missing";
+  writeRun(runsRoot, run, log);
+  const first = await get(viewer, `/api/runs/${run}/bag`);
+  expect(first.status).toBe(200);
+  const body = JSON.parse(first.body.toString()) as { run: string; throughSeq: number; html: string; range: string };
+  expect(body.run).toBe(run); expect(body.html).toContain("¥3,100"); expect(body.html).toContain("7</b><span>ITEMS GAINED");
+  expect(body.range).toBe(`RUN ${run.split("_").at(-1) ?? ""} · T0–T80`);
+  const event = log.add(10000, state({ turn: 100, money: 3300, resources: resources([[4, 5, "poke_balls", "POKé BALL"]]) }));
+  appendFileSync(join(runsRoot, run, "events.jsonl"), JSON.stringify(event) + "\n");
+  const next = await get(viewer, `/api/runs/${run}/bag`);
+  expect(next.status).toBe(200); expect(next.body.toString()).toContain("¥3,300");
+  expect((JSON.parse(next.body.toString()) as { throughSeq: number }).throughSeq).toBe(event.seq);
+  expect((await get(viewer, "/api/runs/not-there/bag")).status).toBe(503);
 });

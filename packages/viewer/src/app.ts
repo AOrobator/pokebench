@@ -20,7 +20,6 @@ import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type Gly
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
-import { BagLedger, NO_ART, bagPage, bagRange, parseBagArt, type BagArt } from "./bag.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -246,14 +245,12 @@ export class App {
   private readonly held = new Set<HTMLElement>();
   private readonly tracePending = new Set<HTMLElement>();
   private readonly traceVersions = new WeakMap<HTMLElement, number>();
-  // The BAG page: folded from every recorded event of the view (not the replay cursor), drawn only while open.
-  private bag = new BagLedger();
-  private bagView: RunView | null = null;
-  private bagged = 0;
-  private bagFolds = 0;
-  private bagKey = "";
-  private bagArt: BagArt | null = null;
-  private bagArtLoad: Promise<void> | null = null;
+  // The server owns complete BAG history independently of the recent trace/replay cursor.
+  private bagSummary: { run: string; throughSeq: number; range: string; html: string } | null = null;
+  private bagRequest = 0;
+  private bagLoading = false;
+  private bagNextPoll = 0;
+  private bagProblem = "";
   // The POKéMON PARTY page: the cursor, open tab and move survive redraws; art from `just party-art`.
   private partyUi: PartyUi = { slot: 0, tab: 0, move: null };
   private partyData: PartyData | null = null;
@@ -510,7 +507,7 @@ export class App {
     const element = this.ui(name);
     if (this.html.get(element) === html) return;
     this.html.set(element, html);
-    const keepDetails = name === "run-details" || name === "harness-config";
+    const keepDetails = name === "run-details" || name === "harness-config" || name === "bag";
     const details = keepDetails ? [...element.querySelectorAll("details")].map(row => ({ open: row.open, focused: row.querySelector("summary") === this.doc.activeElement })) : [];
     const pane = keepDetails ? element.closest<HTMLElement>(".page-content") : null, top = pane?.scrollTop ?? 0;
     element.innerHTML = html;
@@ -861,17 +858,12 @@ export class App {
 
   private showPage(name: string): void {
     if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
-    if (name === "bag") void this.loadBagArt();
+    if (name === "bag") { this.bagNextPoll = 0; }
     if (name === "party") void this.loadPartyArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
-  }
-
-  // The item icons `just bag-art` builds; without them the page shows names only.
-  loadBagArt(): Promise<void> {
-    this.bagArtLoad ??= this.deps.fetchJson("/sprites/bag/manifest.json").then((value) => { this.bagArt = parseBagArt(value); }, () => { this.bagArt = NO_ART; }).then(() => { this.render(); });
-    return this.bagArtLoad;
+    if (name === "bag") this.renderBag();
   }
 
   // The current party screen remains visible while tables and fonts load.
@@ -912,23 +904,32 @@ export class App {
     this.renderParty(this.shown);
   }
 
-  private renderBag(): void {
-    // The head and the full history arrive as separate views; a new view refolds from its first event.
-    if (this.bagView !== this.view) {
-      this.bagView = this.view;
-      this.bag = new BagLedger();
-      this.bagged = 0;
-      this.bagFolds += 1;
+  async pollBag(): Promise<void> {
+    const run = this.runId;
+    if (run === null || this.bagLoading || this.deps.now() < this.bagNextPoll || this.ui("bag").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    const request = ++this.bagRequest;
+    this.bagLoading = true; this.bagNextPoll = this.deps.now() + 5000;
+    try {
+      const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(run)}/bag`);
+      if (request !== this.bagRequest || run !== this.runId) return;
+      if (typeof value !== "object" || value === null) throw new Error("Invalid bag summary");
+      const summary = value as { run?: unknown; throughSeq?: unknown; range?: unknown; html?: unknown };
+      if (summary.run !== run || typeof summary.throughSeq !== "number" || !Number.isSafeInteger(summary.throughSeq) || summary.throughSeq < -1 || typeof summary.range !== "string" || typeof summary.html !== "string") throw new Error("Invalid bag summary");
+      this.bagSummary = { run, throughSeq: summary.throughSeq, range: summary.range, html: summary.html };
+      this.bagProblem = "";
+    } catch (error) {
+      if (request === this.bagRequest && run === this.runId) this.bagProblem = `Bag history unavailable: ${String(error)}. Retrying automatically.`;
+    } finally {
+      if (request === this.bagRequest) { this.bagLoading = false; this.renderBag(); }
     }
-    const events = this.view.events;
-    for (; this.bagged < events.length; this.bagged += 1) this.bag.add(events[this.bagged] as RunEvent);
+  }
+
+  private renderBag(): void {
     if (this.ui("bag").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
-    const input = { ledger: this.bag, run: this.runId, art: this.bagArt ?? NO_ART };
-    const key = `${this.runId ?? ""}|${String(this.bagFolds)}|${String(this.bag.version)}|${String(this.bag.lastTurn)}|${String(this.bagArt !== null)}`;
-    if (key === this.bagKey) return;
-    this.bagKey = key;
-    this.setHtml("bag-range", bagRange(input));
-    this.setHtml("bag", bagPage(input));
+    void this.pollBag();
+    this.setHtml("bag-range", this.bagSummary?.range ?? "");
+    const status = this.bagProblem === "" ? "" : `<p class="nodata" role="status">${esc(this.bagProblem)}</p>`;
+    this.setHtml("bag", status + (this.bagSummary?.html ?? (this.bagProblem === "" ? '<p class="nodata" role="status">Loading complete bag history…</p>' : "")));
   }
 
   private async pickBaseline(runId: string): Promise<void> {
@@ -1043,8 +1044,8 @@ export class App {
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
-    this.bagView = null;
-    this.bagKey = "";
+    this.bagRequest += 1; this.bagLoading = false; this.bagNextPoll = 0;
+    this.bagSummary = null; this.bagProblem = "";
     this.setHtml("run-details", "");
     this.setHtml("harness-config", "");
     this.setHtml("inspector", inspector(undefined));

@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
@@ -7,6 +8,8 @@ import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { bagRun } from "../test-support/bag.js";
 import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
+import { readHeadEvents } from "./runs.js";
+import { readTraceHistory } from "./trace-history.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
 // The ★ NEXT RUN page loads these on mount; tests of the watch view answer them.
@@ -1851,6 +1854,44 @@ describe("head-first startup", () => {
     return log;
   }
   const flushHistory = async (): Promise<void> => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+  it("finishes head hydration for an offline unfinished run with controls disabled", async () => {
+    const { app, streams } = await harness("", [{ ...must(RUNS[0]), live: false }], null, {}, undefined, false);
+    must(streams[0]).send("head", own(log().events));
+    must(streams[0]).send("caught_up", {});
+    app.tick(0);
+    expect(ui("mode").textContent).toBe("NOT RESPONDING");
+    expect(ui("run-controls").querySelectorAll("button:not([disabled])")).toHaveLength(0);
+    expect(streams).toHaveLength(1);
+  });
+  it("reconstructs every event from the real compact head and lazy pages, including a trailing earlier turn", async () => {
+    const root = mkdtempSync(join(tmpdir(), "app-lazy-head-"));
+    try {
+      mkdirSync(join(root, run));
+      const recorded = log();
+      recorded.add(5000, assistant({ turn: 3 }));
+      recorded.add(6000, assistant({ turn: 1, thinking: "Late before final event" }));
+      recorded.add(7000, assistant({ turn: 1, thinking: "Final earlier-turn event" }));
+      const expected = own(recorded.events);
+      const data = expected.map(event => JSON.stringify(event)).join("\n") + "\n";
+      writeFileSync(join(root, run, "events.jsonl"), data);
+      const cursor = { offset: 0 };
+      const head = await readHeadEvents(root, run, cursor, 2);
+      expect(cursor.offset).toBe(Buffer.byteLength(data));
+      const replies = {
+        [`/api/runs/${run}/trace-history?before=3`]: await readTraceHistory(root, run, 3),
+        [`/api/runs/${run}/trace-history?before=7`]: await readTraceHistory(root, run, 7),
+      };
+      const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false, replies);
+      must(streams[0]).send("head", head);
+      must(streams[0]).send("caught_up", {});
+      must(ui("trace").querySelector<HTMLButtonElement>("[data-history-more]")).click();
+      await flushHistory();
+      expect(app.view.events).toEqual(expected);
+      expect(fetched.filter(url => url.includes("trace-history"))).toEqual([`/api/runs/${run}/trace-history?before=7`]);
+      expect(ui("history-status").hidden).toBe(true);
+      expect(streams).toHaveLength(1);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
   it("does not download full history while idle or with the phone sheet open; pages only on request", async () => {
     const recorded = log();
     const replies = { [`/api/runs/${run}/trace-history?before=3`]: { run, events: own(recorded.events.slice(0, 3)), before: null } };

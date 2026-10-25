@@ -458,7 +458,10 @@ function* recentEventSteps(
   const cutTurn = offset > 0 && turns.length <= maxTurns && !tail.some(event => event.turn === turns[0] && event.type === "turn_start");
   const completeTurns = cutTurn ? turns.slice(1) : turns.slice(-maxTurns);
   const selected = new Set(completeTurns);
-  return [start, ...tail.filter((event) => selected.has(event.turn) || event.type === "run_end" || event.type === "operator_control")];
+  // Lazy backward paging starts from this snapshot: never advance the stream
+  // cursor beyond an unseen final event carrying an earlier turn label.
+  const latest = tail.at(-1);
+  return [start, ...tail.filter((event) => event === latest || selected.has(event.turn) || event.type === "run_end" || event.type === "operator_control")];
 }
 
 // Both callers consume the same snapshot and strict validation. HTTP uses small

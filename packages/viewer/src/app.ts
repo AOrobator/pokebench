@@ -1064,7 +1064,7 @@ export class App {
         this.historyBefore = this.historyCursor(view.events);
         this.view = this.shown = view;
         this.headReady = true;
-        this.mode = view.end === null && this.runs.some(run => run.id === runId && isLive(run)) ? "live" : "loading";
+        this.mode = view.end === null ? "live" : "loading";
         this.setRecordedThinking(view, view.events);
         if (view.end !== null) this.startReplay(true);
         this.render();

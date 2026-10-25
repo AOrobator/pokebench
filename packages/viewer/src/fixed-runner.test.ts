@@ -130,7 +130,7 @@ class Fake implements FixedHost {
     this.maxRunning = Math.max(this.maxRunning, this.running);
     try { l.started(1000 + n); } catch { this.startedThrows += 1; }
     this.snapshot();
-    await new Promise((r) => setTimeout(r, 2));
+    await new Promise((r) => setImmediate(r));
     await this.options.beforeExit?.(l, n);
     this.clock += 60_000 + (this.options.extensionMs ?? 0);
     const ending = this.options.ending?.(l, n) ?? "budget";

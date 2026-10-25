@@ -34,6 +34,8 @@ from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.mart_stock import stock_lines
+from pokebench_env.mauville_puzzle import SWITCH as MAUVILLE_PUZZLE
+from pokebench_env.mauville_puzzle import puzzle_view, switch_name
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
@@ -183,6 +185,7 @@ SERVER_FEATURES = (
     "available-exits-presentation-v1",
     "bag-pocket-truth-v1",
     "caught-nickname-prompt-v2",
+    MAUVILLE_PUZZLE,
     "cutscene-journal-v1",
 )
 
@@ -668,6 +671,13 @@ def format_readout(
             if state.field_controls_locked
             else "Field controls: available (terrain and objects can still block a direction)"
         )
+    puzzle = (
+        MAUVILLE_PUZZLE not in off
+        and "live-map-v1" not in off
+        and state.screen == "overworld"
+        and not state.in_battle
+    )
+    puzzle_map = None
     if state.local_map is not None and "live-map-v1" not in off:
         configured_whole = "full-map-navigation-v1" not in off
         whole = state.full_map is not None and configured_whole
@@ -691,6 +701,10 @@ def format_readout(
                 state.player_elevation,
                 None if state.running is None else state.running.avatar_flags,
             )
+        puzzle_note = ""
+        if puzzle and shown is not None:
+            puzzle_map = shown
+            shown, puzzle_note = puzzle_view(shown, state.map_id)
         # adjacent-tiles-v1: the four neighbours in words, from the same cells the map draws.
         neighbours = (
             next_tiles(
@@ -728,6 +742,8 @@ def format_readout(
             if shown is not None
             else state.local_map
         )
+        if puzzle_note:
+            lines.append(puzzle_note)
         if terrain_note:
             lines.append(terrain_note)
         if elevation_note:
@@ -891,13 +907,23 @@ def format_readout(
 
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
-        lines.extend(
-            t.text(
-                named=named_interactions and "named-interactions-v1" not in off,
+
+        def target_text(t: InteractionTarget) -> str:
+            name = (
+                switch_name(puzzle_map, state.map_id, t.x, t.y)
+                if t.kind == "coordinate_trigger"
+                else None
+            )
+            return (replace(t, name=name) if name is not None else t).text(
+                named=name is not None
+                or (named_interactions and "named-interactions-v1" not in off),
                 destinations=destinations,
                 dynamic=dynamic,
                 warp_label=warp_labels.get((t.x, t.y)) if t.kind == "warp" else None,
             )
+
+        lines.extend(
+            target_text(t)
             + warp_note(t)
             + (
                 interaction_suffix(t)

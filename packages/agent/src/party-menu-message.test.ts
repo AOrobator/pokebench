@@ -4,7 +4,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 const ID="party-menu-message-v1";
 it("registers a default OFF server treatment without changing tools or prompt",()=>{
- const off=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
+ const off={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"mauville-puzzle-readout-v1":false};
  const on={...off,[ID]:true};
  const {[ID]:omitted,...legacy}=off;
  expect(omitted).toBe(false);

@@ -133,7 +133,8 @@
   "original-speed-pacing-v1",
   "caught-dex-input-v1",
   "caught-nickname-prompt-v1",
-  "caught-nickname-prompt-v2"
+  "caught-nickname-prompt-v2",
+  "mauville-puzzle-readout-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -399,6 +400,7 @@
   "citation-evidence-v1": false,
   "moving-npc-target-v1": false,
   "caught-nickname-prompt-v2": true,
+  "mauville-puzzle-readout-v1": true,
   "cutscene-journal-v1": false
  }
 }

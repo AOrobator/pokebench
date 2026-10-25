@@ -16,7 +16,7 @@ Security: no new endpoints, tools, subprocesses or input policy. Local self-cont
 - [x] RED: native-backed prompt projection and real recipe materialization.
 - [x] GREEN: registry, production server wiring, projection, shared recipe and explainer.
 - [x] Tests, lint, build, coverage and wiring deletion proof.
-- [ ] Independent review; report native gameplay proof pending.
+- [x] Independent review complete; native gameplay proof remains pending (no new gameplay authorized).
 
 ## Closing the loop
 Use retained archives from 429f and existing native-derived fixtures; no new gameplay. Later isolated native validation requires explicit launch authorization. Review/commit/landing status reported separately.
@@ -77,3 +77,21 @@ Round-two delta: test setup caching, unrelated-prompt regression and review/evid
 Additional proof: remaining Python gates/tooling/root tests 94 passed (4170 total before the extra unrelated-prompt test). Full branch coverage above applies to restored production code. Candidate Harness Config click opened the exact V2 explainer on an isolated ephemeral viewer with synthetic data, zero page errors. Headless only. Shared viewer and measured run untouched. Local copy at runs/mockups/caught-nickname-v2 on canonical pages service returns 200 with exact document bytes.
 
 - Round-two affected checks: native V2 tests 12 passed; ruff check/format passed. Full Python suite including gates/tooling/root tests 4171 passed in 48.29s after the test-only fix. Production code unchanged; previous build/lint and full coverage gates remain applicable.
+
+## Final review and authorized landing
+
+Final cumulative packet: base 63e47426b03a427361467040ebf0741740cade79, reviewed tip f6da68cf3926cf9535753633e161021388e638f1, binary diff SHA256 54ed8460f583f8f1fa3096fe415ceffd17c856b026131ed1098658d3508d2ac5. Round two Claude CLI, independent GPT reviewer, Sol fallback and Astra fallback each returned VERDICT: LGTM. All prior concrete findings resolved; no remaining operand-mutation requirement. Grok remains unavailable due account limits; reduced vendor diversity was reported, never counted as normal cloud-roster success.
+
+Operator approval: The operator answered "yes" to "May I land this using the fallback reviews in place of Grok?" on 2026-10-25. This explicitly authorizes the unavailable-Grok exception for this landing. Joined landing board as codex/caught-nickname-v2 with exact session 00000000-0000-4000-8000-0c616f086f8a, verified number 1. Main was still the reviewed base and clean; regenerated cumulative digest matched. Fast-forwarded main to f6da68cf3926cf9535753633e161021388e638f1.
+
+Post-merge checks: first test attempt used stale compiled agent exports and rejected the new V2 schema in two recipe tests. No source edits were needed: rebuilt canonical packages, reran complete just test clean (4408 agent, 1955 viewer, 4171 Python plus protected trainer-card guard and all three approved visual baselines). Build stamp f6da68c; canonical tree remained clean before this evidence-only worklog commit.
+
+Viewer: default /private/tmp/pokebench-viewer had pre-existing deleted source files; viewer-main failed before restarting the old viewer. Preserved that checkout. Supported POKEBENCH_VIEWER_WORKTREE override created clean /private/tmp/pokebench-viewer-capture-f6da68c at reviewed tip. One successful viewer refresh completed approximately 12:51 EDT. Future refreshes should use this clean tree or separately repair the old disposable checkout; no repair/reset of that unrelated dirty tree was performed here.
+
+Live proof at 12:51-12:52 EDT: stamp commit f6da68cf3926cf9535753633e161021388e638f1, dirty false; served /app/main.js and V2 explainer bytes matched the built clean tree exactly. /api/features registers V2 with its V1 dependency. All 544 before/after runs remain present; Astra429f remains live with no problem. /api/workbench reports no stale-viewer build problem. Native player/bridge/game-server PIDs 70711,70713,71239 survived, and viewer restart guard reported four live gameplay processes kept running. No gameplay launch, input, run repair or source-pin change.
+
+Headless real-viewer proof: selected recorded Astra429f; V2 is correctly NOT RECORDED for that historical run. Harness Config READ EXPLAINER opens canonical /explainers/caught-nickname-prompt-v2.html, correct title, zero browser page errors. Explainer and card screenshots inspected at 1280,1440,375. Initial desktop element captures overlapped the existing sticky header; retained those unsuccessful captures, then scrolled normally below the sticky header and inspected clear viewport replacements live-config-proof-1280.png and live-config-proof-1440.png. Screenshots under runs/mockups/caught-nickname-v2/shots. Original recorded settings remain unchanged.
+
+Maintained recipe materialization at merged build verified all three capture flags ON for both arms in every phase of bundle-v-control, bundle-v-control-2h and glm53-flash-4h. This config applies to future launches; no new native gameplay validation or benchmark improvement is claimed.
+
+This is the permitted post-landing evidence-only commit touching docs/worklogs only. Worklog archive not requested.

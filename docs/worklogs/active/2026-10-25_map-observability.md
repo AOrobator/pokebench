@@ -53,3 +53,5 @@ Source reference: clean pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; mat
 ## Multi-Model Review Log
 
 Round1: candidate frozen after gates; Claude-family review first, then normal isolated GPT and Grok. Retry actual Grok harness; only verified standing human outage authorization may substitute distinct fallback reviewers, with reduced vendor diversity explicit. Await verdicts; no implementation mutations after seal.
+
+- Round1 BLOCKING: Claude+Sol reproduced omitted Route111 sandstorm; Astra reproduced base glyph masks disagreeing with nearby descriptions; GPT+Astra require operand-level source/owner/readiness/layout mutation proof. All four lanes verified same clean frozen head/digest. Grok4.5/4.7 actual usage-limit failures; standing human exception receipts apply, reduced diversity explicit. Synthesis dispositions saved before changes. New production regressions fail4/4 before fixes; fix only existing presentation/schema owners. Optional transport hardening/future-provider fallback/right-bottom cropped junction remain separate follow-ups.

@@ -295,3 +295,69 @@ def test_new_map_generator_target_labels_survive_legacy_names_off():
     text = render(state, off)
     assert "Now generator (on): (32,2)" in text
     assert "background; generator (on) at (32,2)" in text
+
+
+def sandstorm_memory():
+    from pokebench_env.live_map import OBJECT_EVENTS
+
+    memory = map_memory()
+    memory.put(SB1, struct.pack("<hh", 11, 60) + bytes([0, 26]))
+    memory.put(0x02037350 + 9, bytes([26, 0]))
+    memory.put(OBJECT_EVENTS + 0x10, struct.pack("<hh", 18, 67))
+    memory.put(0x02001000, struct.pack("<IIIIII", 24, 112, 0, 0, 0x02003000, 0x02004000))
+    memory.put(0x03005DC0, struct.pack("<III", 39, 126, 0x02005000))
+    memory.put(0x02005000, bytes(39 * 126 * 2))
+    return memory
+
+
+def test_closed_sandstorm_boundary_is_shared_and_updates_without_changing_geometry():
+    memory = sandstorm_memory()
+    maps = MapNames({(0, 26): "ROUTE111"})
+    enabled = ENABLED | {"field-move-gates-v1", "exit-reachability-v1"}
+    off = frozenset(SERVER_FEATURES) - enabled
+    closed = read_state(memory.read, maps, active_ui=False, off=off)
+    old = read_state(memory.read, maps, active_ui=False, off=off | {SWITCH})
+    assert closed.field_obstacles is not None
+    assert closed.map_observation is not None
+    boundaries = [e for e in closed.map_observation.elements if e.kind == "sandstorm_boundary"]
+    assert any((e.x, e.y, e.state) == (11, 61, "blocked") for e in boundaries), boundaries
+    text = render(closed, off)
+    assert "Ss:X = sandstorm boundary (blocked)" in text, text
+    assert "down (11,61) sandstorm boundary (blocked)" in text, text
+    assert "pushes you back while its item gate is closed" in text, text
+    assert "sandstorm boundary (!)" in render(old, off | {SWITCH})
+    assert state_json(closed)["navigation_grid"] == state_json(old)["navigation_grid"]
+    # VAR_TEMP_3 is the game's current map callback's cleared-sandstorm state.
+    memory.put(SB1 + 0x139C + 6, struct.pack("<H", 1))
+    opened = read_state(memory.read, maps, active_ui=False, off=off)
+    assert opened.map_observation is not None
+    assert not any(e.kind == "sandstorm_boundary" for e in opened.map_observation.elements)
+    new_text = render(opened, off)
+    assert "down (11,61) clear (.)" in new_text, new_text
+    assert "sandstorm boundary" not in new_text, new_text
+    assert state_json(opened)["navigation_grid"] == state_json(closed)["navigation_grid"]
+
+
+@pytest.mark.parametrize(
+    "behavior,collision,feature,base",
+    [
+        (0x38, 1, "ledge-hops-v1", "#"),
+        (0x30, 0, "one-way-tiles-v1", "."),
+        (0x80, 1, "counter-talk-v1", "#"),
+    ],
+)
+def test_shared_map_and_nearby_use_the_same_base_glyph_switches(behavior, collision, feature, base):
+    memory = map_memory()
+    memory.put(0x02005000 + 2 * (8 * 39 + 2 + 7), struct.pack("<H", 0x200 | collision << 10))
+    memory.put(0x02008000, struct.pack("<I", behavior))
+    off = off_set() | {feature}
+    state = read_state(memory.read, MAPS, active_ui=False, off=off)
+    text = render(state, off)
+    lines = text.splitlines()
+    header = next(i for i, line in enumerate(lines) if line.startswith("Current map (observed"))
+    coordinate_columns = lines[header + 1]
+    column = coordinate_columns.split().index("2")
+    row = next(line for line in lines[header + 2 :] if line.split() and line.split()[0] == "1")
+    assert row.split()[column + 1] == base, (feature, row, text)
+    expected = "clear (.)" if base == "." else "collision (#)"
+    assert f"right (2,1) {expected}" in text, text

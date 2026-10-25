@@ -222,16 +222,19 @@ describe("runFixed", () => {
   });
 
   it("pauses only the lane that cannot serve, says why, and retries it with growing backoff while the other lane plays", async () => {
-    const { def, runsRoot, dir } = setup();
-    const host = new Fake(runsRoot, { serving: (lane, n) => { if (lane.id === "B" && n <= 3) throw new Error("connect ECONNREFUSED 127.0.0.1:8098"); return RECEIPT; } });
-    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
-    const paused = host.statuses.filter((s) => s.lanes[1]?.state === "paused");
-    expect(paused.length).toBeGreaterThan(0);
-    expect(paused[0]?.lanes[1]?.reason).toBe("lane B cannot serve: connect ECONNREFUSED 127.0.0.1:8098");
-    expect(paused.some((st) => st.lanes[0]?.state === "running")).toBe(true);
-    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
-    const retries = [...new Set(paused.map((s) => s.lanes[1]?.retryAt))];
-    expect(retries.length).toBeGreaterThanOrEqual(3);
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    try {
+      const { def, runsRoot, dir } = setup();
+      const host = new Fake(runsRoot, { serving: (lane, n) => { if (lane.id === "B" && n <= 3) throw new Error("connect ECONNREFUSED 127.0.0.1:8098"); return RECEIPT; } });
+      await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+      const paused = host.statuses.filter((s) => s.lanes[1]?.state === "paused");
+      expect(paused.length).toBeGreaterThan(0);
+      expect(paused[0]?.lanes[1]?.reason).toBe("lane B cannot serve: connect ECONNREFUSED 127.0.0.1:8098");
+      expect(paused.some((st) => st.lanes[0]?.state === "running")).toBe(true);
+      expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
+      const retries = [...new Set(paused.map((s) => s.lanes[1]?.retryAt))];
+      expect(retries.length).toBeGreaterThanOrEqual(3);
+    } finally { vi.useRealTimers(); }
   });
 
   it("pauses a lane whose server is not the planned build, model or slot count", async () => {

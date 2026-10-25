@@ -97,3 +97,21 @@ describe("finite run extensions through production controls", () => {
     expect(governor.stopReason).toBe("budget");
   });
 });
+
+it("extends turn budget through the governor seam without changing wall budget", () => {
+ const records: ControlBody[]=[];
+ const limits={maxTurns:2,maxWallMs:10000,failureLimit:3};
+ const control=new RunControl({now:()=>0,record:b=>records.push(b),freeze:()=>Promise.resolve(),end:vi.fn(),budget:{maxWallMs:10000,maxTurns:2,turns:()=>1,activeMs:()=>0,stopped:()=>false}});
+ const governor=new Governor({limits,now:()=>0,abort:vi.fn(),retry:vi.fn(),turnLimit:()=>control.turnLimit(2)});
+ expect(governor.afterTurn(assistant(),[])).toBe(false);
+ control.apply(request(1,"extend_1000t"));control.apply(request(1,"extend_1000t"));
+ expect(control.turnLimit(2)).toBe(1002);
+ expect(governor.afterTurn(assistant(),[])).toBe(false);
+ expect(control.wallLimit(10000)).toBe(10000);
+ expect(records).toEqual([{action:"extend_1000t",status:"applied",request:1,previous_max_turns:2,max_turns:1002}]);
+ control.apply(request(2,"extend_2000t"));expect(control.turnLimit(2)).toBe(3002);
+});
+it.each([["extend_120m",7200000],["extend_240m",14400000]])("accepts %s as a finite time extension",(action,ms)=>{
+ const c=new RunControl({now:()=>0,record:vi.fn(),freeze:()=>Promise.resolve(),end:vi.fn(),budget:{maxWallMs:10000,activeMs:()=>0,stopped:()=>false}});
+ c.apply(request(1,action));expect(c.wallLimit(10000)).toBe(10000+Number(ms));
+});

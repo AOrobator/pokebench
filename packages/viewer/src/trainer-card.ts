@@ -129,7 +129,7 @@ const badge = (): string => `<span class="tc-chip tc-badge">${gt("NEW MILESTONE!
 function mon(art: CardArt, m: WorkbenchCard["party"][number]): string {
   const id = m.egg ? art.egg : m.speciesId;
   if (id === null || !art.icons.has(id)) return "";
-  return `<i class="tc-mon" style="background-image:url(/sprites/icons/${String(id)}.png)" title="${m.egg ? "Egg" : `Lv${String(m.level)}`}"></i>`;
+  return `<i class="tc-mon" style="--tc-icon:url(/sprites/icons/${String(id)}.png)" title="${m.egg ? "Egg" : `Lv${String(m.level)}`}"><img src="/sprites/icons/${String(id)}.png" alt=""></i>`;
 }
 
 const ARM_COLORS: Readonly<Record<string, string>> = { control: "#2f6fb0", bundle: "#7a3fb8" };

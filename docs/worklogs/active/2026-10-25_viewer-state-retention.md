@@ -4,8 +4,8 @@ User request: trainer card and Pokémon must remain visible through battles and 
 
 Production paths: model.ts (retained display state), frontier-recording.ts (card projection), app.ts (unfinished-card continuity), trainer-card.ts (explicit selection for recorded peer cards without changing artwork). Tests exercise those consumers plus sparse bootstrap. No new services, dependencies, configuration or timeline marks.
 
-- [ ] RED regression tests and commit.
-- [ ] GREEN implementation, gates and background desktop/phone proof.
+- [x] RED regression tests and commit.
+- [x] GREEN implementation, gates and background desktop/phone proof.
 - [ ] Independent review, authorized queued landing and live proof.
 
 Read-only real logs: four active runs contain 109/500/518/184 empty battle/transition samples after a populated roster, including Astra seq3546 and Qwen GPU1 seq4453 with null name/location/play clock. Card projection currently reads view.state directly. Party reducer already retains null-clock samples but accepts empty battle samples with a readable clock. Selected card also vanishes when list/card health snapshots disagree. Shared8790 PID62752 was identified and remains untouched; original operator tab not inspected to preserve focus.
@@ -31,3 +31,9 @@ Final native-prefix proof now ends at unread battle3571, with roster3570 and14/2
 COMMIT90ffc1892 adds partial-refresh retention; c0eba5420 merges the latest main evidence01b91e706 without changing production code. Mutation audit correction: removing cached-row dedup initially escaped the DOM assertion because card DOM reconciliation already deduplicates output. Added an exact producer-cache row assertion after fresh data returns; that deletion now fails with duplicate IDs, then passes restored. Historical exclusion and known-live deletion failures retained separately. No gate suppression or protected test edits.
 
 Final cache review caught clock-anchor continuity: carrying old elapsed values into a newer snapshot timestamp rewound the live card clock. Added a failing exact0:06 assertion during the missing-row response, then reused existing plateFacts clock projection to rebase retained elapsed values. No new clock policy/owner. Fresh rows replace the retained values. Clock regression RED/GREEN receipts retained. Ordinary source8ed8aad gate again hit unchanged queue-removal.test.ts:17 import fixture5s timeout under concurrent attached-harness-traces checks; requested and received the next quiet CPU window. No test/timeout/worker-limit suppression, no claim to repair those old timing-sensitive tests.
+
+Final gates PASS on d9784c30e: just lint, just test (4448 agent,2019 viewer,4425Python,3 protected trainer visual checks), just coverage (agent99.17/92.76/97.60; viewer98.20/91.61/95.34; Python97.47/93.58/100), just verify-vendor. Frozen results in ignored runs/retention-proof/final-gates.json and /tmp/viewer-retention-sealed-*.log. No weakened tests or limits. Earlier load-sensitive failures remain documented as inherited, not repaired.
+
+Final real-card browser fixture325->323->325 at1280/375 passed: exact4 live IDs, Qwen9e33 retains6 Pokémon and spriteMay; d41e retains1 and spriteBirch; no duplicates, no disappearing cards, no clock rewind under advancing partial-snapshot timestamps, zero page errors. Both new Qwen screenshot pixels inspected. Native battle proof at1280/1440/375 retains Torchic and14/20HP with exact raw provenance. All artifacts use the built candidate, no gameplay input. Original operator tab intentionally untouched.
+
+Synced final main evidence f1a4c3762 before freezing. Since gated d9784c30e, only docs/worklogs files change; all application, test, build and configuration bytes are identical (verified git diff excluding docs). Gate results bind the unchanged executable/test tree. Next step: frozen independent cloud review, board slot, local FF landing, ordinary main test, one coordinated viewer refresh, live proof.

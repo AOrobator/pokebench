@@ -104,7 +104,7 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
   const invalid = invalidTrial(run), why = invalid === null ? "" : ` · invalid trial: ${invalid}`;
   const sinceSave = resumeMilestone(run) !== null ? ` · resumed at ${resumeMilestone(run)?.label ?? ""}, not from New game; minutes since the save loaded` : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
-  const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}${why}`;
+  const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}${why}${run.clockWarning === undefined ? "" : ` · ${run.clockWarning}`}`;
   const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }

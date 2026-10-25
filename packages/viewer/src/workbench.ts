@@ -177,7 +177,7 @@ export class Workbench {
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
-      id: run.id, model: run.model, status: run.status, problem: run.problem, excluded: run.excluded,
+      id: run.id, model: run.model, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded,
       config: run.config, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };

@@ -31,6 +31,8 @@ from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
+from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
+from pokebench_env.map_observation import render_observation
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.mart_stock import stock_lines
@@ -187,6 +189,7 @@ SERVER_FEATURES = (
     "caught-nickname-prompt-v2",
     MAUVILLE_PUZZLE,
     "cutscene-journal-v1",
+    "map-observability-v1",
 )
 
 
@@ -671,8 +674,10 @@ def format_readout(
             if state.field_controls_locked
             else "Field controls: available (terrain and objects can still block a direction)"
         )
+    observation = state.map_observation if MAP_OBSERVABILITY not in off else None
     puzzle = (
-        MAUVILLE_PUZZLE not in off
+        observation is None
+        and MAUVILLE_PUZZLE not in off
         and "live-map-v1" not in off
         and state.screen == "overworld"
         and not state.in_battle
@@ -687,14 +692,14 @@ def format_readout(
         edge_walls = "one-way-tiles-v1" not in off
         counters = "counter-talk-v1" not in off
         terrain_note = ""
-        terrain = FIELD_MOVES not in off
+        terrain = FIELD_MOVES not in off and observation is None
         if terrain and shown is not None:
             from pokebench_env.terrain_visibility import terrain_view
 
             shown, terrain_note = terrain_view(shown, state.field_obstacles)
         # elevation-aware-map-v1: tiles the player cannot step onto from this elevation draw L.
         elevation_note = ""
-        elevation = ELEVATION_MAP not in off and shown is not None
+        elevation = ELEVATION_MAP not in off and shown is not None and observation is None
         if elevation and shown is not None:
             shown, elevation_note = elevation_view(
                 shown,
@@ -721,6 +726,7 @@ def format_readout(
                 on_foot=walking(None if state.running is None else state.running.avatar_flags),
                 terrain=terrain,
                 elevation=state.player_elevation if elevation_note else None,
+                observation=observation,
             )
             if shown is not None and adjacent_tiles and "adjacent-tiles-v1" not in off
             else None
@@ -736,6 +742,9 @@ def format_readout(
                 warp_labels=warp_labels,
                 dynamic=dynamic,
                 next_tiles=neighbours,
+                rendered=render_observation(shown, observation)
+                if observation is not None
+                else None,
                 # A local-map fallback keeps its legend: the prompt describes the whole map.
                 rules_in_prompt=rules and whole == configured_whole,
             )
@@ -916,6 +925,22 @@ def format_readout(
             )
             return (replace(t, name=name) if name is not None else t).text(
                 named=name is not None
+                or (
+                    observation is not None
+                    and t.name is not None
+                    and any(
+                        (e.x, e.y) == (t.x, t.y)
+                        and e.edge is None
+                        and (
+                            (t.kind == "coordinate_trigger" and e.kind == "switch")
+                            or (
+                                (t.kind == "background" or t.kind.startswith("metatile_"))
+                                and e.kind in ("door", "generator")
+                            )
+                        )
+                        for e in observation.elements
+                    )
+                )
                 or (named_interactions and "named-interactions-v1" not in off),
                 destinations=destinations,
                 dynamic=dynamic,
@@ -1070,6 +1095,8 @@ def state_json(state: GameState) -> dict[str, object]:
     # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
     if state.party_next_level is not None:
         full = {**full, "party_next_level": list(state.party_next_level)}
+    if state.map_observation is not None:
+        full = {**full, "map_observation": state.map_observation.json()}
     return {
         **full,
         **(

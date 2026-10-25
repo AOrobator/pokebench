@@ -179,7 +179,7 @@ function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder
  return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record},progressAware);
 }
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock,instructionGoals?:GoalTools):AgentTool[]{
- const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
+ const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain(features["map-observability-v1"]):null;
  const navigationState=terrain?.source(state)??state;
  const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
  const arm=features["story-battle-heal-gate-v1"]&&!features["factual-healing-guidance-v1"]?healArm(features,state):undefined;

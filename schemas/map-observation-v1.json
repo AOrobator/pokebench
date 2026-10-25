@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "map-observation-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "map_id",
+    "origin",
+    "width",
+    "height",
+    "elements",
+    "unavailable"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "map_id": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "origin": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "x",
+          "y"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "switch",
+              "arrow",
+              "barrier",
+              "door",
+              "generator",
+              "rotating_gate",
+              "ice",
+              "slippery_floor",
+              "cracked_floor",
+              "hole",
+              "forced_walk",
+              "forced_slide",
+              "current",
+              "muddy_slope",
+              "bumpy_slope",
+              "rail",
+              "water",
+              "waterfall",
+              "bridge",
+              "log",
+              "jump_mat",
+              "spin_mat",
+              "warp",
+              "puzzle_door",
+              "room_door",
+              "closed_door",
+              "pyramid_exit",
+              "secret_base_entrance",
+              "encounter_ground",
+              "ground",
+              "decoration",
+              "other_level"
+            ]
+          },
+          "x": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "north",
+              "east",
+              "south",
+              "west"
+            ]
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "yellow",
+              "blue",
+              "green",
+              "purple",
+              "red"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "orientation": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "edge": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "items": false,
+            "minItems": 4,
+            "maxItems": 4
+          }
+        }
+      },
+      "maxItems": 20480
+    },
+    "unavailable": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "maxItems": 32
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layout_id"
+      ],
+      "properties": {
+        "layout_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 441
+        },
+        "flash_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "variant": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      }
+    }
+  }
+}

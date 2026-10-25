@@ -163,6 +163,11 @@ def test_generated_pyramid_dimensions_reach_both_map_and_topology_only_when_enab
     assert (on.topology.width, on.topology.height) == (32, 32)
     assert on.map_observation is not None
     assert (on.map_observation.width, on.map_observation.height) == (32, 32)
+    assert on.interaction_targets is None
+    assert "interaction target coverage unavailable" in on.map_observation.unavailable
+    assert "Map detail unavailable: interaction target coverage unavailable" in render(
+        on, off_set()
+    )
     assert off.nearby is None and off.full_map is None and off.topology is None
 
 
@@ -271,3 +276,22 @@ def test_shared_other_level_annotation_is_bound_to_the_local_view():
         (2, 1)
     ]
     assert any(t.x == 20 and t.y == 1 and t.elevation == 4 for t in state.full_map.tiles)
+
+
+def test_new_map_generator_target_labels_survive_legacy_names_off():
+    memory = map_memory()
+    memory.put(SB1 + 4, bytes([24, 53]))
+    memory.put(0x02037350 + 9, bytes([53, 24]))
+    memory.put(0x02001000, struct.pack("<IIIIII", 40, 5, 0, 0, 0x02003000, 0x02004000))
+    memory.put(0x03005DC0, struct.pack("<III", 55, 19, 0x02005000))
+    memory.put(0x02005000, bytes(55 * 19 * 2))
+    memory.put(0x02005000 + 2 * (9 * 55 + 39), struct.pack("<H", 0x2D8))
+    memory.put(0x02002000, bytes([0, 0, 0, 1]) + struct.pack("<4I", 0, 0, 0, 0x02009000))
+    memory.put(0x02009000, struct.pack("<HHBB2xI", 32, 2, 0, 0, 0))
+    off = off_set() | {"named-interactions-v1"}
+    state = read_state(memory.read, MapNames({(24, 53): "NEW MAUVILLE"}), active_ui=False, off=off)
+    target = next(t for t in state.interaction_targets or () if (t.x, t.y) == (32, 2))
+    assert target.name == "background; generator (on)"
+    text = render(state, off)
+    assert "Now generator (on): (32,2)" in text
+    assert "background; generator (on) at (32,2)" in text

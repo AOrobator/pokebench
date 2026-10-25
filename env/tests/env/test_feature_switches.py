@@ -200,6 +200,9 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # Whole-map navigation is the one switch that adds planner geometry to the state.
     assert payloads[0]["state"].pop("map_grid")["width"] == 5
     assert "map_grid" not in payloads[1]["state"]
+    # The observation layer is explicitly declared only in its ON state.
+    assert payloads[0]["state"].pop("map_observation")["version"] == 1
+    assert "map_observation" not in payloads[1]["state"]
     # exp-next-level-v1 adds the NEXT LV. numbers for the party.
     assert isinstance(payloads[0]["state"].pop("party_next_level"), list)
     assert "party_next_level" not in payloads[1]["state"]
@@ -318,7 +321,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 91
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 92
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -340,7 +343,7 @@ class _Shot:
 def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "map-observability-v1")
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
     _, _, body = get(app, "/pokebench/observation")
@@ -351,7 +354,10 @@ def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
     assert len(payload["state"]["navigation_grid"]["tiles"]) == 25
     _, _, state_body = get(app, "/pokebench/state")
     assert json.loads(state_body)["map_grid"]["height"] == 5
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "full-map-navigation-v1,window-escape-route-v1")
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        "full-map-navigation-v1,window-escape-route-v1,map-observability-v1",
+    )
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
     _, _, body = get(app, "/pokebench/observation")
@@ -360,7 +366,7 @@ def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
     assert "Whole current map" not in payload["state_text"]
     assert "map_grid" not in payload["state"]
     # window-escape-route-v1 alone: the state carries map_grid, the readout keeps the local map.
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "full-map-navigation-v1")
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "full-map-navigation-v1,map-observability-v1")
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
     _, _, body = get(app, "/pokebench/observation")

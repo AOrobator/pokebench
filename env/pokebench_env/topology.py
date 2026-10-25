@@ -259,20 +259,40 @@ def crossable(here: Block, beyond: Block, leaving: str, entering: str, *, water:
     )
 
 
-def read_topology(read: ReadMemory, maps: NameLookup, *, edges: bool = False) -> Topology | None:
+def read_topology(
+    read: ReadMemory,
+    maps: NameLookup,
+    *,
+    edges: bool = False,
+    map_observability: bool = False,
+    map_id: tuple[int, int] | None = None,
+) -> Topology | None:
     layout = int.from_bytes(read(MAP_HEADER, 4), "little")
     if not _span(layout, 8):
         return None
     width, height = struct.unpack("<II", read(layout, 8))
     backup_width, backup_height = struct.unpack("<II", read(BACKUP_LAYOUT, 8))
-    if not (
-        width > 0
-        and height > 0
-        and width * height <= MAX_MAP_DATA_SIZE
-        and backup_width == width + 15
-        and backup_height == height + 14
-    ):
-        return None
+    if map_observability:
+        from pokebench_env.map_layout import effective_dimensions
+
+        dimensions = effective_dimensions(
+            (width, height),
+            (backup_width, backup_height),
+            map_id,
+            int.from_bytes(read(MAP_HEADER + 0x12, 2), "little"),
+        )
+        if dimensions is None:
+            return None
+        width, height = dimensions
+    else:
+        if not (
+            width > 0
+            and height > 0
+            and width * height <= MAX_MAP_DATA_SIZE
+            and backup_width == width + 15
+            and backup_height == height + 14
+        ):
+            return None
     table = int.from_bytes(read(MAP_HEADER + 12, 4), "little")
     if table == 0:
         return Topology(width, height, ())

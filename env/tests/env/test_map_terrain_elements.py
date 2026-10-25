@@ -78,9 +78,9 @@ def test_secret_base_open_and_closed_are_live_behavior_not_predicted_unlocks():
         closed = terrain_elements(tile(behavior))[0]
         opened = terrain_elements(tile(behavior + 1))[0]
         assert closed.kind == opened.kind == "secret_base_entrance"
-        assert closed.state == "closed"
-        assert opened.state == "open"
-        assert closed.group == opened.group
+        assert closed.state is not None and closed.state.endswith("_closed")
+        assert opened.state == closed.state.removesuffix("_closed") + "_open"
+        assert closed.group is opened.group is None
 
 
 def test_water_door_does_not_inherit_bugfix_only_no_surfacing_behavior():
@@ -100,3 +100,30 @@ def test_provider_never_mutates_geometry_or_infers_door_lock_from_collision():
     assert terrain_elements(tile(0)) == ()
     assert terrain_elements(tile(0xFF)) == ()
 
+
+@pytest.mark.parametrize(
+    "metatile,behavior,state",
+    [
+        (0x250, 0x76, "horizontal_left_floating"),
+        (0x253, 0x77, "horizontal_right_half_submerged"),
+        (0x25A, 0x74, "vertical_top_submerged"),
+        (0x260, 0x75, "vertical_bottom_floating"),
+    ],
+)
+def test_log_axis_and_submersion_are_current_map_qualified_graphics(metatile, behavior, state):
+    current = replace(tile(behavior), metatile=metatile)
+    observed = terrain_elements(current, (0, 15))[0]
+    assert observed.kind == "log" and observed.state == state
+    assert terrain_elements(current, (0, 4))[0].state != state
+    assert terrain_elements(current)[0].state != state
+    wrong_behavior = replace(current, behavior=0)
+    assert terrain_elements(wrong_behavior, (0, 15)) == ()
+
+
+@pytest.mark.parametrize("metatile,state", [(0x24E, "wooden_raised"), (0x257, "wooden_lowered")])
+def test_wooden_bridge_height_graphic_never_claims_the_player_is_on_it(metatile, state):
+    current = replace(tile(0x78), metatile=metatile)
+    observed = terrain_elements(current, (0, 4))[0]
+    assert observed.kind == "bridge" and observed.state == state
+    assert observed.group is None
+    assert terrain_elements(current, (0, 15))[0].state == "wooden"

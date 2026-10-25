@@ -4,9 +4,14 @@ from pokebench_env.map_observation_types import MapElement
 
 
 def test_distinct_semantics_and_occupants_share_one_current_contract():
-    shown = FullMap(3, 1, ("@W.",), (
-        MapTile(0, 0, 0, 0, 0), MapTile(1, 0, 0, 0, 0), MapTile(2, 0, 0, 0, 0)
-    ), (), ((1, 0, 1, 1),))
+    shown = FullMap(
+        3,
+        1,
+        ("@W.",),
+        (MapTile(0, 0, 0, 0, 0), MapTile(1, 0, 0, 0, 0), MapTile(2, 0, 0, 0, 0)),
+        (),
+        ((1, 0, 1, 1),),
+    )
     elements = (
         MapElement("switch", 0, 0, color="blue"),
         MapElement("switch", 1, 0, color="green"),
@@ -24,8 +29,10 @@ def test_distinct_semantics_and_occupants_share_one_current_contract():
 
 def test_edges_are_separate_from_cell_occupancy_and_clipped_to_view():
     shown = FullMap(2, 1, ("..",), (MapTile(0, 0, 0, 0, 0), MapTile(1, 0, 0, 0, 0)), (), ())
-    elements = (MapElement("rotating_gate", 0, 0, state="arm", group="gate:0", edge=(0, 0, 1, 0)),
-                MapElement("switch", 20, 20, color="red"))
+    elements = (
+        MapElement("rotating_gate", 0, 0, state="arm", group="gate:0", edge=(0, 0, 1, 0)),
+        MapElement("switch", 20, 20, color="red"),
+    )
     observation = build_observation(shown, (12, 1), elements)
     assert len(observation.elements) == 1
     text = render_observation(shown, observation)

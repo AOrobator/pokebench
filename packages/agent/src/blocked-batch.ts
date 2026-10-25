@@ -6,7 +6,7 @@ import { COUNTER, EDGE_WALLS, GAME_RULE, LEDGES, OPPOSITE, type Direction } from
 // with field controls free in both snapshots, says so and names what the readout shows on the way.
 // Each map fact is named only when the run's switches draw it for the model: ledges (ledge-hops-v1),
 // edge walls (one-way-tiles-v1), counters (counter-talk-v1) and map connections (world-destinations-v1).
-export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly elevation?: boolean }
+export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
 
 type Point = { readonly x: number; readonly y: number };
 type Tile = { readonly collision: number; readonly behavior: number; readonly elevation: number };
@@ -47,6 +47,8 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
   const tileAt = (p: Point): Tile | undefined => grid.tiles.find(t => t.x === p.x && t.y === p.y);
   const same = (p: Point): boolean => p.x === next.x && p.y === next.y;
   const map = state.map_id;
+  const observation = show.mapObservability === true && map !== null && state.map_observation?.map_id[0] === map[0] && state.map_observation.map_id[1] === map[1] ? state.map_observation : null;
+  const currentLevel = observation?.elements.some(element => element.kind === "other_level" && element.x === next.x && element.y === next.y && element.state === String(tileAt(next)?.elevation)) === true;
   // elevation-aware-map-v1: objects on the next tile whose elevations all differ from yours (neither 0) do not collide.
   const listed = grid.objects.filter(same);
   const passable = show.elevation === true && listed.length > 0 && listed.every(o => o.elevation !== undefined && o.elevation !== 0 && grid.elevation !== 0 && o.elevation !== grid.elevation);
@@ -81,11 +83,15 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
       : { text: `${named} is water (~ on the local map); what stopped you is not known.`, kind: "unknown" };
   }
   if (show.edgeWalls === true && (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false)) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
-  if (show.elevation === true && !surfing(state) && GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
-    return { text: `${named} is at elevation ${String(tile.elevation)} while you are at elevation ${String(grid.elevation)} (L on the local map), and the game refuses a step onto a tile at another elevation`, kind: "terrain" };
+  if ((show.elevation === true || currentLevel) && !surfing(state) && GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
+    return { text: `${named} is at elevation ${String(tile.elevation)} while you are at elevation ${String(grid.elevation)} (${show.mapObservability === true ? (currentLevel ? `Lv:${String(tile.elevation)} on the current map` : "different elevations") : "L on the local map"}), and the game refuses a step onto a tile at another elevation`, kind: "terrain" };
   }
   // pokeemerald ForcedMovement_MuddySlope: on foot the slope slides the player back south.
   if (show.elevation === true && direction === "UP" && tile.behavior === MUDDY_SLOPE && onFoot(state)) return { text: `${named} is a muddy slope, which slides a walker back down`, kind: "terrain" };
+  if (observation?.elements.some(element => {
+    const edge = element.kind === "rotating_gate" ? element.edge : undefined;
+    return edge != null && ((edge[0] === here.x && edge[1] === here.y && edge[2] === next.x && edge[3] === next.y) || (edge[2] === here.x && edge[3] === here.y && edge[0] === next.x && edge[1] === next.y));
+  }) === true) return { text: "The current map shows a rotating gate arm across this edge; whether it stopped this input is unverified.", kind: "unknown" };
   return { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" };
 }
 

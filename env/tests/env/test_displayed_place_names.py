@@ -142,6 +142,7 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
             off = frozenset(
                 {
                     SWITCH,
+                    "map-observability-v1",
                     "player-elevation-readout-v1",
                     "character-presence-v1",
                     "offscreen-objects-v1",

@@ -376,6 +376,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "mauville-puzzle-readout-v1":"mauville-puzzle-readout-v1.html",
+ "map-observability-v1":"map-observability-v1.html",
  "interface-guidance-v1":"interface-guidance-v1.html",
  "citation-evidence-v1":"citation-evidence-v1.html",
  "trainer-observed-party-v1":"trainer-observed-party-v1.html",

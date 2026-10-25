@@ -21,6 +21,7 @@ it("declares unified map observations ON in fresh control and bundle configurati
    const f=presetFeatures(parsePlayPreset(armPreset(d,phase.id,arm)));
    expect(f[ID],`${name}/${phase.id}/${arm}`).toBe(true);
    expect(playHarnessFeatures(f,null)).toContain(ID);
+   expect(playHarnessFeatures({...f,[ID]:false},null)).toEqual(playHarnessFeatures(f,null).filter(id=>id!==ID));
    expect(serverFeatureEnv(f).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
    expect(serverFeatureEnv({...f,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   }

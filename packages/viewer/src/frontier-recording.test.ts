@@ -441,3 +441,27 @@ it("never credits a pre-existing resumed Roxanne encounter after an unreadable f
   expect(recording.splits.some(s=>s.name==="ROXANNE_FIRST_INTERACTION")).toBe(knownBaseline);
  }
 });
+
+
+describe("display-only clock policy", () => {
+  it("keeps strict timing readers strict and never exports splits under a clock warning", () => {
+    const log = new Log(); log.add(0, START); log.add(100, assistant()); log.add(200, state()); log.add(157, state({ name: "KENNY" }));
+    const raw = log.events.map(event => JSON.stringify(event)).join("\n") + "\n", path = write(raw);
+    expect(() => readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone)).toThrow("order");
+    const display = readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone, undefined, false, "display");
+    expect(display.clockProblem).toContain("43 ms"); expect(display.clockProblem).toContain("seq 3");
+    expect(display.last?.name).toBe("KENNY"); expect(display.splits).toEqual([]); expect(display.measurement.rawSplits).toEqual([]);
+    expect(readFileSync(path, "utf8")).toBe(raw);
+  });
+  it.each(["gap", "identity", "second-start", "after-end"] as const)("still rejects %s in display mode", defect => {
+    const log = new Log(); log.add(0, START); log.add(200, state()); log.add(157, state());
+    if (defect === "second-start") log.add(300, START);
+    else if (defect === "after-end") {
+      log.add(300, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 300, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }); log.add(400, state());
+    } else {
+      const last = log.events[2]; if (last === undefined) throw new Error("fixture");
+      log.events[2] = defect === "gap" ? { ...last, seq: 7 } : { ...last, run: "another" };
+    }
+    expect(() => readNativeRecording(write(log.events.map(event => JSON.stringify(event)).join("\n") + "\n"), log.events[0]?.run ?? "", qualifiedNativeMilestone, undefined, false, "display")).toThrow(/order|identity/);
+  });
+});

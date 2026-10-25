@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, assistant, state } from "../test-support/events.js";
 import { frontierReferences } from "./frontier.js";
-import { workbenchSnapshot } from "./workbench-store.js";
+import { cardWorkbench, createIncrementalRunLoader, workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
@@ -586,4 +586,38 @@ it("refreshes cached extension projections only for applied acknowledgements and
   expect((await snapshot())?.config?.extendedWallMs).toBe(1_860_000);
   append({ type: "operator_control", turn: 0, action: "extend_60m", status: "applied", request: 4, previous_max_wall_ms: 1_860_000, max_wall_ms: 5_460_000 });
   expect((await snapshot())?.config).toMatchObject({ maxWallMs: 60_000, extendedWallMs: 5_460_000 });
+});
+
+
+describe("live card clock regression recovery", () => {
+  it("keeps a health-confirmed anomalous run visible without grading its timing", async () => {
+    const r = root(), log = named();
+    log.add(3957, state({ name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE", turn: 1955 }));
+    write(r, "clock_run", log);
+    const snapshot = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000);
+    const card = cardWorkbench(snapshot, null).runs.find(run => run.id === "clock_run");
+    expect(card).toMatchObject({ status: "live", turn: 1955, model: START.model.id, card: { name: "KENNY", location: "ROUTE104 MR BRINEYS HOUSE" }, splits: [] });
+    expect(card?.problem).toContain("43 ms");
+    expect(card?.problem).toContain("seq 4");
+    expect(card?.excluded).toContain("timestamp");
+    expect(card?.measurement).toBeUndefined();
+    const offline = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
+    expect(offline.runs.find(run => run.id === "clock_run")?.status).toBe("unresponsive");
+  });
+  it("keeps incremental appends, pauses and terminal status after a clock regression", () => {
+    const r = root(), log = named(); log.add(3957, state()); const path = write(r, "clock_tail", log);
+    const reads: number[] = [], load = createIncrementalRunLoader({ observeRead: (_path, offset) => reads.push(offset) });
+    expect(load(r, "clock_tail").run.problem).toContain("43 ms");
+    const before = reads.length, length = Buffer.byteLength(readFileSync(path));
+    const paused = log.add(5000, { type: "operator_control", turn: 2, action: "pause", status: "applied", request: 1, emulator_frozen: true });
+    appendFileSync(path, JSON.stringify({ ...paused, run: "clock_tail" }) + "\n");
+    expect(load(r, "clock_tail").timing?.paused).toBe(true);
+    expect(reads.slice(before).every(offset => offset >= length)).toBe(true);
+    const ended = log.add(6000, { type: "run_end", turn: 2, reason: "budget", furthest_milestone: null, turns: 2, wall_ms: 6000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    appendFileSync(path, JSON.stringify({ ...ended, run: "clock_tail" }) + "\n");
+    const terminal = load(r, "clock_tail");
+    expect(terminal.run).toMatchObject({ status: "ended", reason: "budget", splits: [] });
+    expect(terminal.run.problem).toContain("43 ms"); expect(terminal.run.measurement).toBeUndefined();
+    expect(load.retained()).toBe(0);
+  });
 });

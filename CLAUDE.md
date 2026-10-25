@@ -95,6 +95,10 @@ The rule never covers pushing, pull requests, approving or launching experiments
 
 The experiment queue was removed on 2026-10-22. Do not create pending queue entries, register switches in `experiments/*.json`, use the deleted queue skill or commands, or require an EXPERIMENT dropdown. Older worklogs and explainers may describe that retired workflow; those passages are historical records, not current agent instructions. Record evaluation plans and readiness in the matching worklog, and use operator-approved fixed-run definitions under `experiments/fixed/` with `.claude/skills/fixed-run-launch/SKILL.md`. Recorded experiment metadata and read-only legacy ledgers remain valid historical provenance.
 
+## Attached harness transcripts and thinking
+
+Operator decision, 2026-10-25: when attaching Codex, Claude Code, Cursor or another agent harness to PokeBench, preserve its complete available native transcript and every exposed thinking/reasoning block. Follow the attachment preflight in `.claude/skills/pokebench-run-coordination/SKILL.md` even for CPU-only diagnostic play through a file-backed bridge. A short action explanation is not a thinking trace. Enable supported reasoning summaries before the first player turn, prove capture with a rehearsal, and record unavailable/private reasoning explicitly. Bind the archived source records to bridge requests and game turns so analysis and possible smaller-model training can recover what the player saw, decided and executed. This is a capture requirement for new attachments; it does not authorize interrupting an active run, changing its prompts or rewriting its historical recording.
+
 ## Feature switches
 
 Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested with fixed-run tooling. Use `.claude/skills/feature-switch/SKILL.md`.

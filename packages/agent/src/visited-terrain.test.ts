@@ -100,7 +100,7 @@ describe("visited-terrain-navigation-v1",()=>{
   const off=make({...incumbent,"visited-terrain-navigation-v1":false}),on=make({...incumbent,"visited-terrain-navigation-v1":true});
   const observe=async(tools:ReturnType<typeof make>)=>{const tool=tools.find(candidate=>candidate.name==="observe");if(tool===undefined)throw new Error("observe");return tool.execute("o",{},undefined);};
   expect((await observe(off)).content.flatMap(p=>p.type==="text"?[p.text]:[])).toEqual(["exact incumbent readout"]);
-  expect((await observe(on)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n")).toContain("Visited terrain on map 0/16");
+  expect((await observe(on)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n")).toContain("Coarse historical terrain memory on map 0/16");
   expect(on.find(tool=>tool.name==="navigate_to")?.description).toContain("only over terrain already shown to you this run");
   const whole=playGameTools(base,{...incumbent,"visited-terrain-navigation-v1":true,"full-map-navigation-v1":true},{read:()=>Promise.resolve(state)},rec);
   expect(whole.find(tool=>tool.name==="navigate_to")?.description).toContain("whole current map");

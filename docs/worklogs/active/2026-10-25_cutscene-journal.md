@@ -12,9 +12,9 @@ Verification: RED/GREEN; tiny-cap gap/failure tests; production factory ON/OFF; 
 
 - [x] RED: production reader/journal tests fail because the feature module does not exist. RED commit 6d7a9e484: cutscene transient actor, visible sprite and tiny ring tests.
 - [x] GREEN and source/raw-RAM proof: seven hash-validated Astra snapshots 13917-13937 reparse through read_scene; Aqua object10 appears, employee object9 moves north and leaves, three text pages preserved. Sparse archives are decoder proof, not per-frame historical reconstruction.
-- [ ] Complete gates and adversarial wiring checks
-- [ ] Explainer/card/replay background proof
-- [ ] Independent review and serialized landing
+- [x] Complete gates and adversarial wiring checks
+- [x] Explainer/card/replay background proof
+- [x] Independent review and serialized landing
 
 All browser proof remains headless/background; never take desktop focus.
 
@@ -75,3 +75,15 @@ Claude unique evidence naming gap: accepted-* logs were passing but prompt named
 No contradictions on code defects; receipt interpretation corrected with exact operand evidence. Nine test checks: real serve/HTTP/factory/probe/model-message/recorder seams; operand deletion/restoration; monkeypatch-owned globals; unique recorder temp/run identity; no concurrency mechanism changes; no retries/sleeps/timeout relaxations; exact quotations/message footer diagnostics; loops bounded2-8 plus3 unlocked frames, in-memory reads only, one bounded real-disk recorder adapter (atomic batch unnecessary); cap2/interval1 fixtures, no production cap fill. Temporary recorder directory cleanup and earliest-image selection are hardening follow-ups; reset-cursor notices and encoder cost are disclosed residuals, not demonstrated defects. No benchmark answers or grading changes involved. Round1: two concrete bugs and two evidence gaps fixed in one bounded batch; second cumulative review required. Stop/checkpoint if round2 produces further blockers per review policy.
 
 Round2 corrected-source gates all PASS (round2-gates.json, unique round2-frozen-{build,test,lint,coverage,verify-vendor}.log): 4415 agent,1963 viewer,4196 Python tests;3 protected exact card baselines; all lint/types/format, >=90% coverage per metric, pristine vendor. Corrected native reparse retains all3 Rustboro pages and silent actor evidence (round2-reparse.txt); sparse sampling limitation unchanged. Original failed or mismatched receipts remain retained and superseded explicitly. Cumulative packet now freezes for round2 review.
+
+
+## Final round2 synthesis, landing and live receipt
+Frozen reviewed packet4bc7920fbdda14c25e63a76743bcc1b1c92d94bf, basef719017b56a24ca8c3c80c748e61d76e610b8152, binary digestb88e61edbbb83706eac4337a43536e922d4662b28418f2d2ef7099288fad6c2e. Claude CLI, normal independent GPT reviewer, Sol fallback and Astra fallback each VERDICT: LGTM on the same clean identity. Full synthesis at owned worktree runs/cutscene-proof/review-round2/synthesis.md. All PB1-PB13 rows and nine test dimensions reviewed; zero remaining blockers, contradictions or scope expansions. Prior text, probe and exact-message evidence gaps resolved with source-owned fixes and isolated deletion/restoration proofs. No benefit claim or grading answer exposure. Bounded memory fixtures2-8frames/3recipes, one bounded durable adapter; no aggregate batch opportunity or new concurrency/suppression. Deferred hardening: unique recorder temp cleanup, alternative image retention, cursor reset recovery. Unknown speakers, sparse archived proof, sampled cinematics and capture omissions remain explicit.
+
+Grok4.5/4.7 unavailable (usage); never represented as LGTM. Landing used independently verified standing human Grok-outage instruction from original 00000000-0000-4000-8000-1bb4e739f4f4 session records at4145/4964/6309, current policy confirmed by coordinator. Original user wording includes “yes dont wait for grok” and “land without grok”. Verification hashes in owned runs/cutscene-proof/review/grok-authorization-verified.json. Reduced vendor diversity disclosed before landing.
+
+Board joined with actual Codex thread 00000000-0000-4000-8000-37dce5e14633, verified number1. Canonical clean main fast-forwarded exactly to reviewed4bc7920fb. Post-landing main build/test PASS:4415agent/1963viewer/4196Python and3protected-card baselines (owned main-build.log/main-test.log).
+
+Coordinator granted exactly one8790 refresh, explicitly using clean /private/tmp/pokebench-viewer-capture-f6da68c (damaged default not used). just viewer-main completed Oct25 approximately13:46EDT, reports4gameplay processes preserved and served4bc7920fb; served stamp clean/full SHA matches; sole listener70945 has PPID1. Broader12protected process identities unchanged, lost[]. Served panels/model module bytes match built served tree. /api/runs and /api/workbench read successfully with no older-build problem. Headless live1280/1440/375 clicks from Astra harness config to explainer succeed, zero pageerrors; old Astra correctly shows NOT RECORDED. All screenshots opened/inspected, including focused cards and opened explainer source; mobile diagram intentionally scrolls internally. Screenshot copies in canonical runs/mockups/cutscene-journal-v1/live-proof; page HTTP200 at http://127.0.0.1:8791/explainers/cutscene-journal-v1.html. Earlier browser receipts remain retained.
+
+Activation proven only for future bundle materialization: cutscene-journal-v1 true in bundle, false in control for all3current recipe definitions. Existing gameplay runs remain on their recorded code/config; none restarted, given inputs or launched here. No ablation launched. This evidence-only commit touches docs/worklogs only; no second viewer restart required.

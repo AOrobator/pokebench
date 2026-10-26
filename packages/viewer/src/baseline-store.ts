@@ -39,12 +39,15 @@ export function workbenchCacheDir(runsRoot: string, codeId: string): string {
 }
 
 // The cache is an optimization: an unreadable or unwritable entry is a miss, never an error.
-function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) => T | null): SnapshotStore<T> {
-  try {
-    mkdirSync(dir, { recursive: true });
-    const now = new Date();
-    utimesSync(dir, now, now);
-  } catch { /* unwritable: every put misses */ }
+function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) => T | null, eager = true): SnapshotStore<T> {
+  const prepare = (): void => {
+    try {
+      mkdirSync(dir, { recursive: true });
+      const now = new Date();
+      utimesSync(dir, now, now);
+    } catch { /* unwritable: every put misses */ }
+  };
+  if (eager) prepare();
   const pathOf = (runId: string): string | null => (RUN_ID.test(runId) ? join(dir, `${runId}.json`) : null);
   const latest = (runId: string): { fingerprint: string; outcome: T } | null => {
     const path = pathOf(runId);
@@ -65,6 +68,7 @@ function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) =
     put: (runId, fingerprint, value) => {
       const path = pathOf(runId);
       if (path === null) return;
+      if (!eager) prepare();
       const temp = `${path}.${String(process.pid)}.${String(Date.now())}.tmp`;
       try {
         writeFileSync(temp, JSON.stringify({ fingerprint, outcome: value }));
@@ -97,7 +101,7 @@ export function createCardStore(runsRoot: string): SnapshotStore<LoadedRun> {
     if (loaded === null || loaded.run.id !== runId || loaded.run.card == null || loaded.run.status === "invalid") return null;
     const run = { ...loaded.run }; delete run.measurement;
     return { ...loaded, run };
-  });
+  }, false);
 }
 
 // Caches of other code that no viewer has opened for a week; the current one always stays.

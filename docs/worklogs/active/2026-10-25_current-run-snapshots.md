@@ -140,7 +140,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] COMMIT: `test(viewer): specify durable current-state checkpoint recovery` (RED;447e738b0).
 - [x] Implement minimal typed reducer/store and checkpoint restore; no integration in production startup yet.
 - [x] Adversarial deletion; focused persistence/recovery tests; full gates and coverage.
-- [ ] COMMIT: `feat(viewer): persist resumable current-run checkpoints` (GREEN; SHA pending).
+- [x] COMMIT: `feat(viewer): persist resumable current-run checkpoints` (GREEN;a5d14eee199498c56afb17aef1ee883aa99c9b10).
 - [ ] Multi-model review against Architecture and INV-1/2/5/6/7; frozen artifact and conformance receipt.
 
 **M2 - Independent bounded service and existing-run reconstruction (tracked by this worklog):**
@@ -310,3 +310,5 @@ M1 final CPU window released22:37EDT after Flannery live proof; synced latest do
 M1 final GREEN source gates allPASS on unchanged executable hashes recorded m1-source-hashes.json: build19.84s, lint106.40s, ordinarytest113.51s (4448agent/2049viewer/4425Python plus3protected trainer widths), coverage127.14s (agent99.17/92.76/97.60; viewer98.24/91.61/95.26; Python97.47/93.58/100 lines/branches/functions), vendor0.13s.18 focused source/SQLite tests PASS;18 performed guard/behavior deletions independently RED/restored after GREEN baseline. No application/test/config bytes changed during or after final gates, except temporary restored mutation probes; hashes match final gate source. All earlier failures preserved and explicitly superseded, never suppressed.
 
 No runtime callers, daemon/API/browser wiring or card writer changes in M1. Gate CPU released22:45EDT. Coordinator declined main hold under current standing policy (branches not ready cannot hold); review frozen ba6361e74, join board only after LGTM; byte-identical diff digest can preserve reviews if main moves. No board slot currently joined and no shared refresh authorized. COMMIT: persist resumable current checkpoints GREEN (SHA recorded next).
+
+COMMIT: `feat(viewer): persist resumable current-run checkpoints` (a5d14eee199498c56afb17aef1ee883aa99c9b10);18 targeted/18mutations/full gates above. Independent review pending; milestone not complete.

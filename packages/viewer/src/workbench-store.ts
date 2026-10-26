@@ -19,7 +19,7 @@ import { parseFinalsLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import type { HealthProbe } from "./next-run.js";
 import { parseWorkbench, type WorkbenchCohort, type WorkbenchConfig, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import type { RunStore } from "./baseline-store.js";
+import type { RunStore, SnapshotStore } from "./baseline-store.js";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
 // What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
@@ -197,14 +197,14 @@ export interface WorkbenchLoader {
   load(root: string, id: string): Promise<Loaded>;
   // Without waiting: the record for the log as it is now, else the previous record of a log that
   // has since grown, else null. Either way a load of the current log is under way.
-  current(root: string, id: string): Loaded | null;
+  current(root: string, id: string, card?: boolean): Loaded | null;
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
 // runs for the next viewer of the same parser code; current build policy is reapplied on every disk hit.
 // build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
 // stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
-export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
+export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; cards?: SnapshotStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
   const incremental = createIncrementalRunLoader();
   const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => incremental(root, id, viewer)));
   const build = options.build === undefined ? defaultViewerBuild() : options.build;
@@ -233,6 +233,15 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
           cache.set(path, entry);
           if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
         }
+        if (loaded.run.card != null && loaded.run.status !== "invalid" && after !== null && (after === signature || appendedSince(signature, after))) {
+          const run = { ...loaded.run }; delete run.measurement;
+          const bytes = loaded.run.measurement?.logBytes ?? Number(signature.split(":")[0]);
+          const size = Number(after.split(":")[0]);
+          if (bytes <= size) {
+            const fingerprint = bytes === size ? after : signature.replace(/^\d+:/, `${String(bytes)}:`);
+            options.cards?.put(id, fingerprint, { ...loaded, run });
+          }
+        }
         return entry;
       })();
       const settled = pending;
@@ -250,7 +259,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
       if (prior?.signature === sig.signature) return prior;
       return start(root, id, path, sig.signature);
     },
-    current: (root, id) => {
+    current: (root, id, card = false) => {
       const path = eventsPath(root, id), sig = signatureOf(path, id);
       if ("invalid" in sig) return sig.invalid;
       const fresh = (): Loaded | null => { const hit = cache.get(path); return hit?.signature === sig.signature ? hit : null; };
@@ -265,7 +274,15 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
       // A disk-cache hit lands synchronously; otherwise only an appended-to log may show its previous record.
       const now = fresh(); if (now !== null) return now;
       const prior = latest.get(path) ?? cache.get(path) ?? null;
-      return prior !== null && appendedSince(prior.signature, sig.signature) ? prior : null;
+      if (prior !== null && appendedSince(prior.signature, sig.signature)) return prior;
+      if (card) {
+        const saved = options.cards?.latest(id) ?? null;
+        if (saved !== null && (saved.fingerprint === sig.signature || appendedSince(saved.fingerprint, sig.signature))) {
+          const loaded = saved.outcome;
+          return { ...loaded, signature: saved.fingerprint, run: { ...loaded.run, problem: "Showing last known trainer card while the recording loads." } };
+        }
+      }
+      return null;
     },
     forget: (keep) => { for (const path of cache.keys()) if (!keep(path)) cache.delete(path); },
   };
@@ -546,7 +563,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   // A requested card must arrive as soon as its projection is ready, not as an empty
   // cached response that waits another polling interval. Other runs stay nonblocking.
   const found = mode.partial === true
-    ? await Promise.all(reduced.map(async s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
+    ? await Promise.all(reduced.map(async s => mode.cards === undefined ? loader.current(root, s.id) : loader.current(root, s.id, true) ?? (s.id === mode.cards.selected ? loader.load(root, s.id) : null)))
     : await Promise.all(reduced.map(s => loader.load(root, s.id)));
   const waiting = found.filter(l => l === null).length, definitions = experimentDefinitions(experimentsDir, root);
   const loadedRuns = found.flatMap((loaded, index): LoadedRun[] => {

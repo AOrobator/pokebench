@@ -17,6 +17,9 @@ export interface RunStore<T> {
   put(runId: string, fingerprint: string, value: T): void;
 }
 export type BaselineStore = RunStore<BaselineOutcome>;
+export interface SnapshotStore<T> extends RunStore<T> {
+  latest(runId: string): { fingerprint: string; outcome: T } | null;
+}
 
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CODE_ID = /^[0-9a-f]{64}$/;
@@ -36,29 +39,36 @@ export function workbenchCacheDir(runsRoot: string, codeId: string): string {
 }
 
 // The cache is an optimization: an unreadable or unwritable entry is a miss, never an error.
-function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) => T | null): RunStore<T> {
-  try {
-    mkdirSync(dir, { recursive: true });
-    const now = new Date();
-    utimesSync(dir, now, now);
-  } catch { /* unwritable: every put misses */ }
+function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) => T | null, eager = true): SnapshotStore<T> {
+  const prepare = (): void => {
+    try {
+      mkdirSync(dir, { recursive: true });
+      const now = new Date();
+      utimesSync(dir, now, now);
+    } catch { /* unwritable: every put misses */ }
+  };
+  if (eager) prepare();
   const pathOf = (runId: string): string | null => (RUN_ID.test(runId) ? join(dir, `${runId}.json`) : null);
+  const latest = (runId: string): { fingerprint: string; outcome: T } | null => {
+    const path = pathOf(runId);
+    if (path === null) return null;
+    let value: unknown;
+    try {
+      value = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      return null;
+    }
+    if (!Value.Check(EntrySchema, value)) return null;
+    const outcome = parse(value.outcome, runId);
+    return outcome === null ? null : { fingerprint: value.fingerprint, outcome };
+  };
   return {
-    get: (runId, fingerprint) => {
-      const path = pathOf(runId);
-      if (path === null) return null;
-      let value: unknown;
-      try {
-        value = JSON.parse(readFileSync(path, "utf8"));
-      } catch {
-        return null;
-      }
-      if (!Value.Check(EntrySchema, value) || value.fingerprint !== fingerprint) return null;
-      return parse(value.outcome, runId);
-    },
+    latest,
+    get: (runId, fingerprint) => { const entry = latest(runId); return entry?.fingerprint === fingerprint ? entry.outcome : null; },
     put: (runId, fingerprint, value) => {
       const path = pathOf(runId);
       if (path === null) return;
+      if (!eager) prepare();
       const temp = `${path}.${String(process.pid)}.${String(Date.now())}.tmp`;
       try {
         writeFileSync(temp, JSON.stringify({ fingerprint, outcome: value }));
@@ -82,6 +92,16 @@ export function createWorkbenchStore(dir: string): RunStore<LoadedRun> {
     const loaded = parseLoadedRun(value);
     return loaded === null || loaded.run.id !== runId ? null : loaded;
   });
+}
+
+// Display snapshots outlive parser builds; they never enter the validated workbench cache.
+export function createCardStore(runsRoot: string): SnapshotStore<LoadedRun> {
+  return createRunStore(join(runsRoot, ".viewer-cache", "cards-v1"), (value, runId) => {
+    const loaded = parseLoadedRun(value);
+    if (loaded === null || loaded.run.id !== runId || loaded.run.card == null || loaded.run.status === "invalid") return null;
+    const run = { ...loaded.run }; delete run.measurement;
+    return { ...loaded, run };
+  }, false);
 }
 
 // Caches of other code that no viewer has opened for a week; the current one always stays.

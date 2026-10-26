@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { Log, START, assistant, state } from "../test-support/events.js";
 import { createBaselinePool, type BaselineRequest, type BaselineWorkerLike } from "./baseline-pool.js";
-import { createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
+import { createCardStore, createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
 import { viewerOffload } from "./cli.js";
 import { startViewer, type Viewer } from "./server.js";
@@ -290,6 +290,113 @@ function heldCompute(): { compute: WorkbenchCompute; calls: string[]; release: (
     release: () => { for (const go of waiting.splice(0)) go(); },
   };
 }
+
+it("serves saved live trainer cards on a fresh viewer before growing recordings finish loading", async () => {
+  const r = root(), log = named();
+  log.add(5000, state({ party: [{ species: "TORCHIC", species_id: 280, level: 5, hp: 18, max_hp: 20 }] }));
+  const path = write(r, "saved-live", log);
+  let now = NOW;
+  const options = { runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, now: () => new Date(now), fetchFn: () => Promise.resolve(new Response("ok")) };
+  const one = await startViewer({ ...options, workbench: { partial: true } });
+  const expected = { name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: 280, level: 5, egg: false }] };
+  try {
+    const warm = parseWorkbench(await (await fetch(new URL("api/cards?run=saved-live", one.url))).json());
+    expect(warm.runs.map(run => run.id)).toEqual(["saved-live"]);
+    expect(warm.runs[0]?.card).toEqual(expected);
+  } finally { await one.close(); }
+  const gap = log.add(6000, state({ screen: "battle", in_battle: true, name: null, location: null, party: [], play_time_s: null }));
+  fs.appendFileSync(path, JSON.stringify({ ...gap, run: "saved-live" }) + "\n");
+  const held = heldCompute();
+  const two = await startViewer({ ...options, workbench: { partial: true, compute: held.compute } });
+  try {
+    const cold = parseWorkbench(await (await fetch(new URL("api/cards", two.url))).json());
+    expect(cold.runs.map(run => run.id), JSON.stringify(cold)).toEqual(["saved-live"]);
+    expect(cold.runs[0]?.card).toEqual(expected);
+    expect(cold.runs[0]?.measurement).toBeUndefined();
+    expect(cold.runs[0]?.problem).toContain("last known trainer card");
+    expect(held.calls).toEqual(["saved-live"]);
+    const selected = parseWorkbench(await (await fetch(new URL("api/cards?run=saved-live", two.url))).json());
+    expect(selected.runs[0]?.card).toEqual(expected);
+    const unvalidated = parseWorkbench(await (await fetch(new URL("api/workbench", two.url))).json());
+    expect(unvalidated.runs[0]).toMatchObject({ status: "invalid", splits: [] });
+    expect(unvalidated.runs[0]?.measurement).toBeUndefined();
+    const fresh = log.add(7000, state({ name: "FRESH", party: [{ species: "COMBUSKEN", species_id: 281, level: 16, hp: 40, max_hp: 45 }] }));
+    fs.appendFileSync(path, JSON.stringify({ ...fresh, run: "saved-live" }) + "\n");
+    held.release();
+    await new Promise<void>(resolve => { setImmediate(resolve); });
+    now += 5001;
+    const updated = parseWorkbench(await (await fetch(new URL("api/cards?run=saved-live", two.url))).json());
+    expect(updated.runs.map(run => run.id)).toEqual(["saved-live"]);
+    expect(updated.runs[0]?.card).toMatchObject({ name: "FRESH", party: [{ speciesId: 281, level: 16 }] });
+    expect(updated.runs[0]?.problem).toBeNull();
+    expect(createCardStore(r).latest("saved-live")?.outcome.run.card).toEqual(updated.runs[0]?.card);
+  } finally { held.release(); await two.close(); }
+});
+
+it.each(["truncate", "replace", "rewrite", "symlink", "removed"] as const)("refuses saved display state after a log is %s", async change => {
+  const r = root(), path = write(r, "changed", named()), cards = createCardStore(r);
+  await createWorkbenchLoader({ cards }).load(r, "changed");
+  expect(cards.latest("changed")?.outcome.run.card?.name).toBe("MAY");
+  if (change === "truncate") fs.truncateSync(path, 1);
+  if (change === "rewrite") fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"MAY"', '"MAX"'));
+  if (change === "replace" || change === "symlink") {
+    fs.renameSync(path, `${path}.old`);
+    if (change === "replace") fs.copyFileSync(`${path}.old`, path);
+    else fs.symlinkSync(`${path}.old`, path);
+  }
+  if (change === "removed") fs.rmSync(path);
+  const held = heldCompute(), loader = createWorkbenchLoader({ cards, compute: held.compute });
+  try {
+    expect(loader.current(r, "changed", true)?.run.card ?? null).toBeNull();
+  } finally { held.release(); }
+});
+
+it("persists a fresh pregame reset instead of resurrecting the earlier roster", async () => {
+  const r = root(), log = named(), path = write(r, "reset", log), cards = createCardStore(r);
+  const loader = createWorkbenchLoader({ cards });
+  expect((await loader.load(r, "reset")).run.card?.name).toBe("MAY");
+  const reset = log.add(5000, state({ started: false, screen: "title", name: null, location: null, party: [], play_time_s: null }));
+  fs.appendFileSync(path, JSON.stringify({ ...reset, run: "reset" }) + "\n");
+  await loader.load(r, "reset");
+  const held = heldCompute();
+  try {
+    expect(createWorkbenchLoader({ cards: createCardStore(r), compute: held.compute }).current(r, "reset", true)?.run.card).toEqual({ name: null, location: null, party: [] });
+  } finally { held.release(); }
+});
+
+it("saves a completed live prefix even when new events arrive during its reduction", async () => {
+  const r = root(), log = named(), path = write(r, "growing", log), cards = createCardStore(r);
+  const loader = createWorkbenchLoader({ cards, compute: (root, id) => {
+    const loaded = loadRun(root, id), gap = log.add(5000, state({ screen: "battle", in_battle: true, party: [], name: null, location: null, play_time_s: null }));
+    fs.appendFileSync(path, JSON.stringify({ ...gap, run: id }) + "\n");
+    return Promise.resolve(loaded);
+  } });
+  const before = (await loader.load(r, "growing")).run.card;
+  expect(cards.latest("growing")?.outcome.run.card).toEqual(before);
+  const held = heldCompute();
+  try {
+    expect(createWorkbenchLoader({ cards: createCardStore(r), compute: held.compute }).current(r, "growing", true)?.run.card).toEqual(before);
+  } finally { held.release(); }
+});
+
+it.each([false, true])("binds saved cards to the consumed prefix when queued reads grow (truncate during compute=%s)", async during => {
+  const r = root(), log = named(), path = write(r, "queued", log), originalSize = fs.statSync(path).size, cards = createCardStore(r);
+  const loader = createWorkbenchLoader({ cards, compute: (root, id) => {
+    const fresh = log.add(5000, state({ name: "LATER" }));
+    fs.appendFileSync(path, JSON.stringify({ ...fresh, run: id }) + "\n");
+    const loaded = loadRun(root, id);
+    if (during) fs.truncateSync(path, originalSize + 1);
+    return Promise.resolve(loaded);
+  } });
+  await loader.load(r, "queued");
+  if (during) { expect(cards.latest("queued")).toBeNull(); return; }
+  const held = heldCompute();
+  try {
+    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card?.name).toBe("LATER");
+    fs.truncateSync(path, originalSize + 1);
+    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card ?? null).toBeNull();
+  } finally { held.release(); }
+});
 
 it("serves a partial snapshot at once while cold runs load in the background", async () => {
   const r = catalog();

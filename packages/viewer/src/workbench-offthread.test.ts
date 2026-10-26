@@ -379,6 +379,25 @@ it("saves a completed live prefix even when new events arrive during its reducti
   } finally { held.release(); }
 });
 
+it.each([false, true])("binds saved cards to the consumed prefix when queued reads grow (truncate during compute=%s)", async during => {
+  const r = root(), log = named(), path = write(r, "queued", log), originalSize = fs.statSync(path).size, cards = createCardStore(r);
+  const loader = createWorkbenchLoader({ cards, compute: (root, id) => {
+    const fresh = log.add(5000, state({ name: "LATER" }));
+    fs.appendFileSync(path, JSON.stringify({ ...fresh, run: id }) + "\n");
+    const loaded = loadRun(root, id);
+    if (during) fs.truncateSync(path, originalSize + 1);
+    return Promise.resolve(loaded);
+  } });
+  await loader.load(r, "queued");
+  if (during) { expect(cards.latest("queued")).toBeNull(); return; }
+  const held = heldCompute();
+  try {
+    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card?.name).toBe("LATER");
+    fs.truncateSync(path, originalSize + 1);
+    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card ?? null).toBeNull();
+  } finally { held.release(); }
+});
+
 it("serves a partial snapshot at once while cold runs load in the background", async () => {
   const r = catalog();
   const h = heldCompute();

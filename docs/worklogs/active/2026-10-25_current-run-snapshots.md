@@ -249,7 +249,7 @@ Card persistence final reviewed outcome -> M1 -> M2 -> M3 -> M4 -> M5. M4 depend
 
 ## Multi-Model Review Log
 
-Not started. Planning document is not reviewed implementation. Record each milestone's frozen packet, spec conformance, required reviewer outcomes, accepted/rebutted/deferred findings and exact gates here during authorized execution.
+M1 round1 frozen8431a2259: ClaudeLGTM; GPT/Astra/SolBLOCKING; Grok account usage unavailable. Four accepted findings are classified in runs/reviews/current-run-snapshots/m1-r1-synthesis.md. Corrections committed5fd1ceb89 after REDc5f7d840c,21 focused tests/22 corrected mutations PASS; new full gates and cumulative round2 pending. No M1 completion, landing, activation or live claim. See chronological receipts below.
 
 ## Boy Scout Log
 
@@ -263,7 +263,7 @@ No commits created in this planning task. Intended behavior checkpoints:
 
 | Milestone | RED | GREEN | SHA/status |
 | --- | --- | --- | --- |
-| M1 | Durable checkpoint/recovery tests | Typed resumable store/reducer | pending approval |
+| M1 | 447e738b0, c5f7d840c | a5d14eee1, 5fd1ceb89 | corrected source; gates/review pending |
 | M2 | Service lifecycle/catch-up tests | Bounded independent service | pending |
 | M3 | Fast API/history/reconnect tests | Indexed current/history routes | pending |
 | M4 | Browser startup/isolation tests | Opt-in snapshot-first browser | pending |

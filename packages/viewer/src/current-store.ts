@@ -16,8 +16,8 @@ const coord=(n:number):boolean=>Number.isSafeInteger(n)&&n>=0;
 const JSON_LIMIT=16*1024*1024;
 function strictState(value:unknown):CurrentState{
  const s=parseCurrent(value);for(const event of [s.start,s.state,s.partyState,s.end,s.health?.source??null,...s.milestones])if(event!==null)checkEvent(event);
- if(s.card!==null&&s.state!==null)checkEvent({...s.state,...s.card});
- if(s.health!==null&&s.partyState!==null)checkEvent({...s.partyState,party:s.health.party});
+ if(s.card!==null){if(s.state===null)throw new Error("Card requires state anchor");checkEvent({...s.state,...s.card});}
+ if(s.health!==null){if(s.partyState===null)throw new Error("Health requires party anchor");checkEvent({...s.partyState,party:s.health.party});}
  return s;
 }
 function sourceOf(value:unknown):CurrentSource{
@@ -59,13 +59,21 @@ export function openCurrentStore(path:string,options:{readOnly?:boolean}={}){
    return {state,source,revision:rev};
   }),
   seek:(run:string,generation:string,before:number):HistoryOffset|null=>{id(run);if(!coord(before))throw new Error("Invalid history sequence");const row=db.prepare("SELECT seq,turn,offset,end FROM history WHERE run=? AND generation=? AND seq<? ORDER BY seq DESC LIMIT 1").get(run,generation,before);return row===undefined?null:{seq:Number(row["seq"]),turn:Number(row["turn"]),offset:Number(row["offset"]),end:Number(row["end"])};},
-  changes:(cursor:string):CurrentChanges=>{
-   const rev=revision(),match=/^([^:]+):(\d+)$/.exec(cursor),since=Number(match?.[2]??-1);const min=Number(db.prepare("SELECT MIN(revision) n FROM changes").get()?.["n"]??rev+1);
-   if(match?.[1]!==epoch||!coord(since)||since>rev||since<min-1)return {reset:true,epoch,revision:rev,runs:[]};
-   return {reset:false,epoch,revision:rev,runs:db.prepare("SELECT run,removed FROM changes WHERE revision>? ORDER BY revision").all(since).map(row=>({run:String(row["run"]),removed:row["removed"]===1}))};
-  },
+  changes:(cursor:string):CurrentChanges=>readCurrentChanges(db,epoch,cursor),
   remove:(run:string):void=>{id(run);transaction(()=>{db.prepare("DELETE FROM current WHERE run=?").run(run);db.prepare("DELETE FROM history WHERE run=?").run(run);change(run,true);});},
   close:():void=>{if(!closed){closed=true;db.close();lock?.close();}},
  };
 }
 export type CurrentStore=ReturnType<typeof openCurrentStore>;
+
+// One read transaction pins metadata, retained journal boundary and returned rows.
+// The caller owns this connection; no nested transaction is allowed.
+export function readCurrentChanges(db:DatabaseSync,epoch:string,cursor:string):CurrentChanges{
+ db.exec("BEGIN");
+ try{
+  const rev=Number(db.prepare("SELECT revision FROM meta WHERE id=1").get()?.["revision"]),match=/^([^:]+):(\d+)$/.exec(cursor),since=Number(match?.[2]??-1);
+  const min=Number(db.prepare("SELECT MIN(revision) n FROM changes").get()?.["n"]??rev+1);
+  const result:CurrentChanges=match?.[1]!==epoch||!coord(since)||since>rev||since<min-1?{reset:true,epoch,revision:rev,runs:[]}:{reset:false,epoch,revision:rev,runs:db.prepare("SELECT run,removed FROM changes WHERE revision>? ORDER BY revision").all(since).map(row=>({run:String(row["run"]),removed:row["removed"]===1}))};
+  db.exec("COMMIT");return result;
+ }catch(error){db.exec("ROLLBACK");throw error;}
+}

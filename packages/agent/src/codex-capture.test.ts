@@ -103,3 +103,10 @@ describe("native Codex evidence", () => {
     expect(() => capture.seal()).toThrow(/prefix changed/); capture.close();
   });
 });
+
+
+it("rejects a duplicate begin anchor appended after the observation began", () => {
+  const { source, capture } = fixture(); appendFileSync(source, nativeAnchor(key, "begin")); capture.begin(key, "test-model");
+  appendFileSync(source, line({ type: "function_call_output", call_id: "begin", output: "observation" }) + nativeAnchor(key, "begin", "late-duplicate") + nativeSummary("Press A") + nativeAnchor(key, "respond"));
+  try { expect(() => capture.finish(key, "test-model")).toThrow(/ambiguous/); } finally { capture.close(); }
+});

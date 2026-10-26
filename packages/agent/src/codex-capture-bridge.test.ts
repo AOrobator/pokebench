@@ -117,7 +117,7 @@ it("protects the control endpoint and rejects browser origins without creating a
 it("refuses a wrong run identity before writing into its directory", async () => {
   const f = await fixture();
   writeFileSync(f.log.eventsPath, readFileSync(f.log.eventsPath, "utf8").replaceAll('"capture-test"', '"other-run"'));
-  const response = await fetch(`${f.bridge.url}/v1/chat/completions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: "test-model", messages: [], tools: [] }) });
+  const response = await fetch(`${f.bridge.url}/v1/chat/completions`, { method: "POST", signal: AbortSignal.timeout(1000), headers: { "content-type": "application/json" }, body: JSON.stringify({ model: "test-model", messages: [], tools: [] }) });
   expect(response.status).toBe(503); expect(await response.text()).toContain("run/sequence mismatch");
   expect(existsSync(join(f.log.runDir, "attached-harness"))).toBe(false);
 });
@@ -233,4 +233,15 @@ it("retains a disconnected request as unresolved in the final seal", async () =>
   await f.bridge.close();
   const index = readFileSync(join(f.log.runDir, "attached-harness/codex/index.jsonl"), "utf8").trim().split("\n").map(l => object(JSON.parse(l) as unknown));
   expect(index.filter(r => r["kind"] === "sealed").map(r => r["bridge"])).toEqual([expect.objectContaining({ status: "incomplete", unresolved: [key] })]);
+});
+
+
+it("rejects a duplicate begin appended after begin before forwarding any action", async () => {
+  const f = await fixture();
+  const completion = fetch(`${f.bridge.url}/v1/chat/completions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: "test-model", messages: [], tools: [{ type: "function", function: { name: "press" } }] }) });
+  const key = await f.pending(); appendFileSync(f.source, nativeAnchor(key, "begin")); await f.command("begin", key);
+  appendFileSync(f.source, nativeLine({ type: "function_call_output", call_id: "begin", output: "observation" }) + nativeAnchor(key, "begin", "late") + nativeAnchor(key, "respond"));
+  const reply = join(f.dir, "late-anchor.json"); writeFileSync(reply, JSON.stringify({ name: "press", arguments: {} }));
+  await expect(f.command("respond", key, reply)).rejects.toThrow(/ambiguous native begin/);
+  const response = await completion; expect(response.status).toBe(503); expect(await response.text()).not.toContain("tool_calls");
 });

@@ -212,6 +212,7 @@ export class CodexCapture {
     this.sync(); this.requireSettings(model);
     const begin = this.beginnings.get(key);
     if (!begin) throw new Error("decision has not begun");
+    this.anchor(key, "begin");
     const end = this.anchor(key, "respond");
     if (end.start < begin.end) throw new Error("response anchor precedes observation boundary");
     const outputs = (this.outputs.get(begin.id) ?? []).filter(o => o.start >= begin.end && o.end <= end.start);

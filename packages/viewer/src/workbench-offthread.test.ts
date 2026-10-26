@@ -291,6 +291,36 @@ function heldCompute(): { compute: WorkbenchCompute; calls: string[]; release: (
   };
 }
 
+it("serves saved live trainer cards on a fresh viewer before growing recordings finish loading", async () => {
+  const r = root(), log = named();
+  log.add(5000, state({ party: [{ species: "TORCHIC", species_id: 280, level: 5, hp: 18, max_hp: 20 }] }));
+  const path = write(r, "saved-live", log);
+  const options = { runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, fetchFn: () => Promise.resolve(new Response("ok")) };
+  const one = await startViewer({ ...options, workbench: { partial: true } });
+  const expected = { name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: 280, level: 5, egg: false }] };
+  try {
+    const warm = parseWorkbench(await (await fetch(new URL("api/cards?run=saved-live", one.url))).json());
+    expect(warm.runs.map(run => run.id)).toEqual(["saved-live"]);
+    expect(warm.runs[0]?.card).toEqual(expected);
+  } finally { await one.close(); }
+  const gap = log.add(6000, state({ screen: "battle", in_battle: true, name: null, location: null, party: [], play_time_s: null }));
+  fs.appendFileSync(path, JSON.stringify({ ...gap, run: "saved-live" }) + "\n");
+  const held = heldCompute();
+  const two = await startViewer({ ...options, workbench: { partial: true, compute: held.compute } });
+  try {
+    const cold = parseWorkbench(await (await fetch(new URL("api/cards", two.url))).json());
+    expect(cold.runs.map(run => run.id), JSON.stringify(cold)).toEqual(["saved-live"]);
+    expect(cold.runs[0]?.card).toEqual(expected);
+    expect(cold.runs[0]?.measurement).toBeUndefined();
+    expect(held.calls).toEqual(["saved-live"]);
+    const selected = parseWorkbench(await (await fetch(new URL("api/cards?run=saved-live", two.url))).json());
+    expect(selected.runs[0]?.card).toEqual(expected);
+    const unvalidated = parseWorkbench(await (await fetch(new URL("api/workbench", two.url))).json());
+    expect(unvalidated.runs[0]).toMatchObject({ status: "invalid", splits: [] });
+    expect(unvalidated.runs[0]?.measurement).toBeUndefined();
+  } finally { held.release(); await two.close(); }
+});
+
 it("serves a partial snapshot at once while cold runs load in the background", async () => {
   const r = catalog();
   const h = heldCompute();

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { fullRun, tAt } from "../test-support/events.js";
-import { baselineCacheDir, codeIdentity, createBaselineStore, pruneBaselineCaches } from "./baseline-store.js";
+import { baselineCacheDir, codeIdentity, createBaselineStore, createCardStore, pruneBaselineCaches } from "./baseline-store.js";
+import { loadRun } from "./workbench-store.js";
 import { BaselineError, baselineOf, computeBaseline, createBaselineReader, type BaselineCompute } from "./runs.js";
 import { startViewer, type Viewer } from "./server.js";
 
@@ -33,6 +34,25 @@ function counted(): { compute: BaselineCompute; calls: string[] } {
   return { calls, compute: (runsRoot, runId) => { calls.push(runId); return Promise.resolve(computeBaseline(runsRoot, runId)); } };
 }
 const CODE = "a".repeat(64);
+
+it("validates saved card identities and drops measurements independently of parser caches", () => {
+  const dir = root(); write(dir, "card"); write(dir, "other");
+  const store = createCardStore(dir), loaded = loadRun(dir, "card");
+  store.put("card", "signature", loaded);
+  const restored = store.latest("card");
+  expect(restored).toMatchObject({ fingerprint: "signature", outcome: { run: { id: "card", card: loaded.run.card } } });
+  expect(restored?.outcome.run.measurement).toBeUndefined();
+  const path = join(dir, ".viewer-cache", "cards-v1", "card.json");
+  for (const bad of ["not json", JSON.stringify({ fingerprint: "signature", outcome: loadRun(dir, "other") }), JSON.stringify({ fingerprint: "signature", outcome: { ...loaded, run: { ...loaded.run, card: { name: "MAY", location: null, party: [{ speciesId: 9999, level: 1, egg: false }] } } } }), JSON.stringify({ fingerprint: "signature", outcome: { ...loaded, run: { ...loaded.run, card: null } } }), JSON.stringify({ fingerprint: "signature", outcome: { ...loaded, run: { ...loaded.run, status: "invalid" } } })]) {
+    fs.writeFileSync(path, bad);
+    expect(store.latest("card"), bad).toBeNull();
+  }
+  expect(store.latest("../escape")).toBeNull();
+  const blocked = root(); fs.writeFileSync(join(blocked, ".viewer-cache"), "blocked");
+  const unavailable = createCardStore(blocked);
+  expect(() => { unavailable.put("card", "signature", loaded); }).not.toThrow();
+  expect(unavailable.latest("card")).toBeNull();
+});
 
 it("reuses baselines and expected errors persisted by an earlier reader without computing again", async () => {
   const dir = root();

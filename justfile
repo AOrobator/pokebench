@@ -133,6 +133,11 @@ view run_id="": build
 viewer-main:
     scripts/viewer-main.sh
 
+# Opt-in Codex transcript/summary bridge. Build once first; never rebuild on each player decision.
+[positional-arguments]
+codex-capture *args:
+    node packages/agent/dist/codex-capture-cli.js "$@"
+
 # Serve local HTML deliverables (runs/mockups, plus reports, reviews, explainers) on 127.0.0.1:8791.
 pages:
     scripts/pages.sh serve

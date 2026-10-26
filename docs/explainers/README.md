@@ -6,6 +6,8 @@ The experiment queue was retired on 2026-10-22. Queue positions, pending registr
 
 Tracked, local HTML documentation. Open an explainer directly; no server or external account is required.
 
+- [Codex transcript and reasoning-summary capture](codex-capture.html) — opt-in adapter; no gameplay switch or Harness Config card.
+
 - [Astar navigation](astar-navigation.html)
 - [Counter talk v1](counter-talk-v1.html)
 - [Current run frontier](current-run-frontier.html)

@@ -235,7 +235,12 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
         }
         if (loaded.run.card != null && loaded.run.status !== "invalid" && after !== null && (after === signature || appendedSince(signature, after))) {
           const run = { ...loaded.run }; delete run.measurement;
-          options.cards?.put(id, signature, { ...loaded, run });
+          const bytes = loaded.run.measurement?.logBytes ?? Number(signature.split(":")[0]);
+          const size = Number(after.split(":")[0]);
+          if (bytes <= size) {
+            const fingerprint = bytes === size ? after : signature.replace(/^\d+:/, `${String(bytes)}:`);
+            options.cards?.put(id, fingerprint, { ...loaded, run });
+          }
         }
         return entry;
       })();

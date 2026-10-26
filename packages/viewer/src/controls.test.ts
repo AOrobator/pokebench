@@ -28,6 +28,28 @@ describe("run controls", () => {
     expect(splitStrip(view(), { run: "test", milestones: [] }, true)).toContain("NEW GAME");
   });
 
+  it("keeps Flannery campaign progress visible after optional rewards in either split source", () => {
+    const milestones = [
+      { name: "METEORITE_RECEIVED", offsetMs: 1000 },
+      { name: "FLANNERY_DEFEATED", offsetMs: 2000 },
+      { name: "LAVARIDGE_GYM_COMPLETE", offsetMs: 3000 },
+      { name: "HEAT_BADGE", offsetMs: 3000 },
+      { name: "OVERHEAT_RECEIVED", offsetMs: 4000 },
+      { name: "GO_GOGGLES_RECEIVED", offsetMs: 5000 },
+      { name: "FUTURE_DIAGNOSTIC", offsetMs: 6000 },
+    ];
+    const native = view(l => {
+      for (const m of milestones) l.add(m.offsetMs, { type: "milestone", turn: 1, name: m.name, server_timestamp: 1, kind: "story", origin: "observed" });
+    });
+    for (const [v, recorded] of [[view(), { run: "test", milestones }], [native, undefined]] as const) {
+      expect(splitStrip(v, recorded, true)).toBe('<div class="mspl"><span class="done">OVERHEAT RECEIVED ✔</span><span class="next">PETALBURG GYM RETURN</span></div>');
+      const full = splitStrip(v, recorded);
+      for (const label of ["FLANNERY DEFEATED", "LAVARIDGE GYM COMPLETE", "HEAT BADGE", "METEORITE RECEIVED", "GO GOGGLES RECEIVED", "FUTURE DIAGNOSTIC"]) expect(full).toContain(label + " ✔");
+      expect(splitTimes(v, null, recorded)).toContain('<span>HEAT BADGE</span><span class="t">0:00:03</span>');
+    }
+    expect(splitStrip(view(), { run: "test", milestones: [{ name: "METEORITE_RECEIVED", offsetMs: 1000 }] }, true)).toBe('<div class="mspl"><span class="next">NEW GAME</span></div>');
+  });
+
   it("offers only the controls that apply to the recorded state", () => {
     expect([...availableActions(view(), true)]).toEqual(["pause", "stop", "abort"]);
     expect([...availableActions(view(), false)]).toEqual([]);

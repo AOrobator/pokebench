@@ -1,5 +1,7 @@
+import { isRunEvent } from "./model.js";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Log, START } from "../test-support/events.js";
@@ -14,3 +16,8 @@ it("rolls back all parts of a failed commit and rejects stale output",()=>{const
 it("allows independent read-only connections but excludes a second writer",()=>{const {db,s,state}=setup();s.commit(state,source,[]);expect(()=>openCurrentStore(db)).toThrow();const reader=openCurrentStore(db,{readOnly:true});opened.push(reader);expect(reader.get(state.run)?.state.turn).toBe(0);expect(()=>reader.commit(state,source,[])).toThrow();s.close();const replacement=openCurrentStore(db);opened.push(replacement);expect(replacement.get(state.run)).not.toBeNull();});
 it("revisions support reset, tombstones and bounded journal retention",()=>{const {s,state}=setup();const epoch=s.epoch;for(let n=0;n<3;n++)s.commit(state,{...source,generation:String(n)},[],2);expect(s.changes(`${epoch}:0`)).toMatchObject({reset:true});expect(s.changes(`${epoch}:2`)).toMatchObject({reset:false,revision:3});expect(s.changes("foreign:2")).toMatchObject({reset:true});s.remove(state.run);expect(s.get(state.run)).toBeNull();expect(s.changes(`${epoch}:3`).runs).toEqual([{run:state.run,removed:true}]);});
 it("refuses invalid cursors and source coordinates",()=>{const {s,state}=setup();for(const offset of [-1,101,NaN])expect(()=>s.commit(state,{...source,offset},[])).toThrow();expect(s.changes("bad")).toMatchObject({reset:true});expect(()=>s.seek("../bad",source.generation,1)).toThrow();});
+
+it("rolls back a late SQL failure, including revision and earlier index writes",()=>{const {db,s,state}=setup();const raw=new DatabaseSync(db);raw.exec("CREATE TRIGGER fail_index BEFORE INSERT ON history WHEN NEW.seq=1 BEGIN SELECT RAISE(ABORT,'injected late failure'); END");raw.close();const later={...state,seq:1,nextSeq:2};expect(()=>s.commit(later,{...source,offset:200,size:200},[{seq:0,turn:0,offset:0,end:100},{seq:1,turn:1,offset:100,end:200}])).toThrow(/injected/);expect(s.revision()).toBe(0);expect(s.get(state.run)).toBeNull();expect(s.seek(state.run,source.generation,2)).toBeNull();});
+it("refuses symlinked database or writer-lock files",()=>{const {db,s}=setup();s.close();const alias=db+"-alias";symlinkSync(db,alias);expect(()=>openCurrentStore(alias)).toThrow(/symbolic/);rmSync(alias);symlinkSync(db+"-missing",alias);expect(()=>openCurrentStore(alias)).toThrow(/symbolic/);rmSync(db+".lock");symlinkSync(db,db+".lock");expect(()=>openCurrentStore(db)).toThrow(/symbolic/);});
+
+it("persists the recorded native battle health anchors through SQLite and JSON",()=>{const {s,state}=setup();const raw:unknown=JSON.parse(readFileSync(new URL("../test-support/party-health-recorded.json",import.meta.url),"utf8"));if(!Array.isArray(raw)||!raw.every(isRunEvent))throw new Error("invalid native fixture");let next=state;for(const [i,event] of raw.slice(0,2).entries())next=foldCurrent(next,{...event,run:state.run,seq:i+1});s.commit(next,source,[]);const loaded=s.get(state.run);expect(loaded?.state.health?.party[0]?.hp).toBe(22);expect(loaded?.state.health?.source.seq).toBe(2);expect(loaded?.state.partyState?.seq).toBe(1);});

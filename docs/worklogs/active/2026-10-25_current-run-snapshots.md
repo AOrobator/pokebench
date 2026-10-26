@@ -20,7 +20,7 @@
 
 **Goal:** Persist bounded current display state and restart cursors; serve current cards/stats independently of historical reduction; stream current updates without history scans; backfill activity/replay separately. Preserve provenance, last-known-party semantics, active-run isolation, and honest completeness.
 
-**Non-goals:** No model prompts/tools/gameplay changes, emulator inputs, game-server changes, recording rewrites, run restarts, new trials, benchmark grading policy changes, trainer-card redesign, timeline additions, arbitrary transcript search, full historical database ingestion, multi-host service, or database on a network filesystem. No implementation or runtime activation in the present task.
+**Non-goals:** No model prompts/tools/gameplay changes, emulator inputs, game-server changes, recording rewrites, run restarts, new trials, benchmark grading policy changes, trainer-card redesign, timeline additions, arbitrary transcript search, full historical database ingestion, multi-host service, or database on a network filesystem. Runtime activation and shared viewer refresh remain prohibited by the implementation authorization.
 
 ## Phase model
 
@@ -122,28 +122,28 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M1 (not started)
+## Current Milestone: M1 (implementation; final gates/review pending)
 
 ### Completed Milestones
 
-None. Planning document creation is complete; implementation approval is pending.
+None. Implementation is authorized and M1 is in progress; no milestone is complete.
 
 ### Remaining Milestones
 
 For each behavior milestone: RED -> GREEN commits; record counts/build/coverage; `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions across both stacks), `just verify-vendor`; appropriate focused checks and production wiring; adversarial deletion of each claimed guard; required current multi-model review on frozen scope. No local-inference reviewers. Recheck review/landing rules and independently verify any applicable waiver. No milestone advances with failing gates.
 
-**M1 - Freeze compatible contract and persist resumable checkpoints (queue ID pending):**
-- [ ] Contract freeze: recheck card-persistence chat/main/served source; bind dependency SHA; schema/field semantics, SQLite binding, source generations, public/private checkpoints and bounded resource parameters. Owner: snapshot store/reducer. No daemon activation, UI changes or card-cache rewrite.
-- [ ] Terminator: append/commit/restart gives exact parity with full reduction of tiny native fixtures, including restored namespace; source log immutability and schema migration tests. Accepted risk: arbitrary undetected old-prefix edits require explicit invalidation/full verification.
-- [ ] Split triggers: changing recording durability, introducing remote storage/third-party database service, new party retention policy, or migration beyond additive derived schema.
-- [ ] Tests: double service lock, before/after-commit crashes, torn line, queued growth/actual-consumed offset, source replacement/truncation, incompatible checkpoint, DB failure, current retry vs totals/context provenance.
-- [ ] COMMIT: `test(viewer): specify durable current-state checkpoint recovery` (RED; SHA pending).
-- [ ] Implement minimal typed reducer/store and checkpoint restore; no integration in production startup yet.
-- [ ] Adversarial deletion; focused persistence/recovery tests; full gates and coverage.
+**M1 - Freeze compatible contract and persist resumable checkpoints (tracked by this worklog):**
+- [x] Contract freeze: recheck card-persistence chat/main/served source; bind dependency SHA; schema/field semantics, SQLite binding, source generations, public/private checkpoints and bounded resource parameters. Owner: snapshot store/reducer. No daemon activation, UI changes or card-cache rewrite.
+- [x] Terminator: append/commit/restart gives exact parity with full reduction of tiny native fixtures, including restored namespace; source log immutability and schema migration tests. Accepted risk: arbitrary undetected old-prefix edits require explicit invalidation/full verification.
+- [x] Split triggers: changing recording durability, introducing remote storage/third-party database service, new party retention policy, or migration beyond additive derived schema.
+- [x] Tests: double service lock, before/after-commit crashes, torn line, queued growth/actual-consumed offset, source replacement/truncation, incompatible checkpoint, DB failure, current retry vs totals/context provenance.
+- [x] COMMIT: `test(viewer): specify durable current-state checkpoint recovery` (RED;447e738b0).
+- [x] Implement minimal typed reducer/store and checkpoint restore; no integration in production startup yet.
+- [x] Adversarial deletion; focused persistence/recovery tests; full gates and coverage.
 - [ ] COMMIT: `feat(viewer): persist resumable current-run checkpoints` (GREEN; SHA pending).
 - [ ] Multi-model review against Architecture and INV-1/2/5/6/7; frozen artifact and conformance receipt.
 
-**M2 - Independent bounded service and existing-run reconstruction (queue ID pending):**
+**M2 - Independent bounded service and existing-run reconstruction (tracked by this worklog):**
 - [ ] Contract freeze: local daemon lifecycle, singleton, source discovery, live-tail scheduling, resumable initial reconstruction and asynchronous health. Owner: snapshot service. No agent/game writer edits; no production enablement.
 - [ ] Terminator: process-level fixture service restarts from cursor, resumes interrupted initial reconstruction and stays responsive under held/large history; complete/provisional handoff has no rewind/double count.
 - [ ] Split triggers: modifying runner lifecycle/leases, distributing the service, or requiring a new direct game-state sampler.
@@ -154,7 +154,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [ ] COMMIT: `feat(viewer): add bounded current-run snapshot service` (GREEN; SHA pending).
 - [ ] Multi-model review against service ownership/recovery contract and INV-1/2/6/8.
 
-**M3 - Fast endpoints, reconnect and indexed history pages (queue ID pending):**
+**M3 - Fast endpoints, reconnect and indexed history pages (tracked by this worklog):**
 - [ ] Contract freeze: four routes above, indexed card identity metadata, consistent epoch/revision/resync, sparse bounded history and independent read execution. Owner: viewer read API. No default browser migration or historical catalog ingestion.
 - [ ] Terminator: production HTTP path returns current snapshots while reconstruction and health are held; source-read observer shows zero event-log reads for current endpoints; paged history has no gaps/duplicates within generation.
 - [ ] Split triggers: unbounded arbitrary trace search, remote/public write APIs, or new grading/index authority.
@@ -165,7 +165,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [ ] COMMIT: `feat(viewer): serve current snapshots and bounded history` (GREEN; SHA pending).
 - [ ] Multi-model review against endpoint contracts and INV-3/4/6/7.
 
-**M4 - Snapshot-first browser with separate history/replay state (queue ID pending):**
+**M4 - Snapshot-first browser with separate history/replay state (tracked by this worklog):**
 - [ ] Contract freeze: off-by-default viewer configuration selects new current-state path; history fills separately; existing card store still supplies saved-card fallback until M5. Owner: browser current view. No artwork, layout/identity redesign, protected baseline edits or timeline additions.
 - [ ] Terminator: fresh page and viewer/service restarts show known cards/current stats before deliberately held history; controls remain correctly bound; recent/older pages cannot rewind current display. Full legacy mode still works.
 - [ ] Split triggers: changing displayed card identity or appearance, model-visible feature flags, or changing operator budget application semantics.
@@ -176,7 +176,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [ ] COMMIT: `feat(viewer): render current state before loading history` (GREEN; SHA pending).
 - [ ] Multi-model review against startup/backfill contract and all affected invariants.
 
-**M5 - Card-store handoff and authorized rollout (queue ID pending):**
+**M5 - Card-store handoff and authorized rollout (tracked by this worklog):**
 - [ ] Contract freeze: controlled migration from dependency cards-v1, exact one-writer mode, preserved legacy rollback path, operator-authorized staged activation only. Owner: derived snapshot service after handoff. No active-run change or grading migration.
 - [ ] Terminator: native parity, restart/browser proof, performance/resource receipt, explicit rollout decision, queued landing/main gates and authorized activation with process continuity. Accept initial unindexed historical rows as explicitly indexing; never claim instant reconstruction of unseen history.
 - [ ] Split triggers: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
@@ -290,3 +290,23 @@ Direct message sent to card owner; coordinator receipt independently confirms fi
 M1 frozen production boundary: new current-state.ts (bounded typed display/checkpoint reducer), current-store.ts (SQLite transactions/cursors/index/single writer), their tests. Existing model/party retention semantics reused unchanged. No runtime wiring or source log writer edits. Basecf5c9cf5a. Process baseline includes active agent PIDs70713/84705/89032/97517 and their game launcher/server children; no changes performed.
 
 M1 RED: current-state/current-store tests fail to import nonexistent implementation. Tests freeze cumulative resume parity, party retention/reset, context/retry provenance, source/seq/terminal validation, bounded pending operations, atomic cursor/index/revision rollback, writer singleton, read-only connections and revision reset/tombstone behavior. No live sources read. Receipt /tmp/current-snapshots-m1-red.log.
+
+M1 progress:14 focused fixture tests PASS; strict TS and scoped ESLint PASS. Ordinary initial buildPASS20.66s. Full gate runner paused at lint boundary on coordinator CPU-ownership correction (capture owns window); lint later failed3 new style assertions/delete issues, corrected without changing rules. Scheduler stopped before any full test/coverage. No full-gate pass claim; rerun pending CPU release.
+
+Performed14 single guard/wiring/behavior deletions against a GREEN baseline; each failed its exact source suite and restored: order, terminal, foreign-run identity, injected pending-tool limit, restored roster, resumed tokens, next/start seq, source offset/size, stale cursor, sparse index end, singleton lock, late SQL rollback, symlink refusal. Added separate failing dangling-symlink regression and fixed lstat detection. All artifacts in owned runs/reviews/current-run-snapshots; not yet copied to canonical preservation root. First mutation attempt ran while platform /var symlink rejection broke fixtures and is NOT valid evidence; reran entire mutation set against restored GREEN baseline after fixing configured store path handling. Preserve that distinction.
+
+M1 full ordinary test PASS4448agent/2044viewer/4425Python+3 protected cards after explicit ROM env correction. Coverage first run failed unchanged app.test.ts:1529 phone rolling-window reader5000ms timeout,5775ms observed; code/app test have empty diff from base and same inherited timeout is recorded in budget-extension worklog. No retry, suppression or unrelated fix; released CPU for capture/Flannery and will request a new coordinated coverage window after diagnosis.
+
+Self-review found an in-scope JSON restart provenance issue: raw/party state serialize as separate objects and reference-based current-party notice would falsely report stale state. Added exact reference regression, observed RED, then rebind same-sequence anchors at hydration. Receipt /tmp/current-snapshots-m1-provenance-red.log. Gate source invalidated; final full gates will rerun on corrected source (no claim first gate covers correction).
+
+M1 provenance correction:16 focused testsPASS, scoped TS/ESLintPASS; native recorded battle fixture retains22/39HP with current-source identity after JSON restart. All16 mutation cases now independently RED/restored, including current roster reference and battle-health source reference. Added no alternate party policy; rehydration reuses same-sequence anchors. Raw fixture values retained; isolated replay fixture rebinds envelope run/sequence/time only. Full corrected-source gates pending next CPU window after capture/Flannery. Before-env failure logs are redacted for inherited environment credentials before preservation/review.
+
+Owned-branch sync to current main535989c4b before corrected-source gates; mergecc0219c9fcfc620cea4a7c1d4e50431d807c4ecc. Main changes are Flannery controls-summary and its test/worklog, no M1 source conflict. Shared main was not moved by this task. CPU order now final-context-budget, Flannery finite postmerge main-test, then snapshots; no owned heavy job until explicit relay. Current focused set17PASS, prior14case full-gate results remain historical, not final proof.
+
+M1 source conformance refinement before review: retained bounded raw milestone anchors were missing from the checkpoint despite the approved recorded-progress group. Added failing progress-retention and injected-limit tests, then persisted unique recorded anchors (default1024 bound). currentView still does not hydrate milestones/validated splits: these anchors remain recorded/unverified data and cannot seed grading or timeline state. Source event schemas validate them at the SQLite boundary. Receipt /tmp/current-snapshots-m1-progress-red.log. New in-contract data field only; no grade or card-owner change.
+
+M1 final CPU window released22:37EDT after Flannery live proof; synced latest documentation-only mainba6361e74 in owned branch. Current focused18PASS; fixed callback narrowing before starting full gates. No service/API/browser code or runtime changes exist yet. Full corrected-source build/lint/test/coverage/vendor starts now, single owned runner.
+
+M1 final GREEN source gates allPASS on unchanged executable hashes recorded m1-source-hashes.json: build19.84s, lint106.40s, ordinarytest113.51s (4448agent/2049viewer/4425Python plus3protected trainer widths), coverage127.14s (agent99.17/92.76/97.60; viewer98.24/91.61/95.26; Python97.47/93.58/100 lines/branches/functions), vendor0.13s.18 focused source/SQLite tests PASS;18 performed guard/behavior deletions independently RED/restored after GREEN baseline. No application/test/config bytes changed during or after final gates, except temporary restored mutation probes; hashes match final gate source. All earlier failures preserved and explicitly superseded, never suppressed.
+
+No runtime callers, daemon/API/browser wiring or card writer changes in M1. Gate CPU released22:45EDT. Coordinator declined main hold under current standing policy (branches not ready cannot hold); review frozen ba6361e74, join board only after LGTM; byte-identical diff digest can preserve reviews if main moves. No board slot currently joined and no shared refresh authorized. COMMIT: persist resumable current checkpoints GREEN (SHA recorded next).

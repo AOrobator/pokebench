@@ -182,8 +182,9 @@ function runSplits(view: RunView, recorded?: BestSplits | null): { name: string;
 export function splitStrip(view: RunView, recorded?: BestSplits | null, compact = false): string {
   if (recorded === null) return '<div class="mspl"><span class="next">LOADING RECORDED SPLITS…</span></div>';
   const all = runSplits(view, recorded);
-  const current = all.findLast((split) => split.at !== null);
-  const splits = compact ? all.filter((split) => split === current || split.at === null) : all;
+  // Optional rewards are catalogued after the campaign; they must not hide a later gym win.
+  const currentName = FRONTIER_MILESTONES.findLast(m => all.some(split => split.name === m.id && split.at !== null))?.id;
+  const splits = compact ? all.filter((split) => split.name === currentName || split.at === null) : all;
   return `<div class="mspl">${splits.map(({ label, at }) => `<span class="${at === null ? "next" : "done"}">${esc(label)}${at === null ? "" : " ✔"}</span>`).join("")}</div>`;
 }
 

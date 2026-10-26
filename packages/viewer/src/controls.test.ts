@@ -47,7 +47,7 @@ describe("run controls", () => {
       for (const label of ["FLANNERY DEFEATED", "LAVARIDGE GYM COMPLETE", "HEAT BADGE", "METEORITE RECEIVED", "GO GOGGLES RECEIVED", "FUTURE DIAGNOSTIC"]) expect(full).toContain(label + " ✔");
       expect(splitTimes(v, null, recorded)).toContain('<span>HEAT BADGE</span><span class="t">0:00:03</span>');
     }
-    expect(splitStrip(view(), { run: "test", milestones: [milestones[0]!] }, true)).toBe('<div class="mspl"><span class="next">NEW GAME</span></div>');
+    expect(splitStrip(view(), { run: "test", milestones: [{ name: "METEORITE_RECEIVED", offsetMs: 1000 }] }, true)).toBe('<div class="mspl"><span class="next">NEW GAME</span></div>');
   });
 
   it("offers only the controls that apply to the recorded state", () => {

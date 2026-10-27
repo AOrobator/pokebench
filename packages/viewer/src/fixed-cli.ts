@@ -279,9 +279,11 @@ function analyzeReceipt(argv: readonly string[], deps: FixedCliDeps): number {
     const run = String(r.run);
     const path = join(deps.runsRoot, run, "events.jsonl");
     const o = classifyTrial(existsSync(path) ? fileLines(path) : null, { maxWallMs: capMs, primary }, typeof r.exit === "number" ? r.exit : undefined);
-    return { slot: Number(r.trial), lane: "A", arm: r.arm === treatment ? "bundle" : "control", run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+    return { slot: Number(r.trial), lane: "A", arm: r.arm === treatment ? "bundle" : "control", run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
   });
-  deps.out(renderAnalysis(analyze(trials, [], readExclusions(deps.runsRoot).exclusions), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
+  const { exclusions, problems } = readExclusions(deps.runsRoot);
+  for (const problem of problems) deps.err(problem);
+  deps.out(renderAnalysis(analyze(trials, [], exclusions), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
   return 0;
 }
 

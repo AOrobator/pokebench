@@ -193,7 +193,7 @@ export function splitStrip(view: RunView, recorded?: BestSplits | null, compact 
 }
 
 // This run's split times against the agent frontier; under a second apart is a tie.
-export function splitTimes(view: RunView, frontier: BestSplits | null, recorded?: BestSplits | null): string {
+export function splitTimes(view: RunView, frontier: BestSplits | null, recorded?: BestSplits | null, frontierLoading = false): string {
   if (recorded === null) return '<p class="small muted">loading recorded splits…</p>';
   const splits = runSplits(view, recorded);
   const bests = new Map(frontier?.milestones.map((m) => [m.name, m.offsetMs / 1000]) ?? []);
@@ -203,7 +203,7 @@ export function splitTimes(view: RunView, frontier: BestSplits | null, recorded?
     const delta = at === null || ref === undefined ? `<span class="d na">${at === null ? "next" : ""}</span>` : tie ? `<span class="d">±${hms(0)}</span>` : `<span class="d ${at < ref ? "g" : "r"}">${at < ref ? "−" : "+"}${hms(Math.abs(at - ref))}</span>`;
     return `<span>${esc(label)}</span><span class="t${at === null ? " na" : ""}">${at === null ? "—" : hms(at)}</span>${delta}`;
   }).join("");
-  return `<div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS FRONTIER</span>${rows}</div>${frontier === null ? '<p class="small muted">no frontier run to compare yet</p>' : ""}`;
+  return `<div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS FRONTIER</span>${rows}</div>${frontier !== null ? "" : frontierLoading ? '<p class="small muted">loading the frontier run…</p>' : '<p class="small muted">no frontier run to compare yet</p>'}`;
 }
 
 function pips(history: FeatureHistory): string {

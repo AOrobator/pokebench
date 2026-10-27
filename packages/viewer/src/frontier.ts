@@ -78,21 +78,31 @@ export function preciseTime(ms: number): string {
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
 // The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
 const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused");
-export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
+function rankedAgents(runs: readonly WorkbenchRun[]): WorkbenchRun[] {
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
   const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
   const agents = runs.filter(r => frontierCandidate(r) && rank(r) >= 0);
-  agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
-  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: agents[0] ?? null };
+  return agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
+}
+export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
+  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: rankedAgents(runs)[0] ?? null };
+}
+// The frontier and the runner-up are enough to answer every run: excluding a run from the ranking only matters when it is the frontier.
+export interface FrontierPair { readonly best: Baseline | null; readonly runnerUp: Baseline | null }
+const nativeSplits = (run: WorkbenchRun | undefined): Baseline | null => run === undefined ? null : { run: run.id, milestones: run.splits.filter(s => s.screenshotEvidence === undefined).map(s => ({ name: s.name, offsetMs: s.elapsedMs, ...(s.derived === true ? { derived: true } : {}) })) };
+export function frontierPair(runs: readonly WorkbenchRun[]): FrontierPair {
+  const [best, runnerUp] = rankedAgents(runs);
+  return { best: nativeSplits(best), runnerUp: nativeSplits(runnerUp) };
 }
 // The frontier a run's splits race: the frontier graph's agent frontier among the other runs (a frontier run races
 // the next one, not itself), with its native splits; a checkpoint resume's clock starts mid-game, so it has none.
+export function pairFrontier(pair: FrontierPair, current: string, resumed: boolean): Baseline | null {
+  if (resumed) return null;
+  return pair.best?.run === current ? pair.runnerUp : pair.best;
+}
+export const resumedCheckpoint = (resume: string | null | undefined): boolean => FRONTIER_MILESTONES.some(m => m.id === resume);
 export function frontierSplits(runs: readonly WorkbenchRun[], current: string): Baseline | null {
-  const self = runs.find(r => r.id === current);
-  if (self !== undefined && resumeMilestone(self) !== null) return null;
-  const best = frontierReferences(runs.filter(r => r.id !== current)).best;
-  if (best === null) return null;
-  return { run: best.id, milestones: best.splits.filter(s => s.screenshotEvidence === undefined).map(s => ({ name: s.name, offsetMs: s.elapsedMs, ...(s.derived === true ? { derived: true } : {}) })) };
+  return pairFrontier(frontierPair(runs), current, resumedCheckpoint(runs.find(r => r.id === current)?.config?.resume));
 }
 export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "unsupported" | "pending" | "censored" | "not reached" | "excluded" {
   if (run.excluded !== null || run.problem !== null) return "excluded";

@@ -22,13 +22,14 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { createCardStore } from "./baseline-store.js";
-import { frontierSplits } from "./frontier.js";
+import { resumedCheckpoint } from "./frontier.js";
+import { createFrontierCache, type FrontierCache } from "./frontier-cache.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
-import { cardWorkbench, createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createWorkbenchLoader, runResume, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
@@ -133,6 +134,8 @@ export interface ViewerOptions {
   readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
   // This viewer's own build (default: dist/build-stamp.json); null when unknown.
   readonly build?: ViewerBuild | null;
+  // The frontier ranking: persisted to file across restarts (absent: memory only), ranked at start when warm.
+  readonly frontier?: { readonly file?: string | null; readonly warm?: boolean };
   // Where workbench run logs are reduced (default: in process) and where finished runs persist.
   readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun>; readonly partial?: boolean; readonly prioritize?: (runIds: readonly string[]) => void };
 }
@@ -408,7 +411,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -613,7 +616,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if (parts.length === 4 && leaf === "frontier") {
       if (!existsSync(dir)) throw new RunsError(`no run ${id}`);
-      sendJson(res, 200, { frontier: frontierSplits((await readCompleteWorkbench()).runs, id) });
+      sendJson(res, 200, await frontier.answer(id, resumedCheckpoint(runResume(options.runsRoot, id))));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
@@ -672,6 +675,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
   // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).
   const readCompleteWorkbench = (): Promise<WorkbenchData> => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), (options.now?.() ?? new Date()).getTime(), undefined, workbenchLoader, {}, catalog);
+  const frontier = createFrontierCache({ read: async () => (await readCompleteWorkbench()).runs, now: () => (options.now?.() ?? new Date()).getTime(), file: options.frontier?.file ?? null, onError: error => { console.error(`frontier ranking failed: ${error instanceof Error ? error.message : String(error)}`); } });
+  if (options.frontier?.warm === true) frontier.warm();
   const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
@@ -708,7 +713,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, catalog, strictCatalog, readBag).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

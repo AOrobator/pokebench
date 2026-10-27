@@ -42,6 +42,10 @@ function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): stri
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
   return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
 }
+// The checkpoint a run resumed from, read from its run_start alone (null: power-on or an unreadable start).
+export function runResume(root: string, id: string): string | null {
+  try { return resumeCheckpoint(startOf(root, id)); } catch { return null; }
+}
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
   return {

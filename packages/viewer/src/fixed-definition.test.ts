@@ -43,7 +43,7 @@ it("binds config bytes to approval identity, and keeps schedule-only edits in so
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
 it("all maintained future protocols reference one feature owner, including both-arm NPC support",()=>{
- const loaded=["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"].map(id=>{
+ const loaded=["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"].map(id=>{
   const source=JSON.parse(readFileSync(join(root,`experiments/fixed/${id}.json`),"utf8")) as {featureRecipe?:string;base:{features?:unknown};switches?:unknown};
   expect(source.featureRecipe,id).toBe("current");expect(source.base.features,id).toBeUndefined();expect(source.switches,id).toBeUndefined();return readFixedDefinition(root,id).definition;
  });

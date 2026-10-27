@@ -192,6 +192,13 @@ describe("type-gap-team-v1 gym evidence",()=>{
   once.observe(wild(1,10,true));
   once.observe(talk(6,[page("ROXANNE, the GYM LEADER, is a user\nof ROCK-type POKéMON.","RUSTBORO CITY GYM")]));
   expect(once.block(field(10,"RUSTBORO CITY GYM"))).toContain("SHROOMISH GRASS on ROUTE104 (1 battle, turn 10)");
+  // A GEODUDE (ROCK/GROUND) met before the ROCK guide is never listed, though GROUND is a gap type.
+  const rock=new TypeGapTeam();
+  rock.observe({...wildDecision("GEODUDE",[5,4]),seq:1,turn:10,type:"state"} as unknown as RunEvent);
+  rock.observe(talk(6,[page("ROXANNE, the GYM LEADER, is a user\nof ROCK-type POKéMON.","RUSTBORO CITY GYM")]));
+  const text=rock.block(field(10,"RUSTBORO CITY GYM"))??"";
+  expect(text).toContain("- Wild POKéMON met this run with those types: none");
+  expect(text).not.toContain("GEODUDE ROCK/GROUND on");
  });
  it("takes a gym's own type from the types all its battle POKéMON share when nothing was said",()=>{
   const team=new TypeGapTeam();

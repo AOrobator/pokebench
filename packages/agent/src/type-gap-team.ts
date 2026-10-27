@@ -219,7 +219,8 @@ export class TypeGapTeam {
    const moves=wildFoe.moves.flatMap(m=>m.name===null?[]:[`${m.name}${m.move_type===null?"":` ${name(m.move_type)}`}`]);
    lines.push(`- Wild ${wildFoe.species} is ${typeText(wildFoe.types)} (its types in this battle) · moves now: ${moves.length===0?"none":moves.join(", ")}`);
   }else{
-   const met=this.wild.filter(w=>w.types.some(t=>gaps.has(t)));
+   // Like a wild foe in battle, a species met with one of a gym's own types is never listed.
+   const met=this.wild.filter(w=>w.types.some(t=>gaps.has(t))&&!w.types.some(t=>own.has(t)));
    lines.push(`- Wild POKéMON met this run with those types: ${met.length===0?"none":met.map(w=>`${w.species} ${typeText(w.types)} on ${w.map} (${w.battles===1?`1 battle, turn ${String(w.first)}`:`${String(w.battles)} battles, turns ${String(w.first)} to ${String(w.last)}`})`).join("; ")}`);
    this.lossPending=false;
    for(const [key] of fresh)this.knownShown.add(key);

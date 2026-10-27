@@ -69,3 +69,11 @@ Round 2 (base 511a6f95c, head df41b738f, packet 7e7614c9…):
   - #3 Wording: the untalked line comes ahead of the readout, after headers such as harness-trust-v1's. Description and explainer corrected; production-path test with harness-trust-v1 on.
   - #4 Fix: wild species are shown with battle count and first/latest turn ("2 battles, turns 10 to 40"), not every turn. Rebut the people-ledger half: PeopleLedger's per-state memory is the existing class shared with people-ledger-v1.
   - #5 Rebut: repeat of round 1's runtime-shape request with no new evidence.
+
+Gates at round 3's frozen head 809abf110 (rebased on main 72257830d): schema fresh; tsc and eslint clean; ruff and ruff format clean; mypy clean with the main checkout's venv (134 files; this worktree's uv venv lacks the mGBA binding); agent 4581 passed; viewer 2044 passed; Python 4439 passed + test_view.py 2 passed with the mGBA venv (it fails only on the missing binding in this venv); trainer cards 3/3; coverage agent 96.48/92.65/97.51, viewer 95.88/91.67/95.36, Python gate 97.40/93.55/99.78.
+
+Round 3 (base 72257830d, head 809abf110, packet 1ec81918…):
+- Claude CLI: BLOCKING. The field-time "Wild POKéMON met this run" list still names species sharing a gym's own type (GEODUDE after a ROCK guide; NUMEL before Lavaridge). Fix: the list applies the same gym-own-type exclusion as the battle branch. Test added (red without the fix, green with it).
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 the same field-list bug (Fix above). #2 test runtime shape: rebut (operator-approved after round 2). #3 no gate record for the frozen head: the gates had run; recorded above.
+- Fallback (fresh Sonnet subagent): LGTM, with the same field-list point as a follow-up.
+- Stopped and reported to the operator (GPT blocked again); option (a) round 4 recommended.

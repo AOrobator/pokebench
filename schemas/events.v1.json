@@ -1531,6 +1531,41 @@
           },
           "additionalProperties": false
         },
+        "prompt_count": {
+          "type": "object",
+          "required": [
+            "tokens",
+            "source",
+            "limit",
+            "reserve",
+            "dropped_turns"
+          ],
+          "properties": {
+            "tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source": {
+              "enum": [
+                "vllm-tokenize",
+                "llamacpp-tokenize",
+                "estimate"
+              ]
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "reserve": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dropped_turns": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
         "latency_ms": {
           "type": "integer",
           "minimum": 0

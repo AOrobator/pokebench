@@ -25,8 +25,9 @@ Approved scope (coordinator relay of the operator's approval): build the switch,
 
 - [x] RED: tests for the vLLM 400 text, the 58,371/61,441 miss shape, OFF unchanged, /tokenize unavailable, whole-turn dropping, counters, recorder, provider, viewer explainer route. COMMIT: `test: RED for context-exact-count-v1 (vLLM tokenize fit, overflow wording, prompt_count)` (bb2d1d399)
 - [x] Wiring red check: disabling the ON branch in `contextBudget` turned the factory test red (1 failed); restored, green.
-- [ ] GREEN + gates (just lint, just test)
-- [ ] live check against GPU0 vLLM :18020 (read-only probe)
+- [x] GREEN. COMMIT: `feat(agent): context-exact-count-v1 counts each request on the serving vLLM or llama.cpp server` (6b1e41a8f); merged main (e53bcdbe9); `just schema` regenerated schemas/events.v1.json for `prompt_count`.
+- [x] Gates on the merged tip: `just lint` JS clean; Python ruff/format clean, mypy clean with main's venv (worktree venv has no native mGBA binding; no Python changed). `just test`: agent 4562 passed (96.47 lines / 92.67 branches / 97.56 funcs), viewer 2073 passed (95.8 / 91.63 / 95.31), pytest 4430 passed + 1 failed (`test_view.py::test_production_main_registers_view_pcm_and_browser_module_before_vendor_main`: `ModuleNotFoundError: No module named 'mgba'` in the worktree venv; passes 1/1 with main's venv), Python TOTAL 96%.
+- [x] live check against GPU0 vLLM :18020 (see Live check)
 - [ ] review (Claude CLI, GPT/Codex, fallback; personas: harness engineer, data scientist, ML engineer, evaluation integrity)
 - [ ] land ff-only via land board
 - [ ] stop runner 37156, relaunch hyperqwen-control-3h, first-turns health

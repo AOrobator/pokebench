@@ -76,3 +76,13 @@ Not a harness behavior change, so there's no feature switch: the gateway is an e
   - Interrupt the backoff sleep when the client is gone.
   - A distinct label for non-OSError handler failures.
   - An incremental cursor for replay.
+
+## M4 — `--autocompact` gateway option (future runs only)
+
+The operator, 2026-10-27 ~6:30 PM ET (relayed): leave the live runs 36b5 and 76cd uncapped and untouched. The option is for future runs only.
+
+- `claude --help` (2.1.299): `--autocompact <auto|tokens>`, "Auto-compact window size (auto, or 100k–1M tokens)". Live check: `258k` and `258000` are accepted, `50k` is rejected ("must be 'auto', or between 100k and 1M").
+- Gateway: `--autocompact <100k–1M>` (for example `258k`) is passed through as `--autocompact <tokens>` in both modes, and logged in gateway_start and on every calls.jsonl row. When it's not set, the argv is unchanged (default auto, i.e. the model's window, 1M for Opus 5.5 and Fable 5.1). Astra's Codex compacted at a 258,400-token window.
+- [x] Option, argument parsing, tests (69 pass; 99.29/97.01/100), ruff and mypy --strict clean
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- [ ] Land ff-only

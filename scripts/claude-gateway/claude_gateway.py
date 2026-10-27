@@ -187,6 +187,8 @@ class Config:
     backoff: tuple[float, ...] = BACKOFF_SECONDS
     keepalive: float = KEEPALIVE_SECONDS
     call_timeout: float = CALL_TIMEOUT_SECONDS
+    # Claude Code's auto-compact window in tokens; None keeps its default (the model's window).
+    autocompact: int | None = None
 
     @property
     def advertised(self) -> str:
@@ -580,6 +582,8 @@ def claude_argv(config: Config, spec: CallSpec) -> list[str]:
         "--thinking-display",
         "summarized",
     ]
+    if config.autocompact is not None:
+        argv += ["--autocompact", str(config.autocompact)]
     if spec.mode == "stateless":
         return [*argv, "--tools", "", "--no-session-persistence"]
     # Snapshot on (the default) would keep the first system prompt across resumes.
@@ -802,6 +806,7 @@ class Gateway:
             mode=self.config.mode,
             model=self.config.model,
             effort=self.config.effort,
+            autocompact=self.config.autocompact,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -971,6 +976,7 @@ class Gateway:
             "model": self.config.model,
             "models_used": list(result.models),
             "effort": self.config.effort,
+            "autocompact": self.config.autocompact,
             "session_id": result.session_id or (spec.session_id or None),
             "input_tokens": result.usage.input_tokens,
             "cache_read_tokens": result.usage.cache_read_tokens,
@@ -1118,6 +1124,15 @@ def _backoff(text: str) -> tuple[float, ...]:
     return values
 
 
+def _autocompact(text: str) -> int:
+    """Tokens, as claude 2.1.299 accepts them: 100k to 1M ("258k" or "258000")."""
+    match = re.fullmatch(r"(\d+)(k?)", text.strip().lower())
+    tokens = 0 if match is None else int(match[1]) * (1000 if match[2] else 1)
+    if not 100_000 <= tokens <= 1_000_000:
+        raise argparse.ArgumentTypeError("autocompact is 100k to 1M tokens, e.g. 258k")
+    return tokens
+
+
 def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
     parser = argparse.ArgumentParser(prog="claude-gateway", description=DESCRIPTION)
     parser.add_argument("--mode", choices=("stateless", "session"), required=True)
@@ -1141,6 +1156,11 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--backoff", type=_backoff, default=BACKOFF_SECONDS)
     parser.add_argument("--keepalive", type=float, default=KEEPALIVE_SECONDS)
+    parser.add_argument(
+        "--autocompact",
+        type=_autocompact,
+        help="Claude Code auto-compact window, 100k-1M tokens (default: the model's window)",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1159,6 +1179,7 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         game_port=args.game_port,
         backoff=args.backoff,
         keepalive=args.keepalive,
+        autocompact=args.autocompact,
     )
     return config, args.port
 

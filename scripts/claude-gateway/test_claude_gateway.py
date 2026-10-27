@@ -152,6 +152,7 @@ def test_stateless_success_over_http(tmp_path: Path, served) -> None:  # type: i
     assert argv[argv.index("--effort") + 1] == "medium"
     assert argv[argv.index("--setting-sources") + 1] == ""
     assert argv[argv.index("--thinking-display") + 1] == "summarized"
+    assert "--autocompact" not in argv
     system = argv[argv.index("--system-prompt") + 1]
     assert system.startswith("You play Emerald.") and '"name": "press"' in system
     assert sent["cwd"] == str((tmp_path / "bridge" / "empty").resolve())
@@ -683,3 +684,51 @@ def test_session_started_before_binding_is_not_adopted(tmp_path: Path) -> None:
     assert gateway.answer(request(2))[1].reply is not None
     argv = fake_calls(tmp_path)[-1]["argv"]
     assert isinstance(argv, list) and "--session-id" in argv and "--resume" not in argv
+
+
+def test_autocompact_reaches_claude_and_the_logs(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session", autocompact=258_000)
+    assert gateway.answer(request(1))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and argv[argv.index("--autocompact") + 1] == "258000"
+    assert jsonl(tmp_path / "bridge" / "calls.jsonl")[0]["autocompact"] == 258_000
+    start = jsonl(tmp_path / "bridge" / "gateway.jsonl")[0]
+    assert start["event"] == "gateway_start" and start["autocompact"] == 258_000
+
+
+@pytest.mark.parametrize(
+    ("text", "tokens"), [("258k", 258_000), ("258000", 258_000), ("1000K", 1_000_000)]
+)
+def test_autocompact_argument(tmp_path: Path, text: str, tokens: int) -> None:
+    base = [
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    assert cg.parse_args([*base, "--autocompact", text])[0].autocompact == tokens
+    assert cg.parse_args(base)[0].autocompact is None
+
+
+@pytest.mark.parametrize("text", ["50k", "2m", "auto", "1001k", ""])
+def test_autocompact_argument_rejects(tmp_path: Path, text: str) -> None:
+    base = [
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    with pytest.raises(SystemExit):
+        cg.parse_args([*base, "--autocompact", text])

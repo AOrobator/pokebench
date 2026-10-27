@@ -312,7 +312,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Cutscene journal](cutscene-journal-v1.html) — frame-owned visible action and dialogue history.
 - [Gym type gap](type-gap-team-v1.html) — gym types from this run's evidence, the ROM type chart's strong types and what the party lacks.
-- [Supplies](supplies-v1.html) — money, balls, healing items and party size on entering a POKé MART.
+- [Supplies](supplies-v1.html) — money, balls, healing items, party size and where this map sells things, on arrival.
 - [Untalked people in gym](untalked-in-gym-v1.html) — people on a gym map not talked to this run, first in the result.
 
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.

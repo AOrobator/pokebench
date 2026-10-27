@@ -7,7 +7,7 @@ Branch `claude/type-gap-team`, worktree /private/tmp/pb-type-gap-team. No live r
 ## Switches
 
 - **type-gap-team-v1** (observation, server + agent). For each gym whose badge flag is clear and whose type this run has evidence for, a block with: the gym's types and their quoted sources (foe battlers in trainer battles on the gym map; the gym guide's sentence in the ROM guides' patterns; the gym sign, typed only by "X-loving"); the attacking types the ROM type chart makes super effective against them, with multipliers; which of those no party species type or damaging move has; the party; wild POKéMON met this run with gap types (or the wild foe at a wild decision); balls; controls. Triggers: a wild decision whose foe has a gap type; the first field result after a loss to a GYM LEADER (once per loss); the first field result after a gym's type first becomes known (once per gym). The server adds `type_gap` (party species types, move types/power, ROM gTypeEffectiveness rows) only with the switch.
-- **supplies-v1** (observation, agent). "Supplies: ₽… · balls: … · healing and status items: … · party N of 6" at the first field result of each POKé MART visit and when the buy list opens.
+- **supplies-v1** (observation, agent). "Supplies: ₽… · balls: … · healing and status items: … · party N of 6 · places on this map that sell things: …" at the first field result after arriving on a map that sells things or has a door into one (once per arrival), and whenever a buy list opens. Reworked 2026-10-27 at the operator's request ("walking into the Pokemart is a little bit too late"): Astra (429f) decided to shop on the town map 0–5 turns before each of its six mart visits. Selling maps come from pret scripts (pokemart/pokemartdecoration/pokemartdecoration2, plus the BP, coin, LAVA COOKIE and SODA POP sellers); doors come from the game's map table (GET /pokebench/places).
 - **untalked-in-gym-v1** (observation, agent). On a gym map's field, results start with the people on the map never talked to this run (people ledger record plus auto-talks). untalked-people-header-v1 covers every map since the last story milestone inside harness-trust-v1's header, so this one is narrow: gym maps only, this run, first in the result.
 
 ## Game grounding
@@ -43,3 +43,9 @@ Branch `claude/type-gap-team`, worktree /private/tmp/pb-type-gap-team. No live r
 - Explainers: pages-check clean; 8791 links return 200; headless screenshots at 1280, 1440 and 375 opened, no horizontal overflow, zero off-origin requests (runs/mockups/type-gap-team/shots/).
 
 COMMIT: `feat: type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 bundle switches (default off)` (4ad7dba4d)
+
+## Rework after the operator's supplies note (2026-10-27)
+
+Landing was held. Astra 429f, read-only: every one of its six mart visits was decided outside, 0–5 turns before entering (table in the supplies explainer). supplies-v1 now fires on arrival on a selling map or a map with a door into one, names those places and doors, and still fires when the buy list opens. Rebased onto main 511a6f95c first; gates on the rebased tree before the rework: agent 4513, viewer 2044, Python 4439 + test_view (mGBA venv), coverage agent 96.47/92.61/97.49, viewer 95.88/91.67/95.36, Python 97.40/93.55/99.78. Production-path RED re-proved for the new supplies wiring.
+
+Gates after the rework: agent 4517, viewer 2044, Python 4439 (test_view passes with the mGBA venv), trainer cards 3/3, lint and schema clean; coverage agent 96.47/92.61/97.48 (supplies.ts 98.82/97.46/95.23), viewer 95.87/91.67/95.36, Python 97.40/93.55/99.78.

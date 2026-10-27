@@ -96,37 +96,53 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <main>
 <h1>Supplies (supplies-v1)</h1>
-<p>Bundle arm only, default off. Approved by the operator on 2026-10-27. Inside a POKé MART, one line sets the player's money next to the balls and healing items in the BAG and the party size. No advice. mart-stock-readout-v1 still lists what the shop sells.</p>
+<p>Bundle arm only, default off. Approved by the operator on 2026-10-27, reworked the same day at the operator's request. On arrival on a map where something can be bought, or that has a door into one, one line sets the player's money next to the balls and healing items in the BAG, the party size and the places on the map that sell things. It shows again whenever a shop's buy list opens. No advice. mart-stock-readout-v1 still lists what the shop sells.</p>
+
+<h2>Why on arrival, not inside the mart</h2>
+<div class="card">
+<p>Run 429f (Astra) made six mart visits and bought something every time. Each time it said it would shop before it went in: 0 to 5 turns earlier, on the town map or in a building next to it.</p>
+</div>
+<table>
+<tr><th>Mart</th><th>First said, outside</th><th>Entered</th><th>Bought</th></tr>
+<tr><td>RUSTBORO CITY MART</td><td>t347, RUSTBORO CITY: "Visit the nearby Mart to buy healing supplies before gym battles."</td><td>t348</td><td>POTION ×4</td></tr>
+<tr><td>SLATEPORT CITY MART</td><td>t931, OCEANIC MUSEUM 1F: "…leave the museum and stock up on capture supplies before heading north."</td><td>t936</td><td>SUPER POTION ×3, GREAT BALL ×5</td></tr>
+<tr><td>MAUVILLE CITY MART</td><td>t1315, POKEMON CENTER 1F: "Party fully restored. Leave to buy supplies."</td><td>t1319</td><td>SUPER POTION ×8, PARLYZ HEAL ×5, ANTIDOTE ×3, AWAKENING ×3</td></tr>
+<tr><td>FALLARBOR TOWN MART</td><td>t1782, FALLARBOR TOWN: "Visit the Mart to replace healing items spent in the double battle."</td><td>t1784</td><td>SUPER POTION +8, ESCAPE ROPE ×2</td></tr>
+<tr><td>LAVARIDGE TOWN MART</td><td>t2210, LAVARIDGE TOWN: "Visit the Mart for additional healing supplies before the next gym."</td><td>t2210</td><td>SUPER POTION +6, REVIVE ×3</td></tr>
+<tr><td>LAVARIDGE TOWN MART</td><td>t2431, LAVARIDGE TOWN: "Enter the Mart for replacement healing supplies."</td><td>t2431</td><td>SUPER POTION ×10, ANTIDOTE +2, REVIVE +2</td></tr>
+</table>
+<p class="cap">Quotes are Astra's per-turn assistant text; purchases are the BAG change between its first and last state in each mart.</p>
 
 <h2>When it shows</h2>
-<div class="diagram"><svg viewBox="0 0 760 170" role="img" aria-label="Mart visit timeline">
+<div class="diagram"><svg viewBox="0 0 760 170" role="img" aria-label="Arrival timeline">
 <line x1="20" y1="80" x2="740" y2="80" stroke="#345779" stroke-width="3"/>
-<circle cx="80" cy="80" r="9" fill="#ffffff" stroke="#345779" stroke-width="3"/><text x="80" y="55" text-anchor="middle" font-size="12">PETALBURG CITY</text>
-<circle cx="230" cy="80" r="11" fill="#2f7d4a"/><text x="230" y="55" text-anchor="middle" font-size="12">enter MART</text><text x="230" y="115" text-anchor="middle" font-size="12">line shown</text>
-<circle cx="370" cy="80" r="9" fill="#ffffff" stroke="#345779" stroke-width="3"/><text x="370" y="55" text-anchor="middle" font-size="12">walk in MART</text><text x="370" y="115" text-anchor="middle" font-size="12">nothing</text>
-<circle cx="510" cy="80" r="11" fill="#2f7d4a"/><text x="510" y="55" text-anchor="middle" font-size="12">buy list opens</text><text x="510" y="115" text-anchor="middle" font-size="12">line shown</text>
-<circle cx="660" cy="80" r="9" fill="#ffffff" stroke="#345779" stroke-width="3"/><text x="660" y="55" text-anchor="middle" font-size="12">buy list still open</text><text x="660" y="115" text-anchor="middle" font-size="12">nothing</text>
-<text x="380" y="155" text-anchor="middle" font-size="12">Leaving and entering again starts a new visit.</text>
+<circle cx="80" cy="80" r="9" fill="#ffffff" stroke="#345779" stroke-width="3"/><text x="80" y="55" text-anchor="middle" font-size="12">ROUTE104</text><text x="80" y="115" text-anchor="middle" font-size="12">nothing sold</text>
+<circle cx="230" cy="80" r="11" fill="#2f7d4a"/><text x="230" y="55" text-anchor="middle" font-size="12">arrive PETALBURG CITY</text><text x="230" y="115" text-anchor="middle" font-size="12">line: mart door</text>
+<circle cx="370" cy="80" r="9" fill="#ffffff" stroke="#345779" stroke-width="3"/><text x="370" y="55" text-anchor="middle" font-size="12">walk in town</text><text x="370" y="115" text-anchor="middle" font-size="12">nothing</text>
+<circle cx="510" cy="80" r="11" fill="#2f7d4a"/><text x="510" y="55" text-anchor="middle" font-size="12">enter the MART</text><text x="510" y="115" text-anchor="middle" font-size="12">line: this map</text>
+<circle cx="660" cy="80" r="11" fill="#2f7d4a"/><text x="660" y="55" text-anchor="middle" font-size="12">buy list opens</text><text x="660" y="115" text-anchor="middle" font-size="12">line again</text>
+<text x="380" y="155" text-anchor="middle" font-size="12">Once per arrival, at the first field result on the new map. Each opening of the buy list shows it again.</text>
 </svg></div>
-<p class="cap">Figure 1. Once at the first field result of each visit (MART maps by their map-table names, such as PETALBURG CITY MART), and once each time the shop's buy list (<code>shop_menu</code>) opens.</p>
 
-<h2>What it reads</h2>
+<h2>Where things can be bought (game data)</h2>
 <table>
-<tr><th>Part</th><th>Source</th></tr>
-<tr><td>Money</td><td>the state's money, shown as ₽ with thousands commas</td></tr>
-<tr><td>Balls</td><td>the BAG's POKé BALLS pocket (<code>resources.bag</code>, pocket poke_balls)</td></tr>
-<tr><td>Healing and status items</td><td>BAG items whose names are pret items.h's medicine, PP and SACRED ASH items, without the vitamins and BLUE FLUTE, plus PERSIM BERRY</td></tr>
-<tr><td>Party</td><td>the party's size, "of 6"</td></tr>
+<tr><th>Source in pret scripts</th><th>Maps</th></tr>
+<tr><td><code>pokemart</code>, <code>pokemartdecoration</code>, <code>pokemartdecoration2</code></td><td>every POKé MART; SLATEPORT CITY (market); LILYCOVE CITY DEPARTMENT STORE 2F–5F and ROOFTOP; ROUTE104 PRETTY PETAL FLOWER SHOP; LAVARIDGE TOWN HERB SHOP; FORTREE CITY DECORATION SHOP; BATTLE FRONTIER MART; TRAINER HILL ENTRANCE; EVER GRANDE CITY POKEMON LEAGUE 1F</td></tr>
+<tr><td>scripts that take money, coins or BP for something</td><td>BATTLE FRONTIER EXCHANGE SERVICE CORNER and LOUNGE7 (BP); MAUVILLE CITY GAME CORNER; MT CHIMNEY (LAVA COOKIE); ROUTE109 SEASHORE HOUSE (SODA POP)</td></tr>
+<tr><td>left out: they buy nothing</td><td>SAFARI ZONE and OCEANIC MUSEUM entry fees; LOUNGE3 wager</td></tr>
 </table>
+<p class="cap">The current map and its doors come from the game's map table (<code>GET /pokebench/places</code>, read from the ROM). A warp on this map into one of these maps names it with its door tiles. A test checks that every listed name is in the map table.</p>
 
-<h2>Recorded example: run 057c</h2>
-<p>Run 2026-10-25T19-32-47_qwen36-gpu0_057c entered PETALBURG CITY MART at turn 298 (seq 12438). This is the line the test builds from that state:</p>
-<pre>Supplies: ₽3,440 · balls: POKé BALL ×5 · healing and status items: none · party 1 of 6</pre>
-<p class="cap">An empty list says "none". Money the state cannot read says "unknown".</p>
+<h2>Recorded examples: run 057c</h2>
+<p>Built by the tests from 057c's own states. Its first state in PETALBURG CITY (turn 252):</p>
+<pre>Supplies: ₽1,992 · balls: POKé BALL ×5 · healing and status items: none · party 1 of 6 · places on this map that sell things: PETALBURG CITY MART, door at (25,12)</pre>
+<p>Its first state inside PETALBURG CITY MART (turn 298):</p>
+<pre>Supplies: ₽3,440 · balls: POKé BALL ×5 · healing and status items: none · party 1 of 6 · places on this map that sell things: PETALBURG CITY MART (this map)</pre>
+<p class="cap">Arriving on ROUTE104 shows nothing. SLATEPORT CITY lists itself and its mart door. An empty list says "none"; money the state cannot read says "unknown".</p>
 
 <h2>Off and on</h2>
-<table><tr><th>Off</th><th>On</th></tr><tr><td>No line. Results are today's bytes.</td><td>The line is appended after the readout on those results only.</td></tr></table>
+<table><tr><th>Off</th><th>On</th></tr><tr><td>No line. Results are today's bytes.</td><td>The line is appended after the readout on those results only. The map table is read once per run.</td></tr></table>
 
 <h2>Status</h2>
-<div class="card"><p>Branch <code>claude/type-gap-team</code>. Unit tests on 057c's state and a production-path test through <code>playGameTools</code>. No review lane, no measured runs, no probe yet.</p></div>
+<div class="card"><p>Branch <code>claude/type-gap-team</code>. Unit tests on 057c's states and a production-path test through <code>playGameTools</code> (red with the wiring removed). Review in progress; no measured runs or probes.</p></div>
 </main></html>

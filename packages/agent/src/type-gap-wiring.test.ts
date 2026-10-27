@@ -48,9 +48,9 @@ describe("production wiring of the type-gap, supplies and untalked-in-gym switch
   expect(on[1]?.split("\n")[0]).toBe(TYPE_GAP_HEADER);
   expect(await run({},LOSS_STATE,"Location: RUSTBORO CITY",events)).toEqual(["Location: RUSTBORO CITY"]);
  });
- it("supplies-v1: ON appends the line at the first mart result; OFF adds nothing",async()=>{
+ it("supplies-v1: ON appends the line on arrival at a map that sells things; OFF adds nothing",async()=>{
   const entered=[{...MART,seq:1,location:"PETALBURG CITY"},{...MART,seq:2}] as unknown as RunEvent[];
-  expect(await run({"supplies-v1":true},{...IN_GAME,location:MART.location,money:MART.money},"Location: PETALBURG CITY MART",entered)).toEqual(["Location: PETALBURG CITY MART","Supplies: ₽3,440 · balls: none · healing and status items: none · party 1 of 6"]);
+  expect(await run({"supplies-v1":true},{...IN_GAME,location:MART.location,money:MART.money},"Location: PETALBURG CITY MART",entered)).toEqual(["Location: PETALBURG CITY MART","Supplies: ₽3,440 · balls: none · healing and status items: none · party 1 of 6 · places on this map that sell things: PETALBURG CITY MART (this map)"]);
   expect(await run({},{...IN_GAME,location:MART.location,money:MART.money},"Location: PETALBURG CITY MART",entered)).toEqual(["Location: PETALBURG CITY MART"]);
  });
  it("untalked-in-gym-v1: ON puts the line first on a gym result; OFF adds nothing",async()=>{

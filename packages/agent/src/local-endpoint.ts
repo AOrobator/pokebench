@@ -88,8 +88,9 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
   try {
     response = await fetchFn(url, { headers: { accept: "application/json", authorization: `Bearer ${endpoint.apiKey}` } });
   } catch (error) {
-    // fetch quotes a header value it rejects, so the raw error (and its cause) never leaves here.
-    throw new LocalEndpointError(`GET ${url} failed: ${String(error).split(endpoint.apiKey).join("[redacted]")}`);
+    // fetch quotes a header value it rejects (escaped, so no redaction is safe): only the error's name and errno code leave here.
+    const code = error instanceof Error ? (error.cause as NodeJS.ErrnoException | undefined)?.code : undefined;
+    throw new LocalEndpointError(`GET ${url} failed: ${error instanceof Error ? error.name : "error"}${code === undefined ? "" : ` (${code})`}`);
   }
   if (!response.ok) throw new LocalEndpointError(`GET ${url} returned HTTP ${String(response.status)}`);
   const body: unknown = await response.json();

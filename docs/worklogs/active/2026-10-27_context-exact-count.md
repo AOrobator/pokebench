@@ -59,3 +59,10 @@ Round 3 (packet 3: head f31ebbab6, diff sha256 13ce3356…aff46):
 - Claude CLI: LGTM. Follow-up: play-preset/next-run do not call exactCountProblems.
 - GPT (Codex): BLOCKING. #1 the feature text and explainer promised prompt_count on every turn, but estimator-only lanes (gateway, LM Studio, no key) record none → Fix: wording now says prompt_count is recorded on vLLM and llama.cpp lanes and those lanes carry none (behavior unchanged). #2 the shared gate never passed whole at the head (worktree venv lacked mGBA) → Fix: worktree venv given the mGBA binding as fixed-tree.ts does; trainer-card check pointed at main's card art with POKEBENCH_CARD_ART.
 - Gates at the round-4 tip: `just lint` exit 0; `POKEBENCH_CARD_ART=~/dev/pokebench/runs/sprites/trainer-card-v1 just test` exit 0: agent 4564 (96.47/92.67/97.56), viewer 2072 (95.79/91.63/95.31), pytest 4431 passed (96%), claude-gateway 60 passed (99%), trainer cards 3 passed.
+
+Round 4 (packet 4: head 6b6343212, diff sha256 3ca2f78e…43aa; notes below not committed, so the reviewed diff stays frozen):
+- Fallback (Sonnet subagent): LGTM.
+- Claude CLI: LGTM. Follow-ups: pass an AbortSignal/timeout into fit; fields like reasoning_effort not sent to /tokenize (bounded by the usage reserve); PB8 row should say the estimate fallback has no run log yet and is approved by design.
+- GPT (Codex): BLOCKING, only on fixture shape: the new explainer row in the shared explainer-route table adds 2 reads, 1 write, 1 GET. Proposed rebut: that table is the repo's existing pattern for every explainer, the feature-explainer skill requires the route test, and the double read is pre-existing code. Non-blocking: mixed exact/estimate compaction, walk-up cost, launch-only JIT v2 refusal.
+- STOP: a cloud lane is still blocking after round 4, so no self-merge. Asked the operator (via coordinator): land as is over GPT's fixture-shape block, or change the test and run round 5.
+- The operator chose "Land it now" over GPT's round-4 fixture-cost block (relayed by the coordinator, 2026-10-27 6:24 PM ET). Final verdicts on packet 4: Claude LGTM, fallback LGTM, GPT BLOCKING (fixture shape only).

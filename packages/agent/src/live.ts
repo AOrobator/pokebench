@@ -3,7 +3,7 @@ import {gzipSync} from "node:zlib";
 import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,validateLiveContinuationFeatures,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
-import {payloadCounter} from "./exact-context.js";
+import {exactCountProblems,payloadCounter} from "./exact-context.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
@@ -249,7 +249,7 @@ async function playAgent(): Promise<void> {
   const goalTarget=preset?.target??null;
   const goal=playGoal(goalTarget,features);
   const stateMode=features["state-only-decisions-v1"];
-  const incompatible=stateOnlyProblems(features);if(incompatible.length)throw new Error(incompatible.join("; "));
+  const incompatible=[...stateOnlyProblems(features),...exactCountProblems(features)];if(incompatible.length)throw new Error(incompatible.join("; "));
   const systemPrompt=stateMode?stateOnlyPrompt(features,goalTarget):playSystemPrompt(features,goalTarget);
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);

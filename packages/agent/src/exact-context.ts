@@ -2,6 +2,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { BUDGET_MARGIN, CHARS_PER_WEIGHT, IMAGE_WEIGHT, overflowTokens } from "./context-budget.js";
+import type { FeatureSet } from "./features.js";
 import { LOCAL_PROVIDER, VLLM_PROVIDER } from "./local-endpoint.js";
 
 // context-exact-count-v1: count the request body actually sent, on the server that will
@@ -109,6 +110,11 @@ export function llamaCppCounter(baseUrl: string, apiKey: string, fetchFn: typeof
       perImage = Math.ceil((serverPrompt - last.text) / last.images);
     },
   };
+}
+
+// The fit drops turns after just-in-time-prompt-v2 has projected its guide onto one of them.
+export function exactCountProblems(features: Pick<FeatureSet, "context-exact-count-v1" | "just-in-time-prompt-v2">): string[] {
+  return features["context-exact-count-v1"] && features["just-in-time-prompt-v2"] ? ["context-exact-count-v1 requires just-in-time-prompt-v2 OFF (a dropped turn could carry its guidance)"] : [];
 }
 
 export function payloadCounter(provider: string, baseUrl: string, apiKey: string | undefined, fetchFn: typeof fetch = fetch): PayloadCounter | null {

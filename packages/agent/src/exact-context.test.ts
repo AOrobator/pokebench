@@ -4,7 +4,7 @@ import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON as ALL_ON } from "../test-support/legacy-features.js";
 import { BUDGET_MARGIN, ContextBudget, IMAGE_WEIGHT, budgetLimit, overflowTokens, requestWeight } from "./context-budget.js";
-import { CountError, ExactContext, dropTurns, estimatePayload, llamaCppCounter, payloadCounter, vllmCounter, type ChatPayload, type Counted, type PayloadCounter, type PromptCount } from "./exact-context.js";
+import { CountError, ExactContext, dropTurns, exactCountProblems, estimatePayload, llamaCppCounter, payloadCounter, vllmCounter, type ChatPayload, type Counted, type PayloadCounter, type PromptCount } from "./exact-context.js";
 import { SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures } from "./features.js";
 import { GATEWAY_PROVIDER } from "./gateway.js";
 import { LOCAL_PROVIDER, VLLM_PROVIDER } from "./local-endpoint.js";
@@ -319,6 +319,14 @@ describe("context-exact-count-v1 wiring and registration", () => {
     const fallback = contextBudget({ ...ALL_ON, "context-token-budget-v1": true, [ID]: true }, { contextWindow: WINDOW }, MAX, recorded, null);
     expect(fallback.budget).toEqual(new ContextBudget(budgetLimit(WINDOW, MAX), true));
     expect(contextBudget({ ...ALL_ON, "context-token-budget-v1": false, [ID]: true }, { contextWindow: WINDOW }, MAX, recorded, null)).toEqual({});
+  });
+
+  it("is refused beside just-in-time-prompt-v2, whose guide rides on a turn the fit may drop", () => {
+    expect(exactCountProblems({ [ID]: true, "just-in-time-prompt-v2": true })).toEqual(["context-exact-count-v1 requires just-in-time-prompt-v2 OFF (a dropped turn could carry its guidance)"]);
+    expect(exactCountProblems({ [ID]: true, "just-in-time-prompt-v2": false })).toEqual([]);
+    expect(exactCountProblems({ [ID]: false, "just-in-time-prompt-v2": true })).toEqual([]);
+    const recipe = JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json", import.meta.url), "utf8")) as { offInBoth: string[] };
+    expect(recipe.offInBoth).toContain("just-in-time-prompt-v2");
   });
 
   it("is the last registered switch: a default-off guard with no dependency, ON in both arms of the current recipe", () => {

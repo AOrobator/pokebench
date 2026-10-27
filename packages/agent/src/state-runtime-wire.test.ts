@@ -21,7 +21,7 @@ import {runStateMode} from "./state-runtime.js";
 import {contextBudget} from "./play-wiring.js";
 import type {ChatPayload} from "./exact-context.js";
 const Action=Type.Object({buttons:Type.Array(Type.String()),hold_frames:Type.Integer(),release_frames:Type.Integer()});
-it.each([[false,false],[true,false],[false,true]])("runs production state-mode seams (malformed arguments=%s, exact count=%s)",async(malformed,exactCount)=>{
+it.each([[false,true],[true,false]])("runs production state-mode seams (malformed arguments=%s, exact count=%s)",async(malformed,exactCount)=>{
  const dir=mkdtempSync(join(tmpdir(),"state-runtime-fixture-"));const requests:unknown[]=[];const calls:string[]=[];let y=8;
  const image=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(image);image.write("IHDR",12,"ascii");image.writeUInt32BE(240,16);image.writeUInt32BE(160,20);
  const state=()=>({...IN_GAME,position:{x:5,y}});

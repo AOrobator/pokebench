@@ -47,3 +47,9 @@ Round 1 (packet 1: base 5940bc2fb, head ebfe4cfa6, diff sha256 07db679f…e929; 
 - GREEN for #1/#2: `runStateMode` takes the run's ExactContext (fit after base.onPayload, observe on message_end) and live.ts passes it; llamaCppCounter clears `last` per count and ExactContext calibrates only after a counted, sent request. Wiring red check: forcing the state base back to `options.base` turned the exact-count state case red (1 failed); restored.
 - Gates on the fix: agent 4564 passed (96.47/92.67/97.56), viewer 2073 passed (95.8/91.63/95.31), pytest 4430 passed + the same 1 worktree-venv mGBA failure, Python 96%; lint JS clean, mypy clean with main's venv.
 - Coordinator 2026-10-27 5:32 PM ET: step 8 (stop 37156, relaunch HyperQwen) cancelled; GPU0 goes to a 24h Qwen 3.6 bundle run. No further live vLLM calls.
+
+Round 2 (packet 2: head 5a6178d3e, diff sha256 0fe315f1…1f66):
+- Fallback (Sonnet subagent): LGTM. Follow-ups: no abort signal in the state-mode fit; mixed exact/estimate compaction after a mid-fit failure.
+- Claude CLI: BLOCKING. With just-in-time-prompt-v2 ON, the exact fit runs after JIT v2 projects its guide onto a history turn, so dropping that turn drops current guidance (current recipe has JIT v2 offInBoth) → Fix: `exactCountProblems` refuses the pair at launch (live.ts, beside stateOnlyProblems). A first attempt in dependencyProblems broke three ALL_ON registry tests in other switches' files, so it moved to the launch check.
+- GPT (Codex): BLOCKING on test fixture cost (a third full state-runtime server row; a standalone viewer explainer fixture) → Fix: the state wire table keeps two rows (non-malformed with exact ON, malformed with exact OFF), and the explainer joins the existing shared explainer table.
+- Gates: agent 4564 passed (96.47/92.67/97.56), viewer 2072 passed (95.8/91.64/95.31), pytest 4430 + the known worktree-venv mGBA failure, Python 96%; lint JS clean.

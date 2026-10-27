@@ -1,6 +1,6 @@
 # Promote report-recommended switches to control; turn broken ones off
 
-Status: in progress (single milestone, config-only)
+Status: landed on main (ff88c3a03), awaiting operator archive approval
 Branch: claude/promote-control-20261027-125859 (worktree /private/tmp/pokebench-promote-control-20261027-125859)
 Evidence: runs/reports/run-analysis/2026-10-27_astra-frontier/ (sections/switches.md §3, sections/bugs.md B2/B5/B11)
 
@@ -16,5 +16,10 @@ Evidence: runs/reports/run-analysis/2026-10-27_astra-frontier/ (sections/switche
 - [x] Recipe counts: switches 77→57, onInBoth 35→49, offInBoth 14→20.
 - [x] Live runs: no game server or agent process on the Mac; newest run write Oct 25 23:43 (6bbd). Nothing touched.
 - [x] Gates: agent vitest 4475/4475, viewer vitest 2031/2031, pnpm -r lint clean.
-- [ ] Review lanes (Claude, Grok, GPT)
-- [ ] Land ff-only via landing board
+- [x] Review lanes on frozen packet ff88c3a03 vs 0352ae567, diff sha256 16fb4d147ae7c3f5dab479226ba76cf4b55888961e071372931a519192c53cb7 (artifacts /tmp/review-promote-control/):
+  - Claude CLI (~/.claude-review, plan mode): VERDICT: LGTM
+  - GPT: Cursor gpt-5.6-sol-xhigh out of usage → Codex CLI gpt-5.6-sol (read-only, ephemeral): VERDICT: LGTM. Non-blocking: registry descriptions still say "bundle only" (out of boundary).
+  - Grok: Cursor out of usage; fallback fresh read-only Claude subagent reviewer: VERDICT: LGTM (the operator standing rule 2026-10-21/22). Non-blocking: next launch of the three current definitions needs fresh approval because the recipe sha256 changed.
+- [x] Landed: `git merge --ff-only ff88c3a03` (main 0352ae567 → ff88c3a03), landing board slot 1.
+- [x] Post-land on main: agent vitest 4475/4475, viewer 2031/2031, pytest 4425 passed. trainer-card-check not run (it drives headless Chrome; brief forbids; no viewer presentation change).
+- [x] No viewer restart (brief); no live runs existed.

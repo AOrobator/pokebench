@@ -7,6 +7,8 @@ import { GATEWAY_COMPAT, type GatewayModel } from "./gateway.js";
 // Hermes's router, reached through the endpoint file that server writes. The
 // key is read at run time and never logged or stored.
 export const LOCAL_PROVIDER = "local-llamacpp";
+// A vLLM server: its requests take tool schemas in the dialect xgrammar compiles (tool-schema-dialect.ts).
+export const VLLM_PROVIDER = "local-vllm";
 
 export class LocalEndpointError extends Error {
   override readonly name = "LocalEndpointError";
@@ -15,9 +17,11 @@ export class LocalEndpointError extends Error {
 export interface LocalEndpoint {
   readonly baseUrl: string;
   readonly apiKey: string;
+  // Declared by the lane for servers whose /v1/models does not report input modalities (vLLM).
+  readonly vision?: boolean;
 }
 
-const EndpointSchema = Type.Object({ base_url: Type.String(), api_key: Type.String({ minLength: 1 }) });
+const EndpointSchema = Type.Object({ base_url: Type.String(), api_key: Type.String({ minLength: 1 }), vision: Type.Optional(Type.Boolean()) });
 
 const RouterSchema = Type.Object({
   data: Type.Array(
@@ -34,12 +38,16 @@ const SingleModelSchema = Type.Object({
   data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), meta: Type.Object({ n_ctx: Type.Integer({ minimum: 1 }) }) }), { minItems: 1 }),
 });
 
-function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean): GatewayModel {
+const VllmSchema = Type.Object({
+  data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), owned_by: Type.Literal("vllm"), root: Type.String(), max_model_len: Type.Integer({ minimum: 1 }) }), { minItems: 1 }),
+});
+
+function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean, provider: string = LOCAL_PROVIDER): GatewayModel {
   return {
     id,
     name: id,
     api: "openai-completions",
-    provider: LOCAL_PROVIDER,
+    provider,
     baseUrl: endpoint.baseUrl,
     reasoning: true,
     input: vision ? ["text", "image"] : ["text"],
@@ -68,7 +76,7 @@ export function readEndpoint(path: string): LocalEndpoint {
   }
   if (!Value.Check(EndpointSchema, body)) throw new LocalEndpointError(`malformed endpoint file ${path}`);
   if (!loopback(body.base_url)) throw new LocalEndpointError(`endpoint in ${path} must be http://127.0.0.1:<port>`);
-  return { baseUrl: body.base_url.replace(/\/+$/, ""), apiKey: body.api_key };
+  return { baseUrl: body.base_url.replace(/\/+$/, ""), apiKey: body.api_key, ...(body.vision === undefined ? {} : { vision: body.vision }) };
 }
 
 function argValue(args: readonly string[], flag: string): string | undefined {
@@ -82,14 +90,16 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
   try {
     response = await fetchFn(url, { headers: { accept: "application/json", authorization: `Bearer ${endpoint.apiKey}` } });
   } catch (error) {
-    // fetch quotes a header value it rejects, so the raw error (and its cause) never leaves here.
-    throw new LocalEndpointError(`GET ${url} failed: ${String(error).split(endpoint.apiKey).join("[redacted]")}`);
+    // fetch quotes a header value it rejects (escaped, so no redaction is safe): only the error's name and errno code leave here.
+    const code = error instanceof Error ? (error.cause as NodeJS.ErrnoException | undefined)?.code : undefined;
+    throw new LocalEndpointError(`GET ${url} failed: ${error instanceof Error ? error.name : "error"}${code === undefined ? "" : ` (${code})`}`);
   }
   if (!response.ok) throw new LocalEndpointError(`GET ${url} returned HTTP ${String(response.status)}`);
   const body: unknown = await response.json();
   if (Value.Check(SingleModelSchema, body)) {
     return body.data.map((model) => localModel(endpoint, model.id, model.meta.n_ctx, body.models.some((m) => m.model === model.id && m.capabilities.includes("multimodal"))));
   }
+  if (Value.Check(VllmSchema, body)) return body.data.map((model) => localModel(endpoint, model.id, model.max_model_len, endpoint.vision === true, VLLM_PROVIDER));
   if (!Value.Check(RouterSchema, body)) throw new LocalEndpointError(`malformed ${url} payload`);
   return body.data
     .filter((model) => model.status.value === "loaded")

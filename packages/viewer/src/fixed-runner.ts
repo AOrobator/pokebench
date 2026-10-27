@@ -29,6 +29,22 @@ export interface ServingReceipt {
   readonly fingerprint: string;
 }
 
+// The lane's bearer key, read from its key file at launch; a lane without one needs none.
+export function laneApiKey(lane: FixedLane): string {
+  if (lane.apiKeyFile === undefined) return "unused";
+  let text: string;
+  try {
+    text = readFileSync(lane.apiKeyFile, "utf8");
+  } catch (error) {
+    throw new FixedRunError(`lane ${lane.id}: cannot read the api key file ${lane.apiKeyFile} (${(error as NodeJS.ErrnoException).code ?? "unreadable"})`);
+  }
+  const key = text.trim();
+  if (key === "") throw new FixedRunError(`lane ${lane.id}: the api key file ${lane.apiKeyFile} is empty`);
+  // A bearer token is one run of visible ASCII; anything else would fail in a header whose error may quote it.
+  if (!/^[\x21-\x7e]+$/.test(key)) throw new FixedRunError(`lane ${lane.id}: the api key file ${lane.apiKeyFile} holds characters a bearer token cannot have`);
+  return key;
+}
+
 export interface FixedLaunch {
   readonly lane: string;
   readonly slot: number;
@@ -125,7 +141,13 @@ class Runner {
         this.presetShas.set(`${phase.id}-${arm}`, sha256(text));
       }
     }
-    for (const lane of this.o.def.lanes) writeFileSync(this.endpointPath(lane), `${JSON.stringify({ base_url: `${lane.modelUrl}/v1`, api_key: "unused" })}\n`);
+    // The endpoint file is the only place the key is written: owner-only, under the gitignored runs root.
+    // Every lane's key is read before any file is written, so one bad key file leaves no endpoint behind.
+    const endpoints = this.o.def.lanes.map((lane) => ({ path: this.endpointPath(lane), endpoint: { base_url: `${lane.modelUrl}/v1`, api_key: laneApiKey(lane), ...(lane.vision === undefined ? {} : { vision: lane.vision }) } }));
+    for (const { path, endpoint } of endpoints) {
+      rmSync(path, { force: true });
+      writeFileSync(path, `${JSON.stringify(endpoint)}\n`, { mode: 0o600 });
+    }
   }
 
   private presetPath(phase: string, arm: string): string { return join(this.dir, "presets", `${phase}-${arm}.json`); }

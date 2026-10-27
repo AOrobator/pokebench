@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
-import { armFeatures, parseFixedDefinition } from "./fixed-design.js";
+import { armFeatures, parseFixedDefinition, type FixedLane } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
 import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1, MENU_SHA1, MENU_START } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
@@ -95,6 +95,16 @@ describe("fixed-run check, approve, run, dry-run", () => {
     writeFileSync(path, JSON.stringify({ ...definition(), title: "edited" }));
     expect(await main(["run", "bundle-v-control"], deps)).toBe(1);
     expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
+  });
+
+  it("lists a vLLM lane's declared slots, vision and key file path in check", async () => {
+    const { deps, out, path } = setup();
+    const [a, b] = definition().lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    writeFileSync(path, JSON.stringify(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: "/keys/hyperqwen.key" }, b] })));
+    expect(await main(["check", "bundle-v-control"], deps)).toBe(0);
+    expect(out).toContain("lane A: GPU1, game port 8071, model http://127.0.0.1:8091 (vllm, 1 slots, vision true), key file /keys/hyperqwen.key");
+    expect(out).toContain("lane B: GPU0, game port 8072, model http://127.0.0.1:8098");
   });
 
   it("checks every phase's start save and lists each phase's start", async () => {
@@ -320,6 +330,65 @@ describe("fixed-run status and analyze", () => {
   });
 });
 
+const llamaLane = (modelUrl: string): FixedLane => ({ id: "A", gpu: "GPU0", gamePort: 8071, modelUrl });
+const VLLM_KEY = "vllm-test-key-not-real";
+function vllmLane(modelUrl = "http://127.0.0.1:18020", key: string | null = `${VLLM_KEY}\n`): FixedLane {
+  const keyDir = mkdtempSync(join(tmpdir(), "vllm-key-"));
+  const apiKeyFile = join(keyDir, "hyperqwen.key");
+  if (key !== null) writeFileSync(apiKeyFile, key);
+  return { id: "A", gpu: "GPU0", gamePort: 8071, modelUrl, server: "vllm", slots: 2, vision: true, apiKeyFile };
+}
+const VLLM_MODELS = { object: "list", data: [{ id: "qwen3.8-27b", object: "model", created: 1, owned_by: "vllm", root: "/data/models/Qwen3.8-27B", parent: null, max_model_len: 262144, permission: [] }] };
+function vllmFetch(models: unknown = VLLM_MODELS, status = 200): ReturnType<typeof vi.fn<typeof fetch>> {
+  return vi.fn<typeof fetch>((url) => {
+    const u = url as string;
+    if (u.endsWith("/health")) return Promise.resolve(new Response(""));
+    if (u.endsWith("/version")) return Promise.resolve(new Response(JSON.stringify({ version: "0.31.0" })));
+    return Promise.resolve(new Response(JSON.stringify(models), { status }));
+  });
+}
+
+describe("vLLM serving receipt", () => {
+  it("reads the served id, root and context from authenticated /v1/models, the version from /version, and slots and vision from the lane", async () => {
+    const fetchFn = vllmFetch();
+    const receipt = await servingReceipt(vllmLane(), fetchFn);
+    expect(receipt).toMatchObject({ model: "qwen3.8-27b", build: "vllm-0.31.0 /data/models/Qwen3.8-27B", contextTokens: 262144, slots: 2, vision: true });
+    expect(receipt.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(fetchFn).toHaveBeenCalledWith("http://127.0.0.1:18020/v1/models", expect.objectContaining({ headers: { accept: "application/json", authorization: `Bearer ${VLLM_KEY}` } }));
+    for (const [url, init] of fetchFn.mock.calls) if (!(url as string).endsWith("/v1/models")) expect(JSON.stringify(init ?? {})).not.toContain(VLLM_KEY);
+    expect(JSON.stringify(receipt)).not.toContain(VLLM_KEY);
+    expect((await servingReceipt({ ...vllmLane(), vision: false }, vllmFetch())).fingerprint).not.toBe(receipt.fingerprint);
+  });
+
+  it("refuses a vLLM lane that rejects the key, lists no single model, or has no readable key, never echoing the key", async () => {
+    const lane = vllmLane();
+    const refusals = [
+      servingReceipt(lane, vllmFetch({ error: "Unauthorized" }, 401)),
+      servingReceipt(lane, vllmFetch({ data: [] })),
+      servingReceipt(lane, vllmFetch({ data: [VLLM_MODELS.data[0], { ...VLLM_MODELS.data[0], id: "other" }] })),
+      servingReceipt(lane, vi.fn<typeof fetch>((url) => (url as string).endsWith("/v1/models") ? Promise.reject(new TypeError(`bad header ${JSON.stringify(`Bearer ${VLLM_KEY}`)}`)) : vllmFetch()(url))),
+      servingReceipt(lane, vi.fn<typeof fetch>((url) => (url as string).endsWith("/v1/models") ? Promise.reject(new TypeError("fetch failed", { cause: Object.assign(new Error("connect"), { code: "ECONNREFUSED" }) })) : vllmFetch()(url))),
+      servingReceipt(lane, vi.fn<typeof fetch>((url) => Promise.resolve(new Response((url as string).endsWith("/version") ? "{}" : JSON.stringify(VLLM_MODELS))))),
+      servingReceipt(vllmLane(undefined, null), vllmFetch()),
+      servingReceipt(vllmLane(undefined, " \n"), vllmFetch()),
+      servingReceipt({ ...lane, modelUrl: "http://x" }, vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 503 }))),
+    ];
+    const messages = await Promise.all(refusals.map((p) => p.then(() => "resolved", (error: unknown) => String(error))));
+    expect(messages).toEqual([
+      expect.stringContaining("http://127.0.0.1:18020/v1/models answered HTTP 401"),
+      expect.stringContaining("is not a vLLM /v1/models payload serving one model"),
+      expect.stringContaining("is not a vLLM /v1/models payload serving one model"),
+      "Error: GET http://127.0.0.1:18020/v1/models failed: TypeError",
+      "Error: GET http://127.0.0.1:18020/v1/models failed: TypeError (ECONNREFUSED)",
+      expect.stringContaining("http://127.0.0.1:18020/version is not a vLLM version payload"),
+      expect.stringContaining("cannot read the api key file"),
+      expect.stringContaining("is empty"),
+      expect.stringContaining("http://x/health answered HTTP 503"),
+    ]);
+    for (const m of messages) expect(m).not.toContain(VLLM_KEY);
+  });
+});
+
 describe("production host pieces", () => {
   it("reads a llama-server's identity from /props, /v1/models and /health", async () => {
     const props = { model_path: MODEL_PATH, build_info: "b10236-1464c62d8", total_slots: 1, modalities: { vision: true }, default_generation_settings: { n_ctx: 65536 }, chat_template: "T" };
@@ -329,12 +398,12 @@ describe("production host pieces", () => {
       if (u.endsWith("/health")) return Promise.resolve(new Response(JSON.stringify({ status: "ok" })));
       return Promise.resolve(new Response(JSON.stringify(u.endsWith("/props") ? props : models)));
     });
-    const receipt = await servingReceipt("http://127.0.0.1:8091", fetchFn);
+    const receipt = await servingReceipt(llamaLane("http://127.0.0.1:8091"), fetchFn);
     expect(receipt).toMatchObject({ model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true });
     expect(receipt.fingerprint).toMatch(/^[0-9a-f]{64}$/);
-    expect((await servingReceipt("http://127.0.0.1:8098", fetchFn)).fingerprint).toBe(receipt.fingerprint);
-    await expect(servingReceipt("http://x", vi.fn<typeof fetch>().mockResolvedValue(new Response("loading", { status: 503 })))).rejects.toThrow("http://x/health answered HTTP 503");
-    await expect(servingReceipt("http://x", vi.fn<typeof fetch>().mockResolvedValue(new Response("{}")))).rejects.toThrow("http://x/props is not a llama-server /props payload");
+    expect((await servingReceipt(llamaLane("http://127.0.0.1:8098"), fetchFn)).fingerprint).toBe(receipt.fingerprint);
+    await expect(servingReceipt(llamaLane("http://x"), vi.fn<typeof fetch>().mockResolvedValue(new Response("loading", { status: 503 })))).rejects.toThrow("http://x/health answered HTTP 503");
+    await expect(servingReceipt(llamaLane("http://x"), vi.fn<typeof fetch>().mockResolvedValue(new Response("{}")))).rejects.toThrow("http://x/props is not a llama-server /props payload");
   });
 
   it("launches each trial from the pinned experiment checkout, writing to the main runs root", () => {
@@ -394,7 +463,7 @@ describe("exploratory current-main feature recipe", () => {
       expect(captured.dryRun).toBe(true);
       expect(captured.def.plan.map(slot => ({ arm: slot.arm, lane: slot.lane }))).toEqual([{ arm, lane }]);
       expect(captured.def.phases.map(phase => phase.maxWallMs)).toEqual([Number(cap)]);
-      expect(armFeatures(captured.def, arm)["whiteout-outcomes-v2"]).toBe(arm === "bundle");
+      expect(armFeatures(captured.def, arm)["whiteout-outcomes-v2"]).toBe(true);
       expect(armFeatures(captured.def, arm)["briefing-battle-outcomes-v1"]).toBe(true);
       expect(armFeatures(captured.def, arm)["battle-loss-recap-v1"]).toBe(true);
     } finally { rmSync(f.root, { recursive: true, force: true }); }

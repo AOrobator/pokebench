@@ -19,10 +19,10 @@ For each remaining milestone:
 
 ## Gates
 
-- `just test` (record vitest and pytest counts)
+- `just test` (record vitest and pytest counts): one coverage-instrumented pass over every suite that also enforces the ≥90% floor
 - `just lint` (tsc --noEmit, eslint, ruff, mypy)
 - `just build`
-- `just coverage` (≥90% lines, branches and functions, both stacks)
+- Coverage (≥90% lines, branches and functions, both stacks) is checked by `just test` itself. `just coverage` names the same pass; do not run it again after `just test`.
 - `just verify-vendor` once the submodule exists
 
 ## Review loop

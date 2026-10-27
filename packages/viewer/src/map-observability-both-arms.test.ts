@@ -1,3 +1,4 @@
+import {FROZEN_SWITCH_COUNT} from "../../agent/test-support/legacy-features.js";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
 import {parsePlayPreset,presetFeatures,normalizeFeatures,flagFeatures} from "@pokebench/agent/play-preset";
@@ -12,7 +13,8 @@ const ID="map-observability-v1";
 it("declares unified map observations ON in fresh control and bundle configurations",()=>{
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(true);
  expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});
- expect(SWITCHABLE_FEATURES.slice(-3)).toEqual(["instruction-goal-advisory-v1","goal-review-repair-feedback-v1",ID]);
+// The last three switches registered when the legacy fixtures froze.
+ expect(SWITCHABLE_FEATURES.slice(FROZEN_SWITCH_COUNT-3,FROZEN_SWITCH_COUNT)).toEqual(["instruction-goal-advisory-v1","goal-review-repair-feedback-v1",ID]);
  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","gym-rustboro-torchic","gym-rustboro-torchic-healed","random-starter-2h"]){
   const {definition:d}=readFixedDefinition(root,name);
   if(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"].includes(name))expect(d.onInBoth).toContain(ID);

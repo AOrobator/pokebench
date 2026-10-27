@@ -61,8 +61,8 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
 
 ```bash
 just setup          # enable .githooks, install deps
-just test           # vitest + pytest
-just coverage       # both stacks, fail under 90
+just test           # every vitest + pytest suite once, coverage-instrumented; fails under 90
+just coverage       # the same single pass as just test (never run both)
 just lint           # tsc --noEmit, eslint, ruff, mypy
 just build          # tsc build
 just build-mgba     # native mGBA + Python binding into env/.venv (once per clone)

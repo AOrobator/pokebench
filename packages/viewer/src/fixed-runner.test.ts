@@ -1,7 +1,7 @@
 import {readFixedDefinition} from "./fixed-definition.js";
 import {recipeText} from "../test-support/recipe-text.js";
 import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -538,6 +538,48 @@ describe("runFixed", () => {
     expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
   });
 
+  it("hands a vLLM lane's trials its key from the lane's key file and its declared vision, in an owner-only endpoint file, and nowhere else", async () => {
+    const key = "runner-test-key-not-real";
+    const keyFile = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "hyperqwen.key");
+    writeFileSync(keyFile, `${key}\n`);
+    const base = definition();
+    const [a, b] = base.lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    const { def, runsRoot, dir } = setup(dryRunDefinition(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: keyFile }, b] }), 120_000));
+    const host = new Fake(runsRoot, {}, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    const endpointA = join(dir, "endpoints", "A.json");
+    expect(JSON.parse(readFileSync(endpointA, "utf8"))).toEqual({ base_url: `${a.modelUrl}/v1`, api_key: key, vision: true });
+    expect(statSync(endpointA).mode & 0o777).toBe(0o600);
+    expect(JSON.parse(readFileSync(join(dir, "endpoints", "B.json"), "utf8"))).toEqual({ base_url: `${b.modelUrl}/v1`, api_key: "unused" });
+    const elsewhere = [join(dir, "trials.jsonl"), join(dir, "status.json"), join(runsRoot, "experiments", "runner.json")].filter((p) => existsSync(p));
+    for (const path of elsewhere) expect(readFileSync(path, "utf8")).not.toContain(key);
+    for (const l of host.launches) expect(JSON.stringify(l.env)).not.toContain(key);
+    expect(host.logs.join("\n")).not.toContain(key);
+  });
+
+  it("refuses to start a vLLM lane whose key file is missing, naming the file but no key", async () => {
+    const [a, b] = definition().lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    const { def, runsRoot } = setup(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: "/nonexistent/hyperqwen.key" }, b] }));
+    await expect(runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot, {}, def.id), stopRequested: () => false, pid: 77 })).rejects.toThrow("lane A: cannot read the api key file /nonexistent/hyperqwen.key");
+  });
+
+  it("refuses a vLLM key file whose key has characters a bearer token cannot have, before writing any lane's endpoint file", async () => {
+    const keyFile = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "hyperqwen.key");
+    writeFileSync(keyFile, "alpha\nbeta\n");
+    const [a, b] = definition().lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    const good = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "good.key");
+    writeFileSync(good, "first-secret\n");
+    const { def, runsRoot, dir } = setup(definition({ lanes: [{ ...b, server: "vllm", slots: 1, vision: true, apiKeyFile: good }, { ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: keyFile }] }));
+    const error = await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot, {}, def.id), stopRequested: () => false, pid: 77 }).then(() => null, (e: unknown) => String(e));
+    expect(error).toContain(`lane A: the api key file ${keyFile} holds characters a bearer token cannot have`);
+    expect(error).not.toContain("alpha");
+    expect(existsSync(join(dir, "endpoints", "A.json"))).toBe(false);
+    expect(existsSync(join(dir, "endpoints", "B.json"))).toBe(false);
+  });
+
   it("refuses a definition with problems before touching anything", async () => {
     const { def, runsRoot } = setup();
     await expect(runFixed({ def: { ...def, plan: [] }, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot), stopRequested: () => false, pid: 77 })).rejects.toThrow(/plan does not match seed/);
@@ -821,7 +863,10 @@ it("enables the seven training and catching switches only in the bundle of the f
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  // the operator 2026-10-27: the current recipe turns pokedex-own-v1 OFF in both arms.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
   for(const id of ids){
+   if(current&&id==="pokedex-own-v1"){expect(def.switches).not.toContain(id);expect(def.offInBoth).toContain(id);expect([armFeatures(def,"control")[id],armFeatures(def,"bundle")[id]]).toEqual([false,false]);continue;}
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
    expect(def.base.features[id]).toBe(false);
@@ -838,7 +883,10 @@ it("enables five GLM-run fixes only in the bundle; cut-off feedback is shared; n
  for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   const control=armFeatures(def,"control"),bundle=armFeatures(def,"bundle"),controlBits=armFeatureBits(def,"control"),bundleBits=armFeatureBits(def,"bundle");
+  // the operator 2026-10-27: the current recipe promotes drought-battle-heal-hold-v1 to both arms.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
   for(const id of ids){
+   if(current&&id==="drought-battle-heal-hold-v1"){expect(def.switches).not.toContain(id);expect(def.onInBoth).toContain(id);expect([control[id],bundle[id],controlBits[id],bundleBits[id]]).toEqual([true,true,true,true]);continue;}
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
    expect(def.base.features[id]).toBe(false);
@@ -974,7 +1022,7 @@ it("rehearses the current GLM protocol with shared features, serial chaining and
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:2,total:2});
   for(const arm of ["control","bundle"] as const){
    const preset=JSON.parse(readFileSync(join(dir,`presets/dry-run-${arm}.json`),"utf8")) as {features:Record<string,boolean>;sampling:{maxTokens:number}};
-   expect(preset.features["moving-npc-target-v1"]).toBe(arm==="bundle");
+   expect(preset.features["moving-npc-target-v1"]).toBe(true);
    expect(preset.features["cut-off-reply-feedback-v1"]).toBe(true);
    expect(preset.sampling.maxTokens).toBe(arm==="bundle"?8192:4096);
    expect(preset.features["trigger-navigation-boundary-v1"]).toBe(true);

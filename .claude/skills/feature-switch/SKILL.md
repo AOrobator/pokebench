@@ -38,7 +38,7 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - ON produces the new behavior.
    - A factory-level test proves the production path honors the switch.
    - Delete the wiring once and watch that test go red, then restore it and record it in the worklog.
-   - Update the registry counts and the legacy harness-feature lists.
+   - Registry tests pin membership and invariants, not the whole list: a new switch needs no edits to other switches' tests, the group counts, the server off-list pins or the legacy fixtures (`packages/agent/test-support/legacy-features.ts` turns every switch registered after its freeze OFF). Assert your own switch's position by absolute index and its server off-list change with `serverOffWith` (`packages/agent/test-support/server-features.ts`).
 6a. **Game wording**: any new model-facing text about obstacles, exits, blocked actions or next steps follows "Harness messages use the game's own words" in `.claude/skills/pokebench-game-state/SKILL.md`: quote what the game would show, say only the observable fact when it shows nothing, and never name what the game has not shown yet.
 7. **Explainer**: write it with `.claude/skills/feature-explainer/SKILL.md` and map the id in `FEATURE_EXPLAINERS` (`packages/viewer/src/panels.ts`).
 8. **Evaluation**: document activation milestone and readiness in the feature worklog. A measured comparison uses an operator-approved fixed-run design; merging a switch does not register or launch a comparison.

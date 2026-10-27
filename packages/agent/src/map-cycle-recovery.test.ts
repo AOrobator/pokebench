@@ -282,14 +282,18 @@ describe("registry, presets and experiment",()=>{
   expect(dependencyProblems({...LEGACY_ALL_ON,[ID]:true})).toContain(`${ID} needs navigation-recovery-v1`);
  });
 
- it("is on in the bundle arm of every current recipe whose bundle runs navigation-recovery-v1, and nowhere else",()=>{
-  const on={"bundle-v-control":52,"bundle-cook-1h":112,"whole-map-cook-1h":112,"whole-map-pair-2h":51,"bundle-v-control-2h":52,"glm53-flash-4h":52,"gym-rustboro-torchic":47};
+ it("is on in the bundle arm of every retained recipe whose bundle runs navigation-recovery-v1, and off in both current arms",()=>{
+  const on={"bundle-cook-1h":112,"whole-map-cook-1h":112,"whole-map-pair-2h":51,"gym-rustboro-torchic":47};
   for(const [name,index] of Object.entries(on)){
    const f=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
    expect(f.base.features[ID],name).toBe(false);expect(f.switches[index],name).toBe(ID);expect(f.switches,name).toContain("navigation-recovery-v1");
    expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth,name).not.toContain(ID);
   }
-  const glm=JSON.parse(recipeText(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")) as {switches:string[]};
-  expect(glm.switches).toContain(ID);
+  // the operator 2026-10-27: the maintained current recipes turn both recovery switches OFF in both arms.
+  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"]){
+   const f=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
+   expect(f.switches,name).not.toContain(ID);expect(f.switches,name).not.toContain("navigation-recovery-v1");
+   expect(f.offInBoth,name).toEqual(expect.arrayContaining([ID,"navigation-recovery-v1"]));expect(f.base.features[ID],name).toBe(false);
+  }
  });
 });

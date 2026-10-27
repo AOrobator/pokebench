@@ -21,8 +21,9 @@ it("disables the ledger in maintained arms while preserving archived definitions
   for(const phase of definition.phases)for(const arm of ["control","bundle"] as const){
    const features=presetFeatures(parsePlayPreset(armPreset(definition,phase.id,arm)));
    expect(dependencyProblems(features),`${name}/${phase.id}/${arm}`).toEqual([]);
-   for(const id of IDS){const enabled=arm==="bundle"&&(id!=="instruction-goal-ledger-v1"||ARCHIVED.includes(name));expect(definition.base.features[id]).toBe(false);expect(features[id]).toBe(enabled);expect(playHarnessFeatures(features,null).includes(id)).toBe(enabled);}
-   const names=playTools(features);expect(names.includes("review_goals")).toBe(arm==="bundle"&&ARCHIVED.includes(name));expect(names.includes("select_menu_option")).toBe(arm==="bundle");
+   // the operator 2026-10-27: the current recipe promotes menu-option-tool-v1 to both arms.
+   for(const id of IDS){const both=id==="menu-option-tool-v1"&&CURRENT.includes(name);const enabled=both||arm==="bundle"&&(id!=="instruction-goal-ledger-v1"||ARCHIVED.includes(name));expect(definition.base.features[id]).toBe(both);expect(features[id]).toBe(enabled);expect(playHarnessFeatures(features,null).includes(id)).toBe(enabled);}
+   const names=playTools(features);expect(names.includes("review_goals")).toBe(arm==="bundle"&&ARCHIVED.includes(name));expect(names.includes("select_menu_option")).toBe(arm==="bundle"||CURRENT.includes(name));
    // Disabling either new feature leaves the other one's model tool available.
    if(arm==="bundle"&&ARCHIVED.includes(name)){
     expect(features["harness-trust-v1"],`${name}/${phase.id}`).toBe(true);
@@ -38,22 +39,23 @@ it("disables the ledger in maintained arms while preserving archived definitions
   }
  }
 });
-it("does not silently activate either feature in historical or other fixed definitions",()=>{
+it("no current fixed definition carries either feature as a bundle-only switch",()=>{
  const files=readdirSync(new URL("../../../experiments/fixed/",import.meta.url)).filter(name=>name.endsWith(".json"));
  for(const id of IDS){
   const enabled=files.filter(name=>readFixedDefinition(sourceRoot,name.slice(0,-5)).definition.switches.includes(id)).map(name=>name.slice(0,-5)).sort();
-  expect(enabled,id).toEqual(id==="instruction-goal-ledger-v1"?[]:[...CURRENT].sort());
+  expect(enabled,id).toEqual([]);
  }
 });
 
-it("materializes the approved recovery configuration without changing cutscene or archived recipes",()=>{
+it("keeps the dormant goal follow-ups OFF in both current arms without changing cutscene or archived recipes",()=>{
  for(const id of ["instruction-goal-advisory-v1","goal-review-repair-feedback-v1"] as const)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const name of CURRENT){
   const {definition}=readFixedDefinition(sourceRoot,name);
   for(const phase of definition.phases)for(const arm of ["control","bundle"] as const){
    const f=presetFeatures(parsePlayPreset(armPreset(definition,phase.id,arm)));
    expect(f["instruction-goal-ledger-v1"],`${name}/${phase.id}/${arm}`).toBe(false);
-   for(const id of ["instruction-goal-advisory-v1","goal-review-repair-feedback-v1","cutscene-journal-v1"] as const)expect(f[id],`${name}/${phase.id}/${arm}/${id}`).toBe(arm==="bundle");
+   for(const id of ["instruction-goal-advisory-v1","goal-review-repair-feedback-v1"] as const)expect(f[id],`${name}/${phase.id}/${arm}/${id}`).toBe(false);
+   expect(f["cutscene-journal-v1"],`${name}/${phase.id}/${arm}`).toBe(arm==="bundle");
    expect(playTools(f)).not.toContain("review_goals");expect(playSystemPrompt(f,null)).not.toContain("Reviews are optional bookkeeping");expect(dependencyProblems(f)).toEqual([]);
   }
  }

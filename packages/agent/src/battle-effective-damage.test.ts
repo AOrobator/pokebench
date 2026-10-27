@@ -1,3 +1,4 @@
+import {serverOff, serverOffWith} from "../test-support/server-features.js";
 import {armPreset,parseFixedDefinition} from "../../viewer/src/fixed-design.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {recipeText} from "../../viewer/test-support/recipe-text.js";
@@ -5,7 +6,7 @@ import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
-import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures} from "./features.js";
 
 const ID="battle-effective-damage-v1" as const;
 const root=(path:string)=>readFileSync(fileURLToPath(new URL(`../../../${path}`,import.meta.url)),"utf8");
@@ -15,7 +16,7 @@ describe(ID,()=>{
   expect(SWITCHABLE_FEATURES.at(129)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"battle-details-v2",switchable:true,title:"BATTLE EFFECTIVE DAMAGE"});
   expect(SERVER_FEATURES.at(47)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toEqual([ID,"safe-navigation-strides-v1","original-speed-pacing-v1","exit-labels-v2","heal-before-trainers-v2","respawn-readout-v1","caught-nickname-prompt-v1","party-item-confirmation-v1","yes-no-answer-readout-v1","field-move-gates-v1","exit-labels-v3","move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","gym-door-label-v1","mart-stock-readout-v1","caught-dex-input-v1","exp-next-level-v1","pokedex-own-v1","shop-interface-v1","map-wide-triggers-v1","birch-intro-pages-v1","post-battle-readout-v1","move-learn-early-comparison-v1","poison-readout-v1","berry-readout-v1","battle-move-learn-input-v1","static-npc-template-approach-v1","coherent-battle-observation-v1","window-escape-route-v1","elevation-aware-map-v1","screen-center-player-v1","blackout-transition-v1","player-elevation-readout-v1","party-menu-message-v1","interface-guidance-v1","active-warp-exits-v1","available-exits-presentation-v1","bag-pocket-truth-v1","caught-nickname-prompt-v2","mauville-puzzle-readout-v1","cutscene-journal-v1","map-observability-v1"]);
+  expect(serverOff({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false})).toEqual(serverOffWith(ALL_ON,{off:[ID]}));
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-details-v2":false})).toContain(`${ID} needs battle-details-v2`);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(playHarnessFeatures(ALL_ON,null)).toContain(ID);

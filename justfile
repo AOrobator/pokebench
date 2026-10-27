@@ -11,16 +11,16 @@ setup:
     cd env && uv sync
     @echo "✓ hooks enabled, deps installed"
 
+# Every suite runs once, coverage-instrumented, and the 90% floor is enforced in the same pass
+# (project override of the global 95%; see CLAUDE.md).
 test:
-    pnpm -r test
-    cd env && uv run pytest -q
-    just trainer-card-check
-
-# Coverage floor is 90% (project override of the global 95%; see CLAUDE.md).
-coverage:
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
     cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
+    just trainer-card-check
+
+# The coverage gate is part of `just test`; `just coverage` is that same single pass under another name.
+coverage: test
 
 lint:
     pnpm -r lint

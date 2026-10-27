@@ -121,4 +121,15 @@ describe("discoverLocal", () => {
     expect(shown).not.toContain("test-secret");
     expect(String(error)).toMatch(/GET http:\/\/127.0.0.1:1\/v1\/models failed: TypeError/);
   });
+
+  it("reports only the error name and errno code, so no rendering of a quoted or backslashed key can leave", async () => {
+    const key = 'alpha"beta\\gamma';
+    const quoted = { baseUrl: "http://127.0.0.1:18020/v1", apiKey: key };
+    const echoes = vi.fn<typeof fetch>().mockRejectedValue(new TypeError(`bad header ${JSON.stringify(`Bearer ${key}`)}`));
+    const shown = String(await discoverLocal(quoted, echoes).catch((e: unknown) => e));
+    expect(shown).toBe("LocalEndpointError: GET http://127.0.0.1:18020/v1/models failed: TypeError");
+    for (const fragment of ["alpha", "beta", "gamma"]) expect(shown).not.toContain(fragment);
+    const refused = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed", { cause: Object.assign(new Error("connect"), { code: "ECONNREFUSED" }) }));
+    expect(String(await discoverLocal(quoted, refused).catch((e: unknown) => e))).toBe("LocalEndpointError: GET http://127.0.0.1:18020/v1/models failed: TypeError (ECONNREFUSED)");
+  });
 });

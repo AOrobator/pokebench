@@ -190,6 +190,7 @@ SERVER_FEATURES = (
     MAUVILLE_PUZZLE,
     "cutscene-journal-v1",
     "map-observability-v1",
+    "type-gap-team-v1",
 )
 
 
@@ -219,7 +220,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1",
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,"
+        "type-gap-team-v1",
     )
     if raw == "":
         return frozenset()
@@ -1197,4 +1199,6 @@ def state_json(state: GameState) -> dict[str, object]:
             if state.heal_trainers is None
             else {"heal_before_trainers": state.heal_trainers.json()}
         ),
+        # type-gap-team-v1: present only with the switch, so switch-off state is unchanged.
+        **({} if state.type_gap is None else {"type_gap": state.type_gap.json()}),
     }

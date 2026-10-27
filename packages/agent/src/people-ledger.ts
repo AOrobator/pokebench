@@ -164,6 +164,18 @@ export class PeopleLedger {
   });
   return `${UNTALKED_HEADER} ${items.length===0?"none":items.join("; ")}.`;
  }
+ // untalked-in-gym-v1: the people on this map (item balls excepted) never talked to this run, by the ledger's rule,
+ // or null outside a started overworld readout with live objects.
+ untalkedThisRun(state:GameStateSnapshot,readout:string,callId:string):string[]|null {
+  const objects=mapObjects(state);
+  if(!state.started||state.screen!=="overworld"||state.in_battle||objects===null)return null;
+  const placed=presence(readout)?.placed;
+  return objects.flatMap(o=>{
+   if(/ITEM_BALL/.test(o.sprite??"")||this.last(o.key,callId)!==undefined)return [];
+   const sprite=o.sprite??"unknown",name=placed?.get(`${String(o.x)},${String(o.y)}`);
+   return [`object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)})`];
+  });
+ }
  // The readout with the block inserted after its Position line (or Location line when position is off).
  annotate(text:string,state:GameStateSnapshot,callId:string):string {
   const anchor=/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);

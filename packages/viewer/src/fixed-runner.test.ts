@@ -565,16 +565,19 @@ describe("runFixed", () => {
     await expect(runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot, {}, def.id), stopRequested: () => false, pid: 77 })).rejects.toThrow("lane A: cannot read the api key file /nonexistent/hyperqwen.key");
   });
 
-  it("refuses a vLLM key file whose key has characters a bearer token cannot have, before writing any endpoint file", async () => {
+  it("refuses a vLLM key file whose key has characters a bearer token cannot have, before writing any lane's endpoint file", async () => {
     const keyFile = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "hyperqwen.key");
     writeFileSync(keyFile, "alpha\nbeta\n");
     const [a, b] = definition().lanes;
     if (a === undefined || b === undefined) throw new Error("fixture lanes");
-    const { def, runsRoot, dir } = setup(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: keyFile }, b] }));
+    const good = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "good.key");
+    writeFileSync(good, "first-secret\n");
+    const { def, runsRoot, dir } = setup(definition({ lanes: [{ ...b, server: "vllm", slots: 1, vision: true, apiKeyFile: good }, { ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: keyFile }] }));
     const error = await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot, {}, def.id), stopRequested: () => false, pid: 77 }).then(() => null, (e: unknown) => String(e));
     expect(error).toContain(`lane A: the api key file ${keyFile} holds characters a bearer token cannot have`);
     expect(error).not.toContain("alpha");
     expect(existsSync(join(dir, "endpoints", "A.json"))).toBe(false);
+    expect(existsSync(join(dir, "endpoints", "B.json"))).toBe(false);
   });
 
   it("refuses a definition with problems before touching anything", async () => {

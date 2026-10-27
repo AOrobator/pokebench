@@ -142,9 +142,9 @@ class Runner {
       }
     }
     // The endpoint file is the only place the key is written: owner-only, under the gitignored runs root.
-    for (const lane of this.o.def.lanes) {
-      const endpoint = { base_url: `${lane.modelUrl}/v1`, api_key: laneApiKey(lane), ...(lane.vision === undefined ? {} : { vision: lane.vision }) };
-      const path = this.endpointPath(lane);
+    // Every lane's key is read before any file is written, so one bad key file leaves no endpoint behind.
+    const endpoints = this.o.def.lanes.map((lane) => ({ path: this.endpointPath(lane), endpoint: { base_url: `${lane.modelUrl}/v1`, api_key: laneApiKey(lane), ...(lane.vision === undefined ? {} : { vision: lane.vision }) } }));
+    for (const { path, endpoint } of endpoints) {
       rmSync(path, { force: true });
       writeFileSync(path, `${JSON.stringify(endpoint)}\n`, { mode: 0o600 });
     }

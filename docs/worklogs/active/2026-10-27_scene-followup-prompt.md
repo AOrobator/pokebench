@@ -1,0 +1,58 @@
+# scene-followup-prompt-v1: talk to a scene's people before older instructions
+
+Status: in progress (single milestone, prompt-line switch)
+Branch: claude/scene-followup-prompt-v1 (worktree /private/tmp/pokebench-scene-followup)
+Evidence: runs/reports/run-analysis/2026-10-27_astra-frontier/ (sections/astra.md P2, sections/switches.md divergence A)
+
+## Scope
+- One guidance switch, `scene-followup-prompt-v1`, default OFF. ON adds one overworld system-prompt paragraph telling the model that after a scene plays it should talk to that scene's people who are still nearby before following older instructions.
+- Generic wording: no character, place, item or story event names; no hint of what happens next (no-story-foreknowledge stays satisfied). Nothing truncated.
+- Activation: experiments/feature-configs/current.json `switches` (bundle ON, control OFF). Rebased onto the promote-control landing ff88c3a03.
+- Non-goals: no probe or run launch (the 9e33 seq 52193 probe needs a GPU window from the operator), no change to other switches.
+
+## Evidence cases
+- Astra t415→t425 (seq 13936→14218): saw the theft scene, went to the employee; goods back at t476.
+- Qwen 9e33 t1384–1390 (seq 52168–52437): same scene, called it "a random encounter with a thug" (seq 52193) and went south; heard the employee 4,270 turns later.
+
+## M1
+- [x] RED: registry, prompt OFF/ON, presets, defaults, current.json wiring (packages/agent/src/scene-followup-prompt.test.ts: 8/8 fail as expected)
+- [x] GREEN: registry (features.ts, last in SWITCHABLE_FEATURES/FEATURES/playHarnessFeatures), presets default false, DEFAULT_NEXT_RUN false, play-config SCENE_FOLLOWUP_SECTION after ID cards (overworld), current.json switches + features false. Wiring deleted once → 5/8 red, restored → 8/8. Pinned counts: guidance 96→97, explorer-guidance-v2 list, map-observability tail.
+- [x] Explainer docs/explainers/scene-followup-prompt-v1.html (pages-theme, pages-check clean) + FEATURE_EXPLAINERS + README; panels/server tests extended
+- [x] Gates: agent vitest 4483/4483, viewer vitest 2033/2033, pytest 4425 passed, trainer-card-check 3/3 (POKEBENCH_CARD_ART=main's runs/sprites/trainer-card-v1; worktree has no ROM-derived art), lint clean, build clean, coverage: python lines 97.47 / branches 93.58 / functions 100; viewer all-files 95.86/91.66/95.35; agent above floor. Worktree setup: vendor submodule init (verify-vendor OK), main's mgba binding linked into the worktree venv for mypy.
+- [ ] Review lanes (Claude, GPT, fallback for Grok)
+- [ ] Land ff-only via landing board
+- [x] Probe context-only rehearsal (CPU): `probe-decision 9e33 1385 --switch scene-followup-prompt-v1=on --context-only` against a scratch runs-root (events truncated after seq 52440; the 2.2 GB file exceeds Node's string limit). Flipped context differs in system prompt only.
+- [ ] Probe on matching Mac server (the operator approved 2026-10-27 via coordinator): UD-Q4_K_M copied from GPU box, 9e33 container flags (ctx 65536, -b 2048 -ub 512, KV q4_0, parallel 1, --reasoning-budget 1024, jinja)
+
+## Multi-Model Review Log
+
+### Round 1 (packet cbf527da0e1b29bd061157878a16993177d02c8aafed2c9ade5a0c0664b04bd3, base cedef5876, head 61148c973)
+- Principles self-review: 0 FAIL (docs/worklogs/active/2026-10-27_scene-followup-principles.md).
+- Claude CLI lane (~/.claude-review, plan mode): VERDICT: LGTM. Non-blocking: new constant sits under the people-id-cards comment (cosmetic, follow-up); example clause mirrors the motivating scene (wording is the operator's requested categories; operator's call); denylist test is weak (follow-up).
+- GPT lane (cursor-agent gpt-5.6-sol-xhigh): BLOCKED, "You're out of usage". Codex out of tokens until ~Nov 1.
+- Grok lane (cursor-agent cursor-grok-4.5-high): BLOCKED, same Cursor usage error.
+- Standing fallback (fresh read-only subagents, distinct models; never counts as a cloud lane): Sonnet LGTM, Opus LGTM. The same non-blocking notes, plus a watch item: "before older instructions" vs instruction-goal ledger when both are ON (the ledger is offInBoth now).
+- Triage: no Fix items. Follow-ups: comment placement, a stronger genericity test.
+- Landing: GPT cloud lane missing, so no self-merge; asked the operator.
+
+## Prompt research (2026-10-27, after review; not landed)
+- The operator: do not land the system-prompt line; research prompting. Land board released.
+- Report: runs/reports/run-analysis/2026-10-27_scene-followup-prompt-research/index.html (viewer Reports). Probe lanes: runs/probes/scene-followup-9e33-20261027 (viewer /probes).
+- Replay fix: probe decisionContext skipped context-token-budget-v1; budgeted replay matches 9e33 t1385 at 60,107 prompt tokens (all Qwen contexts exact).
+- Result: the built line (system prompt) 0/16 vs 0/16. A once-only SUPERVISOR note after a guarded scene trigger, quoting the scene's lines and naming its participants: DEV 90/96, fresh held-out (5 unseen runs) 141/160 vs off 5/160, forced misfire 2/32.
+- Next: a new switch (e.g. scene-followup-note-v1) with the guarded trigger and SUPERVISOR template, after the operator picks the variant. This branch's scene-followup-prompt-v1 stays unlanded.
+- Follow-ups: probe library ContextBudget gap, Replay gymHealWarning hook, 536 MB log limit; llama.cpp hybrid checkpoint loop.
+
+## M2: rebuild as a guarded SUPERVISOR note (the operator picked "Supervisor: quoted lines + names", 2026-10-27)
+Branch reset onto main 896088908 (the unlanded system-prompt version is kept at refs/heads/backup/scene-followup-prompt-v1-line).
+- Same id scene-followup-prompt-v1; no system-prompt line. Trigger (game state only, one dialogue_auto_advance):
+  >=2 pages with no speaker and other people on screen; on-screen people change between those pages; the
+  player's tile is the same on those pages; stop=field_free; no page has a speaker the game or harness attributed.
+- On that call's tool_result, the next request gets one user message "SUPERVISOR: …" (the probe's quoted lines +
+  names template, verbatim pages, no truncation); the next tool_result clears it. Recorded as ledger_context.
+- needs script-line-presence-v1 (on_screen page data). current.json: bundle ON, control OFF.
+- [x] RED: packages/agent/src/scene-followup.test.ts on recorded fixtures (test-support/scene-followup-events.json:
+  theft 9e33/d41e fire; woods, museum, Birch lab, Birch rescue, "Don't leave me", Rusturf grunt, gym youngster quiet)
+- [ ] GREEN
+- [ ] Explainer, report status
+- [ ] Gates, review (Claude + fallback; GPT out, the operator approved landing without it), land ff-only

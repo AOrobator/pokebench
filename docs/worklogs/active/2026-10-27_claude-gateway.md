@@ -59,3 +59,6 @@ Not a harness behavior change, so there's no feature switch: the gateway is an e
   - Keepalive no longer writes after the final frame.
   - The session contract says the harness tools aren't callable.
 - Gateway tests: 58 pass. Coverage 99.28/96.96/100.
+- Review round 2 (packet c5671457, head 1d7978f7a): Claude LGTM, fallback LGTM (its follow-up: a JS-only regex would raise re.error; every `pattern` in packages/agent/src compiles in Python re), Codex gpt-5.6-sol BLOCKING on one point. A session with unknown ownership (a legacy session.json, or one created before --game-port resolved) could be resumed by a newly bound run. Fix: a stored session resumes only when its run_id equals the bound run (both None only when there is no binding at all, as in a replay); anything else is `session_reset`. Two new tests.
+- Capture preflight (pokebench-run-coordination): the replay streams had thinking blocks with empty text, because Claude Code omits thinking unless asked. `--thinking-display summarized` (accepted by 2.1.299, not listed in --help) returns readable thinking summaries in stream-json (live check: a 48-char summary). `--settings {"showThinkingSummaries":true}` did not. Both modes now pass it. These are provider reasoning summaries, not raw reasoning.
+- Gateway tests 60 pass, coverage 99.28/96.96/100.

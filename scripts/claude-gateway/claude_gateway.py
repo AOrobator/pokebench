@@ -576,6 +576,9 @@ def claude_argv(config: Config, spec: CallSpec) -> list[str]:
         "--disable-slash-commands",
         "--permission-prompts",
         "none",
+        # Readable thinking summaries in the stream (not in --help on 2.1.299; live-checked).
+        "--thinking-display",
+        "summarized",
     ]
     if spec.mode == "stateless":
         return [*argv, "--tools", "", "--no-session-persistence"]
@@ -866,7 +869,8 @@ class Gateway:
             return stateless_prompt(request)
         bound = self.binder.run_id
         known = self.session.run_id
-        if self.session.session_id is not None and None not in (bound, known) and bound != known:
+        # A session belongs to exactly one run; unknown ownership never carries over.
+        if self.session.session_id is not None and bound != known:
             self.event(
                 "session_reset", old_run=known, run_id=bound, old_session=self.session.session_id
             )
@@ -924,7 +928,7 @@ class Gateway:
                 continue
             if self.config.mode == "session" and result.session_id is not None:
                 self.session.session_id = result.session_id
-                self.session.run_id = self.session.run_id or self.binder.run_id
+                self.session.run_id = self.binder.run_id
                 if not spec.resume:
                     self.session.cost_total = session_total
                 self.session.save(self.config.bridge / "session.json")

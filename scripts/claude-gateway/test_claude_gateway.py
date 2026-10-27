@@ -151,6 +151,7 @@ def test_stateless_success_over_http(tmp_path: Path, served) -> None:  # type: i
     assert argv[argv.index("--model") + 1] == "claude-opus-5-5"
     assert argv[argv.index("--effort") + 1] == "medium"
     assert argv[argv.index("--setting-sources") + 1] == ""
+    assert argv[argv.index("--thinking-display") + 1] == "summarized"
     system = argv[argv.index("--system-prompt") + 1]
     assert system.startswith("You play Emerald.") and '"name": "press"' in system
     assert sent["cwd"] == str((tmp_path / "bridge" / "empty").resolve())
@@ -660,3 +661,25 @@ def test_invalid_base64_image_is_a_request_error() -> None:
     }
     with pytest.raises(cg.GatewayError, match="not valid base64"):
         cg.parse_request(json.dumps(body).encode())
+
+
+def test_session_of_unknown_run_is_not_adopted(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    legacy = {"session_id": "00000000-0000-4000-8000-75e45e416143", "tools_sha": ""}
+    (tmp_path / "bridge" / "session.json").write_text(json.dumps(legacy))
+    bound = cg.Gateway(gateway.config)
+    assert bound.answer(request(1))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and "--resume" not in argv
+    assert legacy["session_id"] not in argv
+    assert json.loads((tmp_path / "bridge" / "session.json").read_text())["run_id"] == "run-a"
+
+
+def test_session_started_before_binding_is_not_adopted(tmp_path: Path) -> None:
+    runs = tmp_path / "runs"
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_id=None, game_port=8089)
+    assert gateway.answer(request(1))[1].reply is not None
+    write_start(runs, "late", 8089, datetime.now(UTC) + timedelta(seconds=1))
+    assert gateway.answer(request(2))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and "--session-id" in argv and "--resume" not in argv

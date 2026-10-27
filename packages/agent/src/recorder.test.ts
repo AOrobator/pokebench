@@ -783,3 +783,16 @@ it("records model goal transactions on the action turn and context delivery on t
  recorder.recordLedgerContext({text:"INSTRUCTION GOALS delivered",evidence:[]});
  expect(events(log).filter(e=>e.type==="ledger_context").map(e=>({turn:e.turn,text:e.text}))).toEqual([{turn:1,text:"Model review committed"},{turn:2,text:"INSTRUCTION GOALS delivered"}]);
 });
+
+it("context-exact-count-v1: records the request's counted prompt beside the server's usage and clears it for the next request",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);
+ await recorder.transformContext([]);
+ const count={tokens:61_000,source:"vllm-tokenize" as const,limit:61_440,reserve:0,dropped_turns:3};
+ recorder.promptCount(count);
+ await recorder.emit({type:"message_end",message:assistant({text:"ready"})});
+ await recorder.transformContext([]);
+ await recorder.emit({type:"message_end",message:assistant({text:"next"})});
+ const rows=events(log).filter(e=>e.type==="assistant");
+ expect(rows[0]).toMatchObject({prompt_count:count});
+ expect(rows[1]).not.toHaveProperty("prompt_count");
+});

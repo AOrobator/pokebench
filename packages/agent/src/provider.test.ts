@@ -260,3 +260,21 @@ describe("presence-penalty-v1 on the wire", () => {
     expect(await on.config.onPayload?.(null, on.model)).toBe(null);
   });
 });
+
+// context-exact-count-v1: the exact fit sees the final body, after the sampling fields, and what it returns is sent.
+describe("context-exact-count-v1 payload fit", () => {
+  it("runs the fit on the body the other payload fields produced and sends its result; no fit leaves the config as today", async () => {
+    const gateway = await startFakeGateway();
+    const model = selectModel(await discoverModels({ gatewayUrl: gateway.url, visionModels: ["think-swarm"] }), "think-swarm");
+    const seen: unknown[] = [];
+    const fit = (payload: unknown): Promise<unknown> => { seen.push(payload); return Promise.resolve(typeof payload === "object" && payload !== null ? { ...payload, fitted: true } : payload); };
+    const config = playLoopBase(model, "medium", "key", 4096, { ...ALL_ON, "presence-penalty-v1": true }, fit);
+    const prompt: AgentMessage = { role: "user", content: "What is on screen?", timestamp: 0 };
+    await runAgentLoop([prompt], { systemPrompt: "Play.", messages: [], tools: [screenshotTool] }, config, () => undefined);
+    expect(seen[0]).toMatchObject({ presence_penalty: 1.5 });
+    for (const request of gateway.requests) expect(request).toMatchObject({ fitted: true, presence_penalty: 1.5 });
+    const bare = playLoopBase(model, "medium", "key", 4096, { ...ALL_ON, "presence-penalty-v1": false }, fit);
+    expect(await bare.onPayload?.({ a: 1 }, model)).toEqual({ a: 1, fitted: true });
+    expect(playLoopBase(model, "medium", "key", 4096, { ...ALL_ON, "presence-penalty-v1": false })).not.toHaveProperty("onPayload");
+  });
+});

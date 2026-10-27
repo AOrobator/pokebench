@@ -49,9 +49,10 @@ Test and build wiring only. No new subprocesses, inputs or network. The trainer-
 - [x] GREEN with the dummy switch and no test edits: agent 317 files, viewer 152, pytest 4425, all passing.
 - [x] Mutations (on top of the dummy), each RED: duplicate switch id; duplicate server id; switch with no `FEATURES` entry; description without ` Off: `; empty title; `needs` an unregistered switch; server switch removed (`adjacent-tiles-v1`); switch removed from the registry (`readout-truth-v1`); frozen switch regrouped (`ledge-hops-v1`); Python server list drifts from TS; Python default-off loses a frozen switch; gains a frozen switch; Python server list duplicates a switch; feature config names an unregistered switch; feature config puts a switch in two roles.
 - [x] Feature-switch skill step 6 updated.
-- [ ] COMMIT
+- [x] COMMIT: `test: pin switch-registry membership and invariants, not whole lists` (ad554d8fa)
 
 **M2 — One coverage-instrumented pass**
+- [x] COMMIT (RED): `test: RED gate wiring for one coverage-instrumented pass` (see next line)
 - [x] RED: new wiring tests against the old justfile: 3 failed (`test_test_recipe_is_exactly_the_gated_pipeline`, `test_coverage_names_the_same_single_pass`, `test_python_gate_reads_the_report_pytest_writes`).
 - [x] GREEN: justfile changed; wiring and trainer-card guard tests 7 passed.
 - [x] Docs: CLAUDE.md commands, execute-worklog and feature-worklog gates, close-the-loop table.

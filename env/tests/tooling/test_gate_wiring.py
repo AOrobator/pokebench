@@ -1,7 +1,9 @@
 """Wiring tests: the `just` entry points invoke the gates exactly as intended.
 
 Unit tests prove the coverage gate and the hook work; these prove the production
-entry points (`just coverage`, `just setup`) reach them. `just --dry-run` prints
+entry points (`just test`, `just coverage`, `just setup`) reach them. `just test`
+is the one coverage-instrumented pass over every suite; `just coverage` names that
+same pass, so a gate never runs the suites twice. `just --dry-run` prints
 recipe commands without executing them, and `node` evaluates the real vitest
 config. Both start read-only processes: they are the only observers of how the
 recipes and the config resolve, so the skill's no-process rule is waived here.
@@ -28,6 +30,7 @@ EXPECTED_COVERAGE = [
     f"cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json "
     f"--min {COVERAGE_FLOOR}",
 ]
+EXPECTED_TEST = [*EXPECTED_COVERAGE, "just trainer-card-check"]
 
 EXPECTED_SETUP = [
     "git config core.hooksPath .githooks",
@@ -37,9 +40,9 @@ EXPECTED_SETUP = [
 ]
 
 
-def recipe_lines(recipe: str) -> list[str]:
+def recipe_lines(*recipes: str) -> list[str]:
     result = subprocess.run(
-        ["just", "--dry-run", recipe],
+        ["just", "--dry-run", *recipes],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -51,11 +54,17 @@ def recipe_lines(recipe: str) -> list[str]:
 
 @pytest.fixture(scope="module")
 def coverage_lines() -> list[str]:
-    return recipe_lines("coverage")
+    return recipe_lines("test")
 
 
-def test_coverage_recipe_is_exactly_the_gated_pipeline(coverage_lines: list[str]) -> None:
-    assert coverage_lines == EXPECTED_COVERAGE
+def test_test_recipe_is_exactly_the_gated_pipeline(coverage_lines: list[str]) -> None:
+    assert coverage_lines == EXPECTED_TEST
+
+
+def test_coverage_names_the_same_single_pass() -> None:
+    assert recipe_lines("coverage") == EXPECTED_TEST
+    assert recipe_lines("test", "coverage") == EXPECTED_TEST
+    assert recipe_lines("coverage", "test") == EXPECTED_TEST
 
 
 def test_python_gate_reads_the_report_pytest_writes(coverage_lines: list[str]) -> None:

@@ -54,8 +54,13 @@ const INVALID_TRIAL = "Invalid fixed-run trial: ";
 export function invalidTrial(run: WorkbenchRun): string | null {
   if (run.problem !== null || run.excluded === null || run.measurement?.controller !== "agent") return null;
   const reason = run.excluded.startsWith(INVALID_TRIAL) ? run.excluded.slice(INVALID_TRIAL.length)
-    : run.excluded === "Excluded operator-aborted run" || run.excluded.startsWith("Infrastructure outcome: ") || run.excluded.startsWith("Launcher outcome: ") ? run.excluded : null;
+    : run.excluded.startsWith("Infrastructure outcome: ") || run.excluded.startsWith("Launcher outcome: ") ? run.excluded : null;
   return run.config?.start === "boot" || run.config?.resume === "MAIN_MENU" || resumeMilestone(run) !== null ? reason : null;
+}
+// The explicit marker for a run the operator ended: it stays in results.
+export function endedByOperator(reason: string | null): string | null {
+  const kind = reason === "operator_abort" ? "abort" : reason === "operator_stop" ? "stop" : null;
+  return kind === null ? null : `Ended by operator ${kind} (${reason ?? ""}): progress before the ${kind} counts; later milestones are censored, not failures`;
 }
 export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run) || invalidTrial(run) !== null;
 const resumedRun = (run: WorkbenchRun): boolean => checkpointResume(run) || (invalidTrial(run) !== null && resumeMilestone(run) !== null);
@@ -73,21 +78,31 @@ export function preciseTime(ms: number): string {
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
 // The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
 const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused");
-export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
+function rankedAgents(runs: readonly WorkbenchRun[]): WorkbenchRun[] {
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
   const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
   const agents = runs.filter(r => frontierCandidate(r) && rank(r) >= 0);
-  agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
-  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: agents[0] ?? null };
+  return agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
+}
+export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
+  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: rankedAgents(runs)[0] ?? null };
+}
+// The frontier and the runner-up are enough to answer every run: excluding a run from the ranking only matters when it is the frontier.
+export interface FrontierPair { readonly best: Baseline | null; readonly runnerUp: Baseline | null }
+const nativeSplits = (run: WorkbenchRun | undefined): Baseline | null => run === undefined ? null : { run: run.id, milestones: run.splits.filter(s => s.screenshotEvidence === undefined).map(s => ({ name: s.name, offsetMs: s.elapsedMs, ...(s.derived === true ? { derived: true } : {}) })) };
+export function frontierPair(runs: readonly WorkbenchRun[]): FrontierPair {
+  const [best, runnerUp] = rankedAgents(runs);
+  return { best: nativeSplits(best), runnerUp: nativeSplits(runnerUp) };
 }
 // The frontier a run's splits race: the frontier graph's agent frontier among the other runs (a frontier run races
 // the next one, not itself), with its native splits; a checkpoint resume's clock starts mid-game, so it has none.
+export function pairFrontier(pair: FrontierPair, current: string, resumed: boolean): Baseline | null {
+  if (resumed) return null;
+  return pair.best?.run === current ? pair.runnerUp : pair.best;
+}
+export const resumedCheckpoint = (resume: string | null | undefined): boolean => FRONTIER_MILESTONES.some(m => m.id === resume);
 export function frontierSplits(runs: readonly WorkbenchRun[], current: string): Baseline | null {
-  const self = runs.find(r => r.id === current);
-  if (self !== undefined && resumeMilestone(self) !== null) return null;
-  const best = frontierReferences(runs.filter(r => r.id !== current)).best;
-  if (best === null) return null;
-  return { run: best.id, milestones: best.splits.filter(s => s.screenshotEvidence === undefined).map(s => ({ name: s.name, offsetMs: s.elapsedMs, ...(s.derived === true ? { derived: true } : {}) })) };
+  return pairFrontier(frontierPair(runs), current, resumedCheckpoint(runs.find(r => r.id === current)?.config?.resume));
 }
 export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "unsupported" | "pending" | "censored" | "not reached" | "excluded" {
   if (run.excluded !== null || run.problem !== null) return "excluded";
@@ -112,7 +127,7 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
 export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, versions: VersionIndex): string {
   const state = status === "live" ? " · LIVE" : status === "paused" ? " · PAUSED" : "";
   const start = run.config?.resume === "MAIN_MENU" ? " · from main-menu save" : "";
-  const stopped = run.reason === "operator_abort" || run.reason === "operator_stop" ? " · stopped early" : "";
+  const stopped = run.reason === "operator_abort" ? " · ended by operator abort" : run.reason === "operator_stop" ? " · ended by operator stop" : "";
   return `Agent frontier${state}${stopped} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
@@ -203,7 +218,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const coverage = `<details data-frontier-coverage class="wb-muted"><summary>${count}</summary><ul>${selected.map(run => {
     const last = milestones.findLast(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
     const split = run.splits.find(s => s.name === last?.id);
-    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · excluded: ${invalidTrial(run) ?? ""}`}` : hiddenIds.has(run.id) ? "Time outlier hidden; turn off HIDE TIME OUTLIERS to restore" : reason(run);
+    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · excluded: ${invalidTrial(run) ?? ""}`}${endedByOperator(run.reason) === null ? "" : ` · ${endedByOperator(run.reason) ?? ""}`}` : hiddenIds.has(run.id) ? "Time outlier hidden; turn off HIDE TIME OUTLIERS to restore" : reason(run);
     return `<li><a href="/#replay=${encodeURIComponent(run.id)}">${esc(run.id)}</a> · ${esc(progress)}</li>`;
   }).join("")}</ul></details>`;
   const unavailable = `${refs.human === null ? '<p class="wb-muted">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-muted">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;

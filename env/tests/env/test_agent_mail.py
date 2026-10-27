@@ -1313,3 +1313,110 @@ def test_joining_as_the_first_waiter_expires_an_overdue_lone_holder(
     assert am.main(["land-join", "--who", "b", "--branch", "b"], run=Runs()) == 0
     assert "You are landing now" in capsys.readouterr().out
     assert [e.branch for e in am.read_board(r)] == ["b", "a"]
+
+
+def leave_stale_pings(r: am.Mailroom, count: int) -> tuple[int, int]:
+    """Another holder keeps the pipe open, so pings for letters already read stay in it."""
+    r.root.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(r.pipe)
+    reader = os.open(r.pipe, os.O_RDONLY | os.O_NONBLOCK)
+    writer = os.open(r.pipe, os.O_WRONLY)
+    os.write(writer, b"\n" * count)
+    return reader, writer
+
+
+def test_stale_pings_do_not_end_a_wait_without_mail(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    holder = leave_stale_pings(r, 3)
+    try:
+        started = time.monotonic()
+        assert am.wait_for_mail(r, timeout=0.3) == []
+        assert time.monotonic() - started >= 0.25
+    finally:
+        for fd in holder:
+            os.close(fd)
+
+
+def test_a_letter_after_stale_pings_still_wakes_the_listener(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    holder = leave_stale_pings(r, 3)
+    try:
+        listener, got = listen_in_background(r)
+        listener.join(0.2)
+        assert listener.is_alive() and got == []
+        assert am.tell_claude(r, sender="codex", text="real one", now=T) is True
+        listener.join(5)
+        assert not listener.is_alive()
+        assert got == [[am.Letter(T, "codex", "real one")]]
+    finally:
+        for fd in holder:
+            os.close(fd)
+
+
+def test_pings_left_by_a_burst_do_not_end_the_next_wait(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    holder = leave_stale_pings(r, 0)
+    try:
+        listener, got = listen_in_background(r)
+        for n in range(3):
+            am.tell_claude(r, sender="codex", text=f"burst {n}", now=T)
+        listener.join(5)
+        delivered = [x.text for x in got[0]]
+        am.acknowledge(r, os.getpid())
+        while len(delivered) < 3:
+            delivered += [x.text for x in am.wait_for_mail(r, timeout=0.3)]
+            am.acknowledge(r, os.getpid())
+        assert delivered == ["burst 0", "burst 1", "burst 2"]
+        started = time.monotonic()
+        assert am.wait_for_mail(r, timeout=0.3) == []
+        assert time.monotonic() - started >= 0.25
+    finally:
+        for fd in holder:
+            os.close(fd)
+
+
+def test_more_letters_than_pings_are_each_delivered_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = room(tmp_path)
+    holder = leave_stale_pings(r, 2)
+    real_write = os.write
+
+    def full(fd: int, data: bytes) -> int:
+        raise BlockingIOError
+
+    try:
+        monkeypatch.setattr(os, "write", full)
+        for n in range(5):
+            am.tell_claude(r, sender="codex", text=f"letter {n}", now=T)
+        monkeypatch.setattr(os, "write", real_write)
+        delivered = [x.text for x in am.wait_for_mail(r, timeout=0.3)]
+        am.acknowledge(r, os.getpid())
+        assert delivered == [f"letter {n}" for n in range(5)]
+        started = time.monotonic()
+        assert am.wait_for_mail(r, timeout=0.3) == []
+        assert time.monotonic() - started >= 0.25
+    finally:
+        for fd in holder:
+            os.close(fd)
+
+
+def test_a_stale_ping_does_not_release_the_held_wake_early(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    holder = leave_stale_pings(box, 1)
+    try:
+        box.wake_marker.write_text("1", encoding="utf-8")
+
+        def stale_then_real() -> None:
+            os.write(holder[1], b"\n")
+            assert box.wake_marker.exists()
+            threading.Timer(
+                0.2, lambda: am.tell_claude(box, sender="claude", text="later", now=T)
+            ).start()
+
+        got = am.wait_for_mail(box, timeout=5, ready=stale_then_real, release_wake_when_empty=True)
+        assert [x.text for x in got] == ["later"]
+        assert box.wake_marker.exists()
+    finally:
+        for fd in holder:
+            os.close(fd)

@@ -84,6 +84,35 @@ describe("analyze and renderAnalysis", () => {
   });
 });
 
+describe("operator-stopped trials", () => {
+  it("reports an aborted or stopped trial with its progress instead of listing it among infrastructure failures", () => {
+    const aborted: AnalysisTrial = { ...trial(16, "A", "bundle", null, false), reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 };
+    const report = analyze([...[1, 2].map(i => trial(i, "A", i === 1 ? "bundle" : "control", null)), aborted, trial(15, "A", "bundle", null, false)], ["A"]);
+    expect(report.invalid.map(t => t.run)).toEqual(["r15"]);
+    expect(report.stopped).toEqual([{ slot: 16, lane: "A", arm: "bundle", run: "r16", reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 }]);
+    for (const text of [renderAnalysis(report, "x"), renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })]) {
+      expect(text).toContain("## Ended by the operator (included; censored at the stop)");
+      expect(text).toContain("A fixed-N runner schedules a replacement for the slot");
+      expect(text).toContain("| 16 | A | bundle | r16 | PETALBURG_GYM_ENTERED | 42953705 | the operator stopped the trial (operator_abort) |");
+    }
+    expect(renderAnalysis(analyze([trial(1, "A", "bundle", null)], ["A"]), "x")).toContain("No trial was ended by the operator.");
+  });
+});
+
+describe("operator-excluded trials", () => {
+  it("drops an operator-excluded trial from every comparison and lists it with the operator's reason", () => {
+    const report = analyze([trial(1, "A", "bundle", 100), trial(2, "A", "control", null), trial(3, "A", "bundle", null)], ["A"], new Map([["r1", "wrong ROM"]]));
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 1, reached: 0 }, control: { n: 1, reached: 0 } });
+    expect(report.excluded).toEqual([{ slot: 1, lane: "A", arm: "bundle", run: "r1", reason: "wrong ROM" }]);
+    expect(report.trials.map(t => t.run)).toEqual(["r2", "r3"]);
+    const text = renderAnalysis(report, "x");
+    expect(text).toContain("## Excluded by the operator");
+    expect(text).toContain("| 1 | A | bundle | r1 | wrong ROM |");
+    expect(renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })).toContain("| 1 | A | bundle | r1 | wrong ROM |");
+    expect(renderAnalysis(analyze([trial(2, "A", "control", null)], ["A"]), "x")).toContain("No run was excluded by the operator.");
+  });
+});
+
 describe("trials that ended before the wall cap", () => {
   it("lists every valid trial that did not end at the wall cap, loudly, and says so when there are none", () => {
     const early = { ...trial(3, "B", "bundle", null), reason: "ended stuck before the wall cap" };

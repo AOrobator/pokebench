@@ -17,6 +17,7 @@ import { eventsPath, listRuns, readStart, readStartIdentity, type RunCatalog } f
 import { parseLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { parseFinalsLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
+import { exclusionLabel, readExclusions } from "./run-exclusions.js";
 import type { HealthProbe } from "./next-run.js";
 import { parseWorkbench, type WorkbenchCohort, type WorkbenchConfig, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import type { RunStore, SnapshotStore } from "./baseline-store.js";
@@ -40,6 +41,10 @@ function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): stri
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
   return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
+}
+// The checkpoint a run resumed from, read from its run_start alone (null: power-on or an unreadable start).
+export function runResume(root: string, id: string): string | null {
+  try { return resumeCheckpoint(startOf(root, id)); } catch { return null; }
 }
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
@@ -554,7 +559,7 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
 // partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
 // and report the rest as still loading, instead of waiting for a cold cache.
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean; cards?: { selected: string | null; live: ReadonlySet<string> } } = {}, catalog: RunCatalog = () => listRuns(root)): Promise<WorkbenchData> {
-  const cohorts = await cohortMembership(root); const summaries = catalog();
+  const cohorts = await cohortMembership(root), operator = readExclusions(root); const summaries = catalog();
   // The run page needs rich card state only for the selected and health-confirmed live runs. Experiment peers need
   // only the identity recorded in run_start, which listRuns already read. Do not replay every historical
   // log after each viewer build merely to replace those peers with the same lightweight card stubs.
@@ -603,6 +608,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     applyHistoricalProvenance(root, run);
     const own = tagged.membership.get(run.id); if (own !== undefined) run.cohort = own;
     const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
+    const excluded = operator.exclusions.get(run.id); if (excluded !== undefined) run.excluded = exclusionLabel(excluded);
     return run;
   }));
   if (mode.cards !== undefined) for (const summary of summaries) {
@@ -621,7 +627,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     return retained || !path.startsWith(root + "/");
   });
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
-  const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
+  const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...operator.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
     if (run.cohort === null || tagged.membership.has(run.id)) continue;
     if (taggedValues.has(run.cohort)) problems.push(`Legacy cohort ${run.cohort} has the value of a run-tagged cohort; run ${run.id} is not tagged`);

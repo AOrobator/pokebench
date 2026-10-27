@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES } from "@pokebench/agent/features";
 import { BASE_MS, Log, START } from "../test-support/events.js";
-import { availableActions, controlBar, differenceCount, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
+import { availableActions, controlBar, differenceCount, eligibleRuns, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
 import { RunView } from "./model.js";
 
 function view(build: (log: Log) => void = () => undefined): RunView {
@@ -102,6 +102,20 @@ describe("run controls", () => {
     expect(overlayKind(ended, false, false, false)).toBeNull();
     const aborted = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));
     expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).toContain("✖ ABORTED");
+    expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).toContain("still counts in results");
+    expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).not.toContain("excluded");
+    const hold = overlay("abort_hold", aborted, now, 0.5);
+    expect(hold).toContain("earned progress still counts");
+    expect(hold.toLowerCase()).not.toContain("excluded");
+  });
+});
+
+describe("feature history censoring", () => {
+  it("leaves a milestone an operator-ended run never reached out of that milestone's denominator", () => {
+    const arm = { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 1 }, medianMs: { NEW_GAME_CREATED: 1, CLOCK_SET: 2 }, stopped: [["NEW_GAME_CREATED"]] };
+    expect(eligibleRuns(arm, "NEW_GAME_CREATED")).toBe(3);
+    expect(eligibleRuns(arm, "CLOCK_SET")).toBe(2);
+    expect(eligibleRuns({ runs: 2, reached: {}, medianMs: {} }, "CLOCK_SET")).toBe(2);
   });
 });
 
@@ -210,6 +224,10 @@ describe("switchboard", () => {
     const open = switchboard({ features: FEATURES, draft, live: null, history, expanded: new Set(["story-state-v1"]) });
     expect(open).toContain('<td>CLOCK</td><td class="g">3/4</td><td class="">1/4</td><td>0:09:40</td><td>0:21:05</td>');
     expect(open).toContain('<td>RT 101</td><td class="">0/4</td><td class="">0/4</td><td class="na">—</td><td class="na">—</td>');
+    const censored = { "story-state-v1": { ...history["story-state-v1"], off: { ...history["story-state-v1"].off, stopped: [["NEW_GAME_CREATED"]] } } };
+    const withStop = switchboard({ features: FEATURES, draft, live: null, history: censored, expanded: new Set(["story-state-v1"]) });
+    expect(withStop).toContain('<td>CLOCK</td><td class="g">3/4</td><td class="">1/3</td>');
+    expect(withStop).toContain("1 operator-ended run");
   });
 
   it("disables a switch whose dependency is off", () => {

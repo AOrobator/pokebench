@@ -1,4 +1,5 @@
 import { readVisualPlan, visualEvidenceSignature } from "./frontier-visual.js";
+import { readExclusions } from "./run-exclusions.js";
 import { readNativeRecording } from "./frontier-recording.js";
 import { qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
@@ -669,13 +670,14 @@ function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readSta
 }
 
 // Once per selection, not per animation tick: validate each candidate's log.
-// DNFs remain eligible for partial splits; probes and unverified logs do not.
+// DNFs and operator-ended runs remain eligible for partial splits; probes, unverified logs and operator exclusions do not.
 export async function comparisonsOf(runsRoot: string, runId: string, readBaseline: BaselineReader = (id) => Promise.resolve().then(() => baselineOf(runsRoot, id))): Promise<Comparisons> {
   const current = readStart(runsRoot, runId);
   if (current.harness_features.includes("probe")) return { candidates: [], baseline: null };
   // Every candidate is requested at once so a worker pool validates them in parallel.
+  const { exclusions } = readExclusions(runsRoot);
   const found = await Promise.all(listRuns(runsRoot).map(async (summary): Promise<ComparisonRun | null> => {
-    if (summary.id === runId || !summary.ended || summary.problem !== null) return null;
+    if (summary.id === runId || !summary.ended || summary.problem !== null || exclusions.has(summary.id)) return null;
     try {
       const start = readStart(runsRoot, summary.id);
       if (!sameStart(current, start)) return null;

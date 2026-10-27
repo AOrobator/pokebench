@@ -1187,6 +1187,47 @@ it("keeps a superseded run's frontier off the newly picked run", async () => {
   expect(ui("split-times").textContent).not.toContain("0:00:02");
 });
 
+it("shows the frontier as loading, never missing, until the server has ranked every run, and asks again on the card poll", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const streams: FakeStream[] = [];
+  const frontier = { run: "frontier", milestones: [{ name: "PLAYER_NAME_SET", offsetMs: 2000 }] };
+  const replies: (() => Promise<unknown>)[] = [() => Promise.resolve({ state: "loading", frontier: null }), () => Promise.reject(new Error("restarting")), () => Promise.resolve({ state: "stale", frontier }), () => Promise.resolve({ state: "ready", frontier: null })];
+  const requested: string[] = [];
+  const app = await mountApp(document, {
+    fetchJson: (url) => { if (url.endsWith("/frontier")) { requested.push(url); return must(replies.shift())(); } return nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : { candidates: [], baseline: null }); },
+    sendJson: noWrites,
+    openStream: (url) => { const s = new FakeStream(url); streams.push(s); return s; },
+    now: () => BASE_MS + 6000, hash: "",
+  });
+  feed(must(streams[0]), fullRun().events);
+  const settle = async (): Promise<void> => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); app.clock?.seek(BASE_MS + 6000); app.tick(0); };
+  await settle();
+  expect(ui("split-times").textContent).toContain("loading the frontier run");
+  expect(ui("split-times").textContent).not.toContain("no frontier run");
+  await app.pollCards(); await settle();
+  expect(ui("split-times").textContent).toContain("loading the frontier run");
+  expect(ui("problems").textContent).not.toContain("restarting");
+  await app.pollCards(); await settle();
+  expect(ui("split-times").innerHTML).toContain('<span class="d r">+0:00:01</span>');
+  await app.pollCards(); await settle();
+  expect(ui("split-times").textContent).toContain("no frontier run to compare yet");
+  await app.pollCards(); await settle();
+  expect(requested).toHaveLength(4);
+});
+
+it("reports a failed first frontier request and keeps asking", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const replies: (() => Promise<unknown>)[] = [() => Promise.reject(new Error("viewer restarting")), () => Promise.resolve({ state: "ready", frontier: null })];
+  const app = await mountApp(document, {
+    fetchJson: (url) => url.endsWith("/frontier") ? must(replies.shift())() : nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : { candidates: [], baseline: null }),
+    sendJson: noWrites, openStream: (url) => new FakeStream(url), now: () => BASE_MS, hash: "",
+  });
+  for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  expect(ui("problems").textContent).toContain("viewer restarting");
+  await app.pollCards();
+  expect(replies).toHaveLength(0);
+});
+
 it("loads baseline and frontier when the splits page opens without changing the picker", async () => {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];

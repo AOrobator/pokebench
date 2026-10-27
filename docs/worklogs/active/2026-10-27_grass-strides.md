@@ -54,10 +54,10 @@ subprocesses, paths or ROM handling.
 **M1 — grass-strides-v1**
 - [x] Write tests (agent: planStride ON/OFF, long grass, description, factory POST; server: default refuses,
       opt-in accepts, long grass refused, native-false walks, battle stops)
-- [ ] COMMIT: `test: grass-strides-v1 ...` (RED)
+- [x] COMMIT: `test: grass-strides-v1 corridors through tall grass (RED)` (3e70ba4a7)
 - [x] Implement
-- [ ] Gates: `just test`, `just lint`, `just build`
-- [ ] COMMIT: `feat: grass-strides-v1 ...` (GREEN)
+- [ ] Gates: `just build` PASS; agent vitest 4576/4576 PASS with coverage ≥90; focused viewer 378 PASS, focused Python + mypy PASS after env fix; full `just test` / `just lint` re-run PENDING coordinator CPU window
+- [x] COMMIT: `feat: grass-strides-v1 lets navigate_to strides cross tall grass` (6c4be031d)
 - [x] Guard deletion check: removing `grassStrides:features["grass-strides-v1"]` from `withNavigation` turned 2 agent tests red (factory, description); forcing the server `floor` to `(0,)` turned 4 server tests red. Both restored.
 - [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
 - [ ] Multi-model review loop (Claude + Codex gpt-5.6-sol + fallback; Grok down per brief)

@@ -56,14 +56,19 @@ describe("strict per-feature history", () => {
     sorted(root, "other-model", { features: off("story-state-v1"), model: "swarm", milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "other-thinking", { features: off("story-state-v1"), thinking: "high", milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "two-features", { features: off("story-state-v1", "naming-cursor-v1"), milestones: [["NEW_GAME_CREATED", 1]] });
+    // An operator abort ends the run; it is not an exclusion. Its earned progress counts.
     sorted(root, "aborted", { features: off("story-state-v1"), reason: "operator_abort", milestones: [["NEW_GAME_CREATED", 1]] });
+    // Only the operator's explicit exclusion file removes a run.
+    sorted(root, "operator-excluded", { features: off("story-state-v1"), milestones: [["NEW_GAME_CREATED", 2], ["CLOCK_SET", 3]] });
+    mkdirSync(join(root, "exclusions"));
+    writeFileSync(join(root, "exclusions", "operator-excluded.json"), JSON.stringify({ version: 1, run: "operator-excluded", reason: "wrong ROM", by: "The operator", at: "2026-10-27T20:00:00.000Z" }));
     sorted(root, "live", { features: off("story-state-v1"), ended: false, milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "saved-start", { features: off("story-state-v1"), boot: false, milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "other-failure-limit", { features: off("story-state-v1"), failureLimit: 10, milestones: [["NEW_GAME_CREATED", 1]] });
     const history = (await featureHistory(root, DRAFT));
     expect(history["story-state-v1"]).toEqual({
       on: { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 2 }, medianMs: { NEW_GAME_CREATED: 40_000, CLOCK_SET: 500_000 } },
-      off: { runs: 2, reached: { NEW_GAME_CREATED: 1 }, medianMs: { NEW_GAME_CREATED: 45_000 } },
+      off: { runs: 3, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 22_500.5 } },
     });
     expect(history["naming-cursor-v1"]).toBeNull();
     expect(history["deterministic-loop-guard-v1"]).toBeNull();

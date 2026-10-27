@@ -102,6 +102,8 @@ describe("run controls", () => {
     expect(overlayKind(ended, false, false, false)).toBeNull();
     const aborted = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));
     expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).toContain("✖ ABORTED");
+    expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).toContain("still counts in results");
+    expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).not.toContain("excluded");
   });
 });
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, milestoneStatus } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, invalidTrial, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -471,10 +471,10 @@ describe("invalid fixed-run trials", () => {
   });
   it("keeps other exclusions and a resumed invalid trial's dashes as before", () => {
     const probe = { ...invalid("probe", "x"), excluded: "Excluded probe session" };
-    const aborted = { ...invalid("aborted", "x"), excluded: "Excluded operator-aborted run" };
+    const operator = { ...invalid("operator", "x"), excluded: "Operator exclusion: wrong ROM" };
     const problem = { ...invalid("problem", "x"), problem: "invalid" };
-    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, aborted, problem], 900);
-    expect(document.querySelector('[data-series="probe"], [data-series="problem"]')).toBeNull();
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, operator, problem], 900);
+    expect(document.querySelector('[data-series="probe"], [data-series="operator"], [data-series="problem"]')).toBeNull();
     expect(document.querySelector("[data-invalid-notice]")).toBeNull();
     const resumed = invalid("resumed-invalid", "model/gateway error");
     if (resumed.config === null) throw new Error("config");
@@ -535,7 +535,16 @@ describe("operator-stopped frontier", () => {
     expect(frontierReferences([stopped]).best?.id).toBe(stopped.id);
     expect(milestoneStatus(stopped, "RIVAL_MET")).toBe("reached");
     expect(milestoneStatus(stopped, "STARTER_CHOSEN")).toBe("censored");
-    expect(frontierLabel(stopped, null, frontierVersions([stopped]))).toContain("stopped early");
+    expect(frontierLabel(stopped, null, frontierVersions([stopped]))).toContain(reason === "operator_abort" ? "ended by operator abort" : "ended by operator stop");
+    expect(invalidTrial(stopped)).toBeNull();
+    document.body.innerHTML = frontierPlot(frontierReferences([stopped]), [], 900);
+    expect(document.body.textContent).toContain(`Ended by operator ${reason === "operator_abort" ? "abort" : "stop"} (${reason})`);
+  });
+  it("keeps an operator-excluded run off the chart and names the operator's reason", () => {
+    const excluded = { ...best(), id: "excluded", excluded: "Operator exclusion: wrong ROM" };
+    expect(frontierReferences([excluded]).best).toBeNull();
+    expect(invalidTrial(excluded)).toBeNull();
+    expect(milestoneStatus(excluded, "RIVAL_MET")).toBe("excluded");
   });
 });
 

@@ -24,6 +24,14 @@ For League completion, retain per-member Elite Four outcomes, Champion victory a
 
 For Mission Ray-Ray, distinguish encounter/seen, battle result, successful capture, and owned Rayquaza. Corroborate capture with validated native outcome/dialogue and same-identity ownership in party or PC. Party absence after a full-party capture does not establish failure; inspect PC evidence. A seen/owned Pokédex bit alone does not prove this run captured it. A preloaded owned Rayquaza is present at start, not newly earned. Keep visual reconstruction explicitly distinct from native automatic evidence. Proposed tests must cover encounter, faint, failed ball, successful capture into party/PC, inherited ownership and unavailable state. No such tests or detector are implemented by these documents.
 
+## Run inclusion
+
+Operator rule, the operator 2026-10-27: an aborted run is not automatically an exclusion. A run that ends `operator_abort` or `operator_stop` stays in results like a run that ends on `budget` or `model_error`: its verified progress before the stop counts (furthest milestone, splits, badges, turns, time, tokens), and objectives it had not reached are censored at the stop, never counted as failures. The viewer marks it "Ended by operator abort (operator_abort)" or "Ended by operator stop (operator_stop)".
+
+A run leaves results only through an explicit operator exclusion with a reason: `just exclude-run <run-id> <operator> <reason…>` writes `runs/exclusions/<run-id>.json` (`version`, `run`, `reason`, `by`, `at`). The run's own log is never edited or pruned. A malformed exclusion file excludes nothing and is listed as a problem. Probe sessions, grading problems and infrastructure-invalid trials keep their existing labels.
+
+A fixed-N runner still schedules a replacement for an operator-stopped slot, and its paired tests use the replacement; the stopped trial is reported with its progress in its own section of the analysis, not among infrastructure failures.
+
 ## Aggregate fairly
 
 - Treat independent launched runs as the experimental unit, not individual actions or several samples from one episode.

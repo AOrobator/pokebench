@@ -135,6 +135,8 @@ export interface AnalysisReport {
   readonly trials: readonly AnalysisTrial[];
   readonly groups: readonly GroupResult[];
   readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
+  // Trials the operator aborted or stopped: results with their progress, not infrastructure failures.
+  readonly stopped: readonly (Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason" | "furthestMs"> & { readonly furthest: string | null })[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
 }
 
@@ -153,12 +155,14 @@ function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
   };
 }
 
+const operatorStopped = (t: AnalysisTrial): boolean => !t.valid && /^the operator stopped the trial \(operator_(abort|stop)\)$/.test(t.reason);
 export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string[]): AnalysisReport {
   const valid = trials.filter((t) => t.valid);
   return {
     trials,
     groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
-    invalid: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
+    invalid: trials.filter((t) => !t.valid && !operatorStopped(t)).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
+    stopped: trials.filter(operatorStopped).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
     endedEarly: valid.filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
   };
 }
@@ -166,6 +170,11 @@ export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string
 const pct = (c: ArmCount): string => `${String(c.reached)}/${String(c.n)} (${c.n === 0 ? "–" : `${String(Math.round((100 * c.reached) / c.n))}%`})`;
 const p4 = (p: number): string => p.toPrecision(4);
 const below = (p: number, alpha: number): string => (p < alpha ? "yes" : "no");
+const stoppedSection = (report: AnalysisReport): string[] => [
+  "## Ended by the operator (included; censored at the stop)", "",
+  "An operator abort or stop is not an exclusion: the trial's progress before the stop is a result, and milestones after it are censored, not failures. The runner still schedules a replacement for the slot, so the paired tests above use the replacement.", "",
+  ...(report.stopped.length === 0 ? ["No trial was ended by the operator."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.stopped.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
+];
 
 type RenderOptions=Pick<FixedDefinition,"primaryOutcome"|"primaryMilestone"|"replacementReserveMs">;
 
@@ -189,6 +198,7 @@ function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions
     options.replacementReserveMs===0?"Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.":"Invalid trials remain recorded; any replacement is limited by the definition’s reserve.",
     "Invalid trials are excluded from the descriptive comparison and must be reported by arm alongside all launched trials.", "",
     ...(report.invalid.length===0?["No invalid trials."]:["| Slot | Lane | Arm | Run | Reason |","|---|---|---|---|---|",...report.invalid.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
+    ...stoppedSection(report),
   ].join("\n");
 }
 
@@ -215,6 +225,7 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
     "## Invalid trials (infrastructure failures, kept in the record and replaced)", "",
     ...(report.invalid.length === 0 ? ["No invalid trials."] : ["| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|", ...report.invalid.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]),
     "",
+    ...stoppedSection(report),
   ];
   return lines.join("\n");
 }

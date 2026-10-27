@@ -4,6 +4,7 @@
 import { MEASUREMENT_FEATURES, SWITCHABLE_FEATURES, featuresOf, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import type { RunEvent } from "@pokebench/agent/events";
 import { BaselineError, RunsError, baselineOf, listRuns, readStart, type BaselineReader } from "./runs.js";
+import { readExclusions } from "./run-exclusions.js";
 
 export interface RunConfig {
   readonly model: string;
@@ -70,10 +71,12 @@ function arm(runs: readonly { name: string; offsetMs: number }[][]): ArmOutcome 
 
 interface Scored { readonly config: RunConfig; readonly milestones: { name: string; offsetMs: number }[] }
 
-// Ended, validated, non-aborted runs (operator_stop still counts), requested at once.
+// Ended, validated runs, requested at once. An operator abort or stop keeps its earned progress;
+// only the operator's explicit exclusion removes a run.
 async function scoredRuns(runsRoot: string, readBaseline: BaselineReader): Promise<Scored[]> {
+  const { exclusions } = readExclusions(runsRoot);
   const scored = await Promise.all(listRuns(runsRoot).map(async (summary): Promise<Scored | null> => {
-    if (!summary.ended || summary.problem !== null || summary.reason === "operator_abort") return null;
+    if (!summary.ended || summary.problem !== null || exclusions.has(summary.id)) return null;
     try {
       const config = configOf(readStart(runsRoot, summary.id));
       if (config === null) return null;

@@ -83,7 +83,8 @@ describe("read-only workbench snapshot", () => {
   });
   it("excludes a run only through the operator's exclusion file, and reports a malformed one without excluding", async () => {
     const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
-    write(r, "flagged", log); write(r, "unreadable", named());
+    const kept = named(); kept.add(6000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+    write(r, "flagged", log); write(r, "unreadable", kept);
     mkdirSync(join(r, "exclusions"));
     writeFileSync(join(r, "exclusions", "flagged.json"), JSON.stringify({ version: 1, run: "flagged", reason: "wrong ROM", by: "The operator", at: "2026-10-27T20:00:00.000Z" }));
     writeFileSync(join(r, "exclusions", "unreadable.json"), "{");

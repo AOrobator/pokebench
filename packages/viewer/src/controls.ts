@@ -124,7 +124,7 @@ export function overlay(kind: Overlay, view: RunView, nowMs: number, holdFractio
     return box("#f8f8f8", "#d03a3a", "✖ ABORT RUN?", "r", [["", "kills the model call now"], ["r", "run is EXCLUDED from results"]], `<rect x="64" y="118" width="160" height="16" rx="4" fill="#fff" stroke="#d03a3a" stroke-width="2"/><rect class="hold" x="66" y="120" width="${String(width)}" height="12" rx="3" fill="#d03a3a"/>${text(130, "s", "Hold ABORT… release cancels")}`);
   }
   const reached = view.milestones.filter((m) => m.origin !== "present_at_start");
-  if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "excluded from results"], ["w", "Use CLOSE above"]]);
+  if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "still counts in results"], ["w", "Use CLOSE above"]]);
   return box("#f8f8f8", "#2f9e57", "■ RUN ENDED", "g", [["", `${esc(view.end?.reason ?? "")} · turn ${turn} · ${at}`], ["", `furthest: ${esc(reached.reduce<string | null>((deepest, m) => deeperMilestone(deepest, m.name), null)?.replace(/_/g, " ") ?? "none")} · ${String(reached.length)} splits`], ["", "Use CLOSE above"]]);
 
 }

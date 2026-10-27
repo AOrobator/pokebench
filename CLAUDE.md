@@ -70,6 +70,7 @@ just verify-rom     # SHA-1 check of $POKEBENCH_ROM (set it in the gitignored .e
 just verify-vendor  # submodule at pin, clean tree
 just serve          # isolated game server (runs/serve_<time>/) on 127.0.0.1:8000; watch at /stream
 just smoke          # boots the real game server on the real ROM and exercises it
+just exclude-run <run> <operator> <reason…>  # the only way a run leaves results; aborted runs count by default
 just viewer-main    # restart the 8790 viewer at main; after every merge, and before any fixed-run launch check from a newer pin
 ```
 

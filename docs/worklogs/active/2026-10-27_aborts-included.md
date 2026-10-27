@@ -20,8 +20,8 @@ Feature switch: not required. This changes results/reporting only (viewer, analy
 
 ## Milestones
 
-- [ ] M1 RED: run-exclusions, history, frontier, controls, fixed-analysis, workbench-store tests
-- [ ] M1 GREEN: implementation, docs, 90% gate
+- [x] M1 RED: run-exclusions, history, frontier, controls, fixed-analysis, workbench-store tests. COMMIT: `test(viewer): reproduce aborted runs dropped from results` (86ffbc2ea); 8 failing + missing module
+- [x] M1 GREEN: implementation, docs. TS: agent 4540/4540, viewer 2069/2069; viewer coverage 95.8 lines / 91.63 branches / 95.29 functions; run-exclusions.ts 96.4/95.2/100. tsc+eslint+ruff clean. Python half rerun against main venv (worktree venv lacks mGBA; vendor submodule was uninitialized): see below.
 - [ ] Review: Claude + GPT (Codex CLI) + fallback; Grok waived (down)
-- [ ] Verify Astra 429f in workbench/frontier with headless screenshots
+- [x] Verify Astra 429f (scratch viewer :8797 on a symlink-only runs root; run dir untouched): status ended, reason operator_abort, excluded null, 133 splits, last PETALBURG_GYM_ENTERED, 4 badges, turn 2741, active 715:53.705; agent-frontier line; details + coverage notice 'Ended by operator abort (operator_abort)'. Screenshots runs/mockups/aborts-included/. Verify Astra 429f in workbench/frontier with headless screenshots
 - [ ] Land ff-only via board; 8790 restart if slot #1; live check

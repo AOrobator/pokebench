@@ -5,7 +5,7 @@ You own whether a claim is supported by the numbers, and what sample would settl
 ## Questions
 
 - **Readiness, for boot comparisons.** At least 3 of the last 4 qualifying incumbent runs must reach the activation milestone. Qualifying means:
-  - recorded, non-probe, non-human and not aborted;
+  - recorded, non-probe, non-human and not operator-excluded (`runs/exclusions/`). An aborted run counts with its progress: reaching the milestone before the abort is a reach; an abort before the milestone and before the common budget is censored, not a miss (grading protocol, "Run inclusion");
   - same model lane, and a build compatible with the incumbent;
   - the planned common start and budget.
 

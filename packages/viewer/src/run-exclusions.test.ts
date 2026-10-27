@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { EXCLUSIONS_DIR, endedByOperator, exclusionLabel, main, readExclusions, writeExclusion } from "./run-exclusions.js";
+import { endedByOperator } from "./frontier.js";
+import { EXCLUSIONS_DIR, exclusionLabel, main, readExclusions, writeExclusion } from "./run-exclusions.js";
 
 const RUN = "2026-10-25T10-50-57_gpt-6-astra_429f";
 function store(): string {

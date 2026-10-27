@@ -537,7 +537,7 @@ describe("operator-stopped frontier", () => {
     expect(milestoneStatus(stopped, "STARTER_CHOSEN")).toBe("censored");
     expect(frontierLabel(stopped, null, frontierVersions([stopped]))).toContain(reason === "operator_abort" ? "ended by operator abort" : "ended by operator stop");
     expect(invalidTrial(stopped)).toBeNull();
-    document.body.innerHTML = frontierPlot(frontierReferences([stopped]), [], 900);
+    document.body.innerHTML = frontierPlot(frontierReferences([stopped]), [stopped], 900);
     expect(document.body.textContent).toContain(`Ended by operator ${reason === "operator_abort" ? "abort" : "stop"} (${reason})`);
   });
   it("keeps an operator-excluded run off the chart and names the operator's reason", () => {

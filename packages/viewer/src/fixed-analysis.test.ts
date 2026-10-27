@@ -92,6 +92,7 @@ describe("operator-stopped trials", () => {
     expect(report.stopped).toEqual([{ slot: 16, lane: "A", arm: "bundle", run: "r16", reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 }]);
     for (const text of [renderAnalysis(report, "x"), renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })]) {
       expect(text).toContain("## Ended by the operator (included; censored at the stop)");
+      expect(text).toContain("A fixed-N runner schedules a replacement for the slot");
       expect(text).toContain("| 16 | A | bundle | r16 | PETALBURG_GYM_ENTERED | 42953705 | the operator stopped the trial (operator_abort) |");
     }
     expect(renderAnalysis(analyze([trial(1, "A", "bundle", null)], ["A"]), "x")).toContain("No trial was ended by the operator.");

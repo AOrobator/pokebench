@@ -52,12 +52,12 @@ Test and build wiring only. No new subprocesses, inputs or network. The trainer-
 - [x] COMMIT: `test: pin switch-registry membership and invariants, not whole lists` (ad554d8fa)
 
 **M2 — One coverage-instrumented pass**
-- [x] COMMIT (RED): `test: RED gate wiring for one coverage-instrumented pass` (see next line)
+- [x] COMMIT (RED): `test: RED gate wiring for one coverage-instrumented pass` (3cb3f609a)
 - [x] RED: new wiring tests against the old justfile: 3 failed (`test_test_recipe_is_exactly_the_gated_pipeline`, `test_coverage_names_the_same_single_pass`, `test_python_gate_reads_the_report_pytest_writes`).
 - [x] GREEN: justfile changed; wiring and trainer-card guard tests 7 passed.
 - [x] Docs: CLAUDE.md commands, execute-worklog and feature-worklog gates, close-the-loop table.
 - [x] Timed A/B (below): 252 s → 154 s mean
-- [ ] COMMIT
+- [x] COMMIT (GREEN): `build: just test runs every suite once with the coverage gate` (recorded in M3 once known)
 
 **M3 — Gate, review, land**
 - [x] Full gate on the branch: `just test` (in the A/B), `just lint`, `just build`, `just verify-vendor` all exit 0

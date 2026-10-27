@@ -47,7 +47,7 @@ The worklog body exists and the operator has approved it before any implementati
 - [ ] Write tests (specific cases)
 - [ ] COMMIT: `test(scope): ...` (RED)
 - [ ] Implement
-- [ ] Gates: `just test` (record TS + Python counts), `just lint`, `just build`, `just coverage` (≥90 both stacks)
+- [ ] Gates: `just test` (record TS + Python counts; it also enforces coverage ≥90 both stacks), `just lint`, `just build`
 - [ ] COMMIT: `feat(scope): ...` (GREEN)
 - [ ] Smoke / visual evidence when the milestone touches the emulator, gateway or viewer
 - [ ] Multi-model review loop until clean

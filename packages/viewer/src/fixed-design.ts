@@ -2,6 +2,7 @@
 // and everything else is shared. The plan is a seeded sequence of balanced blocks, frozen in
 // the definition before launch and checked against its seed at every load.
 import { createHash } from "node:crypto";
+import { isAbsolute } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { MILESTONE_ORDER } from "@pokebench/agent/milestones";
@@ -19,7 +20,13 @@ const positive = Type.Integer({ minimum: 1 });
 const NAME_PATTERN = "^[a-z0-9][a-z0-9-]{0,79}$";
 const Name = Type.String({ pattern: NAME_PATTERN });
 
-const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^(GPU[0-9]|MAC)$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }), runName: Type.Optional(Type.String({ pattern: "^[a-z0-9]+(-[a-z0-9]+)*$", maxLength: 40 })) }, closed);
+// A lane is a llama-server unless it says `server: "vllm"`. vLLM reports neither its slots nor its
+// input modalities, so a vllm lane declares both. apiKeyFile names the file holding the server's
+// bearer key; the key itself never enters the definition.
+const LaneSchema = Type.Object({
+  id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^(GPU[0-9]|MAC)$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }), runName: Type.Optional(Type.String({ pattern: "^[a-z0-9]+(-[a-z0-9]+)*$", maxLength: 40 })),
+  server: Type.Optional(Type.Union([Type.Literal("llama"), Type.Literal("vllm")])), slots: Type.Optional(positive), vision: Type.Optional(Type.Boolean()), apiKeyFile: Type.Optional(Type.String({ minLength: 1 })),
+}, closed);
 // A phase loads its own pinned save, or powers on.
 const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed);
 const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
@@ -164,6 +171,13 @@ function laneProblems(def: FixedDefinition): string[] {
   if (!distinct(def.lanes.map((l) => l.modelUrl))) problems.push("lanes must use distinct model URLs");
   for (const lane of def.lanes) if (!/^http:\/\/127\.0\.0\.1:[0-9]{2,5}$/.test(lane.modelUrl)) problems.push(`lane ${lane.id}: modelUrl must be http://127.0.0.1:<port> with no path`);
   for (const lane of def.lanes) if (lane.gpu === "MAC" && lane.runName === undefined) problems.push(`lane ${lane.id}: a MAC lane must name its runs with runName`);
+  for (const lane of def.lanes) {
+    const declared = lane.slots !== undefined || lane.vision !== undefined;
+    if (lane.server !== "vllm" && declared) problems.push(`lane ${lane.id}: only a vllm lane declares slots and vision`);
+    if (lane.server === "vllm" && (lane.slots === undefined || lane.vision === undefined)) problems.push(`lane ${lane.id}: a vllm lane must declare slots and vision`);
+    if (lane.server === "vllm" && lane.slots !== undefined && lane.slots !== def.serving.slots) problems.push(`lane ${lane.id}: declares ${String(lane.slots)} slots, the serving plan has ${String(def.serving.slots)}`);
+    if (lane.apiKeyFile !== undefined && !isAbsolute(lane.apiKeyFile)) problems.push(`lane ${lane.id}: apiKeyFile must be an absolute path`);
+  }
   return problems;
 }
 

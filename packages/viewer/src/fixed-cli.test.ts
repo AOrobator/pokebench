@@ -97,6 +97,16 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
   });
 
+  it("lists a vLLM lane's declared slots, vision and key file path in check", async () => {
+    const { deps, out, path } = setup();
+    const [a, b] = definition().lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    writeFileSync(path, JSON.stringify(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: "/keys/hyperqwen.key" }, b] })));
+    expect(await main(["check", "bundle-v-control"], deps)).toBe(0);
+    expect(out).toContain("lane A: GPU1, game port 8071, model http://127.0.0.1:8091 (vllm, 1 slots, vision true), key file /keys/hyperqwen.key");
+    expect(out).toContain("lane B: GPU0, game port 8072, model http://127.0.0.1:8098");
+  });
+
   it("checks every phase's start save and lists each phase's start", async () => {
     const { deps, err, path } = setup({ sha1File: (p) => (p === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : p.endsWith("MAIN_MENU.state") ? "e".repeat(40) : START_SHA1) });
     writeFileSync(path, JSON.stringify(definition()));

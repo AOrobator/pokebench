@@ -15,10 +15,10 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
+import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
-import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
+import { laneApiKey, runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
 import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
@@ -129,7 +129,7 @@ function check(deps: FixedCliDeps, id: string): void {
     const start = phase.start.kind === "save_state" ? `start ${phase.start.path} (sha1 ${phase.start.sha1.slice(0, 12)})` : "start boot";
     deps.out(`${phase.id}: ${String(n("control"))} control + ${String(n("bundle"))} bundle, ${String(phase.maxWallMs)} ms cap${phase.primary ? ", primary" : ", exploratory"}, ${start}`);
   }
-  for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}`);
+  for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}${lane.server === "vllm" ? ` (vllm, ${String(lane.slots)} slots, vision ${String(lane.vision)})` : ""}${lane.apiKeyFile === undefined ? "" : `, key file ${lane.apiKeyFile}`}`);
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
   deps.out(`reply token caps: control ${String(def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
@@ -312,9 +312,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 // What a llama-server says it serves: /health must be ok, /props names the model, build, context, slots and vision.
-export async function servingReceipt(baseUrl: string, fetchFn: typeof fetch): Promise<ServingReceipt> {
-  const health = await fetchFn(`${baseUrl}/health`, { signal: AbortSignal.timeout(10_000) });
-  if (!health.ok) throw new Error(`${baseUrl}/health answered HTTP ${String(health.status)}`);
+async function llamaReceipt(baseUrl: string, fetchFn: typeof fetch): Promise<ServingReceipt> {
   const props = record(await (await fetchFn(`${baseUrl}/props`, { signal: AbortSignal.timeout(10_000) })).json());
   const settings = record(props["default_generation_settings"]);
   const model = props["model_path"], build = props["build_info"], slots = props["total_slots"], context = settings["n_ctx"];
@@ -322,6 +320,35 @@ export async function servingReceipt(baseUrl: string, fetchFn: typeof fetch): Pr
   const vision = record(props["modalities"])["vision"] === true;
   const template = typeof props["chat_template"] === "string" ? props["chat_template"] : "";
   return { model, build, contextTokens: context, slots, vision, fingerprint: sha256(JSON.stringify({ model, build, context, slots, vision, template: sha256(template) })) };
+}
+
+// What a vLLM server says it serves: the one served id, its weights (root) and context from the
+// key-guarded /v1/models, its version from /version. Slots and vision are the lane's declaration.
+async function vllmReceipt(lane: FixedLane, fetchFn: typeof fetch): Promise<ServingReceipt> {
+  const key = laneApiKey(lane);
+  const url = `${lane.modelUrl}/v1/models`;
+  let response: Response;
+  try {
+    response = await fetchFn(url, { headers: { accept: "application/json", authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
+  } catch (error) {
+    // eslint-disable-next-line preserve-caught-error -- fetch quotes a header value it rejects, so the raw error would carry the key.
+    throw new Error(`GET ${url} failed: ${String(error).split(key).join("[redacted]")}`);
+  }
+  if (!response.ok) throw new Error(`${url} answered HTTP ${String(response.status)}`);
+  const data = record(await response.json())["data"];
+  const entry = Array.isArray(data) && data.length === 1 ? record(data[0]) : {};
+  const model = entry["id"], root = entry["root"], context = entry["max_model_len"];
+  if (entry["owned_by"] !== "vllm" || typeof model !== "string" || typeof root !== "string" || typeof context !== "number") throw new Error(`${url} is not a vLLM /v1/models payload serving one model`);
+  const version = record(await (await fetchFn(`${lane.modelUrl}/version`, { signal: AbortSignal.timeout(10_000) })).json())["version"];
+  if (typeof version !== "string") throw new Error(`${lane.modelUrl}/version is not a vLLM version payload`);
+  const build = `vllm-${version} ${root}`, slots = lane.slots ?? 0, vision = lane.vision === true;
+  return { model, build, contextTokens: context, slots, vision, fingerprint: sha256(JSON.stringify({ server: "vllm", model, build, context, slots, vision })) };
+}
+
+export async function servingReceipt(lane: FixedLane, fetchFn: typeof fetch): Promise<ServingReceipt> {
+  const health = await fetchFn(`${lane.modelUrl}/health`, { signal: AbortSignal.timeout(10_000) });
+  if (!health.ok) throw new Error(`${lane.modelUrl}/health answered HTTP ${String(health.status)}`);
+  return lane.server === "vllm" ? vllmReceipt(lane, fetchFn) : llamaReceipt(lane.modelUrl, fetchFn);
 }
 
 export interface FixedHostDeps {
@@ -383,7 +410,7 @@ export function productionFixedHost(deps: FixedHostDeps): FixedHost {
       prepared = problem === null ? commit : null;
       return problem;
     },
-    serving: (lane) => servingReceipt(lane.modelUrl, deps.fetchFn),
+    serving: (lane) => servingReceipt(lane, deps.fetchFn),
     portInUse: (port) => new Promise((resolvePort) => {
       const probe = createServer();
       probe.once("error", () => { resolvePort(true); });

@@ -29,6 +29,20 @@ export interface ServingReceipt {
   readonly fingerprint: string;
 }
 
+// The lane's bearer key, read from its key file at launch; a lane without one needs none.
+export function laneApiKey(lane: FixedLane): string {
+  if (lane.apiKeyFile === undefined) return "unused";
+  let text: string;
+  try {
+    text = readFileSync(lane.apiKeyFile, "utf8");
+  } catch (error) {
+    throw new FixedRunError(`lane ${lane.id}: cannot read the api key file ${lane.apiKeyFile} (${(error as NodeJS.ErrnoException).code ?? "unreadable"})`);
+  }
+  const key = text.trim();
+  if (key === "") throw new FixedRunError(`lane ${lane.id}: the api key file ${lane.apiKeyFile} is empty`);
+  return key;
+}
+
 export interface FixedLaunch {
   readonly lane: string;
   readonly slot: number;
@@ -125,7 +139,13 @@ class Runner {
         this.presetShas.set(`${phase.id}-${arm}`, sha256(text));
       }
     }
-    for (const lane of this.o.def.lanes) writeFileSync(this.endpointPath(lane), `${JSON.stringify({ base_url: `${lane.modelUrl}/v1`, api_key: "unused" })}\n`);
+    // The endpoint file is the only place the key is written: owner-only, under the gitignored runs root.
+    for (const lane of this.o.def.lanes) {
+      const endpoint = { base_url: `${lane.modelUrl}/v1`, api_key: laneApiKey(lane), ...(lane.vision === undefined ? {} : { vision: lane.vision }) };
+      const path = this.endpointPath(lane);
+      rmSync(path, { force: true });
+      writeFileSync(path, `${JSON.stringify(endpoint)}\n`, { mode: 0o600 });
+    }
   }
 
   private presetPath(phase: string, arm: string): string { return join(this.dir, "presets", `${phase}-${arm}.json`); }

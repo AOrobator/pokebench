@@ -15,9 +15,11 @@ export class LocalEndpointError extends Error {
 export interface LocalEndpoint {
   readonly baseUrl: string;
   readonly apiKey: string;
+  // Declared by the lane for servers whose /v1/models does not report input modalities (vLLM).
+  readonly vision?: boolean;
 }
 
-const EndpointSchema = Type.Object({ base_url: Type.String(), api_key: Type.String({ minLength: 1 }) });
+const EndpointSchema = Type.Object({ base_url: Type.String(), api_key: Type.String({ minLength: 1 }), vision: Type.Optional(Type.Boolean()) });
 
 const RouterSchema = Type.Object({
   data: Type.Array(
@@ -32,6 +34,10 @@ const RouterSchema = Type.Object({
 const SingleModelSchema = Type.Object({
   models: Type.Array(Type.Object({ model: Type.String(), capabilities: Type.Array(Type.String()) })),
   data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), meta: Type.Object({ n_ctx: Type.Integer({ minimum: 1 }) }) }), { minItems: 1 }),
+});
+
+const VllmSchema = Type.Object({
+  data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), owned_by: Type.Literal("vllm"), root: Type.String(), max_model_len: Type.Integer({ minimum: 1 }) }), { minItems: 1 }),
 });
 
 function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean): GatewayModel {
@@ -68,7 +74,7 @@ export function readEndpoint(path: string): LocalEndpoint {
   }
   if (!Value.Check(EndpointSchema, body)) throw new LocalEndpointError(`malformed endpoint file ${path}`);
   if (!loopback(body.base_url)) throw new LocalEndpointError(`endpoint in ${path} must be http://127.0.0.1:<port>`);
-  return { baseUrl: body.base_url.replace(/\/+$/, ""), apiKey: body.api_key };
+  return { baseUrl: body.base_url.replace(/\/+$/, ""), apiKey: body.api_key, ...(body.vision === undefined ? {} : { vision: body.vision }) };
 }
 
 function argValue(args: readonly string[], flag: string): string | undefined {
@@ -90,6 +96,7 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
   if (Value.Check(SingleModelSchema, body)) {
     return body.data.map((model) => localModel(endpoint, model.id, model.meta.n_ctx, body.models.some((m) => m.model === model.id && m.capabilities.includes("multimodal"))));
   }
+  if (Value.Check(VllmSchema, body)) return body.data.map((model) => localModel(endpoint, model.id, model.max_model_len, endpoint.vision === true));
   if (!Value.Check(RouterSchema, body)) throw new LocalEndpointError(`malformed ${url} payload`);
   return body.data
     .filter((model) => model.status.value === "loaded")

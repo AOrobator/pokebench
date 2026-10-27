@@ -587,13 +587,20 @@ it("serves validated comparisons for the selected start, excluding self", async 
   expect(result).not.toHaveProperty("frontier");
   // The splits race the frontier graph's agent frontier, never the selected run itself; it has its own cheap route.
   const frontierOf = async (v: Viewer, id: string): Promise<unknown> => JSON.parse((await get(v, `/api/runs/${id}/frontier`)).body.toString());
-  expect(await frontierOf(viewer, "selected")).toEqual({ frontier: { run: "reference", milestones: [{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 }] } });
-  expect(await frontierOf(viewer, "reference")).toEqual({ frontier: null });
+  expect(await frontierOf(viewer, "selected")).toEqual({ state: "ready", frontier: { run: "reference", milestones: [{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 }] } });
+  expect(await frontierOf(viewer, "reference")).toEqual({ state: "ready", frontier: null });
   expect((await get(viewer, "/api/runs/..%2Fsecrets/frontier")).status).toBe(404);
   // A cold partial workbench still loading its runs must not hide the frontier from a run picked meanwhile.
   const partial = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, workbench: { partial: true } });
   open.push(partial);
   expect(await frontierOf(partial, "selected")).toMatchObject({ frontier: { run: "reference" } });
+  // A warm viewer ranks at start and persists the ranking; a run whose start is unreadable still gets the frontier.
+  const file = join(runsRoot, ".viewer-cache", "frontier-v1.json");
+  const warm = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, frontier: { file, warm: true } });
+  open.push(warm);
+  mkdirSync(join(runsRoot, "2026-10-27T00-00-00_nostart"));
+  expect(await frontierOf(warm, "2026-10-27T00-00-00_nostart")).toMatchObject({ state: "ready", frontier: { run: "reference" } });
+  expect(JSON.parse(readFileSync(file, "utf8"))).toMatchObject({ version: 1, best: { run: "reference" } });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {

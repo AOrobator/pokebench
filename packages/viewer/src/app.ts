@@ -230,6 +230,9 @@ export class App {
   private baseline: Baseline | null = null;
   private baselineRequest = 0;
   private frontier: Baseline | null = null;
+  // Until the server has ranked every run, "no frontier" is unknown, not an answer; the card poll asks again.
+  private frontierSettled = false;
+  private frontierRetry = false;
   private comparisonRequest = 0;
   private frontierRequest = 0;
   private comparisonsRun: string | null = null;
@@ -665,7 +668,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    await Promise.all([this.loadArt(), this.loadWorkbench()]);
+    await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
 
@@ -976,16 +979,20 @@ export class App {
   }
 
   // The split card and the splits page race the frontier, so it loads with every pick, unlike the comparisons scan.
-  private async loadFrontier(runId: string): Promise<void> {
+  private async loadFrontier(runId: string, retry = false): Promise<void> {
     const request = ++this.frontierRequest;
     try {
-      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown };
+      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown; state?: unknown };
       const frontier = record.frontier === null ? null : baselineOf(record.frontier);
       if (request !== this.frontierRequest) return;
-      this.frontier = frontier;
+      if (record.state !== "loading") this.frontier = frontier;
+      this.frontierSettled = record.state !== "loading" && record.state !== "stale";
+      this.frontierRetry = !this.frontierSettled;
       this.render();
     } catch (error) {
-      if (request === this.frontierRequest) this.problem(`frontier: ${String(error)}`);
+      if (request !== this.frontierRequest) return;
+      this.frontierRetry = true;
+      if (!retry) this.problem(`frontier: ${String(error)}`);
     }
   }
 
@@ -1056,6 +1063,8 @@ export class App {
     this.mode = "loading";
     this.baseline = null;
     this.frontier = null;
+    this.frontierSettled = false;
+    this.frontierRetry = false;
     this.baselineRequest += 1;
     this.recordedThinkingRequest += 1;
     this.recordedThinking = null;
@@ -1478,7 +1487,7 @@ export class App {
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
     this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
-    this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits));
+    this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits, !this.frontierSettled && this.frontier === null));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);

@@ -121,12 +121,15 @@ export function viewerOffload(
   };
 }
 
+// Outside the per-build cache directories, so a new build answers from the last ranking while it ranks again.
+export const frontierCacheFile = (runsRoot: string): string => join(runsRoot, ".viewer-cache", "frontier-v1.json");
+
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint, deps.defaultPublicOrigins);
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, leasePool: () => leasePool(readEndpoint(args.endpointFile ?? "").baseUrl), gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
   const offload = deps.offload?.(args.runsRoot);
-  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), ...offload });
+  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), frontier: { file: frontierCacheFile(args.runsRoot), warm: true }, ...offload });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   for (const origin of args.publicOrigins) deps.print(`also published at: ${viewUrl(`${origin}/`, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);

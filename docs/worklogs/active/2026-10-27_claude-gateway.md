@@ -62,3 +62,17 @@ Not a harness behavior change, so there's no feature switch: the gateway is an e
 - Review round 2 (packet c5671457, head 1d7978f7a): Claude LGTM, fallback LGTM (its follow-up: a JS-only regex would raise re.error; every `pattern` in packages/agent/src compiles in Python re), Codex gpt-5.6-sol BLOCKING on one point. A session with unknown ownership (a legacy session.json, or one created before --game-port resolved) could be resumed by a newly bound run. Fix: a stored session resumes only when its run_id equals the bound run (both None only when there is no binding at all, as in a replay); anything else is `session_reset`. Two new tests.
 - Capture preflight (pokebench-run-coordination): the replay streams had thinking blocks with empty text, because Claude Code omits thinking unless asked. `--thinking-display summarized` (accepted by 2.1.299, not listed in --help) returns readable thinking summaries in stream-json (live check: a 48-char summary). `--settings {"showThinkingSummaries":true}` did not. Both modes now pass it. These are provider reasoning summaries, not raw reasoning.
 - Gateway tests 60 pass, coverage 99.28/96.96/100.
+- Review round 3 (packet 07d6cb2f, head d2ea46ee9): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM.
+- Sync: main moved to 377890434 (aborts-included). Merge head 461ebb193; packet 169024f9 is identical to round 3 except the justfile `index` line. Round 4 confirmation: Claude LGTM, fallback LGTM, Codex LGTM. Gates on the merged tip: build 0, TS lint 0, agent 4540 passed, viewer 2072 passed, pytest 4431 passed (env coverage 97.47/93.58/100), env ruff and mypy clean (main venv), gateway 60 passed (99.28/96.96/100). main then moved to 2f1b3f00a (docs only). The merge gives head ffd31114d, whose packet is byte-identical to round 4 (sha256 169024f9…).
+
+## Landed
+
+- `git merge --ff-only ffd31114d` into main, 2026-10-27 ~5:11 PM ET, slot 1 on the landing board.
+- `just test` on main: agent 4545/4546. The one failure is citation-evidence.test.ts, the known failure from the main checkout's untracked experiments/fixed/hyperqwen-control-3h.json (see the vllm-tuple worklog). The suite stops at the first failing package, so the viewer, pytest and gateway passes were the merged-tip numbers above.
+- Pilot (M3, operator go 5:09 PM ET): run 2026-10-27T17-09-29_claude-opus-5-5_318a, a diagnostic probe launched the way Astra was (runs/probes/claude-opus55-30m-20261027). Results get their own entry when it ends.
+- Follow-ups, not done:
+  - fixed-run gateway lane plus commit pin (needed for scored runs).
+  - A startup sanity call, so a rejected flag or model doesn't hold forever.
+  - Interrupt the backoff sleep when the client is gone.
+  - A distinct label for non-OSError handler failures.
+  - An incremental cursor for replay.

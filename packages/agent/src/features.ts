@@ -283,6 +283,7 @@ export const SWITCHABLE_FEATURES = [
   "instruction-goal-advisory-v1",
   "goal-review-repair-feedback-v1",
   "map-observability-v1",
+  "context-exact-count-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -686,6 +687,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("instruction-goal-advisory-v1", "guidance", "ADVISORY INSTRUCTION GOALS", null, "Default off; bundle only. With instruction-goal-ledger-v1 enabled, keeps dialogue and goal bookkeeping without making pending or rejected goal reviews a prerequisite for gameplay. Invalid reviews do not commit; ordinary action validation still applies. Inactive when the ledger is OFF. Off: pending dialogue and rejected reviews block game-changing calls as before."),
   on("goal-review-repair-feedback-v1", "guidance", "GOAL REVIEW REPAIR FEEDBACK", null, "Default off; bundle only. With instruction-goal-ledger-v1 enabled, rejected reviews name the failing field and actual delivered references. Evidence validation and atomic rejection remain unchanged; no goal or route is assigned. Inactive when the ledger is OFF. Off: original rejection messages are unchanged."),
   on("map-observability-v1", "observation", "UNIFIED MAP ELEMENTS", null, "Default on in control and bundle by operator request (2026-10-25). Describes current map elements through one versioned schema and shared rendering: distinct symbols for different terrain, switch, arrow, barrier, door and rotating-gate states. Preserves elements beneath player, object and warp markers and reports unavailable current state explicitly. Uses the paired game snapshot without choosing routes, inputs or puzzle solutions. Off: retains the previous map rendering, interaction names and state payload, including the selected legacy Mauville setting."),
+  on("context-exact-count-v1", "guard", "EXACT CONTEXT COUNT", null, "Default off. Measures the request actually sent instead of estimating it. On a vLLM lane, each request body, after every injected context block and with the system prompt, tools, images and chat template, is counted by the server's /tokenize endpoint; on a llama.cpp lane, its text is counted by /apply-template and /tokenize, and each image is charged at the per-image count measured from the server's own prompt_tokens (1,000 until measured). The oldest whole turns, each an assistant reply with its tool results, are dropped until the count plus max tokens fits the served context; the task message and the newest turn are always kept and no text inside a message is cut. If the server later reports more prompt tokens than were counted (usage or a context-length error in either vLLM or llama.cpp wording), the difference is reserved on every later request, so an overflowing request is never resent unchanged. Each count is recorded on the turn's assistant event as prompt_count beside the server's usage, and each trim as a compaction. If counting fails, that request is trimmed by a conservative estimate. Other servers keep context-token-budget-v1's estimate, which also reads vLLM's context-length errors. Off: context-token-budget-v1's estimate alone, reading only llama.cpp's context-length error."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1044,6 +1046,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("instruction-goal-advisory-v1"),
     ...when("goal-review-repair-feedback-v1"),
     ...when("map-observability-v1"),
+    ...when("context-exact-count-v1"),
   ];
 }
 

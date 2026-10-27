@@ -3,6 +3,7 @@ import {gzipSync} from "node:zlib";
 import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,validateLiveContinuationFeatures,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
+import {payloadCounter} from "./exact-context.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
@@ -338,7 +339,7 @@ async function playAgent(): Promise<void> {
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
-      const budget=contextBudget(features, model, maxTokens, recorder);
+      const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey));
       const restored=continuation===null?null:await restoreLiveContinuation(continuation,features,recorder,context,{systemPrompt,tools:tools.map(({name,description,parameters})=>({name,description,parameters})),...(budget.budget===undefined?{}:{budget:budget.budget})});
       const messages:AgentMessage[]=restored===null?[]:[...restored.messages];
       let requestIndex=0;
@@ -351,7 +352,7 @@ async function playAgent(): Promise<void> {
           writeFileSync(join(RUNS_ROOT,runId,"campaign-continuation.json"),JSON.stringify({initialObservation,messages,requests:requestIndex,reminder:restored?.receipt??null,journal}),{flag:"wx"});
         });
       }
-      const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features);
+      const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features, exact===undefined?undefined:payload=>exact.fit(payload));
       const loop = piLoop({
         systemPrompt,
         loopDetector,
@@ -362,7 +363,7 @@ async function playAgent(): Promise<void> {
         transformContext: autoTalkContext(features,new StateWatcher(gameServerUrl),tools,battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),context.breaker,recorder,controller.signal),
         window: context.window,
         ...budget,
-        emit: event=>{if(restored!==null&&event.type==="message_end")messages.push(event.message);return recorder.emit(event);},
+        emit: event=>{if(event.type==="message_end"){exact?.observe(event.message);if(restored!==null)messages.push(event.message);}return recorder.emit(event);},
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),
       });

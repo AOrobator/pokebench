@@ -26,9 +26,12 @@ export function budgetLimit(contextWindow: number, maxTokens: number): number {
 }
 
 const OVERFLOW = /request \((\d+) tokens\) exceeds the available context size/;
+// context-exact-count-v1: vLLM's wording, which reports the prompt alone ("prompt contains at least N input tokens").
+const VLLM_OVERFLOW = /maximum context length is \d+ tokens\..*?prompt contains at least (\d+) input tokens/s;
 
-export function overflowTokens(message: string | undefined): number | null {
-  const match = message === undefined ? null : OVERFLOW.exec(message);
+export function overflowTokens(message: string | undefined, vllm = false): number | null {
+  if (message === undefined) return null;
+  const match = OVERFLOW.exec(message) ?? (vllm ? VLLM_OVERFLOW.exec(message) : null);
   return match === null ? null : Number(match[1]);
 }
 
@@ -64,7 +67,7 @@ export class ContextBudget {
   private sent: number | null = null;
   private anchor: { weight: number; tokens: number; basis: "usage" | "overflow" } | null = null;
 
-  constructor(readonly limit: number) {}
+  constructor(readonly limit: number, private readonly vllmOverflow = false) {}
 
   snapshot():ContextBudgetState{return {limit:this.limit,sent:this.sent,anchor:this.anchor===null?null:{...this.anchor}};}
   restore(state:ContextBudgetState):void{
@@ -98,7 +101,7 @@ export class ContextBudget {
   // Called with each finished assistant message, so the next prediction starts from the server's own count.
   observe(message: AgentMessage): void {
     if (message.role !== "assistant" || this.sent === null) return;
-    const overflow = message.stopReason === "error" ? overflowTokens(message.errorMessage) : null;
+    const overflow = message.stopReason === "error" ? overflowTokens(message.errorMessage, this.vllmOverflow) : null;
     if (overflow !== null) { this.anchor = { weight: this.sent, tokens: overflow, basis: "overflow" }; return; }
     const prompt = message.usage.input + message.usage.cacheRead + message.usage.cacheWrite;
     if (prompt > 0) this.anchor = { weight: this.sent, tokens: prompt, basis: "usage" };

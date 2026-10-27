@@ -137,7 +137,8 @@
   "move-learn-tool-v1",
   "move-learn-loop-fingerprint-v1",
   "fixed-point-breaker-v1",
-  "drought-battle-heal-hold-v1"
+  "drought-battle-heal-hold-v1",
+  "context-exact-count-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -407,6 +408,7 @@
   "cutscene-journal-v1": false,
   "instruction-goal-advisory-v1": false,
   "goal-review-repair-feedback-v1": false,
-  "map-observability-v1": true
+  "map-observability-v1": true,
+  "context-exact-count-v1": true
  }
 }

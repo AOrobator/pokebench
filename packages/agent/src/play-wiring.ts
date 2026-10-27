@@ -17,6 +17,7 @@ import {StoryBattleHealGate,withStoryBattleHealGate,type GateDecision} from "./s
 import {withHealFirst,type HealFirstRecorder} from "./heal-first.js";
 import type {FeatureSet} from "./features.js";
 import {ContextBudget,budgetLimit,type BudgetTrim} from "./context-budget.js";
+import {ExactContext,type PayloadCounter} from "./exact-context.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
@@ -87,9 +88,12 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
-export function contextBudget(features:FeatureSet,model:{readonly contextWindow:number},maxTokens:number,recorder:Pick<RunRecorder,"compaction">):{budget?:ContextBudget;onBudgetTrim?:(trim:BudgetTrim)=>void}{
+// context-exact-count-v1: on a server that can count the request, that count replaces the estimate.
+export function contextBudget(features:FeatureSet,model:{readonly contextWindow:number},maxTokens:number,recorder:Pick<RunRecorder,"compaction">&Partial<Pick<RunRecorder,"promptCount">>,counter:PayloadCounter|null=null):{budget?:ContextBudget;onBudgetTrim?:(trim:BudgetTrim)=>void;exact?:ExactContext}{
+ const exact=features["context-exact-count-v1"];
+ if(exact&&counter!==null)return {exact:new ExactContext(counter,model.contextWindow,maxTokens,{compaction:(from,to)=>{recorder.compaction(from,to);},promptCount:count=>{recorder.promptCount?.(count);}})};
  if(!features["context-token-budget-v1"])return {};
- return {budget:new ContextBudget(budgetLimit(model.contextWindow,maxTokens)),onBudgetTrim:trim=>{recorder.compaction(trim.from,trim.predicted);}};
+ return {budget:new ContextBudget(budgetLimit(model.contextWindow,maxTokens),exact),onBudgetTrim:trim=>{recorder.compaction(trim.from,trim.predicted);}};
 }
 
 // The loop guard's supervisor briefing, when that switch is on.

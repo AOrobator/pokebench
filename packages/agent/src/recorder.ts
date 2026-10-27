@@ -19,6 +19,7 @@ import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
 import { deeperMilestone, type MilestoneSource, type SeenMilestone } from "./milestones.js";
 import type { RunLog } from "./run-log.js";
+import type { PromptCount } from "./exact-context.js";
 
 export class RecorderError extends Error {
   override readonly name = "RecorderError";
@@ -119,6 +120,8 @@ export class RunRecorder {
   private requestAt = 0;
   private requestContext:PromptReceipt|null=null;
   recordRequestContext(context:PromptReceipt|null):void {this.requestContext=context;this.requestAt=this.now();this.firstTokenAt=null;}
+  private prompt:PromptCount|null=null;
+  promptCount(count:PromptCount):void {this.prompt=count;}
   private firstTokenAt: number | null = null;
   private stream = { thinking: "", text: "", flushedAt: 0 };
   private readonly toolStarts = new Map<string, number>();
@@ -248,6 +251,7 @@ export class RunRecorder {
     this.requestAt = this.now();
     this.firstTokenAt = null;
     this.requestContext=null;
+    this.prompt=null;
     this.stream = { thinking: "", text: "", flushedAt: this.requestAt };
     this.append({ type: "turn_start", turn: this.turn, context: contextSize(messages) });
     return Promise.resolve(messages);
@@ -309,6 +313,7 @@ export class RunRecorder {
       text,
       tool_calls,
       usage: { input: message.usage.input, output: message.usage.output, cache_read: message.usage.cacheRead, ...(this.requestContext!==null||message.usage.cacheWrite!==0?{cache_write:message.usage.cacheWrite}:{}) },
+      ...(this.prompt===null?{}:{prompt_count:this.prompt}),
       latency_ms: Math.round(done - this.requestAt),
       ttft_ms: this.firstTokenAt === null ? null : Math.round(this.firstTokenAt - this.requestAt),
       stop_reason: message.stopReason,

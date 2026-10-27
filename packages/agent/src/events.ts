@@ -111,6 +111,8 @@ const Assistant = event("assistant", {
   text: Type.String(),
   tool_calls: Type.Array(Type.Union([Type.Object({id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()},closed),Type.Object({ id: Type.String(), name: Type.String(), args: Args }, closed)])),
   usage: Type.Object({ input: NonNegativeInt, output: NonNegativeInt, cache_read: NonNegativeInt, cache_write: Type.Optional(NonNegativeInt) }, closed),
+  // context-exact-count-v1: this request's prompt as counted before sending, beside the server's usage.
+  prompt_count: Type.Optional(Type.Object({ tokens: NonNegativeInt, source: Type.Enum(["vllm-tokenize", "llamacpp-tokenize", "estimate"] as const), limit: Type.Integer(), reserve: NonNegativeInt, dropped_turns: NonNegativeInt }, closed)),
   latency_ms: NonNegativeInt,
   ttft_ms: Type.Union([NonNegativeInt, Type.Null()]),
   stop_reason: StopReason,

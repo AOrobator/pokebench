@@ -40,6 +40,11 @@ export function playLoopBase(
   apiKey: string | undefined,
   maxTokens: number,
   features: FeatureSet,
+  fit?: (payload: unknown) => Promise<unknown>,
 ): AgentLoopConfig {
-  return { ...gatewayLoopConfig(model, thinking, apiKey ?? GATEWAY_API_KEY, samplingExtras(features)), maxTokens };
+  const base: AgentLoopConfig = { ...gatewayLoopConfig(model, thinking, apiKey ?? GATEWAY_API_KEY, samplingExtras(features)), maxTokens };
+  if (fit === undefined) return base;
+  // context-exact-count-v1: the fit sees the final body, after the dialect and sampling fields.
+  const inner = base.onPayload;
+  return { ...base, onPayload: async (payload, current) => fit((await inner?.(payload, current)) ?? payload) };
 }

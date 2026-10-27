@@ -23,7 +23,8 @@ Approved scope (coordinator relay of the operator's approval): build the switch,
 
 ## M1: switch, exact fit, backstop, recording
 
-- [ ] RED: tests for the vLLM 400 text, the 58,371/61,441 miss shape, OFF unchanged, /tokenize unavailable, whole-turn dropping, counters, recorder, provider, viewer explainer route
+- [x] RED: tests for the vLLM 400 text, the 58,371/61,441 miss shape, OFF unchanged, /tokenize unavailable, whole-turn dropping, counters, recorder, provider, viewer explainer route. COMMIT: `test: RED for context-exact-count-v1 (vLLM tokenize fit, overflow wording, prompt_count)` (bb2d1d399)
+- [x] Wiring red check: disabling the ON branch in `contextBudget` turned the factory test red (1 failed); restored, green.
 - [ ] GREEN + gates (just lint, just test)
 - [ ] live check against GPU0 vLLM :18020 (read-only probe)
 - [ ] review (Claude CLI, GPT/Codex, fallback; personas: harness engineer, data scientist, ML engineer, evaluation integrity)

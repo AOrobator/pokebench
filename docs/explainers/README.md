@@ -146,6 +146,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.
 - [Starter decision salience](starter-decision-salience-v1.html) — default-OFF neutral reminder at the ready starter menu.
 - [Context token budget](context-token-budget-v1.html) — default-OFF backstop that drops the oldest whole turns when a request would not fit the served context.
+- [Exact context count](context-exact-count-v1.html) — counts each request on the serving vLLM or llama.cpp server and drops the oldest whole turns until it fits; reserves any excess the server reports.
 - [Briefing repeat count](briefing-repeat-count-v1.html) — default-OFF fix: the focused supervisor briefing shows ×N for repeated attempts, as the full briefing does.
 - [Navigate already here](navigate-already-here-v1.html) — default-OFF fix: navigate_to to the player's own tile says the player is already there, not that it arrived.
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.

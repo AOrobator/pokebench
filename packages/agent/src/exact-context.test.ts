@@ -219,7 +219,7 @@ describe("context-exact-count-v1 server feedback", () => {
 });
 
 type Call = { url: string; init: RequestInit };
-function fetchOf(responses: readonly (unknown | Response | Error)[]): { fetch: typeof fetch; calls: Call[] } {
+function fetchOf(responses: readonly unknown[]): { fetch: typeof fetch; calls: Call[] } {
   const queue = [...responses];
   const calls: Call[] = [];
   const fetchFn = ((url: string, init: RequestInit) => {
@@ -231,7 +231,7 @@ function fetchOf(responses: readonly (unknown | Response | Error)[]): { fetch: t
   }) as unknown as typeof fetch;
   return { fetch: fetchFn, calls };
 }
-const bodyOf = (call: Call | undefined): unknown => JSON.parse(String(call?.init.body));
+const bodyOf = (call: Call | undefined): unknown => JSON.parse(typeof call?.init.body === "string" ? call.init.body : "null");
 
 describe("context-exact-count-v1 counters", () => {
   it("vLLM: posts the exact chat body to /tokenize with the lane's key and returns its count and context size", async () => {

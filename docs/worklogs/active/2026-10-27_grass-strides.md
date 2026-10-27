@@ -56,7 +56,7 @@ subprocesses, paths or ROM handling.
       opt-in accepts, long grass refused, native-false walks, battle stops)
 - [x] COMMIT: `test: grass-strides-v1 corridors through tall grass (RED)` (3e70ba4a7)
 - [x] Implement
-- [ ] Gates: `just build` PASS; agent vitest 4576/4576 PASS with coverage ≥90; focused viewer 378 PASS, focused Python + mypy PASS after env fix; full `just test` / `just lint` re-run PENDING coordinator CPU window
+- [x] Gates on frozen head 7c9f32eda (coordinator CPU window, 7:41 PM ET): `just lint` PASS; `just test`: agent 4576/4576 (lines 99.16, branches 92.67, functions 97.56), viewer 2083/2083 (98.26 / 91.68 / 95.32), Python 4437 passed (lines 97.47, branches 93.58, functions 100), gateway 69 (99.29 / 97.01 / 100); `just build` PASS. trainer-card-check failed 3/3 only because the gitignored art `runs/sprites/trainer-card-v1` is missing in a fresh worktree ("Approved font/art did not load"); re-run with `POKEBENCH_CARD_ART` pointed at main's art passed 3/3, and the design guard printed OK. No baselines or fixtures were touched.
 - [x] COMMIT: `feat: grass-strides-v1 lets navigate_to strides cross tall grass` (6c4be031d)
 - [x] Guard deletion check: removing `grassStrides:features["grass-strides-v1"]` from `withNavigation` turned 2 agent tests red (factory, description); forcing the server `floor` to `(0,)` turned 4 server tests red. Both restored.
 - [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
@@ -75,6 +75,8 @@ operator's arm decision.
 - RED: `packages/agent/src/grass-strides.test.ts` 6 failing; `env/tests/env/test_strides.py` 4 new failing (default-refusal test passes today, as INV-2 requires).
 
 ## Surprises
+
+- trainer-card-check reads gitignored art from `runs/sprites/trainer-card-v1`; a fresh worktree needs `POKEBENCH_CARD_ART` (or that folder) or all 3 cards fail to load. Environment only.
 
 - `exact-context.test.ts` pinned context-exact-count-v1 as `playHarnessFeatures(...).at(-1)`, which any new switch breaks. Changed it to "present, and nothing registered earlier follows it" so later switches need no edit.
 - `schemas/events.v1.json` embeds the stride plan schema; regenerated with `just schema` (adds optional `tall_grass`).

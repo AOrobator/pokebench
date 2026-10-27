@@ -89,3 +89,6 @@ Round 4 (base 3cb27905e, head fcbfcfead, packet d6ce1634…):
 - The operator picked (a): commit both, gates, round 5.
 
 Gates at the round 5 head (rebased on main c757402bd): `just test` exit 0 (agent 4583, viewer 2066, Python 4446, coverage gate agent 96.49/92.64/97.51, viewer 95.79/91.63/95.27, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0; schema fresh.
+
+Round 5 (packet 0637514a…): Claude and GPT BLOCKING only because main moved by two docs commits between rebase and seal (head did not descend from the base); Claude confirmed both round 5 fixes; GPT also repeated the overruled runtime-shape points. Fallback LGTM. The operator picked (a): re-seal on a current base, round 6.
+Rebased onto main 1b7ae8b96 (gateway autocompact and others). Conflicts only in the registry lists, where main appended context-exact-count-v1: main's entries kept first, these three switches appended after them. Every other changed line equals the round 5 packet. Gates at the round 6 head: `just test` exit 0 (agent 4613, viewer 2089, Python 4446 + 69, coverage floors pass, trainer cards 3/3); `just lint` exit 0; schema fresh.

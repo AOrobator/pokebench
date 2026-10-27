@@ -63,7 +63,7 @@ Test and build wiring only. No new subprocesses, inputs or network. The trainer-
 - [x] Full gate on the branch: `just test` (in the A/B), `just lint`, `just build`, `just verify-vendor` all exit 0
 - [x] Principles self-review (PB1–PB13): 0 FAIL
 - [x] Claude lane, GPT lane (Codex CLI), fallback reviewer (Grok down; blanket "land without grok" waiver): all LGTM in round 3 at 689636fb1
-- [ ] Wait for `claude/type-gap-team` to land; rebase, rerun gate, land ff-only via `just land-join` / `just land-done`
+- [x] Rebase onto main, rerun gate, land ff-only via `just land-join` / `just land-done` (landing order changed: no wait for type-gap-team)
 
 ## Gate timings
 
@@ -110,7 +110,10 @@ Gate wiring is proven by the wiring tests and the timed runs of the real recipes
 
 **Round 3** — packet `511a6f95c..689636fb1`, SHA-256 `f713e617c6a29d2bbc6c2ba5603c43b56b3d951b7d100286d64bfda622ecffdc`.
 - Claude lane: VERDICT: LGTM. GPT lane: VERDICT: LGTM. Fallback lane: VERDICT: LGTM.
-- Landing waits for `claude/type-gap-team`. After it lands: merge `main` into this branch, rerun the gate; if the branch's own diff changes, new review round; then `just land-join`, `git merge --ff-only`, `just test` on main, evidence commit, `just land-done`.
+- Landing order changed (coordinator relay, 2026-10-27 3:39 PM New York): the first ready branch lands; no wait for `claude/type-gap-team`.
+- Rebased onto `main` `72257830d`, which only touched vLLM endpoint files. `git diff --binary main 7e5eac31f` has SHA-256 `f713e617c6a29d2bbc6c2ba5603c43b56b3d951b7d100286d64bfda622ecffdc`, identical to the round-3 packet, so no new review round.
+- Gate on the rebased head: `just test` exit 0 in 153 s (agent 318 files / 4540 tests, viewer 152 / 2039, pytest 4426, Playwright 3, coverage floor met); `just lint`, `just build`, `just verify-vendor` exit 0.
+- `just land-join` gave slot 1 at 3:44 PM; main unchanged at `72257830d`; landed with `git merge --ff-only` to this evidence commit.
 
 ## Boy Scout Log
 

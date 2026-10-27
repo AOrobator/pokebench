@@ -5,7 +5,7 @@
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
 **Current Phase:** implementation — M1 closeout verified; M2 pending
 **Phase Started:** 2026-10-25
-**Branch:** `codex/current-run-snapshots`
+**Branch:** `codex/current-run-snapshots-service`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
 **Milestone tracking:** M1–M5 in this worklog. No repo-local Beads exists; installed bd resolves an unrelated global local stack database. Repository principles explicitly do not inherit Beads; do not create unrelated issues.
 **Required Phase Skills Checked:** repository feature-worklog and its canonical planning references
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M2 (pending; M1 foundation closed, runtime still dormant)
+## Current Milestone: M2 (implementation; fixture-only service, no live activation)
 
 ### Completed Milestones
 
@@ -337,3 +337,9 @@ Read-only coordinator update prompted assessment, not a claim of passing tests. 
 Reserved CPU window from Claude6:36PM America/New_York, one canonical just-test PASS146.69s. Head/final-head both2ad9996824d4bec793554404ea2e52c61c9c9dfc. Counts4570agent/2083viewer/4431Python +69gateway contract tests and3protected trainer-card checks (1280/1440/375). Coverage floors enforced in same pass; no duplicate coverage run, retries, exclusions or test suppression. Receipt runs/reviews/current-run-snapshots/m1-closeout-main-test.json with full log. Earlier m1-postmerge-test.json/log remains FAIL on original pin, not rewritten or retroactively called PASS.
 
 CPU RELEASED immediately. M1 operational closeout now complete on current main, with original operator-approved remaining Sol evidence gap and Grok unavailability honestly retained. No third review or isolated fixture correction performed. Evidence-only worklog update under landing board; no new runtime code. M2–M5 remain unimplemented; original approved implementation scope resumes after M1 closeout. No new service/shadow activation, shared viewer refresh, active-run input/restart or experiment launch performed. Root canonical WORKLOG.md remains owned by its existing flight and unchanged. Archive and live-proof checkpoints remain open.
+
+### M2 execution boundary — 2026-10-27
+Original user authorization is to implement the approved M1–M5 plan and stop before service activation/shared viewer refresh; no new permission is inferred from coordinator status relays. M1 source/closeout complete at1b7ae8b96, inherited Sol fixture waiver remains scoped and unchanged. New owned branch codex/current-run-snapshots-service, same isolated worktree. M2 production boundary: current-store.ts additive staging/metadata transaction methods, new current-digest.ts (resumable SHA256 state verified against native crypto for restoration-prefix hashing), current-source.ts (bounded descriptor reads/identity/anchors/continuation checks), current-service.ts (fair/coalesced projector and async health), current-service-cli.ts (explicit argv-only dormant entrypoint), direct tests/owned fixture rehearsal. No existing viewer/server/agent/game writer, card-cache writer, frame/control API or default startup changes. Source logs remain read-only.
+M2 terminator remains process kill/restart and partial reconstruction recovery, single writer, provisional-tail vs full-prefix completeness, no counter double-add/rewind, bounded/fair source work and quiet-health semantics. Sparse index/staging/current cursor/public metadata commit atomically; latest provisional display and private reconstruction are separate. Prefix hash checkpoints must contain only digest state/offset, never raw prompts/transcripts; incomplete line bytes may be reread after restart within line cap. Current-source cursor binding has declared append-only/bounded-anchor limitation, never claims complete old-prefix integrity. Actual API/browser/performance/rollout remain M3–M5. Full suites need a fresh reserved CPU window. No live root service start, no game health requests against active ports, no main moves outside board, no viewer refresh.
+
+M2 RED: new digest/service fixture suites fail to load missing current-digest/current-service modules (m2-red.log). First fixtures specify native-SHA parity and bounded hash restart state, cursor resume/no double-add, torn-line append, independent provisional/reconstruction state, source replacement generation reset, and held async health. No runtime callers or live source reads. Remaining M2 fairness/restoration/process-kill cases still pending; no milestone completion claim.

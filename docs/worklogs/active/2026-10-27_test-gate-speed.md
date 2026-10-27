@@ -23,7 +23,7 @@ Prior work: the 2026-10-24 landing-pipeline audits (`runs/reports/run-analysis/2
 - per-switch facts by absolute index (`SWITCHABLE_FEATURES.at(n)`, `SERVER_FEATURES.at(n)`), which appends never move;
 - a switch's server off-list effect as a delta, `serverOff(changed)` equals `serverOffWith(base,{off:[ID]})` (`packages/agent/test-support/server-features.ts`). The helper throws when a named id is not a server switch or is already in that state, so an assertion cannot pass by filtering its own switch away;
 - the full off-list and per-group counts once, restricted to the switches registered when the legacy fixture froze (`map-observability-v1`, 276 switches, 92 server switches);
-- registry invariants: unique `SWITCHABLE_FEATURES`, `MEASUREMENT_FEATURES` and `SERVER_FEATURES`; `SERVER_FEATURES` ⊆ switches; every feature has a known group, a title, an ` Off: ` clause and a registered `needs`; TS and Python server lists are equal; `experiments/feature-configs/current.json` names only registered switches, each in one role, with `features` agreeing with `onInBoth`/`offInBoth`.
+- registry invariants: unique `SWITCHABLE_FEATURES`, `MEASUREMENT_FEATURES` and `SERVER_FEATURES`; `SERVER_FEATURES` ⊆ switches; every feature has a known group, a title and a registered `needs`, and every switch an ` Off: ` clause; TS and Python server lists are equal; `experiments/feature-configs/current.json` names only registered switches, each in one role, with `features` agreeing with `onInBoth`/`offInBoth`.
 
 `legacy-features.ts` turns every switch registered after the freeze OFF in `LEGACY_ALL_ON` and `BATCH_DEFAULTS_OFF` (the file's existing rule, "new treatments stay OFF in legacy behavior tests", now automatic), so `withoutFrontierTreatments(...).at(-N)` pins stay put.
 
@@ -57,7 +57,7 @@ Test and build wiring only. No new subprocesses, inputs or network. The trainer-
 - [x] GREEN: justfile changed; wiring and trainer-card guard tests 7 passed.
 - [x] Docs: CLAUDE.md commands, execute-worklog and feature-worklog gates, close-the-loop table.
 - [x] Timed A/B (below): 252 s → 154 s mean
-- [x] COMMIT (GREEN): `build: just test runs every suite once with the coverage gate` (recorded in M3 once known)
+- [x] COMMIT (GREEN): `build: just test runs every suite once with the coverage gate` (b8efbc6db)
 
 **M3 — Gate, review, land**
 - [x] Full gate on the branch: `just test` (in the A/B), `just lint`, `just build`, `just verify-vendor` all exit 0
@@ -92,6 +92,12 @@ Gate wiring is proven by the wiring tests and the timed runs of the real recipes
 - Viewer tests import the agent's built `dist`; a stale build from the dummy rehearsal made a viewer test fail until rebuilt.
 
 ## Multi-Model Review Log
+
+**Round 1** — packet `511a6f95c..b8efbc6db`, diff SHA-256 `de4caa7caf7b5e509f9f8918b4f198795d52c8a75f65f3ce7b7e1a103be6d7bd`. Principles self-review: 0 FAIL.
+- Claude lane (`claude -p --permission-mode plan`, `~/.claude-review`): VERDICT: LGTM. Non-blocking: record the GREEN SHA; " Off:" applies to switches only; justfile comment wording; viewer 273–276 literals; Set instead of a registry scan.
+- GPT lane (Codex CLI `-m gpt-5.6-sol`, read-only): VERDICT: BLOCKING. One finding: the helper-guard test recomputes `serverOff(ALL_ON)` inside a filter and new invariant loops scan arrays, superlinear in the registry. Confirmed conversions are not tautological, legacy fixtures unchanged, the Python pin catches frozen drift, and every justfile spelling resolves to one pass.
+- Fallback lane (Grok out; standing "land without grok" waiver): fresh read-only Sonnet subagent: VERDICT: LGTM.
+- Fix batch: cache the base off-list and use Sets in the new invariants; record the SHA; clarify the comment and worklog wording; derive the viewer slice from `FROZEN_SWITCH_COUNT`.
 
 ## Boy Scout Log
 

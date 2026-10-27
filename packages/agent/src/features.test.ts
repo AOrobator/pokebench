@@ -22,9 +22,11 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
   for (const ids of [SWITCHABLE_FEATURES, MEASUREMENT_FEATURES, SERVER_FEATURES]) expect(new Set(ids).size).toBe(ids.length);
-  for (const id of SERVER_FEATURES) expect(SWITCHABLE_FEATURES).toContain(id);
+  const switchable = new Set<string>(SWITCHABLE_FEATURES);
+  for (const id of SERVER_FEATURES) expect(switchable.has(id)).toBe(true);
   // Switches registered after the legacy fixture froze are appended; the frozen ones keep their groups.
-  const frozen = FEATURES.filter((f) => !(LATER_SWITCHES as readonly string[]).includes(f.id));
+  const later = new Set<string>(LATER_SWITCHES);
+  const frozen = FEATURES.filter((f) => !later.has(f.id));
   expect(frozen.filter((f) => f.group === "observation")).toHaveLength(110);
   expect(frozen.filter((f) => f.group === "guidance")).toHaveLength(96);
   expect(frozen.filter((f) => f.group === "guard")).toHaveLength(70);
@@ -32,7 +34,7 @@ it("describes every switchable and measurement feature exactly once", () => {
     expect(["observation", "guidance", "guard", "measurement"]).toContain(f.group);
     expect(f.title).not.toBe("");
     if (f.switchable) expect(f.description).toMatch(/ Off: /);
-    if (f.needs !== null) expect(SWITCHABLE_FEATURES).toContain(f.needs);
+    if (f.needs !== null) expect(switchable.has(f.needs)).toBe(true);
   }
   expect(() => featureInfo("invented" as "ram-state-v1")).toThrow(/unknown feature/);
 });
@@ -83,7 +85,8 @@ it("reports every unmet dependency", () => {
 it("hands the game server only its own observation switches", () => {
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_ACTIVE_UI).toBe("1");
   // Every switch registered before the legacy fixture froze is pinned here; later ones are OFF in it and pinned by their own tests.
-  const later=(id:string)=>(LATER_SWITCHES as readonly string[]).includes(id);
+  const laterIds=new Set<string>(LATER_SWITCHES);
+  const later=(id:string)=>laterIds.has(id);
   expect(serverOff(ALL_ON).filter(id=>!later(id))).toEqual("original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1,elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,caught-nickname-prompt-v2,mauville-puzzle-readout-v1,cutscene-journal-v1,map-observability-v1".split(","));
   expect(serverOff(ALL_ON).filter(later)).toEqual(SERVER_FEATURES.filter(later));
   expect(serverFeatureEnv(off("battle-refusal-loop-v1","active-ui-ownership-v1","deterministic-loop-guard-v1","press-result-v1")).POKEBENCH_ACTIVE_UI).toBe("0");
@@ -97,7 +100,8 @@ it("pins a test's own server switches without filtering them out of the expected
   expect(() => serverOffWith(ALL_ON, { off: ["original-speed-pacing-v1"] })).toThrow("original-speed-pacing-v1 is already off in the base");
   expect(() => serverOffWith(ALL_ON, { on: ["ledge-hops-v1"] })).toThrow("ledge-hops-v1 is already on in the base");
   const changed = serverOffWith(ALL_ON, { off: ["ledge-hops-v1"], on: ["original-speed-pacing-v1"] });
-  expect(changed).toEqual(SERVER_FEATURES.filter((id) => id === "ledge-hops-v1" || (id !== "original-speed-pacing-v1" && serverOff(ALL_ON).includes(id))));
+  const base = new Set(serverOff(ALL_ON));
+  expect(changed).toEqual(SERVER_FEATURES.filter((id) => id === "ledge-hops-v1" || (id !== "original-speed-pacing-v1" && base.has(id))));
   expect(changed.indexOf("ledge-hops-v1")).toBeLessThan(changed.indexOf("exit-labels-v2"));
 });
 

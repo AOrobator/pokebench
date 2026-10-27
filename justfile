@@ -19,7 +19,7 @@ test:
     cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
     just trainer-card-check
 
-# The coverage gate is part of `just test`; this name reruns that one pass, never a second suite run.
+# The coverage gate is part of `just test`; `just coverage` is that same single pass under another name.
 coverage: test
 
 lint:

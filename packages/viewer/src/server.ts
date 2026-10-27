@@ -134,9 +134,9 @@ export interface ViewerOptions {
   readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
   // This viewer's own build (default: dist/build-stamp.json); null when unknown.
   readonly build?: ViewerBuild | null;
-  // Where workbench run logs are reduced (default: in process) and where finished runs persist.
   // The frontier ranking: persisted to file across restarts (absent: memory only), ranked at start when warm.
   readonly frontier?: { readonly file?: string | null; readonly warm?: boolean };
+  // Where workbench run logs are reduced (default: in process) and where finished runs persist.
   readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun>; readonly partial?: boolean; readonly prioritize?: (runIds: readonly string[]) => void };
 }
 

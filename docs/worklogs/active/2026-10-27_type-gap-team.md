@@ -98,3 +98,11 @@ Round 6 (packet 45e307b7…): Claude LGTM; fallback LGTM (registry merge checked
 Round 7 (packet 13cbc4d4…): Claude LGTM; fallback LGTM (all 39 item names and 28 map names checked against pret). GPT BLOCKING with no code finding: gate record at the head (pending the heavy-CPU window; machine load 28–63 from other sessions made `just test` time out in untouched live tests) and test runtime shape. To end the loop, three test-only changes, no behavior change: replay states indexed by seq (Map); the shop-map name check uses the 518-place story-destinations-places.json fixture instead of 518 map.json reads; the guide-sentence ROM check is one pass over the cached ROM.
 
 Gates at head 8ab15d161 (main 1b7ae8b96, granted CPU window 7:36 PM NY): `just test` exit 0 (agent 4613, viewer 2089, Python 4440 + 69, coverage floors pass, trainer cards 3/3); `just lint` exit 0; schema fresh.
+
+Round 8 (base main 1b7ae8b96, head 27356153f, packet a8c4b5ef…): Claude CLI LGTM (follow-ups: index places by map id in sellingHere; tie the places fixture to the vendor map table); GPT (Codex CLI gpt-5.6-sol) LGTM, no blockers; fallback (fresh Sonnet subagent) LGTM.
+
+## Landing
+
+Landed 2026-10-27 7:44 PM NY: `just land-join` (number 1), `git merge --ff-only 27356153f` on main from 1b7ae8b96; `git diff --binary 1b7ae8b96 27356153f` SHA-256 equals the round 8 packet (a8c4b5ef…). Merge SHA: 27356153f (fast-forward).
+Post-landing `just test` on main (CPU window granted 7:46 PM NY): exit 0 (agent 4613, viewer 2089, Python 4440 + 69, coverage floors, trainer cards 3/3). The first run failed only because the main checkout's built dist predated the merge (unknown feature errors from the viewer's import of @pokebench/agent); `just build` fixed it. The second run hit one load-sensitive 5 s timeout in viewer app.test.ts that passes alone.
+Not done here: viewer restart (`just viewer-main`) is coordinated by the coordinator; no probes, fixed runs or GPU use; worklog not archived (needs operator approval).

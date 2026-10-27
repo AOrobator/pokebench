@@ -60,7 +60,7 @@ describe("discoverLocal", () => {
     const fetchFn = vi.fn<typeof fetch>(() => Promise.resolve(new Response(JSON.stringify(vllm))));
     const declared = await discoverLocal({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY, vision: true }, fetchFn);
     expect(declared.map((m) => [m.id, m.contextWindow, m.maxTokens, m.input])).toEqual([["qwen3.8-27b", 262144, 262144, ["text", "image"]]]);
-    expect(declared[0]).toMatchObject({ provider: "local-llamacpp", baseUrl: "http://127.0.0.1:18020/v1", compat: GATEWAY_COMPAT, reasoning: true });
+    expect(declared[0]).toMatchObject({ provider: "local-vllm", baseUrl: "http://127.0.0.1:18020/v1", compat: GATEWAY_COMPAT, reasoning: true });
     expect((await discoverLocal({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY }, fetchFn)).map((m) => m.input)).toEqual([["text"]]);
   });
 

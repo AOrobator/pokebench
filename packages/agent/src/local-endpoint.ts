@@ -7,6 +7,7 @@ import { GATEWAY_COMPAT, type GatewayModel } from "./gateway.js";
 // Hermes's router, reached through the endpoint file that server writes. The
 // key is read at run time and never logged or stored.
 export const LOCAL_PROVIDER = "local-llamacpp";
+// A vLLM server: its requests take tool schemas in the dialect xgrammar compiles (tool-schema-dialect.ts).
 export const VLLM_PROVIDER = "local-vllm";
 
 export class LocalEndpointError extends Error {
@@ -41,12 +42,12 @@ const VllmSchema = Type.Object({
   data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), owned_by: Type.Literal("vllm"), root: Type.String(), max_model_len: Type.Integer({ minimum: 1 }) }), { minItems: 1 }),
 });
 
-function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean): GatewayModel {
+function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean, provider: string = LOCAL_PROVIDER): GatewayModel {
   return {
     id,
     name: id,
     api: "openai-completions",
-    provider: LOCAL_PROVIDER,
+    provider,
     baseUrl: endpoint.baseUrl,
     reasoning: true,
     input: vision ? ["text", "image"] : ["text"],
@@ -98,7 +99,7 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
   if (Value.Check(SingleModelSchema, body)) {
     return body.data.map((model) => localModel(endpoint, model.id, model.meta.n_ctx, body.models.some((m) => m.model === model.id && m.capabilities.includes("multimodal"))));
   }
-  if (Value.Check(VllmSchema, body)) return body.data.map((model) => localModel(endpoint, model.id, model.max_model_len, endpoint.vision === true));
+  if (Value.Check(VllmSchema, body)) return body.data.map((model) => localModel(endpoint, model.id, model.max_model_len, endpoint.vision === true, VLLM_PROVIDER));
   if (!Value.Check(RouterSchema, body)) throw new LocalEndpointError(`malformed ${url} payload`);
   return body.data
     .filter((model) => model.status.value === "loaded")

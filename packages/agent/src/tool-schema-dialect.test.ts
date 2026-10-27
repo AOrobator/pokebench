@@ -67,7 +67,7 @@ async function fakeServer(models: unknown): Promise<{ url: string; wire: Wire }>
 function realTools(features: FeatureSet): AgentTool[] {
   const noop = new Proxy({}, { get: () => () => ({ seq: 1, turn: 1 }) });
   const context = contextTools(features, noop as Parameters<typeof contextTools>[1], (messages) => Promise.resolve(messages));
-  const base = gameTools("http://127.0.0.1:1", { beforePress: () => undefined, afterPress: () => undefined });
+  const base = gameTools("http://127.0.0.1:1", { beforePress: () => undefined, afterPress: () => Promise.resolve() });
   return playGameTools(base, features, new StateWatcher("http://127.0.0.1:1"), noop as Parameters<typeof playGameTools>[3], () => Promise.resolve(), context.tools, context.training, context.instructionGoals);
 }
 

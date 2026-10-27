@@ -113,6 +113,7 @@ class FixtureMemory:
 # Registered on main after these runs were recorded, so off for them.
 LATER = frozenset(
     {
+        "type-gap-team-v1",
         "map-observability-v1",
         "player-elevation-readout-v1",
         "exit-reachability-v1",

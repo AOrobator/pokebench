@@ -729,6 +729,18 @@ export const StateBodySchema = Type.Object(
     // exp-next-level-v1: the POKéMON summary screen's NEXT LV. per party slot (null when a slot cannot show one).
     // Present only with the switch.
     party_next_level: Type.Optional(Type.Array(Type.Union([NonNegativeInt,Type.Null()]),{maxItems:6})),
+    // type-gap-team-v1: each party slot's species types (gSpeciesInfo bytes 6 and 7; null for an egg or an unread
+    // slot) and its moves' types and power (gBattleMoves), and the ROM's gTypeEffectiveness rows up to the end row
+    // (254,254,0 is the Foresight separator). Present only with the switch.
+    type_gap: Type.Optional(Type.Object({
+      party:Type.Array(Type.Object({
+        slot:Type.Integer({minimum:0,maximum:5}),
+        species_types:Type.Union([Type.Tuple([Type.Integer({minimum:0,maximum:17}),Type.Integer({minimum:0,maximum:17})]),Type.Null()]),
+        moves:Type.Array(Type.Object({move_id:Type.Integer({minimum:1,maximum:354}),name:NullableString,move_type:Type.Integer({minimum:0,maximum:17}),power:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:4}),
+      },closed),{maxItems:6}),
+      type_chart:Type.Array(Type.Tuple([Type.Integer({minimum:0,maximum:254}),Type.Integer({minimum:0,maximum:254}),Type.Integer({minimum:0,maximum:20})]),{maxItems:112}),
+      diagnostic:NullableString,
+    },closed)),
   },
   closed,
 );

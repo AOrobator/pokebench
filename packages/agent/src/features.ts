@@ -284,6 +284,9 @@ export const SWITCHABLE_FEATURES = [
   "goal-review-repair-feedback-v1",
   "map-observability-v1",
   "context-exact-count-v1",
+  "type-gap-team-v1",
+  "supplies-v1",
+  "untalked-in-gym-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -688,6 +691,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("goal-review-repair-feedback-v1", "guidance", "GOAL REVIEW REPAIR FEEDBACK", null, "Default off; bundle only. With instruction-goal-ledger-v1 enabled, rejected reviews name the failing field and actual delivered references. Evidence validation and atomic rejection remain unchanged; no goal or route is assigned. Inactive when the ledger is OFF. Off: original rejection messages are unchanged."),
   on("map-observability-v1", "observation", "UNIFIED MAP ELEMENTS", null, "Default on in control and bundle by operator request (2026-10-25). Describes current map elements through one versioned schema and shared rendering: distinct symbols for different terrain, switch, arrow, barrier, door and rotating-gate states. Preserves elements beneath player, object and warp markers and reports unavailable current state explicitly. Uses the paired game snapshot without choosing routes, inputs or puzzle solutions. Off: retains the previous map rendering, interaction names and state payload, including the selected legacy Mauville setting."),
   on("context-exact-count-v1", "guard", "EXACT CONTEXT COUNT", null, "Default off. Measures the request actually sent instead of estimating it. On a vLLM lane, each request body, after every injected context block and with the system prompt, tools, images and chat template, is counted by the server's /tokenize endpoint; on a llama.cpp lane, its text is counted by /apply-template and /tokenize, and each image is charged at the per-image count measured from the server's own prompt_tokens (1,000 until measured). The oldest whole turns, each an assistant reply with its tool results, are dropped until the count plus max tokens fits the served context; the task message and the newest turn are always kept and no text inside a message is cut. If the server later reports more prompt tokens than were counted (usage or a context-length error in either vLLM or llama.cpp wording), the difference is reserved on every later request, so an overflowing request is never resent unchanged. On a vLLM or llama.cpp lane, each request's count is recorded on the turn's assistant event as prompt_count beside the server's usage, and each trim as a compaction. If counting fails, that request is trimmed by a conservative estimate and recorded with source estimate. Other servers keep context-token-budget-v1's estimate, which also reads vLLM's context-length errors; those lanes record trims as compactions and carry no prompt_count. Refused at launch beside just-in-time-prompt-v2. Off: context-token-budget-v1's estimate alone, reading only llama.cpp's context-length error."),
+  on("type-gap-team-v1", "observation", "GYM TYPE GAP", null, "Bundle arm only, default off (the operator 2026-10-27). For each gym whose leader is not defeated (its badge flag clear) and whose type this run has evidence for, a block of facts set side by side: the gym's types and where they came from, quoted whole (the foe POKéMON met in trainer battles on the gym map, with their species types from battle RAM; the gym guide's sentence on the gym map, only in the patterns the ROM's guide texts use: \"is a user of\", \"commands\", \"uses\", \"use\" and \"is a master of\" X-type POKéMON, with every page of that talk that names the type; the gym sign, quoted whole, its type taken only from \"X-loving\"); the attacking types the game's own type chart (ROM gTypeEffectiveness, read by the game server) makes super effective against them, with each multiplier; the ones no party POKéMON's species type and no party move with power above 0 has; the party's species types and damaging moves; the POKé BALLS pocket; and the BAG and party-order controls. Header: \"Gym type facts (this run's own evidence and the game's type chart):\". It is appended at a wild battle's action menu when the wild foe's types include one the party lacks (with the wild foe's types and moves), and at the first field result after a loss to a GYM LEADER (once per loss) and after a gym's type first becomes known (once per gym), each with the wild POKéMON this run met in its own battles whose types the party lacks (or none). The gym's own type is never listed unless the chart makes it strong against itself. Never advice, never a place the run has not met, nothing clipped. The state JSON gains type_gap: each party slot's species types and its moves' types and power, and the type chart. Off: no block and no type_gap in the state."),
+  on("supplies-v1", "observation", "SUPPLIES", null, "Bundle arm only, default off (the operator 2026-10-27). One line appended at the first field result after entering a POKé MART map (once per visit) and when the shop's buy list opens: \"Supplies: ₽3,420 · balls: POKé BALL ×5, GREAT BALL ×1 · healing and status items: POTION ×2, ANTIDOTE ×1 · party 1 of 6\", each list \"none\" when empty. Balls are the BAG's POKé BALLS pocket; healing and status items are BAG items that restore HP, PP or a status condition, by the game's item names. No advice; mart-stock-readout-v1 still shows the stock. Off: no line."),
+  on("untalked-in-gym-v1", "observation", "UNTALKED PEOPLE IN GYM", null, "Bundle arm only, default off (the operator 2026-10-27). On a gym map's field, every observe, press and navigate_to result starts with \"People on this gym map you have not talked to this run:\" and each person the game has loaded on the map (item balls excepted) never talked to this run, with object id, sprite (and a story character's name where character-presence-v1 places one) and tile, or \"none\". Talked to is the people ledger's record, plus the harness's own auto-talks. Narrower than untalked-people-header-v1: gym maps only, this run rather than since the last story milestone, and first in the result. It never says what anyone will say. Off: no line."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -777,6 +783,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "mauville-puzzle-readout-v1",
   "cutscene-journal-v1",
   "map-observability-v1",
+  "type-gap-team-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1047,6 +1054,9 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("goal-review-repair-feedback-v1"),
     ...when("map-observability-v1"),
     ...when("context-exact-count-v1"),
+    ...when("type-gap-team-v1"),
+    ...when("supplies-v1"),
+    ...when("untalked-in-gym-v1"),
   ];
 }
 

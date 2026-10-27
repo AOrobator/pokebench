@@ -12,7 +12,7 @@ const ID="map-observability-v1";
 it("declares unified map observations ON in fresh control and bundle configurations",()=>{
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(true);
  expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null});
- expect(SWITCHABLE_FEATURES.slice(-3)).toEqual(["instruction-goal-advisory-v1","goal-review-repair-feedback-v1",ID]);
+ expect(SWITCHABLE_FEATURES.slice(273,276)).toEqual(["instruction-goal-advisory-v1","goal-review-repair-feedback-v1",ID]);
  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","gym-rustboro-torchic","gym-rustboro-torchic-healed","random-starter-2h"]){
   const {definition:d}=readFixedDefinition(root,name);
   if(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"].includes(name))expect(d.onInBoth).toContain(ID);

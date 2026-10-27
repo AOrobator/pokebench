@@ -1,3 +1,4 @@
+import {serverOff, serverOffWith} from "../test-support/server-features.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
@@ -10,7 +11,7 @@ import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-
 import {observeTool,pressTool,type Clock} from "./game-tools.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {BattleWaitSchema,checkEvent,type Button,type RunEvent} from "./events.js";
 
 const ID="levelup-box-v1";
@@ -189,8 +190,8 @@ describe("levelup-box-v1 registry, presets and server wiring",()=>{
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);
   expect(info.description).toContain(" Off: the readout says resolving (no input until the game asks) while the box waits");
   expect(SERVER_FEATURES.at(34)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1,elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,caught-nickname-prompt-v2,mauville-puzzle-readout-v1,cutscene-journal-v1,map-observability-v1`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,shop-interface-v1,map-wide-triggers-v1,birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,static-npc-template-approach-v1,coherent-battle-observation-v1,window-escape-route-v1,elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,caught-nickname-prompt-v2,mauville-puzzle-readout-v1,cutscene-journal-v1,map-observability-v1");
+  expect(serverOff({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false})).toEqual(serverOffWith(ALL_ON,{off:[ID]}));
+  expect(serverOff(ALL_ON)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-effective-damage-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);
   const readout=readFileSync(new URL("../../../env/pokebench_env/readout.py",import.meta.url),"utf8");
   expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n    "transition-coherence-v1",\n    "readout-truth-v1",`);

@@ -79,6 +79,7 @@ describe("supplies-v1",()=>{
   let fails=0;
   const [failing]=withSupplies([observe],{...ALL_ON,"supplies-v1":true},{places:()=>{fails+=1;return Promise.reject(new Error("down"));}});
   expect((await failing?.execute("id",{}))?.content).toEqual([{type:"text",text:"readout"}]);
+  expect((await failing?.execute("id",{}))?.content).toEqual([{type:"text",text:"readout"}]);
   expect(fails).toBe(1);
   const [none]=withSupplies([observe],{...ALL_ON,"supplies-v1":true},{});
   expect((await none?.execute("id",{}))?.content).toEqual([{type:"text",text:"readout"}]);

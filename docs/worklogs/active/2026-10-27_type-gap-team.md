@@ -49,3 +49,13 @@ COMMIT: `feat: type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 bundle switc
 Landing was held. Astra 429f, read-only: every one of its six mart visits was decided outside, 0–5 turns before entering (table in the supplies explainer). supplies-v1 now fires on arrival on a selling map or a map with a door into one, names those places and doors, and still fires when the buy list opens. Rebased onto main 511a6f95c first; gates on the rebased tree before the rework: agent 4513, viewer 2044, Python 4439 + test_view (mGBA venv), coverage agent 96.47/92.61/97.49, viewer 95.88/91.67/95.36, Python 97.40/93.55/99.78. Production-path RED re-proved for the new supplies wiring.
 
 Gates after the rework: agent 4517, viewer 2044, Python 4439 (test_view passes with the mGBA venv), trainer cards 3/3, lint and schema clean; coverage agent 96.47/92.61/97.48 (supplies.ts 98.82/97.46/95.23), viewer 95.87/91.67/95.36, Python 97.40/93.55/99.78.
+
+## Multi-Model Review Log
+
+Round 1 (base 511a6f95c, head 9223d83f2, packet 7939bd86…):
+- Claude CLI (~/.claude-review): no review produced. The runner placed the prompt after --add-dir, which consumed it ("Input must be provided"). Rerun in round 2 with the prompt on stdin.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING.
+  - #1: a gym leader win is counted as a loss before the badge flag is set. Fix: count a loss only when the first field state shows the leader's trainer flag clear. pret battle_setup.c CB2_EndTrainerBattle sets trainer flags on a win; the badge is set later in the leader's post-battle script. Test added.
+  - #2: a failed GET /pokebench/places is retried on every result. Fix: one read per run, a failure included. Test added.
+  - #3: test runtime shape (map.json reads, ROM scans per parameter, replay find). Rebut: it asks for operation counts and scaling receipts, which the triage rule excludes; the suites run in seconds.
+- Fallback (fresh read-only Sonnet subagent): BLOCKING on the same leader-win bug (Fix above). Follow-ups noted, not in this branch: a once-per-battle latch for the wild block; Hidden Power and fixed-damage moves; doors named before the player has seen them (the map-table approach was operator-approved).

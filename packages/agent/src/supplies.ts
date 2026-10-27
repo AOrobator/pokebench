@@ -104,10 +104,10 @@ function stateOf(result:AgentToolResult<unknown>):Snapshot|undefined {
 export function withSupplies(tools:readonly AgentTool[],features:FeatureSet,source:Pick<StateSource,"places">):AgentTool[] {
  if(!features["supplies-v1"])return [...tools];
  const supplies=new Supplies();
- // The game's map table, read once; a server without it leaves only the current map's own name to go on.
+ // The game's map table, read once per run, a failed read included; without it only the current map's own name counts.
  let pending:Promise<readonly Place[]|null>|null=null;
  const places=():Promise<readonly Place[]|null>=>{
-  pending??=source.places===undefined?Promise.resolve(null):source.places().then(body=>Value.Check(PlacesBodySchema,body)?body.places:null,()=>{pending=null;return null;});
+  pending??=source.places===undefined?Promise.resolve(null):source.places().then(body=>Value.Check(PlacesBodySchema,body)?body.places:null,()=>null);
   return pending;
  };
  const annotate=async<T>(result:AgentToolResult<T>):Promise<AgentToolResult<T>>=>{

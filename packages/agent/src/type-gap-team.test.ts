@@ -188,6 +188,15 @@ describe("type-gap-team-v1 gym evidence",()=>{
   expect(text).toContain("met in battle: a trainer (name not read)'s GEODUDE ROCK/GROUND");
   expect(text).toContain("- Balls in BAG: none");
  });
+ it("does not flag a win as a loss before the badge flag is set",()=>{
+  const team=new TypeGapTeam();
+  team.observe(at(12664));
+  expect(team.block(field(10,"RUSTBORO CITY GYM"))).not.toBeNull();
+  // The first field state after a win: ROXANNE's trainer flag is set, the STONE BADGE not yet.
+  const won={...at(12769),location:"RUSTBORO CITY GYM",trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:true,battle_active:false}};
+  team.observe(won);
+  expect(team.block(withGap(won))).toBeNull();
+ });
  it("does not flag a loss after the leader is beaten",()=>{
   const team=new TypeGapTeam();
   team.observe(at(12664));

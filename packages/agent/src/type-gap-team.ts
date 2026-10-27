@@ -132,9 +132,12 @@ export class TypeGapTeam {
     else if(!seen.turns.includes(s.turn))seen.turns.push(s.turn);
    }
   }
+  // A loss: the first field state after the leader's battle still shows the leader's trainer flag clear. A win sets
+  // that flag before the field returns (pret battle_setup.c CB2_EndTrainerBattle SetBattledTrainersFlags); the badge
+  // flag comes only later, at the end of the leader's post-battle script, so the badge alone cannot tell them apart.
   if(field(s)&&this.leaderFight!==null){
    const badge=GYM_BADGE[this.leaderFight];
-   if(badge===undefined||!s.badges.includes(badge))this.lossPending=true;
+   if(s.trainer_opponent?.defeated===false&&(badge===undefined||!s.badges.includes(badge)))this.lossPending=true;
    this.leaderFight=null;
   }
  }

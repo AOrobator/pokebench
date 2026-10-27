@@ -70,6 +70,8 @@ operator's arm decision.
 
 ## Session Log
 
+- 7:49 PM ET: The operator: "the grass fix should be on in the bundle", then "Let's actually have this be on in both arms." (relayed verbatim by the coordinator). Merged main 27356153f: conflicts in the three registry lists and the default maps, because main added type-gap-team-v1, supplies-v1 and untalked-in-gym-v1. Resolved with main's entries first and grass-strides-v1 after them, so it is now at index 280 (the test pin moved from 277). Schema regenerated with no diff. Focused agent 190 and viewer 398 tests pass.
+
 - 2026-10-27 7:15 PM ET: worktree created, code read.
 - GREEN gates run 1 (7:25 PM ET): agent vitest 320 files / 4576 tests pass, coverage above floor; build pass; lint failed on one E501 (fixed) and mypy mgba import (environment); Python failures were environment only. Focused re-runs after the env fix: test_strides 42 pass, mypy clean. Full re-run waits for a coordinator CPU window.
 - RED: `packages/agent/src/grass-strides.test.ts` 6 failing; `env/tests/env/test_strides.py` 4 new failing (default-refusal test passes today, as INV-2 requires).

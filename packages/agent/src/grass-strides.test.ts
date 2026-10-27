@@ -84,8 +84,8 @@ it("the navigate_to description names tall grass only with the switch on",async(
  expect(on.description).toContain("Strides stop before turns, other grass, ledges");
  expect(on.description.replace("Straight corridors of plain floor or tall grass use explicit strides","Straight plain-floor corridors use explicit strides").replace("other grass","grass")).toBe(off.description);
 });
-it("is registered at index 277, default off, needs strides and automatic running",()=>{
- expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(277);
+it("is registered at index 280, default off, needs strides and automatic running",()=>{
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(280);
  const harness=playHarnessFeatures({...ALL_ON,[ID]:true},null);
  expect(harness.indexOf(ID)).toBeGreaterThan(harness.indexOf("context-exact-count-v1"));
  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

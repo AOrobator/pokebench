@@ -206,6 +206,9 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # exp-next-level-v1 adds the NEXT LV. numbers for the party.
     assert isinstance(payloads[0]["state"].pop("party_next_level"), list)
     assert "party_next_level" not in payloads[1]["state"]
+    # type-gap-team-v1 adds the party's types and the ROM type chart.
+    assert "type_chart" in payloads[0]["state"].pop("type_gap")
+    assert "type_gap" not in payloads[1]["state"]
     # surf-gated-exits-v1 adds the Surf gate (no water on this map, so nothing is across it).
     assert payloads[0]["state"].pop("surf_gate")["warps"] == []
     assert "surf_gate" not in payloads[1]["state"]

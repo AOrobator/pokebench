@@ -1,0 +1,100 @@
+# Type gap, supplies and untalked people in gym
+
+The operator approved three bundle-only, default-off switches at 1:33 PM NY on 2026-10-27, in the thread "Design type-gap-team switch". The spec is runs/designs/type-gap-team-v1.md (gitignored scratch); this worklog records what was built from it.
+
+Branch `claude/type-gap-team`, worktree /private/tmp/pb-type-gap-team. No live run, GPU, probe or viewer restart is touched. Local only.
+
+## Switches
+
+- **type-gap-team-v1** (observation, server + agent). For each gym whose badge flag is clear and whose type this run has evidence for, a block with: the gym's types and their quoted sources (foe battlers in trainer battles on the gym map; the gym guide's sentence in the ROM guides' patterns; the gym sign, typed only by "X-loving"); the attacking types the ROM type chart makes super effective against them, with multipliers; which of those no party species type or damaging move has; the party; wild POKéMON met this run with gap types (or the wild foe at a wild decision); balls; controls. Triggers: a wild decision whose foe has a gap type; the first field result after a loss to a GYM LEADER (once per loss); the first field result after a gym's type first becomes known (once per gym). The server adds `type_gap` (party species types, move types/power, ROM gTypeEffectiveness rows) only with the switch.
+- **supplies-v1** (observation, agent). "Supplies: ₽… · balls: … · healing and status items: … · party N of 6 · places on this map that sell things: …" at the first field result after arriving on a map that sells things or has a door into one (once per arrival), and whenever a buy list opens. Reworked 2026-10-27 at the operator's request ("walking into the Pokemart is a little bit too late"): Astra (429f) decided to shop on the town map 0–5 turns before each of its six mart visits. Selling maps come from pret scripts (pokemart/pokemartdecoration/pokemartdecoration2, plus the BP, coin, LAVA COOKIE and SODA POP sellers); doors come from the game's map table (GET /pokebench/places).
+- **untalked-in-gym-v1** (observation, agent). On a gym map's field, results start with the people on the map never talked to this run (people ledger record plus auto-talks). untalked-people-header-v1 covers every map since the last story milestone inside harness-trust-v1's header, so this one is narrow: gym maps only, this run, first in the result.
+
+## Game grounding
+
+- gTypeEffectiveness at ROM 0x0831ACE8 (336 bytes, right before gTypeNames 0x0831AE38). `env/tests/env/test_type_gap.py` reads the real ROM: every row equals pret battle_main.c in order, 0xFF follows the last row, "NORMAL" follows the table.
+- Gym guide sentences, from pret data/maps/*Gym*/scripts.inc GymGuideAdvice: "is a user of", "commands", "uses", "use", "is a master of" X-type POKéMON. The test finds each of the seven type-naming sentences encoded in the ROM. PETALBURG names no type.
+- Gym signs: only RUSTBORO's names a type ("The ROCK-loving honors student!").
+- Badge per gym: each gym statue script's goto_if_set FLAG_BADGE0N_GET.
+- Healing and status items: pret items.h medicine, PP and SACRED ASH items (BLUE FLUTE included since round 4) without the vitamins, plus PERSIM BERRY.
+
+## Milestones
+
+- [x] M1 server: `type_gap.py`, GameState/state_json/rerender wiring, SERVER_FEATURES and the default-off list; ROM tests.
+- [x] M2 agent: `type-gap-team.ts`, `supplies.ts`, `untalked-in-gym.ts`, `PeopleLedger.untalkedThisRun`; registry, presets, defaults, current.json bundle list, schema; wiring in `playGameTools`.
+- [x] M3 tests: d41e t335 post-loss block, guide-time block, GRASS catch clears GRASS, no block in a trainer battle or with no gym type, OFF byte-identical (unit and production path), registry. Production-path RED: removing the three wrappers from play-wiring.ts turned all three tests in type-gap-wiring.test.ts red; restored green.
+- [x] M4 explainers: docs/explainers/type-gap-team-v1.html, supplies-v1.html, untalked-in-gym-v1.html, themed, pages-check clean, mapped in FEATURE_EXPLAINERS.
+- [x] M5 gates and commit (SHA recorded below after commit).
+- [ ] Landing: needs the review loop; the coordinator's 17:35Z note allows landing with Claude + GPT + one fallback reviewer under the operator's standing waiver once vLLM-lane has landed.
+
+## Deviations from the spec draft
+
+- d41e's real t335 block lists "met in battle: JOSH's GEODUDE ROCK/GROUND, ROXANNE's GEODUDE ROCK/GROUND" (d41e fought gym trainer JOSH; it never saw NOSEPASS), and ICE ×2 joins the strong types from GEODUDE's ROCK/GROUND pair. Its wild line says none: d41e's own wild battles before the loss were ZIGZAGOON, POOCHYENA, RALTS (tutorial) and WURMPLE.
+- With several sources, the super-effective and gap lines sit under each gym line, indented, so two gyms do not mix.
+- The wild foe line says "(its types in this battle)" instead of "as its summary page shows": the types come from battle RAM, not a summary screen the model opened.
+- A gym leader's name is shown only once the game showed it in battle (trainer_opponent); before that the line says "GYM LEADER not defeated".
+- The d41e fixture's `type_gap` is rebuilt from d41e's own battle RAM (TORCHIC's types and move types/power), because d41e ran before the switch existed.
+
+## Gates
+
+- just test: agent 4510 passed; viewer 2037 passed (one run each had a load-timing failure, live-human.test.ts and the server socket test; both passed when rerun, neither touched); Python 4439 passed, 1 failed: test_view.py needs the mGBA binding, absent from this worktree's fresh uv venv; it passes with the main checkout's venv. Trainer-card check 3 passed after `just trainer-card-art` built the gitignored art.
+- just lint: tsc, eslint, ruff and ruff format pass; mypy fails only on mgba._pylib in this venv and passes with the main venv (134 files).
+- just coverage: agent lines 96.47 / branches 92.61 / functions 97.49; viewer 95.86 / 91.66 / 95.35; Python gate 97.40 / 93.55 / 99.78 (type_gap.py 100%). The recipe stopped on the same test_view failure; the gate was run on its JSON.
+- Explainers: pages-check clean; 8791 links return 200; headless screenshots at 1280, 1440 and 375 opened, no horizontal overflow, zero off-origin requests (runs/mockups/type-gap-team/shots/).
+
+COMMIT: `feat: type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 bundle switches (default off)` (4ad7dba4d)
+
+## Rework after the operator's supplies note (2026-10-27)
+
+Landing was held. Astra 429f, read-only: every one of its six mart visits was decided outside, 0–5 turns before entering (table in the supplies explainer). supplies-v1 now fires on arrival on a selling map or a map with a door into one, names those places and doors, and still fires when the buy list opens. Rebased onto main 511a6f95c first; gates on the rebased tree before the rework: agent 4513, viewer 2044, Python 4439 + test_view (mGBA venv), coverage agent 96.47/92.61/97.49, viewer 95.88/91.67/95.36, Python 97.40/93.55/99.78. Production-path RED re-proved for the new supplies wiring.
+
+Gates after the rework: agent 4517, viewer 2044, Python 4439 (test_view passes with the mGBA venv), trainer cards 3/3, lint and schema clean; coverage agent 96.47/92.61/97.48 (supplies.ts 98.82/97.46/95.23), viewer 95.87/91.67/95.36, Python 97.40/93.55/99.78.
+
+## Multi-Model Review Log
+
+Round 1 (base 511a6f95c, head 9223d83f2, packet 7939bd86…):
+- Claude CLI (~/.claude-review): no review produced. The runner placed the prompt after --add-dir, which consumed it ("Input must be provided"). Rerun in round 2 with the prompt on stdin.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING.
+  - #1: a gym leader win is counted as a loss before the badge flag is set. Fix: count a loss only when the first field state shows the leader's trainer flag clear. pret battle_setup.c CB2_EndTrainerBattle sets trainer flags on a win; the badge is set later in the leader's post-battle script. Test added.
+  - #2: a failed GET /pokebench/places is retried on every result. Fix: one read per run, a failure included. Test added.
+  - #3: test runtime shape (map.json reads, ROM scans per parameter, replay find). Rebut: it asks for operation counts and scaling receipts, which the triage rule excludes; the suites run in seconds.
+- Fallback (fresh read-only Sonnet subagent): BLOCKING on the same leader-win bug (Fix above). Follow-ups noted, not in this branch: a once-per-battle latch for the wild block; Hidden Power and fixed-damage moves; doors named before the player has seen them (the map-table approach was operator-approved).
+
+Round 2 (base 511a6f95c, head df41b738f, packet 7e7614c9…):
+- Claude CLI (~/.claude-review, prompt on stdin): LGTM. Follow-up: the wild list's turn list grows (handled by fix 4 below).
+- Fallback (fresh Sonnet subagent): LGTM. Follow-ups: guide-pattern pages from gym trainers count as "said"; scripted non-person objects in the untalked list; KeyError in type_gap.py name tables; first places read can wait up to the 15 s fetch timeout.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING, five findings. Round cap reached; The operator picked (b) on the decision card: fix 1, 2, 4 and the wording in 3, push back on 5 and the people-ledger half of 4.
+  - #1 Fix: a wild foe that has a gym's own type (said/signed, else shared by every POKéMON met in its battles) never shows the block. Test: wild GEODUDE ROCK/GROUND after the ROCK guide → none.
+  - #2 Fix: type_chart rows are (0–17, 0–17, 0|5|10|20) or exactly (254,254,0). Tests reject [18,253,7] and [0,5,7].
+  - #3 Wording: the untalked line comes ahead of the readout, after headers such as harness-trust-v1's. Description and explainer corrected; production-path test with harness-trust-v1 on.
+  - #4 Fix: wild species are shown with battle count and first/latest turn ("2 battles, turns 10 to 40"), not every turn. Rebut the people-ledger half: PeopleLedger's per-state memory is the existing class shared with people-ledger-v1.
+  - #5 Rebut: repeat of round 1's runtime-shape request with no new evidence.
+
+Gates at round 3's frozen head 809abf110 (rebased on main 72257830d): schema fresh; tsc and eslint clean; ruff and ruff format clean; mypy clean with the main checkout's venv (134 files; this worktree's uv venv lacks the mGBA binding); agent 4581 passed; viewer 2044 passed; Python 4439 passed + test_view.py 2 passed with the mGBA venv (it fails only on the missing binding in this venv); trainer cards 3/3; coverage agent 96.48/92.65/97.51, viewer 95.88/91.67/95.36, Python gate 97.40/93.55/99.78.
+
+Round 3 (base 72257830d, head 809abf110, packet 1ec81918…):
+- Claude CLI: BLOCKING. The field-time "Wild POKéMON met this run" list still names species sharing a gym's own type (GEODUDE after a ROCK guide; NUMEL before Lavaridge). Fix: the list applies the same gym-own-type exclusion as the battle branch. Test added (red without the fix, green with it).
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 the same field-list bug (Fix above). #2 test runtime shape: rebut (operator-approved after round 2). #3 no gate record for the frozen head: the gates had run; recorded above.
+- Fallback (fresh Sonnet subagent): LGTM, with the same field-list point as a follow-up.
+- Stopped and reported to the operator (GPT blocked again); option (a) round 4 recommended.
+
+The operator picked (a) after round 3. Rebased onto main 3cb27905e (test-gate-speed). Main now keeps later switches OFF in the frozen fixtures and off-lists, so this branch's edits to those 15 test and fixture files were dropped (each now equals main). test_feature_switches.py keeps only the measurement-JSON type_gap check; the default-off list entry was removed because main subtracts later server switches. The mGBA binding was copied from the main checkout's venv into this worktree's venv (same Python 3.11), so the gates run unmodified.
+
+Gates at the round 4 head: `just test` exit 0 (agent 4582, viewer 2045, Python 4441, coverage gate agent 96.48/92.65/97.51, viewer 95.88/91.67/95.36, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0 (tsc, eslint, ruff, ruff format, mypy 134 files); schema fresh.
+
+Round 4 (base 3cb27905e, head fcbfcfead, packet d6ce1634…):
+- Claude CLI: LGTM (speculation only: empty shared-type fallback, process-wide chart cache, Color Change entries).
+- Fallback (fresh Sonnet subagent): LGTM.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 Fix: when the leader battle is the gym's first evidence, the win's first field state (trainer flag set, badge not yet) listed the gym as not defeated; the gym is now dropped once that state shows the leader's trainer flag set (test, red without the fix). #2 Fix: BLUE FLUTE (pret Medicine, wakes a sleeping POKéMON) added to the healing and status items.
+- The operator picked (a): commit both, gates, round 5.
+
+Gates at the round 5 head (rebased on main c757402bd): `just test` exit 0 (agent 4583, viewer 2066, Python 4446, coverage gate agent 96.49/92.64/97.51, viewer 95.79/91.63/95.27, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0; schema fresh.
+
+Round 5 (packet 0637514a…): Claude and GPT BLOCKING only because main moved by two docs commits between rebase and seal (head did not descend from the base); Claude confirmed both round 5 fixes; GPT also repeated the overruled runtime-shape points. Fallback LGTM. The operator picked (a): re-seal on a current base, round 6.
+Rebased onto main 1b7ae8b96 (gateway autocompact and others). Conflicts only in the registry lists, where main appended context-exact-count-v1: main's entries kept first, these three switches appended after them. Every other changed line equals the round 5 packet. Gates at the round 6 head: `just test` exit 0 (agent 4613, viewer 2089, Python 4446 + 69, coverage floors pass, trainer cards 3/3); `just lint` exit 0; schema fresh.
+
+Round 6 (packet 45e307b7…): Claude LGTM; fallback LGTM (registry merge checked); GPT BLOCKING: #1 Fix: the game spells PARLYZ HEAL (the list had PARALYZ HEAL); every name on the list now checked against pret items.h. #2 Fix: the separator row (254,254) must carry multiplier 0, else a harness-bug diagnostic (test patches the real ROM byte). #3 runtime shape: rebut (operator-overruled). Proceeding to round 7 per the coordinator's relay of the standing approach.
+
+Round 7 (packet 13cbc4d4…): Claude LGTM; fallback LGTM (all 39 item names and 28 map names checked against pret). GPT BLOCKING with no code finding: gate record at the head (pending the heavy-CPU window; machine load 28–63 from other sessions made `just test` time out in untouched live tests) and test runtime shape. To end the loop, three test-only changes, no behavior change: replay states indexed by seq (Map); the shop-map name check uses the 518-place story-destinations-places.json fixture instead of 518 map.json reads; the guide-sentence ROM check is one pass over the cached ROM.
+
+Gates at head 8ab15d161 (main 1b7ae8b96, granted CPU window 7:36 PM NY): `just test` exit 0 (agent 4613, viewer 2089, Python 4440 + 69, coverage floors pass, trainer cards 3/3); `just lint` exit 0; schema fresh.

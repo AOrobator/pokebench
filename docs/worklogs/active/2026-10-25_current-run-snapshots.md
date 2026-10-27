@@ -3,7 +3,7 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** verification — M1 landed dormant; postmerge gate blocked by foreign untracked recipe
+**Current Phase:** implementation — M1 closeout verified; M2 pending
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -122,15 +122,15 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M1 (source landed dormant; operator waiver recorded; postmerge gate failed)
+## Current Milestone: M2 (pending; M1 foundation closed, runtime still dormant)
 
 ### Completed Milestones
 
-None. Implementation is authorized and M1 is in progress; no milestone is complete.
+M1 foundation: source landed7c3b52c12; original postmerge failure retained; current-main closeout PASS2ad999682. Review disposition includes explicit operator Sol/Grok waivers. Runtime service/API/browser integration not claimed.
 
 ### Remaining Milestones
 
-For each behavior milestone: RED -> GREEN commits; record counts/build/coverage; `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions across both stacks), `just verify-vendor`; appropriate focused checks and production wiring; adversarial deletion of each claimed guard; required current multi-model review on frozen scope. No local-inference reviewers. Recheck review/landing rules and independently verify any applicable waiver. No milestone advances with failing gates.
+For each behavior milestone: RED -> GREEN commits; record counts/build/coverage; `just test` (includes at least90% lines/branches/functions across both stacks), `just lint`, `just build`, `just verify-vendor`; do not repeat the identical `just coverage` alias; appropriate focused checks and production wiring; adversarial deletion of each claimed guard; required current multi-model review on frozen scope. No local-inference reviewers. Recheck review/landing rules and independently verify any applicable waiver. No milestone advances with failing gates.
 
 **M1 - Freeze compatible contract and persist resumable checkpoints (tracked by this worklog):**
 - [x] Contract freeze: recheck card-persistence chat/main/served source; bind dependency SHA; schema/field semantics, SQLite binding, source generations, public/private checkpoints and bounded resource parameters. Owner: snapshot store/reducer. No daemon activation, UI changes or card-cache rewrite.
@@ -330,3 +330,10 @@ Main advanced from0352ae567 to3cb27905e while waiting. Preserved original eviden
 Joined board with verified actual chat ID 00000000-0000-4000-8000-5c2156fb325f as codex/current-run-snapshots-m1, position1. Preserved own original untracked planning document at canonical runs/reviews/current-run-snapshots/planning-original-before-M1.md with SHA receipt before tracked replacement; untouched foreign untracked recipe and root WORKLOG.md. Local main fast-forwarded exactly to7c3b52c1251498b03fd8cc5aeef6910f3018808c. No runtime caller or activation exists; no shared viewer refresh performed.
 
 Postmerge just-test FAIL after32.33s: packages/agent/src/citation-evidence.test.ts96 expects false for filename hyperqwen-control-3h.json but canonical foreign untracked experiments/fixed/hyperqwen-control-3h.json has citation evidence=true. Agent4545/4546 PASS; viewer/Python/card postmerge stages not reached. Same tracked synced source passed isolated gates, which lack this foreign untracked recipe. This task did not create/change/remove it. No retry, hiding fixture, test suppression or source fix. Canonical tracked tree otherwise clean at landed SHA. Failure log m1-postmerge-test.log and receipt m1-postmerge-test.json preserved. CPU explicitly RELEASED, coordinator notified with exact issue and legitimate owner disposition requested. Board released after this evidence-only commit. Postmerge gate remains unpassed; M1 operational closeout and M2-M5 advance blocked pending resolution. No claim full plan complete or live performance. Original service activation/viewer-refresh STOP remains.
+
+### 2026-10-27 — M1 closeout after external recipe/test resolution
+Read-only coordinator update prompted assessment, not a claim of passing tests. Verified external20320344cccb6300ba6bb6fd04aa795e18c8f5bf tracks HyperQwen recipe and explicitly includes its name in citation-evidence current-recipe test set. This repairs the actual false expectation; no artifact was hidden and this task changed neither recipe nor test. Canonical clean main2ad9996824d4bec793554404ea2e52c61c9c9dfc contains unchanged M1 source/tests (empty diff from7c3b52c12 for all four files).
+
+Reserved CPU window from Claude6:36PM America/New_York, one canonical just-test PASS146.69s. Head/final-head both2ad9996824d4bec793554404ea2e52c61c9c9dfc. Counts4570agent/2083viewer/4431Python +69gateway contract tests and3protected trainer-card checks (1280/1440/375). Coverage floors enforced in same pass; no duplicate coverage run, retries, exclusions or test suppression. Receipt runs/reviews/current-run-snapshots/m1-closeout-main-test.json with full log. Earlier m1-postmerge-test.json/log remains FAIL on original pin, not rewritten or retroactively called PASS.
+
+CPU RELEASED immediately. M1 operational closeout now complete on current main, with original operator-approved remaining Sol evidence gap and Grok unavailability honestly retained. No third review or isolated fixture correction performed. Evidence-only worklog update under landing board; no new runtime code. M2–M5 remain unimplemented; original approved implementation scope resumes after M1 closeout. No new service/shadow activation, shared viewer refresh, active-run input/restart or experiment launch performed. Root canonical WORKLOG.md remains owned by its existing flight and unchanged. Archive and live-proof checkpoints remain open.

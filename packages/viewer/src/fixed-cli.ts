@@ -331,8 +331,10 @@ async function vllmReceipt(lane: FixedLane, fetchFn: typeof fetch): Promise<Serv
   try {
     response = await fetchFn(url, { headers: { accept: "application/json", authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
   } catch (error) {
-    // eslint-disable-next-line preserve-caught-error -- fetch quotes a header value it rejects, so the raw error would carry the key.
-    throw new Error(`GET ${url} failed: ${String(error).split(key).join("[redacted]")}`);
+    // fetch quotes a header value it rejects (escaped, so no redaction is safe): only the error's name and errno code leave here.
+    const code = error instanceof Error ? (error.cause as NodeJS.ErrnoException | undefined)?.code : undefined;
+    // eslint-disable-next-line preserve-caught-error -- the cause could carry the key
+    throw new Error(`GET ${url} failed: ${error instanceof Error ? error.name : "error"}${code === undefined ? "" : ` (${code})`}`);
   }
   if (!response.ok) throw new Error(`${url} answered HTTP ${String(response.status)}`);
   const data = record(await response.json())["data"];

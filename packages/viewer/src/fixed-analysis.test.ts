@@ -98,6 +98,20 @@ describe("operator-stopped trials", () => {
   });
 });
 
+describe("operator-excluded trials", () => {
+  it("drops an operator-excluded trial from every comparison and lists it with the operator's reason", () => {
+    const report = analyze([trial(1, "A", "bundle", 100), trial(2, "A", "control", null), trial(3, "A", "bundle", null)], ["A"], new Map([["r1", "wrong ROM"]]));
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 1, reached: 0 }, control: { n: 1, reached: 0 } });
+    expect(report.excluded).toEqual([{ slot: 1, lane: "A", arm: "bundle", run: "r1", reason: "wrong ROM" }]);
+    expect(report.trials.map(t => t.run)).toEqual(["r2", "r3"]);
+    const text = renderAnalysis(report, "x");
+    expect(text).toContain("## Excluded by the operator");
+    expect(text).toContain("| 1 | A | bundle | r1 | wrong ROM |");
+    expect(renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })).toContain("| 1 | A | bundle | r1 | wrong ROM |");
+    expect(renderAnalysis(analyze([trial(2, "A", "control", null)], ["A"]), "x")).toContain("No run was excluded by the operator.");
+  });
+});
+
 describe("trials that ended before the wall cap", () => {
   it("lists every valid trial that did not end at the wall cap, loudly, and says so when there are none", () => {
     const early = { ...trial(3, "B", "bundle", null), reason: "ended stuck before the wall cap" };

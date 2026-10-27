@@ -285,6 +285,11 @@ describe("fixed-run status and analyze", () => {
     expect(await main(["analyze", "bundle-v-control", "--phase", "cook"], deps)).toBe(0);
     expect(out.join("\n")).toContain("# bundle-v-control cook (exploratory)");
     expect(await main(["analyze", "bundle-v-control", "--phase", "nope"], deps)).toBe(1);
+    mkdirSync(join(runsRoot, "exclusions"));
+    writeFileSync(join(runsRoot, "exclusions", "r1.json"), JSON.stringify({ version: 1, run: "r1", reason: "wrong ROM", by: "The operator", at: "2026-10-27T20:00:00.000Z" }));
+    out.length = 0;
+    expect(await main(["analyze", "bundle-v-control"], deps)).toBe(0);
+    expect(out.join("\n")).toContain("| r1 | wrong ROM |");
   });
 
   it("says which trials' depth it could not re-grade, and never reads a log outside runs/", async () => {

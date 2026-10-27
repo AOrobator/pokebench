@@ -16,7 +16,7 @@ Branch `claude/type-gap-team`, worktree /private/tmp/pb-type-gap-team. No live r
 - Gym guide sentences, from pret data/maps/*Gym*/scripts.inc GymGuideAdvice: "is a user of", "commands", "uses", "use", "is a master of" X-type POKéMON. The test finds each of the seven type-naming sentences encoded in the ROM. PETALBURG names no type.
 - Gym signs: only RUSTBORO's names a type ("The ROCK-loving honors student!").
 - Badge per gym: each gym statue script's goto_if_set FLAG_BADGE0N_GET.
-- Healing and status items: pret items.h medicine, PP and SACRED ASH items without vitamins and BLUE FLUTE, plus PERSIM BERRY.
+- Healing and status items: pret items.h medicine, PP and SACRED ASH items (BLUE FLUTE included since round 4) without the vitamins, plus PERSIM BERRY.
 
 ## Milestones
 
@@ -87,3 +87,5 @@ Round 4 (base 3cb27905e, head fcbfcfead, packet d6ce1634…):
 - Fallback (fresh Sonnet subagent): LGTM.
 - GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 Fix: when the leader battle is the gym's first evidence, the win's first field state (trainer flag set, badge not yet) listed the gym as not defeated; the gym is now dropped once that state shows the leader's trainer flag set (test, red without the fix). #2 Fix: BLUE FLUTE (pret Medicine, wakes a sleeping POKéMON) added to the healing and status items.
 - The operator picked (a): commit both, gates, round 5.
+
+Gates at the round 5 head (rebased on main c757402bd): `just test` exit 0 (agent 4583, viewer 2066, Python 4446, coverage gate agent 96.49/92.64/97.51, viewer 95.79/91.63/95.27, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0; schema fresh.

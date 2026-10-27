@@ -28,8 +28,8 @@ Approved scope (coordinator relay of the operator's approval): build the switch,
 - [x] GREEN. COMMIT: `feat(agent): context-exact-count-v1 counts each request on the serving vLLM or llama.cpp server` (6b1e41a8f); merged main (e53bcdbe9); `just schema` regenerated schemas/events.v1.json for `prompt_count`.
 - [x] Gates on the merged tip: `just lint` JS clean; Python ruff/format clean, mypy clean with main's venv (worktree venv has no native mGBA binding; no Python changed). `just test`: agent 4562 passed (96.47 lines / 92.67 branches / 97.56 funcs), viewer 2073 passed (95.8 / 91.63 / 95.31), pytest 4430 passed + 1 failed (`test_view.py::test_production_main_registers_view_pcm_and_browser_module_before_vendor_main`: `ModuleNotFoundError: No module named 'mgba'` in the worktree venv; passes 1/1 with main's venv), Python TOTAL 96%.
 - [x] live check against GPU0 vLLM :18020 (see Live check)
-- [ ] review (Claude CLI, GPT/Codex, fallback; personas: harness engineer, data scientist, ML engineer, evaluation integrity)
-- [ ] land ff-only via land board
+- [x] review (Claude CLI, GPT/Codex, fallback; personas: harness engineer, data scientist, ML engineer, evaluation integrity): 4 rounds, see log
+- [x] land ff-only via land board
 - [x] ~~stop runner 37156, relaunch hyperqwen-control-3h~~ cancelled by the operator via coordinator (5:32 PM ET); GPU0 reassigned
 
 ## Live check (before review)
@@ -67,3 +67,14 @@ Round 4 (packet 4: head 6b6343212, diff sha256 3ca2f78e…43aa; notes below not 
 - STOP: a cloud lane is still blocking after round 4, so no self-merge. Asked the operator (via coordinator): land as is over GPT's fixture-shape block, or change the test and run round 5.
 - The operator chose "Land it now" over GPT's round-4 fixture-cost block (relayed by the coordinator, 2026-10-27 6:24 PM ET). Final verdicts on packet 4: Claude LGTM, fallback LGTM, GPT BLOCKING (fixture shape only).
 - Synced main ade28b4b1 (merge ea4ee0e11; one auto-merge in server.test.ts). The code diff against main equals reviewed packet 4 except one hunk offset in server.test.ts (same lines), so no re-review. Gates on the synced tree: `just lint` exit 0; `just test` exit 0: agent 4570 (96.47/92.67/97.56), viewer 2083 (95.81/91.68/95.32), pytest 4431 (96%), claude-gateway 60, trainer cards 3.
+
+## Landed
+
+- `git merge --ff-only d43428b17` on local main via the landing board (2026-10-27 ~6:30 PM ET), on the operator's "Land it now" over GPT's round-4 fixture-shape block.
+- `just test` on main after landing: the first pass failed 2 agent tests (`unknown feature context-exact-count-v1`) because the main checkout's built viewer output predated the merge; after `just build`, exit 0: agent 4570, viewer 2083, pytest 4431, claude-gateway 60, trainer cards 3.
+- `just viewer-main`: viewer at d43428b17 (build stamp clean), parent launchd (pid 1), 3 live gameplay processes kept running, /explainers/context-exact-count-v1.html 200, no viewer-build skew problems.
+- Follow-ups (not done): binary-search the cut instead of one /tokenize per dropped turn; timeout/abort on /tokenize; post-fit turn_start/component_chars; other vLLM overflow wordings; reserve in the continuation snapshot; JIT v2 refusal in preset/next-run validation; mixed exact/estimate compaction after a mid-fit failure; shared explainer-route fixture cost; recipe hash change means hyperqwen-control-3h (and other current-recipe definitions) need `just fixed-run approve` before their next launch.
+
+## Archived
+
+- Archived 2026-10-27 ~6:32 PM ET as part of the landing the coordinator relayed from the operator.

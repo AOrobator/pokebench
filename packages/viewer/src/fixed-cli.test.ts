@@ -311,7 +311,7 @@ describe("fixed-run status and analyze", () => {
   });
 
   it("analyzes a cohort receipt's two named arms from their run events", async () => {
-    const { deps, out, runsRoot, root } = setup();
+    const { deps, out, err, runsRoot, root } = setup();
     const receipt = join(root, "receipt");
     mkdirSync(receipt, { recursive: true });
     const rows: unknown[] = [];
@@ -326,11 +326,20 @@ describe("fixed-run status and analyze", () => {
       writeFileSync(join(runsRoot, run, "events.jsonl"), log.events.map((e) => JSON.stringify(e)).join("\n") + "\n");
     }
     rows.push({ type: "outcome", trial: "5", arm: "control", run: "2026-10-14T18-09-00_think-fast_gone", exit: 1 });
+    const aborted = "2026-10-14T18-06-00_think-fast_0006", abortLog = new Log();
+    abortLog.add(0, { ...START, model: { ...START.model, id: "think-fast" } });
+    abortLog.add(60_000, { type: "milestone", turn: 3, name: "RIVAL_MET", server_timestamp: 1 });
+    abortLog.add(90_000, { type: "run_end", turn: 4, reason: "operator_abort", furthest_milestone: "RIVAL_MET", turns: 4, wall_ms: 90_000, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
+    mkdirSync(join(runsRoot, aborted)); writeFileSync(join(runsRoot, aborted, "events.jsonl"), abortLog.events.map((e) => JSON.stringify(e)).join("\n") + "\n");
+    rows.push({ type: "outcome", trial: "6", arm: "both", run: aborted, exit: 0 });
+    mkdirSync(join(runsRoot, "exclusions")); writeFileSync(join(runsRoot, "exclusions", "broken.json"), "{");
     writeFileSync(join(receipt, "trials.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
     expect(await main(["analyze-receipt", receipt, "control", "both", "--cap-ms", "1800000"], deps)).toBe(0);
     const text = out.join("\n");
     expect(text).toContain("| pooled | 1/2 (50%) | 0/1 (0%) |");
     expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | no run_start");
+    expect(text).toContain("| 6 | A | bundle | 2026-10-14T18-06-00_think-fast_0006 | RIVAL_MET | 60000 | the operator stopped the trial (operator_abort) |");
+    expect(err.join("\n")).toContain("broken.json");
     expect(await main(["analyze-receipt", receipt, "control"], deps)).toBe(2);
   });
 });

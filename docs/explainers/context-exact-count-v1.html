@@ -158,12 +158,13 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <li>If <code>/tokenize</code> fails, that one request is trimmed by a high estimate (characters ÷ 3, 1,000 per image, 2,048 margin) and recorded as <code>source: "estimate"</code>.</li>
 <li>Gateway and LM Studio lanes keep the <code>context-token-budget-v1</code> estimate; with this switch on it also reads vLLM's context-length error.</li>
 <li>The model sees nothing new. Only which old turns are in the request changes.</li>
+<li>A run is refused at launch if <code>just-in-time-prompt-v2</code> is also on: that switch attaches its guide to a history turn, which the fit could drop. The current recipe has it off in both arms.</li>
 </ul>
 </section>
 
 <section class="card">
 <h2>What is recorded</h2>
-<p>Each turn's <code>assistant</code> event carries <code>prompt_count</code> beside the server's <code>usage</code>. From the live check below (a 16-token reply, so the limit is 65,536 − 16):</p>
+<p>On a vLLM or llama.cpp lane, each turn's <code>assistant</code> event carries <code>prompt_count</code> beside the server's <code>usage</code>. Gateway and LM Studio lanes, which keep the estimate, carry none; their trims are still <code>compaction</code> events. From the live check below (a 16-token reply, so the limit is 65,536 − 16):</p>
 <pre><code>"usage": {"input": 5373, "output": 16, "cache_read": 0},
 "prompt_count": {"tokens": 5373, "source": "vllm-tokenize",
                  "limit": 65520, "reserve": 0, "dropped_turns": 0}</code></pre>

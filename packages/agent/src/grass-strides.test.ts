@@ -40,8 +40,8 @@ it("a receipt echoing the grass permission validates; one without it still does"
 const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:TALL_GRASS,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const initial:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,9],position:{x:0,y:0},facing:"down",running,navigation_grid:{elevation:3,tiles:Array.from({length:72},(_,i)=>({x:i%12,y:Math.floor(i/12),collision:0,behavior:i<12&&i>=1?TALL_GRASS:0,elevation:3})),objects:[],warps:[]}};
 const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
-async function navigate(features:Record<string,boolean>){
- let current=initial;const posts:{url:string;body:Record<string,unknown>}[]=[];
+async function navigate(features:Record<string,boolean>,tamper?:(receipt:Record<string,unknown>)=>Record<string,unknown>,start:GameStateSnapshot=initial){
+ let current=start;const posts:{url:string;body:Record<string,unknown>}[]=[];
  const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
   if(init?.method==="POST"){
    if(typeof init.body!=="string")throw new Error("Missing body");const p=JSON.parse(init.body) as Record<string,unknown>;posts.push({url,body:p});
@@ -49,7 +49,7 @@ async function navigate(features:Record<string,boolean>){
    else{const d=(p as {buttons:string[]}).buttons[0];const a=current.position;if(a===null)throw new Error("Missing position");current={...current,position:{x:a.x+(d==="RIGHT"?1:d==="LEFT"?-1:0),y:a.y}};}
    body={status:"success"};
   }else if(url.endsWith("/queue_status"))body={queue_empty:true};
-  else if(url.includes("/pokebench/stride/")){const plan=posts.at(-1)?.body;body={...plan,completed:(plan?.path as unknown[]).length,frames:20,reason:"completed",stopped:true};}
+  else if(url.includes("/pokebench/stride/")){const plan=posts.at(-1)?.body;const receipt={...plan,completed:(plan?.path as unknown[]).length,frames:20,reason:"completed",stopped:true};body=tamper===undefined?receipt:tamper(receipt);}
   else if(url.endsWith("/pokebench/observation"))body={state:current,state_text:"field",screenshot_base64:png.toString("base64")};
   return Promise.resolve(new Response(JSON.stringify(body)));
  };
@@ -70,6 +70,12 @@ it("factory: OFF walks each grass step with automatic running refused; ON sends 
  expect(on.posts[0]?.body).toMatchObject({path:[{x:1,y:0},{x:2,y:0},{x:3,y:0},{x:4,y:0}],tall_grass:true,automatic_running:true});
  expect(JSON.stringify(on.result)).toContain("arrived at requested coordinate");
 });
+it("a receipt whose grass permission differs from the request is refused, in both directions",async()=>{
+ await expect(navigate({[ID]:true},r=>Object.fromEntries(Object.entries(r).filter(([k])=>k!=="tall_grass")))).rejects.toThrow("matching terminal receipt");
+ const plain:GameStateSnapshot={...initial,navigation_grid:{elevation:3,tiles:Array.from({length:72},(_,i)=>({x:i%12,y:Math.floor(i/12),collision:0,behavior:0,elevation:3})),objects:[],warps:[]}};
+ expect(plain.navigation_grid?.tiles.every(t=>t.behavior===0)).toBe(true);
+ await expect(navigate({[ID]:false,"automatic-running-v1":true},r=>({...r,tall_grass:true}),plain)).rejects.toThrow("matching terminal receipt");
+});
 it("the navigate_to description names tall grass only with the switch on",async()=>{
  const off=await navigate({[ID]:false}),on=await navigate({[ID]:true});
  expect(off.description).toContain("Straight plain-floor corridors use explicit strides");
@@ -78,9 +84,10 @@ it("the navigate_to description names tall grass only with the switch on",async(
  expect(on.description).toContain("Strides stop before turns, other grass, ledges");
  expect(on.description.replace("Straight corridors of plain floor or tall grass use explicit strides","Straight plain-floor corridors use explicit strides").replace("other grass","grass")).toBe(off.description);
 });
-it("is registered last, default off, needs strides and automatic running",()=>{
- expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
- expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
+it("is registered at index 277, default off, needs strides and automatic running",()=>{
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(277);
+ const harness=playHarnessFeatures({...ALL_ON,[ID]:true},null);
+ expect(harness.indexOf(ID)).toBeGreaterThan(harness.indexOf("context-exact-count-v1"));
  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"safe-navigation-strides-v1",switchable:true,title:"GRASS STRIDES"});
  expect(featureInfo(ID).description).toContain(" Off: ");

@@ -82,6 +82,11 @@ operator's arm decision.
 
 ## Multi-Model Review Log
 
+Round 1, packet 1b7ae8b96..33d24aca5 (diff sha256 e9a3134d…):
+- Fallback subagent: LGTM; nits: receipt check ignores tall_grass, new test over-pins `.at(-1)`, stale exact-context test title.
+- Codex CLI gpt-5.6-sol: BLOCKING. (1) the receipt identity check in game-tools.ts ignored `tall_grass`: ACCEPTED, the check now compares it, a test refuses mismatches in both directions, and deleting the check turns that test red. (2) the `.at(-1)` registry pin: ACCEPTED, now pinned by absolute index 277, and the exact-context title is fixed. (3) PB13 is not complete while gates are pending: ACCEPTED, now scored PARTIAL.
+- Claude CLI: lane error ("OAuth session expired"), not a review. Re-run as a read-only Claude subagent (the operator 2026-10-16: the Claude lane is never down while subagents work).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

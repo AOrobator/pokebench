@@ -329,7 +329,7 @@ describe("context-exact-count-v1 wiring and registration", () => {
     expect(recipe.offInBoth).toContain("just-in-time-prompt-v2");
   });
 
-  it("is the last registered switch: a default-off guard with no dependency, ON in both arms of the current recipe", () => {
+  it("is registered after map-observability-v1: a default-off guard with no dependency, ON in both arms of the current recipe", () => {
     expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("map-observability-v1") + 1);
     const harness = playHarnessFeatures({ ...ALL_ON, [ID]: true }, null);
     expect(harness).toContain(ID);

@@ -33,6 +33,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 .coverage.json
+.claude-gateway-coverage.json
 htmlcov/
 
 .DS_Store

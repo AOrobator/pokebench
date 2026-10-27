@@ -78,6 +78,24 @@ describe("read-only workbench snapshot", () => {
     expect(d.runs[0]?.reason).toBe(reason); expect(d.runs[0]?.splits).toHaveLength(1);
     expect(d.runs[0]?.excluded).toBeNull();
     expect(frontierReferences(d.runs).best?.id).toBe("stopped");
+    const run = d.runs[0]; if (run === undefined) throw new Error("missing run");
+    expect(runDetails(run, null)).toContain(`Ended by operator ${reason === "operator_abort" ? "abort" : "stop"} (${reason})`);
+  });
+  it("excludes a run only through the operator's exclusion file, and reports a malformed one without excluding", async () => {
+    const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+    const kept = named(); kept.add(6000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+    write(r, "flagged", log); write(r, "unreadable", kept);
+    mkdirSync(join(r, "exclusions"));
+    writeFileSync(join(r, "exclusions", "flagged.json"), JSON.stringify({ version: 1, run: "flagged", reason: "wrong ROM", by: "The operator", at: "2026-10-27T20:00:00.000Z" }));
+    writeFileSync(join(r, "exclusions", "unreadable.json"), "{");
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
+    const flagged = d.runs.find(x => x.id === "flagged"), other = d.runs.find(x => x.id === "unreadable");
+    expect(flagged?.excluded).toBe("Operator exclusion: wrong ROM");
+    expect(other?.excluded).toBeNull();
+    expect(d.problems.join("\n")).toContain("unreadable.json");
+    expect(frontierReferences(d.runs).best?.id).toBe("unreadable");
+    if (flagged === undefined) throw new Error("missing run");
+    expect(runDetails(flagged, null)).toContain("Operator exclusion: wrong ROM");
   });
   it("validates the browser boundary and missing-root empty state", async () => {
     const d = await workbenchSnapshot(join(root(), "absent"), () => Promise.resolve(false), 42); expect(parseWorkbench(d).runs).toEqual([]); expect(() => parseWorkbench({ ...d, at: -1 })).toThrow("Invalid workbench"); expect(() => parseWorkbench({ ...d, runs: [{ id: "fake" }] })).toThrow();

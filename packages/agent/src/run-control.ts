@@ -6,7 +6,7 @@ import { TIME_EXTENSIONS, TURN_EXTENSIONS, isExtensionAction, isTimeExtension } 
 //   resume      release a pause
 //   stop        end after the current turn (run_end operator_stop, still scored)
 //   cancel_stop withdraw a stop that has not been applied yet
-//   abort       end now (run_end operator_abort, excluded from results)
+//   abort       end now (run_end operator_abort; earned progress still counts in results)
 import { readFileSync } from "node:fs";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";

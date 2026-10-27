@@ -30,7 +30,15 @@ EXPECTED_COVERAGE = [
     f"cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json "
     f"--min {COVERAGE_FLOOR}",
 ]
-EXPECTED_TEST = [*EXPECTED_COVERAGE, "just trainer-card-check"]
+# scripts/claude-gateway is outside env/'s coverage source, so it has its own pass and gate.
+EXPECTED_GATEWAY = [
+    "uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway "
+    "scripts/claude-gateway --cov=claude_gateway --cov=replay --cov-branch "
+    "--cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json",
+    f"uv run --project env python -m pokebench_gates.coverage_gate "
+    f"env/.claude-gateway-coverage.json --min {COVERAGE_FLOOR}",
+]
+EXPECTED_TEST = [*EXPECTED_COVERAGE, *EXPECTED_GATEWAY, "just trainer-card-check"]
 
 EXPECTED_SETUP = [
     "git config core.hooksPath .githooks",

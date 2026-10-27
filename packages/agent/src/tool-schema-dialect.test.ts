@@ -16,6 +16,7 @@ import { StateWatcher } from "./game-state.js";
 import { contextTools, playGameTools } from "./play-wiring.js";
 import { discoverLocal, LOCAL_PROVIDER, VLLM_PROVIDER } from "./local-endpoint.js";
 import { gatewayLoopConfig, playLoopBase } from "./provider.js";
+import type { GatewayModel } from "./gateway.js";
 import { prefixItemsSchema, vllmToolPayload } from "./tool-schema-dialect.js";
 
 const KEY = "test-key-not-real";
@@ -23,11 +24,11 @@ const KEY = "test-key-not-real";
 interface WireTool { readonly type: string; readonly function: { readonly name: string; readonly parameters: unknown } }
 interface Wire { readonly raw: string[]; readonly bodies: { readonly tools?: readonly WireTool[]; readonly [key: string]: unknown }[] }
 
-let server: Server | undefined;
+const servers: Server[] = [];
 afterEach(async () => {
-  const current = server;
-  server = undefined;
-  if (current) await new Promise<void>((resolve) => current.close(() => { resolve(); }));
+  const open = servers.splice(0);
+  await Promise.all(open.map((current) => new Promise<void>((resolve) => current.close(() => { resolve(); }))));
+  expect(open.every((current) => !current.listening)).toBe(true);
 });
 
 const FINAL = [
@@ -58,7 +59,7 @@ async function fakeServer(models: unknown): Promise<{ url: string; wire: Wire }>
       res.end();
     });
   });
-  server = srv;
+  servers.push(srv);
   await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
   return { url: `http://127.0.0.1:${String((srv.address() as AddressInfo).port)}/v1`, wire };
 }
@@ -128,6 +129,11 @@ describe("prefixItemsSchema", () => {
     expect(prefixItemsSchema(plain)).toEqual(JSON.parse(JSON.stringify(plain)));
   });
 
+  it("leaves data-valued keywords alone", () => {
+    const schema = { type: "object", default: { items: [1, 2] }, const: { items: [3] }, enum: [{ items: [4] }], examples: [{ items: [5] }], properties: { p: { items: [{ type: "integer" }] } } };
+    expect(prefixItemsSchema(schema)).toEqual({ ...schema, properties: { p: { prefixItems: [{ type: "integer" }], items: false } } });
+  });
+
   it("returns a copy and leaves the shared schema untouched", () => {
     const schema = Type.Object({ map_id: MAP_ID });
     const before = JSON.stringify(schema);
@@ -173,26 +179,35 @@ describe("vLLM tool schemas on the wire", () => {
     expect(arrayItems(navigate?.parameters)).toEqual(["$.properties.map_id"]);
   });
 
-  it.each(featureSets())("every real tool reaches vLLM without array-form items: %s", async (_name, features) => {
-    const tools = realTools(features);
-    const { wire } = await wireTools(VLLM_MODELS, tools, features);
-    const sent = wire.bodies[0]?.tools ?? [];
-    expect(sent.map((tool) => tool.function.name)).toEqual(tools.map((tool) => tool.name));
-    expect(arrayItems(sent)).toEqual([]);
-    // The rest of the request is what the llama lane would send.
-    const llama = await wireTools(LLAMA_MODELS, tools, features);
-    const strip = (body: Record<string, unknown>): Record<string, unknown> => Object.fromEntries(Object.entries(body).filter(([key]) => key !== "tools"));
-    expect(strip(wire.bodies[0] ?? {})).toEqual(strip(llama.wire.bodies[0] ?? {}));
+  it("a llama lane sends the tool schemas byte for byte as before", async () => {
+    const tools = realTools(FULL);
+    const { wire, provider, hasHook } = await wireTools(LLAMA_MODELS, tools, FULL);
+    expect(provider).toBe(LOCAL_PROVIDER);
+    expect(hasHook).toBe(FULL["presence-penalty-v1"]);
+    const expected = JSON.stringify(tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters, strict: false } })));
+    expect(wire.raw[0] ?? "").toContain(`"tools":${expected}`);
   });
 
-  it.each(featureSets())("a llama lane sends the tool schemas byte for byte as before: %s", async (_name, features) => {
+  // The per-arm checks run the production payload hook in memory; the wire tests above prove pi sends what it returns.
+  const offline = (provider: string): GatewayModel => ({ id: "m", name: "m", api: "openai-completions", provider, baseUrl: "http://127.0.0.1:1/v1", reasoning: true, input: ["text", "image"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 65536, maxTokens: 65536 });
+  async function sent(provider: string, tools: AgentTool[], features: FeatureSet): Promise<{ body: Record<string, unknown>; hasHook: boolean; params: Record<string, unknown> }> {
+    const params = { model: "m", messages: [], stream: true, tools: tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters, strict: false } })) };
+    const model = offline(provider);
+    const config = playLoopBase(model, "medium", KEY, 4096, features);
+    const body = ((await config.onPayload?.(params, model)) ?? params) as Record<string, unknown>;
+    return { body, hasHook: config.onPayload !== undefined, params };
+  }
+
+  it.each(featureSets())("every real tool reaches vLLM without array-form items and llama is untouched: %s", async (_name, features) => {
     const tools = realTools(features);
-    const { wire, provider, hasHook } = await wireTools(LLAMA_MODELS, tools, features);
-    expect(provider).toBe(LOCAL_PROVIDER);
-    expect(hasHook).toBe(features["presence-penalty-v1"]);
-    const expected = JSON.stringify(tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters, strict: false } })));
-    const raw = wire.raw[0] ?? "";
-    expect(raw).toContain(`"tools":${expected}`);
+    const vllm = await sent(VLLM_PROVIDER, tools, features);
+    expect((vllm.body["tools"] as WireTool[]).map((tool) => tool.function.name)).toEqual(tools.map((tool) => tool.name));
+    expect(arrayItems(vllm.body["tools"])).toEqual([]);
+    const llama = await sent(LOCAL_PROVIDER, tools, features);
+    expect(llama.hasHook).toBe(features["presence-penalty-v1"]);
+    expect(JSON.stringify(llama.body["tools"])).toBe(JSON.stringify(llama.params.tools));
+    const strip = (body: Record<string, unknown>): Record<string, unknown> => Object.fromEntries(Object.entries(body).filter(([key]) => key !== "tools"));
+    expect(strip(vllm.body)).toEqual(strip(llama.body));
   });
 
   it("a gateway lane's loop config is unchanged: no payload hook without sampling extras", () => {

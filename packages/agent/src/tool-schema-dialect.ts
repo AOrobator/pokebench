@@ -3,6 +3,9 @@ import { VLLM_PROVIDER } from "./local-endpoint.js";
 // vLLM compiles every tool schema with xgrammar (--tool-strict-level parameter), which rejects the
 // array form of "items" that TypeBox Type.Tuple emits ("Invalid grammar specification: 'triggers'").
 // The same tuple as prefixItems with items false is the 2020-12 spelling of the same constraint.
+// Keywords whose values are data, not schemas, are copied as they are.
+const DATA_KEYWORDS = new Set(["const", "enum", "default", "examples"]);
+
 export function prefixItemsSchema(schema: unknown): unknown {
   if (Array.isArray(schema)) return schema.map(prefixItemsSchema);
   if (typeof schema !== "object" || schema === null) return schema;
@@ -15,7 +18,7 @@ export function prefixItemsSchema(schema: unknown): unknown {
       out["items"] = false;
       continue;
     }
-    out[key] = prefixItemsSchema(value);
+    out[key] = DATA_KEYWORDS.has(key) ? value : prefixItemsSchema(value);
   }
   return out;
 }

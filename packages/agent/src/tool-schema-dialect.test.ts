@@ -131,7 +131,18 @@ describe("prefixItemsSchema", () => {
 
   it("leaves data-valued keywords alone", () => {
     const schema = { type: "object", default: { items: [1, 2] }, const: { items: [3] }, enum: [{ items: [4] }], examples: [{ items: [5] }], properties: { p: { items: [{ type: "integer" }] } } };
-    expect(prefixItemsSchema(schema)).toEqual({ ...schema, properties: { p: { prefixItems: [{ type: "integer" }], items: false } } });
+    const out = prefixItemsSchema(schema) as typeof schema;
+    expect(out).toEqual({ ...schema, properties: { p: { prefixItems: [{ type: "integer" }], items: false } } });
+    expect(out.default).not.toBe(schema.default);
+    expect(out.enum[0]).not.toBe(schema.enum[0]);
+  });
+
+  it("rewrites tuples under schema maps whose entries are named like data keywords", () => {
+    const tuple = Type.Tuple([Type.Integer()]);
+    const schema = { ...Type.Object({ default: tuple, const: tuple, enum: tuple, examples: tuple, items: tuple }), $defs: { default: tuple }, definitions: { enum: tuple }, patternProperties: { "^x": tuple }, dependentSchemas: { const: tuple } };
+    expect(arrayItems(schema).length).toBe(9);
+    expect(arrayItems(prefixItemsSchema(schema))).toEqual([]);
+    expect(prefixItemsSchema({ properties: true })).toEqual({ properties: true });
   });
 
   it("returns a copy and leaves the shared schema untouched", () => {

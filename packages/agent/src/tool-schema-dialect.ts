@@ -3,8 +3,15 @@ import { VLLM_PROVIDER } from "./local-endpoint.js";
 // vLLM compiles every tool schema with xgrammar (--tool-strict-level parameter), which rejects the
 // array form of "items" that TypeBox Type.Tuple emits ("Invalid grammar specification: 'triggers'").
 // The same tuple as prefixItems with items false is the 2020-12 spelling of the same constraint.
-// Keywords whose values are data, not schemas, are copied as they are.
+// Keywords whose values are data, not schemas, are deep-copied as they are. Keywords whose values
+// map names to schemas recurse into each value, so a property named "default" is still a schema.
 const DATA_KEYWORDS = new Set(["const", "enum", "default", "examples"]);
+const SCHEMA_MAPS = new Set(["properties", "patternProperties", "$defs", "definitions", "dependentSchemas"]);
+
+function schemaMap(map: unknown): unknown {
+  if (typeof map !== "object" || map === null || Array.isArray(map)) return prefixItemsSchema(map);
+  return Object.fromEntries(Object.entries(map).map(([name, value]) => [name, prefixItemsSchema(value)]));
+}
 
 export function prefixItemsSchema(schema: unknown): unknown {
   if (Array.isArray(schema)) return schema.map(prefixItemsSchema);
@@ -18,7 +25,7 @@ export function prefixItemsSchema(schema: unknown): unknown {
       out["items"] = false;
       continue;
     }
-    out[key] = DATA_KEYWORDS.has(key) ? value : prefixItemsSchema(value);
+    out[key] = DATA_KEYWORDS.has(key) ? structuredClone(value) : SCHEMA_MAPS.has(key) ? schemaMap(value) : prefixItemsSchema(value);
   }
   return out;
 }

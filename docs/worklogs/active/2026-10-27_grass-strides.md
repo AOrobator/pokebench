@@ -87,6 +87,9 @@ operator's arm decision.
 
 ## Multi-Model Review Log
 
+Round 3, delta review (both-arms activation + merge of main), head a496838f8 (packet3 sha256 3a5e5462…): Codex gpt-5.6-sol LGTM; Claude subagent LGTM. Nits deferred: the recipe test hardcodes the four current-recipe definitions, and does not assert definitionProblems (checked by hand: []).
+Full gates at a496838f8 (CPU window 7:56 PM ET): lint PASS, build PASS; test FAIL 1/4620 in main's `type-gap-registry.test.ts`, which pinned its three switches with `slice(-3)`, so any appended switch breaks it. Fixed by pinning absolute indices 277-279 (feature-switch skill step 6). The fix needs a round-4 delta review.
+
 Round 1, packet 1b7ae8b96..33d24aca5 (diff sha256 e9a3134d…):
 - Fallback subagent: LGTM; nits: receipt check ignores tall_grass, new test over-pins `.at(-1)`, stale exact-context test title.
 - Codex CLI gpt-5.6-sol: BLOCKING. (1) the receipt identity check in game-tools.ts ignored `tall_grass`: ACCEPTED, the check now compares it, a test refuses mismatches in both directions, and deleting the check turns that test red. (2) the `.at(-1)` registry pin: ACCEPTED, now pinned by absolute index 277, and the exact-context title is fixed. (3) PB13 is not complete while gates are pending: ACCEPTED, now scored PARTIAL.

@@ -286,6 +286,15 @@ def collect(room: Mailroom, owner: int | None = None) -> list[Letter]:
     return letters
 
 
+def drain_pings(reader: int) -> None:
+    while True:
+        try:
+            if not os.read(reader, 4096):
+                return
+        except BlockingIOError:
+            return
+
+
 def wait_for_mail(
     room: Mailroom,
     *,
@@ -296,6 +305,9 @@ def wait_for_mail(
 ) -> list[Letter]:
     """Return this listener's letters, or block on the pipe until a sender wakes it.
 
+    Pings only wake the listener; pending letters decide what is delivered. A ping can outlive
+    its letter (another listener read the letter while the pipe stayed open), so pings are
+    drained and a wake without a letter keeps waiting out the timeout.
     The letters stay claimed by `owner` (default: this process) until `acknowledge`.
     """
     who = os.getpid() if owner is None else owner
@@ -308,19 +320,33 @@ def wait_for_mail(
         reader = os.open(room.pipe, os.O_RDONLY | os.O_NONBLOCK)
         # Our own write end keeps the pipe from reading as closed before any sender arrives.
         keepalive = os.open(room.pipe, os.O_WRONLY)
+        # Senders ping under this lock after saving, so pings here belong to letters already read.
+        drain_pings(reader)
+    held = [keepalive, reader]
+    deadline = None if timeout is None else time.monotonic() + timeout
     try:
         if ready is not None:
             ready()
-        select.select([reader], [], [], timeout)
+        while True:
+            left = None if deadline is None else max(0.0, deadline - time.monotonic())
+            woke = bool(select.select([reader], [], [], left)[0])
+            if woke:
+                drain_pings(reader)
+            with room.locked():
+                letters = drain(room, who)
+                over = deadline is not None and time.monotonic() >= deadline
+                if letters or not woke or over:
+                    # Released under the lock, so no sender is told a listener took a letter
+                    # that this listener has already stopped reading for.
+                    while held:
+                        os.close(held.pop())
+                    if release_wake_when_empty and not letters:
+                        room.wake_marker.unlink(missing_ok=True)
+                    return letters
     finally:
         # Close only: an interrupted listener must leave its letters pending for the next one.
-        os.close(keepalive)
-        os.close(reader)
-    with room.locked():
-        letters = drain(room, who)
-        if release_wake_when_empty and not letters:
-            room.wake_marker.unlink(missing_ok=True)
-        return letters
+        for fd in held:
+            os.close(fd)
 
 
 def has_mail(room: Mailroom) -> bool:
@@ -368,15 +394,6 @@ def hand_over(room: Mailroom, *, run: Run) -> tuple[int, int]:
             with open(room.pending, "a", encoding="utf-8") as handle:
                 handle.write("".join(letter_json(letter) + "\n" for letter in kept))
     return len(letters) - len(kept), len(kept)
-
-
-def drain_pings(reader: int) -> None:
-    while True:
-        try:
-            if not os.read(reader, 4096):
-                return
-        except BlockingIOError:
-            return
 
 
 def watch(

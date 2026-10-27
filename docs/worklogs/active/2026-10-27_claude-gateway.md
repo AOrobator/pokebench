@@ -86,3 +86,4 @@ The operator, 2026-10-27 ~6:30 PM ET (relayed): leave the live runs 36b5 and 76c
 - [x] Option, argument parsing, tests (69 pass; 99.29/97.01/100), ruff and mypy --strict clean
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
 - [ ] Land ff-only
+- M4 review (packet 5ab4bad6, head 4acd3f050): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM. Synced with main (docs only); the packet stayed byte-identical. Gateway tests 69 pass (99.29/97.01/100), ruff clean. Landed ff-only as 94f1b29a3 (2026-10-27 ~6:40 PM ET). Not applied to 36b5 or 76cd: The operator chose to leave the live runs untouched. Recorded difference: the Claude runs compact near their 1M window, while Astra's Codex sessions reported model_context_window 258400 (~/.codex/sessions, 10/25).

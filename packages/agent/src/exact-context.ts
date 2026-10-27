@@ -95,6 +95,7 @@ export function llamaCppCounter(baseUrl: string, apiKey: string, fetchFn: typeof
   return {
     source: "llamacpp-tokenize",
     async count(payload, signal) {
+      last = null;
       const templated = await post(fetchFn, `${root}/apply-template`, apiKey, { messages: payload.messages, ...(payload.tools === undefined ? {} : { tools: payload.tools }), ...(payload.chat_template_kwargs === undefined ? {} : { chat_template_kwargs: payload.chat_template_kwargs }) }, signal);
       if (!Value.Check(Templated, templated)) throw new CountError(`malformed ${root}/apply-template response`);
       const tokenized = await post(fetchFn, `${root}/tokenize`, apiKey, { content: templated.prompt.replace(MEDIA_MARKER, "") }, signal);
@@ -203,7 +204,8 @@ export class ExactContext {
     const overflow = message.stopReason === "error" ? overflowTokens(message.errorMessage, true) : null;
     const server = overflow ?? message.usage.input + message.usage.cacheRead + message.usage.cacheWrite;
     if (server <= 0) return;
-    if (overflow === null) this.counter.calibrate?.(server);
+    // Only a request the server counted and we sent can calibrate; a fallback leaves the last count stale.
+    if (overflow === null && this.sent.source !== "estimate") this.counter.calibrate?.(server);
     const under = this.sent.source === "estimate" ? 0 : server - this.sent.tokens;
     // An overflow always moves the next fit, so the same request is never resent unchanged.
     const over = overflow === null ? 0 : overflow + this.maxTokens - this.contextWindow;

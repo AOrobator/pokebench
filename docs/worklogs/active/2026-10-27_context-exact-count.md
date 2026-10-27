@@ -30,7 +30,7 @@ Approved scope (coordinator relay of the operator's approval): build the switch,
 - [x] live check against GPU0 vLLM :18020 (see Live check)
 - [ ] review (Claude CLI, GPT/Codex, fallback; personas: harness engineer, data scientist, ML engineer, evaluation integrity)
 - [ ] land ff-only via land board
-- [ ] stop runner 37156, relaunch hyperqwen-control-3h, first-turns health
+- [x] ~~stop runner 37156, relaunch hyperqwen-control-3h~~ cancelled by the operator via coordinator (5:32 PM ET); GPU0 reassigned
 
 ## Live check (before review)
 
@@ -44,3 +44,6 @@ Round 1 (packet 1: base 5940bc2fb, head ebfe4cfa6, diff sha256 07db679f…e929; 
 - GPT (Codex CLI gpt-5.6-sol, read-only): BLOCKING. #1 state-only requests bypass the exact fit (live.ts builds a fresh playLoopBase for runStateMode) → Fix. #2 llama.cpp calibration after a mid-fit count failure uses the last unsent candidate's text/image counts → Fix. Follow-up: component_chars is pre-fit.
 - Fallback (Sonnet subagent): LGTM. Follow-ups: walk-up from cut 0 costs one /tokenize per dropped turn; no abort signal/timeout on /tokenize; stale `last` (same as GPT #2); a /tokenize blip over-trims one turn; other vLLM overflow wordings; ON with no key and budget OFF has no guard; reserve not in continuation snapshot.
 - RED for #1/#2: state-runtime-wire exact-count case and llama late-failure calibration case fail (2 failed).
+- GREEN for #1/#2: `runStateMode` takes the run's ExactContext (fit after base.onPayload, observe on message_end) and live.ts passes it; llamaCppCounter clears `last` per count and ExactContext calibrates only after a counted, sent request. Wiring red check: forcing the state base back to `options.base` turned the exact-count state case red (1 failed); restored.
+- Gates on the fix: agent 4564 passed (96.47/92.67/97.56), viewer 2073 passed (95.8/91.63/95.31), pytest 4430 passed + the same 1 worktree-venv mGBA failure, Python 96%; lint JS clean, mypy clean with main's venv.
+- Coordinator 2026-10-27 5:32 PM ET: step 8 (stop 37156, relaunch HyperQwen) cancelled; GPU0 goes to a 24h Qwen 3.6 bundle run. No further live vLLM calls.

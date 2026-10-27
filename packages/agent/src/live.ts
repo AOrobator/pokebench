@@ -368,7 +368,7 @@ async function playAgent(): Promise<void> {
         gate: (signal) => runControl.gate(signal),
       });
         if(restored!==null)return await playFromHistory(restored.messages,governor,loop);
-        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
+        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
         return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop));
       } finally {
         if(absoluteStop!==null)clearTimeout(absoluteStop);

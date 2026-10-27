@@ -1830,6 +1830,10 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 14
+            },
+            "tall_grass": {
+              "type": "boolean",
+              "const": true
             }
           },
           "additionalProperties": false

@@ -55,11 +55,11 @@ subprocesses, paths or ROM handling.
 - [x] Write tests (agent: planStride ON/OFF, long grass, description, factory POST; server: default refuses,
       opt-in accepts, long grass refused, native-false walks, battle stops)
 - [ ] COMMIT: `test: grass-strides-v1 ...` (RED)
-- [ ] Implement
+- [x] Implement
 - [ ] Gates: `just test`, `just lint`, `just build`
 - [ ] COMMIT: `feat: grass-strides-v1 ...` (GREEN)
-- [ ] Guard deletion check (wiring removed → factory test red)
-- [ ] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, pages-theme + pages-check
+- [x] Guard deletion check: removing `grassStrides:features["grass-strides-v1"]` from `withNavigation` turned 2 agent tests red (factory, description); forcing the server `floor` to `(0,)` turned 4 server tests red. Both restored.
+- [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
 - [ ] Multi-model review loop (Claude + Codex gpt-5.6-sol + fallback; Grok down per brief)
 - [ ] ASK USER: arm placement / landing (not in this brief)
 
@@ -71,9 +71,14 @@ operator's arm decision.
 ## Session Log
 
 - 2026-10-27 7:15 PM ET: worktree created, code read.
+- GREEN gates run 1 (7:25 PM ET): agent vitest 320 files / 4576 tests pass, coverage above floor; build pass; lint failed on one E501 (fixed) and mypy mgba import (environment); Python failures were environment only. Focused re-runs after the env fix: test_strides 42 pass, mypy clean. Full re-run waits for a coordinator CPU window.
 - RED: `packages/agent/src/grass-strides.test.ts` 6 failing; `env/tests/env/test_strides.py` 4 new failing (default-refusal test passes today, as INV-2 requires).
 
 ## Surprises
+
+- `exact-context.test.ts` pinned context-exact-count-v1 as `playHarnessFeatures(...).at(-1)`, which any new switch breaks. Changed it to "present, and nothing registered earlier follows it" so later switches need no edit.
+- `schemas/events.v1.json` embeds the stride plan schema; regenerated with `just schema` (adds optional `tall_grass`).
+- A fresh worktree venv lacks the mGBA binding and `.env`: copied the built binding from main's venv and symlinked `.env` as the other worktrees do. Without it, 257 Python tests and mypy fail for environment reasons only.
 
 ## Multi-Model Review Log
 

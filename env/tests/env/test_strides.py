@@ -349,7 +349,11 @@ def test_wild_battle_mid_grass_stride_stops_without_another_direction():
 
     api, server, m, emu, body, applied = grass_setup()
     r = run(
-        api, server, emu, {**body, "tall_grass": True}, after_first=lambda: m.put(IN_BATTLE, b"\x02")
+        api,
+        server,
+        emu,
+        {**body, "tall_grass": True},
+        after_first=lambda: m.put(IN_BATTLE, b"\x02"),
     )
     assert sum(bool(b) for b in applied) == 1
     assert r["stopped"] is True

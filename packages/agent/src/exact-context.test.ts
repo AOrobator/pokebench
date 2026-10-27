@@ -331,7 +331,9 @@ describe("context-exact-count-v1 wiring and registration", () => {
 
   it("is the last registered switch: a default-off guard with no dependency, ON in both arms of the current recipe", () => {
     expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("map-observability-v1") + 1);
-    expect(playHarnessFeatures({ ...ALL_ON, [ID]: true }, null).at(-1)).toBe(ID);
+    const harness = playHarnessFeatures({ ...ALL_ON, [ID]: true }, null);
+    expect(harness).toContain(ID);
+    expect(harness.slice(harness.indexOf(ID) + 1).every((id) => SWITCHABLE_FEATURES.indexOf(id as typeof ID) > SWITCHABLE_FEATURES.indexOf(ID))).toBe(true);
     expect(playHarnessFeatures({ ...ALL_ON, [ID]: false }, null)).not.toContain(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "EXACT CONTEXT COUNT" });
     expect(featureInfo(ID).description).toContain(" Off: ");

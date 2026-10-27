@@ -35,7 +35,8 @@ def test_session_replay_summarizes_every_turn(tmp_path: Path) -> None:
     assert summary["valid_rate"] == 1.0
     assert round(summary["first_try_valid_rate"], 3) == 0.667
     assert summary["context_tokens_per_turn"] == [100 + 60 + 101 + 60, 162, 163]
-    assert summary["cost_usd"] == 0.04 and summary["per_turn"][0]["attempts"] == 2
+    # The fake reports a session total of $0.01 that never grows: only the first call costs.
+    assert summary["cost_usd"] == 0.01 and summary["per_turn"][0]["attempts"] == 2
     assert said[0].startswith("request-1-full.json: valid attempts=2")
 
 

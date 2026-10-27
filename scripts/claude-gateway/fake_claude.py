@@ -51,7 +51,7 @@ result = {
     "api_error_status": step.get("status"),
     "result": step.get("error", step.get("result", "")),
     "session_id": session,
-    "total_cost_usd": 0.01,
+    "total_cost_usd": step.get("cost", 0.01),
     "usage": {
         "input_tokens": 100 + done,
         "cache_read_input_tokens": 50,

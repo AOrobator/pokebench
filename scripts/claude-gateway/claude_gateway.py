@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import binascii
 import hashlib
 import json
 import os
@@ -36,7 +37,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -67,7 +68,8 @@ the result next turn."""
 SESSION_CONTRACT = """\
 Each turn you receive only the newest harness messages, so keep track of the game \
 in your own memory. Screenshots for the turn are saved as PNG files; read one with \
-the Read tool when you want to see the screen. Read is the only tool you have."""
+the Read tool when you want to see the screen. Read is the only tool you can call: \
+the harness tools are not callable, so choose one by replying with the JSON object."""
 
 
 class GatewayError(ValueError):
@@ -235,7 +237,11 @@ def _parts(content: object, where: str) -> tuple[Part, ...]:
             match = DATA_URL.match(url)
             if match is None:
                 raise GatewayError(f"{where}[{index}] image is not a base64 data URL")
-            parts.append(Part(image=Image(match[1], base64.b64decode(match[2]))))
+            try:
+                data = base64.b64decode(match[2], validate=True)
+            except binascii.Error as error:
+                raise GatewayError(f"{where}[{index}] image is not valid base64") from error
+            parts.append(Part(image=Image(match[1], data)))
         else:
             raise GatewayError(f"{where}[{index}] has unsupported type {kind!r}")
     return tuple(parts)
@@ -293,7 +299,8 @@ def _text(parts: Sequence[Part]) -> str:
 
 def _type_ok(value: object, kind: str) -> bool:
     if kind == "integer":
-        return isinstance(value, int) and not isinstance(value, bool)
+        whole = isinstance(value, float) and value.is_integer()
+        return whole or isinstance(value, int) and not isinstance(value, bool)
     if kind == "number":
         return isinstance(value, int | float) and not isinstance(value, bool)
     if kind == "boolean":
@@ -317,6 +324,15 @@ def schema_errors(value: object, schema: JsonObject, path: str = "arguments") ->
     if isinstance(kinds, list) and not any(_type_ok(value, str(k)) for k in kinds):
         return [f"{path} must be one of {kinds}"]
     errors: list[str] = []
+    for keyword, needed in (("anyOf", 1), ("oneOf", 1)):
+        options = schema.get(keyword)
+        if isinstance(options, list):
+            fits = sum(not schema_errors(value, _obj(o, keyword), path) for o in options)
+            if fits < needed or keyword == "oneOf" and fits > 1:
+                errors.append(f"{path} matches {fits} of the {keyword} options")
+    every = schema.get("allOf")
+    for part in every if isinstance(every, list) else []:
+        errors.extend(schema_errors(value, _obj(part, "allOf"), path))
     enum = schema.get("enum")
     if isinstance(enum, list) and value not in enum:
         errors.append(f"{path} must be one of {json.dumps(enum)}")
@@ -334,6 +350,9 @@ def schema_errors(value: object, schema: JsonObject, path: str = "arguments") ->
             errors.append(f"{path} must have at least {shortest} characters")
         if isinstance(longest, int) and len(value) > longest:
             errors.append(f"{path} must have at most {longest} characters")
+        pattern = schema.get("pattern")
+        if isinstance(pattern, str) and re.search(pattern, value) is None:
+            errors.append(f"{path} must match {pattern}")
     if isinstance(value, list):
         errors.extend(_array_errors(value, schema, path))
     if isinstance(value, dict):
@@ -348,6 +367,10 @@ def _array_errors(value: list[object], schema: JsonObject, path: str) -> list[st
         errors.append(f"{path} must have at least {fewest} items")
     if isinstance(most, int) and len(value) > most:
         errors.append(f"{path} must have at most {most} items")
+    if schema.get("uniqueItems") is True:
+        seen = [json.dumps(item, sort_keys=True) for item in value]
+        if len(set(seen)) < len(seen):
+            errors.append(f"{path} must not repeat items")
     items = schema.get("items")
     if isinstance(items, dict):
         for index, item in enumerate(value):
@@ -371,8 +394,18 @@ def _object_errors(value: JsonObject, schema: JsonObject, path: str) -> list[str
         if name not in value:
             errors.append(f"{path}.{name} is required")
     for name, item in value.items():
+        patterns = schema.get("patternProperties")
+        matched = [
+            _obj(sub, key)
+            for key, sub in (_obj(patterns, "patternProperties") if patterns else {}).items()
+            if re.search(key, name)
+        ]
+        for sub in matched:
+            errors.extend(schema_errors(item, sub, f"{path}.{name}"))
         if name in props:
             errors.extend(schema_errors(item, _obj(props[name], name), f"{path}.{name}"))
+        elif matched:
+            continue
         elif schema.get("additionalProperties") is False:
             errors.append(f"{path}.{name} is not a parameter")
     return errors
@@ -539,14 +572,15 @@ def claude_argv(config: Config, spec: CallSpec) -> list[str]:
         "--verbose",
         "--strict-mcp-config",
         "--setting-sources",
-        "user",
+        "",
         "--disable-slash-commands",
         "--permission-prompts",
         "none",
     ]
     if spec.mode == "stateless":
         return [*argv, "--tools", "", "--no-session-persistence"]
-    argv += ["--tools", "Read", "--restricted"]
+    # Snapshot on (the default) would keep the first system prompt across resumes.
+    argv += ["--tools", "Read", "--restricted", "--system-prompt-snapshot", "off"]
     return [*argv, "--resume" if spec.resume else "--session-id", spec.session_id]
 
 
@@ -704,18 +738,30 @@ def append_control(runs_root: Path, run_id: str, action: str, at: str) -> int:
 class SessionState:
     session_id: str | None = None
     tools_sha: str = ""
+    run_id: str | None = None
+    # claude -p reports total_cost_usd for the whole session, across resumes.
+    cost_total: float = 0.0
 
     @staticmethod
     def load(path: Path) -> SessionState:
         if not path.exists():
             return SessionState()
         data = _obj(json.loads(path.read_text(encoding="utf8")), "session")
+        cost = data.get("cost_total", 0.0)
         return SessionState(
-            _opt_str(data.get("session_id"), "session_id"), _str(data.get("tools_sha"), "sha")
+            session_id=_opt_str(data.get("session_id"), "session_id"),
+            tools_sha=_str(data.get("tools_sha"), "sha"),
+            run_id=_opt_str(data.get("run_id"), "run_id"),
+            cost_total=float(cost) if isinstance(cost, int | float) else 0.0,
         )
 
     def save(self, path: Path) -> None:
-        state = {"session_id": self.session_id, "tools_sha": self.tools_sha}
+        state = {
+            "session_id": self.session_id,
+            "tools_sha": self.tools_sha,
+            "cost_total": self.cost_total,
+            "run_id": self.run_id,
+        }
         path.write_text(json.dumps(state) + "\n", encoding="utf8")
 
 
@@ -737,6 +783,7 @@ class Gateway:
     session: SessionState = field(init=False)
     lock: threading.Lock = field(default_factory=threading.Lock)
     bound_logged: bool = field(default=False, init=False)
+    holding: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         bridge = self.config.bridge
@@ -777,13 +824,27 @@ class Gateway:
         seq = append_control(self.config.runs_root, run, action, iso_now(self.clock))
         self.event("control", action=action, run_id=run, seq=seq)
 
-    def answer(self, raw: bytes) -> tuple[int, Outcome]:
+    def answer(
+        self,
+        raw: bytes,
+        deliver: Callable[[int, Outcome], None] | None = None,
+        gone: Callable[[], bool] = lambda: False,
+    ) -> tuple[int, Outcome]:
+        """Answer one request; `resume` follows any `pause`, even when delivery fails."""
         with self.lock:
             self.seq += 1
             seq = self.seq
             (self.config.bridge / "requests" / f"request-{seq}.json").write_bytes(raw)
             self.run_id()
-            return seq, self._answer(seq, parse_request(raw))
+            self.holding = False
+            try:
+                outcome = self._answer(seq, parse_request(raw), gone)
+                if deliver is not None:
+                    deliver(seq, outcome)
+                return seq, outcome
+            finally:
+                if self.holding:
+                    self.control("resume")
 
     def _save_screens(self, seq: int, request: ChatRequest) -> list[list[Path]]:
         screens: list[list[Path]] = []
@@ -803,6 +864,13 @@ class Gateway:
         screens = self._save_screens(seq, request)
         if self.config.mode == "stateless":
             return stateless_prompt(request)
+        bound = self.binder.run_id
+        known = self.session.run_id
+        if self.session.session_id is not None and None not in (bound, known) and bound != known:
+            self.event(
+                "session_reset", old_run=known, run_id=bound, old_session=self.session.session_id
+            )
+            self.session = SessionState()
         sha = hashlib.sha256(_tool_listing(request.tools).encode()).hexdigest()
         changed = sha != self.session.tools_sha
         self.session.tools_sha = sha
@@ -820,7 +888,7 @@ class Gateway:
             "session", prompt, bridge / "screens", session_id, started is not None, record
         )
 
-    def _answer(self, seq: int, request: ChatRequest) -> Outcome:
+    def _answer(self, seq: int, request: ChatRequest, gone: Callable[[], bool]) -> Outcome:
         prompt = self._first_prompt(seq, request)
         reasked = False
         waits = 0
@@ -830,10 +898,17 @@ class Gateway:
             attempt += 1
             spec = self._spec(seq, attempt, prompt)
             result = self.runner(self.config, spec)
-            self._log_call(seq, attempt, spec, result, waited_ms)
+            session_total = result.usage.cost_usd
+            if spec.mode == "session":
+                result = self._per_call_cost(spec, result)
+            self._log_call(seq, attempt, spec, result, waited_ms, session_total)
             if result.provider_wait:
                 if waits == 0:
                     self.control("pause")
+                    self.holding = True
+                if gone():
+                    self.event("client_gone", request=seq, attempt=attempt)
+                    return Outcome(None, "the client disconnected", True)
                 delay = self.config.backoff[min(waits, len(self.config.backoff) - 1)]
                 self.event(
                     "provider_wait",
@@ -849,6 +924,9 @@ class Gateway:
                 continue
             if self.config.mode == "session" and result.session_id is not None:
                 self.session.session_id = result.session_id
+                self.session.run_id = self.session.run_id or self.binder.run_id
+                if not spec.resume:
+                    self.session.cost_total = session_total
                 self.session.save(self.config.bridge / "session.json")
             try:
                 if result.error is not None:
@@ -861,8 +939,23 @@ class Gateway:
                 reasked = True
                 prompt = reask(prompt, result.text, str(error), self.config.mode == "session")
 
+    def _per_call_cost(self, spec: CallSpec, result: CallResult) -> CallResult:
+        """A resumed session's cost is its new total minus the total already logged."""
+        if not spec.resume:
+            return result
+        total = result.usage.cost_usd
+        cost = max(0.0, total - self.session.cost_total)
+        self.session.cost_total = max(self.session.cost_total, total)
+        return replace(result, usage=replace(result.usage, cost_usd=cost))
+
     def _log_call(
-        self, seq: int, attempt: int, spec: CallSpec, result: CallResult, waited_ms: int
+        self,
+        seq: int,
+        attempt: int,
+        spec: CallSpec,
+        result: CallResult,
+        waited_ms: int,
+        session_total: float,
     ) -> None:
         outcome = "provider_wait" if result.provider_wait else "error" if result.error else "ok"
         row = {
@@ -880,6 +973,7 @@ class Gateway:
             "cache_creation_tokens": result.usage.cache_creation_tokens,
             "output_tokens": result.usage.output_tokens,
             "cost_usd": result.usage.cost_usd,
+            "session_cost_total_usd": session_total if spec.mode == "session" else None,
             "latency_ms": result.latency_ms,
             "provider_wait_ms": waited_ms,
             "outcome": outcome,
@@ -971,32 +1065,38 @@ def make_handler(gateway: Gateway) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.close_connection = True
             done = threading.Event()
+            lost = threading.Event()
             write = threading.Lock()
 
             def keepalive() -> None:
                 while not done.wait(config.keepalive):
                     with write:
+                        if done.is_set():
+                            return
                         try:
                             self.wfile.write(b": waiting\n\n")
                             self.wfile.flush()
                         except OSError:
+                            lost.set()
                             return
+
+            def deliver(seq: int, outcome: Outcome) -> None:
+                with write:
+                    done.set()
+                    if outcome.reply is not None:
+                        now = gateway.clock()
+                        self.wfile.write(sse_reply(seq, config.advertised, outcome.reply, now))
+                    else:
+                        self.wfile.write(sse_error(outcome.error or "no reply"))
+                    self.wfile.flush()
 
             threading.Thread(target=keepalive, daemon=True).start()
             try:
-                seq, outcome = gateway.answer(raw)
+                gateway.answer(raw, deliver, lost.is_set)
+            except OSError:
+                gateway.event("client_gone", request=gateway.seq, attempt=None)
             finally:
                 done.set()
-            with write:
-                if outcome.reply is not None:
-                    self.wfile.write(
-                        sse_reply(seq, config.advertised, outcome.reply, gateway.clock())
-                    )
-                else:
-                    self.wfile.write(sse_error(outcome.error or "no reply"))
-                self.wfile.flush()
-            if outcome.paused:
-                gateway.control("resume")
 
     return Handler
 

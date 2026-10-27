@@ -150,7 +150,7 @@ def test_stateless_success_over_http(tmp_path: Path, served) -> None:  # type: i
     assert "--no-session-persistence" in argv and "--resume" not in argv
     assert argv[argv.index("--model") + 1] == "claude-opus-5-5"
     assert argv[argv.index("--effort") + 1] == "medium"
-    assert argv[argv.index("--setting-sources") + 1] == "user"
+    assert argv[argv.index("--setting-sources") + 1] == ""
     system = argv[argv.index("--system-prompt") + 1]
     assert system.startswith("You play Emerald.") and '"name": "press"' in system
     assert sent["cwd"] == str((tmp_path / "bridge" / "empty").resolve())
@@ -253,7 +253,7 @@ def test_wait_then_invalid_still_resumes(tmp_path: Path) -> None:
     seq, outcome = gateway.answer(request(1))
     assert outcome.reply is None and outcome.paused and seq == 1
     actions = [r["action"] for r in jsonl(tmp_path / "runs" / "run-a" / "control.jsonl")]
-    assert actions == ["pause"]
+    assert actions == ["pause", "resume"]
 
 
 def test_session_mode_resumes_one_session(tmp_path: Path) -> None:
@@ -279,6 +279,7 @@ def test_session_mode_resumes_one_session(tmp_path: Path) -> None:
     argv = calls[1]["argv"]
     assert isinstance(argv, list)
     assert argv[argv.index("--tools") + 1] == "Read" and "--restricted" in argv
+    assert argv[argv.index("--system-prompt-snapshot") + 1] == "off"
     assert "--no-session-persistence" not in argv
     screens = (tmp_path / "bridge" / "screens").resolve()
     assert calls[1]["cwd"] == str(screens)
@@ -358,7 +359,7 @@ def test_unbound_pause_is_logged_not_written(tmp_path: Path) -> None:
     skipped = [
         e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "control_skipped"
     ]
-    assert [e["action"] for e in skipped] == ["pause"]
+    assert [e["action"] for e in skipped] == ["pause", "resume"]
 
 
 @pytest.mark.parametrize(
@@ -531,3 +532,131 @@ def test_main_serves(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
             ]
         )
     assert started == [8120]
+
+
+def test_session_cost_is_logged_per_call(tmp_path: Path) -> None:
+    plan = [
+        {"result": GOOD, "cost": 0.05},
+        {"error": "usage limit", "cost": 0.05},
+        {"result": GOOD, "cost": 0.08},
+    ]
+    gateway = make(tmp_path, plan, mode="session", sleep_fn=lambda s: None)
+    assert gateway.answer(request(1))[1].reply is not None
+    assert gateway.answer(request(2))[1].reply is not None
+    rows = jsonl(tmp_path / "bridge" / "calls.jsonl")
+    assert [round(float(str(r["cost_usd"])), 6) for r in rows] == [0.05, 0.0, 0.03]
+    assert [r["session_cost_total_usd"] for r in rows] == [0.05, 0.05, 0.08]
+    state = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    assert state["cost_total"] == 0.08
+    assert cg.Gateway(gateway.config).session.cost_total == 0.08
+
+
+def test_resume_follows_pause_when_delivery_fails(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"error": "limit"}, {"result": GOOD}], sleep_fn=lambda s: None)
+
+    def broken(seq: int, outcome: cg.Outcome) -> None:
+        raise BrokenPipeError
+
+    with pytest.raises(BrokenPipeError):
+        gateway.answer(request(1), broken)
+    actions = [r["action"] for r in jsonl(tmp_path / "runs" / "run-a" / "control.jsonl")]
+    assert actions == ["pause", "resume"]
+
+
+def test_client_disconnect_ends_the_hold(tmp_path: Path, served) -> None:  # type: ignore[no-untyped-def]
+    import socket
+
+    gateway = make(tmp_path, [{"error": "You've hit your limit"}], backoff=(0.05,))
+    server = served(gateway)
+    client = socket.create_connection(("127.0.0.1", server.port))
+    body = request(1)
+    head = f"POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: {len(body)}\r\n\r\n"
+    client.sendall(head.encode() + body)
+    control = tmp_path / "runs" / "run-a" / "control.jsonl"
+    deadline = time.time() + 5
+    while not control.exists() and time.time() < deadline:
+        time.sleep(0.01)
+    client.close()
+    while len(control.read_text().splitlines()) < 2 and time.time() < deadline:
+        time.sleep(0.01)
+    assert [r["action"] for r in jsonl(control)] == ["pause", "resume"]
+    events = [e["event"] for e in jsonl(tmp_path / "bridge" / "gateway.jsonl")]
+    assert "client_gone" in events
+
+
+def test_session_starts_fresh_for_a_different_run(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    assert gateway.answer(request(1))[1].reply is not None
+    first = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    assert first["run_id"] == "run-a"
+    (tmp_path / "runs" / "run-b").mkdir()
+    other = cg.Gateway(cg.replace(gateway.config, run_id="run-b"))
+    assert other.answer(request(2))[1].reply is not None
+    last = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(last, list) and "--session-id" in last and "--resume" not in last
+    assert last[last.index("--session-id") + 1] != first["session_id"]
+    events = [
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_reset"
+    ]
+    assert events[0]["old_run"] == "run-a" and events[0]["run_id"] == "run-b"
+    same = cg.Gateway(other.config)
+    assert same.answer(request(3))[1].reply is not None
+    assert "--resume" in fake_calls(tmp_path)[-1]["argv"]  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    ("value", "schema", "error"),
+    [
+        (
+            {"kind": "bogus"},
+            {
+                "anyOf": [
+                    {"properties": {"kind": {"const": "a"}}},
+                    {"properties": {"kind": {"const": "b"}}},
+                ]
+            },
+            "0 of the anyOf",
+        ),
+        (1, {"oneOf": [{"type": "integer"}, {"type": "number"}]}, "2 of the oneOf"),
+        (5, {"allOf": [{"maximum": 3}]}, "at most 3"),
+        ("ab", {"pattern": "^[0-9]+$"}, "must match"),
+        ([1, 1], {"uniqueItems": True}, "must not repeat"),
+        (
+            {"x1": "a"},
+            {"patternProperties": {"^x": {"type": "integer"}}, "additionalProperties": False},
+            ".x1 must be integer",
+        ),
+    ],
+)
+def test_schema_combinators(value: object, schema: dict[str, object], error: str) -> None:
+    errors = cg.schema_errors(value, schema)
+    assert errors and error in errors[0]
+
+
+def test_schema_combinators_accept() -> None:
+    assert cg.schema_errors(3.0, {"type": "integer"}) == []
+    assert (
+        cg.schema_errors(
+            {"x1": 2},
+            {"patternProperties": {"^x": {"type": "integer"}}, "additionalProperties": False},
+        )
+        == []
+    )
+    assert cg.schema_errors("7", {"anyOf": [{"pattern": "^7$"}], "oneOf": [{}]}) == []
+    assert cg.schema_errors([1, 2], {"uniqueItems": True}) == []
+
+
+def test_invalid_base64_image_is_a_request_error() -> None:
+    body = {
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,@@@"}}
+                ],
+            }
+        ],
+        "tools": [OBSERVE],
+    }
+    with pytest.raises(cg.GatewayError, match="not valid base64"):
+        cg.parse_request(json.dumps(body).encode())

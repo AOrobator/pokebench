@@ -63,39 +63,41 @@ describe("analyze and renderAnalysis", () => {
   ];
   const report = analyze(trials, ["A", "B"]);
 
-  it("tests pooled and per lane over valid trials only, and lists the invalid ones", () => {
+  // Operator rule (the operator 2026-10-27): no trial leaves the comparison automatically; flagged ones are listed for the operator.
+  it("tests pooled and per lane over every launched trial, and lists the flagged ones", () => {
     expect(report.groups.map((g) => g.name)).toEqual(["pooled", "A", "B"]);
     const pooled = report.groups[0];
-    expect(pooled).toMatchObject({ bundle: { n: 7, reached: 4 }, control: { n: 7, reached: 2 } });
-    expect(pooled?.fisherP).toBeCloseTo(fisherExact(4, 3, 2, 5), 12);
+    expect(pooled).toMatchObject({ bundle: { n: 8, reached: 4 }, control: { n: 7, reached: 2 } });
+    expect(pooled?.fisherP).toBeCloseTo(fisherExact(4, 4, 2, 5), 12);
     const laneA = report.groups[1];
     expect(laneA?.logRank.chi2).toBeCloseTo(0.704199858745, 9);
-    expect(report.invalid).toEqual([{ slot: 15, lane: "B", arm: "bundle", run: "r15", reason: "emulator or game server crash" }]);
+    expect(report.groups[2]).toMatchObject({ bundle: { n: 3 } });
+    expect(report.flagged).toEqual([{ slot: 15, lane: "B", arm: "bundle", run: "r15", reason: "emulator or game server crash", furthest: null, furthestMs: 400_000 }]);
   });
 
   it("renders the pre-registered thresholds and every test", () => {
     const text = renderAnalysis(report, "bundle-v-control confirmatory");
     expect(text).toContain("# bundle-v-control confirmatory");
-    expect(text).toMatch(/\| pooled \| 4\/7 \(57%\) \| 2\/7 \(29%\) \| [0-9.]+ \| no \| no \|/);
+    expect(text).toMatch(/\| pooled \| 4\/8 \(50%\) \| 2\/7 \(29%\) \| [0-9.]+ \| no \| no \|/);
     expect(text).toContain("Log-rank");
     expect(text).toContain("Mann-Whitney");
-    expect(text).toContain("| 15 | B | bundle | r15 | emulator or game server crash |");
-    expect(renderAnalysis(analyze([], ["A"]), "empty")).toContain("No invalid trials.");
+    expect(text).toContain("| 15 | B | bundle | r15 | not reached | 400000 | emulator or game server crash |");
+    expect(text).toContain("## Flagged trials (kept in every comparison; only the operator excludes)");
+    expect(text).not.toContain("excluded from the descriptive comparison");
+    expect(renderAnalysis(analyze([], ["A"]), "empty")).toContain("No flagged trials.");
   });
 });
 
 describe("operator-stopped trials", () => {
-  it("reports an aborted or stopped trial with its progress instead of listing it among infrastructure failures", () => {
+  it("counts a legacy ledger row that marked an aborted trial invalid, with its progress", () => {
     const aborted: AnalysisTrial = { ...trial(16, "A", "bundle", null, false), reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 };
-    const report = analyze([...[1, 2].map(i => trial(i, "A", i === 1 ? "bundle" : "control", null)), aborted, trial(15, "A", "bundle", null, false)], ["A"]);
-    expect(report.invalid.map(t => t.run)).toEqual(["r15"]);
-    expect(report.stopped).toEqual([{ slot: 16, lane: "A", arm: "bundle", run: "r16", reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 }]);
+    const report = analyze([trial(2, "A", "control", null), aborted], ["A"]);
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 1 }, control: { n: 1 } });
+    expect(report.flagged.map(t => t.run)).toEqual(["r16"]);
     for (const text of [renderAnalysis(report, "x"), renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })]) {
-      expect(text).toContain("## Ended by the operator (included; censored at the stop)");
-      expect(text).toContain("A fixed-N runner schedules a replacement for the slot");
       expect(text).toContain("| 16 | A | bundle | r16 | PETALBURG_GYM_ENTERED | 42953705 | the operator stopped the trial (operator_abort) |");
+      expect(text).not.toContain("Ended by the operator (included; censored at the stop)");
     }
-    expect(renderAnalysis(analyze([trial(1, "A", "bundle", null)], ["A"]), "x")).toContain("No trial was ended by the operator.");
   });
 });
 

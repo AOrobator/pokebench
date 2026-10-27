@@ -105,7 +105,7 @@ describe("read-only workbench snapshot", () => {
 describe("durable cohort membership and metadata boundaries", () => {
   it("retains infra failure qualification and cohort membership", async () => {
     const r = root(); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "milestone", failureCode: "launcher_error" }]); write(r, "cohort_01", named());
-    const d = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000); expect(d.runs[0]?.excluded).toContain("launcher_error"); expect(d.runs[0]?.cohort).toBe("cohort");
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000); expect(d.runs[0]?.flag).toContain("launcher_error"); expect(d.runs[0]?.cohort).toBe("cohort");
   });
   it.each([
     [{ type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone" }],
@@ -144,7 +144,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     const r = root(); write(r, "cohort_01", named()); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, ...outcome }]);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
     expect(d.problems).toEqual([]);
-    expect(d.runs[0]?.excluded).toContain("Infrastructure outcome");
+    expect(d.runs[0]?.flag).toContain("Infrastructure outcome");
   });
   it("accepts a production-shaped completed prefix and its pending launch into the cohort", async () => {
     const r = root(); write(r, "cohort_01", named()); write(r, "cohort_02", named()); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone" }, { type: "launch", runId: "cohort_02" }]);
@@ -200,7 +200,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     mkdirSync(join(r, "experiments", "empty"), { recursive: true });
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(d.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
-    expect(d.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.excluded).toContain("play exited with 1");
+    expect(d.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.flag).toContain("play exited with 1");
     expect(d.runs.find(x => x.id === "2026-10-14T21-00-00_think-fast_cccc")).toMatchObject({ cohort: "experiment:full-map", excluded: null });
   });
   it("ingests an experiment ledger all or nothing, and only launched runs join the cohort", async () => {
@@ -245,7 +245,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(["experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261016-ca37a39"]);
     expect(d.runs.find(x => x.id === ids[0])?.excluded).toBeNull();
-    expect(d.runs.find(x => x.id === ids[1])?.excluded).toContain("died mid-run");
+    expect(d.runs.find(x => x.id === ids[1])?.flag).toContain("died mid-run");
     expect(d.problems).toEqual([]);
     mkdirSync(join(r, "dryruns", "linked")); symlinkSync(join(r, "dryruns", "bundle-v-control-dryrun-20261016-ca37a39", "trials.jsonl"), join(r, "dryruns", "linked", "trials.jsonl"));
     const linked = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
@@ -275,10 +275,10 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(snapshot.problems).toEqual([]); expect(snapshot.runs[0]?.cohort).toBe("experiment:early-stop");
     expect(snapshot.runs[0]?.reason).toBe(endReason); expect(snapshot.runs[0]?.excluded).toBeNull();
     expect(frontierReferences(snapshot.runs).best?.id).toBe(id); expect(readFileSync(ledger, "utf8")).toBe(text);
-    // A separate plan mismatch remains excluded even when the recording ended at an operator stop.
+    // A plan mismatch is flagged for the operator, never excluded automatically.
     writeFileSync(ledger, [launch, { ...outcome, reason: "run_start does not match the plan: source", endReason }].map(e => JSON.stringify(e)).join("\n") + "\n");
     const mismatch = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
-    expect(mismatch.runs[0]?.excluded).toContain("does not match the plan"); expect(frontierReferences(mismatch.runs).best).toBeNull();
+    expect(mismatch.runs[0]?.flag).toContain("does not match the plan"); expect(mismatch.runs[0]?.excluded).toBeNull(); expect(frontierReferences(mismatch.runs).best?.id).toBe(mismatch.runs[0]?.id);
   });
   it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
     const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];
@@ -296,7 +296,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(d.problems).toEqual([]);
     expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(Array(3).fill("experiment:bundle-v-control"));
     expect(d.runs.find(x => x.id === ids[0])?.excluded).toBeNull();
-    expect(d.runs.find(x => x.id === ids[1])?.excluded).toContain("died mid-run");
+    expect(d.runs.find(x => x.id === ids[1])?.flag).toContain("died mid-run");
     expect(d.runs.find(x => x.id === ids[2])?.excluded).toBeNull();
     writeFileSync(join(r, "experiments", "bundle-v-control", "trials.jsonl"), ledger.map(e => JSON.stringify(e)).join("\n") + "\n" + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
     const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
@@ -315,7 +315,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     ].map(e => JSON.stringify(e)).join("\n") + "\n");
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(Array(3).fill("experiment:full-map-navigation:finals"));
-    expect(d.runs.find(x => x.id === ids[0])?.excluded).toContain("interrupted");
+    expect(d.runs.find(x => x.id === ids[0])?.flag).toContain("interrupted");
     expect(d.runs.find(x => x.id === ids[2])?.excluded).toBeNull();
     writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), "not json\n");
     const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
@@ -345,10 +345,10 @@ describe("durable cohort membership and metadata boundaries", () => {
     writeFileSync(join(receipts, "review-notes", "notes.md"), `mentions ${a}`);
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)), of = (id: string) => d.runs.find(x => x.id === id);
     expect([a, b].map(id => of(id)?.cohort)).toEqual(["factorial-2x2-think-fast", "factorial-2x2-think-fast"]);
-    expect(of(a)?.excluded).toBeNull(); expect(of(b)?.excluded).toContain("exit 1");
-    expect(of(c)).toMatchObject({ cohort: "dialogue-information-think-fast-n4" }); expect(of(c)?.excluded).toContain("SIGTERM");
+    expect(of(a)?.excluded).toBeNull(); expect(of(a)?.flag).toBeUndefined(); expect(of(b)?.flag).toContain("exit 1");
+    expect(of(c)).toMatchObject({ cohort: "dialogue-information-think-fast-n4" }); expect(of(c)?.flag).toContain("SIGTERM");
     expect(of(q)).toMatchObject({ cohort: "interface-docs-resumed", excluded: null });
-    expect(of(o)?.cohort).toBe("think-fast-objectives-off-30m"); expect(of(o)?.excluded).toContain("gateway down");
+    expect(of(o)?.cohort).toBe("think-fast-objectives-off-30m"); expect(of(o)?.flag).toContain("gateway down");
     expect(d.problems).toEqual([]);
     writeFileSync(join(receipts, "dialogue-information-think-fast-n4", "trials.jsonl"), "not json\n" + JSON.stringify({ type: "launch", run: c }) + "\n");
     const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
@@ -373,7 +373,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(of(ids[0])?.cohort).toBeNull(); expect(of("cohort_01")?.cohort).toBeNull(); expect(of(ids[1])?.cohort).toBeNull();
     expect(of("cohort_02")?.cohort).toBe("serial-plan"); expect(of("cohort_03")?.cohort).toBeNull();
     expect(d.problems.some(p => p.includes("navigation-memory-think-fast-n4 belongs to"))).toBe(true);
-    expect(of(ids[2])?.cohort).toBe("a-first"); expect(of(ids[3])).toMatchObject({ cohort: "b-second" }); expect(of(ids[3])?.excluded).toContain("exit 2");
+    expect(of(ids[2])?.cohort).toBe("a-first"); expect(of(ids[3])).toMatchObject({ cohort: "b-second" }); expect(of(ids[3])?.flag).toContain("exit 2");
     expect(d.problems.some(p => p.includes("experiment:full-map belongs to"))).toBe(true);
     expect(d.problems.some(p => p.includes("a-first and b-second both name run"))).toBe(true);
     expect(d.problems.some(p => p.includes("middle") && p.includes("line 1"))).toBe(true);
@@ -390,7 +390,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     mkdirSync(join(r, "experiments", "full-map-navigation"), { recursive: true });
     const launch = JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: id, at: "t", model: "think-fast", commit: "a".repeat(40) });
     writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), launch + "\n" + JSON.stringify({ type: "launcher_error", trial: 0, arm: "incumbent", run: id, at: "t", message: "boom" }));
-    expect((await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)).runs[0]?.excluded).toContain("boom");
+    expect((await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)).runs[0]?.flag).toContain("boom");
     writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), launch + "\n" + JSON.stringify({ type: "unknown" }));
     const bad = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
     expect(bad.runs[0]?.cohort).toBeNull(); expect(bad.problems.some(p => p.includes("finals ledger"))).toBe(true);
@@ -464,9 +464,9 @@ describe("run-tagged experiment cohorts", () => {
     const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
     const dry = `experiment:bundle-v-control-dryrun@${C1.slice(0, 12)}`;
     expect(of(ok)).toMatchObject({ cohort: dry, excluded: null });
-    expect(of(died)?.cohort).toBe(dry); expect(of(died)?.excluded).toContain("died mid-run");
-    expect(of(erred)?.cohort).toBe(`experiment:full-map-navigation@${C3.slice(0, 12)}`); expect(of(erred)?.excluded).toContain("play exited with 1");
-    expect(of(exited)?.cohort).toBe(`experiment:factorial-2x2@${C3.slice(0, 12)}`); expect(of(exited)?.excluded).toContain("exit 1");
+    expect(of(died)?.cohort).toBe(dry); expect(of(died)?.flag).toContain("died mid-run");
+    expect(of(erred)?.cohort).toBe(`experiment:full-map-navigation@${C3.slice(0, 12)}`); expect(of(erred)?.flag).toContain("play exited with 1");
+    expect(of(exited)?.cohort).toBe(`experiment:factorial-2x2@${C3.slice(0, 12)}`); expect(of(exited)?.flag).toContain("exit 1");
     expect(of(legacy)).toMatchObject({ cohort: "experiment:full-map-navigation", arm: null, excluded: null });
     expect(of(finals)?.cohort).toBe("experiment:full-map-navigation:finals");
     const label = (id: string) => d.cohorts?.find(c => c.id === id)?.label;
@@ -499,8 +499,8 @@ describe("run-tagged experiment cohorts", () => {
     writeFileSync(join(dir("impostor"), "manifest.json"), JSON.stringify({ id: "experiment:taken", attempts: [{ run_id: errored }] }));
     writeFileSync(join(dir("impostor"), "trials.jsonl"), JSON.stringify({ type: "launcher_error", run: errored, error: "gateway down" }) + "\n");
     const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
-    expect(of(planned)).toMatchObject({ cohort: `experiment:plan-cohort@${C1.slice(0, 12)}` }); expect(of(planned)?.excluded).toContain("exit 1");
-    expect(of(signalled)?.excluded).toContain("SIGKILL"); expect(of(errored)?.excluded).toContain("gateway down");
+    expect(of(planned)).toMatchObject({ cohort: `experiment:plan-cohort@${C1.slice(0, 12)}` }); expect(of(planned)?.flag).toContain("exit 1");
+    expect(of(signalled)?.flag).toContain("SIGKILL"); expect(of(errored)?.flag).toContain("gateway down");
   });
   it("excludes a tagged run that an unreadable ledger names, since its validity cannot be checked", async () => {
     const r = root(), ids = ["2026-10-15T20-00-00_think-fast_q001", "2026-10-15T20-01-00_think-fast_f001", "2026-10-15T20-02-00_think-fast_d001", "2026-10-15T20-03-00_think-fast_h001", "2026-10-15T20-04-00_think-fast_c001", "2026-10-15T20-05-00_think-fast_free"] as const;
@@ -515,7 +515,7 @@ describe("run-tagged experiment cohorts", () => {
     cohort(r, [{ type: "outcome", runId: ids[4], run: ids[4], exitCode: 0, reason: "budget" }]);
     const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
     for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.excluded).toMatch(/^Unverified: ledger .+ is unreadable/); }
-    expect(of(ids[0])?.excluded).toContain("experiments/queue/trials.jsonl");
+    expect(of(ids[0])?.flag).toContain("experiments/queue/trials.jsonl");
     expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
   });
 });

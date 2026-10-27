@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
-import { appendLedger, classifyTrial, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
+import { appendLedger, classifyTrial, laneBackoff, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
 import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
@@ -206,16 +206,31 @@ describe("classifyTrial", () => {
     expect(o.furthestDepth).toBeGreaterThan(0);
   });
 
-  it("is invalid for infrastructure failures, with the reason", () => {
-    expect(classifyTrial(null, expectation, 1)).toMatchObject({ valid: false, reason: "no run_start: the run never began (exit 1); a server, emulator or checkpoint load failure", endReason: null });
-    expect(classify((log) => { log.add(0, goodStart); }, null)).toMatchObject({ valid: false, reason: "no run_end: the play process died mid-run (exit signal)" });
-    expect(classify((log) => {
+  it("is invalid only when the run never began, with the reason", () => {
+    const never = classifyTrial(null, expectation, 1);
+    expect(never).toMatchObject({ valid: false, reason: "no run_start: the run never began (exit 1); a server, emulator or checkpoint load failure", endReason: null });
+    expect(laneBackoff(never)).toBe(true);
+  });
+
+  // Operator rule (the operator 2026-10-27): how a trial ended is orthogonal to whether it counts.
+  it("keeps every trial that ran as a valid outcome whatever ended it, and backs the lane off after infrastructure endings", () => {
+    const died = classify((log) => { log.add(0, goodStart); }, null);
+    expect(died).toMatchObject({ valid: true, reason: "no run_end: the play process died mid-run (exit signal)" });
+    const gateway = classify((log) => {
       log.add(0, goodStart);
       log.add(10, { type: "retry", turn: 1, reason: "model error: HTTP 502 Bad Gateway", attempt: 3, limit: 3 });
       log.add(20, { ...end, reason: "model_error" });
-    })).toMatchObject({ valid: false, reason: "model/gateway error: model error: HTTP 502 Bad Gateway", endReason: "model_error" });
-    expect(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "crash" }); })).toMatchObject({ valid: false, reason: "emulator or game server crash" });
-    expect(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "operator_stop" }); })).toMatchObject({ valid: false, reason: "the operator stopped the trial (operator_stop)" });
+    });
+    expect(gateway).toMatchObject({ valid: true, reason: "model/gateway error: model error: HTTP 502 Bad Gateway", endReason: "model_error" });
+    const crash = classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "crash" }); });
+    expect(crash).toMatchObject({ valid: true, reason: "emulator or game server crash" });
+    for (const reason of ["operator_stop", "operator_abort"] as const) {
+      const stopped = classify((log) => { log.add(0, goodStart); log.add(10, { type: "milestone", turn: 1, name: "RIVAL_MET", server_timestamp: 1 }); log.add(20, { ...end, reason }); });
+      expect(stopped).toMatchObject({ valid: true, reason: `ended by the operator (${reason}); progress before it counts`, endReason: reason, primaryReached: true });
+      expect(laneBackoff(stopped)).toBe(false);
+    }
+    for (const o of [died, gateway, crash]) expect(laneBackoff(o)).toBe(true);
+    expect(laneBackoff(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "budget" }); }))).toBe(false);
   });
 
   it("is invalid when the run did not run the planned configuration", () => {

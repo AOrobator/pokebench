@@ -108,8 +108,10 @@ it("is default OFF, separately receipted and has a pending single-switch experim
  expect(featureInfo(id)).toMatchObject({group:"guard",needs:null});expect(featureInfo(id).description).toContain(" Off: ");
  expect(playHarnessFeatures({...LEGACY_ALL_ON,[id]:true},null)).toEqual([...playHarnessFeatures(LEGACY_ALL_ON,null),id]);
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const f=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(f.base.features[id]).toBe(false);expect(f.switches).toContain(id);
+  const f=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];offInBoth:string[]};
+  // the operator 2026-10-27: the current recipe turns it OFF in both arms; retained recipes keep it as a bundle switch.
+  const current=name==="bundle-v-control"||name==="bundle-v-control-2h";
+  expect(f.base.features[id]).toBe(false);expect(f.switches.includes(id),name).toBe(!current);expect(f.offInBoth.includes(id),name).toBe(current);
  }
 });
 it("does not suppress the menu-refusal guard while a navigation cycle is open",()=>{

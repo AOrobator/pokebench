@@ -311,7 +311,12 @@ it("operator promotion enables only the reminder in both canonical comparison ar
  for(const name of ["bundle-v-control","bundle-v-control-2h","whole-map-pair-2h","whole-map-cook-1h","bundle-cook-1h"]){
   const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);
   for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);
-  for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){expect(d.switches).toContain(id);expect(armFeatures(d,"control")[id]).toBe(false);expect(armFeatures(d,"bundle")[id]).toBe(true);}
+  const current=name==="bundle-v-control"||name==="bundle-v-control-2h";
+  for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){
+   // the operator 2026-10-27: the current recipe promotes move-learn-settle-v1 and move-learn-tool-v1 to both arms.
+   const both=current&&(id==="move-learn-settle-v1"||id==="move-learn-tool-v1");
+   expect(d.switches.includes(id),`${name}/${id}`).toBe(!both);expect(armFeatures(d,"control")[id],`${name}/${id}`).toBe(both);expect(armFeatures(d,"bundle")[id]).toBe(true);
+  }
  }
 });
 
@@ -328,14 +333,15 @@ it("normal bundle recipes enable named declines while control retains its previo
 });
 
 
-it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"])("future %s bundle credits earned campaign progress while control remains OFF",name=>{
+it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"])("future %s bundle credits earned campaign progress; current recipes credit it in control too",name=>{
+ const control=name==="bundle-v-control"||name==="bundle-v-control-2h";
  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
  expect(definitionProblems(d),name).toEqual([]);
  expect(armFeatures(d,"bundle")["campaign-progress-clock-v1"],`${name}/bundle`).toBe(true);
- expect(armFeatures(d,"control")["campaign-progress-clock-v1"],`${name}/control`).toBe(false);
+ expect(armFeatures(d,"control")["campaign-progress-clock-v1"],`${name}/control`).toBe(control);
  for(const phase of d.phases){
   expect(armPreset(d,phase.id,"bundle").features["campaign-progress-clock-v1"],`${name}/${phase.id}/bundle preset`).toBe(true);
-  expect(armPreset(d,phase.id,"control").features["campaign-progress-clock-v1"],`${name}/${phase.id}/control preset`).toBe(false);
+  expect(armPreset(d,phase.id,"control").features["campaign-progress-clock-v1"],`${name}/${phase.id}/control preset`).toBe(control);
  }
 });
 

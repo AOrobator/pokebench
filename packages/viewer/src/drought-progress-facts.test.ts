@@ -49,7 +49,7 @@ it.each([
    expect(await main(argv,deps),errors.join("\n")).toBe(0);expect(errors).toEqual([]);expect(captured).toHaveLength(1);
    const options=captured[0];if(options===undefined)throw Error("fake run port not reached");
    expect(options.dryRun).toBe(true);expect(options.def.plan.map(p=>p.arm)).toEqual([arm]);
-   expect(armFeatures(options.def,arm)["drought-progress-facts-v1"],`${scenario.id}/${arm}`).toBe(arm==="bundle");
+   expect(armFeatures(options.def,arm)["drought-progress-facts-v1"],`${scenario.id}/${arm}`).toBe(true);
    expect(options.def.phases[0]?.maxWallMs).toBe(scenario.wallMs);expect(options.def.lanes.map(l=>l.id)).toEqual([scenario.lane]);
    expect(options.def.serving).toEqual(target.serving);expect(options.def.phases[0]?.start).toEqual(target.phases[0]?.start);
   }

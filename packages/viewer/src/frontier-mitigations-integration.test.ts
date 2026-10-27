@@ -6,12 +6,14 @@ import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 import {armPreset,parseFixedDefinition} from "./fixed-design.js";
 
 const IDS=["coherent-healing-feedback-v1","explorer-family-guidance-v1","battle-move-learn-input-v1","rejected-movement-stride-v1","leader-loss-comparison-v1","npc-approach-feedback-v1","boundary-crossing-facts-v1","delivered-place-evidence-v1","reachable-section-alternatives-v1","owned-battle-context-v1","static-npc-template-approach-v1"] as const;
+const CURRENT=new Set(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"]);
+const PROMOTED=new Set<string>(["battle-move-learn-input-v1"]);
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"])("all frontier treatments belong only to normalized %s bundle",name=>{
  const {definition}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
  for(const phase of definition.phases)for(const arm of ["bundle","control"] as const){
   const features=presetFeatures(parsePlayPreset(armPreset(definition,phase.id,arm)));
-  for(const id of IDS){expect(features[id],`${name}/${phase.id}/${arm}/${id}`).toBe(arm==="bundle");expect(definition.base.features[id]).toBe(false);}
-  expect(features["fixed-point-breaker-v1"]).toBe(arm==="bundle");
+  for(const id of IDS){const both=CURRENT.has(name)&&PROMOTED.has(id);expect(features[id],`${name}/${phase.id}/${arm}/${id}`).toBe(both||arm==="bundle");expect(definition.base.features[id]).toBe(both);}
+  expect(features["fixed-point-breaker-v1"]).toBe(CURRENT.has(name)||arm==="bundle");
   expect(features["story-battle-heal-gate-v1"],`${name}/${arm}: approved factual policy leaves the action gate OFF`).toBe(false);
  }
 });

@@ -55,8 +55,8 @@ describe("supplies-v1",()=>{
   expect(s.block(state({started:false}),PLACES)).toBeNull();
  });
  it("lists healing and status items by the game's names and unknown money",()=>{
-  const bag=[...(MART.resources?.bag??[]),{slot:0,item_id:13,quantity:2,pocket:"items",name:"POTION"},{slot:1,item_id:14,quantity:1,pocket:"items",name:"ANTIDOTE"},{slot:2,item_id:86,quantity:1,pocket:"items",name:"REPEL"},{slot:0,item_id:139,quantity:1,pocket:"berries",name:"ORAN BERRY"},{slot:3,item_id:39,quantity:1,pocket:"items",name:"BLUE FLUTE"}];
-  expect(suppliesLine(state({money:null,resources:{...MART.resources,bag}} as Partial<GameStateSnapshot>))).toBe("Supplies: unknown · balls: POKé BALL ×5 · healing and status items: POTION ×2, ANTIDOTE ×1, ORAN BERRY ×1, BLUE FLUTE ×1 · party 1 of 6");
+  const bag=[...(MART.resources?.bag??[]),{slot:0,item_id:13,quantity:2,pocket:"items",name:"POTION"},{slot:1,item_id:14,quantity:1,pocket:"items",name:"ANTIDOTE"},{slot:2,item_id:86,quantity:1,pocket:"items",name:"REPEL"},{slot:0,item_id:139,quantity:1,pocket:"berries",name:"ORAN BERRY"},{slot:3,item_id:39,quantity:1,pocket:"items",name:"BLUE FLUTE"},{slot:4,item_id:18,quantity:1,pocket:"items",name:"PARLYZ HEAL"}];
+  expect(suppliesLine(state({money:null,resources:{...MART.resources,bag}} as Partial<GameStateSnapshot>))).toBe("Supplies: unknown · balls: POKé BALL ×5 · healing and status items: POTION ×2, ANTIDOTE ×1, ORAN BERRY ×1, BLUE FLUTE ×1, PARLYZ HEAL ×1 · party 1 of 6");
   expect(suppliesLine(state({resources:null}))).toBe("Supplies: ₽1,992 · balls: none · healing and status items: none · party 1 of 6");
  });
  it("names only maps that are in the game's map table",()=>{

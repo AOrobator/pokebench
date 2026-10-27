@@ -157,6 +157,16 @@ def test_bad_rom_tables_are_harness_bugs(monkeypatch: pytest.MonkeyPatch) -> Non
     bad_row = read_type_gap(_patched(TYPE_EFFECTIVENESS + 2, b"\x07"), gym.party)
     assert bad_row.diagnostic is not None and "row 0 is not a type chart row" in bad_row.diagnostic
     monkeypatch.setattr(type_gap, "_chart", None)
+    foresight = read_type_chart(rom_read).index((FORESIGHT, FORESIGHT, 0))
+    monkeypatch.setattr(type_gap, "_chart", None)
+    bad_separator = read_type_gap(
+        _patched(TYPE_EFFECTIVENESS + 3 * foresight + 2, b"\x07"), gym.party
+    )
+    assert (
+        bad_separator.diagnostic is not None
+        and "is not a type chart row" in bad_separator.diagnostic
+    )
+    monkeypatch.setattr(type_gap, "_chart", None)
     no_end = read_type_gap(_patched(TYPE_EFFECTIVENESS + 3 * 111, b"\x00\x00\x00"), gym.party)
     assert no_end.diagnostic == "harness bug: type gap: type chart has no end row"
 

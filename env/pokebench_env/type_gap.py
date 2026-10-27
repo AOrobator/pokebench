@@ -42,8 +42,14 @@ def read_type_chart(read: ReadMemory) -> tuple[tuple[int, int, int], ...]:
         if attack == END:
             _chart = tuple(rows)
             return _chart
-        if (attack, defend) != (FORESIGHT, FORESIGHT) and (
-            attack >= len(TYPE_NAMES) or defend >= len(TYPE_NAMES) or multiplier not in MULTIPLIERS
+        separator = (attack, defend) == (FORESIGHT, FORESIGHT)
+        if (separator and multiplier != 0) or (
+            not separator
+            and (
+                attack >= len(TYPE_NAMES)
+                or defend >= len(TYPE_NAMES)
+                or multiplier not in MULTIPLIERS
+            )
         ):
             raise ValueError(
                 f"type chart row {i // 3} is not a type chart row: {body[i : i + 3]!r}"

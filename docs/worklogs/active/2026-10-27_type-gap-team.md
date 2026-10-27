@@ -41,3 +41,5 @@ Branch `claude/type-gap-team`, worktree /private/tmp/pb-type-gap-team. No live r
 - just lint: tsc, eslint, ruff and ruff format pass; mypy fails only on mgba._pylib in this venv and passes with the main venv (134 files).
 - just coverage: agent lines 96.47 / branches 92.61 / functions 97.49; viewer 95.86 / 91.66 / 95.35; Python gate 97.40 / 93.55 / 99.78 (type_gap.py 100%). The recipe stopped on the same test_view failure; the gate was run on its JSON.
 - Explainers: pages-check clean; 8791 links return 200; headless screenshots at 1280, 1440 and 375 opened, no horizontal overflow, zero off-origin requests (runs/mockups/type-gap-team/shots/).
+
+COMMIT: `feat: type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 bundle switches (default off)` (4ad7dba4d)

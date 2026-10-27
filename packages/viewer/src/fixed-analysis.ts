@@ -179,7 +179,7 @@ const excludedSection = (report: AnalysisReport): string[] => [
 ];
 const stoppedSection = (report: AnalysisReport): string[] => [
   "## Ended by the operator (included; censored at the stop)", "",
-  "An operator abort or stop is not an exclusion: the trial's progress before the stop is a result, and milestones after it are censored, not failures. The runner still schedules a replacement for the slot, so the paired tests above use the replacement.", "",
+  "An operator abort or stop is not an exclusion: the trial's progress before the stop is a result, and milestones after it are censored, not failures. A fixed-N runner schedules a replacement for the slot, so its paired tests use the replacement; a receipt without replacements simply leaves the stopped trial out of the paired tests.", "",
   ...(report.stopped.length === 0 ? ["No trial was ended by the operator."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.stopped.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
 ];
 

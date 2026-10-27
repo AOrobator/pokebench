@@ -61,8 +61,8 @@ Test and build wiring only. No new subprocesses, inputs or network. The trainer-
 
 **M3 — Gate, review, land**
 - [x] Full gate on the branch: `just test` (in the A/B), `just lint`, `just build`, `just verify-vendor` all exit 0
-- [ ] Principles self-review (PB1–PB13)
-- [ ] Claude lane, GPT lane (Codex CLI), fallback reviewer (Grok down; blanket "land without grok" waiver)
+- [x] Principles self-review (PB1–PB13): 0 FAIL
+- [x] Claude lane, GPT lane (Codex CLI), fallback reviewer (Grok down; blanket "land without grok" waiver): all LGTM in round 3 at 689636fb1
 - [ ] Wait for `claude/type-gap-team` to land; rebase, rerun gate, land ff-only via `just land-join` / `just land-done`
 
 ## Gate timings
@@ -105,6 +105,12 @@ Gate wiring is proven by the wiring tests and the timed runs of the real recipes
 - Fallback lane: VERDICT: LGTM.
 - Claude lane: VERDICT: BLOCKING. B1: `feature-config-registry.test.ts` used `toContain` on a Set, which vitest copies into an array per call (config × registry). Hardening: pin `FROZEN_SWITCH_COUNT === 276`; record a gate at the fixed head.
 - Fix batch: `.has()` filters in the feature-config test; `FROZEN_SWITCH_COUNT` pinned to 276. Both feature-config mutations re-run RED, then GREEN restored.
+
+- COMMIT: `test: address round-2 review of the feature-config invariants` (689636fb1); `just test` exit 0 in 151 s (agent 4479, viewer 2039, pytest 4426, Playwright 3); `just lint` exit 0.
+
+**Round 3** — packet `511a6f95c..689636fb1`, SHA-256 `f713e617c6a29d2bbc6c2ba5603c43b56b3d951b7d100286d64bfda622ecffdc`.
+- Claude lane: VERDICT: LGTM. GPT lane: VERDICT: LGTM. Fallback lane: VERDICT: LGTM.
+- Landing waits for `claude/type-gap-team`. After it lands: merge `main` into this branch, rerun the gate; if the branch's own diff changes, new review round; then `just land-join`, `git merge --ff-only`, `just test` on main, evidence commit, `just land-done`.
 
 ## Boy Scout Log
 

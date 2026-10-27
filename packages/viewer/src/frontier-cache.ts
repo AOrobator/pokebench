@@ -5,8 +5,9 @@ import type { Baseline } from "./panels.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 
 // A frontier older than this is still answered, marked stale, while a refresh runs; the page asks again.
-export const FRONTIER_FRESH_MS = 5000;
-// A cold request waits this long for the first ranking before it answers "loading".
+// Longer than the page's 5 s card poll, so the poll after a refresh finds it fresh.
+export const FRONTIER_FRESH_MS = 10_000;
+// A request waits this long for a running ranking before it answers "loading" or "stale".
 export const FRONTIER_WAIT_MS = 1500;
 const VERSION = 1;
 
@@ -22,6 +23,7 @@ export interface FrontierCacheOptions {
   // Where the ranking persists across viewer restarts (absent: memory only).
   readonly file?: string | null;
   readonly waitMs?: number;
+  readonly onError?: (error: unknown) => void;
 }
 
 export interface FrontierCache {
@@ -30,12 +32,18 @@ export interface FrontierCache {
   warm(): void;
 }
 
-const milestonesOf = (value: unknown): Baseline["milestones"] | null => Array.isArray(value) && value.every((m: unknown) => typeof m === "object" && m !== null && typeof (m as { name?: unknown }).name === "string" && typeof (m as { offsetMs?: unknown }).offsetMs === "number" && [undefined, true].includes((m as { derived?: unknown }).derived as undefined)) ? value as Baseline["milestones"] : null;
+// Only what a ranking can produce: named splits at finite, nonnegative times.
+const milestoneOf = (m: unknown): boolean => {
+  if (typeof m !== "object" || m === null) return false;
+  const { name, offsetMs, derived } = m as { name?: unknown; offsetMs?: unknown; derived?: unknown };
+  return typeof name === "string" && name !== "" && typeof offsetMs === "number" && Number.isFinite(offsetMs) && offsetMs >= 0 && (derived === undefined || derived === true);
+};
+const milestonesOf = (value: unknown): Baseline["milestones"] | null => Array.isArray(value) && value.every(milestoneOf) ? value as Baseline["milestones"] : null;
 function baselineOf(value: unknown): Baseline | null | undefined {
   if (value === null) return null;
   if (typeof value !== "object") return undefined;
   const record = value as { run?: unknown; milestones?: unknown }, milestones = milestonesOf(record.milestones);
-  return typeof record.run === "string" && milestones !== null ? { run: record.run, milestones } : undefined;
+  return typeof record.run === "string" && record.run !== "" && milestones !== null ? { run: record.run, milestones } : undefined;
 }
 
 // An unreadable, foreign or malformed file is a miss: the viewer then answers "loading" until it has ranked the runs.
@@ -68,23 +76,27 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
   let pair: FrontierPair | null = file === null ? null : readFrontierFile(file);
   let rankedAt: number | null = null;
   let refreshing: Promise<void> | null = null;
+  // One ranking at a time; a failed one keeps the previous ranking and is reported once, not per waiting request.
   const refresh = (): Promise<void> => {
     refreshing ??= options.read().then(runs => {
       const next = frontierPair(runs);
       if (file !== null && !samePair(pair, next)) writeFrontierFile(file, next);
       pair = next; rankedAt = options.now();
-    }).finally(() => { refreshing = null; });
+    }).catch((error: unknown) => { options.onError?.(error); }).finally(() => { refreshing = null; });
     return refreshing;
   };
   const fresh = (): boolean => rankedAt !== null && options.now() - rankedAt < FRONTIER_FRESH_MS;
   return {
-    warm: () => { refresh().catch(() => undefined); },
+    warm: () => { void refresh(); },
     answer: async (current, resumed) => {
+      // A checkpoint resume races nothing, whatever the ranking says.
+      if (resumed) return { state: "ready", frontier: null };
       if (!fresh()) {
         const pending = refresh();
-        pending.catch(() => undefined);
-        // Only a viewer with nothing to show waits, and only briefly: a cold catalog can take minutes to rank.
-        if (pair === null) await Promise.race([pending.catch(() => undefined), new Promise(resolve => setTimeout(resolve, waitMs).unref())]);
+        // Wait only briefly: a cold catalog can take minutes to rank.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([pending, new Promise(resolve => { timer = setTimeout(resolve, waitMs); })]);
+        clearTimeout(timer);
       }
       if (pair === null) return { state: "loading", frontier: null };
       return { state: fresh() ? "ready" : "stale", frontier: pairFrontier(pair, current, resumed) };

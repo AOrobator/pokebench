@@ -675,7 +675,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
   // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).
   const readCompleteWorkbench = (): Promise<WorkbenchData> => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), (options.now?.() ?? new Date()).getTime(), undefined, workbenchLoader, {}, catalog);
-  const frontier = createFrontierCache({ read: async () => (await readCompleteWorkbench()).runs, now: () => (options.now?.() ?? new Date()).getTime(), file: options.frontier?.file ?? null });
+  const frontier = createFrontierCache({ read: async () => (await readCompleteWorkbench()).runs, now: () => (options.now?.() ?? new Date()).getTime(), file: options.frontier?.file ?? null, onError: error => { console.error(`frontier ranking failed: ${error instanceof Error ? error.message : String(error)}`); } });
   if (options.frontier?.warm === true) frontier.warm();
   const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();

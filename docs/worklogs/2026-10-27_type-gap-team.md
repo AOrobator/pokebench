@@ -106,3 +106,7 @@ Round 8 (base main 1b7ae8b96, head 27356153f, packet a8c4b5ef…): Claude CLI LG
 Landed 2026-10-27 7:44 PM NY: `just land-join` (number 1), `git merge --ff-only 27356153f` on main from 1b7ae8b96; `git diff --binary 1b7ae8b96 27356153f` SHA-256 equals the round 8 packet (a8c4b5ef…). Merge SHA: 27356153f (fast-forward).
 Post-landing `just test` on main (CPU window granted 7:46 PM NY): exit 0 (agent 4613, viewer 2089, Python 4440 + 69, coverage floors, trainer cards 3/3). The first run failed only because the main checkout's built dist predated the merge (unknown feature errors from the viewer's import of @pokebench/agent); `just build` fixed it. The second run hit one load-sensitive 5 s timeout in viewer app.test.ts that passes alone.
 Not done here: viewer restart (`just viewer-main`) is coordinated by the coordinator; no probes, fixed runs or GPU use; worklog not archived (needs operator approval).
+
+## Archive
+
+Archived 2026-10-27 7:57 PM NY with the operator's approval ("ok to archive, start the probes"). Landed at 27356153f; evidence 36cd62ead; viewer restarted at 36cd62ead with Harness Config showing all three switches. Probes A–D follow as a separate study under runs/ (not part of this worklog).

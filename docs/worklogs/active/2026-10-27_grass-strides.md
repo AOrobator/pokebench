@@ -60,7 +60,7 @@ subprocesses, paths or ROM handling.
 - [x] COMMIT: `feat: grass-strides-v1 lets navigate_to strides cross tall grass` (6c4be031d)
 - [x] Guard deletion check: removing `grassStrides:features["grass-strides-v1"]` from `withNavigation` turned 2 agent tests red (factory, description); forcing the server `floor` to `(0,)` turned 4 server tests red. Both restored.
 - [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
-- [ ] Multi-model review loop (Claude + Codex gpt-5.6-sol + fallback; Grok down per brief)
+- [x] Multi-model review loop: round 2 LGTM on 7c9f32eda from Claude (subagent), Codex gpt-5.6-sol, and the fallback
 - [ ] ASK USER: arm placement / landing (not in this brief)
 
 ## Closing the Loop
@@ -86,6 +86,13 @@ Round 1, packet 1b7ae8b96..33d24aca5 (diff sha256 e9a3134d…):
 - Fallback subagent: LGTM; nits: receipt check ignores tall_grass, new test over-pins `.at(-1)`, stale exact-context test title.
 - Codex CLI gpt-5.6-sol: BLOCKING. (1) the receipt identity check in game-tools.ts ignored `tall_grass`: ACCEPTED, the check now compares it, a test refuses mismatches in both directions, and deleting the check turns that test red. (2) the `.at(-1)` registry pin: ACCEPTED, now pinned by absolute index 277, and the exact-context title is fixed. (3) PB13 is not complete while gates are pending: ACCEPTED, now scored PARTIAL.
 - Claude CLI: lane error ("OAuth session expired"), not a review. Re-run as a read-only Claude subagent (the operator 2026-10-16: the Claude lane is never down while subagents work).
+
+Round 2, frozen head 7c9f32edac2be7695fa3eb2844deb1a3e64065f3 (cumulative diff sha256 2b228996…, delta ef70efe2…):
+- Codex CLI gpt-5.6-sol: VERDICT: LGTM (all round-1 findings resolved).
+- Claude lane (read-only Claude subagent; checked pokeemerald `MetatileBehavior_IsRunningDisallowed`: tall grass is not on its list, long grass is): VERDICT: LGTM.
+- Fallback subagent: VERDICT: LGTM.
+- Grok: down per coordinator brief; Claude + GPT + fallback is full approval (the operator 2026-10-21/22).
+- Nits, DEFERRED (not defects): every ON stride carries `tall_grass:true` even on an all-floor corridor, so it is a permission rather than a description; the battle test sets IN_BATTLE rather than the field lock (the guard stops on both); whether the readout draws 0x02 and 0x03 differently is unchecked (an observation question, out of scope); the OFF description is checked against the ON text rewritten back, not against the base string literal (confirmed by inspection).
 
 ## Boy Scout Log
 

@@ -283,3 +283,82 @@ def test_each_live_guard_independently_withholds_direction(monkeypatch, hazard):
     emu.run_frame_with_buttons([start(server)])
     assert applied == [[]], (hazard, applied, receipt(api))
     assert receipt(api)["reason"] == "corridor changed or unsafe", (hazard, receipt(api))
+
+
+TALL_GRASS = 0x3001
+LONG_GRASS = 0x3002
+
+
+def grass_setup(*, long_at=None):
+    api, server, m, emu, body, applied = setup()
+    m.put(0x02007004, struct.pack("<H", 3))
+    for x in range(1, 5):
+        tile(m, x, 2, LONG_GRASS if x == long_at else TALL_GRASS)
+    return api, server, m, emu, body, applied
+
+
+def run(api, server, emu, body, frames=80, after_first=None):
+    assert request(api, "/pokebench/stride", body)[0] == 200
+    marker = start(server)
+    emu.run_frame_with_buttons([marker])
+    if after_first is not None:
+        after_first()
+    for _ in range(frames):
+        emu.run_frame_with_buttons([marker])
+    return receipt(api)
+
+
+def test_server_default_still_stops_before_tall_grass():
+    api, server, _, emu, body, applied = grass_setup()
+    r = run(api, server, emu, body)
+    assert applied[0] == []
+    assert sum(bool(b) for b in applied) == 0
+    assert r["reason"] == "corridor changed or unsafe"
+    assert "tall_grass" not in r
+
+
+def test_requested_tall_grass_corridor_runs_with_native_permission_each_step():
+    api, server, m, emu, body, applied = grass_setup()
+    r = run(api, server, emu, {**body, "tall_grass": True})
+    assert sum(bool(b) for b in applied) == 4
+    assert all(b in ([], ["RIGHT", "B"]) for b in applied)
+    assert struct.unpack("<hh", m.read(OBJECT_EVENTS + 0x10, 4)) == (11, 9)
+    assert r["reason"] == "completed"
+    assert r["tall_grass"] is True
+
+
+def test_requested_tall_grass_still_stops_before_long_grass():
+    api, server, _, emu, body, applied = grass_setup(long_at=3)
+    r = run(api, server, emu, {**body, "tall_grass": True})
+    assert sum(bool(b) for b in applied) == 2
+    assert r["completed"] == 2
+    assert r["reason"] == "corridor changed or unsafe"
+
+
+def test_tall_grass_without_native_running_permission_walks():
+    api, server, m, emu, body, applied = grass_setup()
+    m.put(0x02037318 + 0x1A, b"\x00")
+    r = run(api, server, emu, {**body, "tall_grass": True})
+    assert sum(bool(b) for b in applied) == 4
+    assert all(b in ([], ["RIGHT"]) for b in applied)
+    assert r["reason"] == "completed"
+
+
+def test_wild_battle_mid_grass_stride_stops_without_another_direction():
+    from pokebench_env.battle_choices import IN_BATTLE
+
+    api, server, m, emu, body, applied = grass_setup()
+    r = run(
+        api, server, emu, {**body, "tall_grass": True}, after_first=lambda: m.put(IN_BATTLE, b"\x02")
+    )
+    assert sum(bool(b) for b in applied) == 1
+    assert r["stopped"] is True
+    assert r["completed"] == 0
+    assert r["reason"] == "field input unavailable"
+    assert server.action_frames_remaining == 1
+
+
+def test_tall_grass_field_is_strict_boolean():
+    api, server, _, _, body, _ = setup()
+    assert request(api, "/pokebench/stride", {**body, "tall_grass": "yes"})[0] == 422
+    assert server.action_queue == []

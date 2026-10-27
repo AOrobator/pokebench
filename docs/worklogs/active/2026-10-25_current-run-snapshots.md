@@ -3,7 +3,7 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** implementation
+**Current Phase:** verification — M1 landed dormant; postmerge gate blocked by foreign untracked recipe
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M1 (implementation; final gates/review pending)
+## Current Milestone: M1 (source landed dormant; operator waiver recorded; postmerge gate failed)
 
 ### Completed Milestones
 
@@ -134,14 +134,15 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 
 **M1 - Freeze compatible contract and persist resumable checkpoints (tracked by this worklog):**
 - [x] Contract freeze: recheck card-persistence chat/main/served source; bind dependency SHA; schema/field semantics, SQLite binding, source generations, public/private checkpoints and bounded resource parameters. Owner: snapshot store/reducer. No daemon activation, UI changes or card-cache rewrite.
-- [x] Terminator: append/commit/restart gives exact parity with full reduction of tiny native fixtures, including restored namespace; source log immutability and schema migration tests. Accepted risk: arbitrary undetected old-prefix edits require explicit invalidation/full verification.
+- [x] M1 primitive proof: native SQLite commit/close/reopen and bounded JSON reduction parity; supplied continuation namespace validation. Actual source consumption, process-kill recovery, replacement/truncation and torn-line proof remain M2; no source-verification or schema-migration completion claimed.
 - [x] Split triggers: changing recording durability, introducing remote storage/third-party database service, new party retention policy, or migration beyond additive derived schema.
-- [x] Tests: double service lock, before/after-commit crashes, torn line, queued growth/actual-consumed offset, source replacement/truncation, incompatible checkpoint, DB failure, current retry vs totals/context provenance.
+- [x] M1 tests: native single-writer lock, close/reopen persistence, late-SQL-error rollback, read-only connection, checkpoint/schema rejection, retry/context/cumulative provenance, read-journal pruning interleave.
+- [ ] M2 remaining proof: actual process-kill before/after commit, torn line, queued growth/validated consumed offset, source replacement/truncation and partial-reconstruction restart.
 - [x] COMMIT: `test(viewer): specify durable current-state checkpoint recovery` (RED;447e738b0).
 - [x] Implement minimal typed reducer/store and checkpoint restore; no integration in production startup yet.
 - [x] Adversarial deletion; focused persistence/recovery tests; full gates and coverage.
 - [x] COMMIT: `feat(viewer): persist resumable current-run checkpoints` (GREEN;a5d14eee199498c56afb17aef1ee883aa99c9b10).
-- [ ] Multi-model review against Architecture and INV-1/2/5/6/7; frozen artifact and conformance receipt.
+- [x] M1 review disposition: Claude/GPT/Astra round2 LGTM; Sol initial-event fixture gap explicitly waived by operator Oct27; no test fix or third review. Grok usage unavailable, independently verified standing human Grok waiver recorded. Not all lanes LGTM; no false approval claim.
 
 **M2 - Independent bounded service and existing-run reconstruction (tracked by this worklog):**
 - [ ] Contract freeze: local daemon lifecycle, singleton, source discovery, live-tail scheduling, resumable initial reconstruction and asynchronous health. Owner: snapshot service. No agent/game writer edits; no production enablement.
@@ -318,3 +319,14 @@ M1 round1: ClaudeLGTM, GPT/Astra/SolBLOCKING; Grok Cursor account usage unavaila
 M1 correction batch:21 focused testsPASS, strict TS/scoped lintPASS. Native two-connection read fixture forces pruning between metadata and journal rows; removing the whole read transaction yields a missing tombstone (removed:false versus expectedtrue), then GREEN restored. Same-offset decreasing-seq mutation independently accepts stale state and fails the new unchanged checkpoint/revision/index assertion. Independent card/health anchor bypass mutations accept [null] parties and fail exact rejection assertions. Corrected full-assignment roster deletion now loses sparse retained party (length0 versus1), rather than merely breaking reference identity. All22 performed mutations RED/restored against GREEN21-test baseline; logs m1-r2-mutation-*, receipt m1-r2-mutations.json. Source gate invalidated; full corrected-source gates queued after capture/final-context-budget. No M2 implementation or runtime wiring yet.
 
 M1 corrected-source full gates PASS on c46932a20 (synced main0352ae567): build19.14s, lint87.21s, test107.14s (4475agent/2052viewer/4425Python + protected trainer cards), coverage125.19s (agent99.15/92.62/97.54; viewer98.23/91.63/95.26; Python97.47/93.58/100 lines/branches/functions), vendor0.14s. Receipt m1-r2-gates.json; source hashes m1-r2-source-hashes.json. Test window released explicitly after client/tool interruption; no suites remain. No executable source changes after these gates. Round2 frozen packet pending; no M2/landing/service/viewer changes.
+
+M1 round2 STOP: frozen ca3d4d125/digest0e9d6526...8c72. Claude/GPT/AstraLGTM; SolBLOCKING on one new required-evidence gap: initial non-run_start fixture has seq1 and is rejected by sequence before initial-type identity operand. Owner verified masking in source and absent independent mutation. Existing production guard is correct; proposed correction is only isolated seq0 negative fixture plus targeted guard deletion/restoration proof, gates/review. Not performed because execute-worklog round cap requires operator scope confirmation after round2. Detailed m1-r2-synthesis.md and m1-r2-review-verdicts.md preserved in canonical runs/reviews/current-run-snapshots. M1 not complete, M2-M5 not started, branch unmerged; no service/API/browser activation, shared viewer refresh, game/agent/runner changes. CPU released; no landing slot. Corrected overly broad checked M1 planning rows to exact proven primitives; crash/source-reader claims explicitly still M2. Earlier fullRun16 prose is14 actual events, no functional fixture change. Pending user's bounded scope decision, no third round launched.
+
+### 2026-10-27 — operator waiver, identical sync, dormant M1 landing
+Original native coordinator record independently verified: [private transcript] cited user [private message reference], Oct27 01:37 America/New_York: “we dont need the test addressed, we dont need another round of review”. Preserved exact record m1-r2-operator-waiver.json, disposition m1-operator-disposition.md. Left test/source unchanged, no third review. This clears only remaining Sol proof gap and review checkpoint; runtime activation/shared refresh still forbidden. Grok remains unavailable, standing general waiver separately preserved, not LGTM.
+
+Main advanced from0352ae567 to3cb27905e while waiting. Preserved original evidence branch codex/current-run-snapshots at8b70fae3f; created codex/current-run-snapshots-m1 from exact reviewedca3d4d125 and merged newmain. Synced7c3b52c1251498b03fd8cc5aeef6910f3018808c full delta SHA2560e9d65269c533efa4dc955a28130178277df179254af91f48bb926f85a368c72 matches original approved round2 packet byte-for-byte. Current workflow just-test includes coverage, so no duplicate coverage run. Fresh synced gates PASS: build17.31s, lint77.23s, test133.47s (4540agent/2060viewer/4426Python plus3protected card widths; all coverage floors enforced), vendor0.11s. Artifacts m1-main-sync.json and m1-sync-gates.json with logs. Source/test hashes unchanged.
+
+Joined board with verified actual chat ID 00000000-0000-4000-8000-5c2156fb325f as codex/current-run-snapshots-m1, position1. Preserved own original untracked planning document at canonical runs/reviews/current-run-snapshots/planning-original-before-M1.md with SHA receipt before tracked replacement; untouched foreign untracked recipe and root WORKLOG.md. Local main fast-forwarded exactly to7c3b52c1251498b03fd8cc5aeef6910f3018808c. No runtime caller or activation exists; no shared viewer refresh performed.
+
+Postmerge just-test FAIL after32.33s: packages/agent/src/citation-evidence.test.ts96 expects false for filename hyperqwen-control-3h.json but canonical foreign untracked experiments/fixed/hyperqwen-control-3h.json has citation evidence=true. Agent4545/4546 PASS; viewer/Python/card postmerge stages not reached. Same tracked synced source passed isolated gates, which lack this foreign untracked recipe. This task did not create/change/remove it. No retry, hiding fixture, test suppression or source fix. Canonical tracked tree otherwise clean at landed SHA. Failure log m1-postmerge-test.log and receipt m1-postmerge-test.json preserved. CPU explicitly RELEASED, coordinator notified with exact issue and legitimate owner disposition requested. Board released after this evidence-only commit. Postmerge gate remains unpassed; M1 operational closeout and M2-M5 advance blocked pending resolution. No claim full plan complete or live performance. Original service activation/viewer-refresh STOP remains.

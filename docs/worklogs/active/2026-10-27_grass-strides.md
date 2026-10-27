@@ -61,7 +61,8 @@ subprocesses, paths or ROM handling.
 - [x] Guard deletion check: removing `grassStrides:features["grass-strides-v1"]` from `withNavigation` turned 2 agent tests red (factory, description); forcing the server `floor` to `(0,)` turned 4 server tests red. Both restored.
 - [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
 - [x] Multi-model review loop: round 2 LGTM on 7c9f32eda from Claude (subagent), Codex gpt-5.6-sol, and the fallback
-- [ ] ASK USER: arm placement / landing (not in this brief)
+- [x] Arm placement (the operator 2026-10-27, relayed verbatim: "Let's actually have this be on in both arms."): `onInBoth` + base `features: true` in `experiments/feature-configs/current.json`; `packages/viewer/src/grass-strides-recipe.test.ts` asserts control and bundle true (and both dependencies) for all four definitions that use the current recipe. Without the recipe change it fails 4/4. Switch description and explainer status updated.
+- [ ] Landing: two-lane delta review, sync, land-join, ff-only, land-done, viewer-main
 
 ## Closing the Loop
 

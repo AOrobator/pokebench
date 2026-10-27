@@ -91,7 +91,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <main>
 <h1>Grass strides (grass-strides-v1)</h1>
-<p>Default off. When it is on, a <code>navigate_to</code> stride may cross ordinary tall grass, so the player can run there instead of being forced to walk. Needs <code>safe-navigation-strides-v1</code> and <code>automatic-running-v1</code>.</p>
+<p>Default off in the registry; on in both arms (control and bundle) of the current fixed-run recipe, by the operator's decision on 2026-10-27. When it is on, a <code>navigate_to</code> stride may cross ordinary tall grass, so the player can run there instead of being forced to walk. Needs <code>safe-navigation-strides-v1</code> and <code>automatic-running-v1</code>.</p>
 
 <h2>Why</h2>
 <div class="card"><p>With safe strides on, both the agent's corridor planner (<code>planStride</code>) and the game server's per-step check accepted only plain floor (behavior 0). Any step on or into tall grass got no stride, and navigation then pressed that step with automatic running turned off. The game itself lets the player run in tall grass. In run <code>2026-10-27T17-35-16_qwen36-gpu0_a702</code>, 173 <code>navigate_to</code> presses on tall grass where the game permitted running all walked.</p></div>
@@ -140,5 +140,5 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <div class="card"><p>Only the <code>navigate_to</code> description changes when the switch is on: "Straight corridors of plain floor or tall grass use explicit strides …" and "Strides stop before turns, other grass, ledges, …". No tool is added or removed.</p></div>
 
 <h2>Status</h2>
-<div class="card"><p>Branch <code>claude/grass-strides</code>, not landed. Default off everywhere; not placed in any arm or fixed run. A measured comparison and arm placement are the operator's decision.</p></div>
+<div class="card"><p>Branch <code>claude/grass-strides</code>, not landed. On in both arms of <code>experiments/feature-configs/current.json</code> (<code>onInBoth</code>), so it is not an A/B variable between control and bundle. Registry default and new presets stay off.</p></div>
 </main></html>

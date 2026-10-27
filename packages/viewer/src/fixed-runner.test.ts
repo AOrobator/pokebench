@@ -1,7 +1,7 @@
 import {readFixedDefinition} from "./fixed-definition.js";
 import {recipeText} from "../test-support/recipe-text.js";
 import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -536,6 +536,33 @@ describe("runFixed", () => {
     const { def, runsRoot } = setup(dryRunDefinition(definition(), 120_000));
     const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "model_error" : "budget") }, def.id);
     expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+  });
+
+  it("hands a vLLM lane's trials its key from the lane's key file and its declared vision, in an owner-only endpoint file, and nowhere else", async () => {
+    const key = "runner-test-key-not-real";
+    const keyFile = join(mkdtempSync(join(tmpdir(), "vllm-key-")), "hyperqwen.key");
+    writeFileSync(keyFile, `${key}\n`);
+    const base = definition();
+    const [a, b] = base.lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    const { def, runsRoot, dir } = setup(dryRunDefinition(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: keyFile }, b] }), 120_000));
+    const host = new Fake(runsRoot, {}, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    const endpointA = join(dir, "endpoints", "A.json");
+    expect(JSON.parse(readFileSync(endpointA, "utf8"))).toEqual({ base_url: `${a.modelUrl}/v1`, api_key: key, vision: true });
+    expect(statSync(endpointA).mode & 0o777).toBe(0o600);
+    expect(JSON.parse(readFileSync(join(dir, "endpoints", "B.json"), "utf8"))).toEqual({ base_url: `${b.modelUrl}/v1`, api_key: "unused" });
+    const elsewhere = [join(dir, "trials.jsonl"), join(dir, "status.json"), join(runsRoot, "experiments", "runner.json")].filter((p) => existsSync(p));
+    for (const path of elsewhere) expect(readFileSync(path, "utf8")).not.toContain(key);
+    for (const l of host.launches) expect(JSON.stringify(l.env)).not.toContain(key);
+    expect(host.logs.join("\n")).not.toContain(key);
+  });
+
+  it("refuses to start a vLLM lane whose key file is missing, naming the file but no key", async () => {
+    const [a, b] = definition().lanes;
+    if (a === undefined || b === undefined) throw new Error("fixture lanes");
+    const { def, runsRoot } = setup(definition({ lanes: [{ ...a, server: "vllm", slots: 1, vision: true, apiKeyFile: "/nonexistent/hyperqwen.key" }, b] }));
+    await expect(runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot, {}, def.id), stopRequested: () => false, pid: 77 })).rejects.toThrow("lane A: cannot read the api key file /nonexistent/hyperqwen.key");
   });
 
   it("refuses a definition with problems before touching anything", async () => {

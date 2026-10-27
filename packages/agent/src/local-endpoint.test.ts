@@ -42,6 +42,11 @@ describe("readEndpoint", () => {
     }
   });
 
+  it("reads a declared vision flag when the endpoint file carries one", () => {
+    expect(readEndpoint(endpointFile({ base_url: "http://127.0.0.1:18020/v1", api_key: KEY, vision: true }))).toEqual({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY, vision: true });
+    expect(() => readEndpoint(endpointFile({ base_url: "http://127.0.0.1:18020/v1", api_key: KEY, vision: "yes" }))).toThrow(/malformed/);
+  });
+
   it("names a missing or unreadable file", () => {
     expect(() => readEndpoint("/nonexistent/server.json")).toThrow(/cannot read \/nonexistent\/server.json/);
   });
@@ -49,6 +54,15 @@ describe("readEndpoint", () => {
 
 describe("discoverLocal", () => {
   const endpoint = { baseUrl: "http://127.0.0.1:18434/v1", apiKey: KEY };
+
+  it("lists a vLLM server's model with context from max_model_len and vision only from the endpoint's declaration", async () => {
+    const vllm = { object: "list", data: [{ id: "qwen3.8-27b", object: "model", created: 1, owned_by: "vllm", root: "/data/models/Qwen3.8-27B", parent: null, max_model_len: 262144, permission: [] }] };
+    const fetchFn = vi.fn<typeof fetch>(() => Promise.resolve(new Response(JSON.stringify(vllm))));
+    const declared = await discoverLocal({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY, vision: true }, fetchFn);
+    expect(declared.map((m) => [m.id, m.contextWindow, m.maxTokens, m.input])).toEqual([["qwen3.8-27b", 262144, 262144, ["text", "image"]]]);
+    expect(declared[0]).toMatchObject({ provider: "local-llamacpp", baseUrl: "http://127.0.0.1:18020/v1", compat: GATEWAY_COMPAT, reasoning: true });
+    expect((await discoverLocal({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY }, fetchFn)).map((m) => m.input)).toEqual([["text"]]);
+  });
 
   it("lists loaded models with context from --ctx-size and vision from --mmproj, sending the key", async () => {
     const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(

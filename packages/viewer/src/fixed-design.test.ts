@@ -121,6 +121,21 @@ describe("parseFixedDefinition", () => {
     expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "a".repeat(40) }))).not.toThrow();
     expect(() => parseFixedDefinition(one({ gpu: "MAC" }))).toThrow(/lane A: a MAC lane must name its runs with runName/);
   });
+
+  it("accepts a vLLM lane that declares its slots, vision and an absolute key file, and refuses inconsistent ones", () => {
+    const lane = draftDefinition().lanes[0];
+    if (lane === undefined) throw new Error("fixture lane");
+    const one = (l: object, slots = 2) => definition({ lanes: [{ ...lane, ...l }], serving: { model: "qwen3.8-27b", build: "vllm-0.31.0 /models/q", contextTokens: 262144, slots }, phases: [{ id: "confirmatory", perArm: 1, maxWallMs: 900_000, primary: true, start: CLOCK_START }] });
+    const vllm = { server: "vllm", slots: 2, vision: true, apiKeyFile: "/Users/user/.config/pokebench/hyperqwen.key" };
+    expect(() => parseFixedDefinition(JSON.stringify(one(vllm)))).not.toThrow();
+    expect(definitionProblems(one({ server: "llama" }, 1))).toEqual([]);
+    expect(definitionProblems(one({ server: "vllm" }))).toEqual(["lane A: a vllm lane must declare slots and vision"]);
+    expect(definitionProblems(one({ ...vllm, slots: 1 }))).toEqual(["lane A: declares 1 slots, the serving plan has 2"]);
+    expect(definitionProblems(one({ ...vllm, apiKeyFile: "secrets/key" }))).toEqual(["lane A: apiKeyFile must be an absolute path"]);
+    expect(definitionProblems(one({ slots: 2, vision: true }))).toEqual(["lane A: only a vllm lane declares slots and vision"]);
+    expect(() => parseFixedDefinition(JSON.stringify(one({ ...vllm, server: "sglang" })))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(JSON.stringify(one({ ...vllm, apiKey: "inline" })))).toThrow(/not a fixed-run definition/);
+  });
 });
 
 describe("on-in-both fixes", () => {

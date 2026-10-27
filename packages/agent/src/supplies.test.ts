@@ -60,9 +60,9 @@ describe("supplies-v1",()=>{
   expect(suppliesLine(state({resources:null}))).toBe("Supplies: ₽1,992 · balls: none · healing and status items: none · party 1 of 6");
  });
  it("names only maps that are in the game's map table",()=>{
-  const dir=new URL("../../../env/vendor/continual-harness/pokemon_env/porymap/data/maps/",import.meta.url);
-  const groups=JSON.parse(readFileSync(new URL("map_groups.json",dir),"utf8")) as {group_order:string[]}&Record<string,string[]>;
-  const table=new Set(groups.group_order.flatMap(g=>groups[g]??[]).map(folder=>(JSON.parse(readFileSync(new URL(`${folder}/map.json`,dir),"utf8")) as {id:string}).id.replace(/^MAP_/,"").replaceAll("_"," ")));
+  // The game's 518-map table as GET /pokebench/places serves it (test-support/story-destinations-places.json).
+  const table=new Set((JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as {places:Place[]}).places.map(p=>p.name));
+  expect(table.size).toBe(518);
   for(const name of SELLING_MAPS)expect(table.has(name),name).toBe(true);
  });
  it("is wired only when the switch is on, reads the map table once and survives a failed read",async()=>{

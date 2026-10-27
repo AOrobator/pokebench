@@ -10,7 +10,7 @@ import re
 from dataclasses import replace
 
 import pytest
-from test_training_readout import archived, rom_read, state, text
+from test_training_readout import _rom, archived, rom_read, state, text
 
 from pokebench_env import type_gap
 from pokebench_env.battle_damage import TYPE_CHART
@@ -79,12 +79,15 @@ GUIDE_TYPE = re.compile(
 )
 
 
-@pytest.mark.parametrize("gym", GUIDES)
-def test_every_gym_guide_sentence_is_in_the_rom_and_matches(gym: str) -> None:
-    first, second = GUIDES[gym]
-    rom = rom_read(0x08000000, 0x01000000)
-    assert _encode(first) + b"\xfe" + _encode(second) in rom
-    assert GUIDE_TYPE.search(f"{first} {second}") is not None
+def test_every_gym_guide_sentence_is_in_the_rom_and_matches() -> None:
+    encoded = {
+        gym: _encode(first) + b"\xfe" + _encode(second) for gym, (first, second) in GUIDES.items()
+    }
+    # One pass over the ROM finds every guide sentence.
+    found = set(re.findall(b"|".join(re.escape(e) for e in encoded.values()), _rom()))
+    assert {gym for gym, e in encoded.items() if e in found} == set(GUIDES)
+    for first, second in GUIDES.values():
+        assert GUIDE_TYPE.search(f"{first} {second}") is not None
 
 
 def test_party_types_and_moves_from_ram() -> None:

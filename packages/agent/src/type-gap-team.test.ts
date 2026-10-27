@@ -21,6 +21,7 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Snapshot=GameStateSnapshot;
 type TypeGap=NonNullable<Snapshot["type_gap"]>;
 const states=EVENTS.filter((e):e is State=>e.type==="state"&&"started" in e);
+const BY_SEQ=new Map(states.map(s=>[s.seq,s]));
 const results=EVENTS.filter((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result");
 
 // Species and move facts as d41e's battle RAM showed them.
@@ -34,7 +35,7 @@ function typeGap(party:Snapshot["party"],extra:TypeGap["party"]=[]):TypeGap {
  return {party:[...party.map((mon,slot)=>({slot,species_types:mon.species===null?null:SPECIES.get(mon.species)??null,moves:(mon.moves??[]).flatMap(m=>{const f=MOVES.get(m.move_id);return f===undefined?[]:[{move_id:m.move_id,name:m.name??null,...f}];})})),...extra],type_chart:CHART,diagnostic:null};
 }
 const withGap=(s:State,extra:TypeGap["party"]=[]):Snapshot=>({...s,type_gap:typeGap(s.party,extra)});
-const at=(seq:number):State=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s;};
+const at=(seq:number):State=>{const s=BY_SEQ.get(seq);if(s===undefined)throw new Error(String(seq));return s;};
 
 // What withAppendedBlock shows: each game-tool result's block, computed on its own state once the events recorded
 // before the result have been observed.
@@ -43,7 +44,7 @@ function replay(upTo:number,team=new TypeGapTeam()):{team:TypeGapTeam;shown:Map<
  for(const e of EVENTS){
   if(e.seq>upTo)break;
   if(e.type==="tool_result"&&e.state_seq!==undefined){
-   const s=states.find(x=>x.seq===e.state_seq);
+   const s=BY_SEQ.get(e.state_seq);
    const text=s===undefined?null:team.block(withGap(s));
    if(text!==null)shown.set(e.seq,text);
   }

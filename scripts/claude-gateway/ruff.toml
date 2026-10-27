@@ -1,0 +1,5 @@
+extend = "../../env/pyproject.toml"
+
+[lint.per-file-ignores]
+"test_*.py" = ["ANN", "S"]
+"fake_claude.py" = ["S"]

@@ -17,6 +17,8 @@ test:
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
     cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
+    uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
+    uv run --project env python -m pokebench_gates.coverage_gate env/.claude-gateway-coverage.json --min 90
     just trainer-card-check
 
 # The coverage gate is part of `just test`; `just coverage` is that same single pass under another name.
@@ -25,6 +27,8 @@ coverage: test
 lint:
     pnpm -r lint
     cd env && uv run ruff check . && uv run ruff format --check . && uv run mypy
+    uv run --project env ruff check scripts/claude-gateway && uv run --project env ruff format --check scripts/claude-gateway
+    uv run --project env mypy --strict scripts/claude-gateway/claude_gateway.py scripts/claude-gateway/replay.py
 
 build:
     pnpm -r build
@@ -62,6 +66,17 @@ bag-art out="runs/sprites/bag-v1":
 [positional-arguments]
 party-art out="runs/sprites/party-v1":
     uv run --project env python scripts/party-art/build_party_art.py "$1"
+
+# Claude Code as a harness model endpoint (scripts/claude-gateway/claude_gateway.py --help).
+# A detached process the harness reaches like any gateway; it never starts a run itself.
+[positional-arguments]
+claude-gateway *args:
+    uv run --project env python scripts/claude-gateway/claude_gateway.py "$@"
+
+# Replay recorded harness requests through the gateway: no run, no game, capped spend.
+[positional-arguments]
+claude-gateway-replay *args:
+    uv run --project env python scripts/claude-gateway/replay.py "$@"
 
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'

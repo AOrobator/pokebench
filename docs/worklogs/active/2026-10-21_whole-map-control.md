@@ -31,3 +31,10 @@ Whole-map is now in control, so the loop's experiment is plain bundle vs control
 - Resynced on main af70fa34 (progress-aware-cycles-v1 in the bundle): bundle-v-control-2h re-copied from whole-map-pair-2h (only id/title differ); the new progress-aware-cycles test list covers it too.
 - Round 3 on 8b290e4b (packet runs/reviews/bundle-v-control-2h/r3): Claude subagent LGTM, Grok cursor-grok-4.5-high LGTM. Gates: fixed-run check OK, agent 3337, viewer 1615, pytest 3702 pass.
 - LANDED on main (ff-only, landing-board turn 12:12 PM NY) after a docs-only resync onto 8e279f85.
+
+## Track hyperqwen-control-3h (2026-10-27, branch claude/hyperqwen-control-def)
+experiments/fixed/hyperqwen-control-3h.json was untracked in the main checkout while live run 2026-10-27T15-23-07_hyperqwen-gpu0_e1f1 read it. The branch adds a byte-identical copy (sha1 1fe61d40…, the main-checkout original left untouched) and names it with the other current-recipe protocols: citation-evidence.test.ts `current`, fixed-definition.test.ts maintained protocols, and experiments/feature-configs/README.md.
+- [x] RED: with the file in experiments/fixed/ and the base test, citation-evidence fails `hyperqwen-control-3h.json: expected true to be false` (featureRecipe current turns citation-evidence-v1 on in both arms). GREEN after listing it: 6/6. fixed-definition.test.ts 13/13 with the new id.
+- [x] COMMIT: `chore: track the hyperqwen-control-3h fixed-run definition` (24360b7e3)
+- [x] Gates on 24360b7e3: verify-vendor, lint, build OK; vitest agent 4545, viewer 2038 pass.
+- Review round 1 (packet 72257830d..24360b7e3, diff sha256 08e43175…): fallback Sonnet subagent LGTM; Codex gpt-5.6-sol BLOCKING on (1) repeated recipe I/O in shared test helpers (rebutted: helpers not changed by this diff, a perf rewrite is out of scope) and (2) no worklog evidence (fixed by this entry); its follow-up about the hard-coded protocol lists is taken here for fixed-definition.test.ts and the README. Claude CLI run failed to start (argv bug in my invocation, `--add-dir` swallowed the prompt); rerun in round 2.

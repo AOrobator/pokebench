@@ -79,6 +79,8 @@ export class TypeGapTeam {
  private battles=0;
  private wasInBattle=false;
  private leaderFight:string|null=null;
+ // Gyms whose leader this run saw beaten (the trainer flag set after the leader's battle), before the badge flag follows.
+ private readonly beaten=new Set<string>();
  private lossPending=false;
  private readonly knownShown=new Set<string>();
 
@@ -146,7 +148,8 @@ export class TypeGapTeam {
   // flag comes only later, at the end of the leader's post-battle script, so the badge alone cannot tell them apart.
   if(field(s)&&this.leaderFight!==null){
    const badge=GYM_BADGE[this.leaderFight];
-   if(s.trainer_opponent?.defeated===false&&(badge===undefined||!s.badges.includes(badge)))this.lossPending=true;
+   if(s.trainer_opponent?.defeated===true)this.beaten.add(this.leaderFight);
+   else if(s.trainer_opponent?.defeated===false&&(badge===undefined||!s.badges.includes(badge)))this.lossPending=true;
    this.leaderFight=null;
   }
  }
@@ -155,7 +158,7 @@ export class TypeGapTeam {
  private covered(s:Snapshot):[string,Gym][] {
   return [...this.gyms.entries()].filter(([key,g])=>{
    const badge=GYM_BADGE[key];
-   if(badge!==undefined&&s.badges.includes(badge))return false;
+   if(this.beaten.has(key)||(badge!==undefined&&s.badges.includes(badge)))return false;
    return g.said.length>0||g.met.length>0||g.signs.some(x=>x.type!==null);
   });
  }

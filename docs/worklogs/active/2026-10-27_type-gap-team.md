@@ -81,3 +81,9 @@ Round 3 (base 72257830d, head 809abf110, packet 1ec81918…):
 The operator picked (a) after round 3. Rebased onto main 3cb27905e (test-gate-speed). Main now keeps later switches OFF in the frozen fixtures and off-lists, so this branch's edits to those 15 test and fixture files were dropped (each now equals main). test_feature_switches.py keeps only the measurement-JSON type_gap check; the default-off list entry was removed because main subtracts later server switches. The mGBA binding was copied from the main checkout's venv into this worktree's venv (same Python 3.11), so the gates run unmodified.
 
 Gates at the round 4 head: `just test` exit 0 (agent 4582, viewer 2045, Python 4441, coverage gate agent 96.48/92.65/97.51, viewer 95.88/91.67/95.36, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0 (tsc, eslint, ruff, ruff format, mypy 134 files); schema fresh.
+
+Round 4 (base 3cb27905e, head fcbfcfead, packet d6ce1634…):
+- Claude CLI: LGTM (speculation only: empty shared-type fallback, process-wide chart cache, Color Change entries).
+- Fallback (fresh Sonnet subagent): LGTM.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 Fix: when the leader battle is the gym's first evidence, the win's first field state (trainer flag set, badge not yet) listed the gym as not defeated; the gym is now dropped once that state shows the leader's trainer flag set (test, red without the fix). #2 Fix: BLUE FLUTE (pret Medicine, wakes a sleeping POKéMON) added to the healing and status items.
+- The operator picked (a): commit both, gates, round 5.

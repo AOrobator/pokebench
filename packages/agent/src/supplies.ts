@@ -12,14 +12,14 @@ import {semanticWalk} from "./semantic-targets.js";
 import {PlacesBodySchema,type Place} from "./story-destinations.js";
 
 // The BAG items whose use restores HP, PP or a status condition, by the game's item names: pret src/data/items.h's
-// ItemUseOutOfBattle_Medicine, _PPRecovery and _SacredAsh items without the vitamins (HP UP … ZINC) and BLUE FLUTE,
-// plus PERSIM BERRY, which cures confusion in battle.
+// ItemUseOutOfBattle_Medicine, _PPRecovery and _SacredAsh items without the vitamins (HP UP … ZINC), plus PERSIM BERRY,
+// which cures confusion in battle. BLUE FLUTE (Medicine; it wakes a sleeping POKéMON) is one of them.
 export const HEALING_AND_STATUS=new Set([
  "POTION","SUPER POTION","HYPER POTION","MAX POTION","FULL RESTORE","REVIVE","MAX REVIVE","FRESH WATER","SODA POP",
  "LEMONADE","MOOMOO MILK","ENERGYPOWDER","ENERGY ROOT","HEAL POWDER","REVIVAL HERB","ANTIDOTE","BURN HEAL","ICE HEAL",
  "AWAKENING","PARALYZ HEAL","FULL HEAL","ETHER","MAX ETHER","ELIXIR","MAX ELIXIR","LAVA COOKIE","BERRY JUICE",
  "SACRED ASH","CHERI BERRY","CHESTO BERRY","PECHA BERRY","RAWST BERRY","ASPEAR BERRY","LEPPA BERRY","ORAN BERRY",
- "PERSIM BERRY","LUM BERRY","SITRUS BERRY",
+ "PERSIM BERRY","LUM BERRY","SITRUS BERRY","BLUE FLUTE",
 ]);
 // Maps where the game sells something, by map-table name (pret 731ad5bf data/maps/<map>/scripts.inc):
 // - a pokemart, pokemartdecoration or pokemartdecoration2 command (the buy menus);

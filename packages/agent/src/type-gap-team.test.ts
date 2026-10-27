@@ -223,6 +223,13 @@ describe("type-gap-team-v1 gym evidence",()=>{
   team.observe(won);
   expect(team.block(withGap(won))).toBeNull();
  });
+ it("drops a gym whose leader the run just beat when that battle was the first evidence, before the badge flag",()=>{
+  const team=new TypeGapTeam();
+  team.observe(at(12664));
+  const won={...at(12769),location:"RUSTBORO CITY GYM",trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:true,battle_active:false}};
+  team.observe(won);
+  expect(team.block(withGap(won))).toBeNull();
+ });
  it("does not flag a loss after the leader is beaten",()=>{
   const team=new TypeGapTeam();
   team.observe(at(12664));

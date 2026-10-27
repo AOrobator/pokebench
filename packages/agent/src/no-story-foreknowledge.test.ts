@@ -5,12 +5,13 @@
 // Run 2026-10-21T13-33-36_qwen36-gpu1_d548 (seq 10001) was told "a TEAM AQUA grunt. He stops you on the forest path when
 // you reach the DEVON researcher" and "Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN"
 // before the game had shown any of those names.
+import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {describe,expect,it} from "vitest";
 import {checkEvent,type EventBody,type RunEvent} from "./events.js";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import type {GameStateSnapshot} from "./game-state.js";
+import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 import {DisprovedBeliefs} from "./disproved-beliefs.js";
 import {healFirstText,type HealFirstFacts} from "./heal-first.js";
@@ -182,7 +183,7 @@ describe("registry and factory",()=>{
  });
 
  // The production game tools over a recorder fan-out; ROUTE103 with MAY loaded at (10,3).
- const ROUTE103:GameStateSnapshot={...IN_GAME,location:"ROUTE103",map_id:[0,18],position:{x:14,y:10},facing:"up",interaction_targets:[{kind:"object",name:"RIVAL_MAY_NORMAL",x:10,y:3,elevation:3,activation:"A",availability:"live",facing:"down",local_id:2,destination:null}]} as GameStateSnapshot;
+ const ROUTE103:GameStateSnapshot={...IN_GAME,location:"ROUTE103",map_id:[0,18],position:{x:14,y:10},facing:"up",interaction_targets:[{kind:"object",name:"RIVAL_MAY_NORMAL",x:10,y:3,elevation:3,activation:"A",availability:"live",facing:"down",local_id:2,destination:null}]};
  const LINE="Story characters here (from this map's own object list): MAY at 10,3. Not on this map: PROF. BIRCH, BRENDAN, MOM. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.";
  async function play(on:boolean,before:readonly EventBody[]=[]):Promise<string> {
   const subscribers:((e:RunEvent)=>void)[]=[];
@@ -220,17 +221,20 @@ describe("registry and factory",()=>{
    expect(gate.untalked()).toEqual(["MAY at 10,3"]);
   }
  });
- it("the warnings in the production chain use role words until the game shows the name",async()=>{
-  const state:GameStateSnapshot={...ROUTE103,field_controls_locked:false,party_owner:"player",story:{...(IN_GAME.story as NonNullable<GameStateSnapshot["story"]>),rival_battle_won:false},party:[{...(IN_GAME.party[0] as GameStateSnapshot["party"][number]),species:"TORCHIC",hp:3,max_hp:21}],money:3000,world_context:{objects:[{local_id:2,map_id:[0,18],graphics_id:105,sprite_kind:"RIVAL_MAY_NORMAL",x:10,y:3}],triggers:[],dialogue:null}} as GameStateSnapshot;
+ // Run 2026-10-16T04-51-03_qwen36-gpu0_54a7 T363: TORCHIC at 3/21 HP with MAY at (10,3) on Route 103.
+ it("the warnings in the production chain use role words until the game shows the name (54a7 T363)",async()=>{
+  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
+  const state=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
   const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
   const texts:string[]=[];
   const recorder={lowHpTrainerWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
-  const features:FeatureSet={...ALL_ON,"coherent-healing-feedback-v1":false,"low-hp-trainer-warning-v1":true,"low-hp-trainer-warning-v2":false,"heal-before-trainers-v1":false};
+  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true};
   const names=new ShownStoryNames();
-  const on=withLowHpTrainerWarning([tool],{...features,[ID]:true},recorder,{},undefined,names)[0];
-  const off=withLowHpTrainerWarning([tool],{...features,[ID]:false},recorder,{},undefined,names)[0];
-  await on?.execute("c1",{});await off?.execute("c2",{});
-  expect(texts[0]).toContain("your rival is on this map at (10,3)");
-  expect(texts[1]).toContain("your rival MAY is on this map at (10,3)");
+  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
+  expect(texts[0]).toContain("and your rival is on this map at (10,3).");
+  expect(texts[1]).toContain("and your rival MAY is on this map at (10,3).");
+  names.observe(checkEvent({v:1,run:"r",seq:1,t:"2026-10-27T20:00:00.000-04:00",type:"dialogue_auto_advance",turn:1,tool_call_id:"c3",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"ROUTE103",map_id:[0,18],position:{x:10,y:4},speaker:"MAY",speaker_source:"name_prefix",text:"MAY: Hi!"}],stop:"field_free",detail:"",duration_ms:1}));
+  await withLowHpTrainerWarning([tool],{...features,[ID]:true},recorder,{},undefined,names)[0]?.execute("c3",{});
+  expect(texts[2]).toBe(texts[1]);
  });
 });

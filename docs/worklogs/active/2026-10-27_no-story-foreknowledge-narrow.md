@@ -34,8 +34,8 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 
 ## Milestones
 
-- [ ] M1 RED: OFF goldens, ON copy per site, shown-name tracker, disproved-beliefs, factory and the B1 stall-gate test.
-- [ ] M2 GREEN: implementation, registry, presets, next-run default; `just test`, `just lint`, coverage >= 90.
+- [x] M1 RED: OFF goldens, ON copy per site, shown-name tracker, disproved-beliefs, factory and the B1 stall-gate test.
+- [x] M2 GREEN: implementation, registry, presets, next-run default; `just test`, `just lint`, coverage >= 90.
 - [ ] M3 explainer + Harness Config link, readiness row.
 - [ ] M4 review: one pass, full pokebench-review personas; lanes Claude CLI + Codex CLI gpt-5.6-sol + fresh Codex (Grok stand-in).
 - [ ] M5 land ff-only via the landing board; ON in both arms of experiments/feature-configs/current.json (recipe hash changes: launch approvals need re-approval).
@@ -44,3 +44,7 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 ## Log
 
 - M1 RED: `packages/agent/src/no-story-foreknowledge.test.ts`, 18 tests: 7 pass (OFF goldens, prompt unchanged, B1 parse), 11 fail.
+- M1 COMMIT: `test(observation): no-story-foreknowledge-v1 narrow: shown names only, advice kept (RED)` (cd88f6ba8)
+- M2 GREEN: feature file 18/18. Wiring delete-check: `withShownCast(...,null)` at the outermost wrapper turned the factory test red; restored green.
+- M2 gates: `just lint` exit 0. Agent 4588/4588, stmts 96.44 / branches 92.66 / funcs 97.48 / lines 99.17; viewer 2083/2083, 95.81 / 91.68 / 95.32 / 98.26; Python 4431 passed, lines 97.47 / branches 93.58 / functions 100 (floor 90). Worktree setup needed `just build`, `git submodule update --init` and the main checkout's .env symlinked (first pytest pass failed only on those).
+- Readiness: the Story characters line is in every overworld readout from the truck (turn 0); the warnings act at Route 103 (rival), Petalburg Woods and the Rustboro gym, all reached by current runs (a702 at the Rustboro gym). Ready to test.

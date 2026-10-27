@@ -23,7 +23,7 @@ Kept and listed for the operator (not end-reason): probe sessions (recorded `pro
 
 ## Milestones
 
-- [ ] RED
-- [ ] GREEN, docs, gate
+- [x] RED: `test(viewer): reproduce end-reason exclusions in fixed runs, frontier and baselines` (aa5408b8a), 27 failing in 7 suites
+- [x] GREEN, docs, gate: agent 4570/4570 (3 5s-timeouts under load avg 55 on one pass; pass in isolation, no agent diff), viewer 2085/2085 cov 95.81/91.69/95.31, pytest 4431 passed cov 97.47/93.58/100, trainer-card 3/3, lint clean (tsc, eslint, ruff, mypy)
 - [ ] Review: Claude + GPT + fallback (Grok waived)
 - [ ] Land ff-only; 8790 if slot #1; live check

@@ -259,10 +259,11 @@ describe("classifyTrial", () => {
   });
 });
 
-it("retains terminal model/crash failures only for an explicit screen policy, without accepting config drift",()=>{
+it("retains terminal model/crash failures as outcomes with or without the screen policy, without accepting config drift",()=>{
  const log=new Log();log.add(0,START);log.add(20,{type:"run_end",turn:1,reason:"model_error",furthest_milestone:null,turns:1,wall_ms:20,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
  const text=log.events.map(e=>JSON.stringify(e)).join("\n");
- expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET"},1).valid).toBe(false);
+ const plain=classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET"},1);
+ expect(plain).toMatchObject({valid:true,endReason:"model_error"});expect(laneBackoff(plain)).toBe(true);
  expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true},1)).toMatchObject({valid:true,endReason:"model_error",primaryReached:false});
  expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true,presetId:"wrong"},1).valid).toBe(false);
 });

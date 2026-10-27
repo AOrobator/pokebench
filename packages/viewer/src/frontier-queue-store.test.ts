@@ -83,7 +83,8 @@ it("rejects an empty execution root and filesystem failures other than a missing
   }
 });
 
-it("retains process-failed recordings as outcomes but excludes them from best-run rank and timing credit", async () => {
+// Operator rule (the operator 2026-10-27): a process failure is a flag, never an exclusion.
+it("retains process-failed recordings as flagged outcomes that keep best-run rank and timing credit", async () => {
  const { root, f, rows }=setup();
  rows([f.row,{...f.process,code:1},{...f.row,type:"launcher_error",error:"child exit 1"}]);
  const reference: {agent:{events:unknown[]}}=JSON.parse(readFileSync(join(import.meta.dirname,"../test-support/frontier-reference.json"),"utf8")) as {agent:{events:unknown[]}};
@@ -93,10 +94,10 @@ it("retains process-failed recordings as outcomes but excludes them from best-ru
  });
  mkdirSync(join(root,"real_run"));writeFileSync(join(root,"real_run/events.jsonl"),events.map(e=>JSON.stringify(e)).join("\n")+"\n");
  const data=await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now());
- expect(data.runs[0]).toMatchObject({id:"real_run",status:"ended",reason:"budget",excluded:"Infrastructure outcome: child exit 1"});
- expect(frontierReferences(data.runs).best).toBeNull();
- expect(data.runs.map(r=>milestoneStatus(r,"RIVAL_MET"))).toEqual(["excluded"]);
+ expect(data.runs[0]).toMatchObject({id:"real_run",status:"ended",reason:"budget",excluded:null,flag:"Infrastructure outcome: child exit 1"});
+ expect(frontierReferences(data.runs).best?.id).toBe("real_run");
+ expect(data.runs.map(r=>milestoneStatus(r,"RIVAL_MET"))).toEqual(["reached"]);
  rows([f.row,f.process,f.outcome]);
  const recovered=await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now());
- expect(recovered.runs[0]?.excluded).toBeNull();expect(frontierReferences(recovered.runs).best?.id).toBe("real_run");
+ expect(recovered.runs[0]?.excluded).toBeNull();expect(recovered.runs[0]?.flag).toBeUndefined();expect(frontierReferences(recovered.runs).best?.id).toBe("real_run");
 });

@@ -335,7 +335,7 @@ function navigationRootOwnsStore(receiptRoot: string, root: string): boolean {
   try { return realpathSync(join(receiptRoot, "runs")) === realpathSync(root); } catch { return false; }
 }
 // membership and failures are the legacy ledger readers' verdicts. named holds the infrastructure failure
-// any ledger records for a run, even one another ledger owns, so a run-tagged run is excluded wherever its
+// any ledger records for a run, even one another ledger owns, so a run-tagged run is flagged wherever its
 // ledger lives; unverified holds the runs an unreadable ledger names.
 interface Membership { failures: Map<string, string>; named: Map<string, string>; unverified: Map<string, string>; membership: Map<string, string>; problems: string[] }
 async function cohortMembership(root: string): Promise<Membership> {
@@ -394,7 +394,7 @@ async function cohortMembership(root: string): Promise<Membership> {
 }
 // Experiment-queue ledgers under runs/experiments/<id>/: trials.jsonl joins cohort experiment:<id>
 // and finals.jsonl (every finals arm: the incumbent and each finalist) joins experiment:<id>:finals.
-// Every launched run joins its cohort and launcher errors are excluded.
+// Every launched run joins its cohort; launcher errors flag the run without excluding it.
 function experimentCohorts(root: string, failures: Map<string, string>, unverified: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "experiments");
   if (!existsSync(base)) return;
@@ -607,7 +607,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     run.cohort = cohorts.membership.get(run.id) ?? null;
     applyHistoricalProvenance(root, run);
     const own = tagged.membership.get(run.id); if (own !== undefined) run.cohort = own;
-    const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
+    const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.flag = failure;
     const excluded = operator.exclusions.get(run.id); if (excluded !== undefined) run.excluded = exclusionLabel(excluded);
     return run;
   }));

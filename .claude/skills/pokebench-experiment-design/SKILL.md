@@ -122,7 +122,7 @@ Write these into the design, the driver and the overview:
   `stuck`, `stalled`, `budget`, `crash` and `model_error` count as not reached in their arm.
 - **Failures are results (PB2).** Every launched trial stays in the primary analysis, and model errors and crashes count as not reached: a treatment that causes more of them is worse.
   - Only an outage outside the arm (the gateway down, or an emulator crash with no model call involved) is re-run, at the end of the queue, and reported.
-  - Report invalid and failed trials per arm. A predeclared sensitivity analysis may exclude failures shown to be outside the arm. Check the arms for imbalance in failures.
+  - Every launched trial counts in the primary analysis whatever ended it (the operator 2026-10-27); report failures and flagged trials per arm and check the arms for imbalance. A predeclared sensitivity analysis may set aside failures shown to be outside the arm, reported beside the primary result; only the operator excludes a run (`just exclude-run`).
 - **External cohort drivers** may re-run an outage outside the arm, and order arms in randomized balanced blocks so time of day and machine drift do not line up with one arm. A driver never halts silently: it writes the stop reason where the viewer shows it.
 - **Target stop:** a run with `evaluation.target` must have `native-target-stop-v1` on in every arm (`patch-results.ts` requires it); it ends the trial at the verified milestone.
 - **Several executors** (for example both 4090s):

@@ -109,7 +109,7 @@ export class Workbench {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
       this.data = data;
-      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.started, r.config, r.problem, r.excluded, r.measurement?.controller]));
+      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.started, r.config, r.problem, r.excluded, r.flag, r.measurement?.controller]));
       if (versionKey !== this.versionKey) {
         this.versions = frontierVersions(data.runs, this.versionColors);
         for (const v of this.versions.versions) this.versionColors.set(v.key, v.color);
@@ -194,7 +194,7 @@ export class Workbench {
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
-      id: run.id, model: run.model, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded,
+      id: run.id, model: run.model, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded, flag: run.flag,
       config: run.config, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };

@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, type FixedArm, type FixedDefinition, type FixedLane, type FixedStart } from "./fixed-design.js";
 import { fileLines, type LogLines } from "./run-log.js";
-import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
+import { appendLedger, classifyTrial, laneBackoff, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
@@ -248,12 +248,12 @@ class Runner {
           continue;
         }
         const outcome = await this.play(lane, step.slot);
-        if (outcome.valid) {
+        if (!laneBackoff(outcome)) {
           failures = 0;
           continue;
         }
         failures += 1;
-        await this.pause(lane, `invalid trial: ${outcome.reason}`, failures, outcome.reason);
+        await this.pause(lane, outcome.valid ? `backing off after ${outcome.reason}` : `invalid trial: ${outcome.reason}`, failures, outcome.reason);
       } catch (error) {
         // Any I/O surprise pauses this lane and retries it; the other lane plays on.
         failures += 1;

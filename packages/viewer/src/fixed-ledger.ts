@@ -224,8 +224,9 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
 
 const exitText = (exit: number | null | undefined): string => (exit === undefined ? "unknown" : exit === null ? "signal" : String(exit));
 
-// Invalid means infrastructure failed (model or gateway, emulator or server, checkpoint load,
-// a run that did not run the plan); whatever the model did in a run that ran is valid.
+// Invalid means the trial never ran the plan (it never began, or ran another configuration); the runner
+// replaces it. Operator rule (the operator 2026-10-27): how a trial that ran ended is orthogonal to whether it
+// counts, so every other trial is a valid outcome. Infrastructure endings only back the lane off.
 // One pass over the lines, keeping only what the verdict needs: a six-hour log does not fit in one string.
 export function classifyTrial(log: LogLines | null, expect: TrialExpectation, exit: number | null | undefined): FixedOutcome {
   let start: Parsed | undefined, end: Parsed | undefined, lastRetry: Parsed | undefined, extended = false;
@@ -262,7 +263,7 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
   };
   const config = configProblems(start, expect);
   if (config.length > 0) return { valid: false, reason: `run_start does not match the plan: ${config.join("; ")}`, endReason: null, ...metrics };
-  if (end?.type !== "run_end") return { valid: false, reason: `no run_end: the play process died mid-run (exit ${exitText(exit)})`, endReason: null, ...metrics };
+  if (end?.type !== "run_end") return { valid: true, reason: `${DIED} (exit ${exitText(exit)})`, endReason: null, ...metrics };
   const reason = String(end["reason"]);
   const verdict = (valid: boolean, why: string): FixedOutcome => ({ valid, reason: why, endReason: reason, ...metrics });
   if (reason === "budget") {
@@ -272,9 +273,12 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
   if(expect.terminalErrorsAsOutcomes===true&&(reason==="model_error"||reason==="crash"))return verdict(true,`retained terminal error: ${reason}`);
   if (reason === "model_error") {
     const why = typeof lastRetry?.["reason"] === "string" ? lastRetry["reason"] : "no retry recorded";
-    return why.startsWith("model error:") || lastRetry === undefined ? verdict(false, `model/gateway error: ${why}`) : verdict(true, `model behavior: ${why}`);
+    return verdict(true, why.startsWith("model error:") || lastRetry === undefined ? `${GATEWAY}${why}` : `model behavior: ${why}`);
   }
-  if (reason === "crash") return verdict(false, "emulator or game server crash");
-  if (reason === "operator_abort" || reason === "operator_stop") return verdict(false, `the operator stopped the trial (${reason})`);
+  if (reason === "crash") return verdict(true, CRASH);
+  if (reason === "operator_abort" || reason === "operator_stop") return verdict(true, `ended by the operator (${reason}); progress before it counts`);
   return verdict(true, `ended ${reason} before the wall cap`);
 }
+const DIED = "no run_end: the play process died mid-run", GATEWAY = "model/gateway error: ", CRASH = "emulator or game server crash";
+// Operations only: after a trial that never began or whose infrastructure failed, the runner pauses the lane with backoff.
+export const laneBackoff = (o: FixedOutcome): boolean => !o.valid || o.reason.startsWith(DIED) || o.reason.startsWith(GATEWAY) || o.reason === CRASH;

@@ -278,7 +278,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     // A plan mismatch is flagged for the operator, never excluded automatically.
     writeFileSync(ledger, [launch, { ...outcome, reason: "run_start does not match the plan: source", endReason }].map(e => JSON.stringify(e)).join("\n") + "\n");
     const mismatch = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
-    expect(mismatch.runs[0]?.flag).toContain("does not match the plan"); expect(mismatch.runs[0]?.excluded).toBeNull(); expect(frontierReferences(mismatch.runs).best?.id).toBe(mismatch.runs[0]?.id);
+    expect(mismatch.runs[0]?.flag).toContain("does not match the plan"); const shown = mismatch.runs[0]; if (shown === undefined) throw new Error("missing run"); expect(runDetails(shown, null)).toContain("Flagged, still counted: Invalid fixed-run trial: run_start does not match the plan"); expect(mismatch.runs[0]?.excluded).toBeNull(); expect(frontierReferences(mismatch.runs).best?.id).toBe(mismatch.runs[0]?.id);
   });
   it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
     const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];
@@ -502,7 +502,7 @@ describe("run-tagged experiment cohorts", () => {
     expect(of(planned)).toMatchObject({ cohort: `experiment:plan-cohort@${C1.slice(0, 12)}` }); expect(of(planned)?.flag).toContain("exit 1");
     expect(of(signalled)?.flag).toContain("SIGKILL"); expect(of(errored)?.flag).toContain("gateway down");
   });
-  it("excludes a tagged run that an unreadable ledger names, since its validity cannot be checked", async () => {
+  it("flags, but keeps, a tagged run that an unreadable ledger names, since its validity cannot be checked", async () => {
     const r = root(), ids = ["2026-10-15T20-00-00_think-fast_q001", "2026-10-15T20-01-00_think-fast_f001", "2026-10-15T20-02-00_think-fast_d001", "2026-10-15T20-03-00_think-fast_h001", "2026-10-15T20-04-00_think-fast_c001", "2026-10-15T20-05-00_think-fast_free"] as const;
     for (const id of ids) tagged(r, id, "corrupt", C1, "2026-10-15T20:00:00.000-04:00");
     const untagged = "2026-10-14T20-00-00_think-fast_untg"; write(r, untagged, named());
@@ -514,7 +514,7 @@ describe("run-tagged experiment cohorts", () => {
     at("launch-receipts/hand/trials.jsonl", `{bad "run_id": "${ids[3]}"\n` + JSON.stringify({ run: ids[3] }) + "\n");
     cohort(r, [{ type: "outcome", runId: ids[4], run: ids[4], exitCode: 0, reason: "budget" }]);
     const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
-    for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.excluded).toMatch(/^Unverified: ledger .+ is unreadable/); }
+    for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.flag).toMatch(/^Unverified: ledger .+ is unreadable/); expect(of(id)?.excluded).toBeNull(); }
     expect(of(ids[0])?.flag).toContain("experiments/queue/trials.jsonl");
     expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
   });

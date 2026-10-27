@@ -264,7 +264,7 @@ describe("fixed-run status and analyze", () => {
     expect(text).toContain("P(bundle ranks above control), ties count half");
     expect(text).toContain("Descriptive screen; no confirmatory thresholds or promotion.");
     expect(text).toContain("stuck");expect(text).toContain("model_error");
-    expect(text).toContain("Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.");
+    expect(text).toContain("Zero replacement reserve: a trial that never began is recorded and not automatically replaced.");
     expect(text).not.toContain("p <");expect(text).not.toContain("primary milestone");
     expect(text).not.toContain("only the wall cap");expect(text).not.toContain("kept in the record and replaced");
   });
@@ -338,7 +338,7 @@ describe("fixed-run status and analyze", () => {
     const text = out.join("\n");
     // Every launched trial counts: the aborted trial 6 and the never-started trial 5 included.
     expect(text).toContain("| pooled | 2/3 (67%) | 0/2 (0%) |");
-    expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | no run_start");
+    expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | not reached | unavailable | no run_start");
     expect(text).toContain("| 6 | A | bundle | 2026-10-14T18-06-00_think-fast_0006 | ended by the operator (operator_abort); progress before it counts |");
     expect(err.join("\n")).toContain("broken.json");
     expect(await main(["analyze-receipt", receipt, "control"], deps)).toBe(2);

@@ -7,6 +7,7 @@ import { GATEWAY_COMPAT, type GatewayModel } from "./gateway.js";
 // Hermes's router, reached through the endpoint file that server writes. The
 // key is read at run time and never logged or stored.
 export const LOCAL_PROVIDER = "local-llamacpp";
+export const VLLM_PROVIDER = "local-vllm";
 
 export class LocalEndpointError extends Error {
   override readonly name = "LocalEndpointError";

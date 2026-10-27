@@ -16,6 +16,7 @@ import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { readExclusions } from "./run-exclusions.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
 import { laneApiKey, runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
@@ -258,7 +259,9 @@ function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string):
   };
   const { trials, unscored } = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf,def.progressOrder);
   if (unscored.length > 0) deps.err(`depth not re-graded (no usable log, stored furthest is an optional activity): ${unscored.join(", ")}`);
-  deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id)), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`,def));
+  const { exclusions, problems } = readExclusions(deps.runsRoot);
+  for (const problem of problems) deps.err(problem);
+  deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id), exclusions), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`,def));
 }
 
 interface ReceiptRow { readonly type?: unknown; readonly trial?: unknown; readonly arm?: unknown; readonly run?: unknown; readonly exit?: unknown }
@@ -278,7 +281,7 @@ function analyzeReceipt(argv: readonly string[], deps: FixedCliDeps): number {
     const o = classifyTrial(existsSync(path) ? fileLines(path) : null, { maxWallMs: capMs, primary }, typeof r.exit === "number" ? r.exit : undefined);
     return { slot: Number(r.trial), lane: "A", arm: r.arm === treatment ? "bundle" : "control", run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
   });
-  deps.out(renderAnalysis(analyze(trials, []), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
+  deps.out(renderAnalysis(analyze(trials, [], readExclusions(deps.runsRoot).exclusions), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
   return 0;
 }
 

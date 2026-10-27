@@ -16,7 +16,11 @@ export interface ArmOutcome {
   readonly runs: number;
   readonly reached: Readonly<Record<string, number>>;
   readonly medianMs: Readonly<Record<string, number>>;
+  // Milestones reached by each run the operator aborted or stopped; later milestones are censored.
+  readonly stopped?: readonly (readonly string[])[];
 }
+// A run the operator ended counts toward a milestone only if it reached it; otherwise it is censored.
+export const eligibleRuns = (arm: ArmOutcome, name: string): number => arm.runs - (arm.stopped ?? []).filter(reached => !reached.includes(name)).length;
 export interface FeatureHistory { readonly on: ArmOutcome; readonly off: ArmOutcome }
 export type HistoryMap = Readonly<Partial<Record<SwitchableFeature, FeatureHistory | null>>>;
 
@@ -121,7 +125,7 @@ export function overlay(kind: Overlay, view: RunView, nowMs: number, holdFractio
   if (kind === "stopping") return box("#1e2c44", "#ff9b4a", "■ STOPPING", "y", [["w", `finishing turn ${turn}, then ending`], ["w", "Use CANCEL STOP above"], ["w", "still counted in results"]], '<rect x="64" y="128" width="160" height="8" rx="3" fill="#2a3e60" stroke="#ff9b4a" stroke-width="2"/><rect class="sweep" x="66" y="130" width="60" height="4" rx="2" fill="#ff9b4a"/>');
   if (kind === "abort_hold") {
     const width = Math.round(156 * Math.max(0, Math.min(1, holdFraction)));
-    return box("#f8f8f8", "#d03a3a", "✖ ABORT RUN?", "r", [["", "kills the model call now"], ["r", "run is EXCLUDED from results"]], `<rect x="64" y="118" width="160" height="16" rx="4" fill="#fff" stroke="#d03a3a" stroke-width="2"/><rect class="hold" x="66" y="120" width="${String(width)}" height="12" rx="3" fill="#d03a3a"/>${text(130, "s", "Hold ABORT… release cancels")}`);
+    return box("#f8f8f8", "#d03a3a", "✖ ABORT RUN?", "r", [["", "kills the model call now"], ["r", "earned progress still counts"]], `<rect x="64" y="118" width="160" height="16" rx="4" fill="#fff" stroke="#d03a3a" stroke-width="2"/><rect class="hold" x="66" y="120" width="${String(width)}" height="12" rx="3" fill="#d03a3a"/>${text(130, "s", "Hold ABORT… release cancels")}`);
   }
   const reached = view.milestones.filter((m) => m.origin !== "present_at_start");
   if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "still counts in results"], ["w", "Use CLOSE above"]]);
@@ -212,13 +216,17 @@ function pips(history: FeatureHistory): string {
   return `<div class="pips">${cells}</div><div class="legend"><span><i></i>runs with it ON (${String(history.on.runs)})</span><span><i class="off"></i>runs with it OFF (${String(history.off.runs)})</span></div>`;
 }
 
+function stoppedNote(history: FeatureHistory): string {
+  const n = (history.on.stopped ?? []).length + (history.off.stopped ?? []).length;
+  return n === 0 ? "" : ` ${String(n)} operator-ended run${n === 1 ? "" : "s"} count only for the milestones reached before the stop; later ones are censored, not misses.`;
+}
 function historyTable(history: FeatureHistory): string {
   const median = (arm: ArmOutcome, name: string): string => arm.medianMs[name] === undefined ? '<td class="na">—</td>' : `<td>${hms(Math.round((arm.medianMs[name] ?? 0) / 1000))}</td>`;
   const rows = BAR_MILESTONES.map(([name, label]) => {
-    const on = history.on.reached[name] ?? 0, off = history.off.reached[name] ?? 0;
-    return `<tr><td>${label}</td><td class="${on / history.on.runs > off / history.off.runs ? "g" : ""}">${String(on)}/${String(history.on.runs)}</td><td class="${off / history.off.runs > on / history.on.runs ? "g" : ""}">${String(off)}/${String(history.off.runs)}</td>${median(history.on, name)}${median(history.off, name)}</tr>`;
+    const on = history.on.reached[name] ?? 0, off = history.off.reached[name] ?? 0, onN = eligibleRuns(history.on, name), offN = eligibleRuns(history.off, name);
+    return `<tr><td>${label}</td><td class="${on / onN > off / offN ? "g" : ""}">${String(on)}/${String(onN)}</td><td class="${off / offN > on / onN ? "g" : ""}">${String(off)}/${String(offN)}</td>${median(history.on, name)}${median(history.off, name)}</tr>`;
   }).join("");
-  return `<table class="etab"><thead><tr><th>MILESTONE</th><th>REACHED · ON</th><th>REACHED · OFF</th><th>MEDIAN SPLIT · ON</th><th>MEDIAN SPLIT · OFF</th></tr></thead><tbody>${rows}</tbody></table><p class="small muted">Strict: ${String(history.on.runs)} runs with this ON vs ${String(history.off.runs)} with it OFF, same model, thinking, budget and every other feature. Median split counts only runs that reached it; paused time excluded.</p>`;
+  return `<table class="etab"><thead><tr><th>MILESTONE</th><th>REACHED · ON</th><th>REACHED · OFF</th><th>MEDIAN SPLIT · ON</th><th>MEDIAN SPLIT · OFF</th></tr></thead><tbody>${rows}</tbody></table><p class="small muted">Strict: ${String(history.on.runs)} runs with this ON vs ${String(history.off.runs)} with it OFF, same model, thinking, budget and every other feature. Median split counts only runs that reached it; paused time excluded.${stoppedNote(history)}</p>`;
 }
 
 export interface SwitchboardInput {

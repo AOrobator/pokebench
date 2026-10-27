@@ -136,6 +136,8 @@ export interface AnalysisReport {
   readonly groups: readonly GroupResult[];
   readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
   // Trials the operator aborted or stopped: results with their progress, not infrastructure failures.
+  // Trials the operator excluded with runs/exclusions/<run>.json: out of every comparison, listed with the reason.
+  readonly excluded: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
   readonly stopped: readonly (Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason" | "furthestMs"> & { readonly furthest: string | null })[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
 }
@@ -156,10 +158,11 @@ function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
 }
 
 const operatorStopped = (t: AnalysisTrial): boolean => !t.valid && /^the operator stopped the trial \(operator_(abort|stop)\)$/.test(t.reason);
-export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string[]): AnalysisReport {
-  const valid = trials.filter((t) => t.valid);
+export function analyze(all: readonly AnalysisTrial[], lanes: readonly string[], exclusions: ReadonlyMap<string, string> = new Map()): AnalysisReport {
+  const trials = all.filter((t) => !exclusions.has(t.run)), valid = trials.filter((t) => t.valid);
   return {
     trials,
+    excluded: all.filter((t) => exclusions.has(t.run)).map(({ slot, lane, arm, run }) => ({ slot, lane, arm, run, reason: exclusions.get(run) ?? "" })),
     groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
     invalid: trials.filter((t) => !t.valid && !operatorStopped(t)).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
     stopped: trials.filter(operatorStopped).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
@@ -170,6 +173,10 @@ export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string
 const pct = (c: ArmCount): string => `${String(c.reached)}/${String(c.n)} (${c.n === 0 ? "–" : `${String(Math.round((100 * c.reached) / c.n))}%`})`;
 const p4 = (p: number): string => p.toPrecision(4);
 const below = (p: number, alpha: number): string => (p < alpha ? "yes" : "no");
+const excludedSection = (report: AnalysisReport): string[] => [
+  "## Excluded by the operator", "",
+  ...(report.excluded.length === 0 ? ["No run was excluded by the operator."] : ["| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|", ...report.excluded.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
+];
 const stoppedSection = (report: AnalysisReport): string[] => [
   "## Ended by the operator (included; censored at the stop)", "",
   "An operator abort or stop is not an exclusion: the trial's progress before the stop is a result, and milestones after it are censored, not failures. The runner still schedules a replacement for the slot, so the paired tests above use the replacement.", "",
@@ -199,6 +206,7 @@ function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions
     "Invalid trials are excluded from the descriptive comparison and must be reported by arm alongside all launched trials.", "",
     ...(report.invalid.length===0?["No invalid trials."]:["| Slot | Lane | Arm | Run | Reason |","|---|---|---|---|---|",...report.invalid.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
     ...stoppedSection(report),
+    ...excludedSection(report),
   ].join("\n");
 }
 
@@ -226,6 +234,7 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
     ...(report.invalid.length === 0 ? ["No invalid trials."] : ["| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|", ...report.invalid.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]),
     "",
     ...stoppedSection(report),
+    ...excludedSection(report),
   ];
   return lines.join("\n");
 }

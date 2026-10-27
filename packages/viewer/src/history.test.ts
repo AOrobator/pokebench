@@ -67,7 +67,7 @@ describe("strict per-feature history", () => {
     sorted(root, "other-failure-limit", { features: off("story-state-v1"), failureLimit: 10, milestones: [["NEW_GAME_CREATED", 1]] });
     const history = (await featureHistory(root, DRAFT));
     expect(history["story-state-v1"]).toEqual({
-      on: { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 2 }, medianMs: { NEW_GAME_CREATED: 40_000, CLOCK_SET: 500_000 } },
+      on: { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 2 }, medianMs: { NEW_GAME_CREATED: 40_000, CLOCK_SET: 500_000 }, stopped: [["NEW_GAME_CREATED", "CLOCK_SET"]] },
       off: { runs: 3, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 22_500.5 }, stopped: [["NEW_GAME_CREATED"]] },
     });
     expect(history["naming-cursor-v1"]).toBeNull();

@@ -10,10 +10,10 @@ it("names only registered switches, each once, in one role, with features that a
  const roles=[recipe.switches,recipe.offInBoth,recipe.onInBoth];
  for(const ids of roles){
   expect(new Set(ids).size).toBe(ids.length);
-  for(const id of ids)expect(registered).toContain(id);
+  expect(ids.filter(id=>!registered.has(id))).toEqual([]);
  }
  expect(new Set(roles.flat()).size).toBe(roles.flat().length);
- for(const id of Object.keys(recipe.features))expect(registered).toContain(id);
+ expect(Object.keys(recipe.features).filter(id=>!registered.has(id))).toEqual([]);
  for(const id of recipe.onInBoth)expect(recipe.features[id]).toBe(true);
  for(const id of recipe.offInBoth)expect(recipe.features[id]).toBe(false);
 });

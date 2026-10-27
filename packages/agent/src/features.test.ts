@@ -2,7 +2,7 @@ import {serverOff, serverOffWith} from "../test-support/server-features.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {ALL_ON as RAW_PROGRESS_CURRENT_ALL_ON} from "./features.js";
 const CURRENT_ALL_ON=RAW_PROGRESS_CURRENT_ALL_ON;
-import {LATER_SWITCHES, LEGACY_ALL_ON} from "../test-support/legacy-features.js";
+import {FROZEN_SWITCH_COUNT, LATER_SWITCHES, LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
 import { FEATURES, stateOnlyProblems, MEASUREMENT_FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
 
@@ -25,6 +25,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   const switchable = new Set<string>(SWITCHABLE_FEATURES);
   for (const id of SERVER_FEATURES) expect(switchable.has(id)).toBe(true);
   // Switches registered after the legacy fixture froze are appended; the frozen ones keep their groups.
+  expect(FROZEN_SWITCH_COUNT).toBe(276);
   const later = new Set<string>(LATER_SWITCHES);
   const frozen = FEATURES.filter((f) => !later.has(f.id));
   expect(frozen.filter((f) => f.group === "observation")).toHaveLength(110);

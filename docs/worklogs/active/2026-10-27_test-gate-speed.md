@@ -97,7 +97,14 @@ Gate wiring is proven by the wiring tests and the timed runs of the real recipes
 - Claude lane (`claude -p --permission-mode plan`, `~/.claude-review`): VERDICT: LGTM. Non-blocking: record the GREEN SHA; " Off:" applies to switches only; justfile comment wording; viewer 273–276 literals; Set instead of a registry scan.
 - GPT lane (Codex CLI `-m gpt-5.6-sol`, read-only): VERDICT: BLOCKING. One finding: the helper-guard test recomputes `serverOff(ALL_ON)` inside a filter and new invariant loops scan arrays, superlinear in the registry. Confirmed conversions are not tautological, legacy fixtures unchanged, the Python pin catches frozen drift, and every justfile spelling resolves to one pass.
 - Fallback lane (Grok out; standing "land without grok" waiver): fresh read-only Sonnet subagent: VERDICT: LGTM.
-- Fix batch: cache the base off-list and use Sets in the new invariants; record the SHA; clarify the comment and worklog wording; derive the viewer slice from `FROZEN_SWITCH_COUNT`.
+- Fix batch: cache the base off-list and use Sets in the new `features.test.ts` invariants; record the SHA; clarify the comment and worklog wording; derive the viewer slice from `FROZEN_SWITCH_COUNT`.
+- COMMIT: `test: address round-1 review of the registry pins and gate` (cbfdae24f); `just test` at that head exit 0 in 154 s (agent 4479, viewer 2039, pytest 4426, Playwright 3); `just lint` exit 0.
+
+**Round 2** — packet `511a6f95c..cbfdae24f`, SHA-256 `4f990429ad901d7a18c8da3d1073d2b859d336cee28bce3e407850eff5aa8b2b`.
+- GPT lane: VERDICT: LGTM.
+- Fallback lane: VERDICT: LGTM.
+- Claude lane: VERDICT: BLOCKING. B1: `feature-config-registry.test.ts` used `toContain` on a Set, which vitest copies into an array per call (config × registry). Hardening: pin `FROZEN_SWITCH_COUNT === 276`; record a gate at the fixed head.
+- Fix batch: `.has()` filters in the feature-config test; `FROZEN_SWITCH_COUNT` pinned to 276. Both feature-config mutations re-run RED, then GREEN restored.
 
 ## Boy Scout Log
 

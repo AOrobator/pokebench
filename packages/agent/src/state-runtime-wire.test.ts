@@ -18,8 +18,10 @@ import {RunLog} from "./run-log.js";
 import {RunRecorder} from "./recorder.js";
 import {parseEvent} from "./events.js";
 import {runStateMode} from "./state-runtime.js";
+import {contextBudget} from "./play-wiring.js";
+import type {ChatPayload} from "./exact-context.js";
 const Action=Type.Object({buttons:Type.Array(Type.String()),hold_frames:Type.Integer(),release_frames:Type.Integer()});
-it.each([false,true])("runs production state-mode seams (malformed arguments=%s)",async malformed=>{
+it.each([[false,false],[true,false],[false,true]])("runs production state-mode seams (malformed arguments=%s, exact count=%s)",async(malformed,exactCount)=>{
  const dir=mkdtempSync(join(tmpdir(),"state-runtime-fixture-"));const requests:unknown[]=[];const calls:string[]=[];let y=8;
  const image=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(image);image.write("IHDR",12,"ascii");image.writeUInt32BE(240,16);image.writeUInt32BE(160,20);
  const state=()=>({...IN_GAME,position:{x:5,y}});
@@ -50,7 +52,9 @@ it.each([false,true])("runs production state-mode seams (malformed arguments=%s)
   await recorder.start({...RUN_START_META,harness_features:["ram-state-v1","state-only-decisions-v1"],tools:["act"]});
   const signal=new AbortController();const governor=new Governor({limits:{maxTurns:malformed?5:2,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{signal.abort();},now:()=>0});
   const features={...ALL_ON,"evolution-decision-v1":false,"battle-decision-ready-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"readout-rules-in-prompt-v1":false,"disproved-beliefs-v1":false,"same-plan-breaker-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"dialogue-auto-advance-v1":false,"navigation-evidence-memory-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"instruction-ledger-v1":false,"instruction-ledger-v2":false,"input-cuts-v1":false,"next-milestone-hint-v1":false,"double-context-window-v1":false,"fresh-retry-v1":false,"text-only-supervisor-v1":false,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"press-result-v1":false};
-  expect(await runStateMode({features,target:null,serverUrl:url,recorder,governor,base:gatewayLoopConfig(model,"off"),signal:signal.signal,gate:()=>Promise.resolve()})).toBe(malformed?"model_error":"budget");
+  const counted:number[]=[];const counter={source:"vllm-tokenize" as const,count:(body:ChatPayload)=>{counted.push(body.messages.length);return Promise.resolve({tokens:1000,window:65536});}};
+  const {exact}=contextBudget({...features,"context-exact-count-v1":exactCount},model,4096,recorder,counter);
+  expect(await runStateMode({features,target:null,serverUrl:url,recorder,governor,base:gatewayLoopConfig(model,"off"),signal:signal.signal,gate:()=>Promise.resolve(),...(exact===undefined?{}:{exact})})).toBe(malformed?"model_error":"budget");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
   expect(events.filter(e=>e.type==="decision_input").map(e=>e.decision_turn)).toEqual(malformed?[1,2,3]:[1,2]);
   expect(events.filter(e=>e.type==="decision_input").map(e=>e.text)).toEqual(malformed?["Player at (5,8)","Player at (5,8)","Player at (5,8)"]:["Player at (5,8)","Player at (5,7)"]);
@@ -58,6 +62,8 @@ it.each([false,true])("runs production state-mode seams (malformed arguments=%s)
   expect(events.filter(e=>e.type==="tool_call").map(e=>e.name)).toEqual(malformed?["act","act","act"]:["act","act"]);
   const turns=events.filter(e=>e.type==="turn_start");expect(turns.map(e=>[e.context.messages,e.context.images])).toEqual(malformed?[[1,1],[1,1],[1,1]]:[[1,1],[1,1]]);for(const e of turns)expect(e.context.est_tokens).toBeGreaterThan(0);
   if(malformed)expect(events.filter(e=>e.type==="tool_call").map(e=>e.args)).toEqual([null,null,null]);
+  expect(counted).toHaveLength(exactCount?requests.length:0);
+  expect(events.filter(e=>e.type==="assistant").map(e=>e.prompt_count?.tokens)).toEqual(events.filter(e=>e.type==="assistant").map(()=>exactCount?1000:undefined));
   expect(requests).toHaveLength(malformed?3:2);expect(calls.filter(x=>x==="GET /pokebench/observation")).toHaveLength(malformed?3:4);expect(calls.filter(x=>x==="POST /action")).toHaveLength(malformed?0:1);
  }finally{await new Promise<void>((resolve,reject)=>{server.close(error=>{if(error)reject(error);else resolve();});});rmSync(dir,{recursive:true});}
 });

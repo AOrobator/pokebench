@@ -38,3 +38,9 @@ Approved scope (coordinator relay of the operator's approval): build the switch,
 - Same with the fit forced to drop turns → 5 turns dropped, `/tokenize` 4,678, vLLM prompt_tokens 4,678.
 
 ## Multi-Model Review Log
+
+Round 1 (packet 1: base 5940bc2fb, head ebfe4cfa6, diff sha256 07db679f…e929; Grok absent from `cursor-agent --list-models`, so the third lane is a fresh read-only Sonnet subagent):
+- Claude CLI (~/.claude-review, plan mode): LGTM. Follow-ups: turn_start.context is pre-fit; calibrate after a fallback (same as GPT #2); compaction from exact to estimate after a mid-fit failure; PB7 row misnamed prompt_sha256 (it hashes the system prompt).
+- GPT (Codex CLI gpt-5.6-sol, read-only): BLOCKING. #1 state-only requests bypass the exact fit (live.ts builds a fresh playLoopBase for runStateMode) → Fix. #2 llama.cpp calibration after a mid-fit count failure uses the last unsent candidate's text/image counts → Fix. Follow-up: component_chars is pre-fit.
+- Fallback (Sonnet subagent): LGTM. Follow-ups: walk-up from cut 0 costs one /tokenize per dropped turn; no abort signal/timeout on /tokenize; stale `last` (same as GPT #2); a /tokenize blip over-trims one turn; other vLLM overflow wordings; ON with no key and budget OFF has no guard; reserve not in continuation snapshot.
+- RED for #1/#2: state-runtime-wire exact-count case and llama late-failure calibration case fail (2 failed).

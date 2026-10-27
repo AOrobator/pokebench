@@ -274,6 +274,17 @@ describe("context-exact-count-v1 counters", () => {
     counter.calibrate?.(500);
   });
 
+  it("llama.cpp: a late count failure sends an estimate and never calibrates images against an unsent candidate", async () => {
+    const recorded = hooks();
+    const fetchFn = fetchOf([{ prompt: "p" }, { tokens: Array.from({ length: 70_000 }, () => 1) }, new TypeError("fetch failed"), { prompt: "p" }, { tokens: [1] }]).fetch;
+    const counter = llamaCppCounter("http://h:1/v1", "k", fetchFn);
+    const exact = new ExactContext(counter, WINDOW, MAX, recorded);
+    await exact.fit(payload(4, 10, 3));
+    expect(recorded.counts[0]?.source).toBe("estimate");
+    exact.observe(reply(70_030));
+    expect(await counter.count(payload(1, 10, 2))).toEqual({ tokens: 1 + 2 * IMAGE_WEIGHT, window: null });
+  });
+
   it("llama.cpp: a malformed template or tokenize reply is a CountError, and calibration before a count is ignored", async () => {
     const before = llamaCppCounter("http://h:1", "k", fetchOf([{ prompt: "p" }, { tokens: [1] }]).fetch);
     before.calibrate?.(900);

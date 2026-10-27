@@ -77,7 +77,7 @@ export function preciseTime(ms: number): string {
 }
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
 // The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
-const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused");
+const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused" || r.status === "unresponsive");
 function rankedAgents(runs: readonly WorkbenchRun[]): WorkbenchRun[] {
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
   const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;

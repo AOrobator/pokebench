@@ -424,7 +424,7 @@ function experimentCohorts(root: string, failures: Map<string, string>, unverifi
 }
 // A fixed-run ledger (the fixed-N two-arm driver) joins experiment:<id> the same way: all or nothing,
 // every launched run is a member. A stop-only trial outcome censors further observation; it does
-// not invalidate earned progress. Other invalid-trial reasons still exclude the recording here.
+// not invalidate earned progress. Other invalid-trial reasons flag the recording; nothing here excludes it.
 // False when the ledger is unreadable and contributed nothing.
 function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): boolean {
   const { entries, problems: bad } = parseFixedLedger(text);

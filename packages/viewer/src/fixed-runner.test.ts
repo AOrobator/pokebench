@@ -79,6 +79,7 @@ type Ending = "budget" | "operator_abort" | "model_error" | "never-started" | "m
 interface FakeOptions {
   readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;
   readonly extensionMs?: number;
+  readonly throwAfterEvents?: (n: number) => boolean;
   readonly ending?: (launch: FixedLaunch, n: number) => Ending;
   readonly serving?: (lane: FixedLane, n: number) => ServingReceipt;
   readonly verifyBuild?: (n: number) => string | null;
@@ -136,6 +137,7 @@ class Fake implements FixedHost {
     const ending = this.options.ending?.(l, n) ?? "budget";
     if (ending !== "never-started") writeEvents(this.runsRoot, l, ending, this.options.extensionMs ?? 0);
     this.running -= 1;
+    if (this.options.throwAfterEvents?.(n) === true) throw new Error("launcher lost the child");
     return ending === "never-started" ? 1 : 0;
   }
   snapshot(): void {
@@ -215,6 +217,16 @@ describe("runFixed", () => {
     const status = parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")));
     expect(status).toMatchObject({ valid: 12, invalid: 0, reserve: { usedMs: 0, totalMs: 1_800_000 } });
     expect(host.statuses.some((s) => s.lanes.some((l) => l.state === "paused" && l.reason.startsWith("backing off after model/gateway error") && l.retryAt !== null))).toBe(true);
+  });
+
+  it("keeps a run that began as its own outcome when the launcher errors afterwards, without replacing it", async () => {
+    const { def, runsRoot, dir } = setup();
+    const host = new Fake(runsRoot, { throwAfterEvents: (n) => n === 1 });
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+    const ledger = readLedger(join(dir, "trials.jsonl"));
+    expect(outcomes(ledger)).toHaveLength(12);
+    expect(outcomes(ledger).filter((o) => o.reason.endsWith("; launcher reported: launcher lost the child"))).toEqual([expect.objectContaining({ valid: true })]);
+    expect(launchesOf(ledger).find((e) => e.replaces !== undefined)).toBeUndefined();
   });
 
   it("counts an operator-aborted trial as a valid outcome, never replaces it and keeps its lane playing", async () => {

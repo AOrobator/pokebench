@@ -377,7 +377,8 @@ class Runner {
     this.children.delete(lane.id);
     this.writeRunner();
     const outcome = classifyTrial(this.events(run), this.expectation(lane, slot), exit);
-    return this.record(lane, slot, run, launchError === null ? outcome : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
+    // A launcher error over a run that began keeps the run's own outcome; only a trial that never began is invalid.
+    return this.record(lane, slot, run, launchError === null ? outcome : outcome.valid ? { ...outcome, reason: `${outcome.reason}; launcher reported: ${launchError}` } : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
   }
 
   // The child is recorded before anything that can throw and cleared only once it has exited, so a

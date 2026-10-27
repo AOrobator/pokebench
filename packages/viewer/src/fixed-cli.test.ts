@@ -336,8 +336,8 @@ describe("fixed-run status and analyze", () => {
     writeFileSync(join(receipt, "trials.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
     expect(await main(["analyze-receipt", receipt, "control", "both", "--cap-ms", "1800000"], deps)).toBe(0);
     const text = out.join("\n");
-    // Every launched trial counts: the aborted trial 6 and the never-started trial 5 included.
-    expect(text).toContain("| pooled | 2/3 (67%) | 0/2 (0%) |");
+    // Every trial that ran counts, the aborted trial 6 included; the never-started trial 5 has no observation and is listed.
+    expect(text).toContain("| pooled | 2/3 (67%) | 0/1 (0%) |");
     expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | not reached | unavailable | no run_start");
     expect(text).toContain("| 6 | A | bundle | 2026-10-14T18-06-00_think-fast_0006 | ended by the operator (operator_abort); progress before it counts |");
     expect(err.join("\n")).toContain("broken.json");

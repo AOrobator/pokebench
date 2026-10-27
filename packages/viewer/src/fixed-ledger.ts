@@ -1,6 +1,6 @@
 import {isExtensionAction} from "./budget-extensions.js";
 // The append-only trial ledger of a fixed-run experiment, the queue derived from it,
-// and the infrastructure-only rule that judges each finished trial valid or invalid.
+// and the rule that judges a trial invalid only when it never began or ran another configuration.
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Type, type Static } from "typebox";

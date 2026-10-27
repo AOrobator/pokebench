@@ -29,7 +29,7 @@ You own whether a claim is supported by the numbers, and what sample would settl
   - Randomized balanced order.
   - Same frozen build.
   - Equal executor share per arm, with the result reported per executor.
-  - Every launched trial in the primary analysis. Model errors and crashes count as not reached; only outages outside the arm are re-run. Compare failure counts across arms: a treatment that causes failures must not have them excused.
+  - Every launched trial in the primary analysis. Model errors, crashes and gateway outages that hit a running trial count as not reached; only a trial that never began is re-run, and operator-ended trials are censored at their end (the operator 2026-10-27). Compare failure counts across arms: a treatment that causes failures must not have them excused.
   - A cap derived from observed times.
 - **Overclaiming.** Survivor medians, a single best run, checkpoint progress shown as fresh-boot progress, and comparison against a stale or incompatible control (PB2, PB3).
 - **What would settle it.** Give the smallest design that answers the question within the operator's GPU-hour budget, with the `power.py` output, or say that no affordable design can.

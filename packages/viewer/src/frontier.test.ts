@@ -546,6 +546,10 @@ describe("operator-stopped frontier", () => {
     document.body.innerHTML = frontierPlot(frontierReferences([stopped]), [stopped], 900);
     expect(document.body.textContent).toContain(`Ended by operator ${reason === "operator_abort" ? "abort" : "stop"} (${reason})`);
   });
+  it("lets a run whose process died without run_end lead the frontier: how it ended never removes it", () => {
+    const died = { ...best(), id: "died", status: "unresponsive" as const, reason: null };
+    expect(frontierReferences([died]).best?.id).toBe("died");
+  });
   it("keeps an operator-excluded run off the chart and names the operator's reason", () => {
     const excluded = { ...best(), id: "excluded", excluded: "Operator exclusion: wrong ROM" };
     expect(frontierReferences([excluded]).best).toBeNull();

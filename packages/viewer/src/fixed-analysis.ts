@@ -19,6 +19,9 @@ export interface AnalysisTrial {
   readonly furthest?: string | null;
   readonly furthestDepth: number;
   readonly furthestMs: number | null;
+  // How the trial ended and its recorded run_end wall time (includes operator pauses, so an upper bound).
+  readonly endReason?: string | null;
+  readonly endMs?: number | null;
 }
 
 const logFactorials: number[] = [0];
@@ -143,17 +146,23 @@ export interface AnalysisReport {
 }
 
 const reachedInCap = (t: AnalysisTrial): boolean => t.primaryReached && t.primaryMs !== null && t.primaryMs <= t.capMs;
+const operatorEnded = (t: AnalysisTrial): boolean => t.endReason === "operator_abort" || t.endReason === "operator_stop";
+// Grading protocol: an operator-ended trial's unreached milestones are censored at its end, never failures, so it
+// enters reach and depth ranking only once it reached the primary milestone; the log-rank test censors it at its end.
+const scored = (t: AnalysisTrial): boolean => !operatorEnded(t) || reachedInCap(t);
+// A trial that never began produced no observation; it is listed, and its replacement fills the slot.
+const observed = (t: AnalysisTrial): boolean => !t.reason.startsWith("no run_start") && !(t.reason.startsWith("launch failed") && t.endReason == null);
 
 function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
   const arm = (a: FixedArm): AnalysisTrial[] => trials.filter((t) => t.arm === a);
-  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.length, reached: ts.filter(reachedInCap).length });
+  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.filter(scored).length, reached: ts.filter(reachedInCap).length });
   const bundle = count(arm("bundle")), control = count(arm("control"));
-  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (reachedInCap(t) && t.primaryMs !== null ? { time: t.primaryMs, event: true } : { time: t.capMs, event: false }));
+  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (reachedInCap(t) && t.primaryMs !== null ? { time: t.primaryMs, event: true } : { time: operatorEnded(t) ? Math.min(t.capMs, t.endMs ?? t.capMs) : t.capMs, event: false }));
   return {
     name, bundle, control,
     fisherP: fisherExact(bundle.reached, bundle.n - bundle.reached, control.reached, control.n - control.reached),
     logRank: logRank(survival(arm("bundle")), survival(arm("control"))),
-    mannWhitney: mannWhitney(arm("bundle").map(depthThenTime), arm("control").map(depthThenTime)),
+    mannWhitney: mannWhitney(arm("bundle").filter(scored).map(depthThenTime), arm("control").filter(scored).map(depthThenTime)),
   };
 }
 
@@ -162,7 +171,7 @@ export function analyze(all: readonly AnalysisTrial[], lanes: readonly string[],
   return {
     trials,
     excluded: all.filter((t) => exclusions.has(t.run)).map(({ slot, lane, arm, run }) => ({ slot, lane, arm, run, reason: exclusions.get(run) ?? "" })),
-    groups: [group("pooled", trials), ...lanes.map((l) => group(l, trials.filter((t) => t.lane === l)))],
+    groups: [group("pooled", trials.filter(observed)), ...lanes.map((l) => group(l, trials.filter((t) => observed(t) && t.lane === l)))],
     flagged: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
     endedEarly: trials.filter((t) => t.valid).filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
   };
@@ -177,7 +186,7 @@ const excludedSection = (report: AnalysisReport): string[] => [
 ];
 const flaggedSection = (report: AnalysisReport): string[] => [
   "## Flagged trials (kept in every comparison; only the operator excludes)", "",
-  "How a trial ended never decides whether it counts. These trials never began, ran another configuration, or carry a legacy invalid verdict; they are counted above as they are. Exclude one only with `just exclude-run <run> <operator> <reason…>`.", "",
+  "How a trial ended never decides whether it counts. These trials never began, ran another configuration, or carry a legacy invalid verdict. Every one that ran is counted above as it is. A trial that never began has no observation, so it adds nothing to the tests and its replacement fills the slot. An operator-ended trial that had not reached the compared milestone is censored at its end: it stays out of the reach and depth comparisons and the log-rank test censors it at its recorded end. Exclude a run only with `just exclude-run <run> <operator> <reason…>`.", "",
   ...(report.flagged.length === 0 ? ["No flagged trials."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.flagged.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
 ];
 
@@ -281,6 +290,6 @@ export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLe
   return state.slots.filter((s) => s.phase === phase).flatMap((s) => {
     const o = state.outcomes.get(s.slot);
     if (o === undefined) return [];
-    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs }];
+    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs, endReason: o.endReason, endMs: o.wallMs }];
   });
 }

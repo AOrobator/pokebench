@@ -208,7 +208,7 @@ def main(argv: list[str]) -> int:
     sizing.add_argument("--power", type=float, default=0.8)
     sizing.add_argument("--cap-min", type=float, required=True, help="trial cap in minutes")
     sizing.add_argument("--executors", type=int, default=1, help="independent GPUs running trials at once")
-    sizing.add_argument("--failure-rate", type=float, default=0.0, help="share of trials lost to outages outside the arm (re-run); model errors and crashes are outcomes, not this")
+    sizing.add_argument("--failure-rate", type=float, default=0.0, help="share of launches that never begin (re-run); every trial that began is an outcome, crashes and gateway errors included")
     sizing.add_argument("--budget-gpu-hours", type=float)
     sizing.add_argument("--svg", help="write a linear-axis power curve to this file")
     sizing.add_argument("--json", action="store_true")
@@ -248,7 +248,7 @@ def main(argv: list[str]) -> int:
         return "none<=400" if value is None else format(value, form)
 
     print(f"control {args.control:.0%}, alpha {args.family_alpha} over {args.comparisons} comparison(s) = {args.alpha:.4g} per test, target power {args.power:.0%}, cap {args.cap_min:g} min, "
-          f"{args.executors} executor(s), {args.failure_rate:.0%} of trials re-run for outages outside the arm")
+          f"{args.executors} executor(s), {args.failure_rate:.0%} of launches re-run because they never began")
     if budget_runs is not None:
         print(f"budget {args.budget_gpu_hours:g} GPU-h buys {budget_runs} runs per arm (expected; outages can push spend over)")
     print(f"n/arm = smallest N whose power stays at target for {STABLE_WINDOW} consecutive N; first = first crossing. GPU-h is an upper bound (every trial runs to the cap; no boot or load overhead).")

@@ -40,6 +40,8 @@ export function laneApiKey(lane: FixedLane): string {
   }
   const key = text.trim();
   if (key === "") throw new FixedRunError(`lane ${lane.id}: the api key file ${lane.apiKeyFile} is empty`);
+  // A bearer token is one run of visible ASCII; anything else would fail in a header whose error may quote it.
+  if (!/^[\x21-\x7e]+$/.test(key)) throw new FixedRunError(`lane ${lane.id}: the api key file ${lane.apiKeyFile} holds characters a bearer token cannot have`);
   return key;
 }
 

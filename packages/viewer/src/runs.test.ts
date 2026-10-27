@@ -419,6 +419,18 @@ it("catalogs isolated nested human recordings beside model runs and resolves the
   expect((await comparisonsOf(r, "current")).candidates.map(c => c.run).sort()).toEqual(["human-recording", "model"]);
 });
 
+it("never offers or auto-selects a run the operator excluded as a split comparison", async () => {
+  const { comparisonsOf } = await import("./runs.js");
+  const r = root();
+  writeRun(r, "model", fullRun()); writeRun(r, "excluded", fullRun());
+  const current = new Log(); current.add(1000, { ...START, harness_features: ["ram-state-v1"] }); writeRun(r, "current", current);
+  mkdirSync(join(r, "exclusions"));
+  writeFileSync(join(r, "exclusions", "excluded.json"), JSON.stringify({ version: 1, run: "excluded", reason: "wrong ROM", by: "The operator", at: "2026-10-27T20:00:00.000Z" }));
+  const result = await comparisonsOf(r, "current");
+  expect(result.candidates.map(c => c.run)).toEqual(["model"]);
+  expect(result.baseline?.run).toBe("model");
+});
+
 it("surfaces malformed nested human logs and duplicate ids without selecting ambiguous storage", () => {
   const r = root(); writeRun(r, "duplicate", fullRun()); writeRun(join(r, "human"), "duplicate", humanLog());
   mkdirSync(join(r, "human", "malformed")); writeFileSync(join(r, "human", "malformed", "events.jsonl"), "not JSON\n");

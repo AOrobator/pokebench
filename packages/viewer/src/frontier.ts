@@ -54,8 +54,13 @@ const INVALID_TRIAL = "Invalid fixed-run trial: ";
 export function invalidTrial(run: WorkbenchRun): string | null {
   if (run.problem !== null || run.excluded === null || run.measurement?.controller !== "agent") return null;
   const reason = run.excluded.startsWith(INVALID_TRIAL) ? run.excluded.slice(INVALID_TRIAL.length)
-    : run.excluded === "Excluded operator-aborted run" || run.excluded.startsWith("Infrastructure outcome: ") || run.excluded.startsWith("Launcher outcome: ") ? run.excluded : null;
+    : run.excluded.startsWith("Infrastructure outcome: ") || run.excluded.startsWith("Launcher outcome: ") ? run.excluded : null;
   return run.config?.start === "boot" || run.config?.resume === "MAIN_MENU" || resumeMilestone(run) !== null ? reason : null;
+}
+// The explicit marker for a run the operator ended: it stays in results.
+export function endedByOperator(reason: string | null): string | null {
+  const kind = reason === "operator_abort" ? "abort" : reason === "operator_stop" ? "stop" : null;
+  return kind === null ? null : `Ended by operator ${kind} (${reason ?? ""}): progress before the ${kind} counts; later milestones are censored, not failures`;
 }
 export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run) || invalidTrial(run) !== null;
 const resumedRun = (run: WorkbenchRun): boolean => checkpointResume(run) || (invalidTrial(run) !== null && resumeMilestone(run) !== null);
@@ -112,7 +117,7 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
 export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, versions: VersionIndex): string {
   const state = status === "live" ? " · LIVE" : status === "paused" ? " · PAUSED" : "";
   const start = run.config?.resume === "MAIN_MENU" ? " · from main-menu save" : "";
-  const stopped = run.reason === "operator_abort" || run.reason === "operator_stop" ? " · stopped early" : "";
+  const stopped = run.reason === "operator_abort" ? " · ended by operator abort" : run.reason === "operator_stop" ? " · ended by operator stop" : "";
   return `Agent frontier${state}${stopped} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
@@ -203,7 +208,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const coverage = `<details data-frontier-coverage class="wb-muted"><summary>${count}</summary><ul>${selected.map(run => {
     const last = milestones.findLast(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
     const split = run.splits.find(s => s.name === last?.id);
-    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · excluded: ${invalidTrial(run) ?? ""}`}` : hiddenIds.has(run.id) ? "Time outlier hidden; turn off HIDE TIME OUTLIERS to restore" : reason(run);
+    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · excluded: ${invalidTrial(run) ?? ""}`}${endedByOperator(run.reason) === null ? "" : ` · ${endedByOperator(run.reason) ?? ""}`}` : hiddenIds.has(run.id) ? "Time outlier hidden; turn off HIDE TIME OUTLIERS to restore" : reason(run);
     return `<li><a href="/#replay=${encodeURIComponent(run.id)}">${esc(run.id)}</a> · ${esc(progress)}</li>`;
   }).join("")}</ul></details>`;
   const unavailable = `${refs.human === null ? '<p class="wb-muted">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-muted">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;

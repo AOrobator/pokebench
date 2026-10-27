@@ -221,6 +221,12 @@ land-move *args:
 land-keeper:
     uv run --project env python -m pokebench_env.agent_mail land-keeper
 
+# Remove one run from results, with a required reason. Aborted and stopped runs count by default; this is
+# the only exclusion. Writes runs/exclusions/<run-id>.json in the main checkout; the run log is untouched.
+[positional-arguments]
+exclude-run run operator +reason: build
+    node packages/viewer/dist/run-exclusions.js "$@"
+
 # List runs whose run_start names an experiment (evaluation.experiment) but that no internal
 # provenance mapping holds. Read-only on the main checkout's runs/; prints nothing and exits 0 when complete.
 experiments-audit: build

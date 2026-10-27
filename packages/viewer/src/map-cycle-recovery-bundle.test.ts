@@ -6,7 +6,9 @@ import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-de
 
 const ID = "map-cycle-recovery-v1";
 // Current shared configuration and retained historical recipes with navigation-recovery-v1.
-const RECIPES = [["glm53-flash-4h",52],["gym-rustboro-torchic-healed",47],["bundle-v-control",52],["bundle-cook-1h",112],["whole-map-cook-1h",112],["whole-map-pair-2h",51],["bundle-v-control-2h",52],["gym-rustboro-torchic",47]] as const;
+// The maintained current recipes turn both recovery switches OFF in both arms (the operator 2026-10-27).
+const CURRENT = ["glm53-flash-4h","bundle-v-control","bundle-v-control-2h"] as const;
+const RECIPES = [["gym-rustboro-torchic-healed",47],["bundle-cook-1h",112],["whole-map-cook-1h",112],["whole-map-pair-2h",51],["gym-rustboro-torchic",47]] as const;
 
 // Each recipe is parsed once and each control base read once, however many cases use them.
 const definitions = new Map<string, ReturnType<typeof parseFixedDefinition>["definition"]>();
@@ -46,5 +48,19 @@ describe("map-cycle recovery bundle activation", () => {
       }
     });
   }
-
+  for (const name of CURRENT) {
+    it(`${name} keeps it and navigation-recovery-v1 OFF in both arms`, () => {
+      const definition = definitionOf(name);
+      expect(definition.switches).not.toContain(ID);
+      expect(definition.switches).not.toContain("navigation-recovery-v1");
+      expect(definition.offInBoth).toEqual(expect.arrayContaining([ID, "navigation-recovery-v1"]));
+      expect(controlBaseProblems(definition, controlBaseOf(definition.controlBase.path))).toEqual([]);
+      for (const phase of definition.phases) for (const arm of ["control", "bundle"] as const) {
+        const features = presetFeatures(parsePlayPreset(armPreset(definition, phase.id, arm)));
+        expect(features[ID]).toBe(false);
+        expect(features["navigation-recovery-v1"]).toBe(false);
+        expect(dependencyProblems(features)).toEqual([]);
+      }
+    });
+  }
 });

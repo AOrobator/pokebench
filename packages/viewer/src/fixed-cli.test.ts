@@ -461,7 +461,7 @@ describe("exploratory current-main feature recipe", () => {
       expect(captured.dryRun).toBe(true);
       expect(captured.def.plan.map(slot => ({ arm: slot.arm, lane: slot.lane }))).toEqual([{ arm, lane }]);
       expect(captured.def.phases.map(phase => phase.maxWallMs)).toEqual([Number(cap)]);
-      expect(armFeatures(captured.def, arm)["whiteout-outcomes-v2"]).toBe(arm === "bundle");
+      expect(armFeatures(captured.def, arm)["whiteout-outcomes-v2"]).toBe(true);
       expect(armFeatures(captured.def, arm)["briefing-battle-outcomes-v1"]).toBe(true);
       expect(armFeatures(captured.def, arm)["battle-loss-recap-v1"]).toBe(true);
     } finally { rmSync(f.root, { recursive: true, force: true }); }

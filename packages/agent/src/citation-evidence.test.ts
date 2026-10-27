@@ -88,13 +88,13 @@ it("requires a structured quote, allows optional rationale and rejects malformed
  expect(h.calls).toEqual([]);expect(h.records).toEqual([]);
  expect(Value.Check(h.tool.parameters,{...goal,because:{quote}})).toBe(true);
 });
-it("enables only current bundle arms; defaults and historical fixed definitions remain OFF",()=>{
+it("is on in both arms of current recipes; defaults and historical fixed definitions remain OFF",()=>{
  const dir=new URL("../../../experiments/fixed/",import.meta.url);
  const current=new Set(["bundle-v-control.json","bundle-v-control-2h.json","glm53-flash-4h.json"]);
  for(const name of readdirSync(dir).filter(n=>n.endsWith(".json"))){
   const d=JSON.parse(recipeText(new URL(name,dir),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth?:string[]};
-  expect(d.base.features[ID]??false,name).toBe(false);
-  expect(d.switches.includes(ID),name).toBe(current.has(name));
-  expect(d.onInBoth??[],name).not.toContain(ID);
+  expect(d.base.features[ID]??false,name).toBe(current.has(name));
+  expect(d.switches,name).not.toContain(ID);
+  expect((d.onInBoth??[]).includes(ID),name).toBe(current.has(name));
  }
 });

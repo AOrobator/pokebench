@@ -848,7 +848,10 @@ it("enables the seven training and catching switches only in the bundle of the f
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  // the operator 2026-10-27: the current recipe turns pokedex-own-v1 OFF in both arms.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
   for(const id of ids){
+   if(current&&id==="pokedex-own-v1"){expect(def.switches).not.toContain(id);expect(def.offInBoth).toContain(id);expect([armFeatures(def,"control")[id],armFeatures(def,"bundle")[id]]).toEqual([false,false]);continue;}
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
    expect(def.base.features[id]).toBe(false);
@@ -865,7 +868,10 @@ it("enables five GLM-run fixes only in the bundle; cut-off feedback is shared; n
  for(const file of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   const control=armFeatures(def,"control"),bundle=armFeatures(def,"bundle"),controlBits=armFeatureBits(def,"control"),bundleBits=armFeatureBits(def,"bundle");
+  // the operator 2026-10-27: the current recipe promotes drought-battle-heal-hold-v1 to both arms.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
   for(const id of ids){
+   if(current&&id==="drought-battle-heal-hold-v1"){expect(def.switches).not.toContain(id);expect(def.onInBoth).toContain(id);expect([control[id],bundle[id],controlBits[id],bundleBits[id]]).toEqual([true,true,true,true]);continue;}
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
    expect(def.onInBoth).not.toContain(id);
    expect(def.base.features[id]).toBe(false);
@@ -1001,7 +1007,7 @@ it("rehearses the current GLM protocol with shared features, serial chaining and
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:2,total:2});
   for(const arm of ["control","bundle"] as const){
    const preset=JSON.parse(readFileSync(join(dir,`presets/dry-run-${arm}.json`),"utf8")) as {features:Record<string,boolean>;sampling:{maxTokens:number}};
-   expect(preset.features["moving-npc-target-v1"]).toBe(arm==="bundle");
+   expect(preset.features["moving-npc-target-v1"]).toBe(true);
    expect(preset.features["cut-off-reply-feedback-v1"]).toBe(true);
    expect(preset.sampling.maxTokens).toBe(arm==="bundle"?8192:4096);
    expect(preset.features["trigger-navigation-boundary-v1"]).toBe(true);

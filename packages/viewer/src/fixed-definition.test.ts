@@ -42,7 +42,7 @@ it("binds config bytes to approval identity, and keeps schedule-only edits in so
   expect(first.featureRecipe?.id).toBe("current");expect(first.featureRecipe?.sha256).toBe(createHash("sha256").update(JSON.stringify(recipe)).digest("hex"));
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
-it("all maintained future protocols reference one feature owner, including bundle-only NPC support",()=>{
+it("all maintained future protocols reference one feature owner, including both-arm NPC support",()=>{
  const loaded=["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"].map(id=>{
   const source=JSON.parse(readFileSync(join(root,`experiments/fixed/${id}.json`),"utf8")) as {featureRecipe?:string;base:{features?:unknown};switches?:unknown};
   expect(source.featureRecipe,id).toBe("current");expect(source.base.features,id).toBeUndefined();expect(source.switches,id).toBeUndefined();return readFixedDefinition(root,id).definition;
@@ -50,7 +50,7 @@ it("all maintained future protocols reference one feature owner, including bundl
  const baseline=loaded[0];if(baseline===undefined)throw new Error("missing protocol");
  for(const d of loaded)for(const arm of ["control","bundle"] as const){
   expect(armFeatures(d,arm),d.id).toEqual(armFeatures(baseline,arm));
-  expect(armFeatures(d,arm)["moving-npc-target-v1"],d.id).toBe(arm==="bundle");
+  expect(armFeatures(d,arm)["moving-npc-target-v1"],d.id).toBe(true);
  }
  for(const id of ["bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   expect(existsSync(join(root,`experiments/fixed/${id}.json`))).toBe(false);

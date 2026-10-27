@@ -77,3 +77,7 @@ Round 3 (base 72257830d, head 809abf110, packet 1ec81918…):
 - GPT (Codex CLI gpt-5.6-sol): BLOCKING. #1 the same field-list bug (Fix above). #2 test runtime shape: rebut (operator-approved after round 2). #3 no gate record for the frozen head: the gates had run; recorded above.
 - Fallback (fresh Sonnet subagent): LGTM, with the same field-list point as a follow-up.
 - Stopped and reported to the operator (GPT blocked again); option (a) round 4 recommended.
+
+The operator picked (a) after round 3. Rebased onto main 3cb27905e (test-gate-speed). Main now keeps later switches OFF in the frozen fixtures and off-lists, so this branch's edits to those 15 test and fixture files were dropped (each now equals main). test_feature_switches.py keeps only the measurement-JSON type_gap check; the default-off list entry was removed because main subtracts later server switches. The mGBA binding was copied from the main checkout's venv into this worktree's venv (same Python 3.11), so the gates run unmodified.
+
+Gates at the round 4 head: `just test` exit 0 (agent 4582, viewer 2045, Python 4441, coverage gate agent 96.48/92.65/97.51, viewer 95.88/91.67/95.36, Python 97.48/93.60/100.00, trainer cards 3/3); `just lint` exit 0 (tsc, eslint, ruff, ruff format, mypy 134 files); schema fresh.

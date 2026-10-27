@@ -246,7 +246,6 @@ def test_env_list_is_validated() -> None:
     assert features_off_from_env({}) <= frozenset(SERVER_FEATURES)
     assert features_off_from_env({}) - LATER_SERVER_FEATURES == frozenset(
         {
-            "type-gap-team-v1",
             "cutscene-journal-v1",
             "blackout-transition-v1",
             "player-elevation-readout-v1",

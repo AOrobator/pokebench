@@ -738,7 +738,10 @@ export const StateBodySchema = Type.Object(
         species_types:Type.Union([Type.Tuple([Type.Integer({minimum:0,maximum:17}),Type.Integer({minimum:0,maximum:17})]),Type.Null()]),
         moves:Type.Array(Type.Object({move_id:Type.Integer({minimum:1,maximum:354}),name:NullableString,move_type:Type.Integer({minimum:0,maximum:17}),power:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:4}),
       },closed),{maxItems:6}),
-      type_chart:Type.Array(Type.Tuple([Type.Integer({minimum:0,maximum:254}),Type.Integer({minimum:0,maximum:254}),Type.Integer({minimum:0,maximum:20})]),{maxItems:112}),
+      type_chart:Type.Array(Type.Union([
+        Type.Tuple([Type.Integer({minimum:0,maximum:17}),Type.Integer({minimum:0,maximum:17}),Type.Union([Type.Literal(0),Type.Literal(5),Type.Literal(10),Type.Literal(20)])]),
+        Type.Tuple([Type.Literal(254),Type.Literal(254),Type.Literal(0)]),
+      ]),{maxItems:112}),
       diagnostic:NullableString,
     },closed)),
   },

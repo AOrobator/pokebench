@@ -59,3 +59,13 @@ Round 1 (base 511a6f95c, head 9223d83f2, packet 7939bd86…):
   - #2: a failed GET /pokebench/places is retried on every result. Fix: one read per run, a failure included. Test added.
   - #3: test runtime shape (map.json reads, ROM scans per parameter, replay find). Rebut: it asks for operation counts and scaling receipts, which the triage rule excludes; the suites run in seconds.
 - Fallback (fresh read-only Sonnet subagent): BLOCKING on the same leader-win bug (Fix above). Follow-ups noted, not in this branch: a once-per-battle latch for the wild block; Hidden Power and fixed-damage moves; doors named before the player has seen them (the map-table approach was operator-approved).
+
+Round 2 (base 511a6f95c, head df41b738f, packet 7e7614c9…):
+- Claude CLI (~/.claude-review, prompt on stdin): LGTM. Follow-up: the wild list's turn list grows (handled by fix 4 below).
+- Fallback (fresh Sonnet subagent): LGTM. Follow-ups: guide-pattern pages from gym trainers count as "said"; scripted non-person objects in the untalked list; KeyError in type_gap.py name tables; first places read can wait up to the 15 s fetch timeout.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING, five findings. Round cap reached; The operator picked (b) on the decision card: fix 1, 2, 4 and the wording in 3, push back on 5 and the people-ledger half of 4.
+  - #1 Fix: a wild foe that has a gym's own type (said/signed, else shared by every POKéMON met in its battles) never shows the block. Test: wild GEODUDE ROCK/GROUND after the ROCK guide → none.
+  - #2 Fix: type_chart rows are (0–17, 0–17, 0|5|10|20) or exactly (254,254,0). Tests reject [18,253,7] and [0,5,7].
+  - #3 Wording: the untalked line comes ahead of the readout, after headers such as harness-trust-v1's. Description and explainer corrected; production-path test with harness-trust-v1 on.
+  - #4 Fix: wild species are shown with battle count and first/latest turn ("2 battles, turns 10 to 40"), not every turn. Rebut the people-ledger half: PeopleLedger's per-state memory is the existing class shared with people-ledger-v1.
+  - #5 Rebut: repeat of round 1's runtime-shape request with no new evidence.

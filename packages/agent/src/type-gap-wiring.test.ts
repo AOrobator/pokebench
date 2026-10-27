@@ -15,7 +15,7 @@ import {UNTALKED_IN_GYM} from "./untalked-in-gym.js";
 // RUSTBORO CITY GYM result).
 const gz=(name:string):string=>gunzipSync(readFileSync(new URL(`./fixtures/${name}`,import.meta.url))).toString("utf8");
 const EVENTS=gz("type-gap-d41e.jsonl.gz").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
-const CHART=JSON.parse(readFileSync(new URL("./fixtures/type-chart-f3ae0881.json",import.meta.url),"utf8")) as [number,number,number][];
+const CHART=JSON.parse(readFileSync(new URL("./fixtures/type-chart-f3ae0881.json",import.meta.url),"utf8")) as NonNullable<import("./game-state.js").GameStateSnapshot["type_gap"]>["type_chart"];
 const MART=JSON.parse(gz("supplies-057c.json.gz")) as Record<string,unknown>;
 const GYM=JSON.parse(gz("untalked-gym-d41e.json.gz")) as {state:Record<string,unknown>;readout:string};
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
@@ -53,9 +53,15 @@ describe("production wiring of the type-gap, supplies and untalked-in-gym switch
   expect(await run({"supplies-v1":true},{...IN_GAME,location:MART.location,money:MART.money},"Location: PETALBURG CITY MART",entered)).toEqual(["Location: PETALBURG CITY MART","Supplies: ₽3,440 · balls: none · healing and status items: none · party 1 of 6 · places on this map that sell things: PETALBURG CITY MART (this map)"]);
   expect(await run({},{...IN_GAME,location:MART.location,money:MART.money},"Location: PETALBURG CITY MART",entered)).toEqual(["Location: PETALBURG CITY MART"]);
  });
- it("untalked-in-gym-v1: ON puts the line first on a gym result; OFF adds nothing",async()=>{
+ it("untalked-in-gym-v1: ON puts the line ahead of the readout on a gym result; OFF adds nothing",async()=>{
   const on=await run({"untalked-in-gym-v1":true},strip(GYM.state),GYM.readout,[]);
   expect(on).toEqual([`${UNTALKED_IN_GYM} object 2, sprite YOUNGSTER, at (5,13); object 4, sprite MAN_2, at (3,18).`,GYM.readout]);
   expect(await run({},strip(GYM.state),GYM.readout,[])).toEqual([GYM.readout]);
+  // With harness-trust-v1 (on in the bundle) its header still opens the result; the line comes before the readout.
+  const trusted=(await run({"untalked-in-gym-v1":true,"harness-trust-v1":true,"untalked-people-header-v1":false},strip(GYM.state),GYM.readout,[])).join("\n");
+  expect(trusted.startsWith("Read from game memory, always true:")).toBe(true);
+  const line=trusted.indexOf(UNTALKED_IN_GYM);
+  expect(line).toBeGreaterThan(0);
+  expect(line).toBeLessThan(trusted.indexOf("Location: RUSTBORO CITY GYM"));
  });
 });

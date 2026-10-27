@@ -16,7 +16,7 @@ import {CONTROLS,GUIDE_TYPE,GYM_BADGE,TYPE_GAP_HEADER,TypeGapTeam,gymOf,multipli
 // (type-chart-f3ae0881.json: pret battle_main.c gTypeEffectiveness, which env/tests/env/test_type_gap.py checks
 // against ROM 0x0831ACE8 row for row).
 const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/type-gap-d41e.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
-const CHART=JSON.parse(readFileSync(new URL("./fixtures/type-chart-f3ae0881.json",import.meta.url),"utf8")) as [number,number,number][];
+const CHART=JSON.parse(readFileSync(new URL("./fixtures/type-chart-f3ae0881.json",import.meta.url),"utf8")) as NonNullable<import("./game-state.js").GameStateSnapshot["type_gap"]>["type_chart"];
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Snapshot=GameStateSnapshot;
 type TypeGap=NonNullable<Snapshot["type_gap"]>;
@@ -112,6 +112,8 @@ describe("type-gap-team-v1 wild battle menu",()=>{
  it("stays silent for a foe without a gap type, in a trainer battle and once the party has the type",()=>{
   const {team}=replay(LOSS_RESULT);
   expect(team.block(wildDecision("ZIGZAGOON",[0,0]))).toBeNull();
+  // GEODUDE has GROUND, a gap type, but also ROCK, the gym's own type: never set beside the gym's facts.
+  expect(team.block(wildDecision("GEODUDE",[5,4]))).toBeNull();
   expect(team.block(wildDecision("WINGULL",[11,2],1<<3))).toBeNull();
   const grass=wildDecision("SHROOMISH",[12,12]);
   expect(team.block(grass)).not.toBeNull();
@@ -180,6 +182,23 @@ describe("type-gap-team-v1 gym evidence",()=>{
   expect(text).toContain("- Balls in BAG: POKé BALL ×5, GREAT BALL ×1");
   expect(team.block({...base,party,type_gap:gap,resources:null})).toBeNull();
  });
+ it("counts each wild species' battles with its first and latest turn, not every turn",()=>{
+  const team=new TypeGapTeam();
+  const wild=(seq:number,turn:number,inBattle:boolean)=>({...wildDecision("SHROOMISH",[12,12]),seq,turn,type:"state",in_battle:inBattle,screen:inBattle?"battle":"overworld"} as unknown as RunEvent);
+  for(const [seq,turn,b] of [[1,10,true],[2,11,true],[3,12,false],[4,40,true],[5,41,false]] as const)team.observe(wild(seq,turn,b));
+  team.observe(talk(6,[page("ROXANNE, the GYM LEADER, is a user\nof ROCK-type POKéMON.","RUSTBORO CITY GYM")]));
+  expect(team.block(field(10,"RUSTBORO CITY GYM"))).toContain("- Wild POKéMON met this run with those types: SHROOMISH GRASS on ROUTE104 (2 battles, turns 10 to 40)");
+  const once=new TypeGapTeam();
+  once.observe(wild(1,10,true));
+  once.observe(talk(6,[page("ROXANNE, the GYM LEADER, is a user\nof ROCK-type POKéMON.","RUSTBORO CITY GYM")]));
+  expect(once.block(field(10,"RUSTBORO CITY GYM"))).toContain("SHROOMISH GRASS on ROUTE104 (1 battle, turn 10)");
+ });
+ it("takes a gym's own type from the types all its battle POKéMON share when nothing was said",()=>{
+  const team=new TypeGapTeam();
+  team.observe(at(12664));
+  const text=team.block(wildDecision("SANDSHREW",[4,4]))??"";
+  expect(text).toBe("");
+ });
  it("names an unnamed gym trainer and lists no balls when the pocket is empty",()=>{
   const team=new TypeGapTeam();
   const fight={...at(12664),seq:1,trainer_opponent:{trainer_id:1,trainer_class:5,name:null,defeated:false,battle_active:true}} as State;
@@ -247,5 +266,8 @@ describe("type-gap-team-v1 wiring",()=>{
   const body={...IN_GAME,type_gap:typeGap(at(12769).party)};
   expect(parseGameState(body).type_gap?.party[0]?.species_types).toEqual([10,10]);
   expect(()=>parseGameState({...body,type_gap:{party:[],type_chart:[[0,0,30]],diagnostic:null}})).toThrow();
+  expect(()=>parseGameState({...body,type_gap:{party:[],type_chart:[[18,253,7]],diagnostic:null}})).toThrow();
+  expect(()=>parseGameState({...body,type_gap:{party:[],type_chart:[[0,5,7]],diagnostic:null}})).toThrow();
+  expect(parseGameState({...body,type_gap:{party:[],type_chart:[[254,254,0],[0,7,0]],diagnostic:null}}).type_gap?.type_chart).toHaveLength(2);
  });
 });

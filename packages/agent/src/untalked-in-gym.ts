@@ -1,4 +1,4 @@
-// untalked-in-gym-v1 (the operator 2026-10-27): on a gym map's field, the first part of each game-tool result lists the people
+// untalked-in-gym-v1 (the operator 2026-10-27): on a gym map's field, ahead of the readout, each game-tool result lists the people
 // on the map the player has not talked to this run, with their tiles. Talked to is the people ledger's record (an A
 // press or faced-sprite conversation that reached the model, plus the harness's own auto-talks, as
 // untalked-people-header-v1 counts them). It never says what anyone will say.

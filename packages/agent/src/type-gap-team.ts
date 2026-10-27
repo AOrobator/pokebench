@@ -43,7 +43,8 @@ interface Said {readonly type:string;readonly map:string;readonly quotes:string[
 interface Sign {readonly map:string;readonly quote:string;readonly type:string|null}
 interface Met {readonly trainer:string;readonly species:string;readonly types:readonly number[]}
 interface Gym {readonly said:Said[];readonly signs:Sign[];readonly met:Met[];leader:string|null}
-interface Wild {readonly species:string;readonly types:readonly number[];readonly map:string;readonly turns:number[]}
+// Each wild species, by its types and map: how many of its battles this run saw, and the first and latest turn.
+interface Wild {readonly species:string;readonly types:readonly number[];readonly map:string;battles:number;readonly first:number;last:number;battle:number}
 
 const oneLine=(text:string)=>text.replace(/\s*\n\s*/g," ").trim();
 const typeId=(name:string):number|null=>{const i=(TYPE_NAMES as readonly string[]).indexOf(name);return i<0||name==="???"?null:i;};
@@ -74,6 +75,9 @@ export class TypeGapTeam {
  private readonly gyms=new Map<string,Gym>();
  private readonly wild:Wild[]=[];
  private location:string|null=null;
+ // Battles seen so far; a battle starts at the first in-battle state after one that was not.
+ private battles=0;
+ private wasInBattle=false;
  private leaderFight:string|null=null;
  private lossPending=false;
  private readonly knownShown=new Set<string>();
@@ -116,6 +120,8 @@ export class TypeGapTeam {
  private state(s:State):void {
   if(s.location!==null)this.location=s.location;
   const inBattle=s.started&&(s.in_battle||s.screen==="battle");
+  if(inBattle&&!this.wasInBattle)this.battles+=1;
+  this.wasInBattle=inBattle;
   const foes=(s.battle?.battlers??[]).filter(b=>b.position%2===1&&!b.absent&&b.types.length>0);
   const gym=gymOf(this.location);
   if(inBattle&&trainerBattle(s)&&gym!==null&&s.trainer_opponent!=null){
@@ -128,8 +134,11 @@ export class TypeGapTeam {
    for(const f of foes){
     const map=this.location??"an unnamed map";
     const seen=this.wild.find(w=>w.species===f.species&&w.map===map&&typesOf(w)===typesOf(f));
-    if(seen===undefined)this.wild.push({species:f.species,types:f.types,map,turns:[s.turn]});
-    else if(!seen.turns.includes(s.turn))seen.turns.push(s.turn);
+    if(seen===undefined)this.wild.push({species:f.species,types:f.types,map,battles:1,first:s.turn,last:s.turn,battle:this.battles});
+    else{
+     seen.last=s.turn;
+     if(seen.battle!==this.battles){seen.battle=this.battles;seen.battles+=1;}
+    }
    }
   }
   // A loss: the first field state after the leader's battle still shows the leader's trainer flag clear. A win sets
@@ -172,10 +181,14 @@ export class TypeGapTeam {
   }
   const lines:string[]=[];
   const gaps=new Set<number>();
+  const own=new Set<number>();
   for(const [key,g] of gyms){
    const said=distinct(g.said.flatMap(x=>{const t=typeId(x.type);return t===null?[]:[t];}));
    const signed=distinct(g.signs.flatMap(x=>{const t=x.type===null?null:typeId(x.type);return t===null?[]:[t];}));
    const types=distinct([...said,...signed]);
+   // The gym's own types: what was said or signed, else the types every POKéMON met in its battles shares.
+   const shared=g.met.length===0?[]:distinct(g.met[0]?.types??[]).filter(t=>g.met.every(m=>m.types.includes(t)));
+   for(const t of types.length>0?types:shared)own.add(t);
    const evidence=[
     ...g.said.map(x=>`said on ${x.map}: ${x.quotes.map(q=>`"${q}"`).join(" / ")}`),
     ...g.signs.map(x=>`sign on ${x.map}: "${x.quote}"`),
@@ -201,12 +214,13 @@ export class TypeGapTeam {
   });
   lines.push(`- Your party (${String(gap.party.length)} of 6): ${members.join("; ")}`);
   if(wildFoe!==null){
-   if(!wildFoe.types.some(t=>gaps.has(t)))return null;
+   // A wild foe that has a gym's own type is never set beside that gym's facts.
+   if(!wildFoe.types.some(t=>gaps.has(t))||wildFoe.types.some(t=>own.has(t)))return null;
    const moves=wildFoe.moves.flatMap(m=>m.name===null?[]:[`${m.name}${m.move_type===null?"":` ${name(m.move_type)}`}`]);
    lines.push(`- Wild ${wildFoe.species} is ${typeText(wildFoe.types)} (its types in this battle) · moves now: ${moves.length===0?"none":moves.join(", ")}`);
   }else{
    const met=this.wild.filter(w=>w.types.some(t=>gaps.has(t)));
-   lines.push(`- Wild POKéMON met this run with those types: ${met.length===0?"none":met.map(w=>`${w.species} ${typeText(w.types)} on ${w.map} at turn${w.turns.length===1?"":"s"} ${w.turns.join(", ")}`).join("; ")}`);
+   lines.push(`- Wild POKéMON met this run with those types: ${met.length===0?"none":met.map(w=>`${w.species} ${typeText(w.types)} on ${w.map} (${w.battles===1?`1 battle, turn ${String(w.first)}`:`${String(w.battles)} battles, turns ${String(w.first)} to ${String(w.last)}`})`).join("; ")}`);
    this.lossPending=false;
    for(const [key] of fresh)this.knownShown.add(key);
   }

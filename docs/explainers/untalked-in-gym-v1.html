@@ -96,7 +96,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <main>
 <h1>Untalked people in gym (untalked-in-gym-v1)</h1>
-<p>Bundle arm only, default off. Approved by the operator on 2026-10-27. On a gym map, each game-tool result starts with the people on the map the player has not talked to this run, with their tiles. Run 9e33 never talked to the RUSTBORO gym guide, so it never heard which type the gym uses.</p>
+<p>Bundle arm only, default off. Approved by the operator on 2026-10-27. On a gym map, each game-tool result carries, ahead of the readout, the people on the map the player has not talked to this run, with their tiles. Headers that wrap every result, such as harness-trust-v1's, still come first. Run 9e33 never talked to the RUSTBORO gym guide, so it never heard which type the gym uses.</p>
 
 <h2>On the map</h2>
 <div class="diagram"><svg viewBox="0 0 760 300" role="img" aria-label="RUSTBORO CITY GYM entrance with two people">
@@ -119,13 +119,13 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><th></th><th>untalked-people-header-v1</th><th>untalked-in-gym-v1</th></tr>
 <tr><td>Maps</td><td>every map</td><td>gym maps only</td></tr>
 <tr><td>Talked to</td><td>since the last story milestone</td><td>this run</td></tr>
-<tr><td>Where</td><td>end of harness-trust-v1's header (needs it)</td><td>first part of the result; stands alone</td></tr>
+<tr><td>Where</td><td>end of harness-trust-v1's header (needs it)</td><td>ahead of the readout (after harness-trust-v1's header when that is on); stands alone</td></tr>
 <tr><td>Record</td><td colspan="2">the same people ledger: an A press or faced-sprite conversation that reached the model, plus the harness's own auto-talks</td></tr>
 </table>
 <p>It never says what anyone will say.</p>
 
 <h2>Off and on</h2>
-<table><tr><th>Off</th><th>On</th></tr><tr><td>No line. Results are today's bytes.</td><td>On a gym map's field, observe, press and navigate_to results start with the line.</td></tr></table>
+<table><tr><th>Off</th><th>On</th></tr><tr><td>No line. Results are today's bytes.</td><td>On a gym map's field, observe, press and navigate_to results carry the line ahead of the readout.</td></tr></table>
 
 <h2>Status</h2>
 <div class="card"><p>Branch <code>claude/type-gap-team</code>. Unit tests on d41e's gym state and a production-path test through <code>playGameTools</code>. No review lane, no measured runs, no probe yet.</p></div>

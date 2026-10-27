@@ -142,7 +142,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <rect x="262" y="130" width="487" height="60" rx="8" fill="#fff4c2" stroke="#283038"/><text x="505" y="157" text-anchor="middle" font-size="12">adds: wild POKéMON this run met in its own battles</text><text x="505" y="175" text-anchor="middle" font-size="12">whose types the party lacks (never the encounter tables)</text>
 <line x1="127" y1="100" x2="127" y2="128" stroke="#345779" stroke-width="2"/><line x1="380" y1="100" x2="380" y2="128" stroke="#345779" stroke-width="2"/><line x1="631" y1="100" x2="631" y2="128" stroke="#345779" stroke-width="2"/>
 </svg></div>
-<p class="cap">Figure 2. Nothing shows in a trainer battle, with no gym type known, or when a wild foe's types are all covered.</p>
+<p class="cap">Figure 2. Nothing shows in a trainer battle, with no gym type known, when a wild foe's types are all covered, or when a wild foe has one of the gym's own types (a GEODUDE, ROCK/GROUND, after a ROCK gym). Wild POKéMON are listed by species, types and map with their battle count and first and latest turn, for example "MARILL WATER on ROUTE104 (2 battles, turns 895 to 1238)".</p>
 
 <h2>Recorded example: d41e at turn 335</h2>
 <p>This is the exact block the test <code>type-gap-team.test.ts</code> builds from d41e's own pages and states (seq 0 to 12771), with the party's types taken from d41e's battle RAM. d41e also fought gym trainer JOSH, so his GEODUDE is listed. Its wild battles before the loss were ZIGZAGOON, POOCHYENA, RALTS (tutorial) and WURMPLE; none has a gap type, so that line says none.</p>

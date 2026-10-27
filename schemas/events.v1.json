@@ -12901,26 +12901,64 @@
             "type_chart": {
               "type": "array",
               "items": {
-                "type": "array",
-                "additionalItems": false,
-                "items": [
+                "anyOf": [
                   {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 254
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 17
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 17
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "const": 0
+                          },
+                          {
+                            "type": "number",
+                            "const": 5
+                          },
+                          {
+                            "type": "number",
+                            "const": 10
+                          },
+                          {
+                            "type": "number",
+                            "const": 20
+                          }
+                        ]
+                      }
+                    ],
+                    "minItems": 3
                   },
                   {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 254
-                  },
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 20
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "number",
+                        "const": 254
+                      },
+                      {
+                        "type": "number",
+                        "const": 254
+                      },
+                      {
+                        "type": "number",
+                        "const": 0
+                      }
+                    ],
+                    "minItems": 3
                   }
-                ],
-                "minItems": 3
+                ]
               },
               "maxItems": 112
             },

@@ -551,7 +551,7 @@ def test_repeated_failed_publications_stay_bounded_and_recover(monkeypatch, tmp_
         assert journal.persisted_revision == published["revision"]
         assert json.loads((tmp_path / "current.json").read_text()) == published
         windows = list(tmp_path.glob("window-*"))
-        assert len(windows) <= 2, windows
+        assert {window.name for window in windows} == {published["directory"]}, windows
         assert (tmp_path / published["directory"] / "window.json").exists()
     monkeypatch.setattr(raw.os, "replace", replace)
     journal.persist_diagnostics(tmp_path)
@@ -620,3 +620,30 @@ def test_failed_rollback_keeps_current_window_during_next_admission(monkeypatch,
     monkeypatch.setattr(raw.os, "replace", original_replace)
     raw.persist_diagnostic_window(tmp_path, 4, (raw_sample(4),))
     assert len(list(tmp_path.glob("window-*"))) == 2
+
+
+def test_post_publication_close_failure_never_removes_published_window(monkeypatch, tmp_path):
+    import json
+    from contextlib import contextmanager
+
+    import pytest
+
+    import pokebench_env.raw_ram as raw
+
+    raw.persist_diagnostic_window(tmp_path, 1, (raw_sample(1),))
+    temporary = raw.tempfile.NamedTemporaryFile
+
+    @contextmanager
+    def close_failure(*args, **kwargs):
+        with temporary(*args, **kwargs) as file:
+            yield file
+        raise OSError("pointer file close failed")
+
+    monkeypatch.setattr(raw.tempfile, "NamedTemporaryFile", close_failure)
+    with pytest.raises(OSError, match="pointer file close failed"):
+        raw.persist_diagnostic_window(tmp_path, 2, (raw_sample(2),))
+    current = json.loads((tmp_path / "current.json").read_text())
+    assert current["revision"] == 2
+    assert (tmp_path / current["directory"] / "window.json").exists()
+    assert len(list(tmp_path.glob("window-*"))) == 2
+    assert not list(tmp_path.glob(".current-*"))

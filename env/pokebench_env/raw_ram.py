@@ -133,6 +133,17 @@ def persist_diagnostic_window(
     directory.mkdir(parents=True, exist_ok=True)
     name = f"window-{revision:012d}"
     destination = directory / name
+    if not destination.exists():
+        # Admission is bounded even when a previous publication/rollback failed.
+        # Keep the actual published window, not a higher-numbered orphan.
+        current_path = directory / "current.json"
+        published = (
+            json.loads(current_path.read_text())["directory"] if current_path.exists() else None
+        )
+        for old in directory.glob("window-*"):
+            if old.is_dir() and old.name[7:].isdigit() and old.name != published:
+                shutil.rmtree(old)
+    created = False
     with tempfile.TemporaryDirectory(prefix=".window-", dir=directory) as temporary:
         staging = Path(temporary)
         receipts = [_persist_capture(staging, sample) for sample in snapshots]
@@ -153,18 +164,26 @@ def persist_diagnostic_window(
                 raise ValueError("diagnostic revision reused with different evidence")
         else:
             staging.rename(destination)
-    with tempfile.NamedTemporaryFile(dir=directory, prefix=".current-", delete=False) as current:
-        pending = Path(current.name)
-        try:
-            current.write(json.dumps(manifest).encode())
-            current.flush()
-            os.fsync(current.fileno())
-            os.replace(pending, directory / "current.json")
-        finally:
-            pending.unlink(missing_ok=True)
-    windows = sorted(p for p in directory.glob("window-*") if p.is_dir() and p.name[7:].isdigit())
-    for old in windows[:-2]:
-        shutil.rmtree(old)
+            created = True
+    pointer_published = False
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=directory, prefix=".current-", delete=False
+        ) as current:
+            pending = Path(current.name)
+            try:
+                current.write(json.dumps(manifest).encode())
+                current.flush()
+                os.fsync(current.fileno())
+                os.replace(pending, directory / "current.json")
+                pointer_published = True
+            finally:
+                if not pointer_published:
+                    pending.unlink(missing_ok=True)
+    except Exception:
+        if created and not pointer_published:
+            shutil.rmtree(destination)
+        raise
     return manifest
 
 

@@ -22,18 +22,18 @@ No credentials in artifacts; normal endpoint-file transport and exclusive lease.
 
 ## Milestones
 ### M1 — source-grounded switch and production delivery
-- [ ] RED source arithmetic, early screen, delivered-only ledger, learner bonuses, OFF/factory tests; commit RED.
-- [ ] GREEN registry/preset/defaults/server flags, annotation wiring and reused damage engine; commit GREEN.
+- [x] RED source arithmetic, early screen, delivered-only ledger, learner bonuses, OFF/factory tests; commit RED.
+- [x] GREEN registry/preset/defaults/server flags, annotation wiring and reused damage engine; commit GREEN.
 - [ ] Wiring deletion/restoration proof; full just test (coverage >=90), lint, build, vendor.
-- [ ] Source/ROM provenance, real recorded state and delivered observation check.
-- [ ] Local explainer + Harness Config mapping and visual evidence.
+- [x] Source/ROM provenance, real recorded state and delivered observation check.
+- [x] Local explainer + Harness Config mapping and visual evidence.
 - [ ] Independent multi-model review; do not mark complete before review.
 ### M2 — exploratory decision probes before landing
-- [ ] Freeze 8 development contexts: learning9c88/668,88ea/648,a702/518; ready battle9c88/695,88ea/664,a702/575; PECK9c88/661; SAND-ATTACK88ea/1384.
-- [ ] First batch proposed48 calls,3 draws per OFF/ON/case; max90s per call,72min hard call-time ceiling. Cost estimate from comparable historical calls before launch. Initial batch only; no confirmation claim; untouched families reserved for a separately designed confirmation.
-- [ ] Coordinator acknowledgments of exact endpoint/window; graceful authorized bundle stop only if necessary; preserve checkpoint and event logs.
-- [ ] Fake runner rehearsal; exact source/build/payload hashes; arm balance and grader rubric.
-- [ ] Register canonical probe manifest/status/provenance before sampling; normal exclusive lease.
+- [x] Freeze 8 development contexts: learning9c88/668,88ea/648,a702/518; ready battle9c88/697,88ea/672,a702/605; PECK9c88/661; SAND-ATTACK88ea/1384.
+- [x] First batch fixed48 calls,3 draws per OFF/ON/case; max90s per call,72min hard call-time ceiling. Cost estimate from comparable historical calls before launch. Initial batch only; no confirmation claim; untouched families reserved for a separately designed confirmation.
+- [x] Coordinator acknowledgments of exact endpoint/window; graceful authorized bundle stop only if necessary; preserve checkpoint and event logs.
+- [x] Fake runner rehearsal; exact source/build/payload hashes; arm balance and grader rubric.
+- [x] Register canonical probe manifest/status/provenance before sampling; normal exclusive lease.
 - [ ] Complete fixed batch then inspect actions/reasoning; report errors and regressions, not only learning rate.
 - [ ] Browser click-through verifies current study, cases and terminal totals. Preserve failed/incomplete draws.
 ### M3 — evidence and review handoff
@@ -51,7 +51,7 @@ Prove production annotations on the real recorded pre668 state and counterpart s
 - 88ea/648 and a702/518 already acquired DOUBLE KICK; inspected histories are regression/development, never untouched confirmation.
 
 ## Multi-Model Review Log
-Pending frozen implementation and gates. No self-issued lane waiver.
+Claude and GPT LGTM on final-scope frozen production packet (see receipts below). Grok quota-blocked, no self-issued lane waiver; three-lane landing gate remains incomplete.
 
 ## Boy Scout Log
 No unrelated changes planned.
@@ -75,3 +75,5 @@ COMMIT b5d0c24ea scopes native data and declares explicit damage dependency; foc
 Final-scope packet a93b34ec5→1c854f0fb SHA256 5e0f84bcc6d7bb5597642d88ab653c07245d05107bb5c688e6a423aaee47c5eb independently received Claude and GPT VERDICT: LGTM. Grok remains quota-blocked; no merge waiver inferred. Targeted ESLint passed; targeted ruff found only import formatting, corrected without behavior/assertion changes. Final six 1280/1440/375 explainer screenshots (closed/open) inspected; diagram stacks and table scrolls on phone, no page overflow. Full gates pending next coordinator CPU START.
 
 Synced main5c0074f87 evidence only; production source unchanged. Final build passed. Full attempt3: viewer panels worker exceeded default Node heap (2286/2288), no assertion failure; retained log, reran unchanged tests with NODE_OPTIONS=--max-old-space-size=8192. Attempt4 TS fully passes:4918agent/2288viewer; agent coverage96.45/92.40/97.44 and viewer94.61/90.76/94.95 (lines/branches/functions). Python4865pass9fail: legacy early-comparison tests omitted later treatment OFF. Corrected only their state helper OFF inputs and reused existing legacy render wrapper; no assertions/fixtures changed. Focused159Python passes including all9 plus explicit new ON/native cases (/tmp/move-matchup-early-legacy-green2.log). First targeted invocation lacked ROM env; retained configuration-error receipt, corrected invocation passes. Full CPU RELEASE to snapshotsM5 during test-helper correction; queued final combination test/lint. Proper full-tsc ESM runtime frozen from bea0b794e production tree; refreshed production replay preparation underway, no inference yet.
+
+Real48-call batch started2026-10-28T20:27:15.973Z on GPU1 only after explicit coordinator20:27–21:39UTC grant, no holds. Normal lease owner PID35308, source f5faa3902/frozen build bea0b794e, manifest f435acd115004bb5bfa249eaa3b311a4b230e6ae06e4ce868cd28c5ad5ff37df;185files hashed. Correct ESM fake48balanced24/24 passed; deliberate-error rehearsal keeps1/48 failure. Canonical API lists study exactlyonce,8correct cases, one GPU1 lane planned48/problems[]. Headless visible selector/case click displays exact9c88/668 frame031937_0.png; two polls advanced4→5/48 with outcomes hidden. Both screenshot pixels inspected. Explainer feature-card clickthrough at1280/1440/375 passed in isolated scratch viewer/copy of235f, no browser errors; all6screens inspected, scratchserver stopped. Canonical8790 not restarted. No raw outcome inspection until fixed batch completes.

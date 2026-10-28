@@ -15,3 +15,7 @@ Both canonical and isolated shells resolve ~/.local/bin/node to the same ~/.herm
 - [ ] Board-controlled local FF and canonical postmerge test; complete YAML singlelocked clean-runtime viewerrefresh/liveproof and evidence-only worklog receipts, release board/CPU.
 
 Non-goals: more model context, gameplay/GPU/inference, runtime feature flag, architectural test refactor, heap leak cleanup, worker serialization/retries/skips, new deps, Node/PATH replacement, weakened floors, hidden result edits or historical/live-run changes. Do not archive this or YAML worklogs without human request.
+
+Coordinator explicitly APPROVED coverage-only NODE_OPTIONS=--max-old-space-size=8192 as an unblock at5:06, preserving every assertion/threshold/exclude/worker setting. Later direction: use existing YAML #1board slot for this postmerge repair; ff-only after focused checks and quick independentClaude+GPT review, one canonicalpostmergefulltest proves both, single8790refresh. CPU START awaits snapshotssoakRELEASE about5:15. I retain distinctSol/Astra fallback as well under existing humanGrokwaiver. No heavychecks started beforeSTART.
+
+Implemented one coverage-script resourcebudget line; no appcode/gatecriteria/testchanges. Follow-up (outside this unblock, not silently satisfied): find panels.test.ts retained DOM/cards/fixtures across221tests and fix lifetime/cleanup through appropriate tests, so8GBdoesnotbecome the next ceiling. Defaultsinglefileverboseends4081MBand fullworker4087MBOOM indicate retention pressure; largerbudget is a bounded resource allowance, not a leak fix.

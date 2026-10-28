@@ -119,6 +119,18 @@ Full gate on the synced merge tip 0d47238f6 (CPU window from the coordinator, 10
 An earlier attempt at 10:54:31 failed before any test assertions: the merge had left the agent build output missing, so 31 suites could not import `@pokebench/agent/milestones` (all 4060 tests that did run passed). Rebuilt and reran.
 Round 5 (sync re-review of 0d47238f6): Claude (opus) LGTM; fallback (sonnet) LGTM; Codex BLOCKING only because this worklog did not yet record the full gate (added above). Also removed the leftover debug console.log in the arrival test (14/14 pass, lint clean). Round 6 is Codex on that delta.
 
+## Landing
+
+- Round 6 (127195a54; packet sha256 4806ee70…fe9b9 on main 45ff0b86f): Codex gpt-5.6-sol, Claude (opus) and fallback (sonnet) all VERDICT: LGTM. Grok is out of Cursor usage, so the Claude+GPT+fallback roster applies.
+- Landing slot 1 from 11:03 PM. Main had moved by one docs-only commit (19381bf5e), so I merged it in (19b9ed079). `git diff --binary main HEAD` still hashed to 4806ee70…fe9b9, so the branch's own change was byte-identical to the reviewed packet.
+- Landed with `git merge --ff-only 19b9ed079` on local main. Not pushed.
+- Post-landing `just test` on main 19b9ed079 (CPU window from the coordinator, 11:07:14 to 11:09:56 PM, POKEBENCH_CARD_ART set) exited 0:
+  - agent: 331 files, 4685 tests (96.50/92.69/97.46/99.17);
+  - viewer: 165 files, 2157 tests (95.24/91.16/95.12/98.27);
+  - Python: 4466 passed (gate lines 97.49, branches 93.61, functions 100);
+  - claude-gateway: 89 passed (99.32/97.13);
+  - trainer cards: 3/3.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

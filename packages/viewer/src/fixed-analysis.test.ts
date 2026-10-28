@@ -63,39 +63,65 @@ describe("analyze and renderAnalysis", () => {
   ];
   const report = analyze(trials, ["A", "B"]);
 
-  it("tests pooled and per lane over valid trials only, and lists the invalid ones", () => {
+  // Operator rule (the operator 2026-10-27): no trial leaves the comparison automatically; flagged ones are listed for the operator.
+  it("tests pooled and per lane over every launched trial, and lists the flagged ones", () => {
     expect(report.groups.map((g) => g.name)).toEqual(["pooled", "A", "B"]);
     const pooled = report.groups[0];
-    expect(pooled).toMatchObject({ bundle: { n: 7, reached: 4 }, control: { n: 7, reached: 2 } });
-    expect(pooled?.fisherP).toBeCloseTo(fisherExact(4, 3, 2, 5), 12);
+    expect(pooled).toMatchObject({ bundle: { n: 8, reached: 4 }, control: { n: 7, reached: 2 } });
+    expect(pooled?.fisherP).toBeCloseTo(fisherExact(4, 4, 2, 5), 12);
     const laneA = report.groups[1];
     expect(laneA?.logRank.chi2).toBeCloseTo(0.704199858745, 9);
-    expect(report.invalid).toEqual([{ slot: 15, lane: "B", arm: "bundle", run: "r15", reason: "emulator or game server crash" }]);
+    expect(report.groups[2]).toMatchObject({ bundle: { n: 3 } });
+    expect(report.flagged).toEqual([{ slot: 15, lane: "B", arm: "bundle", run: "r15", reason: "emulator or game server crash", furthest: null, furthestMs: 400_000 }]);
   });
 
   it("renders the pre-registered thresholds and every test", () => {
     const text = renderAnalysis(report, "bundle-v-control confirmatory");
     expect(text).toContain("# bundle-v-control confirmatory");
-    expect(text).toMatch(/\| pooled \| 4\/7 \(57%\) \| 2\/7 \(29%\) \| [0-9.]+ \| no \| no \|/);
+    expect(text).toMatch(/\| pooled \| 4\/8 \(50%\) \| 2\/7 \(29%\) \| [0-9.]+ \| no \| no \|/);
     expect(text).toContain("Log-rank");
     expect(text).toContain("Mann-Whitney");
-    expect(text).toContain("| 15 | B | bundle | r15 | emulator or game server crash |");
-    expect(renderAnalysis(analyze([], ["A"]), "empty")).toContain("No invalid trials.");
+    expect(text).toContain("| 15 | B | bundle | r15 | not reached | 400000 | emulator or game server crash |");
+    expect(text).toContain("## Flagged trials (kept in every comparison; only the operator excludes)");
+    expect(text).not.toContain("excluded from the descriptive comparison");
+    expect(renderAnalysis(analyze([], ["A"]), "empty")).toContain("No flagged trials.");
   });
 });
 
 describe("operator-stopped trials", () => {
-  it("reports an aborted or stopped trial with its progress instead of listing it among infrastructure failures", () => {
-    const aborted: AnalysisTrial = { ...trial(16, "A", "bundle", null, false), reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 };
-    const report = analyze([...[1, 2].map(i => trial(i, "A", i === 1 ? "bundle" : "control", null)), aborted, trial(15, "A", "bundle", null, false)], ["A"]);
-    expect(report.invalid.map(t => t.run)).toEqual(["r15"]);
-    expect(report.stopped).toEqual([{ slot: 16, lane: "A", arm: "bundle", run: "r16", reason: "the operator stopped the trial (operator_abort)", furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 }]);
+  // Grading protocol: an operator-ended trial's unreached milestones are censored at its end, never failures.
+  it("censors an operator-ended trial at its end: out of the reach denominator unless it reached, log-rank censored at the stop", () => {
+    const stoppedEarly: AnalysisTrial = { ...trial(3, "A", "bundle", null), reason: "ended by the operator (operator_abort); progress before it counts", endReason: "operator_abort", endMs: 100_000 };
+    const stoppedAfter: AnalysisTrial = { ...trial(4, "A", "bundle", 50_000), reason: "ended by the operator (operator_stop); progress before it counts", endReason: "operator_stop", endMs: 100_000 };
+    const crashed: AnalysisTrial = { ...trial(5, "A", "control", null), reason: "emulator or game server crash", endReason: "crash", endMs: 100_000 };
+    const report = analyze([stoppedEarly, stoppedAfter, crashed, trial(6, "A", "control", null)], ["A"]);
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 1, reached: 1 }, control: { n: 2, reached: 0 } });
+    expect(report.groups[0]?.logRank).toEqual(logRank([{ time: 100_000, event: false }, { time: 50_000, event: true }], [{ time: 900_000, event: false }, { time: 900_000, event: false }]));
+    expect(renderAnalysis(report, "x")).toContain("An operator-ended trial that had not reached the compared milestone is censored at its end");
+  });
+
+  it("counts a legacy ledger row that marked an aborted trial invalid, with its progress", () => {
+    const aborted: AnalysisTrial = { ...trial(16, "A", "bundle", null, false), reason: "the operator stopped the trial (operator_abort)", endReason: "operator_abort", endMs: 1_000, furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 };
+    const report = analyze([trial(2, "A", "control", null), aborted], ["A"]);
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 0 }, control: { n: 1 } });
+    expect(report.groups[0]?.mannWhitney).toEqual(mannWhitney([], [depthThenTime(trial(2, "A", "control", null))]));
+    expect(report.flagged.map(t => t.run)).toEqual(["r16"]);
     for (const text of [renderAnalysis(report, "x"), renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })]) {
-      expect(text).toContain("## Ended by the operator (included; censored at the stop)");
-      expect(text).toContain("A fixed-N runner schedules a replacement for the slot");
       expect(text).toContain("| 16 | A | bundle | r16 | PETALBURG_GYM_ENTERED | 42953705 | the operator stopped the trial (operator_abort) |");
+      expect(text).not.toContain("Ended by the operator (included; censored at the stop)");
     }
-    expect(renderAnalysis(analyze([trial(1, "A", "bundle", null)], ["A"]), "x")).toContain("No trial was ended by the operator.");
+  });
+});
+
+describe("trials that never began", () => {
+  it("lists a trial that never began without inventing an observation for it", () => {
+    const never: AnalysisTrial = { ...trial(7, "A", "bundle", null, false), reason: "no run_start: the run never began (exit 1); a server, emulator or checkpoint load failure", furthestDepth: -1, furthestMs: null, endReason: null, endMs: null };
+    const launchFailed: AnalysisTrial = { ...never, slot: 8, run: "r8", reason: "launch failed: spawn ENOENT" };
+    const mismatch: AnalysisTrial = { ...trial(9, "A", "bundle", null, false), reason: "run_start does not match the plan: model other" };
+    const report = analyze([never, launchFailed, mismatch, trial(10, "A", "control", null)], ["A"]);
+    expect(report.groups[0]).toMatchObject({ bundle: { n: 1 }, control: { n: 1 } });
+    expect(report.flagged.map(t => t.run)).toEqual(["r7", "r8", "r9"]);
+    expect(renderAnalysis(report, "x")).toContain("A trial that never began has no observation");
   });
 });
 
@@ -144,7 +170,7 @@ describe("trialsFromLedger", () => {
       { kind: "outcome", slot: cook.slot, run: "r2", at: "x", valid: true, reason: "wall cap", endReason: "budget", primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: 3_600_000, turns: 3 },
       { kind: "launch", slot: 99, lane: "A", phase: "confirmatory", arm: "bundle", run: "r3", at: "x", commit: "c", sources: "s", presetSha256: "p", serving: "f" },
     ];
-    expect(trialsFromLedger(def, entries, "confirmatory")).toEqual([{ slot: slot.slot, lane: slot.lane, arm: slot.arm, run: "r1", valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthest: "RIVAL_MET", furthestDepth: 9, furthestMs: 5 }]);
+    expect(trialsFromLedger(def, entries, "confirmatory")).toEqual([{ slot: slot.slot, lane: slot.lane, arm: slot.arm, run: "r1", valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthest: "RIVAL_MET", furthestDepth: 9, furthestMs: 5, endReason: "budget", endMs: 900_000 }]);
     expect(trialsFromLedger(def, entries, "cook")).toHaveLength(1);
   });
 });

@@ -551,7 +551,6 @@ export function baselineOf(runsRoot: string, runId: string, chunkBytes = BASELIN
   if (start.controller?.kind === "human") {
     const terminal = summarize(runsRoot, runId);
     if (!humanEnded || !terminal.ended) throw new BaselineError("baseline requires a finished human run");
-    if (terminal.reason === "operator_abort") throw new BaselineError("aborted human sessions cannot be benchmark baselines");
   }
   if (view.state === null && !start.harness_features.includes("ram-state-v1")) throw new BaselineError("baseline has no verified RAM-state provenance");
   // Historical screenshot reconstruction has the same hash/sample qualification as comparisons.

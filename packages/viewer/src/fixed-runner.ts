@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, type FixedArm, type FixedDefinition, type FixedLane, type FixedStart } from "./fixed-design.js";
 import { fileLines, type LogLines } from "./run-log.js";
-import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
+import { appendLedger, classifyTrial, laneBackoff, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
@@ -217,7 +217,11 @@ class Runner {
             await this.o.host.sleep(POLL_MS);
             continue;
           }
-          await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
+          const adopted = await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
+          if (laneBackoff(adopted)) {
+            failures += 1;
+            await this.pause(lane, adopted.valid ? `backing off after ${adopted.reason}` : `invalid trial: ${adopted.reason}`, failures, adopted.reason);
+          }
           continue;
         }
         if (this.o.stopRequested()) {
@@ -248,12 +252,12 @@ class Runner {
           continue;
         }
         const outcome = await this.play(lane, step.slot);
-        if (outcome.valid) {
+        if (!laneBackoff(outcome)) {
           failures = 0;
           continue;
         }
         failures += 1;
-        await this.pause(lane, `invalid trial: ${outcome.reason}`, failures, outcome.reason);
+        await this.pause(lane, outcome.valid ? `backing off after ${outcome.reason}` : `invalid trial: ${outcome.reason}`, failures, outcome.reason);
       } catch (error) {
         // Any I/O surprise pauses this lane and retries it; the other lane plays on.
         failures += 1;
@@ -377,12 +381,13 @@ class Runner {
     this.children.delete(lane.id);
     this.writeRunner();
     const outcome = classifyTrial(this.events(run), this.expectation(lane, slot), exit);
-    return this.record(lane, slot, run, launchError === null ? outcome : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
+    // A launcher error over a run that began keeps the run's own outcome (valid, or its plan mismatch); only a trial that never began becomes a launch failure.
+    return this.record(lane, slot, run, launchError === null ? outcome : outcome.valid || !outcome.reason.startsWith("no run_start") ? { ...outcome, reason: `${outcome.reason}; launcher reported: ${launchError}` } : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
   }
 
   // The child is recorded before anything that can throw and cleared only once it has exited, so a
   // pause on the way keeps the lane's lease while the adopted trial still plays.
-  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<void> {
+  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<FixedOutcome> {
     if (pid !== null && this.o.host.alive(pid)) {
       this.children.set(lane.id, { slot: slot.slot, run, pid });
       this.writeRunner();
@@ -392,7 +397,7 @@ class Runner {
       this.writeRunner();
     }
     this.children.delete(lane.id);
-    this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
+    return this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
   }
 
   // runner.json names a running trial while any plays (merges into main wait on it); each lane's lease names that lane's.

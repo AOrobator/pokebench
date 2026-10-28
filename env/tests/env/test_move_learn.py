@@ -42,7 +42,8 @@ from pokebench_env.move_learn import (
 )
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
-from pokebench_env.rerender import PORYMAP_MAPS, read_state, render as _render
+from pokebench_env.rerender import PORYMAP_MAPS, read_state
+from pokebench_env.rerender import render as _render
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import FrameSettle, Settled
 from pokebench_env.ui_state import ActiveUi

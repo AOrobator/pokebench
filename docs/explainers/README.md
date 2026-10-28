@@ -334,6 +334,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
 - [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.
+- [Player map visibility](player-map-visibility-v1.html): visible and remembered terrain, darkness, hidden-object filtering and discovered-terrain navigation.
+
 
 
 - [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.

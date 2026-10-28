@@ -115,6 +115,7 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
  return {elevation:grid.elevation,objects:grid.objects,warps:grid.warps,bounds:{width:grid.width,height:grid.height},tile:p=>{
   if(p.x<0||p.y<0||p.x>=grid.width||p.y>=grid.height)return undefined;
   const cell=Number.parseInt(grid.rows[p.y]?.slice(p.x*4,p.x*4+4)??"",16);
+  if(cell===0xffff)return undefined;
   return {collision:cell>>12,elevation:(cell>>8)&15,behavior:cell&0xff};
  }};
 }

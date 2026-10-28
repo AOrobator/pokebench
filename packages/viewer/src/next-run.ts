@@ -381,3 +381,5 @@ export class HumanRestarts {
     },'new human paused readiness',deadline);
   }
 }
+
+Object.assign(DEFAULT_NEXT_RUN.features, {"player-map-visibility-v1":false});

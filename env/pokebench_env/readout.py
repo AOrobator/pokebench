@@ -755,6 +755,7 @@ def format_readout(
         )
         lines.append(
             shown.text(
+                visible_only=state.map_visibility is not None,
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance=warp_guidance,
                 ledges=ledges,
@@ -999,6 +1000,7 @@ def format_readout(
             if state.topology is None
             else state.topology.text(
                 notes or None,
+                visible_only=state.map_visibility is not None,
                 targets=SEMANTIC_V2 not in off,
                 labels=None
                 if sections is None

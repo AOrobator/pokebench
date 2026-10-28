@@ -262,7 +262,9 @@ def test_trainer_sight_cannot_name_a_hidden_trainer():
     template(m, 0, 1, 5, 4, script=SCRIPT)
     original = sight_report(m.read, MAP, [(4, 4)])
     assert original["trainers"]
-    hidden = sight_report(m.read, MAP, [(4, 4)], visible_ids=frozenset())
+    hidden = sight_report(
+        m.read, MAP, [(4, 4)], visible_ids=frozenset(), visible_tiles=state().full_map.tiles
+    )
     assert hidden["trainers"] == [] and hidden["sightings"] == []
 
 
@@ -272,8 +274,11 @@ def test_hidden_sight_blockers_do_not_supply_privileged_occlusion_facts():
     m = world()
     template(m, 0, 3, 5, 2)
     loaded(m, 0, 7, 3, 2, trainer_type=0)
+    loaded(m, 1, 3, 5, 2)
     assert not sight_report(m.read, MAP, [(2, 2)])["sightings"]
-    assert sight_report(m.read, MAP, [(2, 2)], visible_ids=frozenset({3}))["sightings"]
+    assert sight_report(
+        m.read, MAP, [(2, 2)], visible_ids=frozenset({3}), visible_tiles=state().full_map.tiles
+    )["sightings"]
 
 
 def test_bright_scripted_scenes_still_capture_currently_visible_people():
@@ -338,3 +343,91 @@ def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_gr
         assert found["name"] == "CAVE"
         assert found["warps"] == ([] if enabled else place.json()["warps"])
         assert found["connections"] == ([] if enabled else place.json()["connections"])
+
+
+def test_readout_does_not_turn_hidden_objects_or_connections_into_nonexistence():
+    from pokebench_env.rerender import render
+    from pokebench_env.topology import Connection, Topology
+
+    current = replace(
+        state(), topology=Topology(25, 25, (Connection("NORTH", 0, (0, 1), "TOWN", ((10, 0),)),))
+    )
+    result = MapMemory().project(field().read, current)
+    text = render(result, frozenset())
+    assert "Live objects currently visible: none" in text
+    assert "none on this map" not in text
+    assert "none defined" not in text
+    assert "none currently visible" in text
+
+
+def test_installed_trainer_check_does_not_refresh_hidden_ray_geometry(monkeypatch):
+    from fastapi import FastAPI
+    from pydantic import BaseModel
+    from test_checkpoint import post
+    from test_trainer_sight import MAP, block, loaded, template, world
+
+    from pokebench_env import observation
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.player_map_visibility import MapVisibility
+    from pokebench_env.world_context import LiveObject, WorldContext
+
+    class Shot(BaseModel):
+        screenshot_base64: str = "frame"
+
+    m = world()
+    template(m, 0, 3, 5, 2, sight=5)
+    loaded(m, 0, 3, 5, 2, sight=5)
+    current = replace(
+        state(),
+        map_id=MAP,
+        position=(1, 2),
+        world_context=WorldContext((LiveObject(3, MAP, 35, "BOY_1", 5, 2),), (), None),
+        map_visibility=MapVisibility(
+            ((1, 2), (2, 2), (3, 2), (4, 2), (5, 2)), ((2, 2), (5, 2)), None
+        ),
+    )
+    monkeypatch.setattr(observation, "read_state", lambda *a, **kw: current)
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    app = FastAPI()
+    observation.install_observation(app, Shot, m.read, MapNames({}))
+
+    def check():
+        status, body = post(
+            app,
+            "/pokebench/trainer-sight",
+            json.dumps({"map_id": list(MAP), "tiles": [[2, 2]]}).encode(),
+        )
+        assert status == 200
+        return json.loads(body)
+
+    before = check()
+    block(m, 3, 2, collision=1)
+    assert check() == before
+    assert before["available"] is False
+
+    # A qualified, fully visible ray still works, from the current actor position only.
+    current = replace(
+        current,
+        map_visibility=MapVisibility(
+            current.map_visibility.known, tuple((x, 2) for x in range(2, 6)), None
+        ),
+    )
+    qualified = check()
+    assert qualified["available"] is True
+    assert qualified["sightings"][0]["from"] == [5, 2]
+
+
+def test_visibility_sight_never_uses_a_loaded_trainers_hypothetical_template_origins():
+    from test_trainer_sight import MAP, loaded, sight_report, template, world
+
+    m = world()
+    template(m, 0, 3, 1, 2, movement=0x02)
+    loaded(m, 0, 3, 5, 2, movement=0x02)
+    m.put(0x02037350 + 0x0C, struct.pack("<hh", 8, 9))  # initial native tile1,2; current tile5,2
+    legacy = sight_report(m.read, MAP, [(1, 4)])
+    assert any(s["from"] != [5, 2] for s in legacy["sightings"])
+    safe = sight_report(
+        m.read, MAP, [(1, 4)], visible_ids=frozenset({3}), visible_tiles=state().full_map.tiles
+    )
+    assert safe["available"] is True
+    assert safe["sightings"] == []

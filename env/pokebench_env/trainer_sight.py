@@ -27,7 +27,7 @@ POST /pokebench/trainer-sight before it walks; nothing here reaches the readout 
 
 import struct
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from pokebench_env.character_presence import TEMPLATE_COUNT, TEMPLATES, _flag, _graphics
 from pokebench_env.game_screen import ReadMemory
@@ -35,6 +35,7 @@ from pokebench_env.live_map import (
     EDGE_WALLS,
     MAP_OFFSET,
     OBJECT_EVENTS,
+    MapTile,
     _behavior,
     _layout,
 )
@@ -479,6 +480,7 @@ def sight_report(
     route: Sequence[Point],
     *,
     visible_ids: frozenset[int] | None = None,
+    visible_tiles: Sequence[MapTile] | None = None,
 ) -> dict[str, object]:
     """The JSON the endpoint serves: a report, or why there is none."""
     try:
@@ -491,13 +493,50 @@ def sight_report(
                 "available": False,
                 "reason": f"the player is on map {group}/{number}, not {map_id[0]}/{map_id[1]}",
             }
-        grid = _read_grid(read)
+        if visible_ids is not None and visible_tiles is None:
+            return {"available": False, "reason": "current visible terrain unavailable"}
+        if visible_tiles is None:
+            grid = _read_grid(read)
+        else:
+            cells = {(t.x, t.y): t for t in visible_tiles}
+            if not cells or any(p not in cells for p in route):
+                return {
+                    "available": False,
+                    "reason": "trainer sight requires currently visible terrain",
+                }
+            grid = _Grid(
+                max(t.x for t in visible_tiles) + 1,
+                max(t.y for t in visible_tiles) + 1,
+                {p: (t.collision << 10) | (t.elevation << 12) for p, t in cells.items()},
+                {p: t.behavior for p, t in cells.items()},
+            )
         if grid is None:
             return {"available": False, "reason": "map grid unreadable"}
         trainers, blockers = read_sight_trainers(read, save1, map_id)
         if visible_ids is not None:
             trainers = tuple(t for t in trainers if t.local_id in visible_ids)
             blockers = tuple(b for b in blockers if b.local_id in visible_ids)
+            trainers = tuple(
+                replace(t, poses=((t.x, t.y, t.facing),)) for t in trainers if t.loaded
+            )
+            # Every ray must be supported by the delivered visible geometry. Do not
+            # turn an unknown segment into a claim that no trainer can see it.
+            for trainer in trainers:
+                for x, y in route:
+                    if x != trainer.x and y != trainer.y:
+                        continue
+                    distance = abs(x - trainer.x) + abs(y - trainer.y)
+                    if distance == 0 or distance > trainer.sight:
+                        continue
+                    dx, dy = (x > trainer.x) - (x < trainer.x), (y > trainer.y) - (y < trainer.y)
+                    if any(
+                        grid.collision((trainer.x + i * dx, trainer.y + i * dy)) is None
+                        for i in range(distance + 1)
+                    ):
+                        return {
+                            "available": False,
+                            "reason": "trainer sight requires currently visible terrain",
+                        }
         return SightReport(map_id, trainers, check_route(grid, trainers, blockers, route)).json()
     except (ValueError, OSError, struct.error, IndexError):
         return {"available": False, "reason": "game memory unreadable"}

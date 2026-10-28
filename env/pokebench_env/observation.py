@@ -299,6 +299,7 @@ def install_observation(
     def trainer_sight(body: TrainerSightRequest) -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
             visible_ids = None
+            visible_tiles = None
             if VISIBILITY not in off:
                 current = decode(read_memory)
                 visible_ids = frozenset(
@@ -307,7 +308,20 @@ def install_observation(
                         () if current.world_context is None else current.world_context.objects
                     )
                 )
-            return sight_report(read_memory, body.map_id, body.tiles, visible_ids=visible_ids)
+                shown = current.full_map or current.nearby
+                visible = frozenset(
+                    () if current.map_visibility is None else current.map_visibility.visible
+                )
+                visible_tiles = tuple(
+                    t for t in (() if shown is None else shown.tiles) if (t.x, t.y) in visible
+                )
+            return sight_report(
+                read_memory,
+                body.map_id,
+                body.tiles,
+                visible_ids=visible_ids,
+                visible_tiles=visible_tiles,
+            )
 
     if battle_wait is not None:
         wait = battle_wait

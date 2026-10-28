@@ -163,7 +163,8 @@ export class PeopleLedger {
    const sprite=o.sprite??"unknown",name=placed?.get(`${String(o.x)},${String(o.y)}`);
    return [`object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}), ${talk===undefined?"not talked to this run":`last talked to on turn ${String(talk.turn)}`}`];
   });
-  return `${UNTALKED_HEADER} ${items.length===0?"none":items.join("; ")}.`;
+  const header=state.map_visibility==null?UNTALKED_HEADER:UNTALKED_HEADER.replace("People", "Visible people");
+  return `${header} ${items.length===0?"none":items.join("; ")}.`;
  }
  // untalked-in-gym-v1: the people on this map (item balls excepted) never talked to this run, by the ledger's rule,
  // or null outside a started overworld readout with live objects.

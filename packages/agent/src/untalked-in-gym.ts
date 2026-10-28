@@ -18,7 +18,8 @@ export function untalkedInGymLine(ledger:PeopleLedger,details:unknown,readout:st
  const state=parseGameState(details.state);
  if(gymOf(state.location)===null)return null;
  const people=ledger.untalkedThisRun(state,readout,callId);
- return people===null?null:`${UNTALKED_IN_GYM} ${people.length===0?"none":people.join("; ")}.`;
+ const header=state.map_visibility==null?UNTALKED_IN_GYM:UNTALKED_IN_GYM.replace("People", "Visible people");
+ return people===null?null:`${header} ${people.length===0?"none":people.join("; ")}.`;
 }
 
 export function withUntalkedInGym(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(observer:(event:RunEvent)=>void):void}):AgentTool[] {

@@ -148,10 +148,10 @@ export function storyBattleWarning(state:GameStateSnapshot):StoryBattleWarningFa
 export function storyBattleText(f:StoryBattleWarningFacts,factual=false,shows?:Shows):string {
  const tile=f.x===null||f.y===null?"":`, at (${String(f.x)},${String(f.y)})`;
  const named=opponentShown(f.kind,f.opponent,shows);
- const researcher=shows===undefined||shows("DEVON")?"the DEVON researcher":"a researcher";
+ const researcher=shows===undefined||shows("DEVON")?"the DEVON researcher":"the researcher";
  const who=f.kind==="rival"?`${named?`your rival ${f.opponent}`:roleWord("rival")}${tile}. Talking to ${f.opponent==="MAY"?"her":"him"} starts a trainer battle you cannot run from.`
   :f.kind==="gym_leader"?`${named?`the Gym Leader ${f.opponent}`:roleWord("gym_leader")}${tile}. Talking to her starts a trainer battle you cannot run from.`
-  :`${named?"a TEAM AQUA grunt":"a trainer"}. He stops you on the forest path when you reach ${researcher}, and that trainer battle cannot be run from.`;
+  :`${named?"a TEAM AQUA grunt":"a grunt"}. He stops you on the forest path when you reach ${researcher}, and that trainer battle cannot be run from.`;
  const bag=f.items.length===0?"":` Your BAG has ${f.items.map(i=>`${i.name} ×${String(i.quantity)}`).join(" and ")}; using one restores HP.`;
  return `SUPERVISOR: A story battle is on this map: ${who} Your party is not at full HP: ${f.party.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${blackout(f.money)} ${factual?"HP alone does not establish whether you will win. Healing options:":"Heal to full before this battle:"} the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }
@@ -714,7 +714,7 @@ function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,reco
   const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,rival?.rival,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
   if(previous===key)return result;
   const risk=weakList(weak);
-  const context=story===null?NO_RUNNING:opponentShown(story.kind,story.opponent,known(args[0]))?`${story.opponent}'s trainer battle cannot be run from.`:story.kind==="aqua_grunt"?"The trainer's battle cannot be run from.":`${capital(roleWord(story.kind))}'s trainer battle cannot be run from.`;
+  const context=story===null?NO_RUNNING:opponentShown(story.kind,story.opponent,known(args[0]))?`${story.opponent}'s trainer battle cannot be run from.`:`${capital(roleWord(story.kind))}'s trainer battle cannot be run from.`;
   const where=heal===null?"":` ${healPlaceSentence(heal,state.map_id,arm.heal?.listedNow(heal)??false)}`;
   const items=bagHealingItems(state,weak);
   const bag=items.length===0?"":bagSentence(items);

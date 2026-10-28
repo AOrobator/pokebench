@@ -1145,13 +1145,14 @@ function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; c
 it("serves the caught nickname and fail-open explainers byte for byte, mapped from their cards",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const pages=[["party-menu-message-v1","Party menu message"],["party-item-confirmation-v1","Party item confirmation"],["caught-nickname-prompt-v1","Caught nickname question"],["fail-open-input-v1","Fail-open input"],["context-exact-count-v1","Exact context count"],["grass-strides-v1","Grass strides"],["no-story-foreknowledge-v1","No story foreknowledge"]] as const;
- for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
+ const sources=new Map(pages.map(([id])=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of sources)writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const {FEATURE_EXPLAINERS}=await import("./panels.js");
  for(const [id,title] of pages){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   const reply=await get(viewer,`/explainers/${id}.html`);
-  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
+  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(sources.get(id)??Buffer.alloc(0))).toBe(true);
  }
 });
 

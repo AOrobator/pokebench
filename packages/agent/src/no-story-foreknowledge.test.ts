@@ -1,7 +1,7 @@
 // no-story-foreknowledge-v1 (narrow, the operator 2026-10-27): with it on, the model-facing copy names only the story characters
 // the game has already shown in this run. The Story characters line stays (it stops the model placing characters that
 // are not on the map), but its "Not on this map" list keeps only names the game has shown; the heal warnings keep
-// their advice and use role words (your rival, the Gym Leader, a trainer, a researcher) until the game shows a name.
+// their advice and drop only the unshown name (your rival, the Gym Leader, a grunt, the researcher) until the game shows it.
 // Run 2026-10-21T13-33-36_qwen36-gpu1_d548 (seq 10001, turn 306) was told "a TEAM AQUA grunt. He stops you on the forest
 // path when you reach the DEVON researcher" before any delivered page had shown TEAM AQUA or DEVON, and "Not on this map:
 // PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN", three of which (BRENDAN, NORMAN, STEVEN) it had not
@@ -42,8 +42,8 @@ describe("low-hp-trainer-warning-v2: the story battle paragraph",()=>{
   expect(storyBattleText(grunt,false,undefined)).toBe(storyBattleText(grunt));
  });
  it("ON keeps every sentence of advice and puts a role word where the game has not shown the name",()=>{
-  expect(storyBattleText(grunt,false,NONE)).toBe(`SUPERVISOR: A story battle is on this map: a trainer. He stops you on the forest path when you reach a researcher, and that trainer battle cannot be run from. ${TAIL}`);
-  expect(storyBattleText(grunt,false,ONLY("TEAM AQUA"))).toBe(`SUPERVISOR: A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach a researcher, and that trainer battle cannot be run from. ${TAIL}`);
+  expect(storyBattleText(grunt,false,NONE)).toBe(`SUPERVISOR: A story battle is on this map: a grunt. He stops you on the forest path when you reach the researcher, and that trainer battle cannot be run from. ${TAIL}`);
+  expect(storyBattleText(grunt,false,ONLY("TEAM AQUA"))).toBe(`SUPERVISOR: A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach the researcher, and that trainer battle cannot be run from. ${TAIL}`);
   expect(storyBattleText(may,false,NONE)).toBe(`SUPERVISOR: A story battle is on this map: your rival, at (10,3). Talking to her starts a trainer battle you cannot run from. ${TAIL}`);
   expect(storyBattleText(roxanne,false,NONE)).toBe(`SUPERVISOR: A story battle is on this map: the Gym Leader, at (5,2). Talking to her starts a trainer battle you cannot run from. ${TAIL}`);
  });
@@ -82,11 +82,11 @@ describe("story-battle-heal-first-v1: the lead line",()=>{
   expect(healFirstText(facts("rival","MAY",heard),false,ONLY("MAY"))).toBe(healFirstText(facts("rival","MAY",heard)));
  });
  it("ON keeps the advice and the heard heal line, with a role word for an unshown name",()=>{
-  expect(healFirstText(facts("aqua_grunt","TEAM AQUA grunt"),false,NONE)).toBe("TORCHIC has 28/31 HP. The trainer's battle cannot be run from, so heal before he stops you on the forest path.");
+  expect(healFirstText(facts("aqua_grunt","TEAM AQUA grunt"),false,NONE)).toBe("TORCHIC has 28/31 HP. The grunt's battle cannot be run from, so heal before he stops you on the forest path.");
   expect(healFirstText(facts("rival","MAY",heard),false,NONE)).toBe("TORCHIC has 28/31 HP. Your rival's battle cannot be run from, so heal before talking to her. MOM in LITTLEROOT TOWN told you: \"I think you should rest a bit.\"");
   expect(healFirstText(facts("gym_leader","ROXANNE"),false,NONE)).toBe("TORCHIC has 28/31 HP. The Gym Leader's battle cannot be run from, so heal before talking to her.");
   expect(healFirstText(facts("gym_leader","ROXANNE"),true,NONE)).toBe("TORCHIC has 28/31 HP. The Gym Leader's battle cannot be run from. HP alone does not establish whether you will win.");
-  expect(healFirstText(facts("aqua_grunt","TEAM AQUA grunt"),true,NONE)).toBe("TORCHIC has 28/31 HP. The trainer's battle cannot be run from. HP alone does not establish whether you will win.");
+  expect(healFirstText(facts("aqua_grunt","TEAM AQUA grunt"),true,NONE)).toBe("TORCHIC has 28/31 HP. The grunt's battle cannot be run from. HP alone does not establish whether you will win.");
  });
 });
 
@@ -154,6 +154,11 @@ describe("the names the game has shown",()=>{
   // Inside a longer upper-case word is not the name.
   names.observe(advance("c5","DEVONSHIRE"));names.observe(result("c5"));
   expect(names.shows("DEVON")).toBe(false);
+  // battle_action can record a preflight batch and a post-action batch under one call id: both are delivered.
+  names.observe(advance("c6","STEVEN: Hello."));names.observe(advance("c6","Goodbye."));
+  expect(names.shows("STEVEN","c6")).toBe(true);
+  names.observe(result("c6"));
+  expect(names.shows("STEVEN")).toBe(true);
  });
 });
 
@@ -242,6 +247,19 @@ describe("registry and factory",()=>{
   for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
   expect(texts[1]).toContain(" MAY's trainer battle cannot be run from. ");
   expect(texts[0]).toBe(texts[1]?.replace(" MAY's trainer battle"," Your rival's trainer battle"));
+ });
+ it("coherent healing in Petalburg Woods drops only TEAM AQUA (54a7 T363's party, moved to the woods)",async()=>{
+  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
+  const t363=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
+  const state:GameStateSnapshot={...t363,map_id:[24,11],location:"PETALBURG WOODS",story:{...(t363.story as NonNullable<GameStateSnapshot["story"]>),petalburg_woods_aqua_grunt_defeated:false},world_context:{...(t363.world_context as NonNullable<GameStateSnapshot["world_context"]>),objects:[]}};
+  const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
+  const texts:string[]=[];
+  const recorder={lowHpTrainerWarning:()=>undefined,storyBattleWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
+  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true,"low-hp-trainer-warning-v2":true,"coherent-healing-feedback-v1":true,"heal-before-trainers-v1":false,"gym-heal-warning-v1":false};
+  const names=new ShownStoryNames();
+  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
+  expect(texts[1]).toContain(" TEAM AQUA grunt's trainer battle cannot be run from. ");
+  expect(texts[0]).toBe(texts[1]?.replace(" TEAM AQUA grunt's trainer battle"," The grunt's trainer battle"));
  });
  // Run 2026-10-16T04-51-03_qwen36-gpu0_54a7 T363: TORCHIC at 3/21 HP with MAY at (10,3) on Route 103.
  it("the warnings in the production chain use role words until the game shows the name (54a7 T363)",async()=>{

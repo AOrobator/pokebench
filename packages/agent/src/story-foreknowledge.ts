@@ -19,7 +19,8 @@ export class ShownStoryNames {
  private readonly shown=new Set<string>();
  private readonly scanned=new Map<string,number>();
  observe(event:RunEvent):void {
-  if(event.type==="dialogue_auto_advance"){this.pending.set(event.tool_call_id,event.pages);return;}
+  // One call can deliver several batches (battle_action's preflight and post-action pages): all of them count.
+  if(event.type==="dialogue_auto_advance"){this.pending.set(event.tool_call_id,[...(this.pending.get(event.tool_call_id)??[]),...event.pages]);return;}
   if(event.type!=="tool_result")return;
   const pages=this.pending.get(event.id);this.pending.delete(event.id);
   if(pages!==undefined&&!event.is_error)this.delivered.push(...pages);
@@ -64,9 +65,10 @@ export function withShownCast(tools:readonly AgentTool[],names:ShownStoryNames|n
  });
 }
 
-// A story opponent's name, or its role word while the game has not shown it. TEAM AQUA's grunt is shown with TEAM AQUA.
+// A story opponent's name, or its role word while the game has not shown it: only the name goes, so TEAM AQUA's grunt
+// is "the grunt" until TEAM AQUA is shown.
 export type OpponentKind="rival"|"gym_leader"|"aqua_grunt";
-const ROLE:Readonly<Record<OpponentKind,string>>={rival:"your rival",gym_leader:"the Gym Leader",aqua_grunt:"the trainer"};
+const ROLE:Readonly<Record<OpponentKind,string>>={rival:"your rival",gym_leader:"the Gym Leader",aqua_grunt:"the grunt"};
 export const opponentShown=(kind:OpponentKind,opponent:string,shows:Shows|undefined):boolean=>shows===undefined||shows(kind==="aqua_grunt"?"TEAM AQUA":opponent);
 export const roleWord=(kind:OpponentKind):string=>ROLE[kind];
 export const capital=(s:string):string=>`${s.charAt(0).toUpperCase()}${s.slice(1)}`;

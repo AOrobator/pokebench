@@ -26,8 +26,7 @@ Switch `no-story-foreknowledge-v1`, observation group, default OFF, OFF byte-ide
 - Heal warnings keep every sentence of advice (HP facts, blackout cost, heal sites, bag items, "cannot be run from"):
   low-hp-trainer-warning v1/v2, coherent-healing-feedback-v1's opponent clause, heal-before-trainers-v2 STORY_ROLE and
   story-battle-heal-first-v1 put a role word in place of a name the game has not shown: MAY/BRENDAN -> "your rival",
-  ROXANNE -> "the Gym Leader", TEAM AQUA grunt -> "a trainer" (and "the trainer" where a sentence refers back to it,
-  as heal-first's and coherent healing's possessive), DEVON researcher -> "a researcher".
+  ROXANNE -> "the Gym Leader", a TEAM AQUA grunt -> "a grunt" (only the name TEAM AQUA goes), the DEVON researcher -> "the researcher" (round 2).
 - play-config TRAINER_HEAL_SECTION is untouched, rival sentence included.
 
 Out of scope (narrow): names in the "here" list of present characters, sprite kinds (`sprite ROXANNE`), the
@@ -87,3 +86,18 @@ shared packet): eval integrity, ML engineer, data scientist "holds with changes"
   WALLY t311, ROXANNE t312, TEAM AQUA/DEVON t360, STEVEN t630; BRENDAN and NORMAN never.
 - Gates on 3121b0271 (coordinator CPU window, 8:36 PM NY): `just lint` 0; `just test` 0: agent 4639/4639 (stmts 96.49 / br 92.68 / fn 97.46 / ln 99.18), viewer 2093/2093 (95.81 / 91.68 / 95.32 / 98.26), Python 4446 (ln 97.48 / br 93.60 / fn 100), gateway 69 (99.41 / 97.44 / 100), trainer cards 3/3.
 - Synced main 80d00d743 (scene-followup-prompt-v1): append-point conflicts only; switch re-applied after scene-followup-prompt-v1.
+
+### Review round 2, packet 80d00d743..24c1535bf (SHA-256 in runs/reviews/2026-10-27-nsf-narrow/round2/packet.sha256)
+
+All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 evidence, rival coherent wording, B1.
+- REAL, fixed (Claude): main's merged scene-followup.test.ts pinned its switch with `at(-1)`, so appending this switch
+  broke it; pinned by position after grass-strides-v1. Full gates had not run on the merged head (all three lanes).
+- REAL, fixed (Grok stand-in): `ShownStoryNames` replaced a call's pending pages, so battle_action's preflight and
+  post-action batches under one call id lost the first batch's names; batches now append. Test added.
+- Fixed (GPT, Grok stand-in): Aqua wording still changed non-name words ("The trainer's battle" for "TEAM AQUA grunt's
+  trainer battle"). Now only the name goes: "a grunt", "The grunt's (trainer) battle", "the researcher". Coherent-healing
+  Woods test added.
+- Fixed (GPT): server.test explainer loop read each source twice; reads once.
+- Rebutted (GPT B1): "none named in dialogue yet" differs from the round-1 boundary's literal; it is the round-1 fix for
+  the harness-engineer persona's finding that the old words could be false (a sign can show a name). Boundary amended
+  in this worklog; not a correctness defect.

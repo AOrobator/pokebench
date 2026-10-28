@@ -1,0 +1,4346 @@
+{
+  "pret": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+  "maps": {
+    "PetalburgCity": [
+      0,
+      0
+    ],
+    "SlateportCity": [
+      0,
+      1
+    ],
+    "MauvilleCity": [
+      0,
+      2
+    ],
+    "RustboroCity": [
+      0,
+      3
+    ],
+    "FortreeCity": [
+      0,
+      4
+    ],
+    "LilycoveCity": [
+      0,
+      5
+    ],
+    "MossdeepCity": [
+      0,
+      6
+    ],
+    "SootopolisCity": [
+      0,
+      7
+    ],
+    "EverGrandeCity": [
+      0,
+      8
+    ],
+    "LittlerootTown": [
+      0,
+      9
+    ],
+    "OldaleTown": [
+      0,
+      10
+    ],
+    "DewfordTown": [
+      0,
+      11
+    ],
+    "LavaridgeTown": [
+      0,
+      12
+    ],
+    "FallarborTown": [
+      0,
+      13
+    ],
+    "VerdanturfTown": [
+      0,
+      14
+    ],
+    "PacifidlogTown": [
+      0,
+      15
+    ],
+    "Route101": [
+      0,
+      16
+    ],
+    "Route102": [
+      0,
+      17
+    ],
+    "Route103": [
+      0,
+      18
+    ],
+    "Route104": [
+      0,
+      19
+    ],
+    "Route105": [
+      0,
+      20
+    ],
+    "Route106": [
+      0,
+      21
+    ],
+    "Route107": [
+      0,
+      22
+    ],
+    "Route108": [
+      0,
+      23
+    ],
+    "Route109": [
+      0,
+      24
+    ],
+    "Route110": [
+      0,
+      25
+    ],
+    "Route111": [
+      0,
+      26
+    ],
+    "Route112": [
+      0,
+      27
+    ],
+    "Route113": [
+      0,
+      28
+    ],
+    "Route114": [
+      0,
+      29
+    ],
+    "Route115": [
+      0,
+      30
+    ],
+    "Route116": [
+      0,
+      31
+    ],
+    "Route117": [
+      0,
+      32
+    ],
+    "Route118": [
+      0,
+      33
+    ],
+    "Route119": [
+      0,
+      34
+    ],
+    "Route120": [
+      0,
+      35
+    ],
+    "Route121": [
+      0,
+      36
+    ],
+    "Route122": [
+      0,
+      37
+    ],
+    "Route123": [
+      0,
+      38
+    ],
+    "Route124": [
+      0,
+      39
+    ],
+    "Route125": [
+      0,
+      40
+    ],
+    "Route126": [
+      0,
+      41
+    ],
+    "Route127": [
+      0,
+      42
+    ],
+    "Route128": [
+      0,
+      43
+    ],
+    "Route129": [
+      0,
+      44
+    ],
+    "Route130": [
+      0,
+      45
+    ],
+    "Route131": [
+      0,
+      46
+    ],
+    "Route132": [
+      0,
+      47
+    ],
+    "Route133": [
+      0,
+      48
+    ],
+    "Route134": [
+      0,
+      49
+    ],
+    "Underwater_Route124": [
+      0,
+      50
+    ],
+    "Underwater_Route126": [
+      0,
+      51
+    ],
+    "Underwater_Route127": [
+      0,
+      52
+    ],
+    "Underwater_Route128": [
+      0,
+      53
+    ],
+    "Underwater_Route129": [
+      0,
+      54
+    ],
+    "Underwater_Route105": [
+      0,
+      55
+    ],
+    "Underwater_Route125": [
+      0,
+      56
+    ],
+    "LittlerootTown_BrendansHouse_1F": [
+      1,
+      0
+    ],
+    "LittlerootTown_BrendansHouse_2F": [
+      1,
+      1
+    ],
+    "LittlerootTown_MaysHouse_1F": [
+      1,
+      2
+    ],
+    "LittlerootTown_MaysHouse_2F": [
+      1,
+      3
+    ],
+    "LittlerootTown_ProfessorBirchsLab": [
+      1,
+      4
+    ],
+    "OldaleTown_House1": [
+      2,
+      0
+    ],
+    "OldaleTown_House2": [
+      2,
+      1
+    ],
+    "OldaleTown_PokemonCenter_1F": [
+      2,
+      2
+    ],
+    "OldaleTown_PokemonCenter_2F": [
+      2,
+      3
+    ],
+    "OldaleTown_Mart": [
+      2,
+      4
+    ],
+    "DewfordTown_House1": [
+      3,
+      0
+    ],
+    "DewfordTown_PokemonCenter_1F": [
+      3,
+      1
+    ],
+    "DewfordTown_PokemonCenter_2F": [
+      3,
+      2
+    ],
+    "DewfordTown_Gym": [
+      3,
+      3
+    ],
+    "DewfordTown_Hall": [
+      3,
+      4
+    ],
+    "DewfordTown_House2": [
+      3,
+      5
+    ],
+    "LavaridgeTown_HerbShop": [
+      4,
+      0
+    ],
+    "LavaridgeTown_Gym_1F": [
+      4,
+      1
+    ],
+    "LavaridgeTown_Gym_B1F": [
+      4,
+      2
+    ],
+    "LavaridgeTown_House": [
+      4,
+      3
+    ],
+    "LavaridgeTown_Mart": [
+      4,
+      4
+    ],
+    "LavaridgeTown_PokemonCenter_1F": [
+      4,
+      5
+    ],
+    "LavaridgeTown_PokemonCenter_2F": [
+      4,
+      6
+    ],
+    "FallarborTown_Mart": [
+      5,
+      0
+    ],
+    "FallarborTown_BattleTentLobby": [
+      5,
+      1
+    ],
+    "FallarborTown_BattleTentCorridor": [
+      5,
+      2
+    ],
+    "FallarborTown_BattleTentBattleRoom": [
+      5,
+      3
+    ],
+    "FallarborTown_PokemonCenter_1F": [
+      5,
+      4
+    ],
+    "FallarborTown_PokemonCenter_2F": [
+      5,
+      5
+    ],
+    "FallarborTown_CozmosHouse": [
+      5,
+      6
+    ],
+    "FallarborTown_MoveRelearnersHouse": [
+      5,
+      7
+    ],
+    "VerdanturfTown_BattleTentLobby": [
+      6,
+      0
+    ],
+    "VerdanturfTown_BattleTentCorridor": [
+      6,
+      1
+    ],
+    "VerdanturfTown_BattleTentBattleRoom": [
+      6,
+      2
+    ],
+    "VerdanturfTown_Mart": [
+      6,
+      3
+    ],
+    "VerdanturfTown_PokemonCenter_1F": [
+      6,
+      4
+    ],
+    "VerdanturfTown_PokemonCenter_2F": [
+      6,
+      5
+    ],
+    "VerdanturfTown_WandasHouse": [
+      6,
+      6
+    ],
+    "VerdanturfTown_FriendshipRatersHouse": [
+      6,
+      7
+    ],
+    "VerdanturfTown_House": [
+      6,
+      8
+    ],
+    "PacifidlogTown_PokemonCenter_1F": [
+      7,
+      0
+    ],
+    "PacifidlogTown_PokemonCenter_2F": [
+      7,
+      1
+    ],
+    "PacifidlogTown_House1": [
+      7,
+      2
+    ],
+    "PacifidlogTown_House2": [
+      7,
+      3
+    ],
+    "PacifidlogTown_House3": [
+      7,
+      4
+    ],
+    "PacifidlogTown_House4": [
+      7,
+      5
+    ],
+    "PacifidlogTown_House5": [
+      7,
+      6
+    ],
+    "PetalburgCity_WallysHouse": [
+      8,
+      0
+    ],
+    "PetalburgCity_Gym": [
+      8,
+      1
+    ],
+    "PetalburgCity_House1": [
+      8,
+      2
+    ],
+    "PetalburgCity_House2": [
+      8,
+      3
+    ],
+    "PetalburgCity_PokemonCenter_1F": [
+      8,
+      4
+    ],
+    "PetalburgCity_PokemonCenter_2F": [
+      8,
+      5
+    ],
+    "PetalburgCity_Mart": [
+      8,
+      6
+    ],
+    "SlateportCity_SternsShipyard_1F": [
+      9,
+      0
+    ],
+    "SlateportCity_SternsShipyard_2F": [
+      9,
+      1
+    ],
+    "SlateportCity_BattleTentLobby": [
+      9,
+      2
+    ],
+    "SlateportCity_BattleTentCorridor": [
+      9,
+      3
+    ],
+    "SlateportCity_BattleTentBattleRoom": [
+      9,
+      4
+    ],
+    "SlateportCity_NameRatersHouse": [
+      9,
+      5
+    ],
+    "SlateportCity_PokemonFanClub": [
+      9,
+      6
+    ],
+    "SlateportCity_OceanicMuseum_1F": [
+      9,
+      7
+    ],
+    "SlateportCity_OceanicMuseum_2F": [
+      9,
+      8
+    ],
+    "SlateportCity_Harbor": [
+      9,
+      9
+    ],
+    "SlateportCity_House": [
+      9,
+      10
+    ],
+    "SlateportCity_PokemonCenter_1F": [
+      9,
+      11
+    ],
+    "SlateportCity_PokemonCenter_2F": [
+      9,
+      12
+    ],
+    "SlateportCity_Mart": [
+      9,
+      13
+    ],
+    "MauvilleCity_Gym": [
+      10,
+      0
+    ],
+    "MauvilleCity_BikeShop": [
+      10,
+      1
+    ],
+    "MauvilleCity_House1": [
+      10,
+      2
+    ],
+    "MauvilleCity_GameCorner": [
+      10,
+      3
+    ],
+    "MauvilleCity_House2": [
+      10,
+      4
+    ],
+    "MauvilleCity_PokemonCenter_1F": [
+      10,
+      5
+    ],
+    "MauvilleCity_PokemonCenter_2F": [
+      10,
+      6
+    ],
+    "MauvilleCity_Mart": [
+      10,
+      7
+    ],
+    "RustboroCity_DevonCorp_1F": [
+      11,
+      0
+    ],
+    "RustboroCity_DevonCorp_2F": [
+      11,
+      1
+    ],
+    "RustboroCity_DevonCorp_3F": [
+      11,
+      2
+    ],
+    "RustboroCity_Gym": [
+      11,
+      3
+    ],
+    "RustboroCity_PokemonSchool": [
+      11,
+      4
+    ],
+    "RustboroCity_PokemonCenter_1F": [
+      11,
+      5
+    ],
+    "RustboroCity_PokemonCenter_2F": [
+      11,
+      6
+    ],
+    "RustboroCity_Mart": [
+      11,
+      7
+    ],
+    "RustboroCity_Flat1_1F": [
+      11,
+      8
+    ],
+    "RustboroCity_Flat1_2F": [
+      11,
+      9
+    ],
+    "RustboroCity_House1": [
+      11,
+      10
+    ],
+    "RustboroCity_CuttersHouse": [
+      11,
+      11
+    ],
+    "RustboroCity_House2": [
+      11,
+      12
+    ],
+    "RustboroCity_Flat2_1F": [
+      11,
+      13
+    ],
+    "RustboroCity_Flat2_2F": [
+      11,
+      14
+    ],
+    "RustboroCity_Flat2_3F": [
+      11,
+      15
+    ],
+    "RustboroCity_House3": [
+      11,
+      16
+    ],
+    "FortreeCity_House1": [
+      12,
+      0
+    ],
+    "FortreeCity_Gym": [
+      12,
+      1
+    ],
+    "FortreeCity_PokemonCenter_1F": [
+      12,
+      2
+    ],
+    "FortreeCity_PokemonCenter_2F": [
+      12,
+      3
+    ],
+    "FortreeCity_Mart": [
+      12,
+      4
+    ],
+    "FortreeCity_House2": [
+      12,
+      5
+    ],
+    "FortreeCity_House3": [
+      12,
+      6
+    ],
+    "FortreeCity_House4": [
+      12,
+      7
+    ],
+    "FortreeCity_House5": [
+      12,
+      8
+    ],
+    "FortreeCity_DecorationShop": [
+      12,
+      9
+    ],
+    "LilycoveCity_CoveLilyMotel_1F": [
+      13,
+      0
+    ],
+    "LilycoveCity_CoveLilyMotel_2F": [
+      13,
+      1
+    ],
+    "LilycoveCity_LilycoveMuseum_1F": [
+      13,
+      2
+    ],
+    "LilycoveCity_LilycoveMuseum_2F": [
+      13,
+      3
+    ],
+    "LilycoveCity_ContestLobby": [
+      13,
+      4
+    ],
+    "LilycoveCity_ContestHall": [
+      13,
+      5
+    ],
+    "LilycoveCity_PokemonCenter_1F": [
+      13,
+      6
+    ],
+    "LilycoveCity_PokemonCenter_2F": [
+      13,
+      7
+    ],
+    "LilycoveCity_UnusedMart": [
+      13,
+      8
+    ],
+    "LilycoveCity_PokemonTrainerFanClub": [
+      13,
+      9
+    ],
+    "LilycoveCity_Harbor": [
+      13,
+      10
+    ],
+    "LilycoveCity_MoveDeletersHouse": [
+      13,
+      11
+    ],
+    "LilycoveCity_House1": [
+      13,
+      12
+    ],
+    "LilycoveCity_House2": [
+      13,
+      13
+    ],
+    "LilycoveCity_House3": [
+      13,
+      14
+    ],
+    "LilycoveCity_House4": [
+      13,
+      15
+    ],
+    "LilycoveCity_DepartmentStore_1F": [
+      13,
+      16
+    ],
+    "LilycoveCity_DepartmentStore_2F": [
+      13,
+      17
+    ],
+    "LilycoveCity_DepartmentStore_3F": [
+      13,
+      18
+    ],
+    "LilycoveCity_DepartmentStore_4F": [
+      13,
+      19
+    ],
+    "LilycoveCity_DepartmentStore_5F": [
+      13,
+      20
+    ],
+    "LilycoveCity_DepartmentStoreRooftop": [
+      13,
+      21
+    ],
+    "LilycoveCity_DepartmentStoreElevator": [
+      13,
+      22
+    ],
+    "MossdeepCity_Gym": [
+      14,
+      0
+    ],
+    "MossdeepCity_House1": [
+      14,
+      1
+    ],
+    "MossdeepCity_House2": [
+      14,
+      2
+    ],
+    "MossdeepCity_PokemonCenter_1F": [
+      14,
+      3
+    ],
+    "MossdeepCity_PokemonCenter_2F": [
+      14,
+      4
+    ],
+    "MossdeepCity_Mart": [
+      14,
+      5
+    ],
+    "MossdeepCity_House3": [
+      14,
+      6
+    ],
+    "MossdeepCity_StevensHouse": [
+      14,
+      7
+    ],
+    "MossdeepCity_House4": [
+      14,
+      8
+    ],
+    "MossdeepCity_SpaceCenter_1F": [
+      14,
+      9
+    ],
+    "MossdeepCity_SpaceCenter_2F": [
+      14,
+      10
+    ],
+    "MossdeepCity_GameCorner_1F": [
+      14,
+      11
+    ],
+    "MossdeepCity_GameCorner_B1F": [
+      14,
+      12
+    ],
+    "SootopolisCity_Gym_1F": [
+      15,
+      0
+    ],
+    "SootopolisCity_Gym_B1F": [
+      15,
+      1
+    ],
+    "SootopolisCity_PokemonCenter_1F": [
+      15,
+      2
+    ],
+    "SootopolisCity_PokemonCenter_2F": [
+      15,
+      3
+    ],
+    "SootopolisCity_Mart": [
+      15,
+      4
+    ],
+    "SootopolisCity_House1": [
+      15,
+      5
+    ],
+    "SootopolisCity_House2": [
+      15,
+      6
+    ],
+    "SootopolisCity_House3": [
+      15,
+      7
+    ],
+    "SootopolisCity_House4": [
+      15,
+      8
+    ],
+    "SootopolisCity_House5": [
+      15,
+      9
+    ],
+    "SootopolisCity_House6": [
+      15,
+      10
+    ],
+    "SootopolisCity_House7": [
+      15,
+      11
+    ],
+    "SootopolisCity_LotadAndSeedotHouse": [
+      15,
+      12
+    ],
+    "SootopolisCity_MysteryEventsHouse_1F": [
+      15,
+      13
+    ],
+    "SootopolisCity_MysteryEventsHouse_B1F": [
+      15,
+      14
+    ],
+    "EverGrandeCity_SidneysRoom": [
+      16,
+      0
+    ],
+    "EverGrandeCity_PhoebesRoom": [
+      16,
+      1
+    ],
+    "EverGrandeCity_GlaciasRoom": [
+      16,
+      2
+    ],
+    "EverGrandeCity_DrakesRoom": [
+      16,
+      3
+    ],
+    "EverGrandeCity_ChampionsRoom": [
+      16,
+      4
+    ],
+    "EverGrandeCity_Hall1": [
+      16,
+      5
+    ],
+    "EverGrandeCity_Hall2": [
+      16,
+      6
+    ],
+    "EverGrandeCity_Hall3": [
+      16,
+      7
+    ],
+    "EverGrandeCity_Hall4": [
+      16,
+      8
+    ],
+    "EverGrandeCity_Hall5": [
+      16,
+      9
+    ],
+    "EverGrandeCity_PokemonLeague_1F": [
+      16,
+      10
+    ],
+    "EverGrandeCity_HallOfFame": [
+      16,
+      11
+    ],
+    "EverGrandeCity_PokemonCenter_1F": [
+      16,
+      12
+    ],
+    "EverGrandeCity_PokemonCenter_2F": [
+      16,
+      13
+    ],
+    "EverGrandeCity_PokemonLeague_2F": [
+      16,
+      14
+    ],
+    "Route104_MrBrineysHouse": [
+      17,
+      0
+    ],
+    "Route104_PrettyPetalFlowerShop": [
+      17,
+      1
+    ],
+    "Route111_WinstrateFamilysHouse": [
+      18,
+      0
+    ],
+    "Route111_OldLadysRestStop": [
+      18,
+      1
+    ],
+    "Route112_CableCarStation": [
+      19,
+      0
+    ],
+    "MtChimney_CableCarStation": [
+      19,
+      1
+    ],
+    "Route114_FossilManiacsHouse": [
+      20,
+      0
+    ],
+    "Route114_FossilManiacsTunnel": [
+      20,
+      1
+    ],
+    "Route114_LanettesHouse": [
+      20,
+      2
+    ],
+    "Route116_TunnelersRestHouse": [
+      21,
+      0
+    ],
+    "Route117_PokemonDayCare": [
+      22,
+      0
+    ],
+    "Route121_SafariZoneEntrance": [
+      23,
+      0
+    ],
+    "MeteorFalls_1F_1R": [
+      24,
+      0
+    ],
+    "MeteorFalls_1F_2R": [
+      24,
+      1
+    ],
+    "MeteorFalls_B1F_1R": [
+      24,
+      2
+    ],
+    "MeteorFalls_B1F_2R": [
+      24,
+      3
+    ],
+    "RusturfTunnel": [
+      24,
+      4
+    ],
+    "Underwater_SootopolisCity": [
+      24,
+      5
+    ],
+    "DesertRuins": [
+      24,
+      6
+    ],
+    "GraniteCave_1F": [
+      24,
+      7
+    ],
+    "GraniteCave_B1F": [
+      24,
+      8
+    ],
+    "GraniteCave_B2F": [
+      24,
+      9
+    ],
+    "GraniteCave_StevensRoom": [
+      24,
+      10
+    ],
+    "PetalburgWoods": [
+      24,
+      11
+    ],
+    "MtChimney": [
+      24,
+      12
+    ],
+    "JaggedPass": [
+      24,
+      13
+    ],
+    "FieryPath": [
+      24,
+      14
+    ],
+    "MtPyre_1F": [
+      24,
+      15
+    ],
+    "MtPyre_2F": [
+      24,
+      16
+    ],
+    "MtPyre_3F": [
+      24,
+      17
+    ],
+    "MtPyre_4F": [
+      24,
+      18
+    ],
+    "MtPyre_5F": [
+      24,
+      19
+    ],
+    "MtPyre_6F": [
+      24,
+      20
+    ],
+    "MtPyre_Exterior": [
+      24,
+      21
+    ],
+    "MtPyre_Summit": [
+      24,
+      22
+    ],
+    "AquaHideout_1F": [
+      24,
+      23
+    ],
+    "AquaHideout_B1F": [
+      24,
+      24
+    ],
+    "AquaHideout_B2F": [
+      24,
+      25
+    ],
+    "Underwater_SeafloorCavern": [
+      24,
+      26
+    ],
+    "SeafloorCavern_Entrance": [
+      24,
+      27
+    ],
+    "SeafloorCavern_Room1": [
+      24,
+      28
+    ],
+    "SeafloorCavern_Room2": [
+      24,
+      29
+    ],
+    "SeafloorCavern_Room3": [
+      24,
+      30
+    ],
+    "SeafloorCavern_Room4": [
+      24,
+      31
+    ],
+    "SeafloorCavern_Room5": [
+      24,
+      32
+    ],
+    "SeafloorCavern_Room6": [
+      24,
+      33
+    ],
+    "SeafloorCavern_Room7": [
+      24,
+      34
+    ],
+    "SeafloorCavern_Room8": [
+      24,
+      35
+    ],
+    "SeafloorCavern_Room9": [
+      24,
+      36
+    ],
+    "CaveOfOrigin_Entrance": [
+      24,
+      37
+    ],
+    "CaveOfOrigin_1F": [
+      24,
+      38
+    ],
+    "CaveOfOrigin_UnusedRubySapphireMap1": [
+      24,
+      39
+    ],
+    "CaveOfOrigin_UnusedRubySapphireMap2": [
+      24,
+      40
+    ],
+    "CaveOfOrigin_UnusedRubySapphireMap3": [
+      24,
+      41
+    ],
+    "CaveOfOrigin_B1F": [
+      24,
+      42
+    ],
+    "VictoryRoad_1F": [
+      24,
+      43
+    ],
+    "VictoryRoad_B1F": [
+      24,
+      44
+    ],
+    "VictoryRoad_B2F": [
+      24,
+      45
+    ],
+    "ShoalCave_LowTideEntranceRoom": [
+      24,
+      46
+    ],
+    "ShoalCave_LowTideInnerRoom": [
+      24,
+      47
+    ],
+    "ShoalCave_LowTideStairsRoom": [
+      24,
+      48
+    ],
+    "ShoalCave_LowTideLowerRoom": [
+      24,
+      49
+    ],
+    "ShoalCave_HighTideEntranceRoom": [
+      24,
+      50
+    ],
+    "ShoalCave_HighTideInnerRoom": [
+      24,
+      51
+    ],
+    "NewMauville_Entrance": [
+      24,
+      52
+    ],
+    "NewMauville_Inside": [
+      24,
+      53
+    ],
+    "AbandonedShip_Deck": [
+      24,
+      54
+    ],
+    "AbandonedShip_Corridors_1F": [
+      24,
+      55
+    ],
+    "AbandonedShip_Rooms_1F": [
+      24,
+      56
+    ],
+    "AbandonedShip_Corridors_B1F": [
+      24,
+      57
+    ],
+    "AbandonedShip_Rooms_B1F": [
+      24,
+      58
+    ],
+    "AbandonedShip_Rooms2_B1F": [
+      24,
+      59
+    ],
+    "AbandonedShip_Underwater1": [
+      24,
+      60
+    ],
+    "AbandonedShip_Room_B1F": [
+      24,
+      61
+    ],
+    "AbandonedShip_Rooms2_1F": [
+      24,
+      62
+    ],
+    "AbandonedShip_CaptainsOffice": [
+      24,
+      63
+    ],
+    "AbandonedShip_Underwater2": [
+      24,
+      64
+    ],
+    "AbandonedShip_HiddenFloorCorridors": [
+      24,
+      65
+    ],
+    "AbandonedShip_HiddenFloorRooms": [
+      24,
+      66
+    ],
+    "IslandCave": [
+      24,
+      67
+    ],
+    "AncientTomb": [
+      24,
+      68
+    ],
+    "Underwater_Route134": [
+      24,
+      69
+    ],
+    "Underwater_SealedChamber": [
+      24,
+      70
+    ],
+    "SealedChamber_OuterRoom": [
+      24,
+      71
+    ],
+    "SealedChamber_InnerRoom": [
+      24,
+      72
+    ],
+    "ScorchedSlab": [
+      24,
+      73
+    ],
+    "AquaHideout_UnusedRubyMap1": [
+      24,
+      74
+    ],
+    "AquaHideout_UnusedRubyMap2": [
+      24,
+      75
+    ],
+    "AquaHideout_UnusedRubyMap3": [
+      24,
+      76
+    ],
+    "SkyPillar_Entrance": [
+      24,
+      77
+    ],
+    "SkyPillar_Outside": [
+      24,
+      78
+    ],
+    "SkyPillar_1F": [
+      24,
+      79
+    ],
+    "SkyPillar_2F": [
+      24,
+      80
+    ],
+    "SkyPillar_3F": [
+      24,
+      81
+    ],
+    "SkyPillar_4F": [
+      24,
+      82
+    ],
+    "ShoalCave_LowTideIceRoom": [
+      24,
+      83
+    ],
+    "SkyPillar_5F": [
+      24,
+      84
+    ],
+    "SkyPillar_Top": [
+      24,
+      85
+    ],
+    "MagmaHideout_1F": [
+      24,
+      86
+    ],
+    "MagmaHideout_2F_1R": [
+      24,
+      87
+    ],
+    "MagmaHideout_2F_2R": [
+      24,
+      88
+    ],
+    "MagmaHideout_3F_1R": [
+      24,
+      89
+    ],
+    "MagmaHideout_3F_2R": [
+      24,
+      90
+    ],
+    "MagmaHideout_4F": [
+      24,
+      91
+    ],
+    "MagmaHideout_3F_3R": [
+      24,
+      92
+    ],
+    "MagmaHideout_2F_3R": [
+      24,
+      93
+    ],
+    "MirageTower_1F": [
+      24,
+      94
+    ],
+    "MirageTower_2F": [
+      24,
+      95
+    ],
+    "MirageTower_3F": [
+      24,
+      96
+    ],
+    "MirageTower_4F": [
+      24,
+      97
+    ],
+    "DesertUnderpass": [
+      24,
+      98
+    ],
+    "ArtisanCave_B1F": [
+      24,
+      99
+    ],
+    "ArtisanCave_1F": [
+      24,
+      100
+    ],
+    "Underwater_MarineCave": [
+      24,
+      101
+    ],
+    "MarineCave_Entrance": [
+      24,
+      102
+    ],
+    "MarineCave_End": [
+      24,
+      103
+    ],
+    "TerraCave_Entrance": [
+      24,
+      104
+    ],
+    "TerraCave_End": [
+      24,
+      105
+    ],
+    "AlteringCave": [
+      24,
+      106
+    ],
+    "MeteorFalls_StevensCave": [
+      24,
+      107
+    ],
+    "SecretBase_RedCave1": [
+      25,
+      0
+    ],
+    "SecretBase_BrownCave1": [
+      25,
+      1
+    ],
+    "SecretBase_BlueCave1": [
+      25,
+      2
+    ],
+    "SecretBase_YellowCave1": [
+      25,
+      3
+    ],
+    "SecretBase_Tree1": [
+      25,
+      4
+    ],
+    "SecretBase_Shrub1": [
+      25,
+      5
+    ],
+    "SecretBase_RedCave2": [
+      25,
+      6
+    ],
+    "SecretBase_BrownCave2": [
+      25,
+      7
+    ],
+    "SecretBase_BlueCave2": [
+      25,
+      8
+    ],
+    "SecretBase_YellowCave2": [
+      25,
+      9
+    ],
+    "SecretBase_Tree2": [
+      25,
+      10
+    ],
+    "SecretBase_Shrub2": [
+      25,
+      11
+    ],
+    "SecretBase_RedCave3": [
+      25,
+      12
+    ],
+    "SecretBase_BrownCave3": [
+      25,
+      13
+    ],
+    "SecretBase_BlueCave3": [
+      25,
+      14
+    ],
+    "SecretBase_YellowCave3": [
+      25,
+      15
+    ],
+    "SecretBase_Tree3": [
+      25,
+      16
+    ],
+    "SecretBase_Shrub3": [
+      25,
+      17
+    ],
+    "SecretBase_RedCave4": [
+      25,
+      18
+    ],
+    "SecretBase_BrownCave4": [
+      25,
+      19
+    ],
+    "SecretBase_BlueCave4": [
+      25,
+      20
+    ],
+    "SecretBase_YellowCave4": [
+      25,
+      21
+    ],
+    "SecretBase_Tree4": [
+      25,
+      22
+    ],
+    "SecretBase_Shrub4": [
+      25,
+      23
+    ],
+    "BattleColosseum_2P": [
+      25,
+      24
+    ],
+    "TradeCenter": [
+      25,
+      25
+    ],
+    "RecordCorner": [
+      25,
+      26
+    ],
+    "BattleColosseum_4P": [
+      25,
+      27
+    ],
+    "ContestHall": [
+      25,
+      28
+    ],
+    "UnusedContestHall1": [
+      25,
+      29
+    ],
+    "UnusedContestHall2": [
+      25,
+      30
+    ],
+    "UnusedContestHall3": [
+      25,
+      31
+    ],
+    "UnusedContestHall4": [
+      25,
+      32
+    ],
+    "UnusedContestHall5": [
+      25,
+      33
+    ],
+    "UnusedContestHall6": [
+      25,
+      34
+    ],
+    "ContestHallBeauty": [
+      25,
+      35
+    ],
+    "ContestHallTough": [
+      25,
+      36
+    ],
+    "ContestHallCool": [
+      25,
+      37
+    ],
+    "ContestHallSmart": [
+      25,
+      38
+    ],
+    "ContestHallCute": [
+      25,
+      39
+    ],
+    "InsideOfTruck": [
+      25,
+      40
+    ],
+    "SSTidalCorridor": [
+      25,
+      41
+    ],
+    "SSTidalLowerDeck": [
+      25,
+      42
+    ],
+    "SSTidalRooms": [
+      25,
+      43
+    ],
+    "BattlePyramidSquare01": [
+      25,
+      44
+    ],
+    "BattlePyramidSquare02": [
+      25,
+      45
+    ],
+    "BattlePyramidSquare03": [
+      25,
+      46
+    ],
+    "BattlePyramidSquare04": [
+      25,
+      47
+    ],
+    "BattlePyramidSquare05": [
+      25,
+      48
+    ],
+    "BattlePyramidSquare06": [
+      25,
+      49
+    ],
+    "BattlePyramidSquare07": [
+      25,
+      50
+    ],
+    "BattlePyramidSquare08": [
+      25,
+      51
+    ],
+    "BattlePyramidSquare09": [
+      25,
+      52
+    ],
+    "BattlePyramidSquare10": [
+      25,
+      53
+    ],
+    "BattlePyramidSquare11": [
+      25,
+      54
+    ],
+    "BattlePyramidSquare12": [
+      25,
+      55
+    ],
+    "BattlePyramidSquare13": [
+      25,
+      56
+    ],
+    "BattlePyramidSquare14": [
+      25,
+      57
+    ],
+    "BattlePyramidSquare15": [
+      25,
+      58
+    ],
+    "BattlePyramidSquare16": [
+      25,
+      59
+    ],
+    "UnionRoom": [
+      25,
+      60
+    ],
+    "SafariZone_Northwest": [
+      26,
+      0
+    ],
+    "SafariZone_North": [
+      26,
+      1
+    ],
+    "SafariZone_Southwest": [
+      26,
+      2
+    ],
+    "SafariZone_South": [
+      26,
+      3
+    ],
+    "BattleFrontier_OutsideWest": [
+      26,
+      4
+    ],
+    "BattleFrontier_BattleTowerLobby": [
+      26,
+      5
+    ],
+    "BattleFrontier_BattleTowerElevator": [
+      26,
+      6
+    ],
+    "BattleFrontier_BattleTowerCorridor": [
+      26,
+      7
+    ],
+    "BattleFrontier_BattleTowerBattleRoom": [
+      26,
+      8
+    ],
+    "SouthernIsland_Exterior": [
+      26,
+      9
+    ],
+    "SouthernIsland_Interior": [
+      26,
+      10
+    ],
+    "SafariZone_RestHouse": [
+      26,
+      11
+    ],
+    "SafariZone_Northeast": [
+      26,
+      12
+    ],
+    "SafariZone_Southeast": [
+      26,
+      13
+    ],
+    "BattleFrontier_OutsideEast": [
+      26,
+      14
+    ],
+    "BattleFrontier_BattleTowerMultiPartnerRoom": [
+      26,
+      15
+    ],
+    "BattleFrontier_BattleTowerMultiCorridor": [
+      26,
+      16
+    ],
+    "BattleFrontier_BattleTowerMultiBattleRoom": [
+      26,
+      17
+    ],
+    "BattleFrontier_BattleDomeLobby": [
+      26,
+      18
+    ],
+    "BattleFrontier_BattleDomeCorridor": [
+      26,
+      19
+    ],
+    "BattleFrontier_BattleDomePreBattleRoom": [
+      26,
+      20
+    ],
+    "BattleFrontier_BattleDomeBattleRoom": [
+      26,
+      21
+    ],
+    "BattleFrontier_BattlePalaceLobby": [
+      26,
+      22
+    ],
+    "BattleFrontier_BattlePalaceCorridor": [
+      26,
+      23
+    ],
+    "BattleFrontier_BattlePalaceBattleRoom": [
+      26,
+      24
+    ],
+    "BattleFrontier_BattlePyramidLobby": [
+      26,
+      25
+    ],
+    "BattleFrontier_BattlePyramidFloor": [
+      26,
+      26
+    ],
+    "BattleFrontier_BattlePyramidTop": [
+      26,
+      27
+    ],
+    "BattleFrontier_BattleArenaLobby": [
+      26,
+      28
+    ],
+    "BattleFrontier_BattleArenaCorridor": [
+      26,
+      29
+    ],
+    "BattleFrontier_BattleArenaBattleRoom": [
+      26,
+      30
+    ],
+    "BattleFrontier_BattleFactoryLobby": [
+      26,
+      31
+    ],
+    "BattleFrontier_BattleFactoryPreBattleRoom": [
+      26,
+      32
+    ],
+    "BattleFrontier_BattleFactoryBattleRoom": [
+      26,
+      33
+    ],
+    "BattleFrontier_BattlePikeLobby": [
+      26,
+      34
+    ],
+    "BattleFrontier_BattlePikeCorridor": [
+      26,
+      35
+    ],
+    "BattleFrontier_BattlePikeThreePathRoom": [
+      26,
+      36
+    ],
+    "BattleFrontier_BattlePikeRoomNormal": [
+      26,
+      37
+    ],
+    "BattleFrontier_BattlePikeRoomFinal": [
+      26,
+      38
+    ],
+    "BattleFrontier_BattlePikeRoomWildMons": [
+      26,
+      39
+    ],
+    "BattleFrontier_RankingHall": [
+      26,
+      40
+    ],
+    "BattleFrontier_Lounge1": [
+      26,
+      41
+    ],
+    "BattleFrontier_ExchangeServiceCorner": [
+      26,
+      42
+    ],
+    "BattleFrontier_Lounge2": [
+      26,
+      43
+    ],
+    "BattleFrontier_Lounge3": [
+      26,
+      44
+    ],
+    "BattleFrontier_Lounge4": [
+      26,
+      45
+    ],
+    "BattleFrontier_ScottsHouse": [
+      26,
+      46
+    ],
+    "BattleFrontier_Lounge5": [
+      26,
+      47
+    ],
+    "BattleFrontier_Lounge6": [
+      26,
+      48
+    ],
+    "BattleFrontier_Lounge7": [
+      26,
+      49
+    ],
+    "BattleFrontier_ReceptionGate": [
+      26,
+      50
+    ],
+    "BattleFrontier_Lounge8": [
+      26,
+      51
+    ],
+    "BattleFrontier_Lounge9": [
+      26,
+      52
+    ],
+    "BattleFrontier_PokemonCenter_1F": [
+      26,
+      53
+    ],
+    "BattleFrontier_PokemonCenter_2F": [
+      26,
+      54
+    ],
+    "BattleFrontier_Mart": [
+      26,
+      55
+    ],
+    "FarawayIsland_Entrance": [
+      26,
+      56
+    ],
+    "FarawayIsland_Interior": [
+      26,
+      57
+    ],
+    "BirthIsland_Exterior": [
+      26,
+      58
+    ],
+    "BirthIsland_Harbor": [
+      26,
+      59
+    ],
+    "TrainerHill_Entrance": [
+      26,
+      60
+    ],
+    "TrainerHill_1F": [
+      26,
+      61
+    ],
+    "TrainerHill_2F": [
+      26,
+      62
+    ],
+    "TrainerHill_3F": [
+      26,
+      63
+    ],
+    "TrainerHill_4F": [
+      26,
+      64
+    ],
+    "TrainerHill_Roof": [
+      26,
+      65
+    ],
+    "NavelRock_Exterior": [
+      26,
+      66
+    ],
+    "NavelRock_Harbor": [
+      26,
+      67
+    ],
+    "NavelRock_Entrance": [
+      26,
+      68
+    ],
+    "NavelRock_B1F": [
+      26,
+      69
+    ],
+    "NavelRock_Fork": [
+      26,
+      70
+    ],
+    "NavelRock_Up1": [
+      26,
+      71
+    ],
+    "NavelRock_Up2": [
+      26,
+      72
+    ],
+    "NavelRock_Up3": [
+      26,
+      73
+    ],
+    "NavelRock_Up4": [
+      26,
+      74
+    ],
+    "NavelRock_Top": [
+      26,
+      75
+    ],
+    "NavelRock_Down01": [
+      26,
+      76
+    ],
+    "NavelRock_Down02": [
+      26,
+      77
+    ],
+    "NavelRock_Down03": [
+      26,
+      78
+    ],
+    "NavelRock_Down04": [
+      26,
+      79
+    ],
+    "NavelRock_Down05": [
+      26,
+      80
+    ],
+    "NavelRock_Down06": [
+      26,
+      81
+    ],
+    "NavelRock_Down07": [
+      26,
+      82
+    ],
+    "NavelRock_Down08": [
+      26,
+      83
+    ],
+    "NavelRock_Down09": [
+      26,
+      84
+    ],
+    "NavelRock_Down10": [
+      26,
+      85
+    ],
+    "NavelRock_Down11": [
+      26,
+      86
+    ],
+    "NavelRock_Bottom": [
+      26,
+      87
+    ],
+    "TrainerHill_Elevator": [
+      26,
+      88
+    ],
+    "Route104_Prototype": [
+      27,
+      0
+    ],
+    "Route104_PrototypePrettyPetalFlowerShop": [
+      27,
+      1
+    ],
+    "Route109_SeashoreHouse": [
+      28,
+      0
+    ],
+    "Route110_TrickHouseEntrance": [
+      29,
+      0
+    ],
+    "Route110_TrickHouseEnd": [
+      29,
+      1
+    ],
+    "Route110_TrickHouseCorridor": [
+      29,
+      2
+    ],
+    "Route110_TrickHousePuzzle1": [
+      29,
+      3
+    ],
+    "Route110_TrickHousePuzzle2": [
+      29,
+      4
+    ],
+    "Route110_TrickHousePuzzle3": [
+      29,
+      5
+    ],
+    "Route110_TrickHousePuzzle4": [
+      29,
+      6
+    ],
+    "Route110_TrickHousePuzzle5": [
+      29,
+      7
+    ],
+    "Route110_TrickHousePuzzle6": [
+      29,
+      8
+    ],
+    "Route110_TrickHousePuzzle7": [
+      29,
+      9
+    ],
+    "Route110_TrickHousePuzzle8": [
+      29,
+      10
+    ],
+    "Route110_SeasideCyclingRoadSouthEntrance": [
+      29,
+      11
+    ],
+    "Route110_SeasideCyclingRoadNorthEntrance": [
+      29,
+      12
+    ],
+    "Route113_GlassWorkshop": [
+      30,
+      0
+    ],
+    "Route123_BerryMastersHouse": [
+      31,
+      0
+    ],
+    "Route119_WeatherInstitute_1F": [
+      32,
+      0
+    ],
+    "Route119_WeatherInstitute_2F": [
+      32,
+      1
+    ],
+    "Route119_House": [
+      32,
+      2
+    ],
+    "Route124_DivingTreasureHuntersHouse": [
+      33,
+      0
+    ]
+  },
+  "service": [
+    {
+      "text_label": "CableClub_Text_WelcomeWhichCableClubService",
+      "text": "Welcome to the POKéMON CABLE\\nCLUB.\\pWhich of our services do you wish\\nto use?"
+    },
+    {
+      "text_label": "CableClub_Text_WhichService",
+      "text": "Which of our services do you wish\\nto use?"
+    },
+    {
+      "text_label": "CableClub_Text_TradeUsingLinkCable",
+      "text": "Trade POKéMON with another player\\nusing a GBA Game Link cable."
+    },
+    {
+      "text_label": "CableClub_Text_BattleUsingLinkCable",
+      "text": "You may battle another TRAINER\\nusing a GBA Game Link cable."
+    },
+    {
+      "text_label": "CableClub_Text_RecordCornerUsingLinkCable",
+      "text": "You can use the RECORD CORNER with\\nothers using a GBA Game Link cable."
+    },
+    {
+      "text_label": "CableClub_Text_CloseThisMenu",
+      "text": "Close this menu."
+    },
+    {
+      "text_label": "CableClub_Text_NeedTwoMonsForDoubleBattle",
+      "text": "For a DOUBLE BATTLE, you must\\nhave at least two POKéMON."
+    },
+    {
+      "text_label": "CableClub_Text_NeedTwoMonsToTrade",
+      "text": "For trading, you must have at\\nleast two POKéMON with you."
+    },
+    {
+      "text_label": "CableClub_Text_CantTradeEnigmaBerry",
+      "text": "A POKéMON holding the {STR_VAR_1}\\nBERRY can't be traded."
+    },
+    {
+      "text_label": "gText_PleaseWaitForLink",
+      "text": "Please wait.\\n… … B Button: Cancel"
+    },
+    {
+      "text_label": "gText_ConfirmLinkWhenPlayersReady",
+      "text": "When all players are ready…\\nA Button: Confirm\\lB Button: Cancel"
+    },
+    {
+      "text_label": "gText_ConfirmStartLinkWithXPlayers",
+      "text": "Start link with {STR_VAR_1} players.\\nA Button: Confirm\\lB Button: Cancel"
+    },
+    {
+      "text_label": "gText_AwaitingLinkup",
+      "text": "Awaiting linkup…\\n… … B Button: Cancel"
+    },
+    {
+      "text_label": "CableClub_Text_OkayToSaveProgress",
+      "text": "Your progress must be saved before\\nlinking. Is it okay to save?"
+    },
+    {
+      "text_label": "CableClub_Text_PleaseEnter",
+      "text": "Please enter."
+    },
+    {
+      "text_label": "CableClub_Text_DirectYouToYourRoom",
+      "text": "I'll direct you to your room now."
+    },
+    {
+      "text_label": "Text_SomeoneIsNotReadyToLink",
+      "text": "Someone is not ready to link.\\pPlease come back after everyone\\nhas made preparations."
+    },
+    {
+      "text_label": "Text_LinkErrorPleaseReset",
+      "text": "Sorry, we have a link error…\\nPlease reset and try again."
+    },
+    {
+      "text_label": "Text_PlayersMadeDifferentSelections",
+      "text": "The link partners appear to have\\nmade different selections."
+    },
+    {
+      "text_label": "CableClub_Text_PleaseVisitAgain",
+      "text": "Please do visit again."
+    },
+    {
+      "text_label": "CableClub_Text_IncorrectNumberOfParticipants",
+      "text": "The number of participants is\\nincorrect."
+    },
+    {
+      "text_label": "CableClub_Text_CantSingleBattleWithXPlayers",
+      "text": "The SINGLE BATTLE Mode can't be\\nplayed by {STR_VAR_1} players."
+    },
+    {
+      "text_label": "CableClub_Text_CantDoubleBattleWithXPlayers",
+      "text": "The DOUBLE BATTLE Mode can't be\\nplayed by {STR_VAR_1} players."
+    },
+    {
+      "text_label": "CableClub_Text_NeedFourPlayers",
+      "text": "There must be four players to play\\nthis Battle Mode."
+    },
+    {
+      "text_label": "CableClub_Text_PleaseConfirmNumberAndRestart",
+      "text": "Please confirm the number of\\nplayers and start again."
+    },
+    {
+      "text_label": "Text_TerminateLinkConfirmation",
+      "text": "The link will be terminated if you\\nleave the room. Is that okay?"
+    },
+    {
+      "text_label": "Text_TerminateLinkPleaseWait",
+      "text": "Terminating link…\\nYou will be escorted out of\\lthe room. Please wait."
+    },
+    {
+      "text_label": "CableClub_Text_TooBusyToNotice",
+      "text": "This TRAINER is too busy to\\nnotice…"
+    },
+    {
+      "text_label": "CableClub_Text_GotToLookAtTrainerCard",
+      "text": "Score! Got to look at {STR_VAR_1}'s\\nTRAINER CARD!"
+    },
+    {
+      "text_label": "CableClub_Text_GotToLookAtColoredTrainerCard",
+      "text": "Score! Got to look at {STR_VAR_1}'s\\nTRAINER CARD!\\pIt's a {STR_VAR_2} card!"
+    },
+    {
+      "text_label": "BattleColosseum_2P_Text_TakePlaceStartBattle",
+      "text": "Please take your place and start\\nyour battle."
+    },
+    {
+      "text_label": "TradeCenter_Text_TakeSeatStartTrade",
+      "text": "Please take your seat and start\\nyour trade."
+    },
+    {
+      "text_label": "RecordCorner_Text_ThanksForComing",
+      "text": "Thanks for coming."
+    },
+    {
+      "text_label": "CableClub_Text_TrainerCardDataOverwritten",
+      "text": "The TRAINER CARD data will\\nbe overwritten."
+    },
+    {
+      "text_label": "CableClub_Text_HopeToSeeYouAgain",
+      "text": "I hope to see you again!"
+    },
+    {
+      "text_label": "CableClub_Text_NotSetUpForFarAwayRegion",
+      "text": "I'm awfully sorry.\\pWe're not set up to conduct trades\\nwith TRAINERS far away in another\\lregion yet…"
+    },
+    {
+      "text_label": "CableClub_Text_OtherTrainerNotReady",
+      "text": "The other TRAINER is not ready."
+    },
+    {
+      "text_label": "CableClub_Text_YouHaveAMonThatCantBeTaken",
+      "text": "You have at least one POKéMON\\nthat can't be taken."
+    },
+    {
+      "text_label": "RecordCorner_Text_TakeSeatAndWait",
+      "text": "Please take your seat and wait."
+    },
+    {
+      "text_label": "RecordCorner_Text_PlayerSentOverOneX",
+      "text": "{STR_VAR_1} sent over one\\n{STR_VAR_2}."
+    },
+    {
+      "text_label": "CableClub_Text_CantMixWithJapaneseGame",
+      "text": "Sorry, there is a transmission error.\\pYou may not mix records with  \\nJapanese Ruby or Sapphire games.\\pAlso, you can't mix records with\\nJapanese Emerald and overseas Ruby\\lor Sapphire games at the same time."
+    },
+    {
+      "text_label": "CableClub_Text_AdapterNotConnected",
+      "text": "The Wireless Adapter is not\\nconnected properly."
+    },
+    {
+      "text_label": "CableClub_Text_ParticipantsStepUpToCounter",
+      "text": "Participants are asked to step up\\nto the reception counter."
+    },
+    {
+      "text_label": "CableClub_Text_Hello",
+      "text": "Hello!"
+    },
+    {
+      "text_label": "CableClub_Text_PleaseWait",
+      "text": "Please wait."
+    },
+    {
+      "text_label": "CableClub_Text_YouMayTradeHere",
+      "text": "You may trade your POKéMON here\\nwith another TRAINER."
+    },
+    {
+      "text_label": "CableClub_Text_YouMayBattleHere",
+      "text": "You may battle with your friends\\nhere."
+    },
+    {
+      "text_label": "CableClub_Text_CanMakeBerryPowder",
+      "text": "Two to five TRAINERS can make\\nBERRY POWDER together."
+    },
+    {
+      "text_label": "CableClub_Text_CanMixRecords",
+      "text": "The records of two to four players\\ncan be mixed together."
+    },
+    {
+      "text_label": "CableClub_Text_GuideToVariousServices",
+      "text": "A guide to the WIRELESS CLUB's\\nvarious services."
+    },
+    {
+      "text_label": "CableClub_Text_CancelSelectedItem",
+      "text": "Cancels the selected MENU item."
+    },
+    {
+      "text_label": "CableClub_Text_WhichBattleMode",
+      "text": "Which battle mode would you like?"
+    },
+    {
+      "text_label": "CableClub_Text_ReturnsToPreviousStep",
+      "text": "Returns to the previous step."
+    },
+    {
+      "text_label": "CableClub_Text_NeedBerryForBerryCrush",
+      "text": "To use the BERRY CRUSH service,\\nyou must have at least one BERRY."
+    },
+    {
+      "text_label": "CableClub_Text_NeedTwoMonsForUnionRoom",
+      "text": "To enter the UNION ROOM, you must\\nhave at least two POKéMON."
+    },
+    {
+      "text_label": "CableClub_Text_NoEnigmaBerryInUnionRoom",
+      "text": "No POKéMON holding the {STR_VAR_1}\\nBERRY may enter the UNION ROOM."
+    },
+    {
+      "text_label": "CableClub_Text_UnionRoomAdapterNotConnected",
+      "text": "This is the POKéMON WIRELESS CLUB\\nUNION ROOM.\\pUnfortunately, your Wireless\\nAdapter is not connected properly.\\pPlease do come again."
+    },
+    {
+      "text_label": "CableClub_Text_OhExcuseMe",
+      "text": "Oh…\\nExcuse me!"
+    },
+    {
+      "text_label": "CableClub_Text_PlayerIsWaiting",
+      "text": "It appears as if {STR_VAR_1} is playing\\nright now.\\lGo for it!"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_DescribeWhichGame",
+      "text": "I can explain game rules to you,\\nif you'd like.\\pWhich game should I describe?"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_PokemonJumpInfo",
+      "text": "“POKéMON JUMP”\\pMake your POKéMON skip the VINE WHIP\\nrope with the A Button.\\pOnly mini POKéMON around 28 inches\\nor less may participate.\\pPOKéMON that only swim, burrow,\\nor fly are not good at jumping.\\pAs a result, those POKéMON may not\\nparticipate.\\pGood things happen if everyone\\njumps in time."
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_DodrioBerryPickingInfo",
+      "text": "“DODRIO BERRY-PICKING”\\pCommand DODRIO's three heads to\\ncatch falling BERRIES.\\pPress right, up, or left on the\\n{PLUS} Control Pad to move the heads.\\pTo play this game, you must have\\na DODRIO."
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_TalkToOldManToPlay",
+      "text": "If you want to play a game,\\nplease tell the old man beside me."
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_WelcomeCanYouWait",
+      "text": "Hi, welcome!\\nAre you here to play games using\\lWireless Communication?\\pCan you wait just a little bit?"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_ComeAgain",
+      "text": "All right, come again!"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_AdapterNotConnected",
+      "text": "The Wireless Adapter isn't connected.\\nCome back when it's hooked up!"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_PlayWhichGame",
+      "text": "All right, which game did you want\\nto play?"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_EnterWhichPokemon",
+      "text": "Which POKéMON would you like to\\nenter?"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_AllGoodToGo",
+      "text": "Okay, you're all good to go.\\nDon't let the others beat you!"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_LeavingDoComeAgain",
+      "text": "Are you leaving now?\\nDo come again!"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_ExplainRequiredMon",
+      "text": "It doesn't look like you have any\\nPOKéMON that you can enter…\\pWould you like me to explain what\\nkinds of POKéMON can enter?"
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_ShortJumpingPokemonAllowed",
+      "text": "“POKéMON JUMP” is open to POKéMON\\naround 28 inches or less.\\pWhat you can't enter are those\\nPOKéMON that can't jump.\\pYou know, like POKéMON that only\\nswim, burrow, or fly.\\pThat's all you need to know."
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_OnlyDodrioAllowed",
+      "text": "DODRIO BERRY-PICKING is a game that \\nonly DODRIO may enter."
+    },
+    {
+      "text_label": "MossdeepCity_GameCorner_1F_Text_RetryPlease",
+      "text": "Could you retry this from the start\\nagain, please?"
+    },
+    {
+      "text_label": "CableClub_Text_WelcomeWhichDirectCornerRoom",
+      "text": "Welcome to the POKéMON WIRELESS\\nCLUB DIRECT CORNER.\\pYou may interact directly with\\nyour friends here.\\pWhich room would you like to\\nenter?"
+    },
+    {
+      "text_label": "CableClub_Text_TradePokemon",
+      "text": "Would you like to trade POKéMON?"
+    },
+    {
+      "text_label": "CableClub_Text_PlayWhichBattleMode",
+      "text": "Which Battle Mode would you like\\nto play?"
+    },
+    {
+      "text_label": "CableClub_Text_AccessRecordCorner",
+      "text": "Would you like to access\\nthe RECORD CORNER?"
+    },
+    {
+      "text_label": "CableClub_Text_UseBerryCrush",
+      "text": "Would you like to use the\\nBERRY CRUSH System?"
+    },
+    {
+      "text_label": "CableClub_Text_ExplainBattleModes",
+      "text": "There are three Battle Modes.\\pSINGLE BATTLE is for two TRAINERS\\nwith one or more POKéMON each.\\pEach TRAINER can have one POKéMON\\nin battle at a time.\\pDOUBLE BATTLE is for two TRAINERS\\nwith two or more POKéMON each.\\pEach TRAINER will send out two\\nPOKéMON in battle at a time.\\pMULTI BATTLE is for four TRAINERS\\nwith one or more POKéMON each.\\pEach TRAINER can have one POKéMON\\nin battle at a time."
+    },
+    {
+      "text_label": "CableClub_Text_ChooseGroupLeaderOfTwo",
+      "text": "Please decide which of you two\\nwill become the LEADER.\\pThe other player must then choose\\n“JOIN GROUP.”"
+    },
+    {
+      "text_label": "CableClub_Text_ChooseGroupLeaderOfFour",
+      "text": "Please decide which of you four\\nwill become the GROUP LEADER.\\pThe other players must then choose\\n“JOIN GROUP.”"
+    },
+    {
+      "text_label": "CableClub_Text_ChooseGroupLeader",
+      "text": "Please decide which of you will\\nbecome the GROUP LEADER.\\pThe other players must then choose\\n“JOIN GROUP.”"
+    },
+    {
+      "text_label": "CableClub_Text_WelcomeUnionRoomEnter",
+      "text": "Welcome to the POKéMON WIRELESS\\nCLUB UNION ROOM.\\pYou may interact directly with\\nother TRAINERS here, some of\\lwhom you may not even know.\\pWould you like to enter the ROOM?"
+    },
+    {
+      "text_label": "CableClub_Text_UnionRoomInfo",
+      "text": "The TRAINERS in the UNION ROOM\\nwill be those players around you\\lwho have also entered the ROOM.\\pYou may do all sorts of things\\nhere, such as exchanging greetings.\\pYou may enter two POKéMON up to\\nLv. 30 for a one-on-one battle.\\pYou may take part in a chat with\\ntwo to five people.\\pOr, you may register a POKéMON for\\ntrade.\\pWould you like to enter the ROOM?"
+    },
+    {
+      "text_label": "CableClub_Text_EnjoyUnionRoom",
+      "text": "I hope you enjoy your time in\\nthe UNION ROOM."
+    },
+    {
+      "text_label": "CableClub_Text_FirstTimeRightThisWay",
+      "text": "Hello!\\nMy name is TEALA.\\pThis must be your first time\\nup here.\\pI'll show you how the Wireless\\nCommunication System works.\\pFirst, I need to show you this\\nfloor of our POKéMON CENTER.\\pRight this way, please."
+    },
+    {
+      "text_label": "CableClub_Text_ExplainWirelessClubFirstTime",
+      "text": "On the top floor, there are two\\nrooms.\\pFirst, the room on the left.\\nIt's the UNION ROOM.\\pYou may link up with TRAINERS\\naround you who have also entered\\lthe UNION ROOM.\\pWith them, you may do things like\\nchat, battle, and trade.\\pSecond, the room on the right is\\nthe DIRECT CORNER.\\pYou may trade or battle POKéMON\\nwith your friends in this room.\\pIf the Wireless Adapter isn't\\nconnected, you may still link up\\lusing a GBA Game Link cable.\\pIf that is the case, you must go\\nto the DIRECT CORNER.\\pI hope you enjoy the Wireless \\nCommunication System."
+    },
+    {
+      "text_label": "CableClub_Text_AskAboutLinking",
+      "text": "Hello, {PLAYER}!\\pIt's me, TEALA, the POKéMON\\nCENTER 2F attendant.\\pIs there something you needed to\\nask me about linking?"
+    },
+    {
+      "text_label": "CableClub_Text_ExplainWirelessClub",
+      "text": "Let me explain how the POKéMON\\nWIRELESS CLUB works.\\pOn this, the top floor, there are\\ntwo rooms.\\pFirst, the room on the left.\\nIt's the UNION ROOM.\\pYou may link up with TRAINERS\\naround you who have also entered\\lthe UNION ROOM.\\pWith them, you may do things like\\nchat, battle, and trade.\\pSecond, the room on the right is\\nthe DIRECT CORNER.\\pYou may trade or battle POKéMON\\nwith your friends in this room.\\pSometimes, you may not be able to\\nfind your friends in the UNION ROOM\\lor the DIRECT CORNER.\\pIn that case, please move closer\\nto your friends.\\pIf the Wireless Adapter isn't\\nconnected, you may still link up\\lusing a GBA Game Link cable.\\pIf that is the case, you must go\\nto the DIRECT CORNER.\\pI hope you enjoy the Wireless \\nCommunication System."
+    },
+    {
+      "text_label": "CableClub_Text_HopeYouEnjoyWirelessSystem",
+      "text": "I hope you enjoy the Wireless\\nCommunication System."
+    },
+    {
+      "text_label": "gText_HowMayIServeYou",
+      "text": "Welcome!\\pHow may I serve you?"
+    },
+    {
+      "text_label": "gText_PleaseComeAgain",
+      "text": "Please come again!"
+    },
+    {
+      "text_label": "gText_PlayerWhatCanIDoForYou",
+      "text": "{PLAYER}{KUN}, welcome!\\pWhat can I do for you?"
+    },
+    {
+      "text_label": "Text_BootUpPC",
+      "text": "{PLAYER} booted up the PC."
+    },
+    {
+      "text_label": "gText_WhichPCShouldBeAccessed",
+      "text": "Which PC should be accessed?"
+    },
+    {
+      "text_label": "gText_AccessedSomeonesPC",
+      "text": "Accessed SOMEONE'S PC."
+    },
+    {
+      "text_label": "gText_StorageSystemOpened",
+      "text": "POKéMON Storage System opened."
+    },
+    {
+      "text_label": "gText_AccessedPlayersPC",
+      "text": "Accessed {PLAYER}'s PC."
+    },
+    {
+      "text_label": "gText_AccessedLanettesPC",
+      "text": "Accessed LANETTE's PC."
+    },
+    {
+      "text_label": "gText_WouldYouLikeToRestYourPkmn",
+      "text": "Hello, and welcome to\\nthe POKéMON CENTER.\\pWe restore your tired POKéMON\\nto full health.\\pWould you like to rest your POKéMON?"
+    },
+    {
+      "text_label": "gText_IllTakeYourPkmn",
+      "text": "Okay, I'll take your POKéMON\\nfor a few seconds."
+    },
+    {
+      "text_label": "gText_RestoredPkmnToFullHealth",
+      "text": "Thank you for waiting.\\pWe've restored your POKéMON\\nto full health."
+    },
+    {
+      "text_label": "gText_WeHopeToSeeYouAgain",
+      "text": "We hope to see you again!"
+    },
+    {
+      "text_label": "gText_WelcomeCutShort",
+      "text": "Hello, and welcome to\\nthe POKéMON CENTER.\\pWe restore your tired POKéMON\\nto full health.\\pWould you like to…"
+    },
+    {
+      "text_label": "gText_NoticesGoldCard",
+      "text": "Th-that card…\\nCould it be… The GOLD CARD?!\\pOh, the gold color is brilliant!\\nThe four stars seem to sparkle!\\pI've seen several TRAINERS with\\na SILVER CARD before, but, {PLAYER},\\lyou're the first TRAINER I've ever\\lseen with a GOLD CARD!\\pOkay, {PLAYER}, please allow me\\nthe honor of resting your POKéMON!"
+    },
+    {
+      "text_label": "gText_YouWantTheUsual",
+      "text": "I'm delighted to see you, {PLAYER}!\\nYou want the usual, am I right?"
+    },
+    {
+      "text_label": "gText_IllTakeYourPkmn2",
+      "text": "Okay, I'll take your POKéMON\\nfor a few seconds."
+    },
+    {
+      "text_label": "gText_ThankYouForWaiting",
+      "text": "Thank you for waiting."
+    },
+    {
+      "text_label": "gText_WeHopeToSeeYouAgain2",
+      "text": "We hope to see you again!"
+    },
+    {
+      "text_label": "Text_RepelWoreOff",
+      "text": "REPEL's effect wore off…"
+    }
+  ],
+  "berry": [
+    {
+      "text_label": "BerryTree_Text_ItsSoftLoamySoil",
+      "text": "It's soft, loamy soil."
+    },
+    {
+      "text_label": "BerryTree_Text_WantToPlant",
+      "text": "It's soft, loamy soil.\\nWant to plant a BERRY?"
+    },
+    {
+      "text_label": "BerryTree_Text_PlantedOneBerry",
+      "text": "{PLAYER} planted one {STR_VAR_1} in\\nthe soft, loamy soil."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryGrowthStage1",
+      "text": "One {STR_VAR_1} was planted here."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryGrowthStage2",
+      "text": "{STR_VAR_1} has sprouted."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryGrowthStage3",
+      "text": "This {STR_VAR_1} plant is growing taller."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryGrowthStage4",
+      "text": "These {STR_VAR_1} flowers are blooming\\n{STR_VAR_2}."
+    },
+    {
+      "text_label": "BerryTree_Text_CareAdverbGreat",
+      "text": "very beautifully"
+    },
+    {
+      "text_label": "BerryTree_Text_CareAdverbPoor",
+      "text": "cutely"
+    },
+    {
+      "text_label": "BerryTree_Text_CareAdverbGood",
+      "text": "prettily"
+    },
+    {
+      "text_label": "BerryTree_Text_WantToPick",
+      "text": "You found {STR_VAR_2} {STR_VAR_1}!\\pDo you want to pick the\\n{STR_VAR_1}?"
+    },
+    {
+      "text_label": "BerryTree_Text_PickedTheBerry",
+      "text": "{PLAYER} picked the {STR_VAR_2} {STR_VAR_1}."
+    },
+    {
+      "text_label": "BerryTree_Text_PutAwayBerry",
+      "text": "{PLAYER} put away the {STR_VAR_1}\\nin the BAG's BERRIES POCKET.\\pThe soil returned to its soft and\\nloamy state."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryPocketFull",
+      "text": "The BAG's BERRIES POCKET is full.\\pThe {STR_VAR_1} couldn't be taken."
+    },
+    {
+      "text_label": "BerryTree_Text_BerryLeftUnpicked",
+      "text": "{PLAYER} left the {STR_VAR_1}\\nunpicked."
+    },
+    {
+      "text_label": "BerryTree_Text_WantToWater",
+      "text": "Want to water the {STR_VAR_1} with the\\nWAILMER PAIL?"
+    },
+    {
+      "text_label": "BerryTree_Text_WateredTheBerry",
+      "text": "{PLAYER} watered the {STR_VAR_1}."
+    },
+    {
+      "text_label": "BerryTree_Text_PlantIsDelighted",
+      "text": "The plant seems to be delighted."
+    },
+    {
+      "text_label": "BerryTree_Text_ExclamationPoint",
+      "text": "!"
+    }
+  ],
+  "keep_sign": {
+    "text_label": "RustboroCity_Text_CuttersHouse",
+    "map": "RustboroCity",
+    "text": "CUTTER'S HOUSE"
+  },
+  "rock_smash": [
+    {
+      "text_label": "MauvilleCity_House1_Text_ImRockSmashDudeTakeThis",
+      "map": "MauvilleCity_House1",
+      "text": "Woohoo!\\pI hear people call me the ROCK SMASH\\nGUY, but I find that sort of degrading.\\pI think I deserve a bit more respect,\\nlike maybe the ROCK SMASH DUDE.\\pWoohoo!\\pAnyways, your POKéMON look pretty\\nstrong.\\pI like that!\\nHere, take this HIDDEN MACHINE!"
+    },
+    {
+      "text_label": "MauvilleCity_House1_Text_ExplainRockSmash",
+      "map": "MauvilleCity_House1",
+      "text": "That HM contains ROCK SMASH.\\pIf you come across large boulders\\nthat block your path…\\pWell, use that HM move and smash\\nthem right out of your way!\\pYes, sir! Smash rocks aside, I say!\\nWoohoo!"
+    }
+  ],
+  "signals": {
+    "b_item": [
+      "ACRO BIKE",
+      "AGUAV BERRY",
+      "AMULET COIN",
+      "ANTIDOTE",
+      "APICOT BERRY",
+      "ASPEAR BERRY",
+      "AURORATICKET",
+      "AWAKENING",
+      "BADGE",
+      "BADGES",
+      "BASEMENT KEY",
+      "BEAD MAIL",
+      "BELUE BERRY",
+      "BERRY JUICE",
+      "BERRY POUCH",
+      "BICYCLE",
+      "BIG MUSHROOM",
+      "BIG PEARL",
+      "BIKE",
+      "BIKE VOUCHER",
+      "BLACK BELT",
+      "BLACK FLUTE",
+      "BLACKGLASSES",
+      "BLUE FLUTE",
+      "BLUE ORB",
+      "BLUE SCARF",
+      "BLUE SHARD",
+      "BLUK BERRY",
+      "BRIGHTPOWDER",
+      "BURN HEAL",
+      "CALCIUM",
+      "CARBOS",
+      "CARD KEY",
+      "CHARCOAL",
+      "CHERI BERRY",
+      "CHESTO BERRY",
+      "CHOICE BAND",
+      "CLAW FOSSIL",
+      "CLEANSE TAG",
+      "COIN CASE",
+      "CONTEST PASS",
+      "CORNN BERRY",
+      "DEEPSEASCALE",
+      "DEEPSEATOOTH",
+      "DEVON GOODS",
+      "DEVON SCOPE",
+      "DIRE HIT",
+      "DIVE BALL",
+      "DOME FOSSIL",
+      "DRAGON FANG",
+      "DRAGON SCALE",
+      "DREAM MAIL",
+      "DURIN BERRY",
+      "ELIXIR",
+      "ENERGY ROOT",
+      "ENERGYPOWDER",
+      "ENIGMA BERRY",
+      "EON TICKET",
+      "ESCAPE ROPE",
+      "ETHER",
+      "EVERSTONE",
+      "EXP. SHARE",
+      "FAB MAIL",
+      "FAME CHECKER",
+      "FIGY BERRY",
+      "FIRE STONE",
+      "FLUFFY TAIL",
+      "FOCUS BAND",
+      "FRESH WATER",
+      "FULL HEAL",
+      "FULL RESTORE",
+      "GANLON BERRY",
+      "GLITTER MAIL",
+      "GO-GOGGLES",
+      "GOLD TEETH",
+      "GOOD ROD",
+      "GREAT BALL",
+      "GREEN SCARF",
+      "GREEN SHARD",
+      "GREPA BERRY",
+      "GUARD SPEC.",
+      "HARBOR MAIL",
+      "HARD STONE",
+      "HEAL POWDER",
+      "HEART SCALE",
+      "HELIX FOSSIL",
+      "HM",
+      "HM01",
+      "HM02",
+      "HM03",
+      "HM04",
+      "HM05",
+      "HM06",
+      "HM07",
+      "HM08",
+      "HONDEW BERRY",
+      "HP UP",
+      "HYPER POTION",
+      "IAPAPA BERRY",
+      "ICE HEAL",
+      "IRON",
+      "ITEMFINDER",
+      "KELPSY BERRY",
+      "KING'S ROCK",
+      "LANSAT BERRY",
+      "LAVA COOKIE",
+      "LAX INCENSE",
+      "LEAF STONE",
+      "LEFTOVERS",
+      "LEMONADE",
+      "LEPPA BERRY",
+      "LETTER",
+      "LIECHI BERRY",
+      "LIFT KEY",
+      "LIGHT BALL",
+      "LUCKY EGG",
+      "LUCKY PUNCH",
+      "LUM BERRY",
+      "LUXURY BALL",
+      "MACH BIKE",
+      "MACHO BRACE",
+      "MAGMA EMBLEM",
+      "MAGNET",
+      "MAGO BERRY",
+      "MAGOST BERRY",
+      "MASTER BALL",
+      "MAX ELIXIR",
+      "MAX ETHER",
+      "MAX POTION",
+      "MAX REPEL",
+      "MAX REVIVE",
+      "MECH MAIL",
+      "MENTAL HERB",
+      "METAL COAT",
+      "METAL POWDER",
+      "METEORITE",
+      "MIRACLE SEED",
+      "MOOMOO MILK",
+      "MOON STONE",
+      "MYSTIC WATER",
+      "MYSTICTICKET",
+      "NANAB BERRY",
+      "NEST BALL",
+      "NET BALL",
+      "NEVERMELTICE",
+      "NOMEL BERRY",
+      "NUGGET",
+      "OAK'S PARCEL",
+      "OLD AMBER",
+      "OLD ROD",
+      "OLD SEA MAP",
+      "ORAN BERRY",
+      "ORANGE MAIL",
+      "PAMTRE BERRY",
+      "PARLYZ HEAL",
+      "PEARL",
+      "PECHA BERRY",
+      "PERSIM BERRY",
+      "PETAYA BERRY",
+      "PINAP BERRY",
+      "PINK SCARF",
+      "POISON BARB",
+      "POKé BALL",
+      "POKé DOLL",
+      "POKé FLUTE",
+      "POKéDEX",
+      "POKéNAV",
+      "POMEG BERRY",
+      "POTION",
+      "POWDER JAR",
+      "PP MAX",
+      "PP UP",
+      "PREMIER BALL",
+      "PROTEIN",
+      "QUALOT BERRY",
+      "QUICK CLAW",
+      "RABUTA BERRY",
+      "RAINBOW PASS",
+      "RARE CANDY",
+      "RAWST BERRY",
+      "RAZZ BERRY",
+      "RED FLUTE",
+      "RED ORB",
+      "RED SCARF",
+      "RED SHARD",
+      "REPEAT BALL",
+      "REPEL",
+      "RETRO MAIL",
+      "REVIVAL HERB",
+      "REVIVE",
+      "RM. 1 KEY",
+      "RM. 2 KEY",
+      "RM. 4 KEY",
+      "RM. 6 KEY",
+      "ROOT FOSSIL",
+      "RUBY",
+      "S.S. TICKET",
+      "SACRED ASH",
+      "SAFARI BALL",
+      "SALAC BERRY",
+      "SAPPHIRE",
+      "SCANNER",
+      "SCOPE LENS",
+      "SEA INCENSE",
+      "SECRET KEY",
+      "SHADOW MAIL",
+      "SHARP BEAK",
+      "SHELL BELL",
+      "SHOAL SALT",
+      "SHOAL SHELL",
+      "SILK SCARF",
+      "SILPH SCOPE",
+      "SILVERPOWDER",
+      "SITRUS BERRY",
+      "SMOKE BALL",
+      "SODA POP",
+      "SOFT SAND",
+      "SOOT SACK",
+      "SOOTHE BELL",
+      "SOUL DEW",
+      "SPELL TAG",
+      "SPELON BERRY",
+      "STAR PIECE",
+      "STARDUST",
+      "STARF BERRY",
+      "STICK",
+      "STORAGE KEY",
+      "SUN STONE",
+      "SUPER POTION",
+      "SUPER REPEL",
+      "SUPER ROD",
+      "TAMATO BERRY",
+      "TEA",
+      "TEACHY TV",
+      "THICK CLUB",
+      "THUNDERSTONE",
+      "TIMER BALL",
+      "TINYMUSHROOM",
+      "TM",
+      "TM CASE",
+      "TM01",
+      "TM02",
+      "TM03",
+      "TM04",
+      "TM05",
+      "TM06",
+      "TM07",
+      "TM08",
+      "TM09",
+      "TM10",
+      "TM11",
+      "TM12",
+      "TM13",
+      "TM14",
+      "TM15",
+      "TM16",
+      "TM17",
+      "TM18",
+      "TM19",
+      "TM20",
+      "TM21",
+      "TM22",
+      "TM23",
+      "TM24",
+      "TM25",
+      "TM26",
+      "TM27",
+      "TM28",
+      "TM29",
+      "TM30",
+      "TM31",
+      "TM32",
+      "TM33",
+      "TM34",
+      "TM35",
+      "TM36",
+      "TM37",
+      "TM38",
+      "TM39",
+      "TM40",
+      "TM41",
+      "TM42",
+      "TM43",
+      "TM44",
+      "TM45",
+      "TM46",
+      "TM47",
+      "TM48",
+      "TM49",
+      "TM50",
+      "TOWN MAP",
+      "TRI-PASS",
+      "TROPIC MAIL",
+      "TWISTEDSPOON",
+      "ULTRA BALL",
+      "UP-GRADE",
+      "VS SEEKER",
+      "WAILMER PAIL",
+      "WATER STONE",
+      "WATMEL BERRY",
+      "WAVE MAIL",
+      "WEPEAR BERRY",
+      "WHITE FLUTE",
+      "WHITE HERB",
+      "WIKI BERRY",
+      "WOOD MAIL",
+      "X ACCURACY",
+      "X ATTACK",
+      "X DEFEND",
+      "X SPECIAL",
+      "X SPEED",
+      "YELLOW FLUTE",
+      "YELLOW SCARF",
+      "YELLOW SHARD",
+      "ZINC",
+      "{POKEBLOCK} CASE"
+    ],
+    "b_move": [
+      "ABSORB",
+      "ACID",
+      "ACID ARMOR",
+      "AERIAL ACE",
+      "AEROBLAST",
+      "AGILITY",
+      "AIR CUTTER",
+      "AMNESIA",
+      "ANCIENTPOWER",
+      "ARM THRUST",
+      "AROMATHERAPY",
+      "ASSIST",
+      "ASTONISH",
+      "ATTRACT",
+      "AURORA BEAM",
+      "BARRAGE",
+      "BARRIER",
+      "BATON PASS",
+      "BEAT UP",
+      "BELLY DRUM",
+      "BIDE",
+      "BIND",
+      "BITE",
+      "BLAST BURN",
+      "BLAZE KICK",
+      "BLIZZARD",
+      "BLOCK",
+      "BODY SLAM",
+      "BONE CLUB",
+      "BONE RUSH",
+      "BONEMERANG",
+      "BOUNCE",
+      "BRICK BREAK",
+      "BUBBLE",
+      "BUBBLEBEAM",
+      "BULK UP",
+      "BULLET SEED",
+      "CALM MIND",
+      "CAMOUFLAGE",
+      "CHARGE",
+      "CHARM",
+      "CLAMP",
+      "COMET PUNCH",
+      "CONFUSE RAY",
+      "CONFUSION",
+      "CONSTRICT",
+      "CONVERSION",
+      "CONVERSION 2",
+      "COSMIC POWER",
+      "COTTON SPORE",
+      "COUNTER",
+      "COVET",
+      "CRABHAMMER",
+      "CROSS CHOP",
+      "CRUNCH",
+      "CRUSH CLAW",
+      "CURSE",
+      "DEFENSE CURL",
+      "DESTINY BOND",
+      "DETECT",
+      "DISABLE",
+      "DIVE",
+      "DIZZY PUNCH",
+      "DOOM DESIRE",
+      "DOUBLE KICK",
+      "DOUBLE TEAM",
+      "DOUBLE-EDGE",
+      "DOUBLESLAP",
+      "DRAGON CLAW",
+      "DRAGON DANCE",
+      "DRAGON RAGE",
+      "DRAGONBREATH",
+      "DREAM EATER",
+      "DRILL PECK",
+      "DYNAMICPUNCH",
+      "EARTHQUAKE",
+      "EGG BOMB",
+      "EMBER",
+      "ENCORE",
+      "ENDEAVOR",
+      "ENDURE",
+      "ERUPTION",
+      "EXPLOSION",
+      "EXTRASENSORY",
+      "EXTREMESPEED",
+      "FACADE",
+      "FAINT ATTACK",
+      "FAKE OUT",
+      "FAKE TEARS",
+      "FALSE SWIPE",
+      "FEATHERDANCE",
+      "FIRE BLAST",
+      "FIRE PUNCH",
+      "FIRE SPIN",
+      "FISSURE",
+      "FLAIL",
+      "FLAME WHEEL",
+      "FLAMETHROWER",
+      "FLASH",
+      "FLATTER",
+      "FOCUS ENERGY",
+      "FOCUS PUNCH",
+      "FOLLOW ME",
+      "FORESIGHT",
+      "FRENZY PLANT",
+      "FRUSTRATION",
+      "FURY ATTACK",
+      "FURY CUTTER",
+      "FURY SWIPES",
+      "FUTURE SIGHT",
+      "GIGA DRAIN",
+      "GLARE",
+      "GRASSWHISTLE",
+      "GROWL",
+      "GROWTH",
+      "GRUDGE",
+      "GUILLOTINE",
+      "GUST",
+      "HAIL",
+      "HARDEN",
+      "HAZE",
+      "HEADBUTT",
+      "HEAL BELL",
+      "HEAT WAVE",
+      "HELPING HAND",
+      "HI JUMP KICK",
+      "HIDDEN POWER",
+      "HORN ATTACK",
+      "HORN DRILL",
+      "HOWL",
+      "HYDRO CANNON",
+      "HYDRO PUMP",
+      "HYPER BEAM",
+      "HYPER FANG",
+      "HYPER VOICE",
+      "HYPNOSIS",
+      "ICE BALL",
+      "ICE BEAM",
+      "ICE PUNCH",
+      "ICICLE SPEAR",
+      "ICY WIND",
+      "IMPRISON",
+      "INGRAIN",
+      "IRON DEFENSE",
+      "IRON TAIL",
+      "JUMP KICK",
+      "KARATE CHOP",
+      "KINESIS",
+      "KNOCK OFF",
+      "LEAF BLADE",
+      "LEECH LIFE",
+      "LEECH SEED",
+      "LEER",
+      "LICK",
+      "LIGHT SCREEN",
+      "LOCK-ON",
+      "LOVELY KISS",
+      "LOW KICK",
+      "LUSTER PURGE",
+      "MACH PUNCH",
+      "MAGIC COAT",
+      "MAGICAL LEAF",
+      "MAGNITUDE",
+      "MEAN LOOK",
+      "MEDITATE",
+      "MEGA DRAIN",
+      "MEGA KICK",
+      "MEGA PUNCH",
+      "MEGAHORN",
+      "MEMENTO",
+      "METAL CLAW",
+      "METAL SOUND",
+      "METEOR MASH",
+      "METRONOME",
+      "MILK DRINK",
+      "MIMIC",
+      "MIND READER",
+      "MINIMIZE",
+      "MIRROR COAT",
+      "MIRROR MOVE",
+      "MIST",
+      "MIST BALL",
+      "MOONLIGHT",
+      "MORNING SUN",
+      "MUD SHOT",
+      "MUD SPORT",
+      "MUD-SLAP",
+      "MUDDY WATER",
+      "NATURE POWER",
+      "NEEDLE ARM",
+      "NIGHT SHADE",
+      "NIGHTMARE",
+      "OCTAZOOKA",
+      "ODOR SLEUTH",
+      "OUTRAGE",
+      "OVERHEAT",
+      "PAIN SPLIT",
+      "PAY DAY",
+      "PECK",
+      "PERISH SONG",
+      "PETAL DANCE",
+      "PIN MISSILE",
+      "POISON FANG",
+      "POISON GAS",
+      "POISON STING",
+      "POISON TAIL",
+      "POISONPOWDER",
+      "POUND",
+      "POWDER SNOW",
+      "PRESENT",
+      "PROTECT",
+      "PSYBEAM",
+      "PSYCH UP",
+      "PSYCHIC",
+      "PSYCHO BOOST",
+      "PSYWAVE",
+      "PURSUIT",
+      "QUICK ATTACK",
+      "RAGE",
+      "RAIN DANCE",
+      "RAPID SPIN",
+      "RAZOR LEAF",
+      "RAZOR WIND",
+      "RECOVER",
+      "RECYCLE",
+      "REFLECT",
+      "REFRESH",
+      "REST",
+      "RETURN",
+      "REVENGE",
+      "REVERSAL",
+      "ROAR",
+      "ROCK BLAST",
+      "ROCK SLIDE",
+      "ROCK SMASH",
+      "ROCK THROW",
+      "ROCK TOMB",
+      "ROLE PLAY",
+      "ROLLING KICK",
+      "ROLLOUT",
+      "SACRED FIRE",
+      "SAFEGUARD",
+      "SAND TOMB",
+      "SAND-ATTACK",
+      "SANDSTORM",
+      "SCARY FACE",
+      "SCRATCH",
+      "SCREECH",
+      "SECRET POWER",
+      "SEISMIC TOSS",
+      "SELFDESTRUCT",
+      "SHADOW BALL",
+      "SHADOW PUNCH",
+      "SHARPEN",
+      "SHEER COLD",
+      "SHOCK WAVE",
+      "SIGNAL BEAM",
+      "SILVER WIND",
+      "SING",
+      "SKETCH",
+      "SKILL SWAP",
+      "SKULL BASH",
+      "SKY ATTACK",
+      "SKY UPPERCUT",
+      "SLACK OFF",
+      "SLAM",
+      "SLASH",
+      "SLEEP POWDER",
+      "SLEEP TALK",
+      "SLUDGE",
+      "SLUDGE BOMB",
+      "SMELLINGSALT",
+      "SMOG",
+      "SMOKESCREEN",
+      "SNATCH",
+      "SNORE",
+      "SOFTBOILED",
+      "SOLARBEAM",
+      "SONICBOOM",
+      "SPARK",
+      "SPIDER WEB",
+      "SPIKE CANNON",
+      "SPIKES",
+      "SPIT UP",
+      "SPITE",
+      "SPLASH",
+      "SPORE",
+      "STEEL WING",
+      "STOCKPILE",
+      "STOMP",
+      "STRENGTH",
+      "STRING SHOT",
+      "STRUGGLE",
+      "STUN SPORE",
+      "SUBMISSION",
+      "SUBSTITUTE",
+      "SUNNY DAY",
+      "SUPER FANG",
+      "SUPERPOWER",
+      "SUPERSONIC",
+      "SURF",
+      "SWAGGER",
+      "SWALLOW",
+      "SWEET KISS",
+      "SWEET SCENT",
+      "SWIFT",
+      "SWORDS DANCE",
+      "SYNTHESIS",
+      "TACKLE",
+      "TAIL GLOW",
+      "TAIL WHIP",
+      "TAKE DOWN",
+      "TAUNT",
+      "TEETER DANCE",
+      "TELEPORT",
+      "THIEF",
+      "THRASH",
+      "THUNDER",
+      "THUNDER WAVE",
+      "THUNDERBOLT",
+      "THUNDERPUNCH",
+      "THUNDERSHOCK",
+      "TICKLE",
+      "TORMENT",
+      "TOXIC",
+      "TRANSFORM",
+      "TRI ATTACK",
+      "TRICK",
+      "TRIPLE KICK",
+      "TWINEEDLE",
+      "TWISTER",
+      "UPROAR",
+      "VICEGRIP",
+      "VINE WHIP",
+      "VITAL THROW",
+      "VOLT TACKLE",
+      "WATER GUN",
+      "WATER PULSE",
+      "WATER SPORT",
+      "WATER SPOUT",
+      "WATERFALL",
+      "WEATHER BALL",
+      "WHIRLPOOL",
+      "WHIRLWIND",
+      "WILL-O-WISP",
+      "WING ATTACK",
+      "WISH",
+      "WITHDRAW",
+      "WRAP",
+      "YAWN",
+      "ZAP CANNON"
+    ],
+    "b_ability": [
+      "AIR LOCK",
+      "ARENA TRAP",
+      "BATTLE ARMOR",
+      "BLAZE",
+      "CACOPHONY",
+      "CHLOROPHYLL",
+      "CLEAR BODY",
+      "CLOUD NINE",
+      "COLOR CHANGE",
+      "COMPOUNDEYES",
+      "CUTE CHARM",
+      "DAMP",
+      "DRIZZLE",
+      "DROUGHT",
+      "EARLY BIRD",
+      "EFFECT SPORE",
+      "FLAME BODY",
+      "FLASH FIRE",
+      "FORECAST",
+      "GUTS",
+      "HUGE POWER",
+      "HUSTLE",
+      "HYPER CUTTER",
+      "ILLUMINATE",
+      "IMMUNITY",
+      "INNER FOCUS",
+      "INSOMNIA",
+      "INTIMIDATE",
+      "KEEN EYE",
+      "LEVITATE",
+      "LIGHTNINGROD",
+      "LIMBER",
+      "LIQUID OOZE",
+      "MAGMA ARMOR",
+      "MAGNET PULL",
+      "MARVEL SCALE",
+      "MINUS",
+      "NATURAL CURE",
+      "OBLIVIOUS",
+      "OVERGROW",
+      "OWN TEMPO",
+      "PICKUP",
+      "PLUS",
+      "POISON POINT",
+      "PRESSURE",
+      "PURE POWER",
+      "RAIN DISH",
+      "ROCK HEAD",
+      "ROUGH SKIN",
+      "RUN AWAY",
+      "SAND STREAM",
+      "SAND VEIL",
+      "SERENE GRACE",
+      "SHADOW TAG",
+      "SHED SKIN",
+      "SHELL ARMOR",
+      "SHIELD DUST",
+      "SOUNDPROOF",
+      "SPEED BOOST",
+      "STATIC",
+      "STENCH",
+      "STICKY HOLD",
+      "STURDY",
+      "SUCTION CUPS",
+      "SWARM",
+      "SWIFT SWIM",
+      "SYNCHRONIZE",
+      "THICK FAT",
+      "TORRENT",
+      "TRACE",
+      "TRUANT",
+      "VITAL SPIRIT",
+      "VOLT ABSORB",
+      "WATER ABSORB",
+      "WATER VEIL",
+      "WHITE SMOKE",
+      "WONDER GUARD"
+    ],
+    "b_type": [
+      "BUG",
+      "DARK",
+      "DRAGON",
+      "ELECTR",
+      "ELECTRIC",
+      "FIGHT",
+      "FIGHTING",
+      "FIRE",
+      "FLYING",
+      "GHOST",
+      "GRASS",
+      "GROUND",
+      "ICE",
+      "NORMAL",
+      "POISON",
+      "PSYCHC",
+      "PSYCHIC",
+      "ROCK",
+      "STEEL",
+      "WATER"
+    ],
+    "b_species": [
+      "??????????",
+      "ABRA",
+      "ABSOL",
+      "AERODACTYL",
+      "AGGRON",
+      "AIPOM",
+      "ALAKAZAM",
+      "ALTARIA",
+      "AMPHAROS",
+      "ANORITH",
+      "ARBOK",
+      "ARCANINE",
+      "ARIADOS",
+      "ARMALDO",
+      "ARON",
+      "ARTICUNO",
+      "AZUMARILL",
+      "AZURILL",
+      "BAGON",
+      "BALTOY",
+      "BANETTE",
+      "BARBOACH",
+      "BAYLEEF",
+      "BEAUTIFLY",
+      "BEEDRILL",
+      "BELDUM",
+      "BELLOSSOM",
+      "BELLSPROUT",
+      "BLASTOISE",
+      "BLAZIKEN",
+      "BLISSEY",
+      "BRELOOM",
+      "BULBASAUR",
+      "BUTTERFREE",
+      "CACNEA",
+      "CACTURNE",
+      "CAMERUPT",
+      "CARVANHA",
+      "CASCOON",
+      "CASTFORM",
+      "CATERPIE",
+      "CELEBI",
+      "CHANSEY",
+      "CHARIZARD",
+      "CHARMANDER",
+      "CHARMELEON",
+      "CHIKORITA",
+      "CHIMECHO",
+      "CHINCHOU",
+      "CLAMPERL",
+      "CLAYDOL",
+      "CLEFABLE",
+      "CLEFAIRY",
+      "CLEFFA",
+      "CLOYSTER",
+      "COMBUSKEN",
+      "CORPHISH",
+      "CORSOLA",
+      "CRADILY",
+      "CRAWDAUNT",
+      "CROBAT",
+      "CROCONAW",
+      "CUBONE",
+      "CYNDAQUIL",
+      "DELCATTY",
+      "DELIBIRD",
+      "DEOXYS",
+      "DEWGONG",
+      "DIGLETT",
+      "DITTO",
+      "DODRIO",
+      "DODUO",
+      "DONPHAN",
+      "DRAGONAIR",
+      "DRAGONITE",
+      "DRATINI",
+      "DROWZEE",
+      "DUGTRIO",
+      "DUNSPARCE",
+      "DUSCLOPS",
+      "DUSKULL",
+      "DUSTOX",
+      "EEVEE",
+      "EKANS",
+      "ELECTABUZZ",
+      "ELECTRIKE",
+      "ELECTRODE",
+      "ELEKID",
+      "ENTEI",
+      "ESPEON",
+      "EXEGGCUTE",
+      "EXEGGUTOR",
+      "EXPLOUD",
+      "FARFETCH'D",
+      "FEAROW",
+      "FEEBAS",
+      "FERALIGATR",
+      "FLAAFFY",
+      "FLAREON",
+      "FLYGON",
+      "FORRETRESS",
+      "FURRET",
+      "GARDEVOIR",
+      "GASTLY",
+      "GENGAR",
+      "GEODUDE",
+      "GIRAFARIG",
+      "GLALIE",
+      "GLIGAR",
+      "GLOOM",
+      "GOLBAT",
+      "GOLDEEN",
+      "GOLDUCK",
+      "GOLEM",
+      "GOREBYSS",
+      "GRANBULL",
+      "GRAVELER",
+      "GRIMER",
+      "GROUDON",
+      "GROVYLE",
+      "GROWLITHE",
+      "GRUMPIG",
+      "GULPIN",
+      "GYARADOS",
+      "HARIYAMA",
+      "HAUNTER",
+      "HERACROSS",
+      "HITMONCHAN",
+      "HITMONLEE",
+      "HITMONTOP",
+      "HO-OH",
+      "HOOTHOOT",
+      "HOPPIP",
+      "HORSEA",
+      "HOUNDOOM",
+      "HOUNDOUR",
+      "HUNTAIL",
+      "HYPNO",
+      "IGGLYBUFF",
+      "ILLUMISE",
+      "IVYSAUR",
+      "JIGGLYPUFF",
+      "JIRACHI",
+      "JOLTEON",
+      "JUMPLUFF",
+      "JYNX",
+      "KABUTO",
+      "KABUTOPS",
+      "KADABRA",
+      "KAKUNA",
+      "KANGASKHAN",
+      "KECLEON",
+      "KINGDRA",
+      "KINGLER",
+      "KIRLIA",
+      "KOFFING",
+      "KRABBY",
+      "KYOGRE",
+      "LAIRON",
+      "LANTURN",
+      "LAPRAS",
+      "LARVITAR",
+      "LATIAS",
+      "LATIOS",
+      "LEDIAN",
+      "LEDYBA",
+      "LICKITUNG",
+      "LILEEP",
+      "LINOONE",
+      "LOMBRE",
+      "LOTAD",
+      "LOUDRED",
+      "LUDICOLO",
+      "LUGIA",
+      "LUNATONE",
+      "LUVDISC",
+      "MACHAMP",
+      "MACHOKE",
+      "MACHOP",
+      "MAGBY",
+      "MAGCARGO",
+      "MAGIKARP",
+      "MAGMAR",
+      "MAGNEMITE",
+      "MAGNETON",
+      "MAKUHITA",
+      "MANECTRIC",
+      "MANKEY",
+      "MANTINE",
+      "MAREEP",
+      "MARILL",
+      "MAROWAK",
+      "MARSHTOMP",
+      "MASQUERAIN",
+      "MAWILE",
+      "MEDICHAM",
+      "MEDITITE",
+      "MEGANIUM",
+      "MEOWTH",
+      "METAGROSS",
+      "METANG",
+      "METAPOD",
+      "MEWTWO",
+      "MIGHTYENA",
+      "MILOTIC",
+      "MILTANK",
+      "MINUN",
+      "MISDREAVUS",
+      "MOLTRES",
+      "MR. MIME",
+      "MUDKIP",
+      "MURKROW",
+      "NATU",
+      "NIDOKING",
+      "NIDOQUEEN",
+      "NIDORAN♀",
+      "NIDORAN♂",
+      "NIDORINA",
+      "NIDORINO",
+      "NINCADA",
+      "NINETALES",
+      "NINJASK",
+      "NOCTOWL",
+      "NOSEPASS",
+      "NUMEL",
+      "NUZLEAF",
+      "OCTILLERY",
+      "ODDISH",
+      "OMANYTE",
+      "OMASTAR",
+      "ONIX",
+      "PARAS",
+      "PARASECT",
+      "PELIPPER",
+      "PERSIAN",
+      "PHANPY",
+      "PICHU",
+      "PIDGEOT",
+      "PIDGEOTTO",
+      "PIDGEY",
+      "PIKACHU",
+      "PILOSWINE",
+      "PINECO",
+      "PINSIR",
+      "PLUSLE",
+      "POLITOED",
+      "POLIWAG",
+      "POLIWHIRL",
+      "POLIWRATH",
+      "PONYTA",
+      "POOCHYENA",
+      "PORYGON",
+      "PORYGON2",
+      "PRIMEAPE",
+      "PSYDUCK",
+      "PUPITAR",
+      "QUAGSIRE",
+      "QUILAVA",
+      "QWILFISH",
+      "RAICHU",
+      "RAIKOU",
+      "RALTS",
+      "RAPIDASH",
+      "RATICATE",
+      "RATTATA",
+      "RAYQUAZA",
+      "REGICE",
+      "REGIROCK",
+      "REGISTEEL",
+      "RELICANTH",
+      "REMORAID",
+      "RHYDON",
+      "RHYHORN",
+      "ROSELIA",
+      "SABLEYE",
+      "SALAMENCE",
+      "SANDSHREW",
+      "SANDSLASH",
+      "SCEPTILE",
+      "SCIZOR",
+      "SCYTHER",
+      "SEADRA",
+      "SEAKING",
+      "SEALEO",
+      "SEEDOT",
+      "SEEL",
+      "SENTRET",
+      "SEVIPER",
+      "SHARPEDO",
+      "SHEDINJA",
+      "SHELGON",
+      "SHELLDER",
+      "SHIFTRY",
+      "SHROOMISH",
+      "SHUCKLE",
+      "SHUPPET",
+      "SILCOON",
+      "SKARMORY",
+      "SKIPLOOM",
+      "SKITTY",
+      "SLAKING",
+      "SLAKOTH",
+      "SLOWBRO",
+      "SLOWKING",
+      "SLOWPOKE",
+      "SLUGMA",
+      "SMEARGLE",
+      "SMOOCHUM",
+      "SNEASEL",
+      "SNORLAX",
+      "SNORUNT",
+      "SNUBBULL",
+      "SOLROCK",
+      "SPEAROW",
+      "SPHEAL",
+      "SPINARAK",
+      "SPINDA",
+      "SPOINK",
+      "SQUIRTLE",
+      "STANTLER",
+      "STARMIE",
+      "STARYU",
+      "STEELIX",
+      "SUDOWOODO",
+      "SUICUNE",
+      "SUNFLORA",
+      "SUNKERN",
+      "SURSKIT",
+      "SWABLU",
+      "SWALOT",
+      "SWAMPERT",
+      "SWELLOW",
+      "SWINUB",
+      "TAILLOW",
+      "TANGELA",
+      "TAUROS",
+      "TEDDIURSA",
+      "TENTACOOL",
+      "TENTACRUEL",
+      "TOGEPI",
+      "TOGETIC",
+      "TORCHIC",
+      "TORKOAL",
+      "TOTODILE",
+      "TRAPINCH",
+      "TREECKO",
+      "TROPIUS",
+      "TYPHLOSION",
+      "TYRANITAR",
+      "TYROGUE",
+      "UMBREON",
+      "UNOWN",
+      "URSARING",
+      "VAPOREON",
+      "VENOMOTH",
+      "VENONAT",
+      "VENUSAUR",
+      "VIBRAVA",
+      "VICTREEBEL",
+      "VIGOROTH",
+      "VILEPLUME",
+      "VOLBEAT",
+      "VOLTORB",
+      "VULPIX",
+      "WAILMER",
+      "WAILORD",
+      "WALREIN",
+      "WARTORTLE",
+      "WEEDLE",
+      "WEEPINBELL",
+      "WEEZING",
+      "WHISCASH",
+      "WHISMUR",
+      "WIGGLYTUFF",
+      "WINGULL",
+      "WOBBUFFET",
+      "WOOPER",
+      "WURMPLE",
+      "WYNAUT",
+      "XATU",
+      "YANMA",
+      "ZANGOOSE",
+      "ZAPDOS",
+      "ZIGZAGOON",
+      "ZUBAT"
+    ],
+    "e_person": [
+      "AARON",
+      "ABIGAIL",
+      "AIDAN",
+      "AISHA",
+      "ALAN",
+      "ALBERT",
+      "ALBERTO",
+      "ALEX",
+      "ALEXA",
+      "ALEXIA",
+      "ALEXIS",
+      "ALICE",
+      "ALIX",
+      "ALLEN",
+      "ALLISON",
+      "ALVARO",
+      "ALYSSA",
+      "AMY & LIV",
+      "ANABEL",
+      "ANDREA",
+      "ANDRES",
+      "ANDREW",
+      "ANGELICA",
+      "ANGELINA",
+      "ANGELO",
+      "ANNA & MEG",
+      "ANNIKA",
+      "ANTHONY",
+      "AQUA",
+      "ARCHIE",
+      "ASHLEY",
+      "ATHENA",
+      "ATSUSHI",
+      "AURON",
+      "AUSTINA",
+      "AUTUMN",
+      "AXLE",
+      "BARNY",
+      "BARRY",
+      "BEAU",
+      "BECK",
+      "BECKY",
+      "BENJAMIN",
+      "BENNY",
+      "BERKE",
+      "BERNIE",
+      "BETH",
+      "BETHANY",
+      "BEVERLY",
+      "BIANCA",
+      "BILLY",
+      "BLAKE",
+      "BRANDEN",
+      "BRANDI",
+      "BRANDON",
+      "BRAWLY",
+      "BRAXTON",
+      "BRENDA",
+      "BRENDAN",
+      "BRENDEN",
+      "BRENT",
+      "BRIANNA",
+      "BRICE",
+      "BRIDGET",
+      "BROOKE",
+      "BRYAN",
+      "BRYANT",
+      "CALE",
+      "CALLIE",
+      "CALVIN",
+      "CAMDEN",
+      "CAMERON",
+      "CAMRON",
+      "CAPT. STERN",
+      "CARLEE",
+      "CAROL",
+      "CAROLINA",
+      "CAROLINE",
+      "CARTER",
+      "CATHERINE",
+      "CEDRIC",
+      "CELIA",
+      "CELINA",
+      "CHAD",
+      "CHANDLER",
+      "CHARLIE",
+      "CHARLOTTE",
+      "CHASE",
+      "CHESTER",
+      "CHIP",
+      "CHRIS",
+      "CINDY",
+      "CLARENCE",
+      "CLARISSA",
+      "CLARK",
+      "CLAUDE",
+      "CLIFFORD",
+      "COBY",
+      "COLE",
+      "COLIN",
+      "COLTON",
+      "CONNIE",
+      "CONOR",
+      "CORA",
+      "CORY",
+      "CRISSY",
+      "CRISTIAN",
+      "CRISTIN",
+      "CYNDY",
+      "DAD",
+      "DAISUKE",
+      "DAISY",
+      "DALE",
+      "DALTON",
+      "DANA",
+      "DANIELLE",
+      "DAPHNE",
+      "DARCY",
+      "DARIAN",
+      "DARIUS",
+      "DARRIN",
+      "DAVID",
+      "DAVIS",
+      "DAWSON",
+      "DAYTON",
+      "DEAN",
+      "DEANDRE",
+      "DEBRA",
+      "DECLAN",
+      "DEMETRIUS",
+      "DENISE",
+      "DEREK",
+      "DEVAN",
+      "DEZ & LUKE",
+      "DIANA",
+      "DIANNE",
+      "DILLON",
+      "DOMINIK",
+      "DONALD",
+      "DONNY",
+      "DOUG",
+      "DOUGLAS",
+      "DRAKE",
+      "DREW",
+      "DUDLEY",
+      "DUNCAN",
+      "DUSTY",
+      "DWAYNE",
+      "DYLAN",
+      "EDDIE",
+      "EDGAR",
+      "EDMOND",
+      "EDWARD",
+      "EDWARDO",
+      "EDWIN",
+      "ELIJAH",
+      "ELLIOT",
+      "ERIC",
+      "ERNEST",
+      "ETHAN",
+      "EVERETT",
+      "FABIAN",
+      "FELIX",
+      "FERNANDO",
+      "FLANNERY",
+      "FLINT",
+      "FOSTER",
+      "FRANKLIN",
+      "FREDRICK",
+      "GABBY & TY",
+      "GABRIELLE",
+      "GARRET",
+      "GARRISON",
+      "GEORGE",
+      "GEORGIA",
+      "GERALD",
+      "GILBERT",
+      "GINA & MIA",
+      "GLACIA",
+      "GRACE",
+      "GREG",
+      "GRETA",
+      "GRUNT",
+      "GWEN",
+      "HAILEY",
+      "HALEY",
+      "HALLE",
+      "HANNAH",
+      "HARRISON",
+      "HAYDEN",
+      "HECTOR",
+      "HEIDI",
+      "HELENE",
+      "HENRY",
+      "HERMAN",
+      "HIDEO",
+      "HITOSHI",
+      "HOPE",
+      "HUDSON",
+      "HUEY",
+      "HUGH",
+      "HUMBERTO",
+      "IMANI",
+      "IRENE",
+      "ISAAC",
+      "ISABEL",
+      "ISABELLA",
+      "ISABELLE",
+      "ISAIAH",
+      "ISOBEL",
+      "IVAN",
+      "JACE",
+      "JACK",
+      "JACKI",
+      "JACKSON",
+      "JACLYN",
+      "JACOB",
+      "JAIDEN",
+      "JAMES",
+      "JANI",
+      "JANICE",
+      "JARED",
+      "JASMINE",
+      "JAYLEN",
+      "JAZMYN",
+      "JEFF",
+      "JEFFREY",
+      "JENNA",
+      "JENNIFER",
+      "JENNY",
+      "JEROME",
+      "JERRY",
+      "JESSICA",
+      "JOCELYN",
+      "JODY",
+      "JOEY",
+      "JOHANNA",
+      "JOHN & JAY",
+      "JOHNSON",
+      "JONAH",
+      "JONAS",
+      "JONATHAN",
+      "JOSE",
+      "JOSEPH",
+      "JOSH",
+      "JOSHUA",
+      "JOSUE",
+      "JUAN",
+      "JULIE",
+      "JULIO",
+      "JUSTIN",
+      "KALEB",
+      "KARA",
+      "KAREN",
+      "KATE & JOY",
+      "KATELYN",
+      "KATELYNN",
+      "KATHLEEN",
+      "KATIE",
+      "KAYLA",
+      "KAYLEE",
+      "KAYLEY",
+      "KEEGAN",
+      "KEIGO",
+      "KEIRA",
+      "KELVIN",
+      "KENT",
+      "KEVIN",
+      "KIM & IRIS",
+      "KINDRA",
+      "KIRA & DAN",
+      "KIRK",
+      "KIYO",
+      "KOICHI",
+      "KOJI",
+      "KYLA",
+      "KYRA",
+      "LARRY",
+      "LAURA",
+      "LAUREL",
+      "LAWRENCE",
+      "LEA & JED",
+      "LEAF",
+      "LEAH",
+      "LENNY",
+      "LEONARD",
+      "LEONARDO",
+      "LEONEL",
+      "LEROY",
+      "LILA & ROY",
+      "LILITH",
+      "LINDA",
+      "LISA & RAY",
+      "LOLA",
+      "LORENZO",
+      "LUCAS",
+      "LUCY",
+      "LUIS",
+      "LUNG",
+      "LYDIA",
+      "LYLE",
+      "MACEY",
+      "MADELINE",
+      "MAGMA",
+      "MAKAYLA",
+      "MARC",
+      "MARCEL",
+      "MARCOS",
+      "MARIA",
+      "MARIELA",
+      "MARK",
+      "MARLENE",
+      "MARLEY",
+      "MARTHA",
+      "MARY",
+      "MATT",
+      "MATTHEW",
+      "MAURA",
+      "MAXIE",
+      "MAY",
+      "MEL & PAUL",
+      "MELINA",
+      "MELISSA",
+      "MICAH",
+      "MICHELLE",
+      "MIGUEL",
+      "MIKE",
+      "MISSY",
+      "MITCHELL",
+      "MIU & YUKI",
+      "MOLLIE",
+      "MOM",
+      "MR. BRINEY",
+      "MR. STONE",
+      "MYLES",
+      "NANCY",
+      "NAOMI",
+      "NATE",
+      "NICHOLAS",
+      "NICOLAS",
+      "NIKKI",
+      "NOLAN",
+      "NOLAND",
+      "NOLEN",
+      "NORMAN",
+      "OLIVIA",
+      "OWEN",
+      "PABLO",
+      "PARKER",
+      "PATRICIA",
+      "PAUL",
+      "PAULA",
+      "PAXTON",
+      "PERRY",
+      "PETE",
+      "PHIL",
+      "PHILLIP",
+      "PHOEBE",
+      "PRESLEY",
+      "PRESTON",
+      "PROF. BIRCH",
+      "QUINCY",
+      "RACHEL",
+      "RANDALL",
+      "REED",
+      "RELI & IAN",
+      "REYNA",
+      "RHETT",
+      "RICHARD",
+      "RICK",
+      "RICKY",
+      "RILEY",
+      "ROBERT",
+      "ROBIN",
+      "RODNEY",
+      "ROGER",
+      "ROLAND",
+      "RONALD",
+      "ROSE",
+      "ROXANNE",
+      "RUBEN",
+      "SALLY",
+      "SAMANTHA",
+      "SAMUEL",
+      "SANTIAGO",
+      "SARAH",
+      "SAWYER",
+      "SCOTT",
+      "SEBASTIAN",
+      "SHANE",
+      "SHANNON",
+      "SHARON",
+      "SHAWN",
+      "SHAYLA",
+      "SHEILA",
+      "SHELBY",
+      "SHELLY",
+      "SHIRLEY",
+      "SIDNEY",
+      "SIENNA",
+      "SIMON",
+      "SOPHIA",
+      "SOPHIE",
+      "SPENCER",
+      "SPENSER",
+      "STAN",
+      "STEVE",
+      "STEVEN",
+      "SUSIE",
+      "SYLVIA",
+      "TABITHA",
+      "TAKAO",
+      "TAKASHI",
+      "TALIA",
+      "TAMMY",
+      "TANYA",
+      "TARA",
+      "TASHA",
+      "TATE&LIZA",
+      "TAYLOR",
+      "TEAM AQUA",
+      "TEAM MAGMA",
+      "TERRY",
+      "THALIA",
+      "THOMAS",
+      "TIANA",
+      "TIFFANY",
+      "TIMMY",
+      "TIMOTHY",
+      "TISHA",
+      "TOMMY",
+      "TONY",
+      "TORI & TIA",
+      "TRAVIS",
+      "TRENT",
+      "TUCKER",
+      "TYRA & IVY",
+      "TYRON",
+      "VALERIE",
+      "VANESSA",
+      "VICKY",
+      "VICTOR",
+      "VICTORIA",
+      "VINCENT",
+      "VIOLET",
+      "VIRGIL",
+      "VITO",
+      "VIVI",
+      "VIVIAN",
+      "WADE",
+      "WALLACE",
+      "WALLY",
+      "WALTER",
+      "WARREN",
+      "WATTSON",
+      "WAYNE",
+      "WENDY",
+      "WILLIAM",
+      "WILTON",
+      "WINONA",
+      "WINSTON",
+      "WYATT",
+      "YASU",
+      "YUJI",
+      "ZANDER"
+    ],
+    "c_direction": [
+      "north",
+      "south",
+      "east",
+      "west",
+      "up ahead",
+      "ahead",
+      "head for",
+      "head to",
+      "go to",
+      "beeline",
+      "cycling road",
+      "across the sea",
+      "upstairs",
+      "downstairs",
+      "next door",
+      "this way",
+      "that way",
+      "the other side",
+      "through the",
+      "over the top",
+      "dead end",
+      "shortcut"
+    ],
+    "d_gating": [
+      "can't",
+      "cannot",
+      "need",
+      "needs",
+      "blocked",
+      "if you had",
+      "only if",
+      "in the way",
+      "won't let",
+      "not allowed",
+      "must",
+      "require",
+      "unless",
+      "without a",
+      "too dangerous",
+      "closed",
+      "come back with",
+      "if you have"
+    ],
+    "h_rest_heal": [
+      "rest",
+      "heal",
+      "restore",
+      "full health",
+      "tired"
+    ],
+    "i_gift": [
+      "take this",
+      "have this",
+      "you can have",
+      "for you",
+      "give you",
+      "here you go",
+      "you may have"
+    ],
+    "k_money": [
+      "¥",
+      "money",
+      "fee",
+      "price",
+      "buy",
+      "sell",
+      "cost"
+    ],
+    "l_place_word": [
+      "cave",
+      "cavern",
+      "edge of town",
+      "tunnel",
+      "island",
+      "shop",
+      "house",
+      "gym",
+      "center",
+      "mart",
+      "forest",
+      "woods",
+      "mountain",
+      "desert",
+      "sea",
+      "river",
+      "gate",
+      "path",
+      "road",
+      "cottage",
+      "shipyard",
+      "museum",
+      "tower"
+    ],
+    "v4_gating": [
+      "around the corner",
+      "dangerous",
+      "if you don't have",
+      "if you don't"
+    ]
+  }
+}

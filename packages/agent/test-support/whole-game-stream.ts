@@ -116,7 +116,7 @@ export function buildWholeGameStream(entries:readonly WholeGameEntry[],seed=2026
   const before:RunEvent[]=[state(entry)],stateSeq=seq,id=`step-${String(turn)}`;
   before.push(emit({type:"dialogue_auto_advance",turn,tool_call_id:id,tool:"press",requested:[],sent:[],dropped:[],auto_presses:entry.pages.length,pages:entry.pages.map((text,i)=>({state_seq:stateSeq,map:entry.map,map_display:entry.map,map_id:[...entry.map_id],position:null,speaker:entry.page_names?.[i]??entry.speaker,speaker_source:entry.page_names?.[i]===undefined||entry.page_names[i]===null?entry.speakerSource:"name_prefix",text})),stop:"field_free",detail:"deterministic pret-only synthetic fixture; no game execution",duration_ms:0}));
   const quote=entry.pages.join(" ").replaceAll("\n"," ");
-  before.push(emit({type:"tool_result",turn,id,name:"press",is_error:false,text:`Location: ${entry.map}\nStory line heard (${entry.page_names?.find(n=>n!==null)??entry.speaker}, turn ${String(turn)}): "${quote}"`,state_seq:stateSeq,duration_ms:0,frames:[]}));
+  before.push(emit({type:"tool_result",turn,id,name:"press",is_error:false,text:`Location: ${entry.map}\nStory line heard (${String(entry.page_names?.find(n=>n!==null)??entry.speaker)}, turn ${String(turn)}): "${quote}"`,state_seq:stateSeq,duration_ms:0,frames:[]}));
   const resultSeq=seq,after:RunEvent[]=[];
   const newly=entry.milestone_after.filter(n=>!completed.has(n));
   for(const name of newly){complete(name,entry);completed.add(name);}

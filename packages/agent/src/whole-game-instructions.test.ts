@@ -95,7 +95,7 @@ describe("deterministic pret-only whole-game instruction stream",()=>{
   expect(loadWholeGameScript(PRET)).toHaveLength(136);
   const steps=buildWholeGameStream(signs);
   for(const whole of [false,true])for(const dedup of [false,true]){
-   const memory=new ObservedInstructions(true,true,true,true,whole),places=new ObservedInstructions(true,true);
+   const memory=new ObservedInstructions(true,true,true,true,false,whole),places=new ObservedInstructions(true,true);
    for(const step of steps){
     for(const event of [...step.before,...step.after]){memory.observe(event);places.observe(event);}
     const shown=memory.text(dedup?places.placeEpisodes():undefined)??"";
@@ -115,7 +115,7 @@ describe("deterministic pret-only whole-game instruction stream",()=>{
  });
  for(const wholeGame of [false,true])for(const dedup of [false,true])it(`checks every story step: cap ON, whole-game ${String(wholeGame)}, dedup ${String(dedup)}`,()=>{
   const entries=loadWholeGameScript(PRET),steps=buildWholeGameStream(entries,20261028);
-  const memory=new ObservedInstructions(true,true,true,true,wholeGame),places=new ObservedInstructions(true,true);
+  const memory=new ObservedInstructions(true,true,true,true,false,wholeGame),places=new ObservedInstructions(true,true);
   const checkpoints=wholeGame?STORY_CHECKPOINTS:LEGACY_STORY_CHECKPOINTS;
   const completed=new Map<string,number>();const summary:Record<string,unknown>[]=[];const misses:{step:string;hint:string}[]=[];
   const feed=(es:readonly events.RunEvent[])=>{for(const e of es){memory.observe(e);places.observe(e);if(e.type==="milestone"&&!completed.has(e.name))completed.set(e.name,e.turn);}};

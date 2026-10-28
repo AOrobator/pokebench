@@ -94,3 +94,6 @@ COMMIT: require source audits and record accepted browser proof before full gate
 
 Full-gate sync: immutable main 9415839b9d1c30646b60f3260c9ffed55be11120; preserved all current registry/default/recipe semantics and appended whole-game at ordinal303. Constructor seam remains wholeGame5. No bundle edits.
 COMMIT: sync latest main before full gates.
+
+Gate round1 on d67: full tests passed; lint rejected nullable speaker interpolation in the synthetic helper. Wrapper stopped before build/vendor; logs retained. CPU RELEASE sent when main f67571b7f superseded that source. Synced landed junk filter, preserving its fifth ObservedInstructions argument and first InstructionMemoryCap argument; wholeGame now appends sixth/second. Own treatments explicitly pass junk=false. Nullable speaker interpolation now uses explicit String conversion, preserving existing synthetic text bytes. No gameplay/activation. Full gates and replay parity must repeat on this new tree.
+COMMIT: integrate landed junk seam and fix fixture lint.

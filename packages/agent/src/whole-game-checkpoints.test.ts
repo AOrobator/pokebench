@@ -24,7 +24,7 @@ describe(feature,()=>{
    expect(closed.has(name),name).toBe(true);
  });
  it("is registered, optional and OFF by default, with the table count in its description",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(feature)).toBe(303);
+  expect(SWITCHABLE_FEATURES.indexOf(feature)).toBe(304);
   expect(featureInfo(feature).description).toContain(`${String(STORY_CHECKPOINTS.length)} story checkpoints`);
   expect(featureInfo(feature).description).toContain(" Off: ");
   expect(featureInfo(feature)).toMatchObject({group:"guard",needs:"instruction-memory-cap-v1"});
@@ -38,7 +38,7 @@ describe(feature,()=>{
   for(const checkpoint of late())for(const scope of checkpoint.scope)for(const speaker of scope.speakers){
    const episode:CapEpisode={result:10,dialogue:[9],turn:5,pages:[[speaker,speaker===null?null:"faced_sprite","scene page",scope.map,scope.map_id,null]]};
    const select=(on:boolean,names:readonly string[],turn=7,e=episode)=>{
-    const cap=new InstructionMemoryCap(on);
+    const cap=new InstructionMemoryCap(false,on);
     for(const n of names)cap.observe(milestone(n,turn));
     return cap.select([e],render).decisions[0];
    };

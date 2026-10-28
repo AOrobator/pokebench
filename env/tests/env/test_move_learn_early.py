@@ -78,9 +78,7 @@ def early(name: str) -> ReadMemory:
 
 
 def early_state(name: str, off: frozenset[str] = frozenset()) -> GameState:
-    return read_state(
-        early(name), maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"}
-    )
+    return read_state(early(name), maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"})
 
 
 def old_state(name: str, off: frozenset[str] = frozenset()) -> GameState:

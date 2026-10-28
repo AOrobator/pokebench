@@ -289,7 +289,7 @@ export function pressTool(
       let receipt:StrideReceipt|undefined;
       if(stride!==undefined){
         const raw:unknown=await getJson(`${gameServerUrl}/pokebench/stride/${stride.id}`,fetchFn,15_000,signal);
-        if(!Value.Check(StrideReceiptSchema,raw)||raw.id!==stride.id||!raw.stopped||raw.completed>stride.path.length||JSON.stringify(raw.path)!==JSON.stringify(stride.path)||JSON.stringify(raw.origin)!==JSON.stringify(stride.origin)||JSON.stringify(raw.map_id)!==JSON.stringify(stride.map_id)||raw.elevation!==stride.elevation||(raw.reason==="completed"&&raw.completed!==stride.path.length))throw new Error("Navigation stride lacks a matching terminal receipt");
+        if(!Value.Check(StrideReceiptSchema,raw)||raw.id!==stride.id||!raw.stopped||raw.completed>stride.path.length||JSON.stringify(raw.path)!==JSON.stringify(stride.path)||JSON.stringify(raw.origin)!==JSON.stringify(stride.origin)||JSON.stringify(raw.map_id)!==JSON.stringify(stride.map_id)||raw.elevation!==stride.elevation||raw.tall_grass!==stride.tall_grass||(raw.reason==="completed"&&raw.completed!==stride.path.length))throw new Error("Navigation stride lacks a matching terminal receipt");
         receipt=raw;
       }
       await clock.sleep(STATE_CACHE_SETTLE_MS);

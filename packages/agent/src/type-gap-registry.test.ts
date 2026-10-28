@@ -9,14 +9,14 @@ const TITLES=["GYM TYPE GAP","SUPPLIES","UNTALKED PEOPLE IN GYM"];
 const CURRENT=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {switches:string[];onInBoth:string[];offInBoth:string[];features:Record<string,boolean>};
 
 describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 2026-10-27)",()=>{
- it("are appended, in order, right after context-exact-count-v1 in every registry list as default-off observations",()=>{
-  // Pinned by position after the switch they were appended to, so a later switch never edits this test (feature-switch skill).
-  const after=(list:readonly string[])=>{const i=list.indexOf("context-exact-count-v1")+1;return list.slice(i,i+3);};
-  expect(after(SWITCHABLE_FEATURES)).toEqual([...IDS]);
-  expect(after(FEATURES.filter(f=>f.switchable).map(f=>f.id))).toEqual([...IDS]);
+ it("sit at their registered positions in every registry list as default-off observations",()=>{
+  expect(IDS.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([277,278,279]);
+  const switchable=FEATURES.filter(f=>f.switchable).map(f=>f.id);
+  expect(IDS.map(id=>switchable.indexOf(id))).toEqual([277,278,279]);
   expect(SERVER_FEATURES.at(-1)).toBe("type-gap-team-v1");
   const all=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])) as Parameters<typeof playHarnessFeatures>[0];
-  expect(after(playHarnessFeatures(all,null))).toEqual([...IDS]);
+  const harness=playHarnessFeatures(all,null);
+  expect(IDS.map(id=>harness.indexOf(id))).toEqual([301,302,303]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:null});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

@@ -3,9 +3,9 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** implementation — M2 closed dormant; M3 pending
+**Current Phase:** verification — M3 GREEN, independent review pending
 **Phase Started:** 2026-10-25
-**Branch:** `codex/current-run-snapshots-service`
+**Branch:** `codex/current-run-snapshots-api`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
 **Milestone tracking:** M1–M5 in this worklog. No repo-local Beads exists; installed bd resolves an unrelated global local stack database. Repository principles explicitly do not inherit Beads; do not create unrelated issues.
 **Required Phase Skills Checked:** repository feature-worklog and its canonical planning references
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M3 (contract/RED next; no service activation or shared refresh)
+## Current Milestone: M3 (GREEN; independent review next; no service activation or shared refresh)
 
 ### Completed Milestones
 
@@ -158,14 +158,14 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Multi-model review against service ownership/recovery contract and INV-1/2/6/8 (Claude/GPT/Astra/Sol round2 LGTM; Grok unavailable, standing human outage waiver; reduced vendor diversity).
 
 **M3 - Fast endpoints, reconnect and indexed history pages (tracked by this worklog):**
-- [ ] Contract freeze: four routes above, indexed card identity metadata, consistent epoch/revision/resync, sparse bounded history and independent read execution. Owner: viewer read API. No default browser migration or historical catalog ingestion.
-- [ ] Terminator: production HTTP path returns current snapshots while reconstruction and health are held; source-read observer shows zero event-log reads for current endpoints; paged history has no gaps/duplicates within generation.
+- [x] Contract freeze: four routes above, indexed card identity metadata, consistent epoch/revision/resync, sparse bounded history and independent read execution. Owner: viewer read API. No default browser migration or historical catalog ingestion.
+- [x] Terminator: production HTTP path returns current snapshots while reconstruction and health are held; source-read observer shows zero event-log reads for current endpoints; paged history has no gaps/duplicates within generation.
 - [ ] Split triggers: unbounded arbitrary trace search, remote/public write APIs, or new grading/index authority.
-- [ ] Tests: conditional response, initial-fetch/subscribe race, expired cursor, tombstones/ended rows, store rebuild epoch, oversized event policy, missing history segment, index invalidation, hostile cursors, slow client.
-- [ ] COMMIT: `test(viewer): specify fast snapshot and indexed history APIs` (RED; SHA pending).
-- [ ] Implement API adapters, bounded revision delivery and history seeks; legacy route remains available.
-- [ ] Adversarial deletion; API fixture proof; full gates and coverage.
-- [ ] COMMIT: `feat(viewer): serve current snapshots and bounded history` (GREEN; SHA pending).
+- [x] Tests: conditional response, initial-fetch/subscribe race, expired cursor, tombstones/ended rows, store rebuild epoch, oversized event policy, missing history segment, index invalidation, hostile cursors, slow client.
+- [x] COMMIT: `test(viewer): specify fast current snapshots and indexed history reads` (RED;a9f367467); missing pool module RED also retained.
+- [x] Implement API adapters, bounded revision delivery and history seeks; legacy route remains available.
+- [x] Adversarial deletion35 actual assertion-RED/restored cases; native API/worker fixture proof; full build/lint/test-with-coverage/vendor PASS.
+- [x] COMMIT: API implementation aa56da6ec; strengthened/corrected gated source48d6079e6 (GREEN; final evidence seal below).
 - [ ] Multi-model review against endpoint contracts and INV-3/4/6/7.
 
 **M4 - Snapshot-first browser with separate history/replay state (tracked by this worklog):**
@@ -424,3 +424,5 @@ M3 second mutation pass: consumed-byte guard now independently assertion-RED; ne
 M3 first full window: all29 mutations assertion-RED/restored18.92s; buildPASS17.99s; lintFAIL77.30s with14 diagnostics, preserved m3-attempt1-* receipts. Full just-test/vendor NOT run; CPU released early to next owner. Correcting require-await fixture promises, unknown rejection callback types, unnecessary void destructuring, numeric template conversion, unsafe asymmetric assertion shape and unknown SQLite detail coercion. No rule disable or gate weakening. Next window will revalidate corrected source; no GREEN/review/landing/activation claim.
 
 M3 corrected-window START00:14EDT. Corrected lint fixtures preserve58-test prior scope; added independent history run/epoch/generation rejection and source replacement during descriptor read, plus deadline watchdog assertions that fail on missing enforcement without relying on a test timeout. Prepared mutation set35 now separates history cursor operands, pool active credit/priority and HTTP deadline. All changes remain inside frozen M3 read boundary. Next full gates cover this exact source; previous29-pass receipt preserved separately.
+
+M3 GREEN on48d6079e6:35 independent targeted mutation failures/restorations22.96s, build17.96s, lint82.37s, single full coverage-instrumented just-test144.24s, vendor0.11s PASS. Counts4689agent/2195viewer/4466Python/102gateway+3protectedcards. Coverage lines/branches/functions: agent99.17/92.69/97.46; viewer98.30/90.96/95.03; Python97.49/93.61/100; gateway receipt retains exact metrics. CPU released immediately. m3-final-gates.json/source-hashes.json/mutations.json and per-case patches/logs bind proof; exact tracked source bytes checked before this evidence-only commit. Earlier lint failure/survivors retained. Independent review next, no local-main landing yet. M4/M5 remain unstarted; activation/shared-refresh hold unchanged.

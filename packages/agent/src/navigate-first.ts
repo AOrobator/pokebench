@@ -77,7 +77,7 @@ function buttonsOf(params:unknown):readonly string[] {
 }
 
 export function withNavigateFirst(tools:readonly AgentTool[],features:FeatureSet):readonly AgentTool[] {
- if(!features["navigate-first-prompt-v1"])return tools;
+ if(!features["navigate-first-prompt-v1"]||features["destination-first-navigation-v1"])return tools;
  const reminder=features["semantic-navigation-v2"]?SEMANTIC_REMINDER:REMINDER;
  let streak=0;
  return tools.map(tool=>{

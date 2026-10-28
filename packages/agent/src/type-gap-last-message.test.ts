@@ -61,10 +61,11 @@ describe(ID,()=>{
   expect(dependencyProblems({...base,"type-gap-team-v1":true,[ID]:true})).not.toContain(`${ID} needs type-gap-team-v1`);
  });
 
- it("is a bundle-only switch in current.json, base off",()=>{
-  expect(CURRENT.switches).toContain(ID);
-  expect(CURRENT.features[ID]).toBe(false);
-  expect(CURRENT.onInBoth).not.toContain(ID);
+ it("is ON in both arms in current.json beside type-gap-team-v1 (the operator 2026-10-28)",()=>{
+  expect(CURRENT.onInBoth).toContain(ID);
+  expect(CURRENT.onInBoth).toContain("type-gap-team-v1");
+  expect(CURRENT.features[ID]).toBe(true);
+  expect(CURRENT.switches).not.toContain(ID);
   expect(CURRENT.offInBoth).not.toContain(ID);
  });
 

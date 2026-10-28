@@ -7,6 +7,8 @@ import hashlib
 import json
 import multiprocessing
 import os
+import shutil
+import tempfile
 import threading
 import time
 from collections.abc import Iterator
@@ -95,6 +97,100 @@ class RawRamSnapshot:
             metadata,
             rom,
         )
+
+
+def _copy_raw_parts(
+    read: SnapshotMemoryReader,
+) -> tuple[tuple[tuple[str, int, int, bytes], ...], BootCpu]:
+    regions = []
+    for name, address, size in REGIONS:
+        data = read.raw_region(address, size)
+        if len(data) != size:
+            raise ValueError(f"short raw RAM read: {name}: {len(data)} != {size}")
+        regions.append((name, address, size, data))
+    return tuple(regions), read.native_boot_cpu_context()
+
+
+def copy_raw_snapshot(
+    read: SnapshotMemoryReader, frame: int, rom_sha1: str, sequence: int = 0
+) -> RawRamSnapshot:
+    """Copy native bytes/CPU under the caller's frame lock; no encoding or I/O."""
+    regions, cpu = _copy_raw_parts(read)
+    return RawRamSnapshot(
+        1, sequence, frame, time.time_ns(), rom_sha1, tuple(cpu.gprs), cpu.cpsr, regions
+    )
+
+
+def persist_diagnostic_window(
+    directory: Path,
+    revision: int,
+    snapshots: tuple[RawRamSnapshot, ...],
+    omitted_samples: int = 0,
+) -> dict[str, object]:
+    """Retain two bounded diagnostic windows, separate from mandatory observations."""
+    if revision < 1 or not 1 <= len(snapshots) <= 8 or omitted_samples < 0:
+        raise ValueError("invalid diagnostic window bounds")
+    directory.mkdir(parents=True, exist_ok=True)
+    # A failed cleanup must stop admission, including transient artifacts. The
+    # journal's persistence lock guarantees no other export owns these paths.
+    for pending_pointer in directory.glob(".current-*"):
+        pending_pointer.unlink()
+    for pending_window in directory.glob(".window-*"):
+        shutil.rmtree(pending_window)
+    name = f"window-{revision:012d}"
+    destination = directory / name
+    if not destination.exists():
+        # Admission is bounded even when a previous publication/rollback failed.
+        # Keep the actual published window, not a higher-numbered orphan.
+        current_path = directory / "current.json"
+        published = (
+            json.loads(current_path.read_text())["directory"] if current_path.exists() else None
+        )
+        for old in directory.glob("window-*"):
+            if old.is_dir() and old.name[7:].isdigit() and old.name != published:
+                shutil.rmtree(old)
+    created = False
+    with tempfile.TemporaryDirectory(prefix=".window-", dir=directory) as temporary:
+        staging = Path(temporary)
+        receipts = [_persist_capture(staging, sample) for sample in snapshots]
+        manifest: dict[str, object] = {
+            "revision": revision,
+            "directory": name,
+            "samples": len(snapshots),
+            "retained_windows": 2,
+            "omitted_samples": omitted_samples,
+            "archive_sha256": [receipt["sha256"] for receipt in receipts],
+            "first_frame": snapshots[0].frame,
+            "last_frame": snapshots[-1].frame,
+            "raw_bytes": sum(sum(size for _, _, size, _ in sample.regions) for sample in snapshots),
+        }
+        durable_write(staging / "window.json", json.dumps(manifest).encode())
+        if destination.exists():
+            if json.loads((destination / "window.json").read_text()) != manifest:
+                raise ValueError("diagnostic revision reused with different evidence")
+        else:
+            staging.rename(destination)
+            created = True
+    pointer_published = False
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=directory, prefix=".current-", delete=False
+        ) as current:
+            pending = Path(current.name)
+            try:
+                current.write(json.dumps(manifest).encode())
+                current.flush()
+                os.fsync(current.fileno())
+                os.replace(pending, directory / "current.json")
+                pointer_published = True
+            finally:
+                if not pointer_published:
+                    pending.unlink(missing_ok=True)
+    except Exception:
+        if created and not pointer_published:
+            shutil.rmtree(destination)
+        raise
+    return manifest
 
 
 class Reservation:
@@ -245,13 +341,7 @@ class RawRamArchive:
         self._raise_if_unavailable()
         if not reservation.active or reservation._archive is not self:
             raise ValueError("inactive raw RAM persistence reservation")
-        regions = []
-        for name, address, size in REGIONS:
-            data = read.raw_region(address, size)
-            if len(data) != size:
-                raise ValueError(f"short raw RAM read: {name}: {len(data)} != {size}")
-            regions.append((name, address, size, data))
-        cpu = read.native_boot_cpu_context()
+        regions, cpu = _copy_raw_parts(read)
         with self._sequence_lock:
             sequence = self.sequence
             self.sequence += 1
@@ -264,7 +354,7 @@ class RawRamArchive:
             rom_sha1=self.rom_sha1,
             gprs=tuple(cpu.gprs),
             cpsr=cpu.cpsr,
-            regions=tuple(regions),
+            regions=regions,
         )
 
     def start_capture(

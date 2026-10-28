@@ -68,7 +68,9 @@ def test_observation_delivers_named_topology_only_when_enabled(monkeypatch):
         screenshot_base64: str = "aA=="
 
     for off, expected in [("world-destinations-v1", False), ("", True)]:
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF", ",".join(filter(None, (off, "player-map-visibility-v1")))
+        )
         app = FastAPI()
         install_observation(app, Shot, m.read, MapNames({}))
         status, _, raw = get(app, "/pokebench/observation")

@@ -44,6 +44,7 @@ from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.player_map_visibility import MapVisibility
 from pokebench_env.poison_berry_readout import visible_berry_lines
 from pokebench_env.pokedex_own import Pokedex, read_pokedex, wild_foes
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
@@ -149,6 +150,7 @@ class GameState:
     map_observation: MapObservation | None = None
     nearby: LocalMap | None = None
     full_map: FullMap | None = None
+    map_visibility: MapVisibility | None = None
     topology: Topology | None = None
     player_elevation: int = 0
     # screen-center-player-v1: where the map's top layer is drawn over the player's sprite.
@@ -209,6 +211,7 @@ class GameState:
     pokedex: Pokedex | None = None
     # type-gap-team-v1: party species and move types and the ROM type chart; None when off.
     type_gap: TypeGap | None = None
+    move_matchup_enabled: bool = False
 
 
 DYNAMIC_WARP = 0x14
@@ -397,6 +400,7 @@ def read_game_state(
     interface_guidance_enabled: bool = False,
     bag_pocket_truth_enabled: bool = False,
     pokenav_short_list_enabled: bool = False,
+    pokenav_call_advance_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
@@ -409,6 +413,7 @@ def read_game_state(
     exp_next_enabled: bool = False,
     pokedex_enabled: bool = False,
     type_gap_enabled: bool = False,
+    move_matchup_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read, blackout_transition=blackout_transition_enabled)
@@ -441,6 +446,7 @@ def read_game_state(
         party_menu_message=party_menu_message_enabled,
         bag_pocket_truth=bag_pocket_truth_enabled,
         pokenav_short_list=pokenav_short_list_enabled,
+        pokenav_call_advance=pokenav_call_advance_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
         birch_intro_pages=birch_intro_pages_enabled,
@@ -558,6 +564,13 @@ def read_game_state(
             active_ui_read=truth_read,
             menu_window_drawn=window_drawn,
             mid_frame=mid_frame_enabled and readable and torn,
+            type_gap=read_type_gap(read, None)
+            if move_matchup_enabled
+            and field_initialized
+            and not pregame
+            and battle is not None
+            and battle.ready is True
+            else None,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
@@ -915,6 +928,11 @@ def read_game_state(
     state = _with_training(
         read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )
-    if type_gap_enabled and state.started:
+    matchup_scene = move_matchup_enabled and (
+        state.move_learning is not None or (state.battle is not None and state.battle.ready is True)
+    )
+    if matchup_scene:
+        state = replace(state, move_matchup_enabled=True)
+    if (type_gap_enabled or matchup_scene) and state.started:
         state = replace(state, type_gap=read_type_gap(read, state.party))
     return state

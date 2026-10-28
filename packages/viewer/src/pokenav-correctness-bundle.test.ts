@@ -21,3 +21,13 @@ it.each(CURRENT)("current recipe %s turns both PokéNav correctness switches on 
     }
   }
 });
+
+it.each(CURRENT)("current recipe %s enables call auto-advance only in the bundle",name=>{
+ const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+ const id="pokenav-call-auto-advance-v1";
+ expect(d.switches).toContain(id);
+ for(const arm of ["control","bundle"] as const){
+  expect(armFeatures(d,arm)[id],`${name}/${arm}`).toBe(arm==="bundle");
+  for(const phase of d.phases)expect(armPreset(d,phase.id,arm).features[id]).toBe(arm==="bundle");
+ }
+});

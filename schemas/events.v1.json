@@ -6399,7 +6399,8 @@
             "battle_action",
             "observe",
             "navigate_to_target",
-            "explore_map"
+            "explore_map",
+            "select_menu_option"
           ]
         },
         "requested": {
@@ -6454,6 +6455,34 @@
         "battle_auto_presses": {
           "type": "integer",
           "minimum": 0
+        },
+        "pokenav_buttons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          },
+          "maxItems": 50
+        },
+        "pokenav_pending_button": {
+          "enum": [
+            "A",
+            "B",
+            "START",
+            "SELECT",
+            "UP",
+            "DOWN",
+            "LEFT",
+            "RIGHT"
+          ]
         },
         "pages": {
           "type": "array",
@@ -11299,6 +11328,61 @@
                 }
               },
               "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "map_visibility": {
+          "type": "object",
+          "required": [
+            "known",
+            "visible",
+            "diagnostic"
+          ],
+          "properties": {
+            "known": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "maxItems": 10240
+            },
+            "visible": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "maxItems": 10240
+            },
+            "diagnostic": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false

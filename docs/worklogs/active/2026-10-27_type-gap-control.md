@@ -23,4 +23,4 @@ Live run a702 runs from its pinned checkout and is not touched.
 
 ## Gates
 
-(pending a heavy-CPU window)
+At 248ce5d53 (CPU window 9:29 PM NY): `just test` exit 0 (agent 4643, viewer 2106, Python 4463 + 69, coverage floors, trainer cards 3/3 after `just trainer-card-art` built this fresh worktree's gitignored card art); `just lint` exit 0; schema fresh. Rebased cleanly onto main fd621a45d (branch diff unchanged: current.json, README, registry test, this worklog). Main's post-merge blocker, the live-human.test.ts 5 s timeout, passes alone on this tip (7/7); it is load timing, not this change.

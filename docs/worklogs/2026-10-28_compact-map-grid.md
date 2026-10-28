@@ -1,0 +1,82 @@
+# compact-map-grid-v1 (lossless short codes for the observed-elements map grid)
+
+Operator decisions, relayed from the project thread:
+
+- The operator 2026-10-28 picked bound 1 (compact grid codes, lossless) with bounds 2, 3, 4 and 6; no grid window (5).
+- Each bound is its own default-OFF switch on its own branch off main, in the order 1, 2, 3, 6, 4.
+- The operator: "they all need to be on in the bundle". The activation commit puts this switch in current.json `switches` (bundle arm only). Control stays OFF.
+- Don't land or activate until the coordinator returns with the operator's OK. Full suites only on a relayed CPU grant.
+
+## Why
+
+Run a702 died at T1303 on a 66,676-token request against a 65,536 window. Its last tool result was 70K chars, 47K of them the "Current map (observed elements v1)" grid for ROUTE 104.
+
+Each cell is padded to the widest token, and tokens like `~/Wa:o/Lv:1` are long. pret's largest layouts are 80×80 (Routes 124/126/127) and 40×140 (Routes 111/119). At today's padding those come to about 160K chars.
+
+## Rule
+
+When the switch is ON, the server renders the same grid with these changes:
+
+- Each distinct multi-character token gets a short code. The codes are letters that are neither glyphs on the map nor element legend keys: one letter, then two, then longer (round 2).
+- A `Codes: A = token; …` line follows the title. It reads `Codes: none` when no token needs a code.
+- Every cell is padded to the longest code, with one space between cells.
+- Column numbers are stacked digit lines, read top to bottom.
+
+Gate edges (`|`, `-`), junctions (`*`), the legend and everything after the grid are unchanged. Every tile is still shown, so nothing is lost.
+
+**OFF:** byte-identical to today (server default-off list; `render_observation(compact=False)`).
+
+## M1: renderer + server switch
+
+- [x] RED: `env/tests/env/test_compact_map_grid.py`. A synthetic grid at every distinct pret layout size (layouts.json at pret 731ad5bfd, with fallback sizes if absent) parses back to the same cells, gate edges, junctions and trailing text as the verbose form. The test also checks: off by default, codes skip glyph letters, and the multi-digit header. RED before the implementation: `render_observation` had no `compact` parameter.
+- [x] GREEN: `compact_codes()` and `render_observation(compact=…)` in `map_observation.py`. 200 passed (197 distinct sizes + 3); 80×80 goes from 161,825 to 28,222 chars.
+- [x] Server wiring: `compact-map-grid-v1` in readout SERVER_FEATURES and the default-off env list; readout passes `compact=` through. Wiring test `test_server_switch_is_default_off_and_only_recodes_the_grid`: RED against the unwired readout (1 failed), GREEN after; the text before the grid and from `Base glyph` on is byte-identical. 201 passed; neighbours test_map_observation_wiring + test_adjacent_tiles 139 passed.
+- [x] TS registry (features.ts SWITCHABLE_FEATURES index 294 / FEATURES / SERVER_FEATURES / serverFeatureEnv, needs map-observability-v1), play-preset (schema, legacy filter, union, normalize and flag defaults false), next-run default false. `compact-map-grid.test.ts` 2/2 with features.test.ts (30 passed); agent and viewer `tsc --noEmit` clean. Written after the registration, so no separate RED.
+- [x] Explainer `docs/explainers/compact-map-grid-v1.html` (pages-theme, pages-check clean), README entry, `FEATURE_EXPLAINERS` mapping; panels/server link tests 2/2. Live READ EXPLAINER click waits for landing (8790 runs main).
+- [x] a702 T1300 measurement: raw-ram/00032220.json.gz re-rendered through `rerender.main` with a702's switches. The OFF grid is 46,558 chars, matching the recording. Qwen3.6 /tokenize on 88ea (4 calls): grid 46,558 chars / 12,180 tokens → 7,283 / 3,871; whole observe result 62,809 / 17,601 → 23,534 / 9,292.
+- [x] Activation commit (on this branch only; not landed): `compact-map-grid-v1` appended to current.json `switches` (bundle ON) and `features` false (control OFF), the same shape as instruction-memory-dedup-v1. Recipe sha256 f8fbd8ed… → f20e8136…; launch definitions that use featureRecipe "current" (bundle-v-control-2h, bundle-v-control, glm53-flash-4h, hyperqwen-control-3h) need `just fixed-run approve` again. Focused tests that read current.json: viewer 50 passed, agent 63 passed.
+- [x] Changed-file lint: ruff check + format over env (whole tree, cheap), mypy (packages) clean, eslint on changed TS files clean.
+- [x] Merged main 780154405 (the cap landed). Registry conflicts were resolved by keeping main's entries and adding this switch after instruction-memory-cap-v1, so its index moved 294 → 296. current.json: neutral-yes-no-readout-v1 and this switch are in `switches`, and cap stays true in `features`. The launch approval was removed on main, so no approve step. Focused: agent 57 passed; env 264 passed.
+- [ ] Gates on a CPU grant: `just lint`, `just test`.
+- [ ] Review: Claude, Grok, GPT/Codex lanes.
+
+## Review round 1 (head 35de0524f, base main 90b351b55)
+
+Full gate on 35de0524f passed, under the CPU grant relayed 12:01 PM NY:
+- lint and build: clean
+- agent: 4,780 tests
+- viewer: 2,216 tests
+- env: 4,802 tests
+- claude-gateway: 116 tests
+- trainer cards: 3/3
+
+Lanes:
+- Claude CLI: OAuth expired.
+- Cursor: out of usage.
+- Codex: its default model is refused, so the GPT lane runs `-m gpt-5.6-sol`.
+
+So the roster is Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent (the operator's standing lane rule).
+
+The fallback lane returned BLOCKING. When the origin is negative (a local view within 7 tiles of the west edge, from `read_local_map`), the stacked header sized its digit lines from the last column only, so "-5".."-1" all printed as "-".
+
+- [x] RED: `test_compact_header_numbers_every_column_including_negative_origins`. Origins -5, -12 and -7 fail; 95 and 0 pass.
+- [x] GREEN: digits is now the longest column number, and the test parser accepts "-" in header lines. 269 env tests pass with the wiring tests; ruff and mypy are clean.
+- The Claude lane (opus subagent) also returned BLOCKING on the same header bug, plus a strongly recommended hardening: codes could reuse an element legend key (`I` is ice in the legend), which risks a misreading. Accepted.
+- [x] RED: `test_codes_never_reuse_a_glyph_or_an_element_legend_key`, with 700 tokens so it also proves the code supply is unbounded. It fails because codes include legend keys.
+- [x] GREEN: `compact_codes` reserves every KIND/STATE/DIRECTION/COLOR token value as well as glyphs, and generates codes of growing length (itertools), so the supply never runs out.
+- Codex (gpt-5.6-sol) returned BLOCKING on the same header bug, plus two process points: the gate must run on the final head, and the explainer must match the tree.
+- [x] The test parser reads signed row labels, and `test_compact_round_trip_on_signed_origins` covers (-6,-6), (-12,3) and (5,-7). 210 compact tests pass.
+- a702 T1300 re-measured with the new codes: grid 7,283 chars / 3,871 tokens and readout 23,534 / 9,292, the same as before. 80×80: 161,825 → 28,243.
+- [x] Round 2: Claude LGTM, fallback LGTM. Codex BLOCKING on a stale explainer status line and on the missing frozen-head gate. Status corrected: activation is committed on the branch, and the change takes effect only after landing and a new launch. The first round-2 gate attempt on the compact head failed only on an unrelated 5 s timeout (serial-comparison.test.ts, under parallel load) and was stopped; the gate reruns on the final head.
+- [x] Merged main 606bf6d24 (pokenav-call-auto-advance-v1 landed). Registry conflicts were resolved by keeping main's entries and adding this branch's switch after it. Index pins +1. The resolver had dropped the single-line FEATURES on() entry for compact and supervisor; it was restored and the resolver hardened. Focused agent tests plus viewer panels/server/next-run/feature-config/fixed-definition (421) pass.
+- [x] Round 3: Claude LGTM, fallback LGTM. Codex BLOCKING because the 700-token test never reached three-letter codes (26 usable letters give 702 one- and two-letter codes). The test now derives the alphabet from CODE_LETTERS minus legend and glyphs, uses one more token than 26+26², and asserts the last code has three letters. Explainer updated to match.
+- [x] Merged main 92b6b8fb8 (player-map-visibility-v1 landed): registry-list conflicts only, resolved by appending this branch's switches after main's; index pins +1. Focused agent tests, viewer panels/server/next-run/feature-config/fixed-definition (423) and, for compact, the env compact and wiring tests (273) pass against the merged renderer.
+- [x] Round 4 (Codex delta check): the switch description, explainer caption and this worklog still said codes are one or two letters; all three now say codes grow in length.
+
+## Landed (2026-10-28)
+
+- compact-map-grid-v1: main fast-forwarded to 98ab50598 at 1:16 PM NY after the operator approved ("approved", relayed by the coordinator).
+- supervisor-briefing-bound-v1: 58d19b58c (1:34 PM NY).
+- refusal-ledger-bound-v1 + disproved-beliefs-bound-v1: 89f396398 (1:40 PM NY).
+- Post-landing on main 89f396398: just build clean; just test: agent 4,832, viewer 2,230, env 4,869, claude-gateway 116, trainer cards 3/3; coverage gates >=90. just viewer-main: viewer at 89f396398, live run kept; all three explainers 200.
+- Review: Claude (opus subagent) and fallback (sonnet subagent) LGTM through round 3; Codex gpt-5.6-sol delta check, with its last items fixed (documentation and evidence, no correctness defects).

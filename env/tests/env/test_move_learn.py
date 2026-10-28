@@ -272,7 +272,9 @@ def test_the_recorded_busy_state_is_held_by_the_production_hook() -> None:
 def test_production_run_hooks_the_frame_settle_only_with_the_switch_on(
     monkeypatch: pytest.MonkeyPatch, off: str, hooked: bool
 ) -> None:
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "scene-journal-safe-capture-v1"]))
+    )
     captured: list[FrameSettle] = []
     original = serve.install_frame_settle
 

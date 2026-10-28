@@ -1,3 +1,4 @@
+import {withPokenavCallAutoAdvance} from "./pokenav-call-auto-advance.js";
 import {withSceneJournal} from "./scene-journal.js";
 import {withInterfaceGuidance} from "./interface-guidance.js";
 import {TaskGoalCompletion} from "./task-goal-completion.js";
@@ -208,10 +209,11 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const names=features["no-story-foreknowledge-v1"]?new ShownStoryNames():null;
  if(names!==null)recorder.subscribe(event=>{names.observe(event);});
  const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate,base.find(tool=>tool.name==="observe"),features["menu-option-honest-refusal-v1"]),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm,names),features,recorder,state),features,recorder)];
- const progress=withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(facts,features,recorder),features,state),features,recorder),features,recorder);
+ const pokenav=withPokenavCallAutoAdvance(facts,features,{state,recorder,press:base.find(t=>t.name==="press"),observe:base.find(t=>t.name==="observe"),...(gate===undefined?{}:{gate})});
+ const progress=withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(pokenav,features,recorder),features,state),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"],structuredEvidence:features["citation-evidence-v1"]});
- return withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state),names);
+ return withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state,features["scene-journal-safe-capture-v1"]),names);
 }
 
 

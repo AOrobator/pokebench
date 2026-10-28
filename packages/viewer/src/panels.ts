@@ -237,7 +237,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     }
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
-    case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
+    case "dialogue_auto_advance":return `${event.pokenav_buttons===undefined?`Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}`:`PokéNav auto-advance (${event.tool}) · ${esc(event.pokenav_buttons.join(", "))||"no confirmed inputs"}`}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`}${event.pokenav_pending_button===undefined?"":` · ${esc(event.pokenav_pending_button)} may have executed; outcome unconfirmed`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
     case "loop_breaker":{
       const cycle=event.trigger==="short_cycle"?`a cycle of ${String(event.period)} turns (the same tool calls and game state, apart from fields that change on their own) repeated over ${String(event.repeats)} turns`:null;
       return event.stage===1?`Loop breaker stage 1 · ${String(event.collapsed)} ${cycle===null?"duplicate":"earlier"} ${event.collapsed===1?"turn":"turns"} left out of the request${cycle===null?"":" across every cycle in it"} (${cycle===null?"":"longest: "}${cycle??`${String(event.repeats)} identical ${event.trigger==="no_tool_call"?"replies with no tool call":"turns"} in a row`})`:`Loop breaker stage 2 note sent to the model (${event.trigger==="no_tool_call"?"reply with no tool call":cycle??"fixed point"}${cycle===null?`, ${String(event.repeats)} in a row`:""}) · ${esc(event.text??"")}`;
@@ -378,7 +378,9 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "pokenav-call-auto-advance-v1":"pokenav-call-auto-advance-v1.html",
  "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
+ "player-map-visibility-v1":"player-map-visibility-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",
  "gateway-schema-hint-v1":"gateway-schema-hint-v1.html",
@@ -399,10 +401,14 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
 
  "moving-npc-target-v1":"moving-npc-target-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
+ "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
+ "compact-map-grid-v1":"compact-map-grid-v1.html",
+ "supervisor-briefing-bound-v1":"supervisor-briefing-bound-v1.html",
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",
  "type-gap-team-last-message-v1":"type-gap-team-last-message-v1.html",
+ "instruction-memory-cap-v1":"instruction-memory-cap-v1.html",
  "scene-followup-prompt-v1":"scene-followup-prompt-v1.html",
  "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",
  "goal-review-repair-feedback-v1":"goal-review-repair-feedback-v1.html",
@@ -598,6 +604,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "same-target-no-progress-v1":"same-target-no-progress-v1.html",
  "story-progress-clock-v1":"story-progress-clock-v1.html",
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
+ "neutral-yes-no-readout-v1":"neutral-yes-no-readout-v1.html",
+ "refusal-ledger-bound-v1":"refusal-ledger-bound-v1.html",
+ "disproved-beliefs-bound-v1":"refusal-ledger-bound-v1.html",
  "field-move-gates-v1":"field-move-gates-v1.html",
  "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",

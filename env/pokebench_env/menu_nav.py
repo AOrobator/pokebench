@@ -159,7 +159,9 @@ def _match_call_flavor(
     return [_text_pointer(read, pointer) if pointer else None for pointer in pointers]
 
 
-def read_nav_ui(read: ReadMemory, callback: int, *, short_list: bool = False) -> "ActiveUi | None":
+def read_nav_ui(
+    read: ReadMemory, callback: int, *, short_list: bool = False, call_advance: bool = False
+) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi
 
     if callback != NAV_CALLBACK:
@@ -384,9 +386,44 @@ def read_nav_ui(read: ReadMemory, callback: int, *, short_list: bool = False) ->
                 options = [("CALL", "CHECK", "CANCEL")[i] for i in ids]
                 details.update({"options": options, "option_index": option})
                 label = options[option]
-            return ActiveUi(
-                phase, label, ready, "Directions select; A calls/checks; B returns", details=details
-            )
+            controls = "Directions select; A calls/checks; B returns"
+            if call_advance and phase == "pokenav_match_call_call":
+                # 731ad5bf text.h TextPrinter, text.c RenderText; Match Call owns
+                # its msgBoxWindowId printer even while the root task is busy.
+                gfx = _ptr(read, pointer, 6, 22)
+                window = struct.unpack("<H", read(gfx + 20, 2))[0]
+                if window >= 32:
+                    raise ValueError("invalid Match Call message window")
+                printer = read(0x020201B0 + window * 0x24, 0x24)
+                current = struct.unpack_from("<I", printer)[0]
+                active, text_state = printer[0x1B], printer[0x1C]
+                from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE
+
+                # sText_CallingDots in the matching US ROM; no stale gStringVar4.
+                owned = (
+                    0x086227F4 <= current <= 0x08622806
+                    or STRING_VAR4 <= current < STRING_VAR4 + STRING_VAR4_SIZE
+                )
+                if active not in (0, 1) or text_state > 6:
+                    raise ValueError("invalid Match Call text printer")
+                waiting = (
+                    owned
+                    and active == 1
+                    and text_state in (1, 2, 3)
+                    and not bool(read(0x02037FD4 + 7, 1)[0] & 0x80)
+                )
+                details["call_text_state"] = (
+                    "waiting"
+                    if waiting
+                    else "printing"
+                    if owned and active
+                    else "finished"
+                    if owned and ready
+                    else "unavailable"
+                )
+                controls = "A advances call text; A/B closes the finished call"
+                ready = waiting or ready
+            return ActiveUi(phase, label, ready, controls, details=details)
         # Ribbon summary is menu 13; selection is a grid position, not a ribbon
         # ID. Preserve both to prevent gaps between the normal and gift rows.
         phase = "pokenav_ribbons_summary"

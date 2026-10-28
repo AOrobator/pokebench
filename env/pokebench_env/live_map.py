@@ -119,6 +119,7 @@ class LocalMap:
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
         rendered: str | None = None,
+        visible_only: bool = False,
     ) -> str:
         x, y = self.origin
         cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -145,6 +146,7 @@ class LocalMap:
                 self.warps,
                 warp_guidance,
                 outside=True,
+                visible_only=visible_only,
                 ledges=ledges,
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
@@ -196,6 +198,7 @@ class FullMap:
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
         rendered: str | None = None,
+        visible_only: bool = False,
     ) -> str:
         cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
         if grid:
@@ -226,6 +229,7 @@ class FullMap:
                 self.warps,
                 warp_guidance,
                 outside=False,
+                visible_only=visible_only,
                 ledges=ledges,
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
@@ -245,7 +249,7 @@ class FullMap:
             "height": self.height,
             "elevation": elevation,
             "rows": [
-                "".join(f"{cells[(x, y)]:04x}" for x in range(self.width))
+                "".join(f"{cells.get((x, y), 0xFFFF):04x}" for x in range(self.width))
                 for y in range(self.height)
             ],
             "objects": [{"x": x, "y": y} for _, x, y in self.objects],
@@ -282,6 +286,7 @@ def _details(
     warp_guidance: bool,
     *,
     outside: bool,
+    visible_only: bool = False,
     ledges: bool,
     edge_walls: bool,
     counters: bool,
@@ -296,24 +301,23 @@ def _details(
         if tile.collision == 0 and tile.behavior in EDGE_WALLS
     )
     empty = "none nearby" if outside else "none on this map"
-    listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or empty
-    behaviors_at = {(tile.x, tile.y): tile.behavior for tile in tiles}
-    listed_warps = (
-        ", ".join(
-            (
-                f"({a},{b}) -> {warp_labels[(a, b)]}"
-                if warp_labels is not None and (a, b) in warp_labels
-                else f"({a},{b}) -> {dynamic or 'dynamic destination'}"
-                if (g, n) == (127, 127)
-                else f"({a},{b}) -> {destinations[(g, n)]} (map {g}/{n})"
-                if destinations is not None and (g, n) in destinations
-                else f"({a},{b}) -> map {g}/{n}"
-            )
-            + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
-            for a, b, g, n in warps
-        )
-        or empty
+    listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or (
+        "none" if visible_only else empty
     )
+    behaviors_at = {(tile.x, tile.y): tile.behavior for tile in tiles}
+    listed_warps = ", ".join(
+        (
+            f"({a},{b}) -> {warp_labels[(a, b)]}"
+            if warp_labels is not None and (a, b) in warp_labels
+            else f"({a},{b}) -> {dynamic or 'dynamic destination'}"
+            if (g, n) == (127, 127)
+            else f"({a},{b}) -> {destinations[(g, n)]} (map {g}/{n})"
+            if destinations is not None and (g, n) in destinations
+            else f"({a},{b}) -> map {g}/{n}"
+        )
+        + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
+        for a, b, g, n in warps
+    ) or ("none discovered" if visible_only else empty)
     behaviors = sorted({tile.behavior for tile in tiles})
     # readout-rules-in-prompt-v1: the system prompt states the fixed rules (map_rules owns both).
     rules = (
@@ -329,10 +333,13 @@ def _details(
         )
         + f"\n{TERRAIN_RULE}"
     )
+    objects_label = "Live objects currently visible" if visible_only else "Live objects"
+    warps_label = "Discovered warps" if visible_only else "Warps"
     return (
         rules
         + (f"\nEdge walls: {walled}" if edge_walls and walled else "")
-        + f"\nLive objects: {listed_objects}\nWarps: {listed_warps}"
+        + f"\n{objects_label}: {listed_objects}"
+        + f"\n{warps_label}: {listed_warps}"
         + (
             f"\n{warp_note(named=destinations is not None)}"
             if warp_guidance and not rules_in_prompt

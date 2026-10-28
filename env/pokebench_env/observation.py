@@ -19,6 +19,8 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_learner
 from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
+from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
+from pokebench_env.player_map_visibility import MapMemory, place_names_only
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
@@ -75,6 +77,8 @@ def install_observation(
     links = LinkCache() if RESPAWN not in off else None
     memory = RespawnMemory() if RESPAWN not in off else None
 
+    visibility = MapMemory()
+
     def decode(read: ReadMemory) -> GameState:
         if (
             COHERENT_BATTLE_FEATURE not in off
@@ -82,7 +86,9 @@ def install_observation(
             and main_loop_idle(read) is None
         ):
             raise HTTPException(status_code=503, detail="native battle CPU coherence unavailable")
-        state = read_state(read, maps, active_ui=enabled, off=off, links=links)
+        state = read_state(
+            read, maps, active_ui=enabled, off=off, links=links, visibility=visibility
+        )
         if memory is not None:
             memory.note(state)
         return state
@@ -282,14 +288,40 @@ def install_observation(
     @app.get("/pokebench/places")
     def places() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            return {"places": [place.json() for place in directory.places(displayed=displayed)]}
+            entries = directory.places(displayed=displayed)
+            if VISIBILITY not in off:
+                entries = place_names_only(entries)
+            return {"places": [place.json() for place in entries]}
 
     # trainer-sight-check-v1 (agent side) posts navigate_to's planned route here before it walks; it
     # changes nothing the model sees and is called only with that switch on.
     @app.post("/pokebench/trainer-sight")
     def trainer_sight(body: TrainerSightRequest) -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            return sight_report(read_memory, body.map_id, body.tiles)
+            visible_ids = None
+            visible_tiles = None
+            if VISIBILITY not in off:
+                current = decode(read_memory)
+                visible_ids = frozenset(
+                    o.local_id
+                    for o in (
+                        () if current.world_context is None else current.world_context.objects
+                    )
+                )
+                shown = current.full_map or current.nearby
+                visible = frozenset(
+                    () if current.map_visibility is None else current.map_visibility.visible
+                )
+                visible_tiles = tuple(
+                    t for t in (() if shown is None else shown.tiles) if (t.x, t.y) in visible
+                )
+            return sight_report(
+                read_memory,
+                body.map_id,
+                body.tiles,
+                visible_ids=visible_ids,
+                visible_tiles=visible_tiles,
+            )
 
     if battle_wait is not None:
         wait = battle_wait

@@ -36,6 +36,8 @@ from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.places import PlaceDirectory
+from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
+from pokebench_env.player_map_visibility import MapMemory, place_names_only
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
@@ -62,8 +64,9 @@ def read_state(
     active_ui: bool,
     off: frozenset[str],
     links: LinkCache | None = None,
+    visibility: MapMemory | None = None,
 ) -> GameState:
-    return read_game_state(
+    state = read_game_state(
         read,
         maps,
         active_ui_enabled=active_ui,
@@ -116,6 +119,7 @@ def read_state(
         interface_guidance_enabled="interface-guidance-v1" not in off,
         bag_pocket_truth_enabled="bag-pocket-truth-v1" not in off,
         pokenav_short_list_enabled="pokenav-short-list-v1" not in off,
+        pokenav_call_advance_enabled="pokenav-call-auto-advance-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
@@ -134,6 +138,9 @@ def read_state(
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
+    # Optional session memory belongs to the observation/replay delivery factory.
+    # Raw callers retain the unprojected native facts for offline diagnostics.
+    return state if VISIBILITY in off or visibility is None else visibility.project(read, state)
 
 
 def render(
@@ -206,11 +213,14 @@ def rerender(
     active_ui = active_ui_enabled_from_env(env)
     # respawn-readout-v1: one archive carries no history of entered centers (RespawnMemory).
     links = LinkCache()
+    visibility = MapMemory()
 
     def one(read: ReadMemory) -> str:
         animation = WARP_FEATURE not in off and warp_animating(read)
         return render(
-            read_state(read, maps, active_ui=active_ui, off=off, links=links),
+            read_state(
+                read, maps, active_ui=active_ui, off=off, links=links, visibility=visibility
+            ),
             off,
             warp_animation=animation,
         )
@@ -223,7 +233,10 @@ def places(
 ) -> list[dict[str, object]]:
     displayed = "displayed-place-names-v1" not in features_off_from_env(env)
     directory = PlaceDirectory(load(run_dir / ref.path, ref.sha256), maps)
-    return [place.json() for place in directory.places(displayed=displayed)]
+    entries = directory.places(displayed=displayed)
+    if VISIBILITY not in features_off_from_env(env):
+        entries = place_names_only(entries)
+    return [place.json() for place in entries]
 
 
 def main(env: Mapping[str, str], stdin: TextIO, stdout: TextIO) -> int:

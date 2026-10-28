@@ -44,6 +44,7 @@ from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.player_map_visibility import MapVisibility
 from pokebench_env.poison_berry_readout import visible_berry_lines
 from pokebench_env.pokedex_own import Pokedex, read_pokedex, wild_foes
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
@@ -149,6 +150,7 @@ class GameState:
     map_observation: MapObservation | None = None
     nearby: LocalMap | None = None
     full_map: FullMap | None = None
+    map_visibility: MapVisibility | None = None
     topology: Topology | None = None
     player_elevation: int = 0
     # screen-center-player-v1: where the map's top layer is drawn over the player's sprite.
@@ -397,6 +399,7 @@ def read_game_state(
     interface_guidance_enabled: bool = False,
     bag_pocket_truth_enabled: bool = False,
     pokenav_short_list_enabled: bool = False,
+    pokenav_call_advance_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     move_learning_early_enabled: bool = False,
@@ -441,6 +444,7 @@ def read_game_state(
         party_menu_message=party_menu_message_enabled,
         bag_pocket_truth=bag_pocket_truth_enabled,
         pokenav_short_list=pokenav_short_list_enabled,
+        pokenav_call_advance=pokenav_call_advance_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
         birch_intro_pages=birch_intro_pages_enabled,

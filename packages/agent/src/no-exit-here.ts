@@ -12,7 +12,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {exitReach,type Cut} from "./surf-gate.js";
 
 export type Side="NORTH"|"SOUTH"|"EAST"|"WEST";
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"position"|"facing"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
+type Snapshot=Pick<GameStateSnapshot,"map_visibility"|"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"position"|"facing"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
 interface Goal {readonly x:number;readonly y:number;readonly map_id:readonly number[]}
 const ORDER:readonly Side[]=["NORTH","SOUTH","EAST","WEST"];
 const PRESSED:Readonly<Record<string,Side>>={UP:"NORTH",DOWN:"SOUTH",RIGHT:"EAST",LEFT:"WEST"};
@@ -74,6 +74,7 @@ export function noExitLine(features:FeatureSet,state:Snapshot,text:string,sides:
  const warps=[...doors.values()].map(d=>{const cut=d.cuts.every(c=>c!==null)?d.cuts[0]??null:null;return `${d.tiles.join(" or ")} -> ${named(d)}${cut===null?"":CUT[cut]}`;});
  const ways=[...connections,...warps];
  const side=sides.map(s=>`the ${s.toLowerCase()}`).join(" or ");
+ if(state.map_visibility!=null)return `No exit to ${side} is currently listed on ${map}; exits currently listed: ${ways.length===0?"none":ways.join("; ")}`;
  return `There is no way off ${map} to ${side}; the ways off this map are: ${ways.length===0?"none are listed":ways.join("; ")}`;
 }
 

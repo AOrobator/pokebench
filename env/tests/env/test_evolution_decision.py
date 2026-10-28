@@ -309,10 +309,11 @@ def test_human_server_keeps_tool_dependent_evolution_observation_off(monkeypatch
     from pokebench_env.readout import features_off_from_env
     from pokebench_env.serve import run
 
-    # Exact human launch shape: its historical explicit OFF list predates this switch.
+    # Historical human launch shape predates evolution controls. This sparse reader
+    # has no native capture source, so the independent safe recorder stays OFF.
     monkeypatch.setenv(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1,scene-journal-safe-capture-v1",
     )
     monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
     m = native()

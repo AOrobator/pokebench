@@ -211,3 +211,54 @@ def test_prepare_refuses_a_different_commit_even_when_clean(tmp_path):
 
     with pytest.raises(RuntimeError, match="clean and at its named commit"):
         prepare(tmp_path, tmp_path, run=run)
+
+
+def test_real_git_preparation_keeps_the_old_build_when_main_advances(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    root = tmp_path / "source with spaces"
+    (root / "env/.venv/bin").mkdir(parents=True)
+    (root / "env/keep").write_text("owned fixture")
+    (root / ".gitignore").write_text(".venv\ndist\n")
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    pnpm = binary / "pnpm"
+    pnpm.write_text(
+        "#!/usr/bin/env python3\n"
+        "import pathlib,subprocess,sys\n"
+        "if sys.argv[-1]=='build':\n"
+        "    dist=pathlib.Path('packages/viewer/dist');dist.mkdir(parents=True)\n"
+        "    pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True)\n"
+        "    (dist/'cli.js').write_text(pin)\n"
+        "    (dist/'current-service-cli.js').write_text(pin)\n"
+    )
+    pnpm.chmod(0o755)
+    monkeypatch.setenv("PATH", str(binary) + os.pathsep + os.environ["PATH"])
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+    git("init", "-q", "-b", "main")
+    git("add", ".")
+    git("-c", "user.name=test", "-c", "user.email=test@example.test", "commit", "-q", "-m", "first")
+    first_pin = git("rev-parse", "HEAD")
+    cache = tmp_path / "cache"
+    first = prepare(root, cache)
+    first_viewer = first / "packages/viewer/dist/cli.js"
+    assert first_viewer.read_text().strip() == first_pin
+    assert (first / "env/.venv").resolve() == (root / "env/.venv").resolve()
+    (root / "env/keep").write_text("next fixture")
+    git("add", ".")
+    git(
+        "-c", "user.name=test", "-c", "user.email=test@example.test", "commit", "-q", "-m", "second"
+    )
+    second_pin = git("rev-parse", "HEAD")
+    second = prepare(root, cache)
+    assert {first.name, second.name} == {first_pin, second_pin}
+    assert first_viewer.read_text().strip() == first_pin
+    assert (second / "packages/viewer/dist/cli.js").read_text().strip() == second_pin
+    assert subprocess.check_output(["git", "-C", str(first), "status", "--porcelain"]) == b""
+    with pytest.raises(RuntimeError, match="clean and at its named commit"):
+        prepare(root, cache, target=first)
+    assert first_viewer.read_text().strip() == first_pin

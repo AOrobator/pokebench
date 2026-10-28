@@ -154,3 +154,4 @@ The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude 
 - Post-merge `just test` on main and `just viewer-main` (the switch adds a Harness Config card) are pending a coordinator CPU and viewer window.
 - f60d is untouched. Its swap (f60d-gateway-swap-steps.md, swap_gateway.py with --current-turn on) waits for the operator's explicit OK.
 - Follow-up: the anyOf re-ask text should list each option's required keys. f60d request 1007 failed twice on navigate_to_target target shape.
+- Post-merge `just test` on main 45ff0b86f (2026-10-27 11:00–11:02 PM ET, clean tree, coordinator window): exit 0. Agent 4665/4665, viewer 2157/2157, pytest 4463 (97.48/93.61/100), gateway 89/89, trainer-card check passed. `just viewer-main` done earlier (viewer at 45ff0b86f, ppid 1).

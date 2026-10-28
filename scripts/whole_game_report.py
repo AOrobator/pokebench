@@ -16,7 +16,7 @@ def html_section(data_root=None):
     if any(not (root / name).is_file() for _, name in MODES):
         return '<section><h2>Whole-game check</h2><p>Synthetic check data unavailable; no result is claimed.</p></section>'
     esc = lambda value: html.escape(str(value))
-    out = ['<section id="whole-game-check"><style>#whole-game-check{font:14px/1.5 system-ui,sans-serif}#whole-game-check table{min-width:900px;border-collapse:collapse;font:13px/1.35 system-ui,sans-serif}#whole-game-check td{padding:8px;vertical-align:top}#whole-game-check td:first-child{min-width:145px}#whole-game-check th{padding:8px}</style><h2>Whole-game check</h2>',
+    out = ['<section id="whole-game-check"><style>#whole-game-check{font:14px/1.5 system-ui,sans-serif;scroll-margin-top:48px}#whole-game-check table{min-width:900px;border-collapse:collapse;font:13px/1.35 system-ui,sans-serif}#whole-game-check td{padding:8px;vertical-align:top}#whole-game-check td:first-child{min-width:145px}#whole-game-check th{padding:8px}</style><h2>Whole-game check</h2>',
            '<div class="card"><p><strong>A one-character speaker correction moved which steps lost a hint.</strong> '
            'Greedy whole-episode packing is fragile. These pinned steps describe one snapshot.</p>'
            '<p>Offline: 58 story steps, 78 NPC fillers, six separate signs, four modes, a 16,000-code-point cap. '
@@ -58,7 +58,7 @@ def html_section(data_root=None):
                '731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; checked-in whole-game-script.json; '
                'whole-game-stream.ts validates each emitted event once. Every pret file is read once per loader invocation. '
                'NPC sampling is fixed, not exhaustive. This minimal synthetic readout includes Location and a current quoted '
-               'instruction, and deliberately supplies no simulated connectivity/warp observations. Its omissions establish '
+               'instruction, and deliberately supplies no simulated connectivity/warp observations. Current/next-region filler is introduced early to stress memory; its visits do not reconstruct a legal route. Each source label is one episode, while real tool calls can span several labels. Its omissions establish '
                'a reproducible memory-pressure limit, not a frequency estimate for live runs. The fixture does not reconstruct '
                'native frames or prove model learning, capture success, or story progress.</p></details></section>')
     return "\n".join(out)

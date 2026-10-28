@@ -65,7 +65,7 @@ describe("story checkpoints",()=>{
 
 
 describe("checkpoint native reader linkage",()=>{
- it.skipIf(!havePret)("binds every closing milestone to the same native flag/variable cited by its checkpoint",()=>{
+ it("binds every closing milestone to the same native flag/variable cited by its checkpoint",()=>{
   const flags=read("include","constants","flags.h"),vars=read("include","constants","vars.h");
   const opponents=read("include","constants","opponents.h");
   const number=(symbol:string):number=>{

@@ -1,4 +1,4 @@
-import {existsSync,writeFileSync,readFileSync} from "node:fs";
+import {writeFileSync,readFileSync} from "node:fs";
 import {homedir} from "node:os";
 import {join} from "node:path";
 import {describe,expect,it,vi} from "vitest";
@@ -8,7 +8,6 @@ import {STORY_CHECKPOINTS,LEGACY_STORY_CHECKPOINTS} from "./story-checkpoints.js
 import {codePoints,type CapEpisode} from "./instruction-memory-cap.js";
 import {buildWholeGameStream,loadWholeGameScript} from "../test-support/whole-game-stream.js";
 const PRET=process.env.POKEEMERALD_DIR??join(homedir(),"dev","pokeemerald");
-const havePret=existsSync(join(PRET,"data/maps/map_groups.json"));
 // Named limitations approved by the coordinator; no exemption for any other step or hint.
 // Reason: cap pressure after printed-name fidelity keeps DAD's reusable episode eligible.
 // Reproduction receipt: runs/analysis/whole-game-story-checkpoints-20261028/diagnostic-v3-whole-dedup.json.
@@ -18,7 +17,7 @@ const KNOWN_WHOLE_DEDUP_LIMITS:Readonly<Record<string,readonly string[]>>={
 };
 const payload=(text:string):{episodes:CapEpisode[]}=>JSON.parse(text.slice(text.indexOf("\n{")+1)) as {episodes:CapEpisode[]};
 
-describe.skipIf(!havePret)("deterministic pret-only whole-game instruction stream",()=>{
+describe("deterministic pret-only whole-game instruction stream",()=>{
  it("audits source keys and emits independently valid linear events through the endgame",()=>{
   const entries=loadWholeGameScript(PRET);
   expect(entries.every(e=>e.page_names!==undefined)).toBe(true);

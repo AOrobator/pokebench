@@ -220,6 +220,23 @@ def labels_at(
     )
 
 
+# Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge and the rest) and always
+# precede a two-character code, so a code can never be mistaken for a glyph or another code.
+CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
+
+
+def compact_codes(rendered: list[list[str]]) -> dict[str, str]:
+    glyphs = {token for row in rendered for token in row if len(token) == 1}
+    letters = [c for c in CODE_LETTERS if c not in glyphs]
+    codes: dict[str, str] = {}
+    for row in rendered:
+        for token in row:
+            if len(token) > 1 and token not in codes:
+                n = len(codes)
+                codes[token] = letters[n] if n < len(letters) else letters[n // len(letters) - 1] + letters[n % len(letters)]
+    return codes
+
+
 def render_observation(
     shown: LocalMap | FullMap,
     observation: MapObservation,
@@ -228,6 +245,7 @@ def render_observation(
     edge_walls: bool = True,
     counters: bool = True,
     terrain: bool = False,
+    compact: bool = False,
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -280,14 +298,32 @@ def render_observation(
             annotation = "/".join(underlying)
             output.append(f"{glyph}/{annotation}" if annotation else glyph)
         rendered.append(output)
-    widths = [
-        max(3, len(str(ox + x)), *(len(row[x]) for row in rendered))
-        for x in range(observation.width)
-    ]
-    lines = [
-        f"Current map (observed elements v1); top-left ({ox},{oy}), north is up:",
-        "     " + " ".join(str(ox + x).rjust(widths[x]) for x in range(observation.width)),
-    ]
+    if compact:
+        # compact-map-grid-v1: each multi-character cell token is shown by a short code from the Codes line,
+        # every column has the same width and column numbers read top to bottom. Nothing is cut or dropped.
+        codes = compact_codes(rendered)
+        rendered = [[codes.get(token, token) for token in row] for row in rendered]
+        width = max([1, *(len(code) for code in codes.values())])
+        widths = [width] * observation.width
+        digits = len(str(ox + observation.width - 1))
+        numbers = [str(ox + x).rjust(digits) for x in range(observation.width)]
+        lines = [
+            f"Current map (observed elements v1, compact codes); top-left ({ox},{oy}), north is up:",
+            "Codes: " + ("; ".join(f"{code} = {token}" for token, code in codes.items()) or "none"),
+            *(
+                ("     " + " ".join(n[place].rjust(width) for n in numbers)).rstrip()
+                for place in range(digits)
+            ),
+        ]
+    else:
+        widths = [
+            max(3, len(str(ox + x)), *(len(row[x]) for row in rendered))
+            for x in range(observation.width)
+        ]
+        lines = [
+            f"Current map (observed elements v1); top-left ({ox},{oy}), north is up:",
+            "     " + " ".join(str(ox + x).rjust(widths[x]) for x in range(observation.width)),
+        ]
     if any(
         (ox + x, oy - 1) in horizontal or (ox + x, oy) in junctions
         for x in range(observation.width + 1)

@@ -70,6 +70,7 @@
   "scene-followup-prompt-v1",
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
+  "pokenav-call-auto-advance-v1",
   "refusal-ledger-bound-v1",
   "disproved-beliefs-bound-v1"
  ],
@@ -448,6 +449,7 @@
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
   "instruction-memory-cap-v1": true,
+  "pokenav-call-auto-advance-v1": false,
   "refusal-ledger-bound-v1": false,
   "disproved-beliefs-bound-v1": false
  }

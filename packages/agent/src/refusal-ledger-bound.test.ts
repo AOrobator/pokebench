@@ -93,7 +93,7 @@ describe("refusal-ledger-bound-v1: code points and the production context",()=>{
 
 describe("refusal-ledger-bound-v1 registry",()=>{
  it("is registered after neutral-yes-no-readout-v1, default off, needs the refusal ledger, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(296);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(297);
   expect(featureInfo(ID)).toMatchObject({needs:"refusal-ledger-v1"});
   expect(featureInfo(ID).description).toContain(" Off: every entry and every turn is listed.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);

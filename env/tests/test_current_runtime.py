@@ -99,13 +99,14 @@ def test_prepare_builds_once_and_never_retargets_an_existing_pin(tmp_path):
     assert prepare(root, tmp_path / "cache", run=run) == tree
     assert (tree / "env/.venv").is_symlink()
     assert (tree / "env/.venv").readlink() == root / "env/.venv"
+    assert not (tree / ".current-runtime-ready").exists()
     count = len(calls)
     assert prepare(root, tmp_path / "cache", run=run) == tree
     assert all("checkout" not in call and "reset" not in call for call in calls)
     assert calls[count:] == [
         ["git", "-C", str(root), "rev-parse", "main"],
         ["git", "-C", str(tree), "rev-parse", "HEAD"],
-        ["git", "-C", str(tree), "status", "--porcelain", "--untracked-files=no"],
+        ["git", "-C", str(tree), "status", "--porcelain"],
     ]
 
     def dirty(args, **kwargs):

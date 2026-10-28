@@ -43,9 +43,7 @@ def prepare(
     tree = target if target is not None else cache / commit
     if tree.exists():
         head = _call(run, ["git", "-C", str(tree), "rev-parse", "HEAD"])
-        dirty = _call(
-            run, ["git", "-C", str(tree), "status", "--porcelain", "--untracked-files=no"]
-        )
+        dirty = _call(run, ["git", "-C", str(tree), "status", "--porcelain"])
         if head != commit or dirty:
             raise RuntimeError("existing pinned runtime must be clean and at its named commit")
     else:
@@ -54,7 +52,7 @@ def prepare(
             run,
             ["git", "-C", str(root), "worktree", "add", "--quiet", "--detach", str(tree), commit],
         )
-    ready = tree / ".current-runtime-ready"
+    ready = tree.parent / f".{tree.name}.current-runtime-ready"
     if (
         ready.is_file()
         and ready.read_text().strip() == commit

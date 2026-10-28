@@ -170,3 +170,18 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER
+
+## Extended steps retire reached lines (the operator 2026-10-28: "Count extended steps too")
+
+- Change:
+  - storyStep() now counts any step of the extended campaign catalog the game observed. That includes place arrivals of kind "navigation", such as DEWFORD_TOWN, and events, such as STEVEN_LETTER_RECEIVED.
+  - Battles won, optional activities and other measurement-only steps (ROXANNE_FIRST_INTERACTION, etc.) still do not count. Scoring is unchanged.
+  - The card and explainer say so.
+- Tests:
+  - The old "extended step does not retire" test is rewritten. ROXANNE_FIRST_INTERACTION does not retire the line; STEVEN_LETTER_RECEIVED does.
+  - New test: Stone's turn-630 DEWFORD TOWN line retires on arrival at Dewford. It uses a702's events to T704, the arrival at DEWFORD TOWN, and then run 429f's recorded DEWFORD_TOWN milestone (seq 22514, whose evidence is the arrival state at 22513), moved after it. Fixture: test-support/a429f-dewford-town.json.
+  - In v1 the line reads "… is done: DEWFORD TOWN (map 0/11), first entered at turn 705, then dewford town at turn 705"; in v2 it is omitted. The step recorded before the arrival in the same turn does not retire it.
+  - An extended battle won (BRAWLY_DEFEATED) or an optional activity (FIRST_POKEMON_CAUGHT) does not retire it.
+- Mutations: dropping the extended-kind clause, the battle-win filter, the optional filter or the extended exception, or allowing all measurement-only steps, turns 1–5 tests red.
+- Results: 14/14 pass; 8 story suites 157/157; tsc and eslint clean; pages-check prints nothing.
+- Offline replay of a702 (replay.mjs → out-extended.json): identical to out.json at all 11 checkpoints. No reached line in a702 up to T717 meets an extended step after its arrival.

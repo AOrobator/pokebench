@@ -1,6 +1,8 @@
+import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {A702_PLACES,a702Arrival,a702CallMoved,a702Events,a702Milestone,a702State} from "../test-support/a702-dewford.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures} from "./features.js";
+import {checkEvent,type RunEvent} from "./events.js";
 import {HarnessTrust,type TrustOptions} from "./harness-trust.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
@@ -8,6 +10,9 @@ const ID="retire-reached-story-line-v1";
 // The bundle arm's harness-trust options (play-wiring), as a702 ran them.
 const A702:TrustOptions={supervisor:true,goalOnce:false,retireLab:true,stageBound:true,nativeTasks:true,omitEmptyGoal:true,scriptedGuidance:true,reachableGoal:true,semanticTargets:true,exitSections:true,activity:true,playerName:true,gymEvidence:true,deliveredPlaces:true};
 const route116=a702State("690");
+// Run 2026-10-25T10-50-57_gpt-6-astra_429f's DEWFORD_TOWN milestone (seq 22514, its arrival state at 22513), moved.
+const DEWFORD_TOWN=checkEvent(JSON.parse(readFileSync(new URL("../test-support/a429f-dewford-town.json",import.meta.url),"utf8")));
+const dewfordTown=(seq:number,turn:number):Extract<RunEvent,{type:"milestone"}>=>{if(DEWFORD_TOWN.type!=="milestone")throw Error("not a milestone");return {...DEWFORD_TOWN,seq,turn,evidence:[seq-1]};};
 const a702StateAtRustboro=()=>({...route116,map_id:[0,3] as [number,number],location:"RUSTBORO CITY"});
 const lines=(options:TrustOptions,turn:number)=>{
  const trust=new HarnessTrust(options);
@@ -34,12 +39,16 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   // Turns 379-454: three Rustboro Gym trainers, ROXANNE_FIRST_INTERACTION and Petalburg Woods trainers; no story step yet.
   expect(lines({...A702,retireReached:true},460).header).toContain(DAD);
  });
- it("a measurement-only milestone, including one in the extended catalog, does not retire it",()=>{
-  const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
-  for(const e of [...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),a702Milestone("STEVEN_LETTER_RECEIVED",103,500),a702Milestone("ROXANNE_FIRST_INTERACTION",104,500)])trust.observe(e);
-  const header=trust.lines("Location: RUSTBORO CITY",a702StateAtRustboro(),"later",A702_PLACES).header;
-  expect(header).toContain('Story line heard (DAD, turn 500): "Head for RUSTBORO CITY beyond this town." Reached:');
-  expect(header).not.toContain("is done");
+ it("a measurement-only milestone outside the extended catalog does not retire it; an extended catalog step does (the operator 2026-10-28)",()=>{
+  const header=(...after:RunEvent[])=>{
+   const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+   for(const e of [...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),...after])trust.observe(e);
+   return trust.lines("Location: RUSTBORO CITY",a702StateAtRustboro(),"later",A702_PLACES).header;
+  };
+  const measured=header(a702Milestone("ROXANNE_FIRST_INTERACTION",104,500));
+  expect(measured).toContain('Story line heard (DAD, turn 500): "Head for RUSTBORO CITY beyond this town." Reached:');
+  expect(measured).not.toContain("is done");
+  expect(header(a702Milestone("STEVEN_LETTER_RECEIVED",103,500))).toContain("RUSTBORO CITY (map 0/3), first entered at turn 500, then steven letter received at turn 500");
  });
  it("needs an observed milestone, and an entry after the line: being in the place when the line was said is not one",()=>{
   const rustboro=a702StateAtRustboro();
@@ -91,6 +100,24 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   // DAD's line, then RUSTBORO CITY entered, then the step: retired.
   const after=header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),step],{...route104,map_id:[0,3],location:"RUSTBORO CITY"});
   expect(after).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 500, then rustboro gym complete at turn 500.");
+ });
+ it("Stone's DEWFORD TOWN line retires on arrival at Dewford: the arrival, then the game's DEWFORD_TOWN step (recorded by run 429f at its arrival)",()=>{
+  const v1={...A702,stageBound:false,omitEmptyGoal:false,retireReached:true,selfNamed:true};
+  const at=(after:readonly RunEvent[],options:TrustOptions)=>{
+   const trust=new HarnessTrust(options);
+   for(const e of [...a702Events(704),...after])trust.observe(e);
+   return trust.lines("Location: DEWFORD TOWN",{...route116,map_id:[0,11],location:"DEWFORD TOWN"},"later",A702_PLACES).header;
+  };
+  const arrived=[a702Arrival(40000,705,[0,11],"DEWFORD TOWN"),dewfordTown(40001,705)];
+  expect(at(arrived,v1)).toContain(`Story goal: none. MR. STONE's line from turn 630 ("Well, on the way, could you stop off in DEWFORD TOWN?") is done: DEWFORD TOWN (map 0/11), first entered at turn 705, then dewford town at turn 705. It is not where to go.`);
+  expect(at(arrived,{...v1,stageBound:true,omitEmptyGoal:true})).not.toContain("DEWFORD TOWN?");
+  // The step recorded before the arrival, in the same turn, does not retire it.
+  expect(at([dewfordTown(39999,705),a702Arrival(40000,705,[0,11],"DEWFORD TOWN")],v1)).not.toContain("is done");
+ });
+ it("an extended catalog battle won or optional activity does not retire it",()=>{
+  const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+  for(const e of [...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),{...dewfordTown(103,500),name:"BRAWLY_DEFEATED",kind:"story" as const},{...dewfordTown(104,500),name:"FIRST_POKEMON_CAUGHT",kind:"story" as const}])trust.observe(e);
+  expect(trust.lines("Location: RUSTBORO CITY",a702StateAtRustboro(),"later",A702_PLACES).header).not.toContain("is done");
  });
  it("with self-named-speaker-v1 too, Stone's turn-630 request is the Story goal at turn 704",()=>{
   expect(lines({...A702,retireReached:true,selfNamed:true},704).header).toContain('Story goal: "Well, on the way, could you stop off in DEWFORD TOWN?" (MR. STONE, turn 630) -> "DEWFORD TOWN" = DEWFORD TOWN (map 0/11).');

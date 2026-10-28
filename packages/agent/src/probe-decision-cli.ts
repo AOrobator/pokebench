@@ -1,27 +1,34 @@
-// just probe-decision <run> <turn> [--switch <id>=on|off]... [--samples K] [--runs-root DIR] [--model ID] [--context-only]
+// just probe-decision <run> <turn> [--switch <id>=on|off]... [--samples K] [--runs-root DIR] [--model ID] [--context-only] [--trust-header] [--recorded-trim]
 // Rebuilds the recorded turn's context under the run's switches and under the flipped set, and
-// samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free).
+// samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free). --trust-header also re-derives
+// harness-trust-v1's header in each arm; --recorded-trim cuts the rebuilt history to the request the run recorded sending;
+// POKEBENCH_ENDPOINT_FILE samples a local lane instead of the gateway.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { checkEvent, type RunEvent } from "./events.js";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
 import { loadConfig } from "./config.js";
-import { contextDiff, decisionContext, serverSwitch, distribution, parseRun, parseSwitch, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
+import { contextDiff, decisionContext, serverSwitch, distribution, parseSwitch, recordedRun, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
 import { serverFeatureEnv, type FeatureSet } from "./features.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
+import { discoverLocal, readEndpoint } from "./local-endpoint.js";
+import { PlacesBodySchema, type Place } from "./story-destinations.js";
+import { Value } from "typebox/value";
 import { gatewayLoopConfig } from "./provider.js";
 
 export const MAX_SAMPLES = 8;
 // pi names a thinking block after the response field the reasoning streamed in; the gateway streams `reasoning_content`.
 export const THINKING_FIELD = "reasoning_content";
-const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only]";
+const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only] [--trust-header] [--recorded-trim]";
 
-export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly contextOnly: boolean }
+export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly trustHeader?: boolean; readonly recordedTrim?: boolean; readonly contextOnly: boolean }
 export function parseArgs(argv: readonly string[]): ProbeArgs {
   const positional: string[] = [];
   const switches: ProbeSwitch[] = [];
-  let samples = 4, runsRoot: string | null = null, model: string | null = null, contextOnly = false;
+  let samples = 4, runsRoot: string | null = null, model: string | null = null, contextOnly = false, trustHeader = false, recordedTrim = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] ?? "";
     const value = (): string => { const v = argv[++i]; if (v === undefined) throw new Error(`${arg} needs a value\n${USAGE}`); return v; };
@@ -30,13 +37,15 @@ export function parseArgs(argv: readonly string[]): ProbeArgs {
     else if (arg === "--runs-root") runsRoot = value();
     else if (arg === "--model") model = value();
     else if (arg === "--context-only") contextOnly = true;
+    else if (arg === "--trust-header") trustHeader = true;
+    else if (arg === "--recorded-trim") recordedTrim = true;
     else if (arg.startsWith("--")) throw new Error(`unknown option ${arg}\n${USAGE}`);
     else positional.push(arg);
   }
   const [run, turn] = positional;
   if (run === undefined || turn === undefined || positional.length !== 2 || !/^\d+$/.test(turn)) throw new Error(USAGE);
   if (!Number.isInteger(samples) || samples < 1 || samples > MAX_SAMPLES) throw new Error(`--samples must be 1..${String(MAX_SAMPLES)}`);
-  return { run, turn: Number(turn), switches, samples, runsRoot, model, contextOnly };
+  return { run, turn: Number(turn), switches, samples, runsRoot, model, ...(trustHeader ? { trustHeader } : {}), ...(recordedTrim ? { recordedTrim } : {}), contextOnly };
 }
 
 export function resolveRun(runsRoot: string, run: string, list: (dir: string) => string[] = readdirSync, exists: (path: string) => boolean = existsSync): string {
@@ -72,7 +81,32 @@ export function filePorts(runDir: string, envDir: string, thinkingSignature: str
       if (typeof body !== "object" || body === null || !("readouts" in body) || !Array.isArray(body.readouts) || !body.readouts.every((r): r is string => typeof r === "string") || body.readouts.length !== refs.length) throw new Error("rerender returned an unexpected body");
       return Promise.resolve(body.readouts);
     },
+    places: (ref: RawRef, features: FeatureSet) => {
+      const out = exec("uv", ["run", "--project", envDir, "python", "-m", "pokebench_env.rerender"], { cwd: envDir, env: { ...env, ...serverFeatureEnv(features) }, input: JSON.stringify({ run_dir: runDir, raw_ram: [], places: ref }) });
+      const body: unknown = JSON.parse(out);
+      const places = typeof body === "object" && body !== null && "places" in body ? { places: body.places } : null;
+      if (places === null || !Value.Check(PlacesBodySchema, places)) return Promise.reject(new Error("rerender returned no map table"));
+      return Promise.resolve<readonly Place[]>(places.places);
+    },
   };
+}
+
+// Events parsed as each line is read: an event log can be larger than the longest string Node can hold.
+export async function readRunLines(lines: AsyncIterable<string>): Promise<RecordedRun> {
+  const events: RunEvent[] = [];
+  for await (const line of lines) if (line.trim() !== "") events.push(checkEvent(JSON.parse(line)));
+  return recordedRun(events);
+}
+export async function readRun(path: string): Promise<RecordedRun> {
+  return readRunLines(createInterface({ input: createReadStream(path, "utf8"), crlfDelay: Infinity }));
+}
+
+// The lane a probe samples, with its key: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
+export interface ProbeLane { readonly models: GatewayModel[]; readonly apiKey: string | undefined }
+export async function probeLane(config: { readonly endpointFile: string | null; readonly gatewayUrl: string; readonly visionModels: readonly string[] }, local = discoverLocal, gateway = discoverModels): Promise<ProbeLane> {
+  if (config.endpointFile === null) return { models: await gateway({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }), apiKey: undefined };
+  const endpoint = readEndpoint(config.endpointFile);
+  return { models: await local(endpoint), apiKey: endpoint.apiKey };
 }
 
 export interface Arm { readonly label: string; readonly features: FeatureSet; readonly context: DecisionContext; readonly decisions: readonly Decision[] }
@@ -83,21 +117,22 @@ export async function probe(run: RecordedRun, args: ProbeArgs, ports: ProbePorts
   // A flipped server switch re-renders the window's readouts in both arms, so they differ only by the switch.
   const rerender = args.switches.some((s) => serverSwitch(s.id));
   const compositeReadouts = args.switches.length === 1 && args.switches[0]?.id === "party-menu-message-v1" ? "party-menu-message-v1" : null;
-  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender, compositeReadouts);
+  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender, compositeReadouts, args.trustHeader === true, args.recordedTrim === true);
   const flipped = args.switches.length === 0 ? null : withSwitches(recorded, args.switches);
-  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender, compositeReadouts);
+  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender, compositeReadouts, args.trustHeader === true, args.recordedTrim === true);
   const start = run.events.find((e) => e.type === "turn_start" && e.turn === args.turn);
   const size = start?.type === "turn_start" ? start.context : null;
   const draw = async (c: DecisionContext): Promise<Decision[]> => (sampler === null ? [] : await sample(c, args.samples, sampler));
   const arms: Arm[] = [{ label: "recorded switches", features: recorded, context: baseline, decisions: await draw(baseline) }];
   if (other !== null && flipped !== null) arms.push({ label: args.switches.map((s) => `${s.id}=${s.on ? "on" : "off"}`).join(" "), features: flipped, context: other, decisions: await draw(other) });
-  return { run: run.start.run, turn: args.turn, recorded: { action: recordedAction(run, args.turn), size }, fidelity: size !== null && JSON.stringify(size) === JSON.stringify(baseline.size), rerendered: rerender, arms, diff: other === null ? null : contextDiff(baseline, other) };
+  return { run: run.start.run, turn: args.turn, recorded: { action: recordedAction(run, args.turn), size }, fidelity: size !== null && (baseline.recorderSize === undefined ? JSON.stringify(size) === JSON.stringify(baseline.size) : size.messages === baseline.recorderSize.messages && size.images === baseline.recorderSize.images), rerendered: rerender, arms, diff: other === null ? null : contextDiff(baseline, other) };
 }
 
 export function reportLines(report: ProbeReport): string[] {
   const size = (s: ContextSize | null): string => (s === null ? "none" : `${String(s.messages)} messages, ${String(s.images)} images, ~${String(s.est_tokens)} tokens`);
   const lines = [`run ${report.run} turn ${String(report.turn)}: recorded action ${report.recorded.action ?? "(none)"}`,
-    `context rebuilt with today's harness: ${size(report.arms[0]?.context.size ?? null)}; recorded: ${size(report.recorded.size)} → ${report.fidelity ? "same size" : "differs (today's guard, notes or collapse text differ from the run's; both arms share this)"}${report.rerendered ? "; readouts re-rendered from raw RAM in both arms" : ""}`];
+    `context rebuilt with today's harness: ${size(report.arms[0]?.context.size ?? null)}; recorded: ${size(report.recorded.size)} → ${report.fidelity ? "same size" : "differs (today's guard, notes or collapse text differ from the run's; both arms share this)"}${report.rerendered ? "; readouts re-rendered from raw RAM in both arms" : ""}`,
+    ...(report.arms[0]?.context.recorderSize === undefined ? [] : [`--recorded-trim: measured where the run's recorder measured it: ${size(report.arms[0].context.recorderSize)}`])];
   if (report.diff !== null) lines.push(`flipped context differs in: ${[report.diff.systemPrompt ? "system prompt" : "", report.diff.tools ? "tools" : "", report.diff.messages.length > 0 ? `${String(report.diff.messages.length)} messages (indexes ${report.diff.messages.join(",")})` : ""].filter((x) => x !== "").join("; ") || "nothing (the switch does not change this decision's context)"}`);
   for (const arm of report.arms) {
     if (arm.decisions.length === 0) continue;
@@ -114,8 +149,8 @@ export function thinkingLevel(recorded: string): ThinkingLevel | "off" {
   return level;
 }
 
-export function gatewaySampler(complete: typeof completeSimple, model: GatewayModel, thinking: ThinkingLevel | "off", maxTokens: number): Sampler {
-  const config = gatewayLoopConfig(model, thinking);
+export function gatewaySampler(complete: typeof completeSimple, model: GatewayModel, thinking: ThinkingLevel | "off", maxTokens: number, apiKey?: string): Sampler {
+  const config = apiKey === undefined ? gatewayLoopConfig(model, thinking) : gatewayLoopConfig(model, thinking, apiKey);
   return async (context): Promise<AssistantMessage> => complete(model, { systemPrompt: context.systemPrompt, messages: [...context.messages], tools: [...context.tools] }, { maxTokens, ...(config.reasoning === undefined ? {} : { reasoning: config.reasoning }), apiKey: (await config.getApiKey?.(model.provider)) ?? "" });
 }
 
@@ -126,12 +161,13 @@ async function main(argv: readonly string[]): Promise<number> {
   const args = parseArgs(argv);
   const runsRoot = args.runsRoot ?? process.env.POKEBENCH_RUNS_ROOT ?? join(REPO, "runs");
   const runDir = resolveRun(runsRoot, args.run);
-  const run = parseRun(readFileSync(join(runDir, "events.jsonl"), "utf8"));
+  const run = await readRun(join(runDir, "events.jsonl"));
   let sampler: Sampler | null = null;
   if (!args.contextOnly) {
     const config = loadConfig(process.env);
-    const model = selectModel(await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }), args.model ?? run.start.model.id);
-    sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens);
+    const lane = await probeLane(config);
+    const model = selectModel(lane.models, args.model ?? run.start.model.id);
+    sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens, lane.apiKey);
   }
   const report = await probe(run, args, filePorts(runDir, join(REPO, "env"), THINKING_FIELD), sampler);
   for (const line of reportLines(report)) console.log(line);

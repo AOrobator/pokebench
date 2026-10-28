@@ -115,7 +115,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>No story foreknowledge</h1>
-<p><code>no-story-foreknowledge-v1</code> · observation · default OFF · narrow scope approved by the operator on 2026-10-27.</p>
+<p><code>no-story-foreknowledge-v1</code> · observation · default OFF, ON in both arms of the current recipe · narrow scope approved by the operator on 2026-10-27.</p>
 
 <div class="card">
 <h2>Why</h2>
@@ -229,7 +229,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <div class="card">
 <h2>Status</h2>
-<p>Branch <code>claude/no-story-foreknowledge-narrow</code>. Default OFF; OFF is byte for byte today's text (golden tests). Tests: <code>packages/agent/src/no-story-foreknowledge.test.ts</code>. No measured runs yet: whether the copy helps or hurts is the ablation probe's question.</p>
+<p>Landed on main at <code>f6efe433b</code>. Default OFF in the registry; ON in both arms (control and bundle) of <code>experiments/feature-configs/current.json</code> by the operator's decision on 2026-10-27, so it is not an A/B variable; it is measured with decision probes. OFF is byte for byte the earlier text (golden tests). Tests: <code>packages/agent/src/no-story-foreknowledge.test.ts</code>. Measured so far: one exploratory decision probe (study <code>no-story-foreknowledge-20261027</code>, 8 recorded contexts × 3 arms × 16 samples, scored after sampling, so descriptive). With the switch on, unshown names left the model's reasoning (TEAM AQUA in Petalburg Woods 12/16 → 0/16) and it still reasoned about healing, but it turned back to heal less often there (5/16 → 1/16); with the advice removed it never did (0/16). No gameplay comparison: the switch is on in both arms.</p>
 </div>
 </main>
 </body>

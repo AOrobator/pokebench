@@ -26,7 +26,7 @@ The rest of that note is about 6,300 chars. At a702 T1300 the briefing was 23,67
 ## M1
 
 - [x] RED: `packages/agent/src/supervisor-briefing-bound.test.ts`, 7 tests. The 2 OFF tests pass on main. The 5 ON and registry tests fail (switch and constants absent).
-- [ ] GREEN: `loop-supervisor.ts` storyContext and untriedElsewhere; registry, preset and next-run.
+- [x] GREEN: `loop-supervisor.ts` (`newestWithin`, BRIEFING_DIALOGUE_CHARS 4000, BRIEFING_ELSEWHERE_CHARS 2000) in storyContext and untriedElsewhere; registry (index 294, guard, needs null), preset, next-run. 7/7; neighbours (dialogue-context-kept, stall-briefing, briefing-exits, stall-interface, story-progress-clock, bundle-3f21-fixes, features, loop-supervisor, positive-supervisor) 155 passed; agent and viewer tsc clean; eslint clean on changed files.
 - [ ] 429f T2566 and a702 T1300 replay: note length OFF vs ON.
 - [ ] Explainer + feature-card link.
 - [ ] Activation commit: current.json `switches` (bundle ON).

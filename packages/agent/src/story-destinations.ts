@@ -14,7 +14,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS,canonicalStoryCharacterName,storyCharacter} from "./script-line-presence.js";
-import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
+import {OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {semanticWalk} from "./semantic-targets.js";
 
 const closed={additionalProperties:false};
@@ -139,7 +139,7 @@ export function selfName(text:string):string|null {
 }
 // retire-reached-story-line-v1: a story milestone the game recorded, other than a trainer win, a measurement-only step or an optional activity.
 function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
- return event.kind==="story"&&event.origin!=="present_at_start"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&(!MEASUREMENT_ONLY_MILESTONES.has(event.name)||EXTENDED_PROGRESS_NAMES.has(event.name));
+ return event.kind==="story"&&event.origin!=="present_at_start"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 }
 
 export class StoryDestinations {

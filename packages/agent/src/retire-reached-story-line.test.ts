@@ -34,6 +34,13 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   // Turns 379-454: three Rustboro Gym trainers, ROXANNE_FIRST_INTERACTION and Petalburg Woods trainers; no story step yet.
   expect(lines({...A702,retireReached:true},460).header).toContain(DAD);
  });
+ it("a measurement-only milestone, including one in the extended catalog, does not retire it",()=>{
+  const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+  for(const e of [...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),a702Milestone("STEVEN_LETTER_RECEIVED",103,500),a702Milestone("ROXANNE_FIRST_INTERACTION",104,500)])trust.observe(e);
+  const header=trust.lines("Location: RUSTBORO CITY",a702StateAtRustboro(),"later",A702_PLACES).header;
+  expect(header).toContain('Story line heard (DAD, turn 500): "Head for RUSTBORO CITY beyond this town." Reached:');
+  expect(header).not.toContain("is done");
+ });
  it("orders by recorded event, not turn: a story step after the arrival in the same turn retires it, one before it does not",()=>{
   const rustboro=a702StateAtRustboro();
   const run=(arrivalSeq:number,stepSeq:number)=>{

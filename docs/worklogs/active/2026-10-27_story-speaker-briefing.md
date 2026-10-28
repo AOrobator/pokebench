@@ -25,7 +25,7 @@ feature-switch, feature-worklog, pokebench-game-state (game's own words), pokebe
   - "Dialogue shown with your latest story step…" quotes the latest 4 story calls that came with dialogue, newest first, each whole.
   - "Story steps the game confirms are done" appends the recorded extended steps after the readout's checklist.
   - Off: byte-identical to today.
-- `retire-reached-story-line-v1` (observation, needs `unfinished-activity-v1`): a Story line whose every place has been entered since it was said, followed by a later observed story milestone, retires through the existing done path. Trainer wins and measurement-only steps do not count; extended story steps do. With `stale-story-goal-v2` on, the line is omitted. The away-supervisor gets no goal from it. The reason names the place, the arrival turn and the milestone. Off: today's `Story line heard … Reached:` text.
+- `retire-reached-story-line-v1` (observation, needs `unfinished-activity-v1`): a Story line whose every place has been entered since it was said, followed by a later observed story milestone, retires through the existing done path. Trainer wins and measurement-only steps (including the extended catalog) do not count. With `stale-story-goal-v2` on, the line is omitted. The away-supervisor gets no goal from it. The reason names the place, the arrival turn and the milestone. Off: today's `Story line heard … Reached:` text.
 
 ## Invariants
 
@@ -131,7 +131,12 @@ Round 2, frozen packet 948095751..dd6109210 (cumulative sha256 2e5d0278…a26c; 
 - Codex gpt-5.6-sol: VERDICT: BLOCKING on two points.
   1. The arrival lookup still matched by turn, so a place entered and left earlier in the same turn as the line counted as reached by it. ACCEPTED: the retirement path now passes the line's shown-at seq into arrival(), and "since the line" is by recorded seq. The displayed "Reached" wording (unfinished-activity-v1) keeps its turn semantics. A new test covers arrival→other map→line→step (not retired) and line→arrival→step (retired); reverting to turn order turns it red.
   2. The fixture rebuilt, validated and sorted the whole stream on every a702Events call. ACCEPTED: the events are validated and ordered once and replays take a prefix; the milestone lookup is a map.
- and length; caching a702Events; the binding is forward-only by design.
+- DEFERRED as non-blocking: done-list casing and length; caching a702Events (since done in round 2); the binding is forward-only by design.
+
+Round 3, frozen head 30309cdf9 (cumulative sha256 1bd53997…eb86; delta 25c63ab9…6496):
+- Claude (opus subagent): VERDICT: LGTM.
+- Fallback (sonnet subagent): VERDICT: LGTM.
+- Codex gpt-5.6-sol: VERDICT: BLOCKING. storyStep still counted milestones that are both measurement-only and in the extended catalog (e.g. STEVEN_LETTER_RECEIVED), which contradicts the frozen boundary ("not measurement-only"). ACCEPTED as written: no measurement-only milestone counts. A new negative test uses STEVEN_LETTER_RECEIVED and ROXANNE_FIRST_INTERACTION; removing the exclusion turns 4 tests red. Consequence: after ROCK_TOMB_RECEIVED every story milestone is extended (measurement-only), so lines heard after Rustboro never retire under this switch. OPEN QUESTION for the operator: amend the boundary so extended story steps count?
 
 ## Boy Scout Log
 

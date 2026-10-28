@@ -4,7 +4,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
-import {armFeatures,parseFixedDefinition,materializeFixedSource} from "./fixed-design.js";
+import {armFeatureBits,armFeatures,parseFixedDefinition,materializeFixedSource} from "./fixed-design.js";
 import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
 import {definition} from "../test-support/fixed.js";
 const root=fileURLToPath(new URL("../../../",import.meta.url));
@@ -51,7 +51,11 @@ it("all maintained future protocols reference one feature owner, including both-
  for(const d of loaded)for(const arm of ["control","bundle"] as const){
   expect(armFeatures(d,arm),d.id).toEqual(armFeatures(baseline,arm));
   expect(armFeatures(d,arm)["moving-npc-target-v1"],d.id).toBe(true);
+  // the operator 2026-10-27 (9:14 PM New York): no-story-foreknowledge-v1 stays on in both arms going forward.
+  expect(armFeatures(d,arm)["no-story-foreknowledge-v1"],d.id).toBe(true);
+  expect(armFeatureBits(d,arm)["no-story-foreknowledge-v1"],d.id).toBe(true);
  }
+ for(const d of loaded){expect(d.onInBoth,d.id).toContain("no-story-foreknowledge-v1");expect(d.switches,d.id).not.toContain("no-story-foreknowledge-v1");}
  for(const id of ["bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   expect(existsSync(join(root,`experiments/fixed/${id}.json`))).toBe(false);
   const archived=readFileSync(join(root,`experiments/archive/fixed/${id}.json`),"utf8");

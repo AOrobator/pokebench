@@ -13,7 +13,7 @@ type State=Extract<RunEvent,{type:'state';started:boolean}>;
 type Battler=NonNullable<NonNullable<State['battle']>['battlers']>[number];
 type Mon=State['party'][number];
 interface Foe {species:string;types:number[];turn:number;seq:number}
-interface Move {name:string;type:number;power:number;fresh:boolean}
+interface Move {name:string;type:number;power:number|null;fresh:boolean}
 interface Delivered {state:State;text:string;seq:number;id:string|null}
 const types=(ids:readonly number[])=>[...new Set(ids)].map(t=>TYPE_NAMES[t]??'unknown').join('/');
 const validTypes=(ids:readonly number[])=>ids.length===2&&ids.every(t=>t>=0&&t<18&&t!==9);
@@ -59,7 +59,7 @@ export class MoveMatchups {
   const s=c.state,gap=s.type_gap;
   if(gap==null||gap.diagnostic!==null||gap.type_chart.length===0||this.foes.size===0)return null;
   const phase=s.active_ui?.phase??'';
-  const offered=/^ {2}New move: (.+?) (NORMAL|FIGHTING|FLYING|POISON|GROUND|ROCK|BUG|GHOST|STEEL|FIRE|WATER|GRASS|ELECTRIC|PSYCHIC|ICE|DRAGON|DARK) (?:physical|special|status)(?: pow (\d+))?/m.exec(c.text);
+  const offered=/^ {2}New move: (.+?) (NORMAL|FIGHTING|FLYING|POISON|GROUND|ROCK|BUG|GHOST|STEEL|FIRE|WATER|GRASS|ELECTRIC|PSYCHIC|ICE|DRAGON|DARK) (physical|special|status)(?: pow (\d+|varies))?/m.exec(c.text);
   const learning=offered!==null&&(phase==='evolution_move_learning'||phase==='evolution_move_confirmation'||phase==='summary_move_forget'||s.battle?.prompt?.ready===true&&(s.battle.prompt.kind==='learn_move'||s.battle.prompt.kind==='stop_learning_move'));
   const battle=s.in_battle&&s.battle?.active===true&&s.battle.ready===true&&s.battle.outcome==='ongoing';
   if(!learning&&!battle)return null;
@@ -88,7 +88,7 @@ export class MoveMatchups {
     const name=offered[1]??'',type=(TYPE_NAMES as readonly string[]).indexOf(offered[2]??'');
     const expected=s.active_ui?.details?.new_move;
     if(typeof expected==='string'&&expected!==name)continue;
-    moves.push({name,type,power:Number(offered[3]??0),fresh:true});
+    moves.push({name,type,power:offered[3]==='status'?0:offered[4]===undefined?null:offered[4]==='varies'?1:Number(offered[4]),fresh:true});
    }
    lines.push(`${live?.species??mon.species??'Learner'} · ${types(ownTypes)} · Attack ${String(live?.stats[0]??mon.attack??'unknown')} · Sp. Atk ${String(live?.stats[3]??mon.sp_attack??'unknown')}${live===null?' (party stats)':' (battle stats before stages)'}`);
    const currentFoes=[...this.foes.values()].filter(f=>battle&&f.seq===c.seq&&(s.battle?.battlers??[]).some(b=>b.position%2===1&&!b.absent&&b.hp>0&&b.species===f.species&&types(b.types)===types(f.types)));
@@ -99,6 +99,7 @@ export class MoveMatchups {
     lines.push(`- ${f.species} ${types(f.types)} — previously observed turn ${String(f.turn)}${currentFoes.includes(f)?'; current target type profile':''}`);
     for(const move of moves){
      const label=`  ${move.name}${move.fresh?' (new)':''}`;
+     if(move.power===null){lines.push(`${label}: move power unavailable; partial multiplier unavailable`);continue;}
      if(move.power===0){lines.push(`${label}: status move; no damage multiplier`);continue;}
      if(move.power===1||move.name==='HIDDEN POWER'||move.name==='WEATHER BALL'||move.name==='STRUGGLE'||move.name==='FUTURE SIGHT'||move.name==='DOOM DESIRE'||move.name==='BEAT UP'){lines.push(`${label}: special type/damage rules; partial multiplier unavailable`);continue;}
      const chart=multiplier(gap.type_chart,move.type,f.types),stab=ownTypes.includes(move.type)?1.5:1;

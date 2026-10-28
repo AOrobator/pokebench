@@ -5,7 +5,8 @@ import { expect, it } from "vitest";
 import { checkEvent, type Button } from "./events.js";
 import { type GameStateSnapshot } from "./game-state.js";
 import { menuOptionTool, unsupportedMenuPhase, withMenuOptionTool } from "./menu-option-tool.js";
-import { FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, ALL_ON, featuresOf } from "./features.js";
+import { FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, ALL_ON, featuresOf } from "./features.js";
+import { serverOff, serverOffWith } from "../test-support/server-features.js";
 import { playGameTools } from "./play-wiring.js";
 import { Type } from "typebox";
 import type { AgentTool } from "@mariozechner/pi-agent-core";
@@ -46,15 +47,29 @@ it("ON keeps the old wording when no interface owner is open or a supported menu
     expect(unsupportedMenuPhase(multichoice)).toBeNull();
     expect(unsupportedMenuPhase(pokenavMenu)).toBe("pokenav_menu");
 });
-it("registry: default off, needs menu-option-tool-v1, appended last-but-one and to the harness list", () => {
-    expect(SWITCHABLE_FEATURES.indexOf("menu-option-honest-refusal-v1")).toBe(SWITCHABLE_FEATURES.length - 1);
+it("ON keeps the old wording for an unsupported owner that is not ready or not verified", async () => {
+    const ui = must(pokenavMenu.active_ui);
+    for (const s of [{ ...pokenavMenu, active_ui: { ...ui, ready: false } }, { ...pokenavMenu, active_ui: { ...ui, ready: null } }, { ...pokenavMenu, active_ui: { ...ui, diagnostic: "invalid PokeNav list length/cursor/item size" } }]) {
+        expect(unsupportedMenuPhase(s)).toBeNull();
+        const { buttons, text } = await run(s, true);
+        expect(buttons).toEqual([]);
+        expect(text).toBe(`current observation\n${OLD}`);
+    }
+});
+it("registry: default off, needs menu-option-tool-v1, at their registered positions", () => {
+    expect(SWITCHABLE_FEATURES.indexOf("pokenav-short-list-v1")).toBe(281);
+    expect(SWITCHABLE_FEATURES.indexOf("menu-option-honest-refusal-v1")).toBe(282);
+    expect(SERVER_FEATURES.indexOf("pokenav-short-list-v1")).toBe(93);
+    expect(SERVER_FEATURES).not.toContain("menu-option-honest-refusal-v1");
+    expect(playHarnessFeatures(ALL_ON, null).indexOf("pokenav-short-list-v1")).toBe(305);
+    expect(playHarnessFeatures(ALL_ON, null).indexOf("menu-option-honest-refusal-v1")).toBe(306);
+    expect(serverOff({ ...ALL_ON, "pokenav-short-list-v1": false })).toEqual(serverOffWith(ALL_ON, { off: ["pokenav-short-list-v1"] }));
     expect(featureInfo("menu-option-honest-refusal-v1").needs).toBe("menu-option-tool-v1");
     expect(featureInfo("menu-option-honest-refusal-v1").description).toContain(" Off: ");
     expect(FEATURES.findIndex(f => f.id === "menu-option-honest-refusal-v1")).toBe(FEATURES.findIndex(f => f.id === "pokenav-short-list-v1") + 1);
     const omitted = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "pokenav-short-list-v1" && id !== "menu-option-honest-refusal-v1")) as Parameters<typeof normalizeFeatures>[0];
     expect(normalizeFeatures(omitted)["menu-option-honest-refusal-v1"]).toBe(false);
     expect(normalizeFeatures(omitted)["pokenav-short-list-v1"]).toBe(false);
-    expect(playHarnessFeatures(ALL_ON, null).slice(-2)).toEqual(["pokenav-short-list-v1", "menu-option-honest-refusal-v1"]);
 });
 it("withMenuOptionTool threads the switch into the production tool", async () => {
     const press = { name: "press", label: "press", description: "", parameters: {}, execute: () => Promise.resolve(result(pokenavMenu)), executeChecked: () => Promise.resolve(result(pokenavMenu)) };

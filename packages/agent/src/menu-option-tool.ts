@@ -10,10 +10,10 @@ export const MENU_OPTION_ID="menu-option-tool-v1";
 export const MENU_OPTION_SECTION='- select_menu_option: choose an option currently listed by a supported vertical menu. Copy phase and menu_id (null when absent) from the current menu and supply the exact option label. The tool checks the owner and highlight before every ordinary UP/DOWN press, then presses A once. It stops on a changed menu or unexpected cursor movement. It does not open menus, select a subsequent option, or prove the requested task completed. Unsupported menus still use press.';
 export const MenuOptionArgs=Type.Object({phase:Type.String({minLength:1,maxLength:80}),menu_id:Type.Union([Type.Integer({minimum:0}),Type.Null()]),option:Type.String({minLength:1,maxLength:120})},{additionalProperties:false});
 const SUPPORTED_PHASES=["field_multichoice","start_menu"];
-// A verified interface owner this tool cannot drive; null when none is open or it is a supported menu.
+// A verified, ready interface owner this tool cannot drive; null when none is, or it is a supported menu.
 export function unsupportedMenuPhase(state:GameStateSnapshot):string|null{
  const ui=state.active_ui;
- return ui==null||SUPPORTED_PHASES.includes(ui.phase)?null:ui.phase;
+ return ui==null||ui.ready!==true||ui.diagnostic!=null||SUPPORTED_PHASES.includes(ui.phase)?null:ui.phase;
 }
 interface MenuView {phase:string;menu_id:number|null;options:string[];index:number;identity:string}
 export function menuOptionView(state:GameStateSnapshot):MenuView|null {

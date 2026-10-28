@@ -283,6 +283,12 @@
    "state_seq": 31623,
    "raw_ram": "00013850.json.gz",
    "sha256": "a3b3fb250ee190aa821aef51374078b0e2f6c35f4709e3c8687a7457da14c799"
+  },
+  "call_text": {
+   "turn": 654,
+   "state_seq": null,
+   "raw_ram": "00013788.json.gz",
+   "sha256": "5d951bd212957e6f6cec0f82b605b29a926838d9f7e5c2a9ad02dcd136bb0cb2"
   }
  }
 }

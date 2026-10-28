@@ -18,8 +18,10 @@ from pokebench_env.menu_nav import NAV_CALLBACK, read_nav_ui
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rerender import read_state, render
+from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE
 from tests.env.test_exit_labels import maps, operator_rom
-from tests.env.test_menu_nav import LIST, nav
+from tests.env.test_menu_nav import CALL, LIST, nav
+from tests.env.test_ui_state import text
 
 SWITCH = "pokenav-short-list-v1"
 FIXTURE = Path(__file__).parent / "fixtures/pokenav-short-list-a702"
@@ -116,3 +118,62 @@ def test_switch_is_server_owned_and_default_off() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": "map-observability-v1"})
+
+
+def test_a702_call_text_is_reported_once_the_message_box_prints_it() -> None:
+    # Dump 13788 (turn 654): the first frame printing the call; the printer reads gStringVar4.
+    read = native("call_text")
+    ui = read_nav_ui(read, NAV_CALLBACK, short_list=True)
+    assert ui is not None and ui.phase == "pokenav_match_call_call" and ui.diagnostic is None
+    assert ui.details is not None
+    message = ui.details["message"]
+    assert isinstance(message, str)
+    assert message.startswith("MR. STONE: Oh? AAAAAA! | Since you called me, the POKéNAV must be")
+    off = a702_off(True)
+    assert 'Dialog: "MR. STONE: Oh? AAAAAA!' in render(
+        read_state(read, maps(), active_ui=True, off=off), off
+    )
+
+
+GFX = 0x0202A000
+PRINTERS = 0x020201B0
+
+
+def calling(window: int, current: int):  # type: ignore[no-untyped-def]
+    memory = short(0, 1, 0, 8)
+    memory.put(CALL + 24, struct.pack("<I", 0x081CACF9))
+    memory.put(0x02010000 + 16 + 6 * 4, struct.pack("<I", GFX))
+    memory.put(GFX + 20, struct.pack("<H", window))
+    memory.put(STRING_VAR4, text("HELLO") + b"\xff")
+    memory.put(PRINTERS + window * 0x24, struct.pack("<I", current))
+    return memory
+
+
+def test_call_message_follows_the_message_box_printer() -> None:
+    printing = read_nav_ui(calling(1, STRING_VAR4 + 3).read, NAV_CALLBACK, short_list=True)
+    dots = read_nav_ui(calling(1, 0x08622806).read, NAV_CALLBACK, short_list=True)
+    past = read_nav_ui(
+        calling(1, STRING_VAR4 + STRING_VAR4_SIZE).read, NAV_CALLBACK, short_list=True
+    )
+    assert printing is not None and printing.details is not None
+    assert printing.details["message"] == "HELLO"
+    for ui in (dots, past):
+        assert ui is not None and ui.diagnostic is None and ui.details is not None
+        assert "message" not in ui.details
+
+
+def test_out_of_range_message_window_is_a_diagnostic() -> None:
+    ui = read_nav_ui(calling(32, STRING_VAR4).read, NAV_CALLBACK, short_list=True)
+    assert ui is not None and ui.diagnostic == "invalid Match Call message window"
+
+
+def test_condition_search_short_list_reads_on_and_errors_off() -> None:
+    memory = nav(8)
+    memory.put(LIST + 0x888, struct.pack("<5H2xII", 0, 1, 0, 0, 8, 4, 0x02025000))
+    off = read_nav_ui(memory.read, NAV_CALLBACK)
+    on = read_nav_ui(memory.read, NAV_CALLBACK, short_list=True)
+    assert off is not None and off.diagnostic == ERROR
+    assert (
+        on is not None and on.diagnostic is None and on.phase == "pokenav_condition_search_results"
+    )
+    assert on.details is not None and on.details["list_count"] == 1

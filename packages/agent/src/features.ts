@@ -309,6 +309,7 @@ export const SWITCHABLE_FEATURES = [
   "supervisor-briefing-bound-v1",
   "refusal-ledger-bound-v1",
   "disproved-beliefs-bound-v1",
+  "destination-first-navigation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -738,6 +739,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("supervisor-briefing-bound-v1", "guard", "BOUNDED SUPERVISOR BRIEFING", null, "Default off. Three lines of the loop-guard and stall briefings grew with the stall: the dialogue leading up to the last story step (every page since the step before it), the untried targets on other maps walked since the last progress, and the exits to maps not entered since then. GPT run 429f's T2566 note was 66,297 chars, 44,203 of them that dialogue and 15,816 the other-map list. On: the dialogue keeps whole pages, newest first, while the quoted pages fit in 4,000 chars, shown oldest first, with \"N earlier pages are left out\" (plus \"get_dialogue searches the pages the harness advanced through\" when dialogue-auto-advance-v1 gives that tool); the other-map list and the exits-to-maps-not-entered list each keep whole map entries, newest first, within 2,000 chars and end \"; N earlier maps are left out\". The newest page and the newest map in each list always stay; no text is cut. Off: every page and every map is listed."),
   on("refusal-ledger-bound-v1", "guidance", "BOUNDED REFUSAL HISTORY", "refusal-ledger-v1", "Default off. refusal-ledger-v1's \"Navigation refusal history\" keeps one entry per refused target on the current map, each quoting the whole latest navigation result; water and wall refusals carry their departure alternatives, so one entry runs about 3,000 chars, and Qwen run 9e33 at turn 2417 sent 10 entries in 24,803 chars. An entry's turn list also grew with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older refusal entries on this map are left out.\"; the newest entry always stays and quoted results are never cut. A repeated refusal keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
   on("disproved-beliefs-bound-v1", "guidance", "BOUNDED CONTRADICTIONS", "disproved-beliefs-v1", "Default off. disproved-beliefs-v1's \"Things the game has contradicted\" keeps every push-back and misplaced-person entry until a story flag changes or the game shows otherwise, each quoting whole pages, and an entry's turn list grows with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older entries are left out.\"; the newest entry always stays and quoted pages are never cut. A repeated entry keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
+  on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1130,6 +1132,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("supervisor-briefing-bound-v1"),
     ...when("refusal-ledger-bound-v1"),
     ...when("disproved-beliefs-bound-v1"),
+    ...when("destination-first-navigation-v1"),
   ];
 }
 

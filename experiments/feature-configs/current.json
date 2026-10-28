@@ -162,7 +162,8 @@
   "retire-reached-story-line-v1",
   "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1",
-  "player-map-visibility-v1"
+  "player-map-visibility-v1",
+  "destination-first-navigation-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -457,6 +458,7 @@
   "compact-map-grid-v1": false,
   "supervisor-briefing-bound-v1": false,
   "refusal-ledger-bound-v1": false,
-  "disproved-beliefs-bound-v1": false
+  "disproved-beliefs-bound-v1": false,
+  "destination-first-navigation-v1": true
  }
 }

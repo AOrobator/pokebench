@@ -185,3 +185,9 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
 - Mutations: dropping the extended-kind clause, the battle-win filter, the optional filter or the extended exception, or allowing all measurement-only steps, turns 1–5 tests red.
 - Results: 14/14 pass; 8 story suites 157/157; tsc and eslint clean; pages-check prints nothing.
 - Offline replay of a702 (replay.mjs → out-extended.json): identical to out.json at all 11 checkpoints. No reached line in a702 up to T717 meets an extended step after its arrival.
+- Committed as 02164befa.
+- Review of 918ece57b..02164befa (packet 94ad0bde…c64d): Codex gpt-5.6-sol LGTM; Claude lane (opus subagent) LGTM after 8 mutations, all red.
+- Notes for the operator from the Claude lane, in contract and not blocking:
+  - Walk-through places in the extended catalog (ROUTE_106, ROUTE_110, GRANITE_CAVE, the *_GYM_ENTERED maps, and others) now retire a reached line. ROUTE_116 and RUSTURF_TUNNEL are not in the extended catalog, so they do not; that inconsistency predates this change.
+  - Stone's line retires on arrival in DEWFORD TOWN, before the letter reaches Steven in Granite Cave.
+- Merged into claude/every-story-goal (d9b791b10) and into the new claude/jit-exit-dialogue (b26900cc1).

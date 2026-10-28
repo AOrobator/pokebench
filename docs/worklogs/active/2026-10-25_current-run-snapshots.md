@@ -544,3 +544,5 @@ M5 begins on isolated codex/current-run-snapshots-rollout from52a565418. Immutab
 M5 CLI normal-path RED observed/committed f98eec224; implementing automatic DB derivation after runs-root parsing, explicit override retained. Added stopped-projector heartbeat consumer RED with retained totals/repeated empty updates/recovery and ended-row exemption. No heavy CPU or live runtime action.
 
 M5 card handoff RED: readonly consumer may reduce fresh source for display but must leave legacy cards-v1 bytes unchanged; explicit cardWriter used only by legacy ownership. Existing consumed-prefix/reset tests remain unchanged in meaning.
+
+M5 service lifecycle RED collected: absent module blocks native pytest import as expected. Frozen tests require immutable per-commit runtime preparation/reuse/dirty refusal, nonblocking shared preparation lock, launchd service-only argv/restart/login ownership, foreign-plist refusal and stop preserving durable DB and disabled plist. No actual launchctl/build action.

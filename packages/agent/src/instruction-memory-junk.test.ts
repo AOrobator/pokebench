@@ -1,4 +1,7 @@
 import {readFileSync} from "node:fs";
+import {execFileSync} from "node:child_process";
+import {dirname,resolve} from "node:path";
+import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {observedInstructions} from "./observed-instructions.js";
@@ -166,4 +169,12 @@ it("an ambiguous whole page uses the higher useful label rather than a FLAVOR ma
 it("R1 binds PLAYER in service templates to the native player name",()=>{
  const right=ep(10,[page("ANNA booted up the PC.",{speaker:null,source:null})]);expect(selected([right]).decisions[0]).toMatchObject({step:"junk",rule:"R1",kept:false});
  const wrong=ep(10,[page("BOB booted up the PC.",{speaker:null,source:null})]);expect(selected([wrong]).kept).toEqual([wrong]);
+});
+
+it("regenerates the checked-in source text and lexicons from the clean pinned pret checkout",()=>{
+ const repo=fileURLToPath(new URL("../../../",import.meta.url));
+ const common=execFileSync("git",["rev-parse","--path-format=absolute","--git-common-dir"],{cwd:repo,encoding:"utf8"}).trim();
+ const pret=process.env["POKEEMERALD_DIR"]??resolve(dirname(common),"../pokeemerald");
+ const output=execFileSync("python3",[resolve(repo,"scripts/build-instruction-memory-junk.py"),"--pret",pret,"--labels",resolve(repo,"packages/agent/src/data/npc-flavor-labels.json"),"--output",resolve(repo,"packages/agent/src/data"),"--check"],{cwd:repo,encoding:"utf8",timeout:15000});
+ expect(output).toContain("npc-flavor-labels.json");expect(output).toContain("instruction-memory-junk-source.json");
 });

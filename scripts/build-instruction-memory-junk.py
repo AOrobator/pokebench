@@ -59,9 +59,11 @@ def generate(pret, label_dir):
         raise ValueError("requires clean pinned pret " + PIN)
     labels, sources = text_labels(pret)
     rows = []
-    for path in sorted(label_dir.glob("region-*.json")):
+    for path in ([label_dir] if label_dir.is_file() else sorted(label_dir.glob("region-*.json"))):
         for row in json.loads(path.read_text()):
             label = row["text_label"]
+            if row["category"] not in {"FLAVOR", "USEFUL_OPTIONAL", "PROGRESSION_HINT"}:
+                raise ValueError("unknown category for " + label)
             if label not in labels:
                 raise ValueError("label absent from pinned pret: " + label)
             rows.append({"text_label": label, "map": row["map"], "category": OVERRIDES.get(label, row["category"]), "text": labels[label]})
@@ -102,7 +104,7 @@ def generate(pret, label_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pret", type=Path, required=True)
-    parser.add_argument("--labels-dir", type=Path, required=True)
+    parser.add_argument("--labels-dir", "--labels", dest="labels_dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

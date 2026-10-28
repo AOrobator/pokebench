@@ -1,5 +1,5 @@
 import {describe,expect,it,vi} from "vitest";
-import type {RunEvent} from "./events.js";
+import {checkEvent,type RunEvent} from "./events.js";
 import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,type CapEpisode} from "./instruction-memory-cap.js";
 import {INSTRUCTION_MEMORY_YAML_CAP_CHARS,YAML_CARRY_LINE,YAML_HEADER,instructionMemoryYaml,yamlScalar} from "./instruction-memory-yaml.js";
@@ -10,7 +10,7 @@ const COLS=["speaker","speaker_source","text","map","map_id","state_event"];
 const ep=(result:number,turn:number,pages:CapEpisode["pages"]):CapEpisode=>({result,dialogue:[result-2,result-1],turn,pages});
 
 describe("instruction-memory-yaml-v1 rendering",()=>{
- it.each([["7f",0x7f],["85",0x85],["9f",0x9f],["2028",0x2028],["2029",0x2029],["feff",0xfeff]] as const)("escapes Unicode U+%s in both scalar and text fields",(_label,code)=>{
+ it.each([["7f",0x7f],["85",0x85],["9f",0x9f],["2028",0x2028],["2029",0x2029],["feff",0xfeff],["d800",0xd800],["dfff",0xdfff],["fffe",0xfffe],["ffff",0xffff]] as const)("escapes Unicode U+%s in both scalar and text fields",(_label,code)=>{
   const value=`a${String.fromCodePoint(code)}b`,escaped=`"a\\u${code.toString(16).padStart(4,"0")}b"`;
   expect(yamlScalar(value)).toBe(escaped);
   const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,value,null,null,null]])],COLS,{});
@@ -71,11 +71,12 @@ describe("instruction-memory-yaml-v1 through observedInstructions",()=>{
  const stream=(n:number):RunEvent[]=>Array.from({length:n},(_,i)=>{const seq=10+i*2;return [
   ev({seq,turn:i+2,type:"dialogue_auto_advance",tool_call_id:`t${String(i)}`,tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:`MOM: episode ${String(i)} ${"y".repeat(400)}`}],stop:"field_control",detail:"",duration_ms:1}),
   ev({seq:seq+1,turn:i+2,type:"tool_result",id:`t${String(i)}`,name:"press",is_error:false,text:"Location: ROUTE104",state_seq:null})];}).flat();
- const recorded=async(n:number,yaml:boolean,cap=false,trim=true)=>{
+ const recorded=async(n:number,yaml:boolean,cap=false,trim=true,value?:string)=>{
   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":trim,"instruction-memory-cap-v1":cap,"instruction-memory-yaml-v1":yaml} as FeatureSet;
   const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
   const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
-  for(const e of stream(n))for(const fn of subs)fn(e);
+  const events=value===undefined?stream(n):stream(n).map(e=>checkEvent(e.type==="dialogue_auto_advance"?{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",stop:"field_free",pages:e.pages.map(p=>({...p,text:value}))}:{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",duration_ms:0}));
+  for(const e of events)for(const fn of subs)fn(e);
   const messages=await transform([]);
   return {text:records[0]??"",sent:messages.map(m=>m.role==="user"?m.content:null)};
  };
@@ -87,6 +88,13 @@ describe("instruction-memory-yaml-v1 through observedInstructions",()=>{
   expect(yaml.text).toBe(instructionMemoryYaml(0,payload.episodes,payload.columns,{current:payload.current}));
   const [legacyOff,legacyOn]=await Promise.all([recorded(3,false,false,false),recorded(3,true,false,false)]);
   expect(legacyOn.text).toBe(legacyOff.text);
+ });
+ it.each([0xd800,0xdfff,0xfffe,0xffff])("preserves schema-accepted Unicode %i through the real factory",async code=>{
+  const value=`MOM: a${String.fromCodePoint(code)}b`,escaped=`MOM: a\\u${code.toString(16)}b`;
+  const json=await recorded(1,false,false,true,value),yaml=await recorded(1,true,false,true,value);
+  const payload=JSON.parse(json.text.slice(json.text.indexOf("\n{")+1)) as {episodes:CapEpisode[]};
+  expect(payload.episodes[0]?.pages[0]?.[2]).toBe(value);
+  expect(yaml.sent).toEqual([yaml.text]);expect(yaml.text).toContain(`text: "${escaped}"`);
  });
  it("with instruction-memory-cap-v1, passes the delivered-form budget to the real selector",async()=>{
   expect(INSTRUCTION_MEMORY_CAP_CHARS).toBe(16000);expect(INSTRUCTION_MEMORY_YAML_CAP_CHARS).toBe(19000);

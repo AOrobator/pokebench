@@ -6,7 +6,7 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
-import {CAP_LOCATIONS,InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {CAP_LOCATION_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 // instruction-memory-cap-v1, only when it leaves episodes out: the headers stop claiming every episode stays.
@@ -108,10 +108,13 @@ export class ObservedInstructions {
   return this.legacy(capped.kept,capped.omitted);
  }
  // instruction-memory-dedup-v1 adds two source-map columns: the place episode's own map and display name, or nulls.
- // instruction-memory-cap-v1: the newest CAP_LOCATIONS whole entries and a count of the rest; otherwise all of them.
+ // instruction-memory-cap-v1: the newest whole entries whose JSON fits CAP_LOCATION_CHARS, and a count of the rest.
  private locations():{observed_locations:Pick<Progress,"result_event"|"state_event"|"location">[];earlier_locations_left_out?:number} {
   const all=[...this.visits.values()];
-  return this.cap===null||all.length<=CAP_LOCATIONS?{observed_locations:all}:{observed_locations:all.slice(-CAP_LOCATIONS),earlier_locations_left_out:all.length-CAP_LOCATIONS};
+  if(this.cap===null||codePoints(quote(all))<=CAP_LOCATION_CHARS)return {observed_locations:all};
+  let kept=0,size=2;
+  while(kept<all.length){const next=all[all.length-1-kept];const add=codePoints(quote(next))+(kept===0?0:1);if(next===undefined||size+add>CAP_LOCATION_CHARS)break;size+=add;kept++;}
+  return {observed_locations:kept===0?[]:all.slice(-kept),earlier_locations_left_out:all.length-kept};
  }
  private row(e:Episode,spatial?:boolean):CapEpisode {return {result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(spatial===undefined?[]:spatial?[p.map,p.map_display??null]:[null,null])] as const)};}
  private legacy(episodes:readonly CapEpisode[],omitted:number):string {

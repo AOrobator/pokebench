@@ -32,7 +32,7 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 
 ## Story checkpoints (the operator 8:19 AM NY: "we can have deterministic game checkpoints that can mark things as done")
 
-`story-checkpoints.ts` holds 16 checkpoints, from the move-in through the DEVON GOODS delivery in Slateport. Each lists the milestones it closes after (existing readers in milestones.ts or story-progress.ts, backed by a pret flag or var), and its scope as pret map + speakers: an OBJ_EVENT_GFX_ sprite on that map, a "NAME:" prefix from the scene's scripts, or null narration. An episode counts as proven done when every listed milestone has been recorded, the episode was heard at or before the latest of them (by turn), and every page is in that checkpoint's scope. No a702 text is used.
+`story-checkpoints.ts` holds 15 checkpoints (16 at first; dad-sends-to-dewford was removed in review round 1), from the move-in through the DEVON GOODS delivery in Slateport. Each lists the milestones it closes after (existing readers in milestones.ts or story-progress.ts, backed by a pret flag or var), and its scope as pret map + speakers: an OBJ_EVENT_GFX_ sprite on that map, a "NAME:" prefix from the scene's scripts, or null narration. An episode counts as proven done when every listed milestone has been recorded, the episode was heard at or before the latest of them (by turn), and every page is in that checkpoint's scope. No a702 text is used.
 
 **Coverage ends at DEVON_GOODS_DELIVERED (Slateport museum).** No checkpoint yet for the Route 110 rival, Mauville or anything later, or for incidental chatter, which falls to nearby, named or recency.
 
@@ -121,3 +121,19 @@ Accepted and fixed (tests and fix in one commit this round):
 Rebutted: "prove every line in every scope is finished" (Codex). That is an unbounded semantic audit. The structural audit now links flag setters to scenes, and the found cases (Wally/DAD, Rusturf/BRINEY, Briney/Stern) are pinned by tests. No run can prove the absence of every such case; it stays a review responsibility each round.
 
 Replays after the fixes, all byte-identical to the reference. Control: a702 T450 10,585, T700 15,716 (T621 Rusturf kept), T1301 15,884; 88ea T400 15,785, T800 15,866. Bundle: T450 12,061, T700 15,940, T1301 15,868. Focused: 109 agent tests.
+
+## Full gate on 13784940b (CPU grant, 9:24–9:28 AM NY): PASS
+
+lint ok. Agent 4,767, viewer 2,208, env 4,466, gateway 116, trainer-card 3/3 (POKEBENCH_CARD_ART set to the main checkout's art).
+
+## Review round 3 (frozen 13784940b): fallback LGTM, Claude BLOCKING, Codex BLOCKING; all correctness, all fixed (tests and fix in one commit)
+
+- rival-first-meeting listed MOM (Claude). pret players_house.inc keeps MOM's "Did you introduce yourself to PROF. BIRCH?" until FLAG_RESCUED_BIRCH, and the repo's own tv-birch-introduction template needs BIRCH_STARTER_HANDOFF_COMPLETE. MOM is removed; mom-home-instructions still covers her and closes later.
+- Gym reward pages (Codex). a702 T578 holds the STONE BADGE receipt plus ROXANNE's CUT and TM39 explanation. Gym scopes now cover only the leader's own lines (no null), and the faced-trainer rule skips gym leaders (their lines close only through the badge checkpoints). T578 is now kept; T401 (intro) still closes at STONE_BADGE.
+- Fixed part over the cap (Codex). observed_locations now keeps the newest whole entries whose JSON fits 2,000 characters, plus the count. Tested with twenty 1,000-character locations. The rest of the fixed part is the header, the left-out line and `current` (one Location and the Story checklist).
+- Equal-turn ties (Codex) now break on result event, newest first.
+- Copy (both lanes). The feature card no longer says steps 1 and 3 always stay. The explainer's step labels, header example and status match the code and current.json.
+
+Replays, all byte-identical. Control: a702 T450 10,585, T700 15,977, T1301 15,964; 88ea T400 15,785, T800 15,942. Bundle: T450 12,061, T700 15,944, T1301 15,916. Control-arm older form (replay-legacy.mjs): a702 T450/T700/T1301 15,722/15,764/15,824; d41e T4663/T7229 15,481/15,997, all under 16,000. Focused: 112 agent tests.
+
+Non-blocking items recorded for follow-up (fallback lane): precompile the cap's RegExps (per-turn constant); ledger_context retention/evidence still list episodes the cap left out; the older form's "are retained" clause; DAD's long-horizon advice can lose to newer chatter on budget late in a run (watch in the A/B).

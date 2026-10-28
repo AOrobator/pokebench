@@ -12,8 +12,9 @@ import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
 // The cap counts characters as code points, as Python len() does in the reference implementation.
 export const codePoints=(s:string):number=>Array.from(s).length;
-// observed_locations grows with every map entered; under the cap only the newest whole entries are sent.
-export const CAP_LOCATIONS=20;
+// observed_locations grows with every map entered; under the cap only the newest whole entries that fit in
+// CAP_LOCATION_CHARS (as JSON) are sent, with a count of the rest.
+export const CAP_LOCATION_CHARS=2000;
 export const omittedLine=(n:number):string=>`${String(n)} earlier episodes are left out and remain in the run recording.`;
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
@@ -123,7 +124,8 @@ export class InstructionMemoryCap {
   const player=escape(this.player());
   for(const [pattern,completion] of RECEIPTS)if(new RegExp(`^${pattern.replaceAll("{P}",player)}$`).test(p[2]))return ["receipt",completion];
   const faced=p[5]===null?undefined:this.faced.get(p[5]);
-  if(p[1]==="faced_sprite"&&faced!==undefined&&faced.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced)===true)return [`trainer ${faced.split("#")[1]??""} defeated`,true];
+  // Gym leaders also explain their badge and TM rewards; their lines close only through the badge checkpoints.
+  if(p[1]==="faced_sprite"&&faced!==undefined&&!(p[0]!==null&&p[0] in LEADER_BADGE)&&faced.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced)===true)return [`trainer ${faced.split("#")[1]??""} defeated`,true];
   return null;
  }
  private done(e:CapEpisode):string|null {
@@ -171,7 +173,8 @@ export class InstructionMemoryCap {
    const stale=anchor===null?"":`; stale anchor: ${anchor[1]}`;
    return names.length>0?{e,step:"named",fact:names.join("; ")+stale}:{e,step:"recency",fact:`names no unvisited place, unmet story person or held key item${stale}`};
   });
-  const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort((a,b)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)));
+  const newest=(a:number,b:number)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)||(rows[b]?.e.result??0)-(rows[a]?.e.result??0);
+  const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort(newest));
   const empty=new Map<number,number>();
   const base=(omitted:number)=>{const digits=omitted===0?0:String(omitted).length;const known=empty.get(digits);if(known!==undefined)return known;const v=codePoints(render([],omitted));empty.set(digits,v);return v;};
   const keep=new Set<number>();

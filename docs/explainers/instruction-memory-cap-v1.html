@@ -119,9 +119,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <h2>The rule, in order</h2>
 <figure class="card"><div class="fig"><svg viewBox="0 0 640 300" role="img" aria-label="Five steps that decide each episode">
 <g font-size="12">
-<rect x="10" y="10" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="30" font-weight="700" fill="var(--keep)">1 Story anchor → always kept</text><text x="22" y="47" fill="var(--ink)">source of the readout's story line, if not stale</text>
+<rect x="10" y="10" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="30" font-weight="700" fill="var(--keep)">1 Story anchor → added first</text><text x="22" y="47" fill="var(--ink)">source of the readout's story line, if not stale</text>
 <rect x="10" y="66" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--drop)"/><text x="22" y="86" font-weight="700" fill="var(--drop)">2 Proven done → left out</text><text x="22" y="103" fill="var(--ink)">pret templates, story checkpoints, receipts, trainer flags</text>
-<rect x="10" y="122" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="142" font-weight="700" fill="var(--keep)">3 Nearby → always kept</text><text x="22" y="159" fill="var(--ink)">current map, connected map, listed warp's map</text>
+<rect x="10" y="122" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="142" font-weight="700" fill="var(--keep)">3 Nearby → added second</text><text x="22" y="159" fill="var(--ink)">current map, connected map, listed warp's map</text>
 <rect x="10" y="178" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--cap)"/><text x="22" y="198" font-weight="700" fill="var(--cap)">4 Named target → fills first</text><text x="22" y="215" fill="var(--ink)">unvisited place, unmet person, held key item</text>
 <rect x="10" y="234" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--cap)"/><text x="22" y="254" font-weight="700" fill="var(--cap)">5 Recency → fills the rest</text><text x="22" y="271" fill="var(--ink)">newest first, while the block fits 16,000 chars</text>
 <g stroke="var(--muted)" fill="none"><path d="M160 56v10M160 112v10M160 168v10M160 224v10"/></g>
@@ -156,10 +156,10 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </tbody></table>
 
 <h2>What the model receives</h2>
-<pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.
+<pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Over the size cap, finished and less relevant episodes are left out. Full archive remains in the run recording.
 86 earlier episodes are left out and remain in the run recording.
 {"columns":["speaker","speaker_source","text","map","map_id","state_event"],"episodes":[{"result":11388,"dialogue":[11385],"turn":309,"pages":[["GENTLEMAN","faced_sprite","Let's say you have six POKéMON.\nIf you catch another one…","PETALBURG CITY",[0,0],11373], …]}, …],"current":{…}}</pre>
-<p>Recorded example, a702 T1301 (episodes shortened here with …; the model gets them whole). The second line is the only addition, and it appears only when something is left out.</p>
+<p>Recorded example, a702 T1301 (episodes shortened here with …; the model gets them whole). When something is left out, the header's "Unknown, mixed, future and reusable dialogue stays." becomes "Over the size cap, finished and less relevant episodes are left out." and one line gives the count. When nothing is left out the block is unchanged. Under the cap, observed_locations (older form, and dedup without milestone memory) keeps the newest whole entries within 2,000 characters, with earlier_locations_left_out.</p>
 
 <h2>Known limits</h2>
 <ul>
@@ -169,6 +169,5 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <li>The cap bounds this block only. The latest tool result (whole-map grid, up to about 70K chars) and the supervisor note (up to 24K) are separate, and each needs its own operator decision.</li>
 </ul>
 
-<h2>Status</h2>
-<p>Branch <code>claude/bounded-model-input</code>. Default off; <code>experiments/feature-configs/current.json</code> unchanged. Tests: <code>instruction-memory-cap.test.ts</code>, <code>story-checkpoints.test.ts</code> (audited against pret). Not landed and not measured in runs.</p>
+<h2>Status</h2><p>Branch <code>claude/bounded-model-input</code>. Default off in presets; turned on in both arms of <code>experiments/feature-configs/current.json</code> (the operator, 2026-10-28 9:08 AM NY: "yes cap on in both arms, its corrrectness"). Tests: <code>instruction-memory-cap.test.ts</code>, <code>story-checkpoints.test.ts</code> (audited against pret). Not yet measured in runs.</p>
 </main></body></html>

@@ -22,8 +22,8 @@ describe("instruction-memory-yaml-v1 rendering",()=>{
   expect(rendered).not.toContain("text: |-");
  });
  it("writes ordinary multi-line dialogue literally",()=>{
-  const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,'MOM: POKéNAV #yes\nNext "line".',null,null,null]])],COLS,{});
-  expect(rendered).toContain('text: |-\n          MOM: POKéNAV #yes\n          Next "line".');
+  const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,'MOM: POKéNAV 💡 #yes\nNext "line".',null,null,null]])],COLS,{});
+  expect(rendered).toContain('text: |-\n          MOM: POKéNAV 💡 #yes\n          Next "line".');
  });
  it("resets carried fields at every episode boundary",()=>{
   const rows=[ep(10,3,[["MOM","name_prefix","one","HOUSE",[1,0],1]]),ep(20,4,[["MOM","name_prefix","two","HOUSE",[1,0],2]])];
@@ -75,7 +75,7 @@ describe("instruction-memory-yaml-v1 through observedInstructions",()=>{
   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":trim,"instruction-memory-cap-v1":cap,"instruction-memory-yaml-v1":yaml} as FeatureSet;
   const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
   const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
-  const events=value===undefined?stream(n):stream(n).map(e=>checkEvent(e.type==="dialogue_auto_advance"?{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",stop:"field_free",pages:e.pages.map(p=>({...p,text:value}))}:{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",duration_ms:0}));
+  const events=value===undefined?stream(n):stream(n).map(e=>checkEvent(e.type==="dialogue_auto_advance"?{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",t:"2026-10-28T00:00:00.000-04:00",stop:"field_free",pages:e.pages.map(p=>({...p,text:value}))}:{...e,run:"2026-10-28T00-00-00_yaml-edge-proof",t:"2026-10-28T00:00:00.000-04:00",duration_ms:0,frames:[],state_seq:0}));
   for(const e of events)for(const fn of subs)fn(e);
   const messages=await transform([]);
   return {text:records[0]??"",sent:messages.map(m=>m.role==="user"?m.content:null)};

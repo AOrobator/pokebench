@@ -318,6 +318,7 @@ export const SWITCHABLE_FEATURES = [
   "instruction-memory-yaml-v1",
   "screenshot-button-baseline-v1",
   "move-learn-type-matchup-v1",
+  "current-question-focus-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -754,6 +755,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("instruction-memory-yaml-v1", "guidance", "INSTRUCTION MEMORY YAML", null, "Default off; enabled only in the current bundle by operator approval on 2026-10-28. Formats the selected OBSERVED INSTRUCTION MEMORY payload as YAML, preserving whole dialogue text, provenance and current progress. Page speaker and map fields carry over only within an episode, as the header explains. Text uses literal blocks or escaped quoted scalars when whitespace or control characters require them. With instruction-memory-cap-v1, the existing selection policy measures the actual YAML against 19,000 code points; the episode count can differ from JSON. Whole-field omission markers and bounded location history remain visible. The legacy form keeps its existing format and 16,000 cap. Off: the selected block remains the current JSON payload, byte for byte."),
   on("screenshot-button-baseline-v1", "guidance", "SCREENSHOT AND BUTTON BASELINE", null, "Default off. Requires every other behavior switch off. Uses the operator-approved short screenshot/button prompt and removes text from successful observe/press results while retaining private state for scoring. Pair with the baseline preset, which disables every other behavior switch. Ordinary conversation history, exposed reasoning recording, button schema and timing are retained. Off: preserves the previous prompt and tool-result bytes."),
   on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", "battle-effective-damage-v1", "Default off. Needs the existing effective-damage readout and its battle-information dependencies. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
+  on("current-question-focus-v1", "guidance", "CURRENT QUESTION FOCUS", "dialogue-auto-advance-v1", "Default off; enabled only in the current bundle by operator approval. Repeats the final whole delivered field-dialogue page beside the current ready YES/NO selection and existing controls as a temporary last request message, then asks the model to compare both answer meanings with its intention without inventing later consequences. Requires matching current state, result, map and visible dialog; unknown or changed questions are omitted. Uses existing dialogue pages and ledger-context receipts, with no answer selection, new game facts or automatic input. Off: existing context, prompts, tools and execution remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1159,6 +1161,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("instruction-memory-yaml-v1"),
     ...when("screenshot-button-baseline-v1"),
     ...when("move-learn-type-matchup-v1"),
+    ...when("current-question-focus-v1"),
   ];
 }
 

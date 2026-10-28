@@ -26,16 +26,18 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 
 **Budget.** The request must fit in 61,440 tokens (65,536 minus a 4,096 reply). Measured with the Qwen3.6 /tokenize, JSON runs at 2.55–2.62 chars per token, so 16,000 chars is about 6,100 tokens. At a702 T1301 the capped block is 15,965 chars and 6,101 tokens, down from 21,124. That would have brought the failing request to about 51,650 tokens. Below about 13,000 chars, T700's anchor and nearby episodes alone would not fit.
 
+`just lint` clean (the worktree venv links the main checkout's mGBA binding for mypy).
+
 **OFF:** byte-identical to today. **ON with nothing left out:** also byte-identical (no extra line).
 
 ## Milestone M1: switch + rule A′
 
 - [x] RED: `instruction-memory-cap.test.ts` (each step, budget fill, omission line, stale anchor, OFF and no-drop identity) and a factory test through `observedInstructions`. Fails: the module and switch do not exist yet.
-- [ ] GREEN: `instruction-memory-cap.ts` plus wiring in `observed-instructions.ts`.
-- [ ] Registry: SWITCHABLE_FEATURES last, FEATURES entry (guard/correctness category, `needs: "milestone-instruction-memory-v1"`, Off copy), `...when()` last. Presets: FeatureSetSchema optional, normalizeFeatures, flagFeatures and DEFAULT_NEXT_RUN false. current.json untouched.
-- [ ] Wiring removal check.
-- [ ] Replay: a702 T1301 through the built code equals `runs/analysis/bounded-input-20261028/rule_a2.py`'s AFTER byte for byte; same for T700.
-- [ ] Explainer + FEATURE_EXPLAINERS.
+- [x] GREEN: `instruction-memory-cap.ts` plus wiring in `observed-instructions.ts`; `pret-map-sections.ts` (189 names from pret). instruction-memory-cap 10/10; agent focused suites 85 passed; viewer panels, server and next-run 394 passed.
+- [x] Registry: SWITCHABLE_FEATURES last, FEATURES entry (guard/correctness category, `needs: "milestone-instruction-memory-v1"`, Off copy), `...when()` last. Presets: FeatureSetSchema optional, normalizeFeatures, flagFeatures and DEFAULT_NEXT_RUN false. current.json untouched.
+- [x] Wiring removal check: with the switch argument removed from `observedInstructions`, the factory test failed (1 failed, 9 passed); restored, 10/10.
+- [x] Replay (`runs/analysis/bounded-input-20261028/replay-cap.mjs`): switch off equals the recorded block, switch on equals `rule_a2.py`'s AFTER byte for byte. a702 T700 15,956 and T1301 15,965 chars; 88ea T400 15,774 and T800 15,962.
+- [x] Explainer `docs/explainers/instruction-memory-cap-v1.html` (themed, pages-check clean, headless 1280 and 375 with no overflow), README, FEATURE_EXPLAINERS, panels/server link tests.
 - [ ] Gates: `just lint`, full `just test` (coordinator granted the CPU window in the 2026-10-28 brief).
 - [ ] Review: personas (harness engineer, data scientist, ML engineer, evaluation integrity) across the Claude CLI, Codex CLI and fallback lanes.
 - [ ] Stop: report to the coordinator. No landing.

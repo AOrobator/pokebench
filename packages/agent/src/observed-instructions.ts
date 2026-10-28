@@ -6,6 +6,7 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
+import {InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Result=Extract<RunEvent,{type:"tool_result"}>;
@@ -17,8 +18,10 @@ const identified=(page:Dialogue["pages"][number])=>page.speaker_source==="name_p
 
 export class ObservedInstructions {
  private readonly policy:MilestoneMemory|null;
+ private readonly cap:InstructionMemoryCap|null;
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
- constructor(private readonly allField=false,trim=false,private readonly displayNames=false){this.policy=trim?new MilestoneMemory():null;}
+ // instruction-memory-cap-v1 (cap): rule A′ over the episodes the milestone policy keeps; see instruction-memory-cap.ts.
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false){this.policy=trim?new MilestoneMemory():null;this.cap=trim&&cap?new InstructionMemoryCap():null;}
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
  retention():MemoryRetention|null{return this.policy?.select(this.archive())??null;}
@@ -31,6 +34,7 @@ export class ObservedInstructions {
   this.run??=event.run;
   if(event.run!==this.run)return;
   this.policy?.observe(event);
+  this.cap?.observe(event);
   if(event.type==="dialogue_auto_advance"){
    const pending=this.pending.get(event.tool_call_id)??[];
    pending.push(event);this.pending.set(event.tool_call_id,pending);return;
@@ -81,8 +85,11 @@ export class ObservedInstructions {
   const retention=this.retention();
   if(retention!==null){
    const selected=new Set(retention.kept.map(e=>e.result_event));
-   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq])})),current:this.current};
-   return "OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n"+quote(payload);
+   const episodes:CapEpisode[]=this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq] as const)}));
+   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:kept,current:this.current});
+   if(this.cap===null)return render(episodes,0);
+   const capped=this.cap.select(episodes,render);
+   return render(capped.kept,capped.omitted);
   }
   const out=[
    "OBSERVED INSTRUCTION MEMORY — historical game dialogue, not an active-goal list.",
@@ -101,7 +108,7 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"]);
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"]);
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{

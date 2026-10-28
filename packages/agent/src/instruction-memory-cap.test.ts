@@ -1,6 +1,6 @@
 import {describe,expect,it} from "vitest";
 import type {RunEvent} from "./events.js";
-import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,omittedLine,type CapEpisode,type CapRow} from "./instruction-memory-cap.js";
+import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode,type CapRow} from "./instruction-memory-cap.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {observedInstructions} from "./observed-instructions.js";
 import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
@@ -142,8 +142,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   expect(smallOn).toEqual(smallOff);
   const [off,on]=await Promise.all([recorded(60,false),recorded(60,true)]);
   const offText=off.records[0]??"",onText=on.records[0]??"";
-  expect([...offText].length).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(offText).not.toContain("earlier episodes are left out");
-  expect([...onText].length).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
+  expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(offText).not.toContain("earlier episodes are left out");
+  expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
   const omitted=/\n(\d+) earlier episodes are left out and remain in the run recording\.\n/.exec(onText);
   expect(omitted).not.toBeNull();
   const kept=(JSON.parse(onText.slice(onText.indexOf("\n{")+1)) as {episodes:{turn:number}[]}).episodes;

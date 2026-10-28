@@ -97,8 +97,8 @@ LEFT_OUT = {
     "battle_resolving",
 }
 
-ON: frozenset[str] = frozenset()
-OFF = frozenset({SWITCH})
+ON: frozenset[str] = frozenset({"neutral-yes-no-readout-v1"})
+OFF = ON | {SWITCH}
 
 
 def field(ui: ActiveUi | None, battle: BattleState | None = None) -> GameState:
@@ -306,3 +306,61 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     assert YES_LINE not in texts[True]
     assert f"B returns to adjustment\n{YES_LINE}\n" in texts[False]
     assert texts[False].replace(f"{YES_LINE}\n", "") == texts[True]
+
+
+NEUTRAL = "neutral-yes-no-readout-v1"
+
+
+@pytest.mark.parametrize("selected", ["YES", "NO"])
+@pytest.mark.parametrize("phase", sorted(EXPECTED_PHASES))
+def test_neutral_field_controls_describe_both_choices_in_fixed_order(
+    phase: str, selected: str
+) -> None:
+    state = field(ui(phase, selected))
+    yes = "A" if selected == "YES" else "UP, A"
+    no = "DOWN, A" if selected == "YES" else "A"
+    expected = f"YES/NO controls: selected {selected}; YES: {yes}; NO: {no}; B: NO."
+    text = format_readout(state, frozenset())
+    assert expected in text
+    assert "To answer" not in text
+    # Enabling the replacement cannot re-enable an explicitly disabled parent.
+    assert expected not in format_readout(state, frozenset({SWITCH}))
+    legacy = format_readout(state, frozenset({NEUTRAL}))
+    legacy_line = NO_LINE if selected == "YES" else YES_LINE
+    assert legacy_line in legacy
+    assert legacy.replace(legacy_line, expected) == text
+
+
+@pytest.mark.parametrize("selected", ["YES", "NO"])
+def test_neutral_battle_controls_keep_forfeit_cancel_distinct(selected: str) -> None:
+    battle = replace(BATTLE, player_inputs=(BattleInput(0, 0, "yes_no", True, selected=selected),))
+    text = format_readout(field(ui("battle_input", None, True), battle), frozenset())
+    assert "; B: closes this box without choosing." in text
+    assert "; B: NO." not in text
+
+
+@pytest.mark.parametrize("selected", ["YES", "NO"])
+def test_neutral_battle_script_controls(selected: str) -> None:
+    battle = replace(BATTLE, text_phase="prompt", prompt=BattlePrompt("yes_no", True, selected))
+    text = format_readout(field(ui("battle_resolving", None, False), battle), frozenset())
+    assert f"YES/NO controls: selected {selected}; YES:" in text
+    assert "; B: NO." in text
+
+
+def test_neutral_unknown_and_unready_controls_stay_absent() -> None:
+    states = (field(None), field(ui("field_yes_no", None)), field(ui("field_yes_no", "YES", False)))
+    for state in states:
+        assert "YES/NO controls:" not in format_readout(state, frozenset())
+
+
+def test_neutral_feature_defaults_off() -> None:
+    assert NEUTRAL in SERVER_FEATURES
+    assert NEUTRAL in features_off_from_env({})
+
+
+def test_native_clock_snapshot_reaches_neutral_readout() -> None:
+    default_off = features_off_from_env({})
+    state = read_state(fixture_read, MapNames({}), active_ui=True, off=default_off)
+    text = render(state, default_off - {SWITCH, NEUTRAL})
+    assert "YES/NO controls: selected NO; YES: UP, A; NO: A; B: NO." in text
+    assert "To answer" not in text

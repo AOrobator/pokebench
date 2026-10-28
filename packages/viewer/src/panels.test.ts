@@ -1485,7 +1485,7 @@ it("links the recorded Gym door label treatment to its tracked explainer",()=>{
 
 describe("tracked explainer links",()=>{
  // One Harness Config render with every listed switch on, indexed once by feature id, serves every row.
- const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1"];
+ const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1"];
  const log=new Log();log.add(0,{...START,harness_features:LINKED});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  const cards=new Map([...doc.querySelectorAll("[data-feature]")].map(card=>[card.getAttribute("data-feature"),card]));
@@ -1829,4 +1829,14 @@ it("links safe scene capture from its actual config card without inventing recor
   expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
   expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
  }
+});
+
+it("links the neutral YES/NO card without guessing a historical activation",()=>{
+ const id="neutral-yes-no-readout-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[]});
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(log),[{id,title:"NEUTRAL YES/NO CONTROLS",description:"Both choices.",group:"observation",switchable:true,needs:"yes-no-answer-readout-v1"}]);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.textContent).toContain("NOT RECORDED");
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });

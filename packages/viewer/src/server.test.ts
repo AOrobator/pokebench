@@ -1302,14 +1302,14 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
 });
 
 describe("tracked explainers",()=>{
- // One staged tree and one viewer serve every row; both are removed after the table.
+ // One viewer serves every row straight from the tracked docs/explainers (staticDir is this package's static folder),
+ // with an empty temp root for runs and app that is removed after the table.
  const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1"];
  let root="",viewer:Viewer|null=null;
  const tracked=new Map(SERVED.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  beforeAll(async()=>{
-  root=mkdtempSync(join(tmpdir(),"pokebench-tracked-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
-  for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
-  viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});
+  root=mkdtempSync(join(tmpdir(),"pokebench-tracked-explainers-"));
+  viewer=await startViewer({runsRoot:join(root,"runs"),staticDir:fileURLToPath(new URL("../static",import.meta.url)),appDir:join(root,"app"),port:0});
  });
  afterAll(async()=>{await viewer?.close();rmSync(root,{recursive:true,force:true});});
  it.each(SERVED)("serves tracked %s explainer byte for byte",async(id)=>{

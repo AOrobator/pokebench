@@ -209,3 +209,14 @@ The operator, 2026-10-28 ~7:51 AM ET ("sure", relayed): build the delivery prefl
 - Tests: gateway folder 109 pass, coverage 99.26/96.86/100; ruff and mypy --strict clean (preflight.py added to the lint and coverage lines; gate-wiring test updated, 6/6).
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
 - [ ] Full gates (coordinator CPU window), land ff-only
+- Review round 1 (packet a3dc474c, head 3b1a783be): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol BLOCKING on three points. All are fixed:
+  1. A bare receipt (just passed, sha and overrides) cleared startup. The receipt is now validated structurally: version 1, passed, gateway sha256, **preflight_sha256** (it also binds preflight.py), overrides, requests ≥ 1, no failures, and every required check applicable > 0 with passed == applicable.
+  2. Vacuous passes. no_echo is None with no assistant reply or reply text; it also fails on an echoed `(called …)` line or `[assistant` header. Empty or image-only tool results don't count toward tool_result.
+  3. Per-request temp gateway trees. One Bench (a single temp tree and Gateway) now serves the whole preflight.
+- Also fixed, from the fallback's note: a deliberate legacy (OFF) A/B arm was unlaunchable. Without `--allow-off`, any check whose switch would run OFF fails ("would run OFF"). With it, those checks are recorded as `off_checks` and not required, and the gateway accepts that receipt.
+- Follow-up, not done (Codex: scope expansion): bind the receipt to the run's recorded switches when an override is auto.
+- Live receipts re-run:
+  - f60d preset auto: FAIL ("would run OFF", tool_result 53/299, schemas 0/300, hint 0/254)
+  - overrides on: PASS (299/299, 300/300, 299/299, 254/254)
+  - --allow-off: PASS with off_checks recorded
+- 114 tests pass, coverage 99.03/95.88/100.

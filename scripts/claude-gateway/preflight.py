@@ -74,55 +74,85 @@ def bad_union_reply(tools: Sequence[cg.Tool]) -> str | None:
     return None
 
 
-def _config(tmp: Path, overrides: dict[str, str]) -> cg.Config:
-    return cg.Config(
-        mode="session",
-        model="preflight",
-        effort="medium",
-        bridge=tmp / "bridge",
-        runs_root=tmp / "runs",
-        run_id="preflight-run",
-        current_turn=overrides["current_turn"],  # type: ignore[arg-type]
-        tool_schemas=overrides["tool_schemas"],  # type: ignore[arg-type]
-        schema_hint=overrides["schema_hint"],  # type: ignore[arg-type]
-    )
+CHECKS = ("tool_result", "schemas", "no_echo", "hint")
+# Which gateway switch delivers what each check looks for.
+CHECK_SWITCH = {
+    "tool_result": ("current_turn", "gateway-current-turn-v1"),
+    "schemas": ("tool_schemas", "gateway-tool-schemas-v1"),
+    "hint": ("schema_hint", "gateway-schema-hint-v1"),
+}
 
 
-def check_request(
-    raw: bytes, features: dict[str, bool], overrides: dict[str, str]
-) -> dict[str, object]:
-    request = cg.parse_request(raw)
-    bad = bad_union_reply(request.tools)
-    with tempfile.TemporaryDirectory(prefix="gateway-preflight-") as name:
-        tmp = Path(name)
+def switches_off(features: dict[str, bool], overrides: dict[str, str]) -> list[str]:
+    """The checks whose switch this launch would run OFF (override, else the preset)."""
+    off = []
+    for check, (option, switch) in CHECK_SWITCH.items():
+        mode = overrides[option]
+        if mode == "off" or (mode == "auto" and not features[switch]):
+            off.append(check)
+    return off
+
+
+class Bench:
+    """One stub gateway for the whole preflight; each request is a later turn of its session."""
+
+    def __init__(self, tmp: Path, features: dict[str, bool], overrides: dict[str, str]) -> None:
         run = tmp / "runs" / "preflight-run"
         run.mkdir(parents=True)
         start = {"type": "run_start", "evaluation": {"features": features}}
         (run / "events.jsonl").write_text(json.dumps(start) + "\n", encoding="utf8")
-        runner = StubRunner([bad] if bad else [])
-        gateway = cg.Gateway(_config(tmp, overrides), runner=runner)
-        # A later turn of an established session: the state after any compaction.
-        gateway.session.session_id = "preflight-session"
-        gateway.session.run_id = "preflight-run"
-        gateway.session.tools_sha = hashlib.sha256(
-            cg._tool_listing(request.tools).encode()
-        ).hexdigest()
-        gateway.answer(raw)
-    first = runner.specs[0]
+        config = cg.Config(
+            mode="session",
+            model="preflight",
+            effort="medium",
+            bridge=tmp / "bridge",
+            runs_root=tmp / "runs",
+            run_id="preflight-run",
+            current_turn=overrides["current_turn"],  # type: ignore[arg-type]
+            tool_schemas=overrides["tool_schemas"],  # type: ignore[arg-type]
+            schema_hint=overrides["schema_hint"],  # type: ignore[arg-type]
+        )
+        self.runner = StubRunner()
+        self.gateway = cg.Gateway(config, runner=self.runner)
+
+    def answer(self, request: cg.ChatRequest, raw: bytes, bad: str | None) -> list[cg.CallSpec]:
+        # The state after any compaction: an established session whose tools are known.
+        self.gateway.session.session_id = "preflight-session"
+        self.gateway.session.run_id = "preflight-run"
+        listing = cg._tool_listing(request.tools)
+        self.gateway.session.tools_sha = hashlib.sha256(listing.encode()).hexdigest()
+        self.runner.specs = []
+        self.runner.replies = [bad] if bad else []
+        self.gateway.answer(raw)
+        return list(self.runner.specs)
+
+
+def check_request(bench: Bench, raw: bytes) -> dict[str, object]:
+    request = cg.parse_request(raw)
+    bad = bad_union_reply(request.tools)
+    specs = bench.answer(request, raw, bad)
+    first = specs[0]
     prompt = _text(first.prompt.content)
     dialogue = request.dialogue
     last = max((i for i, m in enumerate(dialogue) if m.role == "assistant"), default=-1)
-    results = [m for m in dialogue[last + 1 :] if m.role == "tool"]
-    own = _message_text(dialogue[last]) if last >= 0 else ""
+    results = [t for t in (_message_text(m) for m in dialogue[last + 1 :] if m.role == "tool") if t]
     row: dict[str, object] = {
         "tool_results": len(results),
-        "tool_result": all(_message_text(m) in prompt for m in results) if results else None,
+        "tool_result": all(t in prompt for t in results) if results else None,
         "schemas": cg._tool_listing(request.tools) in first.prompt.system,
-        "no_echo": not (own.strip() and own in prompt),
+        "no_echo": None,
         "hint": None,
     }
+    if last >= 0:
+        own = dialogue[last]
+        echoes = [_message_text(own).strip()] + [
+            f"(called {c.name} {c.arguments})" for c in own.tool_calls
+        ]
+        echoes = [e for e in echoes if e]
+        if echoes:
+            row["no_echo"] = "[assistant" not in prompt and not any(e in prompt for e in echoes)
     if bad is not None:
-        reask = _text(runner.specs[1].prompt.content) if len(runner.specs) > 1 else ""
+        reask = _text(specs[1].prompt.content) if len(specs) > 1 else ""
         row["hint"] = "must match" in reask and "forms:" in reask
     return row
 
@@ -131,28 +161,44 @@ def gateway_sha256(path: Path | None = None) -> str:
     return hashlib.sha256((path or Path(cg.__file__)).read_bytes()).hexdigest()
 
 
+def preflight_sha256() -> str:
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+
+
 def run_preflight(
-    requests: Sequence[Path], preset: Path, overrides: dict[str, str], say: Callable[[str], None]
+    requests: Sequence[Path],
+    preset: Path,
+    overrides: dict[str, str],
+    say: Callable[[str], None],
+    allow_off: bool = False,
 ) -> dict[str, object]:
     features = preset_features(preset)
+    off = switches_off(features, overrides)
     rows = []
-    for path in requests:
-        row = check_request(path.read_bytes(), features, overrides)
-        row["request"] = path.name
-        rows.append(row)
-    checks = ("tool_result", "schemas", "no_echo", "hint")
+    with tempfile.TemporaryDirectory(prefix="gateway-preflight-") as name:
+        bench = Bench(Path(name), features, overrides)
+        for path in requests:
+            row = check_request(bench, path.read_bytes())
+            row["request"] = path.name
+            for check in off if allow_off else []:
+                row[check] = None
+            rows.append(row)
+    required = [c for c in CHECKS if not (allow_off and c in off)]
     totals = {
         check: {
             "applicable": sum(1 for r in rows if r[check] is not None),
             "passed": sum(1 for r in rows if r[check] is True),
         }
-        for check in checks
+        for check in CHECKS
     }
-    failures = [r for r in rows if any(r[c] is False for c in checks)]
-    missing = [c for c in checks if totals[c]["applicable"] == 0]
-    passed = bool(rows) and not failures and not missing
-    for check in checks:
-        say(f"{check}: {totals[check]['passed']}/{totals[check]['applicable']}")
+    failures = [r for r in rows if any(r[c] is False for c in required)]
+    missing = [c for c in required if totals[c]["applicable"] == 0]
+    if off and not allow_off:
+        say(f"FAIL: these switches would run OFF: {', '.join(off)} (--allow-off for a legacy arm)")
+    passed = bool(rows) and not failures and not missing and (allow_off or not off)
+    for check in CHECKS:
+        state = " (OFF, not required)" if check not in required else ""
+        say(f"{check}: {totals[check]['passed']}/{totals[check]['applicable']}{state}")
     if missing:
         say(f"FAIL: no request exercised {', '.join(missing)}")
     for row in failures[:10]:
@@ -162,10 +208,13 @@ def run_preflight(
         "at": datetime.now(UTC).isoformat(timespec="seconds"),
         "passed": passed,
         "gateway_sha256": gateway_sha256(),
+        "preflight_sha256": preflight_sha256(),
         "preset": str(preset),
         "preset_sha256": hashlib.sha256(preset.read_bytes()).hexdigest(),
         "preset_switches": features,
         "overrides": overrides,
+        "allow_off": allow_off,
+        "off_checks": off if allow_off else [],
         "requests": len(rows),
         "totals": totals,
         "failures": failures,
@@ -178,10 +227,12 @@ def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str
         data = cg._obj(json.loads(receipt.read_text(encoding="utf8")), "receipt")
     except (OSError, ValueError) as error:
         return f"preflight receipt unreadable: {error}"
-    if data.get("passed") is not True:
+    if data.get("version") != 1 or data.get("passed") is not True:
         return "preflight receipt did not pass"
     if data.get("gateway_sha256") != gateway_sha256(gateway_path):
         return "preflight receipt is for a different gateway build"
+    if data.get("preflight_sha256") != preflight_sha256():
+        return "preflight receipt was made by a different preflight build"
     want = {
         "current_turn": config.current_turn,
         "tool_schemas": config.tool_schemas,
@@ -189,6 +240,21 @@ def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str
     }
     if data.get("overrides") != want:
         return f"preflight receipt overrides {data.get('overrides')} differ from {want}"
+    requests, failures, totals = data.get("requests"), data.get("failures"), data.get("totals")
+    if not isinstance(requests, int) or requests < 1 or failures != []:
+        return "preflight receipt has no requests or lists failures"
+    off = data.get("off_checks")
+    skipped = off if isinstance(off, list) and data.get("allow_off") is True else []
+    for check in CHECKS:
+        if check in skipped:
+            continue
+        total = totals.get(check) if isinstance(totals, dict) else None
+        if not isinstance(total, dict) or not (
+            isinstance(total.get("applicable"), int)
+            and total["applicable"] > 0
+            and total.get("passed") == total["applicable"]
+        ):
+            return f"preflight receipt does not show {check} exercised and passed"
     return None
 
 
@@ -203,6 +269,11 @@ def main(argv: Sequence[str] | None = None, say: Callable[[str], None] = print) 
     )
     for flag in ("--current-turn", "--tool-schemas", "--schema-hint"):
         parser.add_argument(flag, choices=("auto", "on", "off"), default="auto")
+    parser.add_argument(
+        "--allow-off",
+        action="store_true",
+        help="a deliberate legacy (OFF) arm: checks whose switch is off are recorded, not required",
+    )
     parser.add_argument("requests", type=Path, nargs="+", help="request-*.json files or folders")
     args = parser.parse_args(sys.argv[1:] if argv is None else argv)
     files: list[Path] = []
@@ -216,7 +287,7 @@ def main(argv: Sequence[str] | None = None, say: Callable[[str], None] = print) 
         "tool_schemas": args.tool_schemas,
         "schema_hint": args.schema_hint,
     }
-    receipt = run_preflight(files, args.preset, overrides, say)
+    receipt = run_preflight(files, args.preset, overrides, say, args.allow_off)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "preflight-receipt.json").write_text(json.dumps(receipt, indent=1) + "\n")
     say(("PASS" if receipt["passed"] else "FAIL") + f": {args.out / 'preflight-receipt.json'}")

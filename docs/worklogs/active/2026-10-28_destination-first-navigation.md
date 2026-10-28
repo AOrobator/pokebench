@@ -8,7 +8,7 @@ Production scope: features.ts, play-preset.ts, play-config.ts, play-wiring.ts, n
 
 - [x] RED: production-factory delivery, prompt conflict removal, OFF invariance and both-arm configuration tests.
 - [x] GREEN: implementation, operand deletion/restoration receipts, normal gates and local explainer proof.
-- [ ] Independent review and review synthesis; landing only after the repository gates, then coordinated viewer proof.
+- [x] Independent review and review synthesis; landing only after the repository gates, then coordinated viewer proof.
 
 Readiness: navigation is already exercised in current Qwen run 9c88. This is an operator-authorized shared guidance change, not a measured performance improvement. Future measurement should compare valid destination/tool selection, manual walking calls, recovery, native progress and elapsed time at matched navigation decisions. No probe or gameplay launch authorized here.
 
@@ -29,3 +29,15 @@ Normal integrated unit/coverage results: 4,811 agent, 2,231 viewer, 4,659 Python
 Grok cloud reviewer exit 1: ActionRequiredError, out of usage. No Grok approval or standing cloud-lane waiver claimed. Complete available reviews and final deterministic evidence before asking the operator for a replacement lane, per execute-worklog. Candidate remains unlanded; no viewer refresh or active-run changes.
 
 2026-10-28 continuation: The operator answered "yes" to the explicit request for fresh Sol and Astra reviews replacing unavailable Grok and landing if approved. This is the authorization for the reduced-vendor review roster and conditional landing; no new gameplay launch or active-run prompt mutation is authorized. Prior frozen 56c3f62c9 passed all gates (4820 agent,2231 viewer,4659 Python,116 gateway,three card baselines), Claude and independent GPT LGTM. Main advanced to 2d8283698 with compact-grid and ledger bounds. Integrated their existing registry/config entries, appended destination policy after them (index302), and preserved both-arm settings; reseal and requalify before landing.
+
+## Landed and verified — 2026-10-28
+
+Exact reviewed implementation `85e2822976bfc27e297d7c6dab4cae745594bd56` fast-forwarded to local main while #1 on the landing board, actual Codex session `00000000-0000-4000-8000-a30ad7f67438`. Frozen base `2d82836985632e1845744b609b2e7873f38ea503`, binary diff SHA256 `973f440f10d4935afd26b71b6075579507903377984b877d3348391788ef3d8e`. Claude integration, normal independent GPT, fresh Sol and fresh Astra each returned literal LGTM with reproduced packet identity. Fresh Sol/Astra replace exhausted Grok under the operator's explicit yes; reduced vendor diversity, never Grok approval.
+
+Branch build/lint/test/vendor passed. Canonical postmerge build and normal full test passed: 4,849 agent,2,237 viewer,4,869 Python,116 gateway and three protected-card baselines, enforcing coverage >=90. An initial canonical test had been started against stale dependency output (new flag absent in compiled registry); stopped and retained its failures, rebuilt and reran the unchanged full gate. No source, assertion, timeout, retry or worker changes.
+
+One coordinated viewer-only refresh under `/private/tmp/pokebench-latest-main-prepare.lock`, completed 14:03:10 EDT. Served clean exact85e282297 from `~/.cache/pokebench/viewer-destination-85e282297`; sole8790 listener60637 PPID1. Both protected game/player PIDs survive, active Qwen9c88 run_start/header SHA256 unchanged. Run membership558 before/558 after; cards330/330; no losses, duplicates or additions; lane identity unchanged.
+
+Live headless checks at1280/1440/375: actual Qwen9c88 RUNNING with visible game frame, correct historical NOT RECORDED flag, feature-card READ EXPLAINER click opens the intended document. Nine screenshots opened/visually inspected; no new card clipping, page errors or mutating API requests. Served app/panels/explainer hashes match the clean runtime; workbench has no build-too-old problem. Current recording advanced to turn522/seq22975 during proof. Existing run prompts and metadata remain unchanged. Ten generated current phase/arm presets verified destination-first-navigation-v1=true; future control and bundle runs get the policy. No new gameplay run/probe or measured-benefit claim.
+
+Durable receipts: `runs/reviews/destination-first-navigation-85e282297/`; screenshots: `runs/mockups/destination-first-navigation-v1/shots/live/`. Explainer `http://127.0.0.1:8791/explainers/destination-first-navigation-v1.html` returns200. This final commit is evidence-only under the landing exception and touches only this worklog; no second viewer refresh for documentation. Worklog remains active until the operator authorizes archival.

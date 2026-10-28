@@ -38,6 +38,7 @@ import {withGymReadiness,withGymProgress} from "./gym-readiness.js";
 import {withTrainingBlock,trainingContext,type TrainingBlock} from "./training-block.js";
 import {withCatchingBlocks} from "./catching-block.js";
 import {withTypeGapTeam} from "./type-gap-team.js";
+import {typeGapLastMessage} from "./type-gap-last-message.js";
 import {withSupplies} from "./supplies.js";
 import {withUntalkedInGym} from "./untalked-in-gym.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
@@ -89,8 +90,9 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
  const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
- // scene-followup-prompt-v1 wraps last, so its note is the final message of the request.
- const transformContext=sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform);
+ // scene-followup-prompt-v1 wraps next to last, so its note ends the request unless
+ // type-gap-team-last-message-v1 repeats the type-gap block after it.
+ const transformContext=typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform));
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

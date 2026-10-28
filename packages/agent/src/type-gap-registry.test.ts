@@ -13,7 +13,7 @@ describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 202
   expect(IDS.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([277,278,279]);
   const switchable=FEATURES.filter(f=>f.switchable).map(f=>f.id);
   expect(IDS.map(id=>switchable.indexOf(id))).toEqual([277,278,279]);
-  expect(SERVER_FEATURES.at(-1)).toBe("type-gap-team-v1");
+  expect(SERVER_FEATURES.indexOf("type-gap-team-v1")).toBe(92);
   const all=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])) as Parameters<typeof playHarnessFeatures>[0];
   const harness=playHarnessFeatures(all,null);
   expect(IDS.map(id=>harness.indexOf(id))).toEqual([301,302,303]);

@@ -109,6 +109,7 @@ def read_state(
         party_menu_message_enabled="party-menu-message-v1" not in off,
         interface_guidance_enabled="interface-guidance-v1" not in off,
         bag_pocket_truth_enabled="bag-pocket-truth-v1" not in off,
+        pokenav_short_list_enabled="pokenav-short-list-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,

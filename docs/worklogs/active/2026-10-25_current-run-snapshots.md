@@ -2,15 +2,15 @@
 
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
-**Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** implementation — M3 closed dormant; M4 contract next
+**Status:** M1–M4 landed; M5 normal default startup and authorized activation in progress
+**Current Phase:** implementation — M5 rollout
 **Phase Started:** 2026-10-25
-**Branch:** `codex/current-run-snapshots-viewer`
+**Branch:** `codex/current-run-snapshots-rollout`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
 **Milestone tracking:** M1–M5 in this worklog. No repo-local Beads exists; installed bd resolves an unrelated global local stack database. Repository principles explicitly do not inherit Beads; do not create unrelated issues.
 **Required Phase Skills Checked:** repository feature-worklog and its canonical planning references
 **Situational Skills Considered:** viewer-e2e, close-the-loop, talk-to-claude, multi-model-review; load/recheck at execution boundaries
-**Execution Mode:** serial milestones; user authorizes implementation and cross-chat coordination. No service activation on live root, cache seeding, or shared viewer refresh. Keep runtime activation pending.
+**Execution Mode:** serial milestones; implementation, cross-chat coordination, landing, normal/default operation, independent service activation and one shared viewer refresh explicitly authorized. Preserve active runs; complete readiness and coordination first. Earlier activation holds below are historical and superseded by the direct human authorization.
 
 ## Problem statement
 
@@ -546,3 +546,5 @@ M5 CLI normal-path RED observed/committed f98eec224; implementing automatic DB d
 M5 card handoff RED: readonly consumer may reduce fresh source for display but must leave legacy cards-v1 bytes unchanged; explicit cardWriter used only by legacy ownership. Existing consumed-prefix/reset tests remain unchanged in meaning.
 
 M5 service lifecycle RED collected: absent module blocks native pytest import as expected. Frozen tests require immutable per-commit runtime preparation/reuse/dirty refusal, nonblocking shared preparation lock, launchd service-only argv/restart/login ownership, foreign-plist refusal and stop preserving durable DB and disabled plist. No actual launchctl/build action.
+
+M5 focused GREEN116 tests1.36s; corrected empty-index/catalog lookup race now waits owned current query before replay fallback. Four targeted normal-boot/historical-partial-replay/requested-frontier tests PASS0.95s. Service lock/config/immutable-build/stop and thin-wrapper6 tests PASS0.35s; one-module mypy PASS. Upgrade-failure RED added/observed: preserve and rebootstrap prior own launch agent when a replacement bootstrap fails; this stays service-only. CPU tests/native soak queued (not started), no actual service/player/viewer actions.

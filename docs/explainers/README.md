@@ -349,4 +349,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.
 
 - [Bounded ID-card mentions](id-card-bound-v1.html): newest whole mention pages within1,500codepoints, with an always-kept newest page.
+
+- [Whole-game story checkpoints](story-checkpoints-whole-game-v1.html): conservative, default-OFF whole-episode retirement through the endgame.
 - [Move matchups and Pokémon bonuses](move-learn-type-matchup-v1.html) — default-OFF, observed foes, learner bonuses and supported current battle ranges.

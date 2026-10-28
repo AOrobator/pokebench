@@ -137,7 +137,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] M1 primitive proof: native SQLite commit/close/reopen and bounded JSON reduction parity; supplied continuation namespace validation. Actual source consumption, process-kill recovery, replacement/truncation and torn-line proof remain M2; no source-verification or schema-migration completion claimed.
 - [x] Split triggers: changing recording durability, introducing remote storage/third-party database service, new party retention policy, or migration beyond additive derived schema.
 - [x] M1 tests: native single-writer lock, close/reopen persistence, late-SQL-error rollback, read-only connection, checkpoint/schema rejection, retry/context/cumulative provenance, read-journal pruning interleave.
-- [ ] M2 remaining proof: actual process-kill before/after commit, torn line, queued growth/validated consumed offset, source replacement/truncation and partial-reconstruction restart.
+- [x] M2 remaining proof: actual process-kill before/after commit, torn line, queued growth/validated consumed offset, source replacement/truncation and partial-reconstruction restart.
 - [x] COMMIT: `test(viewer): specify durable current-state checkpoint recovery` (RED;447e738b0).
 - [x] Implement minimal typed reducer/store and checkpoint restore; no integration in production startup yet.
 - [x] Adversarial deletion; focused persistence/recovery tests; full gates and coverage.
@@ -145,14 +145,14 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] M1 review disposition: Claude/GPT/Astra round2 LGTM; Sol initial-event fixture gap explicitly waived by operator Oct27; no test fix or third review. Grok usage unavailable, independently verified standing human Grok waiver recorded. Not all lanes LGTM; no false approval claim.
 
 **M2 - Independent bounded service and existing-run reconstruction (tracked by this worklog):**
-- [ ] Contract freeze: local daemon lifecycle, singleton, source discovery, live-tail scheduling, resumable initial reconstruction and asynchronous health. Owner: snapshot service. No agent/game writer edits; no production enablement.
-- [ ] Terminator: process-level fixture service restarts from cursor, resumes interrupted initial reconstruction and stays responsive under held/large history; complete/provisional handoff has no rewind/double count.
+- [x] Contract freeze: local daemon lifecycle, singleton, source discovery, live-tail scheduling, resumable initial reconstruction and asynchronous health. Owner: snapshot service. No agent/game writer edits; no production enablement.
+- [x] Terminator: process-level fixture service restarts from cursor, resumes interrupted initial reconstruction and stays responsive under held/large history; complete/provisional handoff has no rewind/double count.
 - [ ] Split triggers: modifying runner lifecycle/leases, distributing the service, or requiring a new direct game-state sampler.
-- [ ] Tests: service killed/restarted against append fixtures; quiet inference vs health; reused port; late terminal event; partial reconstruction restart; DB unavailable; resource budget/backpressure and fair scheduling.
-- [ ] COMMIT: `test(viewer): exercise snapshot service restart and catch-up` (RED; SHA pending).
-- [ ] Implement dormant service entrypoint/lifecycle with bounded diagnostics and configurable limits.
-- [ ] Adversarial deletion; fixture process rehearsal; full gates and coverage.
-- [ ] COMMIT: `feat(viewer): add bounded current-run snapshot service` (GREEN; SHA pending).
+- [x] Tests: service killed/restarted against append fixtures; quiet inference vs health; reused port; late terminal event; partial reconstruction restart; DB unavailable; resource budget/backpressure and fair scheduling.
+- [x] COMMIT: `test(viewer): specify snapshot source restart and reconstruction` (RED;4d95f0449).
+- [x] Implement dormant service entrypoint/lifecycle with bounded diagnostics and configurable limits.
+- [x] Adversarial deletion; fixture process rehearsal; full gates and coverage.
+- [x] COMMIT: `feat(viewer): add bounded current-run snapshot service` (GREEN; SHA recorded next).
 - [ ] Multi-model review against service ownership/recovery contract and INV-1/2/6/8.
 
 **M3 - Fast endpoints, reconnect and indexed history pages (tracked by this worklog):**
@@ -364,3 +364,7 @@ M2 resource conformance: tiny three-distinct-port/hot-cache2 held-probe test obs
 M2 second pre-gate sync: current main948095751 merged into owned branch without conflicts after grass-strides source/evidence landing; dependencies only, no task launch/config activation. Gates remain pending reserved queue, source remains dormant.
 
 M2 performed adversarial check (reserved20:21EDT): first23-case pass found a discovery-clock mutant survived because wall/monotonic numeric origins made the wrong comparison accidentally discover immediately. Preserved m2-mutations-first-pass.json and m2-discovery-clock-survivor.log, tightened only M2 clock fixture to independent origins plus pre-cadence no-discovery assertion. GREEN seven-suite63test baseline then24 performed mutations all independently assertion-RED/restored, receipts m2-mutations.json and exact per-case patches/logs. Covers digest compression/privacy, consumed offset, source inode/anchor/read/line bounds, each stale-stage operand, reconstructed index preservation/promotion, aux bound, root binding/singleton, commit/discovery clocks (comparison and anchor separately), batch credit, prefix hash, stale health owner, probe concurrency, single reconstruction, discovery cap and idle diagnostics. No mutant result relies on native freshness guards or uncompiled dist. Earlier pre-baseline/survivor trial is historical, not final proof. Full final build/lint/test(with coverage)/vendor starts next against synced owned source.
+
+M2 GREEN source gates on fe4dcfc23 all PASS: build20.12s, lint97.54s, single coverage-instrumented test224.63s, vendor0.17s. Agent4620/viewer2138/Python4446/gateway69/protected-card3 PASS. Coverage lines/branches/functions: agent99.18/92.69/97.52; viewer98.26/91.11/95.12; Python97.48/93.60/100; gateway99.29/97.01/100. Native SIGKILL/CLI3 cases included in the fully loaded viewer suite after fresh build; no stale-build-only mutation evidence. CPU released immediately, direct coordinator relay used when Claude mailbox reported no listener. Source hashes m2-final-source-hashes.json, gate receipts/logs m2-final-*. No floors/timeouts/excludes/baselines changed.
+
+During gates main moved only docs/worklogs/active/2026-10-27_grass-strides.md (b3a2bf941); synced documentation and independently verified every gated executable/test/config SHA256 still matches. Initial overbroad hash assertion caught exactly that changed documentation file; corrected receipt comparison to executable/test/config paths and amended owned merge worklog before freeze. m2-docs-sync-source-identity.json records exact incoming path and identities. Coordinator explicitly confirms docs-only delta preserves gates/review validity without rerun; no main hold granted under standing no-holds policy. Independent frozen M2 review pending; no advance to M3, local-main landing, runtime activation/shared viewer refresh or live source/probe work yet.

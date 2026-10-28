@@ -512,7 +512,7 @@ def test_diagnostic_window_bounds_and_revision_integrity(tmp_path):
     for revision, samples, omitted in [
         (0, (raw_sample(1),), 0),
         (1, (), 0),
-        (1, (raw_sample(1),) * 9, 0),
+        (1, tuple(raw_sample(frame) for frame in range(1, 10)), 0),
         (1, (raw_sample(1),), -1),
     ]:
         with pytest.raises(ValueError, match="bounds"):

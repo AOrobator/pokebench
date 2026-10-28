@@ -102,13 +102,15 @@ it("production safe-capture switch distinguishes deferred scene samples from arc
 it("safe mode reports true scene failures/retention honestly, rejects inconsistent or backward coverage, and never loses the original result",async()=>{
  const coverage={frames:31,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:0,diagnostic_revision:8,persisted_revision:8,diagnostic_error:"disk"};
  const payload={...reply([{id:3,frame:31,text:"visible"}],3),first_id:3,errors:1,last_error:"bad pointer",coverage};
- const read=vi.fn().mockResolvedValueOnce(payload).mockResolvedValueOnce({...reply([],3),coverage:{...coverage,frames:30,diagnostic_error:null}}).mockResolvedValueOnce(reply());
+ const read=vi.fn().mockResolvedValueOnce(payload).mockResolvedValueOnce({...reply([],3),coverage:{...coverage,frames:30,diagnostic_error:null}}).mockResolvedValueOnce({...payload,coverage:{...coverage,frames:32,safe_frames:26,deferred_frames:5}}).mockResolvedValueOnce({...payload,coverage:{...coverage,frames:32,safe_frames:23,deferred_frames:8}}).mockResolvedValueOnce(reply());
  const tool=withSceneJournal([base],true,{sceneEvents:read},true)[0];if(!tool)throw Error("missing");
  const first=text(await tool.execute("first",{}));expect(first).toContain("SCENE HISTORY READ ERROR: 1 frame reads failed");expect(first).toContain("SCENE HISTORY RETENTION GAP");expect(first).toContain("diagnostic buffer could not be saved");expect(first).not.toContain("CAPTURE GAP");
- expect(text(await tool.execute("backward",{}))).toContain("Scene history unavailable");
+ expect(text(await tool.execute("backward",{}))).toContain("scene coverage cursor moved backward");
+ expect(text(await tool.execute("deferred-backward",{}))).toContain("scene coverage cursor moved backward");
+ expect(text(await tool.execute("safe-backward",{}))).toContain("scene coverage cursor moved backward");
  expect(text(await tool.execute("missing",{}))).toContain("safe scene coverage missing");
  for(const c of [{...coverage,safe_frames:30},{...coverage,persisted_revision:9}])expect(()=>parseSceneJournal({...payload,coverage:c})).toThrow(/coverage/);
- expect(read).toHaveBeenCalledTimes(3);
+ expect(read).toHaveBeenCalledTimes(5);
 });
 
 

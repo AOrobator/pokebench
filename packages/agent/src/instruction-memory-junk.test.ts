@@ -70,7 +70,8 @@ it("R5 uses the faced trainer template on the page's own native map/state, beate
   const native=state({seq:7,heal_before_trainers:{trainers:[{local_id:1,x:5,y:4,trainer_id:603,defeated,sprite_kind:"LASS",graphics_id:20,loaded:true}],move_power:[],last_heal:null,home:null,mom_heals:false}});
   const trainer=ep(10,[page("Head north after our battle.",{speaker:"LASS",seq:7})]);
   expect(selected([trainer],[native]).decisions[0]).toMatchObject({step:"junk",rule:"R5",kept:false});
-  const elsewhere=ep(10,[page("Head north after our battle.",{speaker:"LASS",seq:7,id:[0,18]})]);expect(selected([elsewhere],[native]).decisions[0]).not.toMatchObject({rule:"R5"});
+  const elsewhere=ep(10,[page("Head north after our battle.",{speaker:"LASS",seq:7,id:[0,18]})]);expect(selected([elsewhere],[native]).kept).toEqual([elsewhere]);
+  const named=ep(10,[page("LASS: Head north after our battle.",{speaker:"LASS",source:"name_prefix",seq:7})]);expect(selected([named],[native]).kept).toEqual([named]);
  }
 });
 it("R6 drops wholly generic unmatched chatter with no v4 signal, but retains a direction hint",()=>{
@@ -94,7 +95,7 @@ it("Rock Smash hint remains until the existing native flag 0x6B says HM06 was re
   const out=selected([e],[state({story_progress:{flags:flags.toString("hex"),rustboro_stage:null,devon_stage:null,letter:null}})]);
   expect(out.kept,`HM06 native flag received=${String(received)}`).toEqual(received?[]:[e]);
  }
- expect(selected([e]).kept).toEqual([e]);
+ expect(selected([e]).kept).toEqual([e]);expect(selected([e],[]).kept).toEqual([e]);
 });
 it("never junks the current story anchor, even when every page is approved FLAVOR",()=>{
  const e=ep(10,weak.map(t=>page(t)),7);const quote=weak.join(" ").replaceAll("\n"," ");
@@ -136,7 +137,7 @@ it("no individually rendered approved hint/useful label is dropped",()=>{
  const source:unknown=JSON.parse(readFileSync(new URL("./data/instruction-memory-junk-source.json",import.meta.url),"utf8"));
  if(!Array.isArray(raw)||typeof source!=="object"||source===null||!("maps"in source))throw new Error("missing generated data");
  const maps=source.maps as Record<string,[number,number]>;const c=setup();let checked=0;
- for(const value of raw){
+ for(const value of raw as unknown[]){
   if(typeof value!=="object"||value===null||!("category"in value)||value.category==="FLAVOR")continue;
   if(!("map"in value)||!("text"in value)||!("text_label"in value)||typeof value.map!=="string"||typeof value.text!=="string")throw new Error("bad label row");
   const id=maps[value.map];if(id===undefined)throw new Error("missing map "+value.map);
@@ -145,4 +146,24 @@ it("no individually rendered approved hint/useful label is dropped",()=>{
   const out=c.select([e],render);expect(out.kept,JSON.stringify({label:value.text_label,decision:out.decisions})).toEqual([e]);checked++;
  }
  expect(checked).toBeGreaterThan(400);
+});
+
+it("R6 preserves a partially labelled exchange and an identified story sprite",()=>{
+ const mixed=ep(10,[page(weak[0]??""),page("Head north along the path.")]);expect(selected([mixed]).kept).toEqual([mixed]);
+ const story=ep(10,[page("I enjoy watching the clouds.",{speaker:"NORMAN"})]);expect(selected([story]).kept).toEqual([story]);
+});
+it("R2 recognizes either a berry sprite or a pret berry template independently",()=>{
+ const sprite=ep(10,[page("The fruit looks ripe.",{speaker:"BERRY_TREE"})]);expect(selected([sprite]).decisions[0]).toMatchObject({step:"junk",rule:"R2",kept:false});
+ const template=ep(20,[page("It's soft, loamy soil.",{speaker:null,source:null})]);expect(selected([template]).decisions[0]).toMatchObject({step:"junk",rule:"R2",kept:false});
+});
+
+it("an ambiguous whole page uses the higher useful label rather than a FLAVOR match",()=>{
+ // Hello! occurs in both Route104_PrettyPetalFlowerShop_Text_ThisIsPrettyPetalFlowerShop (FLAVOR)
+ // and Route104_PrettyPetalFlowerShop_Text_YouCanHaveThis (USEFUL_OPTIONAL).
+ const e=ep(10,[page("Hello!")]);expect(selected([e]).kept).toEqual([e]);
+});
+
+it("R1 binds PLAYER in service templates to the native player name",()=>{
+ const right=ep(10,[page("ANNA booted up the PC.",{speaker:null,source:null})]);expect(selected([right]).decisions[0]).toMatchObject({step:"junk",rule:"R1",kept:false});
+ const wrong=ep(10,[page("BOB booted up the PC.",{speaker:null,source:null})]);expect(selected([wrong]).kept).toEqual([wrong]);
 });

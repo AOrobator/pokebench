@@ -1845,3 +1845,14 @@ it("links the neutral YES/NO card without guessing a historical activation",()=>
  expect(card.textContent).toContain("NOT RECORDED");
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+
+it("links the instruction junk filter's exact card and preserves recorded status",()=>{
+ const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});

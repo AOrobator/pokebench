@@ -27,7 +27,7 @@ Local deterministic data/readers only; bound template matching to whole observed
 **M1 — Contract and RED**
 - [x] Audit cap/observed-memory/native milestone owner and authoritative pret/specifieddata. Record ambiguities with coordinator while proceeding independently.
 - [ ] Unit ON/OFF/near-miss perR1–R6; operator decisions; anchor; useful/hintlabelcoverage; capfill/replay/factory/defaults, nativeflag regression.
-- [ ] Run targetedRED and COMMIT before implementation.
+- [x] Run targetedRED and COMMIT before implementation: bf72308d3.
 **M2 — GREEN in existing owners**
 - [ ] Generate sanitized pret label/template/lexicon data with pinned reproducibility checks.
 - [ ] Implement classifier/cap integration/defaultOFF plumbing, nativeHM06measurement/retirement, no new runtime owner beyond approvedmodule.
@@ -64,3 +64,11 @@ User-gated, not authorized.
 M1RED:20targetedtests,14FAIL/6PASS on incumbent, including actualObservedInstructions factoryfailurenewswitch notforwarded. Initialinvalidfixturetime usedUTCZ (currentmain eventcontractrequiresEasternoffset); correctedtime andrequiredpage.position, preservedoriginalreceipts. Finalred-final.log has noEventError; failures are intendedmissingR1–R6/filter/default/data behavior. No production implementation yet. Tests include whole/mixedepisodes, serviceCenter2Fmap,berries/receipts,signlead/Cutterexception, exactduplicate/R4fallback, facedtrainersnativecontext,unmatchedchatter/signals/operatorweaken+storage,CyclingRoadhint,HM06nativeflagunknown/clear/set, anchor/refill,OFFidentityanddatahygiene/hintcoverage.
 
 DRYnativefinding:campaign-catalog.ts alreadydefinesHM_ROCK_SMASH_RECEIVED flag107 and story_progress.py suppliescoherentflagbitmap; progressReached isexistingdecoder. Reusethatowner, no Python/server/schema additions needed. CoordinatorR4default: newerkept meanssurvivesotherjunkrules; additionallyolderfittingcopy mustberestoredifnewerfailscap. Plan oneboundedpostfillfallback withsameadditivecapcostowner, neverdisplacingalreadykept episodes; documentactualfinaldecisions.
+
+M2GREENcandidate:51targetedPASS (24junkfilter+27incumbentcap), all28individualmutantsRED then restored51GREEN. Receipts runs/junk-filter/mutations-r0, neveroverwritten. Includes factory/OFF/anchor, nativeflag/state, R4classification/fittingfallback, trainer source/map, higher usefullabel/cuttersign, R1service/PLAYER/upstairs/whole, independentR2sprite/template all/any/whole, R3lead/source, R5branch, R6rival/story/whole/signal/unknown. Sourcecap/OFFprototype unchanged output in incumbenttests.
+
+Sourceaudit generated1,442sanitizedlabelrows from actualcleanpinnedprettext, categoriesoperatoroverrides applied (weaken/storageFLAVOR,CyclingRoadPROGRESSION_HINT). Generatorchecks everylabel/mapexists, flag0x6B definition, deterministicoutputhashes; standalone --checkPASS. No reason/source/walkthroughfields. Coordinatorconfirmedexcluding6unattestedv4selectors and reportingreplaydelta:byboat,pastthis,you'llwant,togetpast,bridge,station. Runtimeprecompilesboundedconstantpatterns, no growingcache. ExistingPRET_MAP_SECTIONS andexistingnativeHM06decoder reused. Need compilerresolveJsonModuleforrequiredJSONdata; no newuserconfig/API/serverfield.
+
+Self-audit found R1PLAYERmustmatchactualnativeplayer perreference, notarbitrarywildcard: addedREDfixtureANNAversusBOB, fixed boundednamedcapturematching; final51GREENincludesit. Initiallintcaught implicit-any fromArray.isArrayJSONnarrowing in testcorpusloop; changedto unknown[] beforepropertyvalidation. Currentfullgatesnotclaimedgreen. BuildinitialPASS; targetedfactory/doclinktests authored, fullgatesnext. Source artifactsareuncappedrenderreferences, output capstill16,000codepoints.
+
+CPUcoordinatorgrant received12:57:serializedbuild/lint/fulltest/vendor/cardand7offlinecuts. FirstbuildPASS; paused13:10aftermutations forClaude3mintestslot beforefullsuite/replays. NoGPU/inference/gameplay. WaitingexplicitRESUME.

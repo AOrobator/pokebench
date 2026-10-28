@@ -345,3 +345,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.
 
 - [Destination-first navigation](destination-first-navigation-v1.html): one destination policy across prompt, tools and observations; explicitly ON in both current arms.
+
+- [Screenshot and button baseline](screenshot-button-baseline-v1.html) — minimal prompt, image-only results and all-off preset.

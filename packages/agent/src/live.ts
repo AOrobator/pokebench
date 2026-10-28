@@ -287,6 +287,7 @@ async function playAgent(): Promise<void> {
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       const {governor,control:runControl} = controlledRun({
         limits,
+        ...(features["screenshot-button-baseline-v1"] ? { uncoachedBaseline: true } : {}),
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
         retry: (why, attempt, limit) => {
           recorder.retry(why, attempt, limit);

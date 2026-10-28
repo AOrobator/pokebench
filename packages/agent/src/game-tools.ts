@@ -12,7 +12,7 @@ import {RANDOM_STARTER_LIMITS,atStarterBag,starterPickNote,starterStep,type Rand
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
+export interface ToolSwitches { readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -92,7 +92,7 @@ export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch
     execute: async (_toolCallId, _params, signal) => {
       const result = await observation(gameServerUrl, fetchFn, signal);
       shown?.record(result.state);
-      return { content: result.content, details: { state: result.state } };
+      return { content: switches.screenshotOnly ? result.content.filter(item => item.type === "image") : result.content, details: { state: result.state } };
     },
   };
 }
@@ -296,7 +296,7 @@ export function pressTool(
       await hooks.afterPress();
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${limitedMovement?`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:params.buttons,submitted:buttons,dropped:params.buttons.slice(1)})}\n`:""}${!limitedMovement&&buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
       shown.record(content.state, before);
-      return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...content.content], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
+      return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...(switches.screenshotOnly ? content.content.filter(item => item.type === "image") : content.content)], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
   };
   // random-starter-v1: the run's pick replaces the model's press at the starter bag; one button per press, each read back.
   let picking=false,starter:RandomStarter|null=null;

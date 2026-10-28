@@ -1151,3 +1151,24 @@ it("bag-ineffective-loop-v1 records the warning and delivers it on the pinned pi
  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));expect(events.filter(e=>e.type==="loop_guard"&&e.phase==="warning")).toEqual([expect.objectContaining({kind:"ineffective",calls:3})]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+it("continues an uncoached baseline without injecting prompts or ending at the ordinary failure count", async () => {
+  let now = 0;
+  const g = new Governor({ limits: { maxTurns: Number.MAX_SAFE_INTEGER, maxWallMs: 1800000, failureLimit: Number.MAX_SAFE_INTEGER, replyFailuresEndRun: false }, retry: () => undefined, abort: () => undefined, now: () => now, uncoachedBaseline: true });
+  let calls = 0;
+  const loop: Loop = {
+    start: async (prompts, messages) => {
+      expect(prompts).toEqual(calls === 0 ? [TASK] : []);
+      expect(messages).toHaveLength(calls === 0 ? 0 : calls + 1);
+      calls++;
+      const message = reply([]);
+      now = calls === 8 ? 1800000 : calls;
+      expect(g.afterTurn(message, [])).toBe(calls === 8);
+      expect(await g.followUps()).toEqual([]);
+      return [...prompts, message];
+    },
+    resume: () => Promise.reject(new Error("no tool-less assistant continuation through pi continue")),
+  };
+  expect(await play(TASK, g, loop)).toBe("budget");
+  expect(calls).toBe(8);
+});

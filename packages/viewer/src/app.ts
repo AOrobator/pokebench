@@ -219,6 +219,7 @@ export class App {
   private currentRecordedWorkbench:WorkbenchData|null=null;
   private currentSavedCardOwner:{run:string|null;epoch:string|null;generation:string|null}|null=null;
   private recording:RunView|null=null;
+  private recordingCurrent:CurrentBrowserState["snapshot"]=null;
   private runs: RunChoice[] = [];
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
   private art: LoadedArt | null = null;
@@ -639,7 +640,7 @@ export class App {
     void this.next.load();
     if(this.deps.snapshotFirst===true){
       const create=this.deps.currentFactory??(await import("./current-browser.js")).createCurrentBrowser;
-      this.current=create({fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
+      this.current=create({now:this.deps.now,fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
       const wanted=/^#(?:run|replay)=(.+)$/.exec(this.deps.hash)?.[1],pending=this.current.start(wanted===undefined?null:decodeURIComponent(wanted));
       void this.loadArt();await pending;void this.refreshRuns();this.render();return;
     }
@@ -658,18 +659,17 @@ export class App {
     if(state===null||this.current===null)return;const now=this.deps.now();
     const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs)if(state.selected===s.id||!recorded.has(s.id)||s.run.status!=="ended"){
       const saved=this.savedCurrentCard(s.id,s.generation),fallback=!s.complete&&s.run.card==null?saved:null;
-      recorded.set(s.id,{...s.run,...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+      recorded.set(s.id,{...s.run,splits:saved?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
     }
     this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:[...recorded.values()]};
     const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;
     if(state.selected!==null){
       if(this.runId!==state.selected)this.resetSelection(state.selected,true);
       const snapshot=state.snapshot;
-      if(snapshot===null&&this.currentCatalog.find(run=>run.id===state.selected)?.ended===true){this.select(state.selected,this.following);return;}
       if(snapshot!==null&&snapshot!==this.currentApplied){
         if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
-        if(first){if(!snapshot.complete)void this.loadWorkbench();void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+        if(first){void this.loadWorkbench();if(this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
         const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
@@ -712,7 +712,7 @@ export class App {
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
         if(this.current!==null){if(this.current.state.epoch!==epoch||(this.current.state.snapshot?.generation??null)!==generation)return;
           this.currentSavedCardOwner={run:selected,epoch,generation};
-          this.currentRecordedWorkbench=this.current.state.selected===null?next:{...next,milestones:[],runs:next.runs.filter(run=>run.id===selected).map(run=>{const display={...run,splits:[],excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
+          this.currentRecordedWorkbench=this.current.state.selected===null?next:{...next,milestones:[],runs:next.runs.filter(run=>run.id===selected).map(run=>{const display={...run,excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))
@@ -730,7 +730,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null&&(this.current.state.selected===null||this.current.state.snapshot?.complete!==true)?[this.loadWorkbench()]:[])]);this.render();return;}
+    if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null?[this.loadWorkbench()]:[])]);this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
@@ -779,7 +779,16 @@ export class App {
   // Runs start after the page loads (a batch of measured runs); pick them up
   // without ever switching away from a run that is live or deliberately chosen.
   async refreshRuns(): Promise<void> {
-    if(this.current!==null){if(this.currentCatalogTask!==null)return this.currentCatalogTask;const task=this.deps.fetchJson("/api/runs").then(value=>{this.currentCatalog=runChoices(value);this.currentChanged(this.current?.state??null);}).catch(()=>{}).finally(()=>{this.currentCatalogTask=null;});this.currentCatalogTask=task;return task;}
+    if(this.current!==null){
+      if(this.currentCatalogTask!==null)return this.currentCatalogTask;
+      const task=this.deps.fetchJson("/api/runs").then(value=>{
+        this.currentCatalog=runChoices(value);this.currentChanged(this.current?.state??null);
+        const current=this.current;if(current===null)return;
+        const first=current.state.selected??(this.runId===null?preferredRun(this.currentCatalog,this.deps.hash)?.id??null:null);
+        if(first===null){if(this.runId===null){this.mode="idle";this.render();}return;}
+        if(current.state.snapshot===null&&(current.state.selected===null||this.currentCatalog.find(run=>run.id===first)?.ended===true))void current.select(first).then(()=>{if(current.state.selected===first&&current.state.snapshot===null&&this.currentCatalog.find(run=>run.id===first)?.ended===true)this.select(first,this.following);});
+      }).catch(()=>{}).finally(()=>{this.currentCatalogTask=null;});this.currentCatalogTask=task;return task;
+    }
 
     let runs: RunChoice[];
     try {
@@ -956,7 +965,7 @@ export class App {
   }
 
   private showPage(name: string): void {
-    if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
+    if (name === "splits" && this.runId !== null) { if(this.current!==null)void this.loadFrontier(this.runId);if(this.comparisonsRun!==this.runId)void this.loadComparisons(this.runId); }
     if (name === "bag") { this.bagNextPoll = 0; }
     if (name === "party") void this.loadPartyArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
@@ -1160,19 +1169,19 @@ export class App {
     this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
-    this.recording=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];
+    this.recording=null;this.recordingCurrent=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];
   }
 
   select(runId:string,automatic=false):void {
     if(this.current!==null&&this.runs.find(run=>run.id===runId)?.ended!==true){this.resetSelection(runId,automatic);void this.current.select(runId);void this.pollCards();this.render();return;}
-    const preserve=this.current!==null&&this.runId===runId&&this.view.start!==null;
+    const preserve=this.current!==null&&this.runId===runId&&this.view.start!==null,retainedCurrent=this.currentApplied;
     if(this.current!==null)void this.current.select(null);
-    this.selectRecorded(runId,automatic,preserve);
+    this.selectRecorded(runId,automatic,preserve,retainedCurrent);
   }
 
-  private selectRecorded(runId:string,automatic=false,preserve=false):void {
+  private selectRecorded(runId:string,automatic=false,preserve=false,retainedCurrent:CurrentBrowserState["snapshot"]=null):void {
     const retained=preserve?this.view:null;this.resetSelection(runId,automatic);
-    if(retained!==null)this.view=this.shown=retained;
+    if(retained!==null){this.view=this.shown=retained;this.recordingCurrent=retainedCurrent;}
     if(this.current!==null)this.recording=new RunView();
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events?head=1`);
     this.stream = stream;
@@ -1199,7 +1208,7 @@ export class App {
         const merged = new Map([...(this.recording??this.view).events, ...events].map(event => [event.seq, event]));
         for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
         this.historyBefore = this.historyCursor(view.events);
-        this.view = this.shown = view;this.recording=null;
+        this.view = this.shown = view;this.recording=null;this.recordingCurrent=null;
         this.headReady = true;
         this.mode = view.end === null ? "live" : "loading";
         this.setRecordedThinking(view, view.events);
@@ -1228,7 +1237,7 @@ export class App {
       // The fully folded stream is authoritative now. A slower optional head
       // request must not replace or clear it after this handoff.
       this.recordedThinkingRequest += 1;
-      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;}
+      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;this.recordingCurrent=null;}
       this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
@@ -1242,11 +1251,11 @@ export class App {
       if (this.stream !== stream) return;
       this.closeFrameStream();
 
-      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;}
+      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;this.recordingCurrent=null;}
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
-    void this.loadFrontier(runId);
+    if(this.current===null||this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(runId);
     if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }
@@ -1577,7 +1586,8 @@ export class App {
       }
     }
     const current=this.current?.state.selected===this.runId?this.current.state:null;
-    this.setHtml("stats", sideStats(view,nowMs,current===null?undefined:current.snapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null,timeKnown:current.snapshot.run.elapsedMs!==null}));
+    const currentSnapshot=current?.snapshot??this.recordingCurrent;
+    this.setHtml("stats", sideStats(view,nowMs,current===null&&currentSnapshot===null?undefined:currentSnapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:currentSnapshot.complete,contextKnown:currentSnapshot.context.estimated!==null||currentSnapshot.context.measured!==null,timeKnown:currentSnapshot.run.elapsedMs!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
@@ -1623,7 +1633,7 @@ export class App {
     this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_turns:view.effectiveTurnLimit, max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
-    const totalsKnown=current===null||current.snapshot?.complete===true;
+    const totalsKnown=current===null&&currentSnapshot===null||currentSnapshot?.complete===true;
     this.setHtml("budgets",totalsKnown?budgets(view,nowMs):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');
     this.setHtml("counters",totalsKnown?counters(view):'<p class="nodata">Lifetime totals are still loading.</p>');
     this.setHtml("metric-history", metricHistory(this.traceOwner()));
@@ -1698,7 +1708,7 @@ export interface BootWindow {
 
 export async function boot(win: BootWindow): Promise<App> {
   const app = await mountApp(win.document, {
-    snapshotFirst:new URL(win.location.href).searchParams.get("current")==="1",
+    snapshotFirst:true,
     fetchJson: async (url,signal) => {
       const response=signal===undefined?await win.fetch(url):await win.fetch(url,{signal});
       if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
@@ -1738,6 +1748,6 @@ export async function boot(win: BootWindow): Promise<App> {
     void app.next.poll();
   }, RUN_LIST_MS);
   win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
-  if(new URL(win.location.href).searchParams.get("current")==="1")win.setInterval(()=>{void app.pollCurrent();},500);
+  win.setInterval(()=>{void app.pollCurrent();},500);
   return app;
 }

@@ -335,7 +335,7 @@ it("serves saved live trainer cards on a fresh viewer before growing recordings 
 
 it.each(["truncate", "replace", "rewrite", "symlink", "removed"] as const)("refuses saved display state after a log is %s", async change => {
   const r = root(), path = write(r, "changed", named()), cards = createCardStore(r);
-  await createWorkbenchLoader({ cards }).load(r, "changed");
+  await createWorkbenchLoader({ cards, cardWriter:cards }).load(r, "changed");
   expect(cards.latest("changed")?.outcome.run.card?.name).toBe("MAY");
   if (change === "truncate") fs.truncateSync(path, 1);
   if (change === "rewrite") fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"MAY"', '"MAX"'));
@@ -345,7 +345,7 @@ it.each(["truncate", "replace", "rewrite", "symlink", "removed"] as const)("refu
     else fs.symlinkSync(`${path}.old`, path);
   }
   if (change === "removed") fs.rmSync(path);
-  const held = heldCompute(), loader = createWorkbenchLoader({ cards, compute: held.compute });
+  const held = heldCompute(), loader = createWorkbenchLoader({ cards, cardWriter:cards, compute: held.compute });
   try {
     expect(loader.current(r, "changed", true)?.run.card ?? null).toBeNull();
   } finally { held.release(); }
@@ -353,7 +353,7 @@ it.each(["truncate", "replace", "rewrite", "symlink", "removed"] as const)("refu
 
 it("persists a fresh pregame reset instead of resurrecting the earlier roster", async () => {
   const r = root(), log = named(), path = write(r, "reset", log), cards = createCardStore(r);
-  const loader = createWorkbenchLoader({ cards });
+  const loader = createWorkbenchLoader({ cards, cardWriter:cards });
   expect((await loader.load(r, "reset")).run.card?.name).toBe("MAY");
   const reset = log.add(5000, state({ started: false, screen: "title", name: null, location: null, party: [], play_time_s: null }));
   fs.appendFileSync(path, JSON.stringify({ ...reset, run: "reset" }) + "\n");
@@ -366,7 +366,7 @@ it("persists a fresh pregame reset instead of resurrecting the earlier roster", 
 
 it("saves a completed live prefix even when new events arrive during its reduction", async () => {
   const r = root(), log = named(), path = write(r, "growing", log), cards = createCardStore(r);
-  const loader = createWorkbenchLoader({ cards, compute: (root, id) => {
+  const loader = createWorkbenchLoader({ cards, cardWriter:cards, compute: (root, id) => {
     const loaded = loadRun(root, id), gap = log.add(5000, state({ screen: "battle", in_battle: true, party: [], name: null, location: null, play_time_s: null }));
     fs.appendFileSync(path, JSON.stringify({ ...gap, run: id }) + "\n");
     return Promise.resolve(loaded);
@@ -381,7 +381,7 @@ it("saves a completed live prefix even when new events arrive during its reducti
 
 it.each([false, true])("binds saved cards to the consumed prefix when queued reads grow (truncate during compute=%s)", async during => {
   const r = root(), log = named(), path = write(r, "queued", log), originalSize = fs.statSync(path).size, cards = createCardStore(r);
-  const loader = createWorkbenchLoader({ cards, compute: (root, id) => {
+  const loader = createWorkbenchLoader({ cards, cardWriter:cards, compute: (root, id) => {
     const fresh = log.add(5000, state({ name: "LATER" }));
     fs.appendFileSync(path, JSON.stringify({ ...fresh, run: id }) + "\n");
     const loaded = loadRun(root, id);
@@ -392,9 +392,9 @@ it.each([false, true])("binds saved cards to the consumed prefix when queued rea
   if (during) { expect(cards.latest("queued")).toBeNull(); return; }
   const held = heldCompute();
   try {
-    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card?.name).toBe("LATER");
+    expect(createWorkbenchLoader({ cards, cardWriter:cards, compute: held.compute }).current(r, "queued", true)?.run.card?.name).toBe("LATER");
     fs.truncateSync(path, originalSize + 1);
-    expect(createWorkbenchLoader({ cards, compute: held.compute }).current(r, "queued", true)?.run.card ?? null).toBeNull();
+    expect(createWorkbenchLoader({ cards, cardWriter:cards, compute: held.compute }).current(r, "queued", true)?.run.card ?? null).toBeNull();
   } finally { held.release(); }
 });
 
@@ -641,4 +641,15 @@ it("does not overwrite legacy display snapshots when given only their reader cap
  const loader=createWorkbenchLoader({cards});
  expect((await loader.load(r,"handoff")).run.card?.name).toBe("FRESH");
  expect(fs.readFileSync(join(r,".viewer-cache","cards-v1","handoff.json"),"utf8")).toBe(saved);
+});
+
+it("keeps the normal HTTP card reader from rewriting legacy files even after fresh reduction",async()=>{
+ const r=root(),log=named(),path=write(r,"http-handoff",log),cards=createCardStore(r);
+ await createWorkbenchLoader({cards,cardWriter:cards}).load(r,"http-handoff");
+ const saved=fs.readFileSync(join(r,".viewer-cache/cards-v1/http-handoff.json"),"utf8");
+ const event=log.add(5000,state({name:"FRESH"}));fs.appendFileSync(path,JSON.stringify({...event,run:"http-handoff"})+"\n");
+ const viewer=await startViewer({runsRoot:r,staticDir:r,appDir:r,port:0,build:null,current:{database:join(r,"current.sqlite")},fetchFn:()=>Promise.resolve(new Response("ok"))});viewers.push(viewer);
+ const answer=parseWorkbench(await (await fetch(new URL("api/cards?run=http-handoff",viewer.url))).json());
+ expect(answer.runs[0]?.card?.name).toBe("FRESH");
+ expect(fs.readFileSync(join(r,".viewer-cache/cards-v1/http-handoff.json"),"utf8")).toBe(saved);
 });

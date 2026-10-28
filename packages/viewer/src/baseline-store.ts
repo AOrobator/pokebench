@@ -17,9 +17,12 @@ export interface RunStore<T> {
   put(runId: string, fingerprint: string, value: T): void;
 }
 export type BaselineStore = RunStore<BaselineOutcome>;
-export interface SnapshotStore<T> extends RunStore<T> {
+export interface SnapshotReader<T> {
+  get(runId: string, fingerprint: string): T | null;
   latest(runId: string): { fingerprint: string; outcome: T } | null;
 }
+
+export interface SnapshotStore<T> extends SnapshotReader<T>, RunStore<T> {}
 
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CODE_ID = /^[0-9a-f]{64}$/;
@@ -102,6 +105,11 @@ export function createCardStore(runsRoot: string): SnapshotStore<LoadedRun> {
     const run = { ...loaded.run }; delete run.measurement;
     return { ...loaded, run };
   }, false);
+}
+
+export function createCardReader(runsRoot: string): SnapshotReader<LoadedRun> {
+  const store = createCardStore(runsRoot);
+  return { get: store.get, latest: store.latest };
 }
 
 // Caches of other code that no viewer has opened for a week; the current one always stays.

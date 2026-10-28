@@ -347,3 +347,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Destination-first navigation](destination-first-navigation-v1.html): one destination policy across prompt, tools and observations; explicitly ON in both current arms.
 
 - [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.
+
+- [Current runs before history](current-run-snapshots.html): independent persisted current state, restart recovery, history backfill and rollback.

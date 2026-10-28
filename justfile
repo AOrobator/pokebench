@@ -155,6 +155,14 @@ view run_id="": build
 viewer-main:
     scripts/viewer-main.sh
 
+# Install the independent persisted-current projector at main (service-only restart).
+current-main:
+    scripts/current-main.sh install
+
+# Rollback service lifecycle without deleting source recordings or derived caches.
+current-stop:
+    scripts/current-main.sh stop
+
 # Opt-in Codex transcript/summary bridge. Build once first; never rebuild on each player decision.
 [positional-arguments]
 codex-capture *args:

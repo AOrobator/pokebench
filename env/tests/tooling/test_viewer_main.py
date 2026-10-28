@@ -14,7 +14,7 @@ def _git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 
 
-def test_viewer_tree_shares_the_main_checkout_venv(tmp_path: Path) -> None:
+def test_viewer_script_delegates_to_the_locked_runtime_owner(tmp_path: Path) -> None:
     root = tmp_path / "root"
     (root / "env").mkdir(parents=True)
     (root / "env/keep").write_text("")
@@ -26,29 +26,33 @@ def test_viewer_tree_shares_the_main_checkout_venv(tmp_path: Path) -> None:
     scripts = root / "scripts"
     scripts.mkdir()
     shutil.copy(SCRIPTS / "viewer-main.sh", scripts / "viewer-main.sh")
-    restart = scripts / "viewer-restart.sh"
-    restart.write_text("#!/bin/sh\nexit 0\n")
-    restart.chmod(0o755)
     binary = tmp_path / "bin"
     binary.mkdir()
-    pnpm = binary / "pnpm"
-    pnpm.write_text("#!/bin/sh\nexit 0\n")
-    pnpm.chmod(0o755)
-    tree = tmp_path / "tree"
-    env = {
-        **os.environ,
-        "PATH": str(binary) + os.pathsep + os.environ["PATH"],
-        "POKEBENCH_VIEWER_WORKTREE": str(tree),
-    }
+    uv = binary / "uv"
+    output = tmp_path / "argv"
+    uv.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$OWNED_ARGV"\n')
+    uv.chmod(0o755)
     result = subprocess.run(
         ["/bin/bash", str(scripts / "viewer-main.sh")],
         cwd=root,
-        env=env,
+        env={
+            **os.environ,
+            "PATH": str(binary) + os.pathsep + os.environ["PATH"],
+            "OWNED_ARGV": str(output),
+        },
         capture_output=True,
         text=True,
         timeout=30,
     )
     assert result.returncode == 0, (result.stdout, result.stderr)
-    venv = tree / "env/.venv"
-    assert venv.is_symlink()
-    assert venv.resolve() == (root / "env/.venv").resolve()
+    assert output.read_text().splitlines() == [
+        "run",
+        "--project",
+        str(root / "env"),
+        "python",
+        "-m",
+        "pokebench_env.current_runtime",
+        "viewer",
+        "--root",
+        str(root),
+    ]

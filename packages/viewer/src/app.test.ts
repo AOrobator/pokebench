@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
+import {currentFixture} from "../test-support/current.js";
 import { BagLedger, bagPage, bagRange, NO_ART } from "./bag.js";
 import { bagRun } from "../test-support/bag.js";
 import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
@@ -245,7 +246,8 @@ describe("viewer app", () => {
 
   it("opens the newest run when the hash names none, and shows no data before events arrive", async () => {
     const { streams } = await harness();
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
+    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
+    expect(streams).toHaveLength(0);
     expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
     expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
     expect(ui("mode").textContent).toBe("LOADING");
@@ -1001,13 +1003,14 @@ describe("boot", () => {
   });
   it("wires the page to fetch, EventSource and a render interval", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const current=currentFixture();
     const intervals: ((...args: unknown[]) => void)[] = [];
     const streams: FakeStream[] = [];
     const frames: FakeFrameStream[] = [];
     const win = {
       document,
       location: { hash: "", href: "http://127.0.0.1:8790/" },
-      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(RUNS)).then((body) => new Response(JSON.stringify(body)))),
+      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(url==="/api/current-runs"?current.list:url.endsWith("/current")?current.detail:url==="/api/runs"?RUNS:null)).then((body) => new Response(JSON.stringify(body)))),
       EventSource: class extends FakeStream {
         constructor(url: string) {
           super(url);
@@ -1027,12 +1030,14 @@ describe("boot", () => {
     };
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
-    expect(frames[0]?.url).toBe("ws://127.0.0.1:8790/api/runs/2026-10-11T23-00-00_live/frames");
-    expect(intervals).toHaveLength(3);
+    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
+    expect(streams).toHaveLength(0);
+    expect(frames[0]?.url).toBe(`ws://127.0.0.1:8790/api/runs/${current.snapshot.id}/frames`);
+    expect(intervals).toHaveLength(4);
     intervals[0]?.();
-    expect(app.mode).toBe("loading");
+    expect(app.mode).toBe("live");
     await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
+    await app.refreshRuns();
     intervals[1]?.();
     await vi.waitFor(() => {
       expect(win.fetch.mock.calls.filter(([url]) => url === "/api/runs")).toHaveLength(2);
@@ -1040,7 +1045,7 @@ describe("boot", () => {
     });
   });
 
-  it("surfaces an HTTP error from the run list", async () => {
+  it("retains an honest loading state when the initial current service is unavailable", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const win = {
       document,
@@ -1053,7 +1058,10 @@ describe("boot", () => {
       setInterval: () => 1,
       performance: { now: () => 0 },
     };
-    await expect(boot(win)).rejects.toThrow("GET /api/runs returned HTTP 500");
+    const app=await boot(win);
+    expect(document.querySelector('[data-ui="stats"]')?.textContent).toContain("—");
+    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs",expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
+    app.dispose();
   });
 });
 

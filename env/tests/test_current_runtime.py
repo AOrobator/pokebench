@@ -117,18 +117,80 @@ def test_prepare_builds_once_and_never_retargets_an_existing_pin(tmp_path):
 
 def test_failed_upgrade_restores_the_previous_agent(tmp_path):
     from subprocess import CalledProcessError
+
     config = service_config(tmp_path, tmp_path / "new", "/node", tmp_path)
     old = service_config(tmp_path, tmp_path / "old", "/node", tmp_path)
     target = tmp_path / "agent.plist"
     target.write_bytes(plistlib.dumps(old))
     starts = []
+
     def run(args, **kwargs):
         if "bootstrap" in args:
             starts.append(plistlib.loads(target.read_bytes())["WorkingDirectory"])
             if len(starts) == 1:
                 raise CalledProcessError(1, args)
         return CompletedProcess(args, 0, "", "")
+
     with pytest.raises(CalledProcessError):
         install(config, target, 42, run)
     assert plistlib.loads(target.read_bytes()) == old
     assert starts == [str(tmp_path / "new"), str(tmp_path / "old")]
+
+
+def test_runtime_commands_keep_projector_and_viewer_lifecycles_independent(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+
+    from pokebench_env import current_runtime as runtime
+
+    root = tmp_path / "repo"
+    tree = tmp_path / "pin"
+    calls = []
+    monkeypatch.delenv("POKEBENCH_VIEWER_WORKTREE", raising=False)
+    monkeypatch.setattr(runtime.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(runtime, "prepare_lock", lambda: nullcontext())
+    monkeypatch.setattr(runtime, "prepare", lambda *a, **k: tree)
+    monkeypatch.setattr(runtime.shutil, "which", lambda name: "/usr/local/bin/node")
+    monkeypatch.setattr(runtime, "install", lambda *args: calls.append(("install", args)))
+    monkeypatch.setattr(runtime, "stop", lambda *args: calls.append(("stop", args)))
+    monkeypatch.setattr(runtime.subprocess, "run", lambda *a, **k: calls.append(("viewer", a)))
+    runtime.main(["install", "--root", str(root)])
+    assert [call[0] for call in calls] == ["install"]
+    assert calls[0][1][0]["WorkingDirectory"] == str(tree)
+    runtime.main(["viewer", "--root", str(root)])
+    assert [call[0] for call in calls] == ["install", "viewer"]
+    assert calls[1][1][0] == [
+        str(tree / "scripts/viewer-restart.sh"),
+        str(tree / "packages/viewer/dist/cli.js"),
+        "8790",
+        str(root / "runs"),
+        str(root / ".env"),
+        str(root / "runs/viewer-8790.log"),
+    ]
+    runtime.main(["stop", "--root", str(root)])
+    assert [call[0] for call in calls] == ["install", "viewer", "stop"]
+    monkeypatch.setattr(runtime.shutil, "which", lambda name: None)
+    with pytest.raises(RuntimeError, match="node is required"):
+        runtime.main(["install", "--root", str(root)])
+    assert [call[0] for call in calls] == ["install", "viewer", "stop"]
+
+
+def test_first_failed_install_and_unloaded_stop_preserve_owned_files(tmp_path):
+    from subprocess import CalledProcessError
+
+    config = service_config(tmp_path, tmp_path / "pin", "/node", tmp_path)
+    target = tmp_path / "agent.plist"
+    calls = []
+
+    def run(args, **kwargs):
+        calls.append(args)
+        if "bootstrap" in args:
+            raise CalledProcessError(1, args)
+        return CompletedProcess(args, 1, "", "")
+
+    with pytest.raises(CalledProcessError):
+        install(config, target, 42, run)
+    assert not target.exists()
+    assert all("bootout" not in call for call in calls)
+    stop(config, target, 42, run)
+    assert not target.exists()
+    assert all("bootout" not in call for call in calls)

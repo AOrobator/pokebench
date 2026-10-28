@@ -19,7 +19,7 @@ import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import { exclusionLabel, readExclusions } from "./run-exclusions.js";
 import type { HealthProbe } from "./next-run.js";
 import { parseWorkbench, type WorkbenchCohort, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import type { RunStore, SnapshotStore } from "./baseline-store.js";
+import type { RunStore, SnapshotReader } from "./baseline-store.js";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
 // What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
@@ -192,7 +192,7 @@ export interface WorkbenchLoader {
 // runs for the next viewer of the same parser code; current build policy is reapplied on every disk hit.
 // build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
 // stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
-export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; cards?: SnapshotStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
+export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; cards?: SnapshotReader<LoadedRun>; cardWriter?: Pick<RunStore<LoadedRun>, "put">; build?: ViewerBuild | null } = {}): WorkbenchLoader {
   const incremental = createIncrementalRunLoader();
   const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => incremental(root, id, viewer)));
   const build = options.build === undefined ? defaultViewerBuild() : options.build;
@@ -227,7 +227,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
           const size = Number(after.split(":")[0]);
           if (bytes <= size) {
             const fingerprint = bytes === size ? after : signature.replace(/^\d+:/, `${String(bytes)}:`);
-            options.cards?.put(id, fingerprint, { ...loaded, run });
+            options.cardWriter?.put(id, fingerprint, { ...loaded, run });
           }
         }
         return entry;

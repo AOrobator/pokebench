@@ -23,7 +23,7 @@ import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { createCardStore } from "./baseline-store.js";
+import { createCardReader, createCardStore } from "./baseline-store.js";
 import { resumedCheckpoint } from "./frontier.js";
 import { createFrontierCache, type FrontierCache } from "./frontier-cache.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
@@ -674,7 +674,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const readBag = createBagHistoryReader(options.runsRoot);
   const catalog = createRunCatalog(options.runsRoot, null);
   const strictCatalog = options.build === null ? catalog : createRunCatalog(options.runsRoot, options.build ?? null);
-  const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, cards: createCardStore(options.runsRoot), ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
+  const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, cards: createCardReader(options.runsRoot), ...(options.current === undefined ? {cardWriter:createCardStore(options.runsRoot)} : {}), ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
   // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).

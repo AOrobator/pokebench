@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { fullRun, tAt } from "../test-support/events.js";
-import { baselineCacheDir, codeIdentity, createBaselineStore, createCardStore, pruneBaselineCaches } from "./baseline-store.js";
+import { baselineCacheDir, codeIdentity, createBaselineStore, createCardReader, createCardStore, pruneBaselineCaches } from "./baseline-store.js";
 import { loadRun } from "./workbench-store.js";
 import { BaselineError, baselineOf, computeBaseline, createBaselineReader, type BaselineCompute } from "./runs.js";
 import { startViewer, type Viewer } from "./server.js";
@@ -226,4 +226,9 @@ it("serves a restarted viewer's comparisons from the cache its predecessor wrote
   viewers.push(two);
   expect(await (await fetch(new URL("api/runs/selected/comparisons", two.url))).json()).toEqual(cold);
   expect(second.calls).toEqual([]);
+});
+
+it("exposes only read capability for transitional legacy card snapshots",()=>{
+ const dir=root();write(dir,"card");const store=createCardStore(dir),loaded=loadRun(dir,"card");store.put("card","source",loaded);
+ const reader=createCardReader(dir);expect(Object.keys(reader).sort()).toEqual(["get","latest"]);expect(reader.get("card","source")?.run.card).toEqual(loaded.run.card);expect(reader.latest("card")?.fingerprint).toBe("source");
 });

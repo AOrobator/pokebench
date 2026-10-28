@@ -1,8 +1,8 @@
 import {expect,it} from "vitest";
 import {currentFixture} from "../test-support/current.js";
-import {RUN,state,assistant} from "../test-support/events.js";
+import {RUN,state,assistant,BASE_MS} from "../test-support/events.js";
 import {createCurrentBrowser as createBrowser,type CurrentBrowserOptions} from "./current-browser.js";
-const createCurrentBrowser=(options:CurrentBrowserOptions)=>createBrowser({now:()=>2000,...options});
+const createCurrentBrowser=(options:CurrentBrowserOptions)=>createBrowser({now:()=>BASE_MS+4000,...options});
 import type {CurrentAnswer} from "./current-public.js";
 function held<T>(){let resolve:(value:T)=>void=()=>{throw new Error("uninitialized resolver");};const promise=new Promise<T>(done=>{resolve=done;});return {promise,resolve};}
 it("publishes meaningful current state before held history and requests no legacy reduction",async()=>{const f=currentFixture(),history=held<CurrentAnswer>(),urls:string[]=[],seen:(number|null)[]=[],client=createCurrentBrowser({fetchJson:url=>{urls.push(url);return Promise.resolve(url==="/api/current-runs"?f.list:url.endsWith("/current")?f.detail:history.promise);},changed:s=>{seen.push(s.snapshot?.totals?.input??null);}});try{await client.start(RUN);expect(client.state.snapshot?.totals?.input).toBe(500);expect(client.state.snapshot?.run.turn).toBe(1);expect(client.state.history).toEqual([]);expect(seen).toContain(500);expect(urls).toEqual(["/api/current-runs",`/api/runs/${RUN}/current`,`/api/runs/${RUN}/history`]);}finally{client.close();}});
@@ -36,12 +36,12 @@ it("keeps complete older coverage when an overlapping refreshed head offers a ne
 it("advances the head cursor when a non-older refresh replaces a full tiny window",async()=>{const f=currentFixture();let advanced=false;const client=createCurrentBrowser({limits:{events:2},fetchJson:url=>{if(url==="/api/current-runs")return Promise.resolve(f.list);if(url.endsWith("/current"))return Promise.resolve(f.detail);return Promise.resolve({kind:"history",version:1,epoch:"epoch",generation:f.snapshot.generation,state:"ready",events:advanced?f.log.events.slice(2):f.log.events.slice(1,3),before:advanced?"fresh":"old"} satisfies CurrentAnswer);}});try{await client.start(RUN);await client.history();advanced=true;await client.history();expect(client.state.history.map(event=>event.seq)).toEqual([2,3]);expect(client.state.before).toBe("fresh");expect(client.state.historyLimited).toBe(true);}finally{client.close();}});
 
 it("marks quiet persisted active state stale when the projector heartbeat stops and recovers on a new heartbeat",async()=>{
- const f=currentFixture();let now=2000,beat=false;
+ const f=currentFixture();let now=BASE_MS+4000,beat=false;
  const client=createCurrentBrowser({now:()=>now,fetchJson:url=>{
   if(url==="/api/current-runs")return Promise.resolve(f.list);
   if(url.endsWith("/current"))return Promise.resolve(f.detail);
   if(url.includes("current-updates")){const snapshot={...f.snapshot,observedAt:now,revision:8};return Promise.resolve({kind:"updates",version:1,epoch:"epoch",cursor:"next",reset:false,more:false,changes:beat?[{id:RUN,removed:false,summary:{...f.summary,observedAt:now,revision:8},snapshot}]:[]} satisfies CurrentAnswer);}
   return new Promise(()=>{});
- }});try{await client.start(RUN);expect(client.state.stale).toBe(false);now=13000;await client.poll();expect(client.state.stale).toBe(true);expect(client.state.problem).toBe("Snapshot service has stopped updating; showing last known data");expect(client.state.snapshot?.totals?.input).toBe(500);await client.poll();expect(client.state.stale).toBe(true);beat=true;await client.poll();expect(client.state.stale).toBe(false);expect(client.state.problem).toBeNull();}finally{client.close();}
+ }});try{await client.start(RUN);expect(client.state.stale).toBe(false);now=BASE_MS+15000;await client.poll();expect(client.state.stale).toBe(true);expect(client.state.problem).toBe("Snapshot service has stopped updating; showing last known data");expect(client.state.snapshot?.totals?.input).toBe(500);await client.poll();expect(client.state.stale).toBe(true);beat=true;await client.poll();expect(client.state.stale).toBe(false);expect(client.state.problem).toBeNull();}finally{client.close();}
 });
-it("keeps ended snapshots readable without an active service heartbeat",async()=>{const f=currentFixture({ended:true}),client=createCurrentBrowser({now:()=>13000,fetchJson:url=>url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{})});try{await client.start(RUN);expect(client.state.stale).toBe(false);}finally{client.close();}});
+it("keeps ended snapshots readable without an active service heartbeat",async()=>{const f=currentFixture({ended:true}),client=createCurrentBrowser({now:()=>BASE_MS+15000,fetchJson:url=>url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{})});try{await client.start(RUN);expect(client.state.stale).toBe(false);}finally{client.close();}});

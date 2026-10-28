@@ -8,7 +8,7 @@ import { availableParallelism, homedir } from "node:os";
 import { Worker } from "node:worker_threads";
 import { createBaselinePool, defaultPoolSize, type BaselineWorkerLike } from "./baseline-pool.js";
 import { baselineCacheDir, codeIdentity, createBaselineStore, createWorkbenchStore, pruneBaselineCaches, workbenchCacheDir } from "./baseline-store.js";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
 import { leasePool } from "./lease.js";
 import { readEndpoint } from "@pokebench/agent/local-endpoint";
@@ -26,6 +26,7 @@ export class CliError extends Error {
 }
 
 export interface CliArgs {
+  readonly currentDatabase?: string;
   readonly runId: string | null;
   readonly port: number;
   readonly runsRoot: string;
@@ -48,6 +49,7 @@ function publicOrigin(value: string): string {
 }
 
 export function parseArgs(argv: readonly string[], defaultRunsRoot: string, defaultEndpoint: string | null = null, defaultPublicOrigins = ""): CliArgs {
+  let currentDatabase:string|undefined;
   let runId: string | null = null;
   let port = DEFAULT_PORT;
   let runsRoot = defaultRunsRoot;
@@ -55,10 +57,14 @@ export function parseArgs(argv: readonly string[], defaultRunsRoot: string, defa
   const flagOrigins: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
-    if (arg === "--port" || arg === "--runs" || arg === "--endpoint-file" || arg === "--public-origin") {
+    if (arg === "--current-db" || arg === "--port" || arg === "--runs" || arg === "--endpoint-file" || arg === "--public-origin") {
       const value = argv[i + 1];
       if (value === undefined) throw new CliError(`${arg} needs a value`);
       i += 1;
+      if (arg === "--current-db") {
+        if(currentDatabase!==undefined||value.trim()==="")throw new CliError("--current-db needs one nonempty database path");
+        currentDatabase=resolve(value);continue;
+      }
       if (arg === "--public-origin") {
         flagOrigins.push(publicOrigin(value));
         continue;
@@ -83,7 +89,7 @@ export function parseArgs(argv: readonly string[], defaultRunsRoot: string, defa
   }
   const envOrigins = defaultPublicOrigins.split(",").map((value) => value.trim()).filter((value) => value !== "");
   const publicOrigins = flagOrigins.length > 0 ? flagOrigins : envOrigins.map(publicOrigin);
-  return { runId, port, runsRoot, endpointFile, publicOrigins };
+  return { runId, port, runsRoot, endpointFile, publicOrigins, ...(currentDatabase===undefined?{}:{currentDatabase}) };
 }
 
 export function viewUrl(base: string, runId: string | null): string {
@@ -129,7 +135,7 @@ export async function main(argv: readonly string[], deps: MainDeps): Promise<Vie
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, leasePool: () => leasePool(readEndpoint(args.endpointFile ?? "").baseUrl), gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
   const offload = deps.offload?.(args.runsRoot);
-  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), frontier: { file: frontierCacheFile(args.runsRoot), warm: true }, ...offload });
+  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), frontier: { file: frontierCacheFile(args.runsRoot), warm: true }, ...offload, ...(args.currentDatabase===undefined?{}:{current:{database:args.currentDatabase}}) });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   for (const origin of args.publicOrigins) deps.print(`also published at: ${viewUrl(`${origin}/`, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);

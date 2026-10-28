@@ -39,3 +39,25 @@ Gate edges (`|`, `-`), junctions (`*`), the legend and everything after the grid
 - [x] Merged main 780154405 (the cap landed). Registry conflicts were resolved by keeping main's entries and adding this switch after instruction-memory-cap-v1, so its index moved 294 → 296. current.json: neutral-yes-no-readout-v1 and this switch are in `switches`, and cap stays true in `features`. The launch approval was removed on main, so no approve step. Focused: agent 57 passed; env 264 passed.
 - [ ] Gates on a CPU grant: `just lint`, `just test`.
 - [ ] Review: Claude, Grok, GPT/Codex lanes.
+
+## Review round 1 (head 35de0524f, base main 90b351b55)
+
+Full gate on 35de0524f passed, under the CPU grant relayed 12:01 PM NY:
+- lint and build: clean
+- agent: 4,780 tests
+- viewer: 2,216 tests
+- env: 4,802 tests
+- claude-gateway: 116 tests
+- trainer cards: 3/3
+
+Lanes:
+- Claude CLI: OAuth expired.
+- Cursor: out of usage.
+- Codex: its default model is refused, so the GPT lane runs `-m gpt-5.6-sol`.
+
+So the roster is Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent (the operator's standing lane rule).
+
+The fallback lane returned BLOCKING. When the origin is negative (a local view within 7 tiles of the west edge, from `read_local_map`), the stacked header sized its digit lines from the last column only, so "-5".."-1" all printed as "-".
+
+- [x] RED: `test_compact_header_numbers_every_column_including_negative_origins`. Origins -5, -12 and -7 fail; 95 and 0 pass.
+- [ ] GREEN: digits = the longest column number.

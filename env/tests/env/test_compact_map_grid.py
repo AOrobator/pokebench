@@ -1,5 +1,6 @@
 """compact-map-grid-v1: the coded observed-elements grid is lossless at every pret layout size."""
 
+import dataclasses
 import json
 import os
 import random
@@ -177,3 +178,29 @@ def test_server_switch_is_default_off_and_only_recodes_the_grid() -> None:
     assert parse(compact[grid.start :]) == parse(verbose[verbose.index("Current map") :])
     assert compact[: grid.start] == verbose[: verbose.index("Current map")]
     assert compact[grid.stop :] == verbose[verbose.index("Base glyph") :]
+
+
+@pytest.mark.parametrize("ox,width", [(-5, 15), (-12, 4), (-7, 15), (95, 10), (0, 1)])
+def test_compact_header_numbers_every_column_including_negative_origins(ox: int, width: int) -> None:
+    # A local view near the west or north edge starts at a negative origin (live_map.read_local_map).
+    shown, _ = synthetic(width, 2, 11)
+    observation = dataclasses.replace(build_observation(shown, (0, 0), ()), origin=(ox, 0))
+    lines = render_observation(shown, observation, compact=True).split("\n")
+    assert lines[0].endswith(f"top-left ({ox},0), north is up:")
+    header = []
+    i = 2
+    while lines[i][:4].strip() == "" and lines[i].strip() != "":
+        header.append(lines[i])
+        i += 1
+    span = max(len(c) for c in parse_codes(lines[1])) if parse_codes(lines[1]) else 1
+    columns = [
+        "".join(h.ljust(5 + (width) * (span + 1))[5 + x * (span + 1) + span - 1] for h in header).strip()
+        for x in range(width)
+    ]
+    assert columns == [str(ox + x) for x in range(width)]
+
+
+def parse_codes(line: str) -> list[str]:
+    if line == "Codes: none":
+        return []
+    return [part.split(" = ", 1)[0] for part in line[len("Codes: ") :].split("; ")]

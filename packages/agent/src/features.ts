@@ -856,6 +856,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "pokenav-call-auto-advance-v1",
   "player-map-visibility-v1",
   "compact-map-grid-v1",
+  "move-learn-type-matchup-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {

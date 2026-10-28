@@ -1,4 +1,4 @@
-import {describe,expect,it} from "vitest";
+import {describe,expect,it,vi} from "vitest";
 import type {RunEvent} from "./events.js";
 import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode,type CapRow} from "./instruction-memory-cap.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
@@ -350,6 +350,30 @@ describe("instruction-memory-cap-v1 keeps observed_locations bounded",()=>{
    const [off,on]=await Promise.all([out(false),out(true)]);
    expect(codePoints(off)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);
    expect(codePoints(on)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);expect(on).toContain("MOM: he went up the route.");expect(on).toMatch(/current_left_out(": ?|: )true/);
+  }
+ });
+ it("keeps a long current whole when the block still fits, and counts each visit list once per request",async()=>{
+  const ev=(body:Record<string,unknown>):RunEvent=>({v:1,run:"r",t:"2026-10-28T00:00:00.000Z",turn:1,...body}) as unknown as RunEvent;
+  const feed=(episodes:number,visits:number,width=40):RunEvent[]=>[...Array.from({length:episodes},(_,i)=>[
+   ev({seq:10+i*2,turn:i+2,type:"dialogue_auto_advance",tool_call_id:`t${String(i)}`,tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:`MOM: ${String(i)} ${"y".repeat(60)}`}],stop:"field_control",detail:"",duration_ms:1}),
+   ev({seq:11+i*2,turn:i+2,type:"tool_result",id:`t${String(i)}`,name:"press",is_error:false,text:"Location: START",state_seq:null})]).flat(),
+   ...Array.from({length:visits},(_,i)=>ev({seq:100000+i,turn:5000+i,type:"tool_result",id:`o${String(i)}`,name:"observe",is_error:false,text:`Location: P${String(i)} ${"w".repeat(width)}`,state_seq:null}))];
+  const run=async(events:RunEvent[],trim:boolean)=>{
+   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":trim,"instruction-memory-cap-v1":true} as FeatureSet;
+   const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
+   const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
+   for(const e of events)for(const fn of subs)fn(e);
+   await transform([]);return records[0]??"";
+  };
+  const long=await run([...feed(1,0),ev({seq:900000,turn:9000,type:"tool_result",id:"z",name:"observe",is_error:false,text:`Location: ${"Q".repeat(4001)}`,state_seq:null})],false);
+  expect(long).toContain("Q".repeat(4001));expect(long).not.toContain("current_left_out");
+  for(const [episodes,visits] of [[200,200],[400,400]] as const){
+   const events=feed(episodes,visits),spy=vi.spyOn(JSON,"stringify");
+   try{
+    const text=await run(events,false);
+    const full=spy.mock.calls.filter(([v])=>Array.isArray(v)&&v.length===visits+1).length;
+    expect(full).toBeLessThanOrEqual(1);expect(codePoints(text)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
+   }finally{spy.mockRestore();}
   }
  });
 });

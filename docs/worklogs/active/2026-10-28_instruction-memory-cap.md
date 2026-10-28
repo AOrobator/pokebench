@@ -152,3 +152,9 @@ Non-blocking items recorded for follow-up (fallback lane): precompile the cap's 
 - Explainer numbers and the byte-for-byte caption refreshed (fallback).
 
 Replays, byte-identical to the reference. Control: a702 T450 10,589, T700 15,981, T1301 15,965; 88ea T400 15,789, T800 15,999. Bundle: 12,065 / 15,948 / 15,977. Older form: a702 15,768 / 15,828; d41e T4663 15,485, T7229 14,828. Focused: 114 agent tests. The coordinator ordered a delta review (Codex and Claude on the fix diff), then a gate.
+
+## Delta review (ba17cc740 → 631fb31a2): Claude LGTM; Codex BLOCKING on evidence only
+
+- Crossed-growth regression test (coordinator OK 9:58 AM NY). It spies on JSON.stringify through the production `observedInstructions` path at 200×200 and 400×400 (episodes × visits) and allows at most one full visited-list serialization per request. RED on the round-4 code (ba17cc740 observed-instructions.ts swapped in: 615 serializations) and GREEN on this head.
+- current (coordinator): it is left out whole only when the block would pass 16,000 even with no episodes. A 4,001-char current in a small block is kept whole (tested); the 20,000-char case is still left out whole (tested). CAP_CURRENT_CHARS is removed. Text is never cut.
+- The exact-head gate follows on the CPU grant.

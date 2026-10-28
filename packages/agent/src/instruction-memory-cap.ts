@@ -15,8 +15,6 @@ export const codePoints=(s:string):number=>Array.from(s).length;
 // observed_locations grows with every map entered; under the cap only the newest whole entries that fit in
 // CAP_LOCATION_CHARS (as JSON) are sent, with a count of the rest.
 export const CAP_LOCATION_CHARS=2000;
-// current (one Location and the Story checklist) is sent whole unless its JSON passes this.
-export const CAP_CURRENT_CHARS=4000;
 export const omittedLine=(n:number):string=>`${String(n)} other episodes are left out and remain in the run recording.`;
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];

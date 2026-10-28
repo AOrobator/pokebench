@@ -4,6 +4,7 @@ import {TaskGoalCompletion} from "./task-goal-completion.js";
 import {instructionGoalTools,withInstructionGoalReview,type GoalTools} from "./instruction-goal-tools.js";
 import {withMenuOptionTool} from "./menu-option-tool.js";
 import {moveLearnGoalReminder} from "./move-learn-goal-reminder.js";
+import {sceneFollowupContext} from "./scene-followup.js";
 import {withMenuItemGuidance} from "./menu-item-guidance.js";
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {battleEngaged} from "./battle-text-auto-advance.js";
@@ -87,7 +88,9 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
  const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
- return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext:instructionGoals?.transform??history.transform,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
+ // scene-followup-prompt-v1 wraps last, so its note is the final message of the request.
+ const transformContext=sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform);
+ return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

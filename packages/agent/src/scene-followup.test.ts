@@ -25,9 +25,9 @@ const messages:AgentMessage[]=[{role:"user",content:"Play the game.",timestamp:0
 function setup(on:boolean){
  const listeners:((e:RunEvent)=>void)[]=[],notes:unknown[]=[];
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{listeners.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:(n:unknown)=>{notes.push(n);},recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>undefined};
- const wired=contextTools({...bundle,[ID]:on},recorder,m=>Promise.resolve(m));
+ const wired=contextTools({...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"script-line-presence-v1":true,[ID]:on},recorder,m=>Promise.resolve(m));
  const emit=(e:RunEvent)=>{for(const f of listeners)f(checkEvent(e));};
- const result=(a:Advance,seq=a.seq+2):RunEvent=>({v:1,run:a.run,seq,turn:a.turn,t:a.t,type:"tool_result",id:a.tool_call_id,name:a.tool,text:"result",is_error:false,state_seq:seq-1,duration_ms:0,frames:[]});
+ const result=(a:Advance,seq=a.seq+2,id=a.tool_call_id):RunEvent=>({v:1,run:a.run,seq,turn:a.turn,t:a.t,type:"tool_result",id,name:a.tool,text:"result",is_error:false,state_seq:seq-1,duration_ms:0,frames:[]});
  return {wired,notes,listeners,emit,result};
 }
 
@@ -85,7 +85,7 @@ describe(ID,()=>{
   const s=setup(true),theft=ev("theft-9e33");
   s.emit(theft);s.emit(s.result(theft));
   expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
-  s.emit({...s.result(theft,theft.seq+9),id:"next-call"});
+  s.emit(s.result(theft,theft.seq+9,"next-call"));
   expect(await s.wired.transformContext(messages)).toEqual(messages);
  });
 
@@ -93,7 +93,7 @@ describe(ID,()=>{
   const s=setup(true),gym=ev("gym-youngster"),theft=ev("theft-9e33");
   s.emit(gym);s.emit(s.result(gym));
   expect(await s.wired.transformContext(messages)).toEqual(messages);
-  s.emit(theft);s.emit({...s.result(theft),id:"other-call"});
+  s.emit(theft);s.emit(s.result(theft,theft.seq+2,"other-call"));
   expect(await s.wired.transformContext(messages)).toEqual(messages);
  });
 

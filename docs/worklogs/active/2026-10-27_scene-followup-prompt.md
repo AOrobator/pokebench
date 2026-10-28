@@ -53,6 +53,8 @@ Branch reset onto main 896088908 (the unlanded system-prompt version is kept at 
 - needs script-line-presence-v1 (on_screen page data). current.json: bundle ON, control OFF.
 - [x] RED: packages/agent/src/scene-followup.test.ts on recorded fixtures (test-support/scene-followup-events.json:
   theft 9e33/d41e fire; woods, museum, Birch lab, Birch rescue, "Don't leave me", Rusturf grunt, gym youngster quiet)
-- [ ] GREEN
-- [ ] Explainer, report status
+- [x] GREEN: packages/agent/src/scene-followup.ts (sceneFollowup, sceneFollowupNote, sceneFollowupContext), wrapped around the final transformContext in play-wiring.ts so the note is the request's last message; script-line-presence exports onScreenItem (no behavior change). Registry/presets/next-run/legacy fixtures/current.json (bundle ON, control OFF); type-gap-registry tail window shifted by one. Wiring deleted once -> 2 factory tests red, restored -> 11/11.
+- [x] Production replay: 9e33 t1385 via decisionContext with the switch on ends in exactly the probe note; all other messages equal OFF except transient timestamps; system prompt unchanged.
+- [x] Explainer rewritten (pages-check clean), FEATURE_EXPLAINERS + README + panels/server tests; report status section added.
+- [x] Gates (final code): build, lint clean; agent vitest 4624/4624, viewer 2091/2091, pytest 4440 + 69, trainer-card 3/3. Coverage: stopped at coordinator CPU rule, pending a heavy-CPU window.
 - [ ] Gates, review (Claude + fallback; GPT out, the operator approved landing without it), land ff-only

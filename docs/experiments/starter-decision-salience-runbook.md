@@ -12,7 +12,7 @@ This is a prompt-only diagnostic, separate from starter-selection tooling. The f
 
 ## Before measured execution
 
-The implementation must be reviewed and landed on local main. The operator explicitly waived the Claude review lane on 2026-10-19; Grok and independent GPT/Codex review and deterministic gates still apply. Rebuild/restart the main viewer before launching a newer source pin; keep current campaigns undisturbed. Approval and measured launch belong to the operator, not the preparation agent.
+The implementation must be reviewed and landed on local main. The operator explicitly waived the Claude review lane on 2026-10-19; Grok and independent GPT/Codex review and deterministic gates still apply. Rebuild/restart the main viewer before launching a newer source pin; keep current campaigns undisturbed. The decision to launch belongs to the operator, not the preparation agent.
 
 When ready to launch, follow `.claude/skills/fixed-run-launch/SKILL.md`: check clean main and source dependencies, lane availability, live serving fingerprint, ROM and checkpoint hash, then run:
 
@@ -20,9 +20,9 @@ When ready to launch, follow `.claude/skills/fixed-run-launch/SKILL.md`: check c
 just fixed-run check starter-decision-salience
 ```
 
-This command checks only the definition, frozen order, control-base bytes and save hash. It does not approve or launch anything. A serving mismatch must be resolved before approval; model path, build, context and slot count are pinned in the definition. Changing the definition requires a fresh check and operator approval.
+This command checks only the definition, frozen order, control-base bytes and save hash. It does not launch anything. A serving mismatch must be resolved before launch; model path, build, context and slot count are pinned in the definition. Changing the definition requires a fresh check and the operator's go-ahead.
 
-The operator then approves interactively and authorizes execution through the normal fixed-run workflow. Do not run `dry-run` as a preparation shortcut: it makes real model calls and requires launch authorization too. The sixteen-slot rehearsal in unit tests uses fake data and no inference.
+The operator then says to start the runs, and the launch follows the normal fixed-run workflow (`just fixed-run run starter-decision-salience`; there is no approve step since 2026-10-28). Do not run `dry-run` as a preparation shortcut: it makes real model calls and requires launch authorization too. The sixteen-slot rehearsal in unit tests uses fake data and no inference.
 
 ## Evidence after execution
 

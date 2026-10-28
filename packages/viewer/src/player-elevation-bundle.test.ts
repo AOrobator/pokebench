@@ -49,8 +49,8 @@ it.each([
   const rom = "/offline/identity-only.rom", romHash = "f3ae088181bf583e55daf962a92bb46f4f1d07b7";
   const deps: FixedCliDeps = {
    root, runsRoot: join(root, "runs"), out: () => undefined, err: s => { errors.push(s); },
-   randomSeed: () => "feedfacefeedface", interactive: false, prompt: () => Promise.resolve(""),
-   now: () => new Date("2026-10-24T15:00:00Z"), user: "offline-fixture", head: () => "0".repeat(40),
+   randomSeed: () => "feedfacefeedface",
+   head: () => "0".repeat(40),
    sha1File: p => p === rom ? romHash : starts.get(p) ?? null, rom,
    run: options => { runs.push(options); return Promise.resolve("finished"); }, host: () => ({}) as never,
   };

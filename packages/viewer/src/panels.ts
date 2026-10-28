@@ -598,6 +598,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "same-target-no-progress-v1":"same-target-no-progress-v1.html",
  "story-progress-clock-v1":"story-progress-clock-v1.html",
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
+ "neutral-yes-no-readout-v1":"neutral-yes-no-readout-v1.html",
  "field-move-gates-v1":"field-move-gates-v1.html",
  "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",

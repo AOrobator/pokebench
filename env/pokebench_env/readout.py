@@ -192,6 +192,7 @@ SERVER_FEATURES = (
     "map-observability-v1",
     "type-gap-team-v1",
     "pokenav-short-list-v1",
+    "neutral-yes-no-readout-v1",
 )
 
 
@@ -222,7 +223,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -422,7 +423,11 @@ def format_readout(
         elif ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
         # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
-        answer = answer_line(state) if YES_NO_ANSWER not in off else None
+        answer = (
+            answer_line(state, neutral="neutral-yes-no-readout-v1" not in off)
+            if YES_NO_ANSWER not in off
+            else None
+        )
         if answer is not None:
             lines.append(answer)
         lines.extend(_move_learning_lines(state, off))

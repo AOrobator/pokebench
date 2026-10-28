@@ -131,6 +131,12 @@ def persist_diagnostic_window(
     if revision < 1 or not 1 <= len(snapshots) <= 8 or omitted_samples < 0:
         raise ValueError("invalid diagnostic window bounds")
     directory.mkdir(parents=True, exist_ok=True)
+    # A failed cleanup must stop admission, including transient artifacts. The
+    # journal's persistence lock guarantees no other export owns these paths.
+    for pending_pointer in directory.glob(".current-*"):
+        pending_pointer.unlink()
+    for pending_window in directory.glob(".window-*"):
+        shutil.rmtree(pending_window)
     name = f"window-{revision:012d}"
     destination = directory / name
     if not destination.exists():

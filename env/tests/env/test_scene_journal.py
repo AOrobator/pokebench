@@ -647,3 +647,69 @@ def test_post_publication_close_failure_never_removes_published_window(monkeypat
     assert (tmp_path / current["directory"] / "window.json").exists()
     assert len(list(tmp_path.glob("window-*"))) == 2
     assert not list(tmp_path.glob(".current-*"))
+
+
+def test_failed_temporary_pointer_cleanup_blocks_growth_until_recovered(monkeypatch, tmp_path):
+    import json
+    from pathlib import Path
+
+    import pytest
+
+    import pokebench_env.raw_ram as raw
+
+    published = raw.persist_diagnostic_window(tmp_path, 1, (raw_sample(1),))
+    original_unlink, original_replace = Path.unlink, raw.os.replace
+
+    def fail_unlink(path, *args, **kwargs):
+        if path.name.startswith(".current-"):
+            raise OSError("pointer cleanup blocked")
+        return original_unlink(path, *args, **kwargs)
+
+    def fail_publication(source, destination):
+        raise OSError("disk publication failed")
+
+    monkeypatch.setattr(Path, "unlink", fail_unlink)
+    monkeypatch.setattr(raw.os, "replace", fail_publication)
+    for revision in (2, 3, 4):
+        with pytest.raises(OSError, match="pointer cleanup blocked"):
+            raw.persist_diagnostic_window(tmp_path, revision, (raw_sample(revision),))
+        assert len(list(tmp_path.glob(".current-*"))) == 1
+        assert json.loads((tmp_path / "current.json").read_text()) == published
+    monkeypatch.setattr(Path, "unlink", original_unlink)
+    monkeypatch.setattr(raw.os, "replace", original_replace)
+    raw.persist_diagnostic_window(tmp_path, 5, (raw_sample(5),))
+    assert not list(tmp_path.glob(".current-*"))
+    assert len(list(tmp_path.glob("window-*"))) == 2
+
+
+def test_failed_staging_cleanup_blocks_growth_until_recovered(monkeypatch, tmp_path):
+    import json
+    from pathlib import Path
+
+    import pytest
+
+    import pokebench_env.raw_ram as raw
+
+    published = raw.persist_diagnostic_window(tmp_path, 1, (raw_sample(1),))
+    original_remove, original_capture = raw.shutil.rmtree, raw._persist_capture
+
+    def fail_staging(path, *args, **kwargs):
+        if Path(path).name.startswith(".window-"):
+            raise OSError("staging cleanup blocked")
+        return original_remove(path, *args, **kwargs)
+
+    def fail_capture(*args):
+        raise OSError("archive write failed")
+
+    monkeypatch.setattr(raw.shutil, "rmtree", fail_staging)
+    monkeypatch.setattr(raw, "_persist_capture", fail_capture)
+    for revision in (2, 3, 4):
+        with pytest.raises(OSError, match="staging cleanup blocked"):
+            raw.persist_diagnostic_window(tmp_path, revision, (raw_sample(revision),))
+        assert len(list(tmp_path.glob(".window-*"))) == 1
+        assert json.loads((tmp_path / "current.json").read_text()) == published
+    monkeypatch.setattr(raw.shutil, "rmtree", original_remove)
+    monkeypatch.setattr(raw, "_persist_capture", original_capture)
+    raw.persist_diagnostic_window(tmp_path, 5, (raw_sample(5),))
+    assert not list(tmp_path.glob(".window-*"))
+    assert len(list(tmp_path.glob("window-*"))) == 2

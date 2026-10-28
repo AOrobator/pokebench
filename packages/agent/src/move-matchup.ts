@@ -100,7 +100,7 @@ export class MoveMatchups {
     for(const move of moves){
      const label=`  ${move.name}${move.fresh?' (new)':''}`;
      if(move.power===0){lines.push(`${label}: status move; no damage multiplier`);continue;}
-     if(move.power===1||move.name==='HIDDEN POWER'||move.name==='WEATHER BALL'||move.name==='STRUGGLE'){lines.push(`${label}: special type/damage rules; partial multiplier unavailable`);continue;}
+     if(move.power===1||move.name==='HIDDEN POWER'||move.name==='WEATHER BALL'||move.name==='STRUGGLE'||move.name==='FUTURE SIGHT'||move.name==='DOOM DESIRE'||move.name==='BEAT UP'){lines.push(`${label}: special type/damage rules; partial multiplier unavailable`);continue;}
      const chart=multiplier(gap.type_chart,move.type,f.types),stab=ownTypes.includes(move.type)?1.5:1;
      lines.push(`${label}: ${TYPE_NAMES[move.type]??'unknown'} · type ×${String(chart)} · STAB ×${String(stab)} · type × STAB ×${String(chart*stab)} · uses ${move.type<9?'Attack':'Sp. Atk'}${move.name==='DOUBLE KICK'?' · 2 hits; power 30 per hit':''} · ${abilityFact(mon,live,move)}`);
     }

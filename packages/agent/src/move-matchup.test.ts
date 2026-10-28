@@ -103,3 +103,10 @@ it('uses active battler stats when the real pre695 snapshot has no party slots',
  const x=new MoveMatchups();for(const e of rows)x.observe(e.type==='state'&&'started' in e&&e.seq===33008?{...e,type_gap:gap}:e);
  const block=x.block();expect(block).toContain('COMBUSKEN');expect(block).not.toContain('current target type profile');expect(block).toContain('SCRATCH');expect(block).toContain('battle stats before stages');
 });
+
+it.each(['FUTURE SIGHT','DOOM DESIRE','BEAT UP'])('does not invent type effectiveness or STAB for typeless %s damage',name=>{
+ const x=make();
+ const text=result.text.replace('New move: DOUBLE KICK FIGHTING physical pow 30',`New move: ${name} ${name==='BEAT UP'?'DARK physical pow 10':name==='DOOM DESIRE'?'STEEL physical pow 120':'PSYCHIC special pow 80'}`);
+ x.observe({...state,seq:40000,active_ui:{...ui,details:{...ui.details,new_move:name}}});x.observe({...result,seq:40001,state_seq:40000,text});
+ expect(x.block()).toContain(`${name} (new): special type/damage rules; partial multiplier unavailable`);
+});

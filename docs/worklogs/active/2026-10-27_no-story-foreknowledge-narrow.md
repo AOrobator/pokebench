@@ -38,8 +38,8 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 - [x] M2 GREEN: implementation, registry, presets, next-run default; `just test`, `just lint`, coverage >= 90.
 - [x] M3 explainer + Harness Config link, readiness in this worklog (the readiness.md ledger and pending queue entries were retired 2026-10-22).
 - [x] M4 review: one pass, full pokebench-review personas; lanes Claude CLI + Codex CLI gpt-5.6-sol + fresh Codex (Grok stand-in).
-- [ ] M5 (landed f6efe433b; pin pending) land ff-only via the landing board; ON in both arms of experiments/feature-configs/current.json (recipe hash changes: launch approvals need re-approval).
-- [ ] M6 ablation probe on the Mac (current copy / narrow ON / advice removed).
+- [x] M5 landed f6efe433b, pinned c429ddd35; land ff-only via the landing board; ON in both arms of experiments/feature-configs/current.json (recipe hash changes: launch approvals need re-approval).
+- [x] M6 ablation probe on the Mac (current copy / narrow ON / advice removed).
 
 ## Log
 
@@ -175,3 +175,8 @@ pre-Aqua Woods contexts from other runs and a frozen outcome (heal detour rate),
   status no longer says "no measured runs"; probe results labelled post-hoc descriptive with the scorer saved and hashed;
   provenance names the frozen ff8b5f42a build (with build/runner/scorer hashes) and the status carries the sampling
   start and end.
+- Pin review round 3 (packet bb32b94c4..c429ddd35; 821157212 gates carried over to the docs-only head by coordinator
+  ruling, targeted server/panels 348/348, pages-check clean): Claude CLI, Codex gpt-5.6-sol and fresh Codex (Grok
+  stand-in) all `VERDICT: LGTM`. LANDED ff-only from board slot 1: main = c429ddd35. Recipe/definition hashes as listed
+  above; every launch of bundle-v-control, bundle-v-control-2h, glm53-flash-4h and hyperqwen-control-3h needs the operator's
+  re-approval.

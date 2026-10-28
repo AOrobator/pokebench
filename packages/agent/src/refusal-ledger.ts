@@ -26,6 +26,9 @@ function refusalLine(result:Result):string|null {
  if(navigation!==undefined&&/(?:no supported|no route|cannot be reached|cannot stand|cannot be entered|not a walkable|not walkable|not reachable|every route|blocked|route not converging|route cycle:)/.test(navigation))return navigation;
  return lines.find(line=>/^Semantic navigation: .*?(?:no supported route|target is not listed|no valid approach)/.test(line))??null;
 }
+// refusal-ledger-bound-v1: room for the entry lines, and how many turns of a repeated refusal are listed.
+export const REFUSAL_LEDGER_CHARS=4000;
+export const REFUSAL_TURNS_SHOWN=10;
 const reasonOf=(line:string):string=>line.replace(/^Navigation: walked from \([^)]*\) to \([^)]*\), then stopped: /,"Navigation: ").replace(/; \d+ (?:bounded movement actions|ordinary button attempts)\.$/,"");
 
 // History of actual navigation failures; never a source of current-state advice.
@@ -78,9 +81,23 @@ export class RefusalLedger {
  evidence():number[]{return [...new Set([...this.entries.values()].flatMap(entry=>entry.attempts.flatMap(attempt=>attempt.seqs)))].sort((a,b)=>a-b);}
  text():string|null {
   if(this.entries.size===0)return null;
-  return ["Navigation refusal history (recorded harness results, not current reachability). Current observations take precedence; this history does not forbid another attempt or choose your next action.",...[...this.entries.values()].map(entry=>{
-   const attempts=entry.attempts;
-   return `- Target ${entry.target.label} in ${entry.room}: ${String(attempts.length)} time${attempts.length===1?"":"s"} navigation returned this reason, at turn${attempts.length===1?"":"s"} ${attempts.map(a=>String(a.turn)).join(", ")}. Latest result: "${entry.line}"`;
-  })].join("\n");
+  const bound=this.features["refusal-ledger-bound-v1"];
+  const lines=[...this.entries.values()].map(entry=>{
+   const attempts=entry.attempts,earlier=bound?Math.max(0,attempts.length-REFUSAL_TURNS_SHOWN):0;
+   const turns=`${attempts.slice(earlier).map(a=>String(a.turn)).join(", ")}${earlier===0?"":` (and ${String(earlier)} earlier turns)`}`;
+   return `- Target ${entry.target.label} in ${entry.room}: ${String(attempts.length)} time${attempts.length===1?"":"s"} navigation returned this reason, at turn${attempts.length===1?"":"s"} ${turns}. Latest result: "${entry.line}"`;
+  });
+  // refusal-ledger-bound-v1: whole entries, newest first, within the budget; the newest always stays.
+  let kept=lines.length;
+  if(bound){
+   let used=0;kept=0;
+   for(const line of [...lines].reverse()){
+    const add=line.length+(kept===0?0:1);
+    if(kept>0&&used+add>REFUSAL_LEDGER_CHARS)break;
+    used+=add;kept++;
+   }
+  }
+  const left=lines.length-kept;
+  return ["Navigation refusal history (recorded harness results, not current reachability). Current observations take precedence; this history does not forbid another attempt or choose your next action.",...(left===0?[]:[`${String(left)} older refusal ${left===1?"entry on this map is":"entries on this map are"} left out.`]),...lines.slice(left)].join("\n");
  }
 }

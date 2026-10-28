@@ -64,7 +64,8 @@ describe("refusal-ledger-bound-v1: whole entries within the budget",()=>{
 
 describe("refusal-ledger-bound-v1 registry",()=>{
  it("is registered last, default off, needs the refusal ledger, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(294);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(295);
+  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({needs:"refusal-ledger-v1"});
   expect(featureInfo(ID).description).toContain(" Off: every entry and every turn is listed.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);

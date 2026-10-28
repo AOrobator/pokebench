@@ -24,7 +24,7 @@ An entry's "at turns …" list also grows with every repeat of the same refusal.
 ## M1
 
 - [x] RED: `packages/agent/src/refusal-ledger-bound.test.ts`, 5 tests. OFF passes; the 3 ON tests and the registry test fail.
-- [ ] GREEN.
+- [x] GREEN: `refusal-ledger.ts` (REFUSAL_LEDGER_CHARS 4000, REFUSAL_TURNS_SHOWN 10); registry index 295 (after main's new neutral-yes-no-readout-v1; main moved to 0df1c0a1f after the bound-1 and bound-2 branches cut from eb4d388be), guidance, needs refusal-ledger-v1; preset, next-run. 5/5; with refusal-ledger, disproved-beliefs, features 91 passed; agent and viewer tsc clean; eslint clean.
 - [ ] 9e33 T2417 replay: block length OFF vs ON.
 - [ ] Explainer + feature-card link.
 - [ ] Activation commit (bundle ON).

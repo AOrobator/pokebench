@@ -20,7 +20,7 @@ export interface CapDecision {readonly result:number;readonly step:CapStep;reado
 export interface CapSelection {readonly kept:CapEpisode[];readonly omitted:number;readonly decisions:CapDecision[]}
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-interface StoryLine {readonly speaker:string;readonly turn:number;readonly quote:string}
+interface StoryLine {readonly speaker:string;readonly turn:number;readonly quote:string;readonly done?:boolean}
 // pret data/maps/*_Gym*/scripts.inc: each leader's FLAG_BADGE0N_GET and "received the … BADGE from …" text.
 const LEADER_BADGE:Readonly<Record<string,string>>={ROXANNE:"STONE",BRAWLY:"KNUCKLE",WATTSON:"DYNAMO",FLANNERY:"HEAT",NORMAN:"BALANCE",WINONA:"FEATHER",TATE:"MIND",LIZA:"MIND",JUAN:"RAIN"};
 const PEOPLE=[...new Set([...STORY_CHARACTERS.map(c=>c.name),...Object.keys(LEADER_BADGE)])];
@@ -74,8 +74,14 @@ export class InstructionMemoryCap {
   const hit=trainers.find(t=>t.x===x&&t.y===y);
   if(hit!==undefined)this.faced.set(event.seq,`${String(map)}#${String(hit.trainer_id)}`);
  }
+ // A story-destinations block marks a finished line with a "Done: …" line under it, before the next blank line.
  private story():StoryLine|null {
-  for(const line of (this.readout??"").split("\n"))for(const form of STORY_FORMS){const found=form(line);if(found!==null)return found;}
+  const lines=(this.readout??"").split("\n");
+  for(const [i,line] of lines.entries())for(const form of STORY_FORMS){
+   const found=form(line);if(found===null)continue;
+   const rest=lines.slice(i+1),end=rest.indexOf("");
+   return {...found,done:(end===-1?rest:rest.slice(0,end)).some(l=>l.startsWith("Done: "))};
+  }
   return null;
  }
  private near():Map<string,string> {
@@ -125,6 +131,7 @@ export class InstructionMemoryCap {
  }
  private anchor(e:CapEpisode,story:StoryLine|null):readonly [boolean,string]|null {
   if(story===null||story.turn!==e.turn||!oneLine(e.pages).includes(story.quote.replaceAll("\n"," ")))return null;
+  if(story.done===true)return [false,"the readout marks this story line Done"];
   const badges=new Set(this.state?.badges??[]);
   const leaders=Object.keys(LEADER_BADGE).filter(n=>word(n,story.quote,"A-Za-z0-9"));
   if(leaders.length>0&&leaders.every(n=>badges.has(LEADER_BADGE[n]??"")))return [false,`its quote names ${leaders.join(", ")}; badge flag ${leaders.map(n=>LEADER_BADGE[n]??"").join(", ")} is set`];
@@ -144,6 +151,9 @@ export class InstructionMemoryCap {
   for(const item of this.state?.resources?.bag??[])if(item.pocket==="key_items"&&item.name!==null&&item.name!==undefined&&word(item.name,text,"A-Z"))found.push(`key item ${item.name} still in the bag`);
   return found;
  }
+ // A hard cap: anchor, nearby, named and recency episodes are added in that order, newest first within each, while the
+ // whole block fits. Each episode is measured once: its single-episode render less the empty render, plus one
+ // separator measured on the first pair, plus the left-out line (whose length depends only on the count's digits).
  select(episodes:readonly CapEpisode[],render:(kept:readonly CapEpisode[],omitted:number)=>string,budget=INSTRUCTION_MEMORY_CAP_CHARS):CapSelection {
   const story=this.story(),near=this.near();
   const met=new Set(episodes.flatMap(e=>e.pages.flatMap(p=>p[0]===null?[]:[p[0]])));
@@ -159,14 +169,20 @@ export class InstructionMemoryCap {
    const stale=anchor===null?"":`; stale anchor: ${anchor[1]}`;
    return names.length>0?{e,step:"named",fact:names.join("; ")+stale}:{e,step:"recency",fact:`names no unvisited place, unmet story person or held key item${stale}`};
   });
-  const keep=new Set(rows.flatMap((r,i)=>r.step==="anchor"||r.step==="nearby"?[i]:[]));
-  for(const group of ["named","recency"] as const){
-   const order=rows.flatMap((r,i)=>r.step===group?[i]:[]).sort((a,b)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0));
-   for(const i of order){
-    const trial=new Set([...keep,i]);
-    if(codePoints(render(rows.filter((_,j)=>trial.has(j)).map(r=>r.e),rows.length-trial.size))<=budget)keep.add(i);
-   }
+  const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort((a,b)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)));
+  const empty=new Map<number,number>();
+  const base=(omitted:number)=>{const digits=omitted===0?0:String(omitted).length;const known=empty.get(digits);if(known!==undefined)return known;const v=codePoints(render([],omitted));empty.set(digits,v);return v;};
+  const keep=new Set<number>();
+  let sum=0,sep:number|null=null;
+  for(const i of order){
+   const e=rows[i]?.e;if(e===undefined)continue;
+   const d=codePoints(render([e],0))-base(0);
+   if(keep.size===1&&sep===null){const first=rows[[...keep][0]??0]?.e;if(first!==undefined)sep=codePoints(render([first,e].sort((a,b)=>episodes.indexOf(a)-episodes.indexOf(b)),0))-base(0)-sum-d;}
+   const total=base(rows.length-keep.size-1)+sum+d+(keep.size===0?0:(sep??0)*keep.size);
+   if(total<=budget){keep.add(i);sum+=d;}
   }
+  const kept=()=>rows.filter((_,i)=>keep.has(i)).map(r=>r.e);
+  for(const i of [...order].reverse()){if(codePoints(render(kept(),rows.length-keep.size))<=budget)break;keep.delete(i);}
   return {kept:rows.filter((_,i)=>keep.has(i)).map(r=>r.e),omitted:rows.length-keep.size,decisions:rows.map((r,i)=>({result:r.e.result,step:r.step,fact:r.fact,kept:keep.has(i)}))};
  }
 }

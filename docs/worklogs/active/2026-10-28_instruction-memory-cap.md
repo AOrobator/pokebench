@@ -80,3 +80,4 @@ Rebutted or deferred:
 - The replay reference shares the checkpoint table (all lanes): true. The semantic check is now the pret-grounded unit tests for each risky scope, plus a pre-STONE replay turn.
 
 - [x] RED round-1 tests (5 failing).
+- [x] GREEN round-1 fixes: hard cap with one-pass measured fill, checkpoint scopes, `Done:` anchors, header wording under the cap. 48 focused passed (cap 18, checkpoints 2, dedup, observed-instructions + wire).

@@ -9,6 +9,9 @@ import {canonicalStoryCharacterName} from "./script-line-presence.js";
 import {InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
+// instruction-memory-cap-v1, only when it leaves episodes out: the headers stop claiming every episode stays.
+export const CAPPED_SELECTION="Over the size cap, finished and less relevant episodes are left out.";
+const CAPPED_LEGACY="over the size cap, finished and less relevant episodes are left out";
 type Result=Extract<RunEvent,{type:"tool_result"}>;
 type Episode=InstructionEpisode;
 interface Progress {result_event:number;state_event:number|null;location:string|null;story:string|null}
@@ -94,7 +97,7 @@ export class ObservedInstructions {
    for(const episode of places??[])episodes.set(episode.result_event,episode);
    const spatial=new Set(places?.map(e=>e.result_event));
    const rows=[...episodes.values()].map(e=>this.row(e,places===undefined?undefined:spatial.has(e.result_event)));
-   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})});
+   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})});
    if(this.cap===null)return render(rows,0);
    const capped=this.cap.select(rows,render);
    return render(capped.kept,capped.omitted);
@@ -110,7 +113,7 @@ export class ObservedInstructions {
   const out=[
    "OBSERVED INSTRUCTION MEMORY — historical game dialogue, not an active-goal list.",
    ...(omitted===0?[]:[omittedLine(omitted)]),
-   this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.",
+   (this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.").replace("none retires a quote",omitted===0?"none retires a quote":CAPPED_LEGACY),
    "observed_instruction_episodes:",
   ];
   for(const e of episodes){

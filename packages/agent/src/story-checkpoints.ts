@@ -3,11 +3,12 @@
 // (data/maps/map_groups.json group/number) and the speakers of that scene there (an OBJ_EVENT_GFX_ sprite on the
 // map, a "NAME:" prefix from the scene's scripts, or null for unattributed narration). Milestones come from the
 // harness's existing readers (milestones.ts, story-progress.ts); flag names are pret include/constants/flags.h.
-// Coverage ends at DEVON_GOODS_DELIVERED: the Route 110 rival, Mauville and later scenes have no checkpoint yet.
+// Coverage ends at DEVON_GOODS_DELIVERED: the Route 110 rival, Mauville and later scenes have no checkpoint yet. DAD's
+// Petalburg Gym advice (DadGoCollectBadges, NormanGoToRustboro) has none: it stays open until NORMAN is defeated.
 export interface CheckpointScope {readonly map:string;readonly map_id:readonly [number,number];readonly speakers:readonly (string|null)[]}
 export interface StoryCheckpoint {readonly id:string;readonly closes_after:readonly string[];readonly game_fact:string;readonly scope:readonly CheckpointScope[]}
 export const STORY_CHECKPOINTS:readonly StoryCheckpoint[] = [
- {"id":"mom-home-instructions","closes_after":["RUNNING_SHOES_RECEIVED"],"game_fact":"milestones.ts running_shoes_received (FLAG_RECEIVED_RUNNING_SHOES)","scope":[
+ {"id":"mom-home-instructions","closes_after":["RUNNING_SHOES_RECEIVED","DAD_FIRST_MEETING"],"game_fact":"milestones.ts running_shoes_received (FLAG_RECEIVED_RUNNING_SHOES) and DAD_FIRST_MEETING (VAR_PETALBURG_GYM_STATE), since MOM points to DAD at the PETALBURG GYM","scope":[
   {"map":"LittlerootTown","map_id":[0,9],"speakers":["MOM"]},
   {"map":"LittlerootTown_BrendansHouse_1F","map_id":[1,0],"speakers":["MOM"]},
   {"map":"LittlerootTown_BrendansHouse_2F","map_id":[1,1],"speakers":["MOM"]},
@@ -25,10 +26,8 @@ export const STORY_CHECKPOINTS:readonly StoryCheckpoint[] = [
  {"id":"rival-route103","closes_after":["RECEIVED_POKEDEX"],"game_fact":"milestones.ts pokedex_received (FLAG_SYS_POKEDEX_GET), after the Route 103 battle and its send-off to the lab","scope":[
   {"map":"Route103","map_id":[0,18],"speakers":["MAY","BRENDAN",null]}]},
  {"id":"wally-catch-tutorial","closes_after":["WALLY_TUTORIAL_COMPLETE"],"game_fact":"milestones.ts petalburg_gym_stage 2-8 (VAR_PETALBURG_GYM_STATE)","scope":[
-  {"map":"PetalburgCity_Gym","map_id":[8,1],"speakers":["DAD","NORMAN","WALLY",null]},
+  {"map":"PetalburgCity_Gym","map_id":[8,1],"speakers":["WALLY",null]},
   {"map":"Route102","map_id":[0,17],"speakers":["WALLY",null]}]},
- {"id":"dad-sends-to-dewford","closes_after":["KNUCKLE_BADGE"],"game_fact":"story-progress.ts flag 2152 (FLAG_BADGE02_GET)","scope":[
-  {"map":"PetalburgCity_Gym","map_id":[8,1],"speakers":["DAD","NORMAN"]}]},
  {"id":"woods-team-aqua","closes_after":["TEAM_AQUA_WOODS_EVENT_COMPLETE"],"game_fact":"milestones.ts woods_stage 1 (VAR_PETALBURG_WOODS_STATE)","scope":[
   {"map":"PetalburgWoods","map_id":[24,11],"speakers":["MAN_2","AQUA_MEMBER_M",null]}]},
  {"id":"roxanne-gym","closes_after":["STONE_BADGE"],"game_fact":"milestones.ts badges STONE (FLAG_BADGE01_GET)","scope":[
@@ -42,7 +41,7 @@ export const STORY_CHECKPOINTS:readonly StoryCheckpoint[] = [
   {"map":"RustboroCity_DevonCorp_3F","map_id":[11,2],"speakers":["MR. STONE","GENTLEMAN","MAN_2",null]}]},
  {"id":"pokenav-match-call","closes_after":["MATCH_CALL_TUTORIAL_COMPLETE"],"game_fact":"story-progress.ts rustboro_stage 7-8 (VAR_RUSTBORO_CITY_STATE)","scope":[
   {"map":"RustboroCity","map_id":[0,3],"speakers":["SCIENTIST_1"]}]},
- {"id":"briney-voyages","closes_after":["STEVEN_LETTER_DELIVERED","SLATEPORT_CITY"],"game_fact":"story-progress.ts flag 189 (FLAG_DELIVERED_STEVEN_LETTER) and first entry to map 0/1","scope":[
+ {"id":"briney-voyages","closes_after":["STEVEN_LETTER_DELIVERED","DEVON_GOODS_DELIVERED"],"game_fact":"story-progress.ts flags 189 and 149 (FLAG_DELIVERED_STEVEN_LETTER, FLAG_DELIVERED_DEVON_GOODS)","scope":[
   {"map":"Route104_MrBrineysHouse","map_id":[17,0],"speakers":["MR. BRINEY","EXPERT_M",null]},
   {"map":"Route104","map_id":[0,19],"speakers":["MR. BRINEY"]},
   {"map":"Route105","map_id":[0,20],"speakers":["MR. BRINEY",null]},

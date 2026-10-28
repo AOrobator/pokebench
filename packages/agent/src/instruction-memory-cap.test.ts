@@ -202,7 +202,7 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   const kept=(JSON.parse(onText.slice(onText.indexOf("\n{")+1)) as {episodes:{turn:number}[]}).episodes;
   expect(kept.length+Number(omitted?.[1])).toBe(60);expect(kept.map(e=>e.turn)).toEqual(kept.map(e=>e.turn).sort((a,b)=>a-b));expect(kept.at(-1)?.turn).toBe(61);
   for(const e of kept)expect(onText).toContain(`MOM: episode ${String(e.turn-2)} ${"y".repeat(400)}`);
-  expect(onText.split("\n")[0]).toBe(offText.split("\n")[0].replace("Unknown, mixed, future and reusable dialogue stays.","Over the size cap, finished and less relevant episodes are left out."));
+  expect(onText.split("\n")[0]).toBe((offText.split("\n")[0]??"").replace("Unknown, mixed, future and reusable dialogue stays.","Over the size cap, finished and less relevant episodes are left out."));
   expect(onText.split("\n")[0]).not.toContain("reusable dialogue stays");
   expect(on.messages).toEqual([expect.objectContaining({role:"user",content:onText})]);
  });
@@ -214,7 +214,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
   const lines=onText.split("\n");
   expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ earlier episodes are left out and remain in the run recording\.$/);
-  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3));
+  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3).map(l=>l.replace("none retires a quote","over the size cap, finished and less relevant episodes are left out")));
+  expect(lines[2]).not.toContain("none retires a quote");
   const turns=[...onText.matchAll(/^ {4}turn: (\d+)$/gm)].map(m=>Number(m[1]));
   expect(turns.length+Number(/^(\d+) earlier/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
   for(const t of turns)expect(onText).toContain(`MOM: episode ${String(t-2)} ${"y".repeat(400)}`);

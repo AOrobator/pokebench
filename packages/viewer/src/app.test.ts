@@ -246,8 +246,7 @@ describe("viewer app", () => {
 
   it("opens the newest run when the hash names none, and shows no data before events arrive", async () => {
     const { streams } = await harness();
-    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
-    expect(streams).toHaveLength(0);
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
     expect(ui("party").querySelectorAll(".pv-empty")).toHaveLength(6);
     expect(ui("mode").textContent).toBe("LOADING");
@@ -1043,6 +1042,7 @@ describe("boot", () => {
       expect(win.fetch.mock.calls.filter(([url]) => url === "/api/runs")).toHaveLength(2);
       expect(win.fetch.mock.calls.filter(([url]) => url === "/api/next-run")).toHaveLength(2);
     });
+    app.dispose();
   });
 
   it("retains an honest loading state when the initial current service is unavailable", async () => {

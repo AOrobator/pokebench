@@ -58,3 +58,4 @@ Lane availability: the Claude CLI's OAuth has expired, Cursor is out of usage, a
   4. No full gate on the frozen head. It runs on the final head.
 
 - [x] RED: `counts code points, not UTF-16 units` fails. The `loopSupervisor`/`textOnlySupervisor` factory test passes against the wiring and goes RED when either factory forces the switch off (checked, then restored).
+- [x] GREEN: `newestWithin` counts code points through the cap's `codePoints` (one owner). With the neighbouring supervisor tests: 119 passed; tsc and eslint clean.

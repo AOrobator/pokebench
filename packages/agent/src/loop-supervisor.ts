@@ -6,6 +6,7 @@ import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {codePoints} from "./instruction-memory-cap.js";
 import {UNFINISHED_BRIEFING} from "./unfinished-activity.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import {StoryCharacterGate} from "./stall-gate.js";
@@ -89,11 +90,11 @@ export function navigationSaid(text:string):string|undefined {
 export const BRIEFING_DIALOGUE_CHARS=4000;
 export const BRIEFING_ELSEWHERE_CHARS=2000;
 export const BRIEFING_EXITS_CHARS=2000;
-// How many items, from the front of newest-first `items`, fit in `budget` when joined with `sep`; the newest always stays.
+// How many items, from the front of newest-first `items`, fit in `budget` code points when joined with `sep`; the newest always stays.
 function newestWithin(items:readonly string[],budget:number,sep:string):number {
  let used=0,n=0;
  for(const item of items){
-  const add=item.length+(n===0?0:sep.length);
+  const add=codePoints(item)+(n===0?0:codePoints(sep));
   if(n>0&&used+add>budget)break;
   used+=add;n++;
  }

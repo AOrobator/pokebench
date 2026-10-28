@@ -5,7 +5,7 @@
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
 **Current Phase:** implementation — M3 closed dormant; M4 contract next
 **Phase Started:** 2026-10-25
-**Branch:** `codex/current-run-snapshots-api`
+**Branch:** `codex/current-run-snapshots-viewer`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
 **Milestone tracking:** M1–M5 in this worklog. No repo-local Beads exists; installed bd resolves an unrelated global local stack database. Repository principles explicitly do not inherit Beads; do not create unrelated issues.
 **Required Phase Skills Checked:** repository feature-worklog and its canonical planning references
@@ -440,3 +440,7 @@ M3 corrected GREEN on8881b16ad (main43e801343 dependency):43 targeted assertion-
 M3 LANDED DORMANT source60b64a0343b20720b5433956fa2e6bff689a8001 (fast-forward from43e801343) on this chat actual-ID board turn. Round2 canonical packet digest258cbba5a763aecfe346909482041be87eb3e50dd6fabbcce49b2ad6fcc12941; Claude/GPT/Sol/Astra all LGTM after bounded F1/F2 test-only correction and mandatory context completion. Grok out of usage, native original human general waiver records4145/4964/6309 reverified; fallback is reduced vendor diversity, not normal Grok success. Source/non-test package diff unchanged across rounds and latest-main sync.
 
 Canonical post-merge buildPASS18.84s, one full coverage-instrumented just-testPASS139.71s at exactly60b64a034; counts4702agent/2202viewer/4466Python/102gateway+3protectedcards. m3-main-gates.json/logs in canonical and owned evidence folder; all original round/gate failures retained. This evidence-only closeout touches only docs/worklogs under the permitted post-landing exception. Board/CPU release follows immediately. M1/M2/M3 implementation/review/local landing complete; M4 snapshot-first browser and M5 handoff/rollout still required. No actual-root or shadow projector activated, no shared viewer refresh/restart by this task, no active-run inputs/process/config changes. New API remains explicit OFF by default.
+
+M4 contract/RED: owned viewer branch created from canonical555d35bfb after M3 board/CPU release. Scope frozen m4-boundary.md: explicit URL current=1 and existing server --current-db, lazy browser module to preserve OFF compatibility with unrefreshed server, separate bounded current/history/replay owners, no model/game/writer changes. Added three current-browser contracts: meaningful current before held history/zero legacy requests, history does not replace counters/context, old-generation history discarded after reset. No M4 implementation or new heavy run yet. Current browser metadata fixture is four native in-memory events; no durable setup needed.
+
+M4 observed RED: missing ./current-browser.js in m4-red.log, no implementation exists. Fixture reset uses a strictly newer public revision8 (old7) to match native store generation-change contract. Committing RED before implementation; no active-run/service/shared-viewer operation.

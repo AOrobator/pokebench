@@ -87,6 +87,9 @@ operator's arm decision.
 
 ## Multi-Model Review Log
 
+Round 4, head 3167a4c93 (type-gap test pin fix plus a docs-only merge of main 896088908): Claude subagent LGTM; Codex BLOCKING, because the playHarnessFeatures assertion checked only that the ids were adjacent. ACCEPTED: they are now pinned at absolute harness positions [301,302,303]. The focused file passes 4/4.
+Full gates at 3167a4c93 (CPU window 8:00 PM ET): lint PASS; test PASS (agent 4620, coverage lines 99.18, branches 92.68, functions 97.52; viewer 2093, 98.26 / 91.67 / 95.32; Python 4446, 97.48 / 93.60 / 100; gateway 69, 99.41 / 97.44 / 100; trainer cards 3/3 with POKEBENCH_CARD_ART set). Coordinator decision (8:05 PM ET): the round-5 delta is one assertion in one test file, so landing rests on that file's focused run plus this green full suite. The post-landing just test on main is the full check and waits for a relayed CPU window.
+
 Round 3, delta review (both-arms activation + merge of main), head a496838f8 (packet3 sha256 3a5e5462…): Codex gpt-5.6-sol LGTM; Claude subagent LGTM. Nits deferred: the recipe test hardcodes the four current-recipe definitions, and does not assert definitionProblems (checked by hand: []).
 Full gates at a496838f8 (CPU window 7:56 PM ET): lint PASS, build PASS; test FAIL 1/4620 in main's `type-gap-registry.test.ts`, which pinned its three switches with `slice(-3)`, so any appended switch breaks it. Fixed by pinning absolute indices 277-279 (feature-switch skill step 6). The fix needs a round-4 delta review.
 

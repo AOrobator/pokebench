@@ -15,8 +15,8 @@ describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 202
   expect(IDS.map(id=>switchable.indexOf(id))).toEqual([277,278,279]);
   expect(SERVER_FEATURES.at(-1)).toBe("type-gap-team-v1");
   const all=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])) as Parameters<typeof playHarnessFeatures>[0];
-  const harness=playHarnessFeatures(all,null),first=harness.indexOf(IDS[0]);
-  expect(harness.slice(first,first+3)).toEqual([...IDS]);
+  const harness=playHarnessFeatures(all,null);
+  expect(IDS.map(id=>harness.indexOf(id))).toEqual([301,302,303]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:null});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

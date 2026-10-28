@@ -329,4 +329,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
 
+- [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
+
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.

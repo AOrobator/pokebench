@@ -179,7 +179,8 @@ def test_production_run_reports_the_whiteout_once(
     from pokebench_env.serve import run
 
     monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "evolution-decision-v1"]))
+        "POKEBENCH_FEATURES_OFF",
+        ",".join(filter(None, [off, "evolution-decision-v1", "scene-journal-safe-capture-v1"])),
     )
     m = game(OVERWORLD)
     m.put(0x05000000, b"\x1f\x00")  # a lit palette: the frame settle captures at once
@@ -246,7 +247,7 @@ def test_the_latch_sees_a_frame_before_a_settle_capture_on_that_frame(
 
     from pokebench_env.serve import run
 
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "scene-journal-safe-capture-v1")
     m = game(OVERWORLD)  # palette black: an observation waits for the screen to settle
     lock = threading.Lock()
 

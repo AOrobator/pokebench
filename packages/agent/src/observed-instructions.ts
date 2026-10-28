@@ -6,13 +6,15 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
-import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {CAPPED_SELECTION,INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
 import {INSTRUCTION_MEMORY_YAML_CAP_CHARS,instructionMemoryYaml} from "./instruction-memory-yaml.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
+// instruction-memory-cap-v1, only when it leaves episodes out: the older header stops claiming no quote retires.
+const CAPPED_LEGACY="over the size cap, finished and less relevant episodes are left out";
 type Result=Extract<RunEvent,{type:"tool_result"}>;
 type Episode=InstructionEpisode;
-interface Progress {result_event:number;state_event:number|null;location:string|null;story:string|null}
+type Progress={result_event:number;state_event:number|null;location:string|null;story:string|null};
 const quote=(value:unknown):string=>JSON.stringify(value);
 const field=(page:Dialogue["pages"][number])=>page.battle_turn===undefined&&page.battle_message_id===undefined;
 const identified=(page:Dialogue["pages"][number])=>page.speaker_source==="name_prefix"&&page.speaker!==null&&canonicalStoryCharacterName(page.speaker)!==null;
@@ -21,7 +23,8 @@ export class ObservedInstructions {
  private readonly policy:MilestoneMemory|null;
  private readonly cap:InstructionMemoryCap|null;
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
- // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps; see instruction-memory-cap.ts.
+ // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps, after instruction-memory-dedup-v1's
+ // merge; see instruction-memory-cap.ts.
  // instruction-memory-yaml-v1 (yaml): the selected form as YAML; the cap is then measured on the YAML.
  constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false,private readonly yaml=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap():null;}
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
@@ -75,23 +78,32 @@ export class ObservedInstructions {
   // the exact recorded YAML even when this convenience index fills.
   return [...refs].sort((a,b)=>a-b).slice(-64);
  }
- placeEvidence():string|null {
+ placeEpisodes():readonly InstructionEpisode[] {
   const retention=this.retention();
   const kept=new Set(retention?.kept.map(e=>e.result_event)??this.archive().map(e=>e.result_event));
-  const episodes=this.archive().filter(e=>kept.has(e.result_event)&&e.pages.some(p=>/\b(?:upstairs|downstairs|next door|lives|went|house|lab|town|city|route|woods|gym)\b/i.test(p.text)));
+  return this.archive().filter(e=>kept.has(e.result_event)&&e.pages.some(p=>/\b(?:upstairs|downstairs|next door|lives|went|house|lab|town|city|route|woods|gym)\b/i.test(p.text)));
+ }
+ placeEvidence():string|null {
+  const episodes=this.placeEpisodes();
   if(episodes.length===0)return null;
   return "DELIVERED PERSON AND PLACE EVIDENCE — historical quotes, not current presence or an active objective. Unknown speakers stay unknown; relative words refer to the quoted source location. Current observations override old statements. No route or person identity is inferred. Exact whole episodes; audited native completion may retire them, unknown variants stay.\n"+quote({columns:["speaker","speaker_source","text","source_map_display","source_map_name","map_id","state_event"],episodes:episodes.map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,p.map_display??null,p.map,p.map_id,p.state_seq])}))});
  }
- text():string|null {
-  if(this.episodes.size===0)return null;
+ text(places?:readonly InstructionEpisode[]):string|null {
+  const hasBase=this.episodes.size>0;
+  if(!hasBase&&(places?.length??0)===0)return null;
   const retention=this.retention();
-  if(retention!==null){
-   const selected=new Set(retention.kept.map(e=>e.result_event));
-   const episodes=this.archive().filter(e=>selected.has(e.result_event)).map(e=>this.row(e));
-   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:kept,current:this.current});
-   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,this.current===null?null:{...this.current}):json;
-   if(this.cap===null)return render(episodes,0);
-   const capped=this.cap.select(episodes,render,this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS);
+  if(retention!==null||places!==undefined){
+   const selected=new Set(retention?.kept.map(e=>e.result_event)??this.archive().map(e=>e.result_event));
+   const episodes=new Map(this.archive().filter(e=>selected.has(e.result_event)).map(e=>[e.result_event,e]));
+   for(const episode of places??[])episodes.set(episode.result_event,episode);
+   const spatial=new Set(places?.map(e=>e.result_event));
+   const rows=[...episodes.values()].map(e=>this.row(e,places===undefined?undefined:spatial.has(e.result_event)));
+   const columns=["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])];
+   const rest={...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})};
+   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns,episodes:kept,...rest});
+   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,columns,rest):json;
+   if(this.cap===null)return render(rows,0);
+   const capped=this.cap.select(rows,render,this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS);
    return render(capped.kept,capped.omitted);
   }
   const all=this.archive().map(e=>this.row(e));
@@ -99,12 +111,13 @@ export class ObservedInstructions {
   const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted));
   return this.legacy(capped.kept,capped.omitted);
  }
- private row(e:Episode):CapEpisode {return {result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq] as const)};}
+ // instruction-memory-dedup-v1 adds two source-map columns: the place episode's own map and display name, or nulls.
+ private row(e:Episode,spatial?:boolean):CapEpisode {return {result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(spatial===undefined?[]:spatial?[p.map,p.map_display??null]:[null,null])] as const)};}
  private legacy(episodes:readonly CapEpisode[],omitted:number):string {
   const out=[
    "OBSERVED INSTRUCTION MEMORY — historical game dialogue, not an active-goal list.",
    ...(omitted===0?[]:[omittedLine(omitted)]),
-   this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.",
+   (this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.").replace("none retires a quote",omitted===0?"none retires a quote":CAPPED_LEGACY),
    "observed_instruction_episodes:",
   ];
   for(const e of episodes){
@@ -123,10 +136,11 @@ export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecord
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{
-  const base=memory.text(),placeText=places?.placeEvidence()??null;
+  const unique=features["instruction-memory-dedup-v1"]&&places!==null?places.placeEpisodes():undefined;
+  const base=memory.text(unique),placeText=unique===undefined?places?.placeEvidence()??null:null;
   const text=base===null?placeText:placeText===null?base:`${base}\n\n${placeText}`;
   if(text===null)return transform(messages);
-  const retention=placeText===null?memory.retention():null;
+  const retention=(unique===undefined?placeText===null:unique.length===0)?memory.retention():null;
   recorder.recordLedgerContext({text,evidence:[...new Set([...memory.evidence(),...(places?.evidence()??[])])].slice(-64),...(retention===null?{}:{retention})});
   return transform([...messages,{role:"user",content:text,timestamp:Date.now()}]);
  };

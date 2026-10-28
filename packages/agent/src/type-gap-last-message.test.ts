@@ -41,8 +41,8 @@ const probeBothPlaces=(messages:AgentMessage[],block:string):AgentMessage[]=>[..
 const stamp=(messages:AgentMessage[])=>messages.map(m=>({...m,timestamp:0}));
 
 describe(ID,()=>{
- it("is a default-off bundle observation switch registered after gateway-schema-hint-v1, needing type-gap-team-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("gateway-schema-hint-v1")+1);
+ it("is a default-off bundle observation switch registered after the gateway switches, needing type-gap-team-v1, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(288);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"type-gap-team-v1",switchable:true,title:"GYM TYPE GAP LAST MESSAGE"});
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(featureInfo(ID).description).toContain(" Off: ");

@@ -58,3 +58,43 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 - [ ] Gates: `just lint`, full `just test` (coordinator granted the CPU window in the 2026-10-28 brief).
 - [ ] Review: personas (harness engineer, data scientist, ML engineer, evaluation integrity) across the Claude CLI, Codex CLI and fallback lanes.
 - [ ] Stop: report to the coordinator. No landing.
+
+## Main sync (ca754cfff: instruction-memory-dedup-v1 and three story readout switches)
+
+- Merged, not rebased. The registry, presets and next-run take main's entries and re-append instruction-memory-cap-v1 after instruction-memory-dedup-v1. The type-gap index test takes main's pinned index.
+- `observed-instructions.ts`: the cap runs after dedup's merge (dedup first, then selection under the budget). Rows carry dedup's two source-map columns when dedup is on (`CapRow` gains a rest element; the cap reads only the first six), and the payload keeps dedup's keys (`current` only with base episodes, `observed_locations` when dedup has no retention). With the cap off, the render is main's string.
+- Focused: 137 agent and 247 viewer tests after the registry test moved its anchor to instruction-memory-dedup-v1.
+
+## Review round 1 (frozen 9716b71b5): Claude subagent (CLI login expired), Codex gpt-5.6-sol, fallback subagent, all BLOCKING
+
+Accepted:
+- **Checkpoint retires a live instruction (all three lanes).** `wally-catch-tutorial` covered DAD in the Petalburg Gym. pret `PetalburgCity_Gym/scripts.inc` shows DadGoCollectBadges ("Head for RUSTBORO CITY… ROXANNE… Collect BADGES") before `setvar VAR_PETALBURG_GYM_STATE, 2`, so T312 retired at once. `dad-sends-to-dewford` had the same flaw: NormanGoToRustboro's four-badge battle is still open at KNUCKLE. `briney-voyages` closed the "package for CAPT. STERN" lines at Slateport entry, before DEVON_GOODS_DELIVERED. Fix: drop DAD/NORMAN from the Wally scope, remove dad-sends-to-dewford, make briney-voyages close after DEVON_GOODS_DELIVERED, and make mom-home-instructions also need DAD_FIRST_MEETING (MOM's "your DAD at the PETALBURG GYM").
+- **Not a hard cap (Codex).** Anchor and nearby were always kept. Now every group is under the budget, in priority order anchor, nearby, named, recency, newest first. An episode that cannot fit is left out, never cut.
+- **Quadratic fill (Codex).** Each candidate re-rendered the whole block. Now each episode is measured once (single-episode render minus the empty render, plus a measured separator, plus the left-out line by digit count), with one final render check.
+- **Stale anchor marked Done under the block (Claude, fallback).** The "Latest story line naming a place" form prints `Done:` on a later line; that is now read.
+- **Header truthfulness (Claude, fallback).** When episodes are left out, "Unknown, mixed, future and reusable dialogue stays." and the older form's "none retires a quote" are replaced so the header does not contradict the cap.
+
+Rebutted or deferred:
+- Full-gate evidence (Codex): waiting for the coordinator's CPU window, which can't be self-granted. Recorded as pending, not waived.
+- Legacy-form scope (Codex, fallback): the operator asked for "nothing we give to the model should be able to grow unbounded", so the boundary is amended to include it.
+- The replay reference shares the checkpoint table (all lanes): true. The semantic check is now the pret-grounded unit tests for each risky scope, plus a pre-STONE replay turn.
+
+- [x] RED round-1 tests (5 failing).
+- [x] GREEN round-1 fixes: hard cap with one-pass measured fill, checkpoint scopes, `Done:` anchors, header wording under the cap. 48 focused passed (cap 18, checkpoints 2, dedup, observed-instructions + wire).
+
+## Synced to main 56a54f7ab; replays in both arms (reference `rule_a2.py` updated to the round-1 rules)
+
+Every row is byte-identical between the built code and the reference. With the cap off, each control row also equals the recorded block.
+
+| Arm | Turn | Before chars | After chars | Kept / episodes |
+|---|---|---|---|---|
+| control (dedup off) | a702 T450 (after WALLY, before STONE) | 16,640 | 10,585 | 14 / 25 |
+| control | a702 T700 | 28,857 | 15,475 | 17 / 46 |
+| control | a702 T1301 | 53,962 | 15,965 | 22 / 112 |
+| control | 88ea T400 | 19,718 | 15,785 | 22 / 34 |
+| control | 88ea T800 | 25,182 | 15,866 | 25 / 49 |
+| bundle (dedup on) | a702 T450 | 18,881 | 12,061 | 14 / 25 |
+| bundle | a702 T700 | 33,116 | 15,856 | 15 / 46 |
+| bundle | a702 T1301 | 60,336 | 15,868 | 23 / 112 |
+
+At T450, DAD's T312 advice is kept (it is the anchor) and WALLY's T311 is kept as a named target. At T1301, MR. STONE's T630 and MR. BRINEY's LETTER lines are kept. DAD's T312 is no longer marked done; it is left out under the budget only as a recency episode. Tests now cover dedup on/off × cap on/off: 18 cap tests, plus 48 across dedup and observed-instructions.

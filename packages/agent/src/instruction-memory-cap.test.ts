@@ -24,13 +24,34 @@ const decision=(c:InstructionMemoryCap,eps:CapEpisode[],budget=INSTRUCTION_MEMOR
 const step=(c:InstructionMemoryCap,e:CapEpisode)=>decision(c,[e]).decisions[0];
 
 describe("instruction-memory-cap-v1 rule A′",()=>{
- it("keeps the story anchor even when it alone is over the budget",()=>{
+ it("is a hard cap: the anchor goes first, then nearby, named and recent episodes, newest first, and none is kept that does not fit",()=>{
   const c=cap([state({seq:1,map:[0,3]}),result(2,'Story line heard (DAD, turn 7): "Go to DEWFORD." Reached: none.')]);
   const anchor=ep(10,7,[page("DAD: Go to\nDEWFORD.",{speaker:"DAD",source:"name_prefix",id:far})]);
-  const out=decision(c,[anchor],5);
-  expect(out.kept).toEqual([anchor]);expect(out.decisions[0]).toMatchObject({step:"anchor",kept:true});
+  expect(decision(c,[anchor],5)).toMatchObject({kept:[],omitted:1,decisions:[{step:"anchor",kept:false}]});
   expect(step(c,ep(11,8,[page("DAD: Go to\nDEWFORD.",{id:far})]))?.step).not.toBe("anchor");
   expect(step(c,ep(12,7,[page("DAD: Something else.",{id:far})]))?.step).not.toBe("anchor");
+  const pad="z".repeat(80);
+  const near=[ep(20,1,[page(`n1 ${pad}`,{id:[0,3]})]),ep(21,2,[page(`n2 ${pad}`,{id:[0,3]})]),ep(22,3,[page(`n3 ${pad}`,{id:[0,3]})])];
+  const named=ep(23,9,[page(`SLATEPORT ${pad}`,{id:far})]),recent=ep(24,10,[page(`r ${pad}`,{id:far})]);
+  const all=[...near,anchor,named,recent];
+  const fits=(kept:CapEpisode[],omitted:number)=>codePoints(render(kept,omitted));
+  const budget=fits([anchor,near[2],near[1]] as CapEpisode[],3);
+  const out=decision(c,all,budget);
+  expect(out.kept.map(e=>e.result)).toEqual([21,22,10]);expect(out.omitted).toBe(3);
+  expect(codePoints(render(out.kept,out.omitted))).toBeLessThanOrEqual(budget);
+  for(const b of [0,50,200,400,800,1200])expect(codePoints(render(decision(c,all,b).kept,decision(c,all,b).omitted))).toBeLessThanOrEqual(Math.max(b,fits([],6)));
+ });
+ it("measures each episode once, so the fill does not re-render the whole block per candidate",()=>{
+  const c=cap([state({seq:1,map:far})]);
+  let calls=0;
+  const counting=(kept:readonly CapEpisode[],omitted:number)=>{calls++;return render(kept,omitted);};
+  for(const n of [200,400]){
+   calls=0;
+   const eps=Array.from({length:n},(_,i)=>ep(100+i,i+1,[page(`line ${String(i)} ${"q".repeat(40)}`,{id:far})]));
+   const out=c.select(eps,counting,4000);
+   expect(codePoints(render(out.kept,out.omitted))).toBeLessThanOrEqual(4000);
+   expect(calls).toBeLessThanOrEqual(n+10);
+  }
  });
  it("does not count a stale anchor: a named gym leader whose badge flag is set, or a line the readout marks Done",()=>{
   const line='Story line heard (DAD, turn 7): "Across the sea in DEWFORD TOWN is a GYM LEADER named BRAWLY."';
@@ -43,6 +64,13 @@ describe("instruction-memory-cap-v1 rule A′",()=>{
   expect(step(cap([state({seq:1,map:[0,3]}),result(2,`Story goal: "${quote}" (DAD, turn 7) -> "DEWFORD TOWN" = DEWFORD TOWN (map 0/11).`)]),anchor)?.step).toBe("anchor");
   expect(step(cap([state({seq:1,map:[0,3]}),result(2,`Latest story line naming a place (turn 7, DAD): "${quote}"`)]),anchor)?.step).toBe("anchor");
   expect(step(cap([state({seq:1,map:[0,3],badges:["STONE"]}),result(2,'Story line heard (DAD, turn 7): "Beat ROXANNE and TATE." Reached: none.')]),ep(10,7,[page("Beat ROXANNE and TATE.",{id:far})]))?.step).toBe("anchor");
+ });
+ it("does not count a story line the readout marks Done in the lines under it",()=>{
+  const anchor=ep(10,7,[page("Go to the LAB.",{speaker:"MAY",id:far})]);
+  expect(step(cap([state({seq:1,map:[0,3]}),result(2,'Latest story line naming a place (turn 7, MAY): "Go to the LAB."\n- "LAB" = PROF. BIRCH\'S POKéMON LAB (map 1/4).')]),anchor)?.step).toBe("anchor");
+  const stale=step(cap([state({seq:1,map:[0,3]}),result(2,'Latest story line naming a place (turn 7, MAY): "Go to the LAB."\n- "LAB" = PROF. BIRCH\'S POKéMON LAB (map 1/4).\nDone: Pokédex received. This is not where to go.\n\nScreen: overworld')]),anchor);
+  expect(stale?.step).not.toBe("anchor");expect(stale?.fact).toContain("stale anchor: the readout marks this story line Done");
+  expect(step(cap([state({seq:1,map:[0,3]}),result(2,'Latest story line naming a place (turn 7, MAY): "Go to the LAB."\n\nDone: something else')]),anchor)?.step).toBe("anchor");
  });
  it("drops an exact pret-audited template only once its required milestones are recorded",()=>{
   const rule=RETIREMENT_RULES.find(r=>r.requires.length===1&&!r.pages.some(p=>p.text.includes("{PLAYER}")));
@@ -96,6 +124,15 @@ describe("instruction-memory-cap-v1 rule A′",()=>{
   const errand=ep(11,6,[page("Oh! How did it go?",{speaker:"MAN_2",map:"RUSTBORO CITY",id:[0,3]}),page("Please deliver this LETTER.",{speaker:"MR. STONE",source:"name_prefix",map:"DEVON CORP 3F",id:[11,2]}),page("AAAA received the GREAT BALL.",{speaker:null,source:null,map:"DEVON CORP 3F",id:[11,2]})]);
   expect(at([milestone(2,"STEVEN_LETTER_DELIVERED",20)],errand)?.step).not.toBe("done");
   expect(at([milestone(2,"STEVEN_LETTER_DELIVERED",20),milestone(3,"DEVON_GOODS_DELIVERED",30),milestone(4,"STEVEN_LETTER_DELIVERED",40)],errand)?.fact).toBe("checkpoint devon-president-errands: STEVEN_LETTER_DELIVERED, DEVON_GOODS_DELIVERED (turn 30)");
+ });
+ it("keeps DAD's gym advice and MR. BRINEY's Slateport errand until the game proves those goals done",()=>{
+  const dad=ep(30,312,[page("WALLY: I did it… It's my…\nMy POKéMON!",{speaker:"WALLY",source:"name_prefix",map:"PETALBURG CITY GYM",id:[8,1]}),page("DAD: Head for RUSTBORO CITY beyond this town.\nChallenge the GYM LEADER, ROXANNE.",{speaker:"DAD",source:"name_prefix",map:"PETALBURG CITY GYM",id:[8,1]})]);
+  const flags=[milestone(2,"WALLY_TUTORIAL_COMPLETE",312),milestone(3,"STONE_BADGE",578),milestone(4,"KNUCKLE_BADGE",1027)];
+  expect(step(cap([state({seq:1,map:far}),...flags]),dad)?.step).not.toBe("done");
+  const briney=ep(31,958,[page("MR. BRINEY: Next, the package for CAPT. STERN in SLATEPORT!",{speaker:"MR. BRINEY",source:"name_prefix",map:"DEWFORD TOWN",id:[0,11]})]);
+  const sailed=[milestone(2,"STEVEN_LETTER_DELIVERED",1100),milestone(3,"SLATEPORT_CITY",1200)];
+  expect(step(cap([state({seq:1,map:far}),...sailed]),briney)?.step).not.toBe("done");
+  expect(step(cap([state({seq:1,map:far}),...sailed,milestone(4,"DEVON_GOODS_DELIVERED",1300)]),briney)?.fact).toBe("checkpoint briney-voyages: STEVEN_LETTER_DELIVERED, DEVON_GOODS_DELIVERED (turn 1300)");
  });
  it("keeps episodes heard on the current map, a connected map or a map a listed warp leads to",()=>{
   const c=cap([state({seq:1,map:[0,19],connections:[[0,3]]}),result(2,"Location: ROUTE104\nExits you can walk to from where you stand: (5,18) -> ROUTE 104 (map 17/1)\nWarps: (3,3) -> PETALBURG WOODS (map 24/11)\nUnavailable from here: warp (1,1) → ROUTE 104 (map 17/0)\nScreen: overworld (map 5/5)")]);
@@ -165,7 +202,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   const kept=(JSON.parse(onText.slice(onText.indexOf("\n{")+1)) as {episodes:{turn:number}[]}).episodes;
   expect(kept.length+Number(omitted?.[1])).toBe(60);expect(kept.map(e=>e.turn)).toEqual(kept.map(e=>e.turn).sort((a,b)=>a-b));expect(kept.at(-1)?.turn).toBe(61);
   for(const e of kept)expect(onText).toContain(`MOM: episode ${String(e.turn-2)} ${"y".repeat(400)}`);
-  expect(onText.split("\n")[0]).toBe(offText.split("\n")[0]);
+  expect(onText.split("\n")[0]).toBe((offText.split("\n")[0]??"").replace("Unknown, mixed, future and reusable dialogue stays.","Over the size cap, finished and less relevant episodes are left out."));
+  expect(onText.split("\n")[0]).not.toContain("reusable dialogue stays");
   expect(on.messages).toEqual([expect.objectContaining({role:"user",content:onText})]);
  });
  it("caps the unselected memory form too, keeping whole episodes, when milestone-instruction-memory-v1 is off",async()=>{
@@ -176,7 +214,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
   const lines=onText.split("\n");
   expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ earlier episodes are left out and remain in the run recording\.$/);
-  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3));
+  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3).map(l=>l.replace("none retires a quote","over the size cap, finished and less relevant episodes are left out")));
+  expect(lines[2]).not.toContain("none retires a quote");
   const turns=[...onText.matchAll(/^ {4}turn: (\d+)$/gm)].map(m=>Number(m[1]));
   expect(turns.length+Number(/^(\d+) earlier/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
   for(const t of turns)expect(onText).toContain(`MOM: episode ${String(t-2)} ${"y".repeat(400)}`);
@@ -185,12 +224,43 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
 });
 
 describe("instruction-memory-cap-v1 registry",()=>{
- it("is a default-off guard registered after type-gap-team-last-message-v1, needing nothing, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(SWITCHABLE_FEATURES.indexOf("type-gap-team-last-message-v1")+1);
+ it("is a default-off guard registered after instruction-memory-dedup-v1, needing nothing, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(SWITCHABLE_FEATURES.indexOf("instruction-memory-dedup-v1")+1);
   expect(featureInfo("instruction-memory-cap-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"INSTRUCTION MEMORY CAP"});
   expect(featureInfo("instruction-memory-cap-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["instruction-memory-cap-v1"]).toBe(false);
   expect(playHarnessFeatures({...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"instruction-memory-cap-v1":true} as FeatureSet,null)).toContain("instruction-memory-cap-v1");
   expect(dependencyProblems({...ALL_ON,"milestone-instruction-memory-v1":false})).not.toContain("instruction-memory-cap-v1 needs milestone-instruction-memory-v1");
+ });
+});
+
+describe("instruction-memory-cap-v1 with instruction-memory-dedup-v1",()=>{
+ const ev=(body:Record<string,unknown>):RunEvent=>({v:1,run:"r",t:"2026-10-28T00:00:00.000Z",turn:1,...body}) as unknown as RunEvent;
+ const stream=(n:number):RunEvent[]=>[state({seq:1,map:[0,19]}),...Array.from({length:n},(_,i)=>{const seq=10+i*2;return [
+  ev({seq,turn:i+2,type:"dialogue_auto_advance",tool_call_id:`t${String(i)}`,tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:`MOM: ${i%2===0?"he went up the route":"just chatting"} ${String(i)} ${"y".repeat(400)}`}],stop:"field_control",detail:"",duration_ms:1}),
+  ev({seq:seq+1,turn:i+2,type:"tool_result",id:`t${String(i)}`,name:"press",is_error:false,text:"Location: ROUTE104",state_seq:null})];}).flat()];
+ const sent=async(n:number,dedup:boolean,on:boolean)=>{
+  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":true,"delivered-place-evidence-v1":true,"instruction-memory-dedup-v1":dedup,"instruction-memory-cap-v1":on} as FeatureSet;
+  const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
+  const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
+  for(const e of stream(n))for(const fn of subs)fn(e);
+  await transform([]);
+  return records[0]??"";
+ };
+ it("caps the merged block after dedup, and leaves both forms untouched while they fit",async()=>{
+  for(const dedup of [false,true]){const [off,on]=await Promise.all([sent(3,dedup,false),sent(3,dedup,true)]);expect(on).toBe(off);}
+  const [off,on]=await Promise.all([sent(60,true,false),sent(60,true,true)]);
+  expect(off).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");expect(codePoints(off)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);
+  expect(codePoints(on)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);expect(on).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");
+  const payload=JSON.parse(on.slice(on.indexOf("\n{")+1)) as {columns:string[];episodes:{pages:unknown[][]}[]};
+  expect(payload.columns).toEqual(["speaker","speaker_source","text","map","map_id","state_event","source_map_name","source_map_display"]);
+  expect(payload.episodes.every(e=>e.pages.every(p=>p.length===8))).toBe(true);
+  expect(/^(\d+) earlier episodes are left out/m.exec(on)?.[1]).toBe(String(60-payload.episodes.length));
+ });
+ it("with dedup off, caps the instruction block and leaves the separate place evidence block as it was",async()=>{
+  const [off,on]=await Promise.all([sent(60,false,false),sent(60,false,true)]);
+  const split=(t:string)=>{const i=t.indexOf("\n\nDELIVERED PERSON AND PLACE EVIDENCE");return [t.slice(0,i),t.slice(i)] as const;};
+  const [offMemory,offPlaces]=split(off),[onMemory,onPlaces]=split(on);
+  expect(onPlaces).toBe(offPlaces);expect(codePoints(offMemory)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onMemory)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
  });
 });

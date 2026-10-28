@@ -34,3 +34,10 @@ The built form costs about 5–10% more tokens than JSON for the same episodes. 
 - [ ] Gates: `just lint`, full `just test`. Waiting for a coordinator heavy-CPU window; focused tsc and eslint are clean.
 - [ ] Review: personas across the Claude CLI, Codex CLI and fallback lanes.
 - [ ] Stop: report. No landing.
+
+## Synced with claude/bounded-model-input (which carries main 56a54f7ab: instruction-memory-dedup-v1 and the cap's round-1 fixes)
+
+- Conflicts took the cap side; the YAML wiring was re-applied after instruction-memory-cap-v1. `CAPPED_SELECTION` moved into instruction-memory-cap.ts so YAML can use it without a cycle.
+- The YAML renderer follows dedup's payload. Its two source-map columns join the carried fields (written when they change). `current` is written only when the payload has it, and `observed_locations` is a YAML list. The left-out header matches the JSON form's. The Python reference (`yaml_form.to_yaml_compact`) was updated the same way.
+- Replays are byte-identical between built code and reference. Control: a702 T450 13,454, T700 18,905, T1301 18,762 (19 of 112 kept). Bundle (dedup on): T450 14,456, T700 18,813, T1301 18,823 (22 of 112 kept). The JSON path is unchanged (T1301 15,965). 58 uncapped recorded blocks plus the 3 dedup blocks round-trip through PyYAML to identical text.
+- Focused: 149 agent tests (yaml 7 with dedup × cap × yaml combinations, cap, checkpoints, dedup, observed-instructions, features, presets, type-gap, semantic-navigation-v2, gym-evidence) and 400 viewer tests.

@@ -132,7 +132,7 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
   The only recorded approval (hyperqwen-control-3h, 2026-10-27 3 PM) was already stale; every launch of these needs
   the operator's re-approval.
 
-## M6 ablation probe (exploratory batch 1, directional; not confirmatory)
+## M6 ablation probe (exploratory batch 1, directional; scored post hoc, descriptive only)
 
 Study runs/probes/no-story-foreknowledge-20261027 (viewer /probes#no-story-foreknowledge-20261027). GPU1,
 Qwen3.6-35B-A3B Q4_K_M (the a702/057c/d41e model), 1 slot, each run's own sampling; run in four coordinator-granted
@@ -140,9 +140,12 @@ chunks 8:52-10:30 PM NY. Contexts rebuilt by decision-probe replay under each ru
 per tool result: current copy; narrow = this switch ON with shown names seeded from that run's own delivered dialogue
 up to each result (frozen build of ff8b5f42a); no_advice = no "Not on this map" clause, no rival sentence in the system
 prompt, no heal warnings or heal-first line. 8 contexts x 3 arms x 16 = 384 samples, interleaved. 15 earlier samples
-on the pre-fix wording were set aside (aborted-before-wording-fix.samples.jsonl), not pooled. Scorer:
-runs/probes/no-story-foreknowledge-20261027/scores.json (hallucinated placement = locatingClaims of a story character
-the readout does not place on the map).
+on the pre-fix wording were set aside (aborted-before-wording-fix.samples.jsonl), not pooled. Scoring was written after sampling
+(runs/probes/no-story-foreknowledge-20261027/score.mjs -> scores.json; its sha256 is in gpu1/provenance.json), so these
+counts are post-hoc descriptive, not a frozen-outcome result. Hallucinated placement = locatingClaims of a story
+character the readout does not place on the map; score.mjs counts every locatingClaims hit, and the only hits (ROXANNE
+at a702-t399, MAY at d41e-t159) are characters the readout places on that map, so the off-map count is 0. Runner,
+frozen build and scorer hashes: gpu1/provenance.json.
 
 | Context | current | narrow | no_advice |
 |---|---|---|---|
@@ -167,3 +170,8 @@ part of these gaps is sampling noise). Removing the advice entirely removes ever
 little to the Woods detour. No arm produced a hallucinated placement, so the "Not on this map" list's protective effect
 is not visible at these contexts. 16 per arm per context is directional only; a confirmation would need held-out
 pre-Aqua Woods contexts from other runs and a frozen outcome (heal detour rate), sized by the experiment-design skill.
+- Pin review round 2 (packet bb32b94c4..821157212; gates on 821157212 passed): Claude LGTM, Grok stand-in LGTM, GPT
+  BLOCKING on documentation and probe evidence only (config pin verified correct, hashes recomputed). Fixed: explainer
+  status no longer says "no measured runs"; probe results labelled post-hoc descriptive with the scorer saved and hashed;
+  provenance names the frozen ff8b5f42a build (with build/runner/scorer hashes) and the status carries the sampling
+  start and end.

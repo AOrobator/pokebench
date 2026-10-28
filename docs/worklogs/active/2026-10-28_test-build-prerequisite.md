@@ -23,11 +23,11 @@ No network or model calls. The test uses actual just with fake pnpm/uv/leaf just
 
 ## Milestones
 **M1 — RED**
-- [ ] Test missing/stale artifact and build-error behavior through actual just test/coverage.
-- [ ] Observe and commit RED before changing the recipe.
+- [x] Six actual-just cases cover missing/stale artifacts and fail-fast build errors for both aliases.
+- [x] RED committed a11837d73 before the recipe change.
 **M2 — GREEN**
-- [ ] Add the one existing-build invocation; retain existing coverage alias.
-- [ ] Targeted GREEN; remove the dependency once to witness RED, restore and commit.
+- [x] Existing just build is the first test command; coverage: test is unchanged.
+- [x] Final six GREEN; remove the build call to witness six RED, restore six GREEN; committed b2bc0eb4a.
 **M3 — Verify and review**
 - [ ] Obtain START; sync main; run actual just test first from absent dist with no manual build, then lint/vendor serially. Verify build overhead and coverage order/counts.
 - [ ] PB1–PB13 self-review, frozen boundary and patch, Claude + GPT + distinct fallback under the delegated Grok waiver; synthesis.
@@ -58,3 +58,5 @@ M1 RED: six intended assertion failures in1.29s on the incumbent recipe. Both te
 M2 GREEN: add the existing build recipe as the single test prerequisite; coverage remains coverage: test. Six targeted cases pass. Performed dependency-removal mutation gives six intended assertion failures, then restored six GREEN. No test/runtime/harness source changes beyond the tooling regression test. Bootstrap dependencies/submodule and read-only canonical mGBA link prepared; dist has intentionally not been built yet so the real gate can prove the prerequisite.
 
 The initial dependency-header prototype (`test: build`) passed six tests but the committed trainer-card guard rejected the commit: its recipe parser only recognizes `test:` and therefore interpreted the header as removing the existing trainer-card invocation. No receipt was invented and no hook was bypassed or weakened. Restored the incumbent and verified six RED cases with a transport that can delegate nested just build. Final fix keeps the literal test header and every existing command unchanged, adding just build first. Updated fake transport permits only that nested build and the existing trainer-card leaf, preserving full call logs; assertions normalize the optional runner wrapper, not build/coverage behavior. Final six GREEN; remove-inline-build mutation six RED; restored six GREEN. Existing trainer-card recipe and invocation remain byte-identical.
+
+Coordinator queue acknowledged: story post-merge is running, then type-matchup gates, snapshots M5 (~16 minutes), then this task (~5 minutes, ahead of YAML only if YAML is not ready). No full gates or actual TypeScript build started. Ready to sync newest main and run just test first when START arrives. All authorized offline preparation is committed; the remaining blocker is the shared CPU window.

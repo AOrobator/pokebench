@@ -164,3 +164,16 @@ Replays, byte-identical to the reference. Control: a702 T450 10,589, T700 15,981
 The merge conflicted only in the registry lists: features.ts, play-preset.ts, next-run.ts and current.json `features`. Each was resolved by keeping main's new entries (scene-journal-safe-capture-v1, neutral-yes-no-readout-v1) and adding the cap after them. The cap moves from index 293 to 295, and its registry test pin moves with it. current.json keeps type-gap-team-last-message-v1 and instruction-memory-cap-v1 in onInBoth, and neutral-yes-no-readout-v1 in switches. Main also removed the fixed-run launch approval, so no `just fixed-run approve` is needed.
 
 Replays after the merge are byte-identical to the reference. Control a702 T450/T700/T1301 is 10,589/15,981/15,965, and 88ea T400/T800 is 15,789/15,999. Bundle dedup is 12,065/15,948/15,977. Legacy form is 15,726/15,768/15,828. Cap tests pass 27/27.
+
+Full gate on 9bf64f942, under the CPU grant relayed 12:01 PM NY, with POKEBENCH_CARD_ART set to main's art: everything passed.
+
+- `just lint`: clean.
+- `just build`: clean.
+- `just test`:
+  - agent: 340 files, 4,778 tests (stmts 96.57, branches 92.67, funcs 97.51, lines 99.19)
+  - viewer: 172 files, 2,214 tests (94.94 / 91.04 / 95.06 / 98.31)
+  - env: 4,601 passed, coverage gate ≥90
+  - claude-gateway: 116 passed, coverage gate ≥90
+  - trainer-card-check: 3 passed
+
+Review: Claude and the fallback reviewer gave LGTM. Codex's last points are answered by the regression test (ccee19a57) and this exact-head gate.

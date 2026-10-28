@@ -101,3 +101,4 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
 - Rebutted (GPT B1): "none named in dialogue yet" differs from the round-1 boundary's literal; it is the round-1 fix for
   the harness-engineer persona's finding that the old words could be false (a sign can show a name). Boundary amended
   in this worklog; not a correctness defect.
+- Synced main 2c8240b8b (end-reason-orthogonal; no conflicts). This switch's own registry test re-pinned by position after scene-followup-prompt-v1 instead of at(-1).

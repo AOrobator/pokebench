@@ -184,10 +184,12 @@ describe("disproved-beliefs-v1 still reads the whole absent cast",()=>{
 
 describe("registry and factory",()=>{
  it("is a default-off agent-side observation switch appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  // Pinned after the switch it was appended to, so a later switch never edits this test (feature-switch skill).
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("scene-followup-prompt-v1")+1);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"NO STORY FOREKNOWLEDGE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  const recorded=playHarnessFeatures(ALL_ON,null);
+  expect(recorded.indexOf(ID)).toBe(recorded.indexOf("scene-followup-prompt-v1")+1);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

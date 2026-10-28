@@ -383,3 +383,28 @@ def test_screens_weather_burn_badges_and_hold_effects_are_current_not_assumed() 
     text = "\n".join(effective_damage_lines(battle(actor, foe), details(held, context=context)))
     assert "burn" in text and "REFLECT" in text
     assert "rain" in text and "LIGHT SCREEN" in text and "CHARCOAL" in text
+
+
+def test_move_matchup_fixed_two_hit_is_opt_in_and_keeps_per_hit_rounding() -> None:
+    actor = mon(0, 0, "COMBUSKEN", level=16, hp=47, maximum=47,
+                stats=(37, 29, 24, 35, 24), types=(10, 1),
+                moves=(move(0, 24, "DOUBLE KICK", 30, 1, effect=44), EMPTY, EMPTY, EMPTY))
+    target = mon(1, 1, "GEODUDE", hp=30, maximum=30, types=(5, 4), ability=5)
+    b = battle(actor, target)
+    d = details(context=DamageContext())
+    old = "\n".join(effective_damage_lines(b, d))
+    assert "not deterministically computed" in old
+    new = "\n".join(effective_damage_lines(b, d, fixed_two_hits=True))
+    assert "per hit" in new and "2 hits" in new
+    assert "type ×2" in new and "STAB ×1.5" in new
+    assert "normal-hit KO rolls" not in new
+    assert effective_damage_lines(b, d, fixed_two_hits=False) == effective_damage_lines(b, d)
+
+
+def test_move_matchup_two_hit_refuses_intervening_target_effects() -> None:
+    actor = mon(0, 0, "COMBUSKEN", types=(10, 1),
+                moves=(move(0, 24, "DOUBLE KICK", 30, 1, effect=44), EMPTY, EMPTY, EMPTY))
+    target = mon(1, 1, "KECLEON", types=(0, 0), ability=16)
+    text = "\n".join(effective_damage_lines(battle(actor, target), details(context=DamageContext()), fixed_two_hits=True))
+    assert "between hits" in text
+    assert "2 hits total" not in text

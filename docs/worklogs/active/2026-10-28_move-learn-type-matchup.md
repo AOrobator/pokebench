@@ -59,3 +59,4 @@ No unrelated changes planned.
 ## Archive Milestone
 - [ ] ASK USER: archive worklog after completion.
 RED receipt /tmp/move-matchup-red.log: vitest fails importing not-yet-created move-matchup.js. Fixture contains original source state/result pairs for first GEODUDE, first NOSEPASS and pre668; no synthetic game data. Worklog/test-first commit below. Coordinator explicitly reserves GPU1 same model after screenshot baseline; GPU0/9c88 remain untouched; exact grant pending READY.
+COMMIT: test: pin move matchup delivery and learner bonus regressions (RED) (cdf1d2428). Additional Python RED /tmp/move-matchup-python-red.log: two tests fail on missing fixed_two_hits keyword, before implementation. Implementation under way; full gates pending queue clearance.

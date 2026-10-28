@@ -17,3 +17,5 @@ Why: the approval bound only a hash of the definition text plus its feature reci
 ## Log
 - RED: fixed-cli.test.ts 1 failed (runs a checked definition with no approval file: exit 1 'is not approved'), 36 passed.
 - GREEN: fixed-cli, drought-progress-facts, player-elevation-bundle: 51 passed. viewer `tsc --noEmit` clean; eslint on the four touched files clean. No full suite (no CPU window used).
+- Review r1 (eb4d388be..979b004e6, diff e845631f…): Claude CLI OAuth expired and Cursor out of usage, so per the operator's standing rule: Claude subagent LGTM, Sonnet fallback LGTM (stale feature-configs README lines), Codex CLI gpt-5.6-sol BLOCKING (docs/experiments/starter-decision-salience-runbook.md still says the operator approves interactively).
+- r1 fix: the runbook now says launch follows the operator's word with `just fixed-run run`; feature-configs README says launches record the definition hash and drops "approve" from the archive note. A repo grep for `fixed-run approve` and approval-step wording outside worklogs and historical explainer pages is clean.

@@ -134,7 +134,7 @@ describe("supervisor-briefing-bound-v1: exits to maps not entered",()=>{
 
 describe("supervisor-briefing-bound-v1 registry",()=>{
  it("is registered last, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(294);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(296);
   expect(playHarnessFeatures({...REGISTRY_ON,[ID]:true},null).at(-1)).toBe(ID);
   expect(featureInfo(ID).description).toContain(" Off: every page and every map is listed.");
   const {[ID]:value,...omitted}={...REGISTRY_ON};expect(value).toBe(true);

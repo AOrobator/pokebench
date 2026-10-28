@@ -25,10 +25,6 @@ function setup(over: Partial<FixedCliDeps> = {}) {
     out: (line) => { out.push(line); },
     err: (line) => { err.push(line); },
     randomSeed: () => "feedfacefeedface",
-    interactive: false,
-    prompt: () => Promise.resolve(""),
-    now: () => new Date("2026-10-16T01:00:00.000Z"),
-    user: "operator",
     head: () => "0123456789abcdef0123456789abcdef01234567",
     sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : path.endsWith("MAIN_MENU.state") ? MENU_SHA1 : START_SHA1),
     rom: "/roms/pokemon-emerald.gba",
@@ -73,28 +69,29 @@ describe("fixed-run plan", () => {
   });
 });
 
-describe("fixed-run check, approve, run, dry-run", () => {
-  it("checks the definition and its start save, then needs an interactive approval of this exact definition to run", async () => {
-    const { deps, out, err, runs, path, runsRoot } = setup();
+describe("fixed-run check, run, dry-run", () => {
+  it("checks the definition and its start save, then runs it", async () => {
+    const { deps, out, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));
     expect(await main(["check", "bundle-v-control"], deps)).toBe(0);
     expect(out.join("\n")).toMatch(/confirmatory: 4 control \+ 4 bundle, 900000 ms cap/);
-    expect(out.join("\n")).toContain("approval: none");
+    expect(out.join("\n")).not.toContain("approval");
     expect(out.join("\n")).toMatch(/control base: full-map-navigation-finals-incumbent \(runs\/experiments\/full-map-navigation\/presets\/finals-incumbent\.json, sha256 [0-9a-f]{64}\) matches outside the switches/);
-    expect(await main(["run", "bundle-v-control"], deps)).toBe(1);
-    expect(err.at(-1)).toBe("bundle-v-control is not approved; run `just fixed-run approve bundle-v-control` in a terminal");
-    expect(await main(["approve", "bundle-v-control"], deps)).toBe(1);
-    expect(err.at(-1)).toBe("approval needs an interactive terminal");
-    const typed = { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") };
-    expect(await main(["approve", "bundle-v-control"], typed)).toBe(0);
-    const approval = JSON.parse(readFileSync(join(runsRoot, "experiments", "bundle-v-control", "approval.json"), "utf8")) as Record<string, string>;
-    expect(approval).toMatchObject({ experiment: "bundle-v-control", approvedBy: "operator", approvedAt: "2026-10-16T01:00:00.000Z", commit: "0123456789abcdef0123456789abcdef01234567" });
-    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("no") })).toBe(1);
+    expect(await main(["approve", "bundle-v-control"], deps)).toBe(2);
     expect(await main(["run", "bundle-v-control"], deps)).toBe(0);
-    expect(runs[0]).toMatchObject({ definitionSha256: approval["definitionSha256"], dryRun: false });
-    writeFileSync(path, JSON.stringify({ ...definition(), title: "edited" }));
-    expect(await main(["run", "bundle-v-control"], deps)).toBe(1);
-    expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
+    const edited = JSON.stringify({ ...definition(), title: "edited" });
+    writeFileSync(path, edited);
+    expect(await main(["run", "bundle-v-control"], deps)).toBe(0);
+    expect(runs.map((r) => r.definitionSha256)).toEqual([parseFixedDefinition(JSON.stringify(definition())).sha256, parseFixedDefinition(edited).sha256]);
+  });
+
+  it("runs a checked definition with no approval file", async () => {
+    const { deps, err, runs, path, runsRoot } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["run", "bundle-v-control"], deps), err.join("\n")).toBe(0);
+    expect(existsSync(join(runsRoot, "experiments", "bundle-v-control", "approval.json"))).toBe(false);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ definitionSha256: parseFixedDefinition(JSON.stringify(definition())).sha256, dryRun: false });
   });
 
   it("lists a vLLM lane's declared slots, vision and key file path in check", async () => {
@@ -191,26 +188,23 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["dry-run", "bundle-v-control", "--wall-ms", "x"], deps)).toBe(1);
   });
 
-  it("reruns one arm on one lane of an approved experiment as an exploratory sibling at the experiment's pinned commit", async () => {
-    const { deps, out, err, runs, path, runsRoot } = setup();
+  it("reruns one arm on one lane of an experiment as an exploratory sibling at the experiment's pinned commit", async () => {
+    const { deps, out, runs, path, runsRoot } = setup();
     writeFileSync(path, JSON.stringify(definition()));
-    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
-    expect(err.at(-1)).toBe("bundle-v-control is not approved; run `just fixed-run approve bundle-v-control` in a terminal");
-    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "cook"], deps)).toBe(0);
     expect(runs[0]).toMatchObject({ dryRun: true, commit: "0123456789abcdef0123456789abcdef01234567", def: { id: "bundle-v-control-solo-bundle-b-1", lanes: [{ id: "B" }], plan: [{ lane: "B", arm: "bundle", phase: "cook" }] } });
     expect(out).toContain("bundle-v-control-solo-bundle-b-1: exploratory bundle trial on lane B (GPU0), cook, commit 0123456789ab");
     // A second rerun takes the next number; the paired experiment's first launch pins the commit.
     mkdirSync(join(runsRoot, "experiments", "bundle-v-control-solo-bundle-b-1"), { recursive: true });
+    mkdirSync(join(runsRoot, "experiments", "bundle-v-control"), { recursive: true });
     writeFileSync(join(runsRoot, "experiments", "bundle-v-control", "trials.jsonl"), JSON.stringify({ kind: "launch", slot: 1, lane: "A", phase: "confirmatory", arm: "bundle", run: "r", at: "x", commit: "e".repeat(40), sources: "s", presetSha256: "p", serving: "f" }) + "\n");
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(0);
     expect(runs[1]).toMatchObject({ commit: "e".repeat(40), def: { id: "bundle-v-control-solo-bundle-b-2", phases: [{ id: "confirmatory", singleArm: "bundle" }] } });
   });
 
-  it("refuses a rerun with a bad arm, lane or phase, a changed definition, or no ROM", async () => {
+  it("refuses a rerun with a bad arm, lane or phase, an invalid definition, or no ROM", async () => {
     const { deps, err, path, runs } = setup();
     writeFileSync(path, JSON.stringify(definition()));
-    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
     expect(await main(["rerun", "bundle-v-control", "--arm", "both", "--lane", "B"], deps)).toBe(1);
     expect(err.at(-1)).toBe("--arm must be one of control, bundle");
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle"], deps)).toBe(1);
@@ -218,9 +212,9 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "nope"], deps)).toBe(1);
     expect(err.at(-1)).toBe("no phase nope; phases: confirmatory, cook");
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], { ...deps, rom: undefined })).toBe(1);
-    writeFileSync(path, JSON.stringify({ ...definition(), title: "edited" }));
+    writeFileSync(path, JSON.stringify({ ...definition(), seed: "0000000000000000" }));
     expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
-    expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
+    expect(err.at(-1)).toContain("plan does not match seed 0000000000000000");
     expect(runs).toHaveLength(0);
   });
 
@@ -556,12 +550,13 @@ describe("shared current feature config",()=>{
    expect(source.featureRecipe).toBe("current");expect(source.base.features).toBeUndefined();
   }finally{rmSync(f.root,{recursive:true,force:true});}
  });
- it("invalidates an approval when only the shared config changes",async()=>{
+ it("runs with the hash of the shared config it read, so a config change needs no new step",async()=>{
   const f=shared();try{
-   expect(await main(["approve","bundle-v-control"],{...f.deps,interactive:true,prompt:()=>Promise.resolve("bundle-v-control")}),f.err.join("\n")).toBe(0);
+   expect(await main(["run","bundle-v-control"],f.deps),f.err.join("\n")).toBe(0);
    writeFileSync(f.configPath,JSON.stringify(f.config,null,2));
-   expect(await main(["run","bundle-v-control"],f.deps)).toBe(1);
-   expect(f.err.at(-1)).toContain("definition changed since it was approved");expect(f.runs).toEqual([]);
+   expect(await main(["run","bundle-v-control"],f.deps),f.err.join("\n")).toBe(0);
+   const [before,after]=f.runs.map(r=>r.definitionSha256);
+   expect(after).toBe(readFixedDefinition(f.root,"bundle-v-control").sha256);expect(after).not.toBe(before);
   }finally{rmSync(f.root,{recursive:true,force:true});}
  });
  it("future launches materialize current features and save their source receipt",async()=>{

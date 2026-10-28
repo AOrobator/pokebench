@@ -318,6 +318,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Supplies](supplies-v1.html) — money, balls, healing items, party size and where this map sells things, on arrival.
 - [Untalked people in gym](untalked-in-gym-v1.html) — people on a gym map not talked to this run, first in the result.
 - [Gym type gap, last message](type-gap-team-last-message-v1.html) — the same gym type block repeated as the request's final message.
+- [Instruction memory cap](instruction-memory-cap-v1.html) — the OBSERVED INSTRUCTION MEMORY block held at 16,000 characters, whole episodes chosen by game memory.
 
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
 - [Goal review repair feedback](goal-review-repair-feedback-v1.html) — Show the invalid field and real references.
@@ -330,5 +331,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
 
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
+
+- [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
 
 - [Bounded supervisor briefing](supervisor-briefing-bound-v1.html): story lead-up dialogue within 4,000 chars and the other-map untried list within 2,000, whole items; 429f T2566 note 66,297 → 12,429 chars.

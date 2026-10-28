@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M4 (human-authorized B1 repair; corrected round3 gates/review pending; M5 unstarted; activation/refresh authorized after readiness)
+## Current Milestone: M4 (human-authorized B1 repair GREEN; round3 review pending; M5 unstarted; activation/refresh authorized after readiness)
 
 ### Completed Milestones
 
@@ -528,3 +528,7 @@ Pre-gate dependency sync14:07EDT: destination-first guidance landed main9415839b
 Pre-gate sync14:22EDT: junk-filter seam landed f67571b7f; merged cleanly before our full gates. Own viewer current/B1 paths unchanged. Queue now junk postmerge test/refresh then snapshots; no heavy job until explicit START.
 
 START granted14:31EDT after junk-filter release; main6cffebd98 evidence-only afterf67571b7f synced before gates. Run corrected lint/63focused/48mutations/build/three-width unknown/reset/held/current/full coverage/vendor serially, release immediately on exit. No actual-root service/viewer activation in M4; remains M5.
+
+M4 B1 corrected GREEN on4e699a51c (main6cffebd98): lint94.10s,63focused2.00s,48actual per-case assertion-RED/restored mutations33.61s,build21.44s,unknown-to-native-facts3width6.39s,source/store reset4.31s,held-history2.29s,main3width8.83s,one coverage just-test151.03s,vendor0.21s PASS. Counts4874agent/2282viewer/4869Python/116gateway/3protectedcards. L/B/F agent99.20/92.68/97.48;viewer98.33/90.76/94.95;Python97.50/93.62/99.89;gateway99.12/96.22/100. No source hash mismatch after48 actual mutant restorations. CPU released immediately; no heavy job remains. No gate weakening or duplicate coverage run.
+
+Actual built unknown proof returns absent snapshot then actual native public turn7/failure9 at1280/1440/375, exact per-cell unknowns then exact native values through2more polls, zero page errors/nonGETs; six screenshots opened. Native fixture final source events all turn7 (no backward-turn fixture). Prior reset/held/multi-run proofs re-executed on this build, images opened:18total new/current screenshot files bound in m4-r3-visual-inspection.json. Existing1440party full-page shot retains scroll clipping; card design unchanged and separate protected checks all pass, no new visual approval claim. Human authorization m4-r3-human-authorization.json binds direct YES line9838 of native chat. Freeze human-authorized R3 B1-only correction after this worklog-only seal. M5/default wiring/current writer handoff/performance/activation/shared refresh still pending; no further activation approval required.

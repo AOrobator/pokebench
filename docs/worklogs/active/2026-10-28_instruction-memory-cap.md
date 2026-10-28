@@ -98,3 +98,9 @@ Every row is byte-identical between the built code and the reference. With the c
 | bundle | a702 T1301 | 60,336 | 15,868 | 23 / 112 |
 
 At T450, DAD's T312 advice is kept (it is the anchor) and WALLY's T311 is kept as a named target. At T1301, MR. STONE's T630 and MR. BRINEY's LETTER lines are kept. DAD's T312 is no longer marked done; it is left out under the budget only as a recency episode. Tests now cover dedup on/off × cap on/off: 18 cap tests, plus 48 across dedup and observed-instructions.
+
+## Activation (the operator 9:08 AM NY, relayed: "yes cap on in both arms, its corrrectness")
+
+- `experiments/feature-configs/current.json`: instruction-memory-cap-v1 added to `onInBoth` and set true in `features`. instruction-memory-yaml-v1 stays off and is not part of this approval.
+- `just fixed-run check` definition sha256 is unchanged for the four `featureRecipe: "current"` definitions (bundle-v-control-2h e19bbcdf…, bundle-v-control e4db35e3…, glm53-flash-4h da141d94…, hyperqwen-control-3h b4800f6e…). The feature recipe file's sha256 changes (see the next line), so each of these launches needs the operator's `just fixed-run approve` against the new recipe.
+- current.json sha256 c957d950b1e869f7… → 27d3b4d02db0546c…

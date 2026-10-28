@@ -149,6 +149,14 @@ Round 4, frozen head 72f0a62f8 (cumulative sha256 4fede48b…2bc5; delta ff2210e
 Round 5, frozen head e1f895f4d (cumulative 69e7d697…1282; delta e78603c7…0be0a2), Codex only:
 - Codex gpt-5.6-sol: VERDICT: BLOCKING. A trainer win outside the `_TRAINER_` name pattern (RIVAL_BATTLE_WON) counted. ACCEPTED: every battle won is excluded (`_TRAINER_`, `…_DEFEATED`, `…_WON`), so ROXANNE_DEFEATED no longer counts either. a702's Dad line now retires on RUSTBORO_GYM_COMPLETE, in the same turn (578). A new test covers JOSE, the rival and ROXANNE, and reverting the pattern turns it red. The feature copy and the explainer now say "battle won".
 
+Round 6, frozen head 444af97f0 (cumulative sha256 634845a6…ca32b):
+- Codex gpt-5.6-sol: VERDICT: LGTM, after a whole-contract pass: retirement needs strict seq order, a post-line entry into every resolved place, and a later observed story milestone that is not a battle, not measurement-only and not optional.
+- Claude (opus subagent, delta since its round-3 LGTM, 9db76d56…0510514): VERDICT: LGTM, with its own whole-contract pass.
+- Fallback (sonnet subagent, same delta): VERDICT: LGTM.
+- All three lanes are LGTM on 444af97f0. Grok is out of Cursor usage, so the Claude+GPT+fallback roster applies. Non-blocking: battle wins are recognised by a name-pattern heuristic (conservative direction).
+- Operator observation (Claude lane): every extended milestone is measurement-only, so this switch retires lines only on base milestones, the last of which is ROCK_TOMB_RECEIVED. Stone's Dewford line can never retire under it. This is the open question to the operator.
+- NOT LANDED: held by the coordinator pending the operator's answer on extended steps. Before landing: sync with main (a newer switch, scene-followup-prompt-v1, shifts the absolute registry positions in the tests), run full `just test` in a CPU window, and decide activation (coordinator confirmation).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

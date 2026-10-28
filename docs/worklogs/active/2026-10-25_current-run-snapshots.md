@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M4 (round2 new blocker; direct human scope checkpoint pending; M5 unstarted; activation/refresh authorized after readiness)
+## Current Milestone: M4 (human-authorized B1 repair; corrected round3 gates/review pending; M5 unstarted; activation/refresh authorized after readiness)
 
 ### Completed Milestones
 
@@ -518,3 +518,5 @@ Direct human YES clears round-cap checkpoint for B1 only, followed by original f
 B1 renderer correction: distinguish absent current source header from merely incomplete totals, keep exact unknown turn/failure limit until a source snapshot arrives. Existing legacy mode/default limit and partial snapshots with known turn/header remain unchanged.62 focused App/current/controls tests PASS1.37s before supplemental partial-header/legacy guards; no full gate claim. Same controls/App/test seam only, human-authorized B1 correction. Sync newer main before final gates.
 
 M4 B1 sync: merged latest main2d8283698 without conflicts (109 upstream files, no replacement of current-browser/SQLite/API service). Existing source/schema/graded paths preserved. Corrected final gates/review will bind this dependency set; earlier gates remain historical. No active gameplay/8790 action.
+
+B1 correction supplemental guards/synced current/App/controls63 focused tests PASS1.25s. Prepared48 unique exact-one-target mutations (four narrow B1 value/source-header/current-mode operands added), not yet executed. Prepared actual built-browser three-width unknown-to-native-turn7/failure9 proof with two later polls. Gate runner includes fresh build/native unknown/reset/held/two-run proofs; waits explicit CPU START at queue position5. No new source since synced6e0b853ed and no runtime action.

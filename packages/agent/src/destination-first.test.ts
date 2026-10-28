@@ -6,6 +6,8 @@ import {featuresOf,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type Feat
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";
+import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {SEMANTIC_REMINDER} from "./navigate-first.js";
 import {IN_GAME} from "../test-support/events.js";
 import {DESTINATION_POLICY,DESTINATION_RECOVERY,withDestinationFirst} from "./destination-first.js";
 
@@ -104,4 +106,37 @@ it("respects contextual tool availability and keeps local/visited map limits",()
  expect(local).toContain('If navigate_to stops with "command limit"');
  const visited=playSystemPrompt({...ON,"full-map-navigation-v1":false,"visited-terrain-navigation-v1":true},null);
  expect(visited).toContain("unknown cells are not routes");
+});
+
+const context={objects:[],triggers:[],dialogue:null};
+const nonFieldStates:readonly (readonly [string,GameStateSnapshot])[]=[
+ ["not started",{...field,started:false}],
+ ["other screen",{...field,screen:"battle"}],
+ ["battle flag",{...field,in_battle:true}],
+ ["active interface",{...field,active_ui:{phase:"clock_adjustment",selected:null,ready:true,controls:"LEFT/RIGHT",diagnostic:null,value:null,details:{}}}],
+ ["field lock",{...field,field_controls_locked:true}],
+ ["dialogue",{...field,world_context:{...context,dialogue:"Wait!"}}],
+ ["printing message",{...field,world_context:{...context,message:{phase:"printing",cursor:1,ready:false}}}],
+ ["field script",{...field,world_context:{...context,field_activity:{phase:"script_running",owner:1}}}],
+];
+it.each(nonFieldStates)("preserves schema-valid %s results with every other field guard satisfied",async(_name,state)=>{
+ expect(parseGameState(state)).toBe(state);
+ const original={...result,details:{state}};
+ let calls=0;
+ const tool={...fake("press"),execute:()=>{calls++;return Promise.resolve(original);}};
+ const wrapped=withDestinationFirst([tool,fake("navigate_to_target")],ON);
+ expect(await must(wrapped[0]).execute("guard",{buttons:["UP"]})).toBe(original);
+ expect(calls).toBe(1);
+});
+it("suppresses the old third-press reminder through the production factory only when ON",async()=>{
+ for(const enabled of [false,true]){
+  const tools=playGameTools([fake("press"),fake("observe")],{...ON,[ID]:enabled},{read:()=>Promise.resolve(field)},recorder);
+  const press=must(tools.find(t=>t.name==="press"));
+  for(let turn=1;turn<=3;turn++){
+   const r=await press.execute(String(turn),{buttons:["UP"]});
+   const text=r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
+   expect(text.includes(SEMANTIC_REMINDER)).toBe(!enabled&&turn===3);
+   expect(text.includes(DESTINATION_RECOVERY)).toBe(enabled);
+  }
+ }
 });

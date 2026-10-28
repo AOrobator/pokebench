@@ -827,14 +827,18 @@ def test_assistant_terminal_request_resends_no_reply(tmp_path: Path) -> None:
     }
     raw = json.dumps(body).encode()
     assert cg.parse_request(raw).current_turn == ()
-    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True})
+    gateway = make(
+        tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True}
+    )
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
     assert "MY OWN REPLY" not in text and "[assistant" not in text
 
 
 def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path) -> None:
-    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True})
+    gateway = make(
+        tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True}
+    )
     raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
@@ -847,7 +851,9 @@ def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path)
 
 
 @pytest.mark.parametrize("features", [None, {}, {"gateway-current-turn-v1": False}])
-def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(tmp_path: Path, features: object) -> None:
+def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(
+    tmp_path: Path, features: object
+) -> None:
     gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features=features)
     raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
     request = cg.parse_request(raw)

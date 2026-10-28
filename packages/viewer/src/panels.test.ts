@@ -1770,3 +1770,10 @@ it("links citation evidence to its exact tracked explainer without inventing his
  }
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("because.quote");
 });
+
+it("links complete Claude turn delivery to the tracked explanation",()=>{
+ const id="gateway-current-turn-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:[id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

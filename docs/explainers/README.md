@@ -319,3 +319,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
 - [Goal review repair feedback](goal-review-repair-feedback-v1.html) — Show the invalid field and real references.
 - [Scene follow-up](scene-followup-prompt-v1.html): once-only SUPERVISOR note after an unexplained scene.
+
+- [Complete Claude turn delivery](gateway-current-turn-v1.html): keep the current observation, screenshot and trailing harness blocks together; recorded switch, exact legacy OFF.

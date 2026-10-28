@@ -526,7 +526,11 @@ def _screenshot_note(paths: Sequence[Path]) -> Callable[[int], str]:
 
 
 def session_prompt(
-    request: ChatRequest, screens: Sequence[Sequence[Path]], first: bool, tools_changed: bool
+    request: ChatRequest,
+    messages: Sequence[Message],
+    screens: Sequence[Sequence[Path]],
+    first: bool,
+    tools_changed: bool,
 ) -> Prompt:
     """This turn's harness messages; screenshots appear as file paths to Read."""
     system = f"{request.system}\n\n{REPLY_CONTRACT}\n\n{SESSION_CONTRACT}"
@@ -536,7 +540,7 @@ def session_prompt(
     else:
         names = ", ".join(t.name for t in request.tools)
         blocks.append({"type": "text", "text": f"Harness tools unchanged: {names}."})
-    for message, paths in zip(request.current_turn, screens, strict=True):
+    for message, paths in zip(messages, screens, strict=True):
         blocks.extend(_render(message, _screenshot_note(paths)))
     blocks.append({"type": "text", "text": "Reply now with the one JSON object."})
     return Prompt(system, _merge_text(blocks))
@@ -720,6 +724,23 @@ class RunBinder:
             return self.run_id
         return None
 
+    def current_turn_enabled(self) -> bool:
+        """Read the actual recorded FeatureSet for this bound run, never today's defaults."""
+        run = self.resolve()
+        if run is None:
+            return False
+        path = self.runs_root / run / "events.jsonl"
+        if not path.exists():
+            return False
+        with path.open(encoding="utf8") as handle:
+            start = _obj(json.loads(handle.readline()), "run_start")
+        evaluation = _obj(start.get("evaluation") or {}, "evaluation")
+        features = _obj(evaluation.get("features") or {}, "features")
+        enabled = features.get("gateway-current-turn-v1", False)
+        if not isinstance(enabled, bool):
+            raise GatewayError("gateway-current-turn-v1 must be a boolean")
+        return enabled
+
     def _started_here(self, path: Path) -> bool:
         try:
             if path.stat().st_mtime < self.started:
@@ -865,9 +886,9 @@ class Gateway:
                 if self.holding:
                     self.control("resume")
 
-    def _save_screens(self, seq: int, request: ChatRequest) -> list[list[Path]]:
+    def _save_screens(self, seq: int, messages: Sequence[Message]) -> list[list[Path]]:
         screens: list[list[Path]] = []
-        for index, message in enumerate(request.current_turn):
+        for index, message in enumerate(messages):
             paths: list[Path] = []
             for part in message.parts:
                 if part.image is None:
@@ -880,9 +901,18 @@ class Gateway:
         return screens
 
     def _first_prompt(self, seq: int, request: ChatRequest) -> Prompt:
-        screens = self._save_screens(seq, request)
+        enabled = self.config.mode == "session" and self.binder.current_turn_enabled()
+        messages = request.current_turn if enabled else request.dialogue[-2:]
+        screens = self._save_screens(seq, messages)
         if self.config.mode == "stateless":
             return stateless_prompt(request)
+        self.event(
+            "session_input",
+            request=seq,
+            current_turn=enabled,
+            messages=len(messages),
+            run_id=self.binder.run_id,
+        )
         bound = self.binder.run_id
         known = self.session.run_id
         # A session belongs to exactly one run; unknown ownership never carries over, except
@@ -901,7 +931,7 @@ class Gateway:
         sha = hashlib.sha256(_tool_listing(request.tools).encode()).hexdigest()
         changed = sha != self.session.tools_sha
         self.session.tools_sha = sha
-        return session_prompt(request, screens, self.session.session_id is None, changed)
+        return session_prompt(request, messages, screens, self.session.session_id is None, changed)
 
     def _spec(self, seq: int, attempt: int, prompt: Prompt) -> CallSpec:
         bridge = self.config.bridge

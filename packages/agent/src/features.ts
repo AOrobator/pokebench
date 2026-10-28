@@ -291,6 +291,7 @@ export const SWITCHABLE_FEATURES = [
   "scene-followup-prompt-v1",
   "pokenav-short-list-v1",
   "menu-option-honest-refusal-v1",
+  "gateway-current-turn-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -702,6 +703,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("scene-followup-prompt-v1", "guidance", "SCENE FOLLOW-UP", "script-line-presence-v1", "Default off; bundle treatment (the operator 2026-10-27). When one game-tool call auto-advanced at least 2 dialogue pages with no speaker and other people on screen, the on-screen people changed between those pages, the player stayed on the same tile, control returned to the field, and nobody in it addressed the player by name, the next request gets one SUPERVISOR message. It quotes those pages whole and lists who was on screen (from the game's own object list), then asks the model to talk to the nearest of them before older plans. It joins each request until the model has answered one that carried it, then never returns. Off: no message; the request is unchanged."),
   on("pokenav-short-list-v1", "observation", "POKéNAV SHORT LISTS", null, "Default off. The PokéNav list reader accepts a list shorter than its window: the game keeps every visible row (8 for Match Call) even when fewer entries exist (pokenav_list.c CopyPokenavListTemplate), so a one-contact Match Call list read as a state coverage error and hid the Match Call controls, press results and call text. On: the list, cursor, contact and call text are read when 1 <= length, row < min(rows, length) and top + row < length, and a call's message is reported only once the message box prints it from gStringVar4 (while the game prints its calling dots the buffer still holds earlier text, such as \"Please select the POKéNAV.\", so no message is reported). Off: lists shorter than the window stay a state coverage error (invalid PokeNav list length/cursor/item size)."),
   on("menu-option-honest-refusal-v1", "guidance", "HONEST MENU REFUSAL", "menu-option-tool-v1", "Default off. When select_menu_option is called while an open menu is one it does not support (for example the PokéNav menu), its result says it supports only the START menu and field multichoice menus, names the current menu phase and says to use press. Off: the refusal says only that the requested menu is not currently ready and verified."),
+  on("gateway-current-turn-v1", "observation", "COMPLETE CLAUDE TURN DELIVERY", null, "Correctness fix, on in both current arms; omitted historical presets stay off. A compatible Claude session gateway reads this run’s recorded switch and forwards every message after the latest assistant reply, keeping the tool result, screenshots and trailing memory or supervisor blocks together. Saves screenshot handles from that same span and records session_input evidence. Does not affect other model gateways or choose actions. Off: forwards and saves only the last two non-system messages, preserving the legacy prompt and screenshot indices."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1071,6 +1073,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("scene-followup-prompt-v1"),
     ...when("pokenav-short-list-v1"),
     ...when("menu-option-honest-refusal-v1"),
+    ...when("gateway-current-turn-v1"),
   ];
 }
 

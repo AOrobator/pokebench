@@ -26,21 +26,21 @@ Local deterministic data/readers only; bound template matching to whole observed
 ## Milestones
 **M1 — Contract and RED**
 - [x] Audit cap/observed-memory/native milestone owner and authoritative pret/specifieddata. Record ambiguities with coordinator while proceeding independently.
-- [ ] Unit ON/OFF/near-miss perR1–R6; operator decisions; anchor; useful/hintlabelcoverage; capfill/replay/factory/defaults, nativeflag regression.
+- [x] Unit ON/OFF/near-miss perR1–R6; operator decisions; anchor; useful/hintlabelcoverage; capfill/replay/factory/defaults, nativeflag regression.
 - [x] Run targetedRED and COMMIT before implementation: bf72308d3.
 **M2 — GREEN in existing owners**
-- [ ] Generate sanitized pret label/template/lexicon data with pinned reproducibility checks.
-- [ ] Implement classifier/cap integration/defaultOFF plumbing, nativeHM06measurement/retirement, no new runtime owner beyond approvedmodule.
-- [ ] TargetedGREEN and performed per-invariant operandmutations/restoration; COMMIT.
+- [x] Generate sanitized pret label/template/lexicon data with pinned reproducibility checks.
+- [x] Implement classifier/cap integration/defaultOFF plumbing, nativeHM06measurement/retirement, no new runtime owner beyond approvedmodule.
+- [x] TargetedGREEN and performed per-invariant operandmutations/restoration; COMMIT.
 **M3 — Evidence, documentation and review**
-- [ ] Seven authorized offline replay cuts: exactOFF, ONchars/kept/dropped perrule and preserved leads; distinguish cap-refill bytes from shrink-only metric.
-- [ ] Source/audit nativeflag + archive readback if available; report unavailable historicalfield explicitly.
-- [ ] Explainer/theme/check/defaultfeaturecard/ledger visibility in headlessdesktopphone; preserve trainer baselines and closedtimeline.
-- [ ] Request CPUwindow; build/lint/fullcoverage/vendor/cardgates; no inference review lanes on localGPU.
-- [ ] Principles PB1–PB13, frozenboundary, Claude/Grok-or-documentedfallback/GPTread-onlyreview and synthesis; COMMIT evidence.
+- [x] Seven authorized offline replay cuts: exactOFF, ONchars/kept/dropped perrule and preserved leads; distinguish cap-refill bytes from shrink-only metric.
+- [x] Source/audit nativeflag + archive readback if available; report unavailable historicalfield explicitly.
+- [x] Explainer/theme/check/defaultfeaturecard/ledger visibility in headlessdesktopphone; preserve trainer baselines and closedtimeline.
+- [x] Request CPUwindow; build/lint/fullcoverage/vendor/cardgates; no inference review lanes on localGPU.
+- [x] Principles PB1–PB13, frozenboundary, Claude/Grok-or-documentedfallback/GPTread-onlyreview and synthesis; COMMIT evidence.
 **M4 — Landing under corrected authorization**
-- [ ] After gates and Claude + GPT + distinct fallback LGTM under the coordinator-attested Grok waiver, join the board and land ff-only. No fresh the operator OK is required for default-OFF landing.
-- [ ] Keep activation in every arm unchanged; The operator owns activation.
+- [x] After gates and Claude + GPT + distinct fallback LGTM under the coordinator-attested Grok waiver, join the board and land ff-only. No fresh the operator OK is required for default-OFF landing.
+- [x] Keep activation in every arm unchanged; The operator owns activation.
 - [ ] Archive only withoperatorapproval.
 
 ## Closing the Loop
@@ -54,7 +54,7 @@ Tests reach production ObservedInstructions/cap/factory and exact rendered paylo
 - Analysis signals_v4 contains curated direction/gating phrases aswell as pret-generated names; generation must document pretprovenance and not import walkthroughjudgment text.
 
 ## Multi-Model Review Log
-Pending.
+Round1 frozen BASE9415839b9d1c30646b60f3260c9ffed55be11120 HEADf67571b7f757101c4382d24a8e1ef2dbb4b5c3cf canonicalbinarydiffSHA25621b3b457b3f6e9aa32d51aef0ff78144da2f50c65bcfe032c27ddb290536c038. PrinciplesPB1–PB13 evidence supplied. Claude CLI standaloneplanmode LGTM; independent nohistoryGPT /root/junk_filter_gpt_review LGTM. FreshGrokCursor attempt exit1 ActionRequiredErroroutofusage; notapproval. Coordinator-attestedGrokwaiver and standingfallback used: fresh nohistorygpt-6.1-sol /root/junk_filter_fallback_sol LGTM andfreshgpt-6-astra /root/junk_filter_fallback_astra LGTM. Reducedvendor diversityexplicit. AllreviewersindependentlyreproduceddigestandcleanHEAD/statuspre/post; implementerrechecked. Noin-scopeblockersoracceptedfixes. Fulloriginalanswersinnativesession; copies/synthesis runs/junk-filter/review. Claude nonblockings conservativeglobalprotectedtext,2Freceiptmapedge and speculativeexistingtrim/regexcost remainfollowups,notscopeexpansion.
 
 ## Boy Scout Log
 No adjacent cleanup.
@@ -99,3 +99,12 @@ M3 final code verification on91f7e4a59 (main9415839b9): lint PASS86.97s, build P
 Replay evidence caveat: initialmissingGLMledger failure stoppedfirstreplay. V2correctedonlyofflineboundary; secondgatedriveraccidentallyreusedlogpath andoverwrotetheoriginalreplaylog/receipt. Originalfirst5cutartifactsstillpreserved; reconstructedinitialreceipt/errorfrompreservedtooloutputareexplicitlylabelled recovered, notoriginalbytes. Currentv2reportandfulltestlogsareoriginalcurrentreceipts. No source or historicalrecording rewritten.
 
 Ownedheadless1280/1440/375proof clicksfeaturecard→explainer andActivityHistory→rawdeliveredledger; allPASS noJSerrors. Screenshotsinspected: phoneflowdiagramwascrushedbytheme min-widthoverride; changedonlyexplainerflexdirectiontostackonphone. Refreshscreenshotsbeforesealing. Synthpreviewinitiallylackedcardart; linkedapprovedcanonicalartread-onlyintoonedscratchroot. No trainerdesign/baselinechanges. ActivationOFF,landingpendingreview.
+
+M4LANDED: boardnumber1(actualthread 00000000-0000-4000-8000-1ca07025f752), canonicalmainclean9415839b9→f67571b7f757101c4382d24a8e1ef2dbb4b5c3cf ff-only at14:22Eastern. SwitchdefaultOFF,currentrecipeunchanged; activationremains the operator-only.
+
+Post-mainenvironmentfailure preserved: initialjusttest usedcanonicalstaleagentdist, yielding19viewertestfailures unknownjunkfeature/schema. No sourcefix. Explicitjustbuild onmergedmain followedbyfulljusttest PASS152.18s (agent4874/viewer2239/Python4869/gateway116,all>=90floors,and3protectedcardwidths). Ownbranchfullgatesremainindependentoriginalproof.
+
+Post-mainliveproof: coordinatorSTART separateCPUwindow, singlejustviewer-main underfcntlLOCK_EX /private/tmp/pokebench-latest-main-prepare.lock, cleanruntime ~/.cache/pokebench-viewer-junk-filter-f67571b7. Actualruntimebuildstampf67571b7f,dirtyfalse; refreshPASS,no secondrestart. PreservedPIDs96582/98262/98398, none lost. Merged8790realheadless1280/1440/375featurecard→explainerPASS,noJSerrors,screenshotsopened. Existing9c88headercorrectlyNOTRECORDED; /api/next-run effectivejunk=false. /api/workbenchlive9c88atT612, screenshotT613provescontinuedprogress; nolderviewerbuildproblem, onlyinitialrecordingsloadingmessage. Noactiveplayer/server/prompt/configmutation. FullCPU RELEASEsentafterproof.
+
+Finalproofartifact runs/junk-filter/post-main plus source/replay/reviewreceiptsintheownedworktree. Localreport http://127.0.0.1:8791/instruction-junk-filter/index.html; targetcopy atcanonicalruns/mockups/instruction-junk-filter/index.html. Reportisofflinecontextselectionevidence,notgameplaybenefit. Thisoneevidence-onlycommit touchesonlydocs/worklogs asapprovedlandingexception; archiveunauthorized.
+Final evidence recorded 2026-10-28T14:30:41.891846-04:00

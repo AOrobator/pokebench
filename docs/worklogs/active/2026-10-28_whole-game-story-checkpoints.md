@@ -100,3 +100,6 @@ COMMIT: integrate landed junk seam and fix fixture lint.
 
 Post-integration targeted verification:16 source/switch/whole-game tests pass. Repeated all five performed mutation/restoration operands on current source: factory whole-game binding, wrong native milestone binding, printed-name delivery, pret cache, and event validation each fails the intended assertion and restores exact bytes/GREEN. New receipts final-mutations/*.json and logs; original receipts preserved. Four source-correct stream JSON outputs (58 rows each) are byte-identical to pre-integration report inputs; receipt replay-after-junk/stream-byte-parity.json. An initial optional report-export attempt lacked its new output directory and failed3 writeFileSync calls; creating the directory fixed export, all8 tests then passed. This was evidence-path setup, no source or test relaxation. Full gates queued after snapshots; no external reviewer launched yet.
 COMMIT: record current-source mutations and four-mode stream parity after junk integration.
+
+Pre-gate evidence-only main sync 6cffebd98d79755f91e6b7c55ac0e3c0dbf50e49: only the junk-filter worklog changed relative f67571b7f; production tree unchanged. Targeted lint for own merged production/fixture files passes. Final gate base is this main pin.
+COMMIT: sync landed junk-filter proof before re-gates.

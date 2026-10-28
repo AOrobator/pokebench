@@ -233,6 +233,14 @@ describe("classifyTrial", () => {
     expect(laneBackoff(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "budget" }); }))).toBe(false);
   });
 
+  it("keeps a mismatched trial's own end reason, so an operator-ended mismatch is censored like any other", () => {
+    const stopped = classify((log) => { log.add(0, { ...goodStart, model: { ...goodStart.model, id: "other" } }); log.add(20, { ...end, reason: "operator_abort", wall_ms: 20 }); });
+    expect(stopped).toMatchObject({ valid: false, endReason: "operator_abort", wallMs: 20 });
+    expect(stopped.reason).toMatch(/^run_start does not match the plan: /);
+    const died = classify((log) => { log.add(0, { ...goodStart, model: { ...goodStart.model, id: "other" } }); });
+    expect(died).toMatchObject({ valid: false, endReason: null });
+  });
+
   it("is invalid when the run did not run the planned configuration", () => {
     const wrong = classify((log) => { log.add(0, { ...goodStart, isolation: { ...goodStart.isolation, port: 9000 }, model: { ...goodStart.model, id: "other" } }); log.add(20, { ...end, reason: "budget" }); });
     expect(wrong).toMatchObject({ valid: false, reason: "run_start does not match the plan: port 9000 (planned 8071); model other (planned /models/q.gguf)" });

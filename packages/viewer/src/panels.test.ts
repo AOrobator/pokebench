@@ -1770,3 +1770,10 @@ it("links citation evidence to its exact tracked explainer without inventing his
  }
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain("because.quote");
 });
+
+it("links unique instruction memory to its tracked explainer",()=>{
+ const id="instruction-memory-dedup-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("Unique instruction memory");expect(html).toContain("OFF");expect(html).toContain("ON");
+});

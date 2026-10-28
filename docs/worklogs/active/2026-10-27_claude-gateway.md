@@ -87,3 +87,9 @@ The operator, 2026-10-27 ~6:30 PM ET (relayed): leave the live runs 36b5 and 76c
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
 - [ ] Land ff-only
 - M4 review (packet 5ab4bad6, head 4acd3f050): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM. Synced with main (docs only); the packet stayed byte-identical. Gateway tests 69 pass (99.29/97.01/100), ruff clean. Landed ff-only as 94f1b29a3 (2026-10-27 ~6:40 PM ET). Not applied to 36b5 or 76cd: The operator chose to leave the live runs untouched. Recorded difference: the Claude runs compact near their 1M window, while Astra's Codex sessions reported model_context_window 258400 (~/.codex/sessions, 10/25).
+
+## M5 — `--continue-session-from` (continuation runs keep the parent's Claude session)
+
+The operator, 2026-10-27 ~9:09 PM ET, via Codex (relayed by the coordinator): continue the stopped Opus run 3642 from its latest checkpoint on the current bundle, keeping the original run and labeling the continuation. To keep Opus's compacted memory, the continuation's gateway reuses 3642's bridge folder, because Claude Code finds a session by its cwd's project folder. The new option lets the newly bound run adopt a stored session only when that session's run_id equals the named parent run. It's logged once as `session_continued`. Any other mismatch still resets the session. The option is recorded in gateway_start.
+- [x] Option, tests (72 pass; 99.29/97.03/100), ruff and mypy --strict clean
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback

@@ -189,6 +189,8 @@ class Config:
     call_timeout: float = CALL_TIMEOUT_SECONDS
     # Claude Code's auto-compact window in tokens; None keeps its default (the model's window).
     autocompact: int | None = None
+    # A stopped run whose Claude session a continuation run may adopt (memory carries over).
+    continue_from: str | None = None
 
     @property
     def advertised(self) -> str:
@@ -807,6 +809,7 @@ class Gateway:
             model=self.config.model,
             effort=self.config.effort,
             autocompact=self.config.autocompact,
+            continue_from=self.config.continue_from,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -874,8 +877,15 @@ class Gateway:
             return stateless_prompt(request)
         bound = self.binder.run_id
         known = self.session.run_id
-        # A session belongs to exactly one run; unknown ownership never carries over.
-        if self.session.session_id is not None and bound != known:
+        # A session belongs to exactly one run; unknown ownership never carries over, except
+        # the named parent run's session, adopted once by its bound continuation.
+        continuing = known is not None and known == self.config.continue_from and bound is not None
+        if self.session.session_id is not None and bound != known and continuing:
+            self.event(
+                "session_continued", old_run=known, run_id=bound, session=self.session.session_id
+            )
+            self.session.run_id = bound
+        elif self.session.session_id is not None and bound != known:
             self.event(
                 "session_reset", old_run=known, run_id=bound, old_session=self.session.session_id
             )
@@ -1161,6 +1171,11 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         type=_autocompact,
         help="Claude Code auto-compact window, 100k-1M tokens (default: the model's window)",
     )
+    parser.add_argument(
+        "--continue-session-from",
+        metavar="RUN_ID",
+        help="a stopped run whose session (in this --bridge) the newly bound run continues",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1180,6 +1195,7 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         backoff=args.backoff,
         keepalive=args.keepalive,
         autocompact=args.autocompact,
+        continue_from=args.continue_session_from,
     )
     return config, args.port
 

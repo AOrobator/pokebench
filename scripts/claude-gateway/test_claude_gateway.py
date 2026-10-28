@@ -732,3 +732,61 @@ def test_autocompact_argument_rejects(tmp_path: Path, text: str) -> None:
     ]
     with pytest.raises(SystemExit):
         cg.parse_args([*base, "--autocompact", text])
+
+
+def test_continuation_adopts_the_named_parent_session(tmp_path: Path) -> None:
+    gateway = make(
+        tmp_path, [{"result": GOOD, "cost": 0.05}, {"result": GOOD, "cost": 0.08}], mode="session"
+    )
+    assert gateway.answer(request(1))[1].reply is not None
+    parent = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    (tmp_path / "runs" / "run-b").mkdir()
+    child = cg.Gateway(cg.replace(gateway.config, run_id="run-b", continue_from="run-a"))
+    assert child.answer(request(2))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and argv[argv.index("--resume") + 1] == parent["session_id"]
+    state = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    assert state["session_id"] == parent["session_id"] and state["run_id"] == "run-b"
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    continued = [e for e in events if e["event"] == "session_continued"]
+    assert continued == [{**continued[0], "old_run": "run-a", "run_id": "run-b"}]
+    assert not any(e["event"] == "session_reset" for e in events)
+    assert [e["continue_from"] for e in events if e["event"] == "gateway_start"] == [None, "run-a"]
+    assert round(float(str(jsonl(tmp_path / "bridge" / "calls.jsonl")[-1]["cost_usd"])), 6) == 0.03
+    again = cg.Gateway(child.config)
+    assert again.answer(request(3))[1].reply is not None
+    assert "--resume" in fake_calls(tmp_path)[-1]["argv"]  # type: ignore[operator]
+    assert (
+        sum(e["event"] == "session_continued" for e in jsonl(tmp_path / "bridge" / "gateway.jsonl"))
+        == 1
+    )
+
+
+def test_continuation_never_adopts_another_runs_session(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    assert gateway.answer(request(1))[1].reply is not None
+    (tmp_path / "runs" / "run-b").mkdir()
+    child = cg.Gateway(cg.replace(gateway.config, run_id="run-b", continue_from="run-x"))
+    assert child.answer(request(2))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and "--resume" not in argv
+    assert [e["event"] for e in jsonl(tmp_path / "bridge" / "gateway.jsonl")].count(
+        "session_reset"
+    ) == 1
+
+
+def test_continue_session_argument(tmp_path: Path) -> None:
+    base = [
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--game-port",
+        "2",
+    ]
+    assert cg.parse_args([*base, "--continue-session-from", "r0"])[0].continue_from == "r0"
+    assert cg.parse_args(base)[0].continue_from is None

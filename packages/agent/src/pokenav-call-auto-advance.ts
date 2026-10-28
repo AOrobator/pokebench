@@ -45,6 +45,7 @@ export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:F
   const initiallyForced=forcedMenu(state)||(nativeNav(state)&&(state.active_ui?.details?.["pokenav_mode"]===1||state.active_ui?.details?.["pokenav_mode"]===2));
   if(!initiallyForced&&!(nativeNav(state)&&state.active_ui?.phase==="pokenav_match_call_call"))return result;
   const began=clock.now(),map=JSON.stringify(state.map_id),buttons:Button[]=[],pages:DialoguePage[]=[];
+  let pending:Button|null=null;
   let tutorial=initiallyForced,contact:string|null=null,waitingSince=clock.now(),reason:string,stop:Episode["stop"]="menu";
   const decide=(s:GameStateSnapshot):Decision=>{
    const ui=s.active_ui,d=ui?.details;
@@ -58,7 +59,7 @@ export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:F
    }
    if(!nativeNav(s)||d==null)return {kind:"stop",reason:"PokéNav closed or another interface took control"};
    const mode=d["pokenav_mode"],callback=d["input_callback"];
-   if((mode!==0&&mode!==1&&mode!==2)||!Number.isInteger(d["owner_task"])||(d["pokenav_task_state"]!==3&&d["pokenav_task_state"]!==4))return {kind:"stop",reason:"PokéNav owner or mode is unverified"};
+   if((mode!==0&&mode!==1&&mode!==2)||!Number.isInteger(d["owner_task"])||(d["pokenav_task_state"]!==3&&d["pokenav_task_state"]!==4&&!(d["pokenav_task_state"]===2&&ui?.phase==="pokenav_match_call_call"&&callback==="0x081CACF9")))return {kind:"stop",reason:"PokéNav owner or mode is unverified"};
    if(mode===1)tutorial=true;
    if(ui?.phase==="pokenav_match_call_call"&&callback==="0x081CACF9"){
     const identity=JSON.stringify([d["header_id"],d["is_special_trainer"],d["trainer_name"]]);
@@ -89,7 +90,7 @@ export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:F
    }
    return {kind:"stop",reason:"unexpected PokéNav interface"};
   };
-  const emit=(why:Episode["stop"],detail:string)=>ports.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool:tool.name as Episode["tool"],requested:[],sent:[],dropped:[],auto_presses:buttons.length,pokenav_buttons:buttons,pages,stop:why,detail,duration_ms:Math.max(0,Math.round(clock.now()-began))});
+  const emit=(why:Episode["stop"],detail:string)=>ports.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool:tool.name as Episode["tool"],requested:[],sent:[],dropped:[],auto_presses:buttons.length,pokenav_buttons:buttons,...(pending===null?{}:{pokenav_pending_button:pending}),pages,stop:why,detail,duration_ms:Math.max(0,Math.round(clock.now()-began))});
   try{for(;;){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    const decision=decide(state);
@@ -105,14 +106,15 @@ export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:F
     await clock.sleep(limits.pollMs);state=await ports.state.read(signal);continue;
    }
    if(buttons.length>=limits.presses){stop="press_cap";reason="PokéNav automatic input press cap";break;}
+   pending=decision.button;
    try{
     result=await press.executeChecked(id,{buttons:[decision.button]},fresh=>{
      if(fresh===undefined)throw new Changed();
      const actual=decide(fresh);
      if(actual.kind!=="press"||actual.button!==decision.button||actual.key!==decision.key)throw new Changed();
     },signal);
-   }catch(error){if(!(error instanceof Changed))throw error;reason="PokéNav state changed before input; no further button sent";break;}
-   buttons.push(decision.button);state=stateOf(result);ports.recorder.recordState(state);waitingSince=clock.now();
+   }catch(error){if(!(error instanceof Changed))throw error;pending=null;reason="PokéNav state changed before input; no further button sent";break;}
+   buttons.push(decision.button);pending=null;state=stateOf(result);ports.recorder.recordState(state);waitingSince=clock.now();
   }
   }catch(error){emit("error",`PokéNav automatic input interrupted: ${error instanceof Error?error.message:String(error)}`);throw error;}
   const event=emit(stop,reason);

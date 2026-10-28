@@ -1816,3 +1816,10 @@ it("shows the exact PokéNav automatic buttons and links its feature explainer",
  const card=doc.querySelector('[data-feature="pokenav-call-auto-advance-v1"]');
  expect(card?.textContent).toContain("ON");expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/pokenav-call-auto-advance-v1.html");
 });
+
+it("marks a PokéNav input with an unknown effect explicitly in history and raw inspection",()=>{
+ const log=new Log();log.add(0,START);
+ const event=log.add(100,{type:"dialogue_auto_advance",turn:1,tool_call_id:"uncertain",tool:"observe",requested:[],sent:[],dropped:[],auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A",pages:[],stop:"error",detail:"observation503 after action accepted",duration_ms:1});
+ expect(eventText(event,view(log))).toContain("no confirmed inputs · A may have executed; outcome unconfirmed");
+ expect(inspector(event)).toContain("pokenav_pending_button");
+});

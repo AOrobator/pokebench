@@ -80,3 +80,23 @@ def test_native_calling_dots_wait_is_owned_and_not_stale_dialogue() -> None:
     assert ui is not None and ui.details is not None and ui.ready
     assert ui.details["call_text_state"] == "waiting"
     assert "message" not in ui.details
+
+
+@pytest.mark.parametrize("name", ["call", "call_text", "list_after_call"])
+def test_typescript_fixture_is_the_exact_native_production_json(name: str) -> None:
+    import gzip
+    import json
+    from pathlib import Path
+
+    from pokebench_env.readout import state_json
+    from tests.env.test_pokenav_short_list import MANIFEST
+
+    path = Path(__file__).parents[3] / "packages/agent/src/fixtures/pokenav-call-native.json.gz"
+    fixture = json.loads(gzip.decompress(path.read_bytes()))
+    actual = state_json(read_state(native(name), maps(), active_ui=True, off=a702_off(True) - {ID}))
+    # JSON transport owns tuple/list normalization, exactly as on the HTTP seam.
+    assert fixture["cases"][name]["state"] == json.loads(json.dumps(actual))
+    assert fixture["cases"][name]["raw"] == MANIFEST["cases"][name]
+    if name != "list_after_call":
+        assert actual["active_ui"]["details"]["pokenav_task_state"] == 2
+        assert actual["active_ui"]["details"]["call_text_state"] == "waiting"

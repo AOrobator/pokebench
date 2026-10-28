@@ -30,7 +30,7 @@ function nav(phase="pokenav_menu",selected="HOENN MAP",details:Record<string,str
 const contact={pokenav_menu_index:11,input_callback:"0x081CAB45",header_id:0,is_special_trainer:true,trainer_name:"MR. STONE",list_count:1,registered_count:1,selected_index:0,visible_trainer_names:["MR. STONE"]};
 const list=(mode=1)=>nav("pokenav_match_call","MR. STONE",{...contact,pokenav_mode:mode});
 const options=()=>nav("pokenav_match_call","CALL",{...contact,input_callback:"0x081CAC05",options:["CALL","CANCEL"],option_index:0});
-const call=(phase="waiting",mode=2)=>nav("pokenav_match_call_call","MR. STONE",{...contact,input_callback:"0x081CACF9",pokenav_mode:mode,call_text_state:phase,message:"MR. STONE: Hello! | See you again!"},phase!=="printing");
+const call=(phase="waiting",mode=2)=>nav("pokenav_match_call_call","MR. STONE",{...contact,input_callback:"0x081CACF9",pokenav_task_state:2,pokenav_mode:mode,call_text_state:phase,message:"MR. STONE: Hello! | See you again!"},phase!=="printing");
 const field=()=>({...base,screen:"overworld",active_ui:null,field_controls_locked:false});
 type Advance=Omit<BodyOf<"dialogue_auto_advance">,"type"|"turn">;
 function fixture(states:GameStateSnapshot[],on=true,production=false,config:{cap?:number;race?:GameStateSnapshot;poll?:GameStateSnapshot;throwInput?:boolean}={}){
@@ -75,7 +75,7 @@ it.each(["unverified","map","battle","owner","recipient","multiple","unexpected"
  const f=fixture([list(),bad]);await f.tool.execute("stop",{});expect(f.sent).toEqual(["A"]);expect(f.events).toHaveLength(1);
 });
 it("rechecks the native state immediately before an automatic input",async()=>{
- const f=fixture([list()],true,false,{race:field()});await f.tool.execute("race",{});expect(f.sent).toEqual([]);expect(f.events[0]?.detail).toContain("changed before input");
+ const f=fixture([list()],true,false,{race:field()});await f.tool.execute("race",{});expect(f.sent).toEqual([]);expect(f.events[0]?.detail).toContain("changed before input");expect(f.events[0]).not.toHaveProperty("pokenav_pending_button");
 });
 it("bounds a stalled input loop with an injected small press cap",async()=>{
  const f=fixture([list()],true,false,{cap:2});await f.tool.execute("cap",{});expect(f.sent).toEqual(["A","A"]);expect(f.events[0]?.stop).toBe("press_cap");expect(POKENAV_CALL_LIMITS.presses).toBe(50);
@@ -135,6 +135,6 @@ it("records an uncertain A when the real press tool succeeds remotely but its ob
  const recorder:AutoAdvanceRecorder={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:e=>{events.push(e);return {seq:2,turn:1};}};
  const tools=withPokenavCallAutoAdvance([observe],{...off(),[ID]:true},{state:{read:()=>Promise.resolve(state)},recorder,press,observe,clock});
  await expect(must(tools[0]).execute('uncertain',{})).rejects.toThrow('503');
- expect(accepted).toHaveLength(1);
+ expect(accepted).toHaveLength(1);expect(accepted[0]).toMatchObject({buttons:["A"]});
  expect(events).toHaveLength(1);expect(events[0]).toMatchObject({stop:"error",auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A"});
 });

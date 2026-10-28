@@ -438,6 +438,7 @@ const DialogueAutoAdvance = event("dialogue_auto_advance", {
   auto_presses: NonNegativeInt,
   battle_auto_presses: Type.Optional(NonNegativeInt),
   pokenav_buttons: Type.Optional(Type.Array(ButtonSchema, {maxItems:50})),
+  pokenav_pending_button: Type.Optional(ButtonSchema),
   pages: Type.Array(DialoguePageSchema),
   stop: Type.Enum(DIALOGUE_AUTO_ADVANCE_STOPS),
   detail: Type.String(),

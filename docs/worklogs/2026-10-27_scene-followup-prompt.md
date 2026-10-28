@@ -87,3 +87,13 @@ Branch reset onto main 896088908 (the unlanded system-prompt version is kept at 
   - Probe library: the probe Replay lacks the gymHealWarning recorder hook, so runs with gym-heal-warning-v1 can't be rebuilt.
   - Probe library: parseRun reads the whole log as one string, so logs over about 536 MB can't be probed (Meteor Falls Astra t1907, d41e museum).
   - llama.cpp build 10236, hybrid Qwen3.6: a slot wedged for 71 min in a context-checkpoint loop ("progress = 1.15"), made more likely by id_slot pinning.
+
+## Confirmation probe of the landed switch (2026-10-27 9:29–9:46 PM NY, GPU1 under runs/probe-locks/gpu1.lock)
+Production path on main's build (360c0ee41 in 55312588c): decisionContext with scene-followup-prompt-v1 off/on (the landed wiring adds the note), ContextBudget.fit at 65,536, the runs' own sampling; Qwen3.6-35B-A3B UD-Q4_K_M, llama.cpp b10236, 1 slot. 32 per arm, Wilson 95%. Driver and samples: runs/probes/scene-followup-confirm-main-20261027 (viewer /probes).
+| context | off | on |
+|---|---|---|
+| 9e33 t1385 theft (DEV) | 0/32 [0.00–0.11] | 32/32 [0.89–1.00] |
+| 4637 t132 theft (held-out 2) | 0/32 [0.00–0.11] | 30/32 [0.80–0.98] |
+| 04e1 t643 theft (held-out 2) | 0/32 [0.00–0.11] | 27/32 [0.68–0.93] |
+| 9e33 t1383 no scene (to any person) | 0/32 [0.00–0.11] | 1/32 [0.01–0.16]; the trigger did not fire (identical 53,707-token request), so this is sampling noise |
+OFF arms replay the recorded prompt tokens exactly (42,029 and 51,567). Two driver restarts on a shim keep-alive reset during model discovery; the lock trap released the lock each time, and the driver resumed from saved samples.

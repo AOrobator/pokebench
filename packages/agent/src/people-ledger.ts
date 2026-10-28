@@ -145,7 +145,8 @@ export class PeopleLedger {
    const talk=this.last(o.key,callId);
    return `- object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${talk===undefined?"not talked to this run":this.since(talk)}`;
   });
-  const out=lines.length===0?[`${PEOPLE_HEADER} none`]:[PEOPLE_HEADER,...lines];
+  const header=state.map_visibility==null?PEOPLE_HEADER:"People and objects currently visible (a sprite kind is a graphic, not a name):";
+  const out=lines.length===0?[`${header} none`]:[header,...lines];
   if(characters!==null)out.push(`Story characters here: ${characters.here.length===0?"none":characters.here.join(", ")}. Not on this map: ${characters.absent}.`);
   return out.join("\n");
  }
@@ -162,7 +163,8 @@ export class PeopleLedger {
    const sprite=o.sprite??"unknown",name=placed?.get(`${String(o.x)},${String(o.y)}`);
    return [`object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}), ${talk===undefined?"not talked to this run":`last talked to on turn ${String(talk.turn)}`}`];
   });
-  return `${UNTALKED_HEADER} ${items.length===0?"none":items.join("; ")}.`;
+  const header=state.map_visibility==null?UNTALKED_HEADER:UNTALKED_HEADER.replace("People", "Visible people");
+  return `${header} ${items.length===0?"none":items.join("; ")}.`;
  }
  // untalked-in-gym-v1: the people on this map (item balls excepted) never talked to this run, by the ledger's rule,
  // or null outside a started overworld readout with live objects.

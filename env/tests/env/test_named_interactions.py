@@ -116,7 +116,15 @@ def test_observation_endpoint_delivers_names_only_when_explicitly_enabled(monkey
         monkeypatch.setenv(
             "POKEBENCH_FEATURES_OFF",
             ",".join(
-                filter(None, [off, "active-warp-exits-v1", "available-exits-presentation-v1"])
+                filter(
+                    None,
+                    [
+                        off,
+                        "active-warp-exits-v1",
+                        "available-exits-presentation-v1",
+                        "player-map-visibility-v1",
+                    ],
+                )
             ),
         )
         app = FastAPI()

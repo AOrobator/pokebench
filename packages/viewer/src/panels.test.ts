@@ -1857,3 +1857,4 @@ it("links the neutral YES/NO card without guessing a historical activation",()=>
  expect(card.textContent).toContain("NOT RECORDED");
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});

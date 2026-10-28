@@ -13,7 +13,7 @@ import type {RunRecorder} from "./recorder.js";
 import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach"|"exit_sections">;
+type Snapshot=Pick<GameStateSnapshot,"map_visibility"|"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach"|"exit_sections">;
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 
 export class UntakenExits {
@@ -58,7 +58,7 @@ export class UntakenExits {
    ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":(sectionWarp(state,g.warps[0]?.x??-1,g.warps[0]?.y??-1,this.features["exit-labels-v3"])??this.place(g.destination))}`),
    ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(state,c,this.features["exit-labels-v3"])??this.place(c.destination)}${semantic&&(c.edges?.length??0)>0&&uniqueDirection(state.topology?.connections,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`),
   ];
-  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
+  const none=state.map_visibility!=null?"none among currently visible exits":warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;
  }
  // The readout with the line inserted after its Position line (or Location line when position is off).

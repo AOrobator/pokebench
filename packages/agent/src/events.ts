@@ -647,6 +647,7 @@ export const StateBodySchema = Type.Object(
       local_id:Type.Integer({minimum:0,maximum:255}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),is_player:Type.Boolean(),
     },closed),{maxItems:16})),
     map_observation: Type.Optional(MapObservationSchema),
+    map_visibility: Type.Optional(Type.Object({known: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {maxItems:10240}), visible: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {maxItems:10240}), diagnostic: Type.Union([Type.String(), Type.Null()])}, {additionalProperties:false})),
     navigation_grid: Type.Optional(Type.Union([Type.Object({elevation:Type.Integer({minimum:0,maximum:15}),
       tiles:Type.Array(Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),collision:Type.Integer({minimum:0,maximum:3}),behavior:Type.Integer({minimum:0,maximum:255}),elevation:Type.Integer({minimum:0,maximum:15})},closed),{minItems:1,maxItems:225}),
       objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer(),elevation:Type.Optional(Type.Integer({minimum:0,maximum:15}))},closed),{maxItems:32}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),

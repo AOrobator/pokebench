@@ -285,3 +285,54 @@ def test_main_reads_the_archive_with_the_operator_rom(monkeypatch, tmp_path):
     )
     assert json.loads(out.getvalue()) == {"readouts": ["readout of S without 2"]}
     assert calls == [(tmp_path / "raw-ram/1.json.gz", "abc", b"ROM")]
+
+
+def test_places_is_absent_unless_requested_and_checked_like_raw_ram():
+    assert rerender.parse_places('{"run_dir": "/r", "raw_ram": []}') is None
+    ref = rerender.parse_places(
+        '{"run_dir": "/r", "raw_ram": [], "places": {"path": "raw-ram/9.json.gz", "sha256": "z"}}'
+    )
+    assert ref is not None and (ref.path, ref.sha256) == ("raw-ram/9.json.gz", "z")
+    with pytest.raises(ValueError):
+        rerender.parse_places('{"places": {"path": "../x", "sha256": "s"}}')
+
+
+def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_path):
+    rom = tmp_path / "rom.gba"
+    rom.write_bytes(b"ROM")
+    loaded: list[tuple[Path, str]] = []
+    monkeypatch.setattr(rerender, "resolve_rom", lambda env: rom)
+    monkeypatch.setattr(
+        rerender,
+        "load_raw_ram",
+        lambda path, sha, rom: loaded.append((path, sha)) or (lambda a, n: b""),
+    )
+    monkeypatch.setattr(rerender.MapNames, "load", classmethod(lambda cls, maps_dir: MapNames({})))
+    seen: list[bool] = []
+
+    class Place:
+        def json(self) -> dict[str, object]:
+            return {"name": "DEWFORD TOWN"}
+
+    class Directory:
+        def __init__(self, read, maps):
+            pass
+
+        def places(self, *, displayed):
+            seen.append(displayed)
+            return (Place(),)
+
+    monkeypatch.setattr(rerender, "PlaceDirectory", Directory)
+    request = json.dumps(
+        {
+            "run_dir": str(tmp_path),
+            "raw_ram": [],
+            "places": {"path": "raw-ram/9.json.gz", "sha256": "z"},
+        }
+    )
+    for off in ("", "displayed-place-names-v1"):
+        out = io.StringIO()
+        assert rerender.main({"POKEBENCH_FEATURES_OFF": off}, io.StringIO(request), out) == 0
+        assert json.loads(out.getvalue()) == {"readouts": [], "places": [{"name": "DEWFORD TOWN"}]}
+    assert seen == [True, False]
+    assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")] * 2

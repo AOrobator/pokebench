@@ -25,6 +25,8 @@ const INTRO=/^(.+)\nwould like to battle!$/s;
 const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 // A story name as the game prints it: upper case, not inside a longer upper-case word.
 const names=(name:string)=>new RegExp(`(?<![A-Z])${escape(name)}(?![A-Z])`);
+// A page shows a story name when it is the page's NAME: prefix or the page names it in upper case.
+export const pageShowsName=(page:DialoguePage,name:string):boolean=>(page.speaker_source==="name_prefix"&&page.speaker===name)||names(name).test(page.text);
 
 interface Person {readonly key:string;readonly name:string|null}
 interface Shown {readonly page:DialoguePage;readonly turn:number;readonly call:string;readonly person:Person|null}
@@ -109,8 +111,7 @@ export class PeopleIdCards {
   return [];
  }
  private nameShown(name:string):Shown|undefined {
-  const rx=names(name);
-  return this.all().find(s=>(s.page.speaker_source==="name_prefix"&&s.page.speaker===name)||rx.test(s.page.text));
+  return this.all().find(s=>pageShowsName(s.page,name));
  }
  private mentions(name:string,exclude:readonly Shown[]):Shown[] {
   const rx=names(name);const seen=new Set<string>();

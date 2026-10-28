@@ -5,7 +5,8 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as REGISTRY_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {BRIEFING_DIALOGUE_CHARS,BRIEFING_ELSEWHERE_CHARS,BRIEFING_EXITS_CHARS,SupervisorBriefing} from "./loop-supervisor.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
+import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
+import {STALL_DROUGHT_MS} from "./stall-briefing.js";
 
 const ID="supervisor-briefing-bound-v1";
 const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false,"next-milestone-hint-v1":false,"briefing-exits-v1":false,"dialogue-context-kept-v1":true,"stall-briefing-v1":true};
@@ -91,6 +92,25 @@ describe("supervisor-briefing-bound-v1: budgets in code points, through the prod
   story(b,1000,130,"SECOND_STEP");
   return {loop:loop?.("cycle",200)??"",textOnly:textOnly?.(3,1)??""};
  };
+ it("stallBriefing bounds the dialogue line of a drought note only when the switch is on",()=>{
+  const drought=(features:FeatureSet):string=>{
+   const subs:((e:RunEvent)=>void)[]=[];const notes:string[]=[];let clock=0;
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:()=>undefined};
+   const detector={stall:(_kind:string,text:(calls:number)=>string)=>{notes.push(text(200));return true;}};
+   const quiet={"stall-briefing-v1":true,"positive-supervisor-v1":false,"milestone-drought-suppression-v1":false,"drought-battle-heal-hold-v1":false,"drought-progress-facts-v1":false,"turn-drought-clock-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false};
+   stallBriefing({...features,...quiet},recorder,detector,{pausedMs:()=>0},()=>clock);
+   const b={observe:(e:RunEvent)=>{for(const fn of subs)fn(e);}} as unknown as SupervisorBriefing;
+   story(b,1,1,"FIRST_STEP");
+   for(let i=0;i<120;i++)shown(b,10+2*i,2+i,`Page ${String(i).padStart(3,"0")} of a long talk that goes on and on.`);
+   story(b,1000,130,"SECOND_STEP");
+   clock=STALL_DROUGHT_MS+60_000;shown(b,1010,131,null);
+   return notes.at(-1)??"";
+  };
+  const on=drought(ON),off=drought(OFF);
+  expect(on).toContain("SUPERVISOR");
+  expect(line(on,HEAD)).toMatch(/oldest first \(\d+ earlier pages are left out/);
+  expect(line(off,HEAD).split(" | ")).toHaveLength(120);
+ });
  it("loopSupervisor and textOnlySupervisor bound the dialogue line only when the switch is on",()=>{
   const on=feed(ON),off=feed(OFF);
   for(const text of [on.loop,on.textOnly])expect(line(text,HEAD)).toMatch(/oldest first \(\d+ earlier pages are left out/);

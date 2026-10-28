@@ -14,7 +14,9 @@ import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies }
 import { cutOffReplyNotice } from "./cut-off-reply.js";
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
-import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
+import { contextTools, loopSupervisor, playGameTools, stallBriefing, trustOptions } from "./play-wiring.js";
+import { HarnessTrust, TRUST_HEADER, awayText } from "./harness-trust.js";
+import type { Place } from "./story-destinations.js";
 import { starterDecisionText } from "./starter-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
@@ -35,7 +37,12 @@ export function parseSwitch(arg: string): ProbeSwitch {
 
 export interface RecordedRun { readonly events: readonly RunEvent[]; readonly start: RunStartEvent }
 export function parseRun(text: string): RecordedRun {
-  const events = text.split("\n").filter((line) => line.trim() !== "").map((line) => checkEvent(JSON.parse(line)));
+  return parseRunLines(text.split("\n"));
+}
+// The same parse over lines read one at a time, for event logs larger than one string can hold.
+export function parseRunLines(lines: Iterable<string>): RecordedRun {
+  const events: RunEvent[] = [];
+  for (const line of lines) if (line.trim() !== "") events.push(checkEvent(JSON.parse(line)));
   const start = events.find((e): e is RunStartEvent => e.type === "run_start");
   if (start === undefined) throw new Error("event log has no run_start");
   return { events, start };
@@ -56,6 +63,8 @@ export interface ProbePorts {
   readonly rerender: (refs: readonly RawRef[], features: FeatureSet) => Promise<readonly string[]>;
   /** The field the gateway streamed reasoning in (pi's thinkingSignature); prior reasoning is sent back under it. Events do not record it. */
   readonly thinkingSignature: string;
+  /** The game's map table read from a recorded raw-RAM archive, as GET /pokebench/places serves it; only --trust-header reads it. */
+  readonly places?: (ref: RawRef, features: FeatureSet) => Promise<readonly Place[]>;
 }
 
 export interface DecisionContext {
@@ -237,7 +246,39 @@ export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(t
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */
 export type Derivation = "recorded" | "replayed";
 /** `rerender` re-renders every readout still in the window from raw RAM with today's renderer; the probe sets it in both arms whenever a server switch flips, so the arms differ only by the switch. */
-export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null): Promise<DecisionContext> {
+// --trust-header: harness-trust-v1's header is baked into each recorded result. Re-derive it with the arm's switches by
+// replaying the recorded events through HarnessTrust, which observes each event before the result after it is annotated.
+const TRUST_TOOLS = new Set(["observe", "press", "navigate_to"]);
+export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Map<number, string>, features: FeatureSet, recorded: FeatureSet, ports: ProbePorts, kept: ReadonlySet<number>): Promise<void> {
+  if (!features["harness-trust-v1"] || !recorded["harness-trust-v1"]) throw new Error("--trust-header re-derives harness-trust-v1's header, which both the run and the arm must have on");
+  const read = ports.places;
+  if (read === undefined) throw new Error("--trust-header needs the game's map table (the places port)");
+  const options = trustOptions(features);
+  const trust = new HarnessTrust(options);
+  const states = new Map<number, StateEvent>();
+  const tables = new Map<string, Promise<readonly Place[]>>();
+  const annotated = (name: string): boolean => TRUST_TOOLS.has(name) || (options.battleAction === true && name === "battle_action") || (options.semanticTargets === true && (name === "navigate_to_target" || name === "explore_map"));
+  for (const e of prior) {
+    if (e.type === "state" && "started" in e) states.set(e.seq, e);
+    const after = e.type === "tool_result" && e.state_seq !== undefined ? states.get(e.state_seq) : undefined;
+    const text = e.type === "tool_result" ? texts.get(e.seq) ?? e.text : null;
+    if (e.type === "tool_result" && kept.has(e.seq) && !e.is_error && annotated(e.name) && after?.started === true && after.raw_ram !== undefined && text !== null && text.startsWith(`${TRUST_HEADER}\n`)) {
+      const cut = text.indexOf("\n\n");
+      if (cut < 0) throw new Error(`tool_result seq ${String(e.seq)} has a trust header with no body`);
+      const body = text.slice(cut + 2);
+      const player = after.name ?? "";
+      let table = tables.get(player);
+      if (table === undefined) { table = read({ path: after.raw_ram.path, sha256: after.raw_ram.sha256 }, features); tables.set(player, table); }
+      const walk = e.name === "navigate_to" || (options.semanticTargets === true && (e.name === "navigate_to_target" || e.name === "explore_map"));
+      const { header, away } = trust.lines(body, after, e.id, await table, e.name === "press" || walk, body);
+      const note = away === null ? null : awayText(away);
+      texts.set(e.seq, `${header}\n${note === null ? "" : `${note}\n`}\n${body}`);
+    }
+    trust.observe(e);
+  }
+}
+
+export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false): Promise<DecisionContext> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
   if (target === undefined) throw new Error(`turn ${String(turn)} has no turn_start in this run`);
@@ -264,6 +305,10 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
   const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender, compositeReadouts);
+  if (trustHeader) {
+    if (derivation === "recorded") throw new Error("--trust-header re-derives the header, so it needs the replayed derivation");
+    await rederiveTrustHeaders(prior, texts, features, recorded, ports, kept);
+  }
   const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff, undefined, {cutOff:cutOffReplyNotice(recorded,start.sampling.max_tokens)});
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start),cutOff);

@@ -44,7 +44,7 @@ import {withStoryDestinations} from "./story-destinations.js";
 import {withInstructionLedgerV2} from "./instruction-ledger-v2.js";
 import {withBattleAction} from "./battle-action.js";
 import {withLearnMove} from "./learn-move.js";
-import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
+import {withHarnessTrust,type TrustOptions,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
@@ -188,6 +188,10 @@ function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder
  if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
  return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record},progressAware);
 }
+// The harness-trust-v1 options the switches select; decision probes re-derive the header with the same options.
+export function trustOptions(features:FeatureSet):TrustOptions {
+ return {supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]};
+}
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock,instructionGoals?:GoalTools):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain(features["map-observability-v1"]):null;
  const navigationState=terrain?.source(state)??state;
@@ -199,7 +203,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const progress=withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(facts,features,recorder),features,state),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"],structuredEvidence:features["citation-evidence-v1"]});
- return withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"]}),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state);
+ return withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state);
 }
 
 

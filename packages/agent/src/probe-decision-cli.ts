@@ -1,27 +1,32 @@
-// just probe-decision <run> <turn> [--switch <id>=on|off]... [--samples K] [--runs-root DIR] [--model ID] [--context-only]
+// just probe-decision <run> <turn> [--switch <id>=on|off]... [--samples K] [--runs-root DIR] [--model ID] [--context-only] [--trust-header]
 // Rebuilds the recorded turn's context under the run's switches and under the flipped set, and
-// samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free).
+// samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free). --trust-header also re-derives
+// harness-trust-v1's header in each arm; POKEBENCH_ENDPOINT_FILE samples a local lane instead of the gateway.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
 import { loadConfig } from "./config.js";
-import { contextDiff, decisionContext, serverSwitch, distribution, parseRun, parseSwitch, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
+import { contextDiff, decisionContext, serverSwitch, distribution, parseRunLines, parseSwitch, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
 import { serverFeatureEnv, type FeatureSet } from "./features.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
+import { discoverLocal, readEndpoint } from "./local-endpoint.js";
+import { PlacesBodySchema, type Place } from "./story-destinations.js";
+import { Value } from "typebox/value";
 import { gatewayLoopConfig } from "./provider.js";
 
 export const MAX_SAMPLES = 8;
 // pi names a thinking block after the response field the reasoning streamed in; the gateway streams `reasoning_content`.
 export const THINKING_FIELD = "reasoning_content";
-const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only]";
+const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only] [--trust-header]";
 
-export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly contextOnly: boolean }
+export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly trustHeader?: boolean; readonly contextOnly: boolean }
 export function parseArgs(argv: readonly string[]): ProbeArgs {
   const positional: string[] = [];
   const switches: ProbeSwitch[] = [];
-  let samples = 4, runsRoot: string | null = null, model: string | null = null, contextOnly = false;
+  let samples = 4, runsRoot: string | null = null, model: string | null = null, contextOnly = false, trustHeader = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] ?? "";
     const value = (): string => { const v = argv[++i]; if (v === undefined) throw new Error(`${arg} needs a value\n${USAGE}`); return v; };
@@ -30,13 +35,14 @@ export function parseArgs(argv: readonly string[]): ProbeArgs {
     else if (arg === "--runs-root") runsRoot = value();
     else if (arg === "--model") model = value();
     else if (arg === "--context-only") contextOnly = true;
+    else if (arg === "--trust-header") trustHeader = true;
     else if (arg.startsWith("--")) throw new Error(`unknown option ${arg}\n${USAGE}`);
     else positional.push(arg);
   }
   const [run, turn] = positional;
   if (run === undefined || turn === undefined || positional.length !== 2 || !/^\d+$/.test(turn)) throw new Error(USAGE);
   if (!Number.isInteger(samples) || samples < 1 || samples > MAX_SAMPLES) throw new Error(`--samples must be 1..${String(MAX_SAMPLES)}`);
-  return { run, turn: Number(turn), switches, samples, runsRoot, model, contextOnly };
+  return { run, turn: Number(turn), switches, samples, runsRoot, model, ...(trustHeader ? { trustHeader } : {}), contextOnly };
 }
 
 export function resolveRun(runsRoot: string, run: string, list: (dir: string) => string[] = readdirSync, exists: (path: string) => boolean = existsSync): string {
@@ -72,7 +78,26 @@ export function filePorts(runDir: string, envDir: string, thinkingSignature: str
       if (typeof body !== "object" || body === null || !("readouts" in body) || !Array.isArray(body.readouts) || !body.readouts.every((r): r is string => typeof r === "string") || body.readouts.length !== refs.length) throw new Error("rerender returned an unexpected body");
       return Promise.resolve(body.readouts);
     },
+    places: (ref: RawRef, features: FeatureSet) => {
+      const out = exec("uv", ["run", "--project", envDir, "python", "-m", "pokebench_env.rerender"], { cwd: envDir, env: { ...env, ...serverFeatureEnv(features) }, input: JSON.stringify({ run_dir: runDir, raw_ram: [], places: ref }) });
+      const body: unknown = JSON.parse(out);
+      const places = typeof body === "object" && body !== null && "places" in body ? { places: body.places } : null;
+      if (places === null || !Value.Check(PlacesBodySchema, places)) return Promise.reject(new Error("rerender returned no map table"));
+      return Promise.resolve<readonly Place[]>(places.places);
+    },
   };
+}
+
+// Events one line at a time: an event log can be larger than the longest string Node can hold.
+export async function readRun(path: string): Promise<RecordedRun> {
+  const lines: string[] = [];
+  for await (const line of createInterface({ input: createReadStream(path, "utf8"), crlfDelay: Infinity })) lines.push(line);
+  return parseRunLines(lines);
+}
+
+// The lane a probe samples: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
+export async function probeModels(config: { readonly endpointFile: string | null; readonly gatewayUrl: string; readonly visionModels: readonly string[] }, local = discoverLocal, gateway = discoverModels): Promise<GatewayModel[]> {
+  return config.endpointFile === null ? gateway({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }) : local(readEndpoint(config.endpointFile));
 }
 
 export interface Arm { readonly label: string; readonly features: FeatureSet; readonly context: DecisionContext; readonly decisions: readonly Decision[] }
@@ -83,9 +108,9 @@ export async function probe(run: RecordedRun, args: ProbeArgs, ports: ProbePorts
   // A flipped server switch re-renders the window's readouts in both arms, so they differ only by the switch.
   const rerender = args.switches.some((s) => serverSwitch(s.id));
   const compositeReadouts = args.switches.length === 1 && args.switches[0]?.id === "party-menu-message-v1" ? "party-menu-message-v1" : null;
-  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender, compositeReadouts);
+  const baseline = await decisionContext(run, args.turn, recorded, ports, "replayed", rerender, compositeReadouts, args.trustHeader === true);
   const flipped = args.switches.length === 0 ? null : withSwitches(recorded, args.switches);
-  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender, compositeReadouts);
+  const other = flipped === null ? null : await decisionContext(run, args.turn, flipped, ports, "replayed", rerender, compositeReadouts, args.trustHeader === true);
   const start = run.events.find((e) => e.type === "turn_start" && e.turn === args.turn);
   const size = start?.type === "turn_start" ? start.context : null;
   const draw = async (c: DecisionContext): Promise<Decision[]> => (sampler === null ? [] : await sample(c, args.samples, sampler));
@@ -126,11 +151,11 @@ async function main(argv: readonly string[]): Promise<number> {
   const args = parseArgs(argv);
   const runsRoot = args.runsRoot ?? process.env.POKEBENCH_RUNS_ROOT ?? join(REPO, "runs");
   const runDir = resolveRun(runsRoot, args.run);
-  const run = parseRun(readFileSync(join(runDir, "events.jsonl"), "utf8"));
+  const run = await readRun(join(runDir, "events.jsonl"));
   let sampler: Sampler | null = null;
   if (!args.contextOnly) {
     const config = loadConfig(process.env);
-    const model = selectModel(await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }), args.model ?? run.start.model.id);
+    const model = selectModel(await probeModels(config), args.model ?? run.start.model.id);
     sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens);
   }
   const report = await probe(run, args, filePorts(runDir, join(REPO, "env"), THINKING_FIELD), sampler);

@@ -7,6 +7,11 @@ Switches come from the environment the server reads (POKEBENCH_FEATURES_OFF, POK
 blackout-readout-v1's once-only field line comes from the live server's frame latch, which a
 single archive cannot carry; a re-render shows only the line read from its own state.
 Output (stdout JSON): {"readouts": [str, ...]} in input order.
+
+A request may also name one archive as "places": {"path", "sha256"}. The output then adds
+"places", the game's map table read from that archive as GET /pokebench/places serves it
+(decision probes' --trust-header re-derives harness-trust-v1's header with it). Without it the
+output is unchanged.
 """
 
 import json
@@ -30,6 +35,7 @@ from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
+from pokebench_env.places import PlaceDirectory
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
@@ -159,6 +165,25 @@ class RawRef:
         self.sha256 = sha256
 
 
+def parse_ref(item: object) -> RawRef:
+    if (
+        not isinstance(item, dict)
+        or not isinstance(item.get("path"), str)
+        or not isinstance(item.get("sha256"), str)
+    ):
+        raise ValueError(f"bad raw_ram reference: {item!r}")
+    path = Path(item["path"])
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(f"raw_ram path must stay inside the run directory: {item['path']}")
+    return RawRef(item["path"], item["sha256"])
+
+
+def parse_places(text: str) -> RawRef | None:
+    body = json.loads(text)
+    item = body.get("places") if isinstance(body, dict) else None
+    return None if item is None else parse_ref(item)
+
+
 def parse_request(text: str) -> tuple[Path, list[RawRef]]:
     body = json.loads(text)
     if (
@@ -167,19 +192,7 @@ def parse_request(text: str) -> tuple[Path, list[RawRef]]:
         or not isinstance(body.get("raw_ram"), list)
     ):
         raise ValueError("request must be {run_dir: str, raw_ram: [{path, sha256}, ...]}")
-    refs: list[RawRef] = []
-    for item in body["raw_ram"]:
-        if (
-            not isinstance(item, dict)
-            or not isinstance(item.get("path"), str)
-            or not isinstance(item.get("sha256"), str)
-        ):
-            raise ValueError(f"bad raw_ram reference: {item!r}")
-        path = Path(item["path"])
-        if path.is_absolute() or ".." in path.parts:
-            raise ValueError(f"raw_ram path must stay inside the run directory: {item['path']}")
-        refs.append(RawRef(item["path"], item["sha256"]))
-    return Path(body["run_dir"]), refs
+    return Path(body["run_dir"]), [parse_ref(item) for item in body["raw_ram"]]
 
 
 Loader = Callable[[Path, str], ReadMemory]
@@ -204,14 +217,28 @@ def rerender(
     return [one(load(run_dir / ref.path, ref.sha256)) for ref in refs]
 
 
+def places(
+    run_dir: Path, ref: RawRef, load: Loader, maps: MapNames, env: Mapping[str, str]
+) -> list[dict[str, object]]:
+    displayed = "displayed-place-names-v1" not in features_off_from_env(env)
+    directory = PlaceDirectory(load(run_dir / ref.path, ref.sha256), maps)
+    return [place.json() for place in directory.places(displayed=displayed)]
+
+
 def main(env: Mapping[str, str], stdin: TextIO, stdout: TextIO) -> int:
-    run_dir, refs = parse_request(stdin.read())
+    text = stdin.read()
+    run_dir, refs = parse_request(text)
+    table = parse_places(text)
     rom = resolve_rom(env).read_bytes()
 
     def load(path: Path, sha256: str) -> ReadMemory:
         return load_raw_ram(path, sha256, rom=rom)
 
-    json.dump({"readouts": rerender(run_dir, refs, load, MapNames.load(PORYMAP_MAPS), env)}, stdout)
+    maps = MapNames.load(PORYMAP_MAPS)
+    out: dict[str, object] = {"readouts": rerender(run_dir, refs, load, maps, env)}
+    if table is not None:
+        out["places"] = places(run_dir, table, load, maps, env)
+    json.dump(out, stdout)
     return 0
 
 

@@ -32,9 +32,9 @@ pokebench-decision-probes, feature-worklog, close-the-loop.
 ## Milestones
 
 **M1 — probe header, local lanes, streaming**
-- [ ] RED tests (probe-trust-header.test.ts; test_rerender.py places)
-- [ ] GREEN
-- [ ] Targeted gates
+- [x] RED tests (probe-trust-header.test.ts; test_rerender.py places)
+- [x] GREEN
+- [x] Targeted gates
 - [ ] Review lanes
 - [ ] Context-only rehearsal on a702 with the switch branch merged in a scratch worktree (no GPU)
 
@@ -44,6 +44,7 @@ Targeted vitest and pytest, tsc, eslint and ruff/mypy on the touched files, then
 
 ## Session Log
 
+- 2026-10-28: GREEN. probe suites: 10 files, 131 tests passed; test_rerender.py 12 passed (2 skip without ROM), rerender.py 100% lines and branches; tsc, eslint, ruff and mypy clean.
 - 2026-10-28: RED: without the implementation, probe-trust-header.test.ts fails 8 of 8 and test_rerender.py fails 2 (the places tests); the rest pass.
 
 ## Surprises

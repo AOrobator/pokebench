@@ -199,7 +199,11 @@ def test_first_failed_install_and_unloaded_stop_preserve_owned_files(tmp_path):
 
 def test_prepare_refuses_a_different_commit_even_when_clean(tmp_path):
     tree = tmp_path / ("a" * 40)
-    tree.mkdir()
+    dist = tree / "packages/viewer/dist"
+    dist.mkdir(parents=True)
+    (dist / "cli.js").write_text("viewer")
+    (dist / "current-service-cli.js").write_text("projector")
+    (tree.parent / f".{tree.name}.current-runtime-ready").write_text("a" * 40)
 
     def run(args, **kwargs):
         output = "a" * 40 if args[-1] == "main" else "b" * 40 if args[-1] == "HEAD" else ""

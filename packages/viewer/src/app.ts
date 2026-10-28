@@ -731,7 +731,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null?[this.loadWorkbench()]:[])]);this.render();return;}
+    if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null?[this.loadWorkbench()]:[]),...(this.runId!==null&&this.frontierRetry?[this.loadFrontier(this.runId,true)]:[])]);this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
@@ -1058,7 +1058,6 @@ export class App {
     this.render();
   }
 
-  // The split card and the splits page race the frontier, so it loads with every pick, unlike the comparisons scan.
   private async loadFrontier(runId: string, retry = false): Promise<void> {
     const request = ++this.frontierRequest;
     try {

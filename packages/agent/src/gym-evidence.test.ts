@@ -43,7 +43,7 @@ it("registers default OFF, records ON, and puts only the bundle arms ON",()=>{
  expect(featureInfo(ID)).toMatchObject({needs:null,switchable:true});
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
- const old=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([k])=>k!==ID));
+ const old=Object.fromEntries(Object.entries({...ALL_ON,"screenshot-button-baseline-v1":false,"state-only-decisions-v1":false}).filter(([k])=>k!==ID));
  expect(presetFeatures(parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:old}))[ID]).toBe(false);
  expect(playHarnessFeatures({...OFF,[ID]:true},null)).toContain(ID);
  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){

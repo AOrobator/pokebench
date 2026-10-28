@@ -8,7 +8,7 @@ it("registers an appended server switch and preserves all historical OFF default
  expect(featureInfo(id)).toMatchObject({group:"observation",needs:"transition-coherence-v1",switchable:true});
  const { [id]: omitted,...historical}=ALL_ON;
  expect(omitted).toBe(true);
- const features=presetFeatures(parsePlayPreset({version:2,id:"coherence-legacy",target:null,limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...historical,"instruction-goal-ledger-v1":false,"state-only-decisions-v1":false}}));
+ const features=presetFeatures(parsePlayPreset({version:2,id:"coherence-legacy",target:null,limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...historical,"screenshot-button-baseline-v1":false,"instruction-goal-ledger-v1":false,"state-only-decisions-v1":false}}));
  expect(features[id]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(playHarnessFeatures(features,null)).not.toContain(id);

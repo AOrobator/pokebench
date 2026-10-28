@@ -27,8 +27,8 @@ The rest of that note is about 6,300 chars. At a702 T1300 the briefing was 23,67
 
 - [x] RED: `packages/agent/src/supervisor-briefing-bound.test.ts`, 7 tests. The 2 OFF tests pass on main. The 5 ON and registry tests fail (switch and constants absent).
 - [x] GREEN: `loop-supervisor.ts` (`newestWithin`, BRIEFING_DIALOGUE_CHARS 4000, BRIEFING_ELSEWHERE_CHARS 2000) in storyContext and untriedElsewhere; registry (index 294, guard, needs null), preset, next-run. 7/7; neighbours (dialogue-context-kept, stall-briefing, briefing-exits, stall-interface, story-progress-clock, bundle-3f21-fixes, features, loop-supervisor, positive-supervisor) 155 passed; agent and viewer tsc clean; eslint clean on changed files.
-- [ ] 429f T2566 and a702 T1300 replay: note length OFF vs ON.
-- [ ] Explainer + feature-card link.
+- [x] Replay of recorded events through the built supervisor (`SupervisorBriefing`, both lines compared with the recording): OFF reproduces the recorded lines byte for byte in all three runs. Notes ON: 429f T2566 66,297 → 12,429 chars (dialogue line 44,203 → 4,204, other-map line 15,816 → 1,947); a702 T1300 23,676 → 13,119 (9,794 → 4,209, 6,186 → 1,214); 88ea T1352 23,348 → 10,343 (13,178 → 4,144, 5,034 → 1,063). Read-only on 88ea's events.
+- [x] Explainer `docs/explainers/supervisor-briefing-bound-v1.html` (theme, pages-check clean, headless desktop/phone screenshots), README, `FEATURE_EXPLAINERS`; panels/server link tests 2/2.
 - [ ] Activation commit: current.json `switches` (bundle ON).
 - [ ] Gates on a CPU grant; three-lane review.
 

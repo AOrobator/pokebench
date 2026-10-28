@@ -1634,3 +1634,11 @@ it("serves the safe scene capture explainer byte for byte from the config-card a
  const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
 });
+
+it("serves the bounded supervisor briefing explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-briefing-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="supervisor-briefing-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});

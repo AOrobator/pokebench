@@ -330,3 +330,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
 
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
+
+- [Bounded supervisor briefing](supervisor-briefing-bound-v1.html): story lead-up dialogue within 4,000 chars and the other-map untried list within 2,000, whole items; 429f T2566 note 66,297 → 12,429 chars.

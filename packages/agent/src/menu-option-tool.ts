@@ -9,10 +9,16 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 export const MENU_OPTION_ID="menu-option-tool-v1";
 export const MENU_OPTION_SECTION='- select_menu_option: choose an option currently listed by a supported vertical menu. Copy phase and menu_id (null when absent) from the current menu and supply the exact option label. The tool checks the owner and highlight before every ordinary UP/DOWN press, then presses A once. It stops on a changed menu or unexpected cursor movement. It does not open menus, select a subsequent option, or prove the requested task completed. Unsupported menus still use press.';
 export const MenuOptionArgs=Type.Object({phase:Type.String({minLength:1,maxLength:80}),menu_id:Type.Union([Type.Integer({minimum:0}),Type.Null()]),option:Type.String({minLength:1,maxLength:120})},{additionalProperties:false});
+const SUPPORTED_PHASES=["field_multichoice","start_menu"];
+// A verified interface owner this tool cannot drive; null when none is open or it is a supported menu.
+export function unsupportedMenuPhase(state:GameStateSnapshot):string|null{
+ const ui=state.active_ui;
+ return ui==null||SUPPORTED_PHASES.includes(ui.phase)?null:ui.phase;
+}
 interface MenuView {phase:string;menu_id:number|null;options:string[];index:number;identity:string}
 export function menuOptionView(state:GameStateSnapshot):MenuView|null {
  const ui=state.active_ui;
- if(ui==null||ui.ready!==true||ui.diagnostic!=null||!["field_multichoice","start_menu"].includes(ui.phase))return null;
+ if(ui==null||ui.ready!==true||ui.diagnostic!=null||!SUPPORTED_PHASES.includes(ui.phase))return null;
  const d=ui.details,options=d?.["options"],index=d?.["selected_index"],id=d?.["menu_id"]??null;
  if(!Array.isArray(options)||options.length<1||options.length>16||!options.every((x):x is string=>typeof x==="string")||typeof index!=="number"||!Number.isInteger(index)||index<0||index>=options.length||ui.selected!==options[index]||(id!==null&&(typeof id!=="number"||!Number.isInteger(id))))return null;
  if(ui.phase==="field_multichoice"&&id===null)return null;
@@ -31,6 +37,8 @@ export interface MenuOptionPorts {
  observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
  press:(id:string,button:Button,check:BeforePressCheck,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
  gate?:(signal?:AbortSignal)=>Promise<void>;
+ // menu-option-honest-refusal-v1: name the unsupported open menu instead of "not ready".
+ honestRefusal?:boolean;
 }
 export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptionArgs> {
  return {name:"select_menu_option",label:"Select menu option",description:"Select one currently visible option in a verified vertical START or field multichoice menu, using checked UP/DOWN and one A press.",parameters:MenuOptionArgs,execute:async(id,args,signal)=>{
@@ -38,6 +46,8 @@ export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptio
   signal?.throwIfAborted();await ports.gate?.(signal);
   let result=await ports.observe(id,signal),state=stateOf(result);const initial=menuOptionView(state),buttons:Button[]=[];
   const finish=(message:string,confirmed=false):AgentToolResult<unknown>=>({...result,content:[...result.content,{type:"text",text:`Menu selection: ${message}`}],details:{state,menu_selection:{option:args.option,buttons,confirmation_sent:confirmed}}});
+  const unsupported=initial===null&&ports.honestRefusal===true?unsupportedMenuPhase(state):null;
+  if(unsupported!==null)return finish(`nothing pressed; select_menu_option supports only the START menu and field multichoice menus, and the open menu is ${unsupported}. Use press for this menu.`);
   if(initial===null||initial.phase!==args.phase||initial.menu_id!==args.menu_id)return finish("nothing pressed; the requested menu is not currently ready and verified.");
   const matches=initial.options.flatMap((name,i)=>name===args.option?[i]:[]),target=matches[0];
   if(matches.length!==1||target===undefined)return finish("nothing pressed; the requested label is absent or ambiguous in the visible menu.");
@@ -61,7 +71,7 @@ export function menuOptionTool(ports:MenuOptionPorts):AgentTool<typeof MenuOptio
   }catch(error){if(error instanceof MenuStop){result=await ports.observe(id,signal);state=stateOf(result);return finish(error.message);}throw error;}
  }};
 }
-export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:MenuOptionPorts["gate"],observeOnly?:AgentTool):AgentTool[]{
+export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:MenuOptionPorts["gate"],observeOnly?:AgentTool,honestRefusal=false):AgentTool[]{
  if(!on)return [...tools];
  // The menu decision must not advance field dialogue via the wrapped observe.
  // Keep the dialogue-aware checked press so text caused by final A is still recorded.
@@ -80,5 +90,5 @@ export function withMenuOptionTool(tools:readonly AgentTool[],on:boolean,gate?:M
   if(!isCheckedPress(tool))return {...tool,execute};
   return {...tool,execute,executeChecked:async(...args:Parameters<typeof tool.executeChecked>)=>annotate(await tool.executeChecked(...args))};
  });
- return [...shown,menuOptionTool({observe:(id,signal)=>observe.execute(id,{},signal),press:(id,button,check,signal)=>press.executeChecked(id,{buttons:[button]},check,signal),...(gate===undefined?{}:{gate})})];
+ return [...shown,menuOptionTool({observe:(id,signal)=>observe.execute(id,{},signal),press:(id,button,check,signal)=>press.executeChecked(id,{buttons:[button]},check,signal),...(gate===undefined?{}:{gate}),honestRefusal})];
 }

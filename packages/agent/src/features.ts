@@ -289,6 +289,8 @@ export const SWITCHABLE_FEATURES = [
   "untalked-in-gym-v1",
   "grass-strides-v1",
   "scene-followup-prompt-v1",
+  "pokenav-short-list-v1",
+  "menu-option-honest-refusal-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -698,6 +700,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("untalked-in-gym-v1", "observation", "UNTALKED PEOPLE IN GYM", null, "Bundle arm only, default off (the operator 2026-10-27). On a gym map's field, every observe, press and navigate_to result gets, ahead of the readout, \"People on this gym map you have not talked to this run:\" and each person the game has loaded on the map (item balls excepted) never talked to this run, with object id, sprite (and a story character's name where character-presence-v1 places one) and tile, or \"none\". Talked to is the people ledger's record, plus the harness's own auto-talks. Narrower than untalked-people-header-v1: gym maps only, this run rather than since the last story milestone, and ahead of the readout (headers that wrap every result, such as harness-trust-v1's, still come first). It never says what anyone will say. Off: no line."),
   on("grass-strides-v1", "guidance", "GRASS STRIDES", "safe-navigation-strides-v1", "Default off; on in both arms of the current recipe (the operator 2026-10-27: \"Let's actually have this be on in both arms.\"). With safe-navigation-strides-v1 and automatic-running-v1 on, a stride corridor may also cross ordinary tall grass, the grass the game lets the player run through, so those steps can run instead of being forced to walk. The game server accepts grass only for a stride that asks for it. Every step still checks collision, elevation, objects, warps, script coordinates and the game's own running permission before it moves; a tile where the game does not allow running gets the direction without B, other grass ends the stride before it, and a battle that starts mid-stride stops it. The navigate_to description says corridors may include tall grass. Needs safe-navigation-strides-v1 and automatic-running-v1. Off: strides stop before any grass and grass steps walk, as before."),
   on("scene-followup-prompt-v1", "guidance", "SCENE FOLLOW-UP", "script-line-presence-v1", "Default off; bundle treatment (the operator 2026-10-27). When one game-tool call auto-advanced at least 2 dialogue pages with no speaker and other people on screen, the on-screen people changed between those pages, the player stayed on the same tile, control returned to the field, and nobody in it addressed the player by name, the next request gets one SUPERVISOR message. It quotes those pages whole and lists who was on screen (from the game's own object list), then asks the model to talk to the nearest of them before older plans. It joins each request until the model has answered one that carried it, then never returns. Off: no message; the request is unchanged."),
+  on("pokenav-short-list-v1", "observation", "POKéNAV SHORT LISTS", null, "Default off. The PokéNav list reader accepts a list shorter than its window: the game keeps every visible row (8 for Match Call) even when fewer entries exist (pokenav_list.c CopyPokenavListTemplate), so a one-contact Match Call list read as a state coverage error and hid the Match Call controls, press results and call text. On: the list, cursor, contact and call text are read when 1 <= length, row < min(rows, length) and top + row < length, and a call's message is reported only once the message box prints it from gStringVar4 (while the game prints its calling dots the buffer still holds earlier text, such as \"Please select the POKéNAV.\", so no message is reported). Off: lists shorter than the window stay a state coverage error (invalid PokeNav list length/cursor/item size)."),
+  on("menu-option-honest-refusal-v1", "guidance", "HONEST MENU REFUSAL", "menu-option-tool-v1", "Default off. When select_menu_option is called while an open menu is one it does not support (for example the PokéNav menu), its result says it supports only the START menu and field multichoice menus, names the current menu phase and says to use press. Off: the refusal says only that the requested menu is not currently ready and verified."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -789,6 +793,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "cutscene-journal-v1",
   "map-observability-v1",
   "type-gap-team-v1",
+  "pokenav-short-list-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1064,6 +1069,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("untalked-in-gym-v1"),
     ...when("grass-strides-v1"),
     ...when("scene-followup-prompt-v1"),
+    ...when("pokenav-short-list-v1"),
+    ...when("menu-option-honest-refusal-v1"),
   ];
 }
 

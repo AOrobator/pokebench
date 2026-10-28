@@ -1,7 +1,8 @@
-// instruction-memory-cap-v1: rule A′ over the episodes milestone-instruction-memory-v1 keeps. Whole episodes only, never cut.
-// Order: story anchor, proven done (pret templates, story checkpoints, receipts, trainer flags), nearby maps, named target, recency. Steps 1 and 3
-// always stay; 4 and 5 fill the room left under the cap. The reference implementation is
-// runs/analysis/bounded-input-20261028/rule_a2.py, which a702's T700 and T1301 must match byte for byte.
+// instruction-memory-cap-v1: rule A′ over the episodes either memory form keeps. Whole episodes only, never cut.
+// Proven-done episodes are never kept (pret templates, story checkpoints, receipts, trainer flags). The rest are added
+// in priority order (story anchor, nearby maps, named target, recency; newest first) while the block fits: a hard cap.
+// The reference implementation is runs/analysis/bounded-input-20261028/rule_a2.py, which recorded runs must match
+// byte for byte.
 import type {RunEvent} from "./events.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {PRET_MAP_SECTIONS} from "./pret-map-sections.js";
@@ -11,6 +12,8 @@ import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
 // The cap counts characters as code points, as Python len() does in the reference implementation.
 export const codePoints=(s:string):number=>Array.from(s).length;
+// observed_locations grows with every map entered; under the cap only the newest whole entries are sent.
+export const CAP_LOCATIONS=20;
 export const omittedLine=(n:number):string=>`${String(n)} earlier episodes are left out and remain in the run recording.`;
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
@@ -159,10 +162,9 @@ export class InstructionMemoryCap {
   const met=new Set(episodes.flatMap(e=>e.pages.flatMap(p=>p[0]===null?[]:[p[0]])));
   if(met.has("DAD"))met.add("NORMAN");
   const rows=episodes.map((e):{e:CapEpisode;step:CapStep;fact:string}=>{
-   const anchor=this.anchor(e,story);
+   const anchor=this.anchor(e,story),done=this.done(e);
+   if(done!==null)return {e,step:"done",fact:anchor===null?done:`${done}; ${anchor[0]?"anchor":"stale anchor"}: ${anchor[1]}`};
    if(anchor?.[0]===true)return {e,step:"anchor",fact:anchor[1]};
-   const done=this.done(e);
-   if(done!==null)return {e,step:"done",fact:anchor===null?done:`${done}; stale anchor: ${anchor[1]}`};
    const at=e.pages.find(p=>near.has(key(p[4])??""));
    if(at!==undefined)return {e,step:"nearby",fact:`heard on ${String(at[3])} (${String(key(at[4]))}): ${near.get(key(at[4])??"")??""}`};
    const names=this.named(e,met);

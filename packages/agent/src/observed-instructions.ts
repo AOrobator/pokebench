@@ -6,7 +6,7 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
-import {InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {CAP_LOCATIONS,InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 // instruction-memory-cap-v1, only when it leaves episodes out: the headers stop claiming every episode stays.
@@ -97,7 +97,7 @@ export class ObservedInstructions {
    for(const episode of places??[])episodes.set(episode.result_event,episode);
    const spatial=new Set(places?.map(e=>e.result_event));
    const rows=[...episodes.values()].map(e=>this.row(e,places===undefined?undefined:spatial.has(e.result_event)));
-   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})});
+   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?this.locations():{})});
    if(this.cap===null)return render(rows,0);
    const capped=this.cap.select(rows,render);
    return render(capped.kept,capped.omitted);
@@ -108,6 +108,11 @@ export class ObservedInstructions {
   return this.legacy(capped.kept,capped.omitted);
  }
  // instruction-memory-dedup-v1 adds two source-map columns: the place episode's own map and display name, or nulls.
+ // instruction-memory-cap-v1: the newest CAP_LOCATIONS whole entries and a count of the rest; otherwise all of them.
+ private locations():{observed_locations:Pick<Progress,"result_event"|"state_event"|"location">[];earlier_locations_left_out?:number} {
+  const all=[...this.visits.values()];
+  return this.cap===null||all.length<=CAP_LOCATIONS?{observed_locations:all}:{observed_locations:all.slice(-CAP_LOCATIONS),earlier_locations_left_out:all.length-CAP_LOCATIONS};
+ }
  private row(e:Episode,spatial?:boolean):CapEpisode {return {result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(spatial===undefined?[]:spatial?[p.map,p.map_display??null]:[null,null])] as const)};}
  private legacy(episodes:readonly CapEpisode[],omitted:number):string {
   const out=[
@@ -120,7 +125,7 @@ export class ObservedInstructions {
    out.push(`  - dialogue_events: ${quote(e.dialogue)}`,`    delivered_result: ${String(e.result)}`,`    turn: ${String(e.turn)}`,"    pages:");
    for(const [speaker,source,text,map,mapId,stateEvent] of e.pages)out.push(`      - speaker: ${quote(speaker)}`,`        speaker_source: ${quote(source)}`,`        text: ${quote(text)}`,`        map: ${quote(map)}`,`        map_id: ${quote(mapId)}`,`        state_event: ${quote(stateEvent)}`);
   }
-  out.push("observed_progress:",`  current: ${quote(this.current)}`,`  observed_locations: ${quote([...this.visits.values()])}`);
+  out.push("observed_progress:",`  current: ${quote(this.current)}`,`  observed_locations: ${quote(this.locations().observed_locations)}`,...(this.locations().earlier_locations_left_out===undefined?[]:[`  earlier_locations_left_out: ${String(this.locations().earlier_locations_left_out)}`]));
   return out.join("\n");
  }
 }

@@ -104,3 +104,20 @@ At T450, DAD's T312 advice is kept (it is the anchor) and WALLY's T311 is kept a
 - `experiments/feature-configs/current.json`: instruction-memory-cap-v1 added to `onInBoth` and set true in `features`. instruction-memory-yaml-v1 stays off and is not part of this approval.
 - `just fixed-run check` definition sha256 is unchanged for the four `featureRecipe: "current"` definitions (bundle-v-control-2h e19bbcdf…, bundle-v-control e4db35e3…, glm53-flash-4h da141d94…, hyperqwen-control-3h b4800f6e…). The feature recipe file's sha256 changes (see the next line), so each of these launches needs the operator's `just fixed-run approve` against the new recipe.
 - current.json sha256 c957d950b1e869f7… → 27d3b4d02db0546c…
+
+## Full gate on e483e1a73 (CPU grant 9:08 AM NY): PASS
+
+`just lint` ok. `just test`: agent 4,764, viewer 2,208, env 4,466, gateway 116, coverage ≥90. trainer-card-check first failed 3/3 with "Approved font/art did not load": the worktree has no gitignored runs/sprites. Re-run with POKEBENCH_CARD_ART set to the main checkout's art: 3/3.
+
+## Review round 2 (frozen e483e1a73): Codex BLOCKING, Claude subagent BLOCKING (CLI login still expired), fallback pending
+
+Accepted and fixed (tests and fix in one commit this round):
+- Proven-done anchor was kept (Codex). Done is now checked before the anchor.
+- observed_locations had no bound (Codex). Under the cap it keeps the newest 20 whole entries and adds `earlier_locations_left_out: N`, in both the older form and dedup's payload.
+- Rusturf Tunnel scope (Claude). pret RusturfTunnel/scripts.inc plays BRINEY's ThankYouLetsGoHomePeeko ("find me in my cottage") before `setflag FLAG_RECOVERED_DEVON_GOODS`, so devon-goods-recovery closed an open pointer. Rusturf moved to briney-voyages (closes after both deliveries); devon-goods-recovery keeps Rustboro and Route 116 with `set_on: RusturfTunnel`.
+- The registry test now pins absolute indexes (292 dedup, 293 cap). The description says 15 checkpoints and a test pins the count against `STORY_CHECKPOINTS`.
+- The pret audit test caches reads (one read per unique file, asserted). It also checks that each checkpoint's flag or var is set by a script on its scope maps or its `set_on` maps.
+
+Rebutted: "prove every line in every scope is finished" (Codex). That is an unbounded semantic audit. The structural audit now links flag setters to scenes, and the found cases (Wally/DAD, Rusturf/BRINEY, Briney/Stern) are pinned by tests. No run can prove the absence of every such case; it stays a review responsibility each round.
+
+Replays after the fixes, all byte-identical to the reference. Control: a702 T450 10,585, T700 15,716 (T621 Rusturf kept), T1301 15,884; 88ea T400 15,785, T800 15,866. Bundle: T450 12,061, T700 15,940, T1301 15,868. Focused: 109 agent tests.

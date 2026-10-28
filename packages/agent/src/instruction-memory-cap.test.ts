@@ -233,3 +233,34 @@ describe("instruction-memory-cap-v1 registry",()=>{
   expect(dependencyProblems({...ALL_ON,"milestone-instruction-memory-v1":false})).not.toContain("instruction-memory-cap-v1 needs milestone-instruction-memory-v1");
  });
 });
+
+describe("instruction-memory-cap-v1 with instruction-memory-dedup-v1",()=>{
+ const ev=(body:Record<string,unknown>):RunEvent=>({v:1,run:"r",t:"2026-10-28T00:00:00.000Z",turn:1,...body}) as unknown as RunEvent;
+ const stream=(n:number):RunEvent[]=>[state({seq:1,map:[0,19]}),...Array.from({length:n},(_,i)=>{const seq=10+i*2;return [
+  ev({seq,turn:i+2,type:"dialogue_auto_advance",tool_call_id:`t${String(i)}`,tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:`MOM: ${i%2===0?"he went up the route":"just chatting"} ${String(i)} ${"y".repeat(400)}`}],stop:"field_control",detail:"",duration_ms:1}),
+  ev({seq:seq+1,turn:i+2,type:"tool_result",id:`t${String(i)}`,name:"press",is_error:false,text:"Location: ROUTE104",state_seq:null})];}).flat()];
+ const sent=async(n:number,dedup:boolean,on:boolean)=>{
+  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":true,"delivered-place-evidence-v1":true,"instruction-memory-dedup-v1":dedup,"instruction-memory-cap-v1":on} as FeatureSet;
+  const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
+  const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
+  for(const e of stream(n))for(const fn of subs)fn(e);
+  await transform([]);
+  return records[0]??"";
+ };
+ it("caps the merged block after dedup, and leaves both forms untouched while they fit",async()=>{
+  for(const dedup of [false,true]){const [off,on]=await Promise.all([sent(3,dedup,false),sent(3,dedup,true)]);expect(on).toBe(off);}
+  const [off,on]=await Promise.all([sent(60,true,false),sent(60,true,true)]);
+  expect(off).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");expect(codePoints(off)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);
+  expect(codePoints(on)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);expect(on).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");
+  const payload=JSON.parse(on.slice(on.indexOf("\n{")+1)) as {columns:string[];episodes:{pages:unknown[][]}[]};
+  expect(payload.columns).toEqual(["speaker","speaker_source","text","map","map_id","state_event","source_map_name","source_map_display"]);
+  expect(payload.episodes.every(e=>e.pages.every(p=>p.length===8))).toBe(true);
+  expect(/^(\d+) earlier episodes are left out/m.exec(on)?.[1]).toBe(String(60-payload.episodes.length));
+ });
+ it("with dedup off, caps the instruction block and leaves the separate place evidence block as it was",async()=>{
+  const [off,on]=await Promise.all([sent(60,false,false),sent(60,false,true)]);
+  const split=(t:string)=>{const i=t.indexOf("\n\nDELIVERED PERSON AND PLACE EVIDENCE");return [t.slice(0,i),t.slice(i)] as const;};
+  const [offMemory,offPlaces]=split(off),[onMemory,onPlaces]=split(on);
+  expect(onPlaces).toBe(offPlaces);expect(codePoints(offMemory)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onMemory)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
+ });
+});

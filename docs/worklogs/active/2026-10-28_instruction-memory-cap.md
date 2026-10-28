@@ -81,3 +81,20 @@ Rebutted or deferred:
 
 - [x] RED round-1 tests (5 failing).
 - [x] GREEN round-1 fixes: hard cap with one-pass measured fill, checkpoint scopes, `Done:` anchors, header wording under the cap. 48 focused passed (cap 18, checkpoints 2, dedup, observed-instructions + wire).
+
+## Synced to main 56a54f7ab; replays in both arms (reference `rule_a2.py` updated to the round-1 rules)
+
+Every row is byte-identical between the built code and the reference. With the cap off, each control row also equals the recorded block.
+
+| Arm | Turn | Before chars | After chars | Kept / episodes |
+|---|---|---|---|---|
+| control (dedup off) | a702 T450 (after WALLY, before STONE) | 16,640 | 10,585 | 14 / 25 |
+| control | a702 T700 | 28,857 | 15,475 | 17 / 46 |
+| control | a702 T1301 | 53,962 | 15,965 | 22 / 112 |
+| control | 88ea T400 | 19,718 | 15,785 | 22 / 34 |
+| control | 88ea T800 | 25,182 | 15,866 | 25 / 49 |
+| bundle (dedup on) | a702 T450 | 18,881 | 12,061 | 14 / 25 |
+| bundle | a702 T700 | 33,116 | 15,856 | 15 / 46 |
+| bundle | a702 T1301 | 60,336 | 15,868 | 23 / 112 |
+
+At T450, DAD's T312 advice is kept (it is the anchor) and WALLY's T311 is kept as a named target. At T1301, MR. STONE's T630 and MR. BRINEY's LETTER lines are kept. DAD's T312 is no longer marked done; it is left out under the budget only as a recency episode. Tests now cover dedup on/off × cap on/off: 18 cap tests, plus 48 across dedup and observed-instructions.

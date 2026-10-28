@@ -5,10 +5,9 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 const ID="compact-map-grid-v1";
 
 describe("compact-map-grid-v1 registry",()=>{
- it("is registered last, default off, recorded only when on",()=>{
+ it("is registered at its pinned index, default off, recorded only when on",()=>{
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(298);
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
   expect(featureInfo(ID).description).toContain(" Off: the padded full-token grid.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);

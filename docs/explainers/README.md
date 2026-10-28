@@ -340,4 +340,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Compact map grid](compact-map-grid-v1.html): lossless short codes for the observed-elements map grid; a702 T1300 grid 12,180 → 3,871 tokens.
 
+- [Bounded supervisor briefing](supervisor-briefing-bound-v1.html): story lead-up dialogue within 4,000 chars and the other-map untried list within 2,000, whole items; 429f T2566 note 66,297 → 12,429 chars.
+
+- [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.
+
 - [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.

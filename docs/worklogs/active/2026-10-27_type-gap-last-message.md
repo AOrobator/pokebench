@@ -79,3 +79,13 @@ Adding a bundle switch changes the four `featureRecipe: "current"` definitions (
   - A probe-shaped rebuilt result (frames, then one joined text part) gets the copy with the result's seq. These 3 tests and one unit check fail with the old detector and pass with the fix (13/13). Coverage of the new file: 100% lines and functions, 97% branches.
   - End-to-end on the real run: `decisionContext` on f60d turn 356 ends with the type-gap copy when ON, and with the recorded last message when OFF.
 - Fixture items: panels indexes the cards once (`querySelectorAll`, a Map by data-feature). The server table serves the tracked docs/explainers in place, with no staging writes and one empty temp root that is removed afterwards. Wall time: panels 5.25 s, server 2.07 s. `tsc` and eslint are clean on the touched files.
+- Round 4 at 9bf387744:
+  - Gates (12:20 AM NY): `just test` exit 0 (agent 4702, viewer 2162, Python 4466 + 102, floors, cards 3/3) and `just lint` exit 0.
+  - Reviews: Claude LGTM, Sonnet fallback LGTM, GPT LGTM (with the exact-head gate logs).
+
+## Landing
+
+- LANDED 12:28 AM NY: `git merge --ff-only claude/type-gap-last-message` moved main from 8de58a861 to 9bf38774424f896d891a34317ab8544af867a312, the reviewed head.
+- Post-landing `just test` on main exit 0 (CPU window 12:29 AM NY): agent 4702, viewer 2162, Python 4466 + 102, floors, cards 3/3.
+- Re-approval is needed for the four definitions above (bundle-v-control-2h, bundle-v-control, glm53-flash-4h, hyperqwen-control-3h).
+- The confirmation probe on GPU1 is running: runs/probes/type-gap-team-20261027/confirm-shipped-9bf3/.

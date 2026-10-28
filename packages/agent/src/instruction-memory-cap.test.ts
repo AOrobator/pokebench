@@ -143,6 +143,11 @@ describe("instruction-memory-cap-v1 rule A′",()=>{
   expect(step(cap([state({seq:1,map:far}),...sailed]),briney)?.step).not.toBe("done");
   expect(step(cap([state({seq:1,map:far}),...sailed,milestone(4,"DEVON_GOODS_DELIVERED",1300)]),briney)?.fact).toBe("checkpoint briney-voyages: STEVEN_LETTER_DELIVERED, DEVON_GOODS_DELIVERED (turn 1300)");
  });
+ it("keeps a trainer's post-battle advice, retiring only lines heard before the trainer was beaten",()=>{
+  const t:Trainer={local_id:3,x:5,y:4,trainer_id:71,defeated:true,sprite_kind:"YOUNGSTER"};
+  const advice=ep(10,9,[page("Go on to the next room. At the left is the CONFUSION ROOM.",{speaker:"YOUNGSTER",map:"PETALBURG CITY GYM",id:[8,1],seq:5})]);
+  expect(step(cap([state({seq:5,map:[8,1],trainers:[t]}),state({seq:6,map:far})]),advice)?.step).not.toBe("done");
+ });
  it("breaks equal turns by event order, newest first",()=>{
   const c=cap([state({seq:1,map:far})]);
   const older=ep(10,5,[page(`a ${"x".repeat(80)}`,{id:far})]),newer=ep(20,5,[page(`b ${"x".repeat(80)}`,{id:far})]);
@@ -196,7 +201,7 @@ describe("instruction-memory-cap-v1 rule A′",()=>{
   const three=render([eps[1],eps[3],eps[4]] as CapEpisode[],2);
   const out=decision(c,eps,three.length);
   expect(out.kept.map(e=>e.result)).toEqual([11,13,14]);expect(out.omitted).toBe(2);
-  expect(render(out.kept,out.omitted)).toBe(three);expect(render(out.kept,out.omitted)).toContain("\n2 earlier episodes are left out and remain in the run recording.\n");
+  expect(render(out.kept,out.omitted)).toBe(three);expect(render(out.kept,out.omitted)).toContain("\n2 other episodes are left out and remain in the run recording.\n");
   expect(out.decisions.map(d=>[d.result,d.step,d.kept])).toEqual([[10,"recency",false],[11,"named",true],[12,"recency",false],[13,"recency",true],[14,"nearby",true]]);
  });
  it("is empty-safe and reads facts only from its own run's successful observation results",()=>{
@@ -226,14 +231,14 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   expect(smallOn.records).toEqual(smallOff.records);expect(smallOn.messages.map(m=>m.role==='user'?m.content:null)).toEqual(smallOff.messages.map(m=>m.role==='user'?m.content:null));
   const [off,on]=await Promise.all([recorded(60,false),recorded(60,true)]);
   const offText=off.records[0]??"",onText=on.records[0]??"";
-  expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(offText).not.toContain("earlier episodes are left out");
+  expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(offText).not.toContain("other episodes are left out");
   expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
-  const omitted=/\n(\d+) earlier episodes are left out and remain in the run recording\.\n/.exec(onText);
+  const omitted=/\n(\d+) other episodes are left out and remain in the run recording\.\n/.exec(onText);
   expect(omitted).not.toBeNull();
   const kept=(JSON.parse(onText.slice(onText.indexOf("\n{")+1)) as {episodes:{turn:number}[]}).episodes;
   expect(kept.length+Number(omitted?.[1])).toBe(60);expect(kept.map(e=>e.turn)).toEqual(kept.map(e=>e.turn).sort((a,b)=>a-b));expect(kept.at(-1)?.turn).toBe(61);
   for(const e of kept)expect(onText).toContain(`MOM: episode ${String(e.turn-2)} ${"y".repeat(400)}`);
-  expect(onText.split("\n")[0]).toBe((offText.split("\n")[0]??"").replace("Unknown, mixed, future and reusable dialogue stays.","Over the size cap, finished and less relevant episodes are left out."));
+  expect(onText.split("\n")[0]).toBe((offText.split("\n")[0]??"").replace("Unknown, mixed, future and reusable dialogue stays.","Finished episodes, and less relevant ones over the size cap, are left out."));
   expect(onText.split("\n")[0]).not.toContain("reusable dialogue stays");
   expect(on.messages).toEqual([expect.objectContaining({role:"user",content:onText})]);
  });
@@ -244,11 +249,11 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   const offText=off.records[0]??"",onText=on.records[0]??"";
   expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
   const lines=onText.split("\n");
-  expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ earlier episodes are left out and remain in the run recording\.$/);
-  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3).map(l=>l.replace("none retires a quote","over the size cap, finished and less relevant episodes are left out")));
+  expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ other episodes are left out and remain in the run recording\.$/);
+  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3).map(l=>l.replace("none retires a quote","finished episodes, and less relevant ones over the size cap, are left out")));
   expect(lines[2]).not.toContain("none retires a quote");
   const turns=[...onText.matchAll(/^ {4}turn: (\d+)$/gm)].map(m=>Number(m[1]));
-  expect(turns.length+Number(/^(\d+) earlier/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
+  expect(turns.length+Number(/^(\d+) other/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
   for(const t of turns)expect(onText).toContain(`MOM: episode ${String(t-2)} ${"y".repeat(400)}`);
   expect(onText).toContain("observed_progress:");
  });
@@ -287,7 +292,7 @@ describe("instruction-memory-cap-v1 with instruction-memory-dedup-v1",()=>{
   const payload=JSON.parse(on.slice(on.indexOf("\n{")+1)) as {columns:string[];episodes:{pages:unknown[][]}[]};
   expect(payload.columns).toEqual(["speaker","speaker_source","text","map","map_id","state_event","source_map_name","source_map_display"]);
   expect(payload.episodes.every(e=>e.pages.every(p=>p.length===8))).toBe(true);
-  expect(/^(\d+) earlier episodes are left out/m.exec(on)?.[1]).toBe(String(60-payload.episodes.length));
+  expect(/^(\d+) other episodes are left out/m.exec(on)?.[1]).toBe(String(60-payload.episodes.length));
  });
  it("with dedup off, caps the instruction block and leaves the separate place evidence block as it was",async()=>{
   const [off,on]=await Promise.all([sent(60,false,false),sent(60,false,true)]);
@@ -328,6 +333,23 @@ describe("instruction-memory-cap-v1 keeps observed_locations bounded",()=>{
   for(const o of [{trim:false,dedup:false},{trim:false,dedup:true}]){
    const on=await sent(20,{...o,cap:true},1000);
    expect(codePoints(on)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);expect(on).toContain(`PLACE 19 ${"w".repeat(1000)}`);expect(on).not.toContain(`PLACE 18 ${"w".repeat(1000)}`);
+  }
+ });
+ it("leaves out an oversized current whole and stays under the cap",async()=>{
+  const ev=(body:Record<string,unknown>):RunEvent=>({v:1,run:"r",t:"2026-10-28T00:00:00.000Z",turn:1,...body}) as unknown as RunEvent;
+  const events=[ev({seq:10,turn:2,type:"dialogue_auto_advance",tool_call_id:"t0",tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:"MOM: he went up the route."}],stop:"field_control",detail:"",duration_ms:1}),
+   ev({seq:11,turn:2,type:"tool_result",id:"t0",name:"press",is_error:false,text:`Location: ${"Q".repeat(20000)}`,state_seq:null})];
+  for(const o of [{trim:false,dedup:false},{trim:false,dedup:true},{trim:true,dedup:false}]){
+   const out=async(cap:boolean)=>{
+    const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":o.trim,"delivered-place-evidence-v1":o.dedup,"instruction-memory-dedup-v1":o.dedup,"instruction-memory-cap-v1":cap} as FeatureSet;
+    const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
+    const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
+    for(const e of events)for(const fn of subs)fn(e);
+    await transform([]);return records[0]??"";
+   };
+   const [off,on]=await Promise.all([out(false),out(true)]);
+   expect(codePoints(off)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);
+   expect(codePoints(on)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);expect(on).toContain("MOM: he went up the route.");expect(on).toMatch(/current_left_out(": ?|: )true/);
   }
  });
 });

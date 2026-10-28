@@ -137,3 +137,18 @@ lint ok. Agent 4,767, viewer 2,208, env 4,466, gateway 116, trainer-card 3/3 (PO
 Replays, all byte-identical. Control: a702 T450 10,585, T700 15,977, T1301 15,964; 88ea T400 15,785, T800 15,942. Bundle: T450 12,061, T700 15,944, T1301 15,916. Control-arm older form (replay-legacy.mjs): a702 T450/T700/T1301 15,722/15,764/15,824; d41e T4663/T7229 15,481/15,997, all under 16,000. Focused: 112 agent tests.
 
 Non-blocking items recorded for follow-up (fallback lane): precompile the cap's RegExps (per-turn constant); ledger_context retention/evidence still list episodes the cap left out; the older form's "are retained" clause; DAD's long-horizon advice can lose to newer chatter on budget late in a run (watch in the A/B).
+
+## Full gate on ba17cc740 (CPU grant 9:39 AM NY): PASS
+
+9:42–9:46. Lint ok. Agent 4,770, viewer 2,208, env 4,466, gateway 116, trainer-card 3/3.
+
+## Review round 4 (frozen ba17cc740): fallback LGTM, Claude LGTM, Codex BLOCKING. Delta fixes:
+
+- Fill cost (Codex): every candidate render re-serialized the visited list (O(E×V)). The fixed part (current + locations) is now computed once per request (`fixed()`) and passed into the renderers.
+- Oversized current (Codex): under the cap, `current` is left out whole with `current_left_out: true` if its JSON passes 4,000 characters (test: a 20,000-char Location in all three forms, at most 16,000).
+- Omission wording (Codex): "N other episodes are left out…", because rank and nearness decide, not age.
+- Header wording (Claude): "Finished episodes, and less relevant ones over the size cap, are left out." It is true when only finished episodes were dropped.
+- Post-battle advice (Claude, latent): the faced-trainer rule now retires only lines heard while the trainer was unbeaten, using the page's own recorded state. Post-battle advice (e.g. the Petalburg Gym room directions) stays.
+- Explainer numbers and the byte-for-byte caption refreshed (fallback).
+
+Replays, byte-identical to the reference. Control: a702 T450 10,589, T700 15,981, T1301 15,965; 88ea T400 15,789, T800 15,999. Bundle: 12,065 / 15,948 / 15,977. Older form: a702 15,768 / 15,828; d41e T4663 15,485, T7229 14,828. Focused: 114 agent tests. The coordinator ordered a delta review (Codex and Claude on the fix diff), then a gate.

@@ -15,7 +15,9 @@ export const codePoints=(s:string):number=>Array.from(s).length;
 // observed_locations grows with every map entered; under the cap only the newest whole entries that fit in
 // CAP_LOCATION_CHARS (as JSON) are sent, with a count of the rest.
 export const CAP_LOCATION_CHARS=2000;
-export const omittedLine=(n:number):string=>`${String(n)} earlier episodes are left out and remain in the run recording.`;
+// current (one Location and the Story checklist) is sent whole unless its JSON passes this.
+export const CAP_CURRENT_CHARS=4000;
+export const omittedLine=(n:number):string=>`${String(n)} other episodes are left out and remain in the run recording.`;
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
 export interface CapEpisode {readonly result:number;readonly dialogue:readonly number[];readonly turn:number;readonly pages:readonly CapRow[]}
@@ -61,7 +63,7 @@ export class InstructionMemoryCap {
  private readonly milestones=new Map<string,number>();
  private readonly visited=new Set<string>();
  private readonly defeated=new Map<string,boolean>();
- private readonly faced=new Map<number,string>();
+ private readonly faced=new Map<number,{readonly trainer:string;readonly beaten:boolean}>();
  observe(event:RunEvent):void {
   this.run??=event.run;
   if(event.run!==this.run)return;
@@ -76,7 +78,7 @@ export class InstructionMemoryCap {
   if(event.position===null||step===undefined)return;
   const x=event.position.x+step[0],y=event.position.y+step[1];
   const hit=trainers.find(t=>t.x===x&&t.y===y);
-  if(hit!==undefined)this.faced.set(event.seq,`${String(map)}#${String(hit.trainer_id)}`);
+  if(hit!==undefined)this.faced.set(event.seq,{trainer:`${String(map)}#${String(hit.trainer_id)}`,beaten:hit.defeated});
  }
  // A story-destinations block marks a finished line with a "Done: …" line under it, before the next blank line.
  private story():StoryLine|null {
@@ -124,8 +126,9 @@ export class InstructionMemoryCap {
   const player=escape(this.player());
   for(const [pattern,completion] of RECEIPTS)if(new RegExp(`^${pattern.replaceAll("{P}",player)}$`).test(p[2]))return ["receipt",completion];
   const faced=p[5]===null?undefined:this.faced.get(p[5]);
-  // Gym leaders also explain their badge and TM rewards; their lines close only through the badge checkpoints.
-  if(p[1]==="faced_sprite"&&faced!==undefined&&!(p[0]!==null&&p[0] in LEADER_BADGE)&&faced.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced)===true)return [`trainer ${faced.split("#")[1]??""} defeated`,true];
+  // Only lines heard while the trainer was unbeaten (the challenge) retire; post-battle advice stays. Gym leaders
+  // also explain their badge and TM rewards; their lines close only through the badge checkpoints.
+  if(p[1]==="faced_sprite"&&faced!==undefined&&!faced.beaten&&!(p[0]!==null&&p[0] in LEADER_BADGE)&&faced.trainer.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced.trainer)===true)return [`trainer ${faced.trainer.split("#")[1]??""} defeated`,true];
   return null;
  }
  private done(e:CapEpisode):string|null {

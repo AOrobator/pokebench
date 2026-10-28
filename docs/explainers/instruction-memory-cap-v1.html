@@ -99,7 +99,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <p><code>instruction-memory-cap-v1</code> stops the OBSERVED INSTRUCTION MEMORY block from growing without limit. The block stays at or under 16,000 characters, about 6,100 Qwen3.6 tokens. The switch keeps or leaves out whole dialogue episodes, chosen by what game memory says about them, and never cuts an episode's text. Default off. It works on either memory form: the episodes <code>milestone-instruction-memory-v1</code> keeps when that switch is on (the selected JSON block shown below), or every delivered episode in the older YAML-like block when it is off. In the older block the left-out line comes right after its first line.</p>
 
 <div class="kpis">
-<div class="kpi"><strong>53,962 → 15,884 chars</strong><br><span>a702 turn 1301, control arm (dedup off)</span></div>
+<div class="kpi"><strong>53,962 → 15,965 chars</strong><br><span>a702 turn 1301, control arm (dedup off)</span></div>
 <div class="kpi"><strong>26 of 112 episodes</strong><br><span>kept at a702 turn 1301; the rest stay in the recording</span></div>
 <div class="kpi"><strong>66,676 → ~51,640 tokens</strong><br><span>a702's failing request, against a 61,440 limit</span></div>
 </div>
@@ -132,14 +132,14 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <text x="340" y="184" fill="var(--ink)">Steps 1, 3, 4 and 5 are added in that order, newest first,</text><text x="340" y="200" fill="var(--ink)">each only if the whole block still fits:</text><text x="340" y="216" fill="var(--ink)">a hard 16,000-character cap.</text>
 <text x="340" y="254" fill="var(--ink)">If anything is left out, one line says how many.</text>
 </g></svg></div>
-<figcaption>Every kept episode is whole. When nothing is left out, the block is byte-for-byte what it is with the switch off.</figcaption></figure>
+<figcaption>Every kept episode is whole. When no episode is left out and observed_locations and current are within their own limits, the block is byte for byte what it is with the switch off.</figcaption></figure>
 
 <h2>What decided each episode</h2>
 <table><thead><tr><th>Turn</th><th>Before</th><th>After</th><th>Anchor</th><th>Done (left out)</th><th>Nearby</th><th>Named kept</th><th>Recency kept</th></tr></thead><tbody>
-<tr><td>a702 T700</td><td>28,857</td><td>15,716</td><td>see report</td><td>see report</td><td>see report</td><td>19 of 46 kept</td><td></td></tr>
-<tr><td>a702 T1301</td><td>53,962</td><td>15,884</td><td>0 (stale)</td><td>see report</td><td>see report</td><td>26 of 112 kept</td><td></td></tr>
-<tr><td>88ea T400</td><td>19,718</td><td>15,785</td><td>1</td><td>see report</td><td>see report</td><td>22 of 34 kept</td><td></td></tr>
-<tr><td>88ea T800</td><td>25,182</td><td>15,866</td><td>1</td><td>see report</td><td>see report</td><td>25 of 49 kept</td><td></td></tr>
+<tr><td>a702 T700</td><td>28,857</td><td>15,981</td><td>1</td><td>see report</td><td>see report</td><td>17 of 46 kept</td><td></td></tr>
+<tr><td>a702 T1301</td><td>53,962</td><td>15,965</td><td>0 (stale)</td><td>see report</td><td>see report</td><td>26 of 112 kept</td><td></td></tr>
+<tr><td>88ea T400</td><td>19,718</td><td>15,789</td><td>1</td><td>see report</td><td>see report</td><td>22 of 34 kept</td><td></td></tr>
+<tr><td>88ea T800</td><td>25,182</td><td>15,999</td><td>1</td><td>see report</td><td>see report</td><td>28 of 49 kept</td><td></td></tr>
 </tbody></table>
 <p>Recorded runs, replayed. The built code's output equals the separate reference implementation (<code>runs/analysis/bounded-input-20261028/rule_a2.py</code>) byte for byte on all four turns. With the switch off it equals the block each run actually recorded. At a702 T1301 the readout's story line was DAD's T871 "a GYM LEADER named BRAWLY". KNUCKLE was already set, so that line no longer counts as the anchor, and the dad-sends-to-dewford checkpoint closes it. The checkpoints also retire the Rustboro POKéNAV tutorial (T634, T635, T663), the Devon goods theft and recovery (T580–T621), WALLY's catching tutorial and the woods TEAM AQUA scene. MR. STONE's errands (T630) stay, because the LETTER and the DEVON GOODS have not been delivered.</p>
 
@@ -156,10 +156,10 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </tbody></table>
 
 <h2>What the model receives</h2>
-<pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Over the size cap, finished and less relevant episodes are left out. Full archive remains in the run recording.
-86 earlier episodes are left out and remain in the run recording.
+<pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Finished episodes, and less relevant ones over the size cap, are left out. Full archive remains in the run recording.
+86 other episodes are left out and remain in the run recording.
 {"columns":["speaker","speaker_source","text","map","map_id","state_event"],"episodes":[{"result":11388,"dialogue":[11385],"turn":309,"pages":[["GENTLEMAN","faced_sprite","Let's say you have six POKéMON.\nIf you catch another one…","PETALBURG CITY",[0,0],11373], …]}, …],"current":{…}}</pre>
-<p>Recorded example, a702 T1301 (episodes shortened here with …; the model gets them whole). When something is left out, the header's "Unknown, mixed, future and reusable dialogue stays." becomes "Over the size cap, finished and less relevant episodes are left out." and one line gives the count. When nothing is left out the block is unchanged. Under the cap, observed_locations (older form, and dedup without milestone memory) keeps the newest whole entries within 2,000 characters, with earlier_locations_left_out.</p>
+<p>Recorded example, a702 T1301 (episodes shortened here with …; the model gets them whole). When something is left out, the header's "Unknown, mixed, future and reusable dialogue stays." becomes "Finished episodes, and less relevant ones over the size cap, are left out." and one line gives the count. When nothing is left out the block is unchanged. Under the cap, observed_locations (older form, and dedup without milestone memory) keeps the newest whole entries within 2,000 characters, with earlier_locations_left_out.</p>
 
 <h2>Known limits</h2>
 <ul>

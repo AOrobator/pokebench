@@ -190,3 +190,22 @@ Coordinator, 2026-10-27 ~10:57 PM ET (relaying the operator's go for the anyOf f
 - Post-landing `just test` on main 87cf6a8c7 (11:32–11:35 PM ET, clean tree): exit 0. Agent 4689, viewer 2160, pytest 4466, gateway 102, trainer cards passed.
 - `just viewer-main` is still needed: the two switches add Harness Config cards.
 - f60d is untouched. It has had 3 counted reply failures (requests 1007, 1041, 1156), all navigate_to_target target shape after schema loss. Its staged swap would pass `--current-turn on --tool-schemas on --schema-hint on` and needs the operator's OK.
+
+## M8 — `just gateway-preflight`: prove delivery before a long run
+
+The operator, 2026-10-28 ~7:51 AM ET ("sure", relayed): build the delivery preflight. Step 1 stub replay first (receipts runs/reviews/gateway-delivery-proof/): 303 f60d requests on main's gateway with switches recorded ON. Tool result delivered 303/303, versus 9/303 on the old gateway f60d ran. Schemas in the system prompt 303/303, no echo 303/303, re-ask hint 3/3 (1007, 1041, 1156). OFF byte-identity vs the pre-switch gateway: 124/124 (62 aacff/3642 requests, first and later turn).
+
+- `scripts/claude-gateway/preflight.py` and `just gateway-preflight --preset P --out DIR [--current-turn/--tool-schemas/--schema-hint …] REQUESTS…`. It replays recorded requests through this gateway with a stub claude (no model calls) as later turns of an established session (the post-compaction state). Switches come from the run's preset plus the launch overrides. Checks:
+  - every tool result after the latest reply is in the prompt
+  - the full tool listing is in the system prompt
+  - the model's own reply is not echoed
+  - a generated bad anyOf/oneOf reply gets a re-ask listing the forms
+
+  A check that no request exercises counts as a failure. Writes preflight-receipt.json (gateway sha256, preset sha256, switches, overrides, totals, failures); exit 1 on any failure.
+- Enforcement: `claude_gateway.py` in session mode refuses to start without `--preflight-receipt` naming a passing receipt for its own sha256 and the same overrides. Stateless mode and replay.py (which builds the Gateway directly) are unaffected. A probe that copies the gateway script must copy preflight.py beside it.
+- Live receipts:
+  - f60d's own preset in auto: FAIL (tool_result, schemas and hint false), exit 1. That's the bug this gate exists to catch.
+  - Same requests with overrides on: PASS (tool_result 299/299, schemas 300/300, no_echo 300/300, hint 254/254). runs/reviews/gateway-delivery-proof/preflight-*/.
+- Tests: gateway folder 109 pass, coverage 99.26/96.86/100; ruff and mypy --strict clean (preflight.py added to the lint and coverage lines; gate-wiring test updated, 6/6).
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- [ ] Full gates (coordinator CPU window), land ff-only

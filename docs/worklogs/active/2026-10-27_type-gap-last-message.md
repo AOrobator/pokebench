@@ -67,3 +67,15 @@ Adding a bundle switch changes the four `featureRecipe: "current"` definitions (
   - File wall time, panels.test.ts: 5.86 s → 5.48 s, 206 tests.
   - File wall time, server.test.ts: 3.16 s → 2.24 s, 148 tests.
   - `tsc --noEmit` clean.
+- Round 3 at 587532574. Gates (12:03 AM NY): `just test` exit 0, `just lint` exit 0. Reviews: Claude LGTM, Sonnet LGTM. GPT BLOCKING on a real bug and two more fixture items. Coordinator (12:13 AM NY): fix all three.
+- Replay fix:
+  - The bug: decision probes and continuation restores rebuild a recorded result as the recorder's text parts joined by "\n". The detector only matched a part that starts with the header, so in replay the switch did nothing.
+  - The fix: `typeGapBlockIn` also cuts the block out of joined text. It takes the header line, then the following lines that start with "- " or "  ".
+  - Fixture `packages/agent/test-support/type-gap-replay-cases.json`, built read-only:
+    - All 12 recorded type-gap results of run 2026-10-27T21-20-27_claude-opus-5-5_f60d, the only run so far with the block on. Replaying its events through the shipped TypeGapTeam renders all 12 blocks byte-identical to the recorded text, bounded by "\n" or the end.
+    - The 8 probe-study rendered blocks (d41e t335, held-out and probe B cases), each with its control readout.
+    - 6 followers recorded after other blocks: Scene history, Supplies, Training, Unfinished activity, moves by foe type, and type words.
+  - Equivalence tests: the cut equals the live separate part for all 12 recorded results, two of which have Scene history after the block. It also equals the block for all 8 × 7 rendered cases (no follower plus each of the 6).
+  - A probe-shaped rebuilt result (frames, then one joined text part) gets the copy with the result's seq. These 3 tests and one unit check fail with the old detector and pass with the fix (13/13). Coverage of the new file: 100% lines and functions, 97% branches.
+  - End-to-end on the real run: `decisionContext` on f60d turn 356 ends with the type-gap copy when ON, and with the recorded last message when OFF.
+- Fixture items: panels indexes the cards once (`querySelectorAll`, a Map by data-feature). The server table serves the tracked docs/explainers in place, with no staging writes and one empty temp root that is removed afterwards. Wall time: panels 5.25 s, server 2.07 s. `tsc` and eslint are clean on the touched files.

@@ -9,13 +9,27 @@ import {TYPE_GAP_HEADER} from "./type-gap-team.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 
+// The block inside one text: a live result carries it as its own part; a replayed result (decision probes, a
+// continuation restore) is the recorder's text parts joined by "\n", so there the block is the header line and the
+// lines after it that start with "- " or "  ", the only shapes TypeGapTeam.block writes.
+export function typeGapBlockIn(text:string):string|null {
+ if(text.startsWith(TYPE_GAP_HEADER))return text;
+ const at=text.lastIndexOf(`\n${TYPE_GAP_HEADER}`);
+ if(at<0)return null;
+ const lines=text.slice(at+1).split("\n");
+ const end=lines.findIndex((line,i)=>i>0&&!line.startsWith("- ")&&!line.startsWith("  "));
+ return (end<0?lines:lines.slice(0,end)).join("\n");
+}
+
 // The block on the newest tool results (after the last assistant reply), and that result's call id.
 export function newestTypeGapBlock(messages:readonly AgentMessage[]):{id:string;text:string}|null {
  for(const m of [...messages].reverse()){
   if(m.role==="assistant")return null;
   if(m.role!=="toolResult")continue;
-  const part=m.content.findLast(p=>p.type==="text"&&p.text.startsWith(TYPE_GAP_HEADER));
-  if(part?.type==="text")return {id:m.toolCallId,text:part.text};
+  for(const part of [...m.content].reverse()){
+   const block=part.type==="text"?typeGapBlockIn(part.text):null;
+   if(block!==null)return {id:m.toolCallId,text:block};
+  }
  }
  return null;
 }

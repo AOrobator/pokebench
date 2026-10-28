@@ -6,10 +6,15 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
-import {newestTypeGapBlock,typeGapLastMessage} from "./type-gap-last-message.js";
+import {newestTypeGapBlock,typeGapBlockIn,typeGapLastMessage} from "./type-gap-last-message.js";
 import {TYPE_GAP_HEADER} from "./type-gap-team.js";
 
 const ID="type-gap-team-last-message-v1";
+// Recorded results (run f60d, the only bundle run with type-gap-team-v1 on so far: every result whose state the shipped
+// TypeGapTeam renders a block for, with that block), the probe study's rendered blocks with their control readouts, and
+// text recorded after other appended blocks. Built read-only from runs/ (see "source").
+type Replayed={recorded:{run:string;seq:number;text:string;block:string}[];rendered:{case:string;readout:string;block:string}[];followers:string[]};
+const CASES=JSON.parse(readFileSync(new URL("../test-support/type-gap-replay-cases.json",import.meta.url),"utf8")) as Replayed;
 const CURRENT=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {switches:string[];onInBoth:string[];offInBoth:string[];features:Record<string,boolean>};
 // The shipped block d41e turn 335 carried in the probes (runs/probes/type-gap-team-20261027, contexts.json "block").
 const BLOCK=[TYPE_GAP_HEADER,
@@ -121,9 +126,48 @@ describe(ID,()=>{
   expect(on.wired.tools.map(t=>t.name)).toEqual(off.wired.tools.map(t=>t.name));
  });
 
+ it("replayed results: the block cut from the recorder's joined text is byte-identical to the live block part",()=>{
+  expect(CASES.recorded).toHaveLength(12);
+  for(const r of CASES.recorded){
+   const at=r.text.indexOf(r.block);
+   expect(at,`seq ${String(r.seq)}`).toBeGreaterThan(0);
+   expect(typeGapBlockIn(r.text),`seq ${String(r.seq)}`).toBe(r.block);
+   const parts=[r.text.slice(0,at-1),r.block,...(at+r.block.length<r.text.length?[r.text.slice(at+r.block.length+1)]:[])];
+   expect(parts.join("\n")).toBe(r.text);
+   const live=newestTypeGapBlock([call("c"),{...result("c"),content:parts.map(text=>({type:"text" as const,text}))}]);
+   const replayed=newestTypeGapBlock([call("c"),{...result("c"),content:[{type:"text",text:r.text}]}]);
+   expect(replayed).toEqual(live);
+   expect(live?.text).toBe(r.block);
+  }
+  expect(CASES.recorded.filter(r=>!r.text.endsWith(r.block)).length).toBeGreaterThan(0);
+ });
+
+ it("rendered blocks: the cut stops where the next appended block starts, for every follower recorded after one",()=>{
+  expect(CASES.rendered.map(r=>r.case)).toContain("t335");
+  expect(CASES.followers.length).toBeGreaterThanOrEqual(6);
+  for(const r of CASES.rendered)for(const follower of [null,...CASES.followers]){
+   const parts=[r.readout,r.block,...(follower===null?[]:[follower])];
+   const label=`${r.case} + ${follower?.slice(0,30)??"nothing"}`;
+   expect(typeGapBlockIn(parts.join("\n")),label).toBe(r.block);
+   expect(newestTypeGapBlock([call("c"),{...result("c"),content:parts.map(text=>({type:"text" as const,text}))}])?.text,label).toBe(r.block);
+  }
+ });
+
+ it("a decision probe's rebuilt result (one joined text part after its frames) gets the copy and the result's seq",async()=>{
+  const {wired,notes,emit}=setup({...base,"type-gap-team-v1":true,[ID]:true});
+  const r=CASES.recorded.find(x=>!x.text.endsWith(x.block)) as Replayed["recorded"][number];
+  emit("c1",r.seq);
+  const rebuilt:AgentMessage={role:"toolResult",toolCallId:"c1",toolName:"press",content:[{type:"image",data:"",mimeType:"image/png"},{type:"text",text:r.text}],isError:false,timestamp:0};
+  const input=[{role:"user" as const,content:"Play the game.",timestamp:0},call("c1"),rebuilt];
+  const sent=await wired.transformContext(input);
+  expect(stamp(sent)).toEqual([...input,{role:"user",content:r.block,timestamp:0}]);
+  expect(notes).toEqual([{text:r.block,evidence:[r.seq]}]);
+ });
+
  it("finds the newest block among parallel results and ignores text that only mentions the header",()=>{
   expect(newestTypeGapBlock([call("a"),result("a",[BLOCK]),result("b")])).toEqual({id:"a",text:BLOCK});
   expect(newestTypeGapBlock([call("a"),result("a",[`Readout ${TYPE_GAP_HEADER}`])])).toBeNull();
+  expect(typeGapBlockIn(`Readout\n${TYPE_GAP_HEADER}`)).toBe(TYPE_GAP_HEADER);
   expect(newestTypeGapBlock([{role:"user",content:"hi",timestamp:0}])).toBeNull();
  });
 });

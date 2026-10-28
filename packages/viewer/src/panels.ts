@@ -411,6 +411,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "type-gap-team-last-message-v1":"type-gap-team-last-message-v1.html",
  "instruction-memory-cap-v1":"instruction-memory-cap-v1.html",
  "instruction-memory-junk-filter-v1":"instruction-memory-junk-filter-v1.html",
+ "id-card-bound-v1":"id-card-bound-v1.html",
  "instruction-memory-yaml-v1":"instruction-memory-yaml-v1.html",
  "scene-followup-prompt-v1":"scene-followup-prompt-v1.html",
  "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",

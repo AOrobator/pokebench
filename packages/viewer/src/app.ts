@@ -1684,7 +1684,7 @@ export class App {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
     } else {
-      this.ui("clock").textContent=current!==null&&current.snapshot?.run.elapsedMs===null?`T${String(view.turn)} · ${current.snapshot.warning===null?"time loading":"time unavailable"}`:view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+      this.ui("clock").textContent=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?`T${String(view.turn)} · ${currentSnapshot.warning===null?"time loading":"time unavailable"}`:view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     }
   }
 }

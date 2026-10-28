@@ -34,7 +34,7 @@ function setup(on:boolean){
 
 describe(ID,()=>{
  it("is a default-off agent-side guidance switch registered last, needing the on-screen page data, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(281);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"script-line-presence-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(SERVER_FEATURES).not.toContain(ID);

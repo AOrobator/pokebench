@@ -370,6 +370,7 @@ def read_active_ui(
     bag_pocket_truth: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
+    pokenav_short_list: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -462,7 +463,7 @@ def read_active_ui(
     frontier_ui = read_frontier_ui(read, screen.callback2)
     if frontier_ui is not None:
         return frontier_ui
-    nav_ui = read_nav_ui(read, screen.callback2)
+    nav_ui = read_nav_ui(read, screen.callback2, short_list=pokenav_short_list)
     if nav_ui is not None:
         return nav_ui
     view_ui = read_view_ui(read, screen.callback2)

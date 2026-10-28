@@ -19,6 +19,7 @@ const gone={...here,world_context:{...here.world_context,objects:[],triggers:[],
 const ev=(body:Record<string,unknown>,seq:number,turn=1):RunEvent=>checkEvent({v:1,run:"card-bound",t:"2026-10-28T14:30:00.000-04:00",seq,turn,...body});
 const page=(text:string):DialoguePage=>({text,map:"ROUTE103",map_id:[0,18],position:{x:5,y:5},state_seq:1,speaker:"PROF. BIRCH",speaker_source:"name_prefix"});
 const texts=Array.from({length:18},(_,i)=>`Page ${String(i).padStart(2,"0")} about MAY: ${"a".repeat(100)}.`);
+const search=texts[0];if(search===undefined)throw Error("empty mention fixture");
 function events(values:readonly string[]):RunEvent[]{return [ev({type:"state",...here},1),...values.flatMap((text,i)=>{const id=`c${String(i)}`;return [ev({type:"dialogue_auto_advance",tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[page(text)],stop:"field_free",detail:"closed",duration_ms:1},2+i*2,i+2),ev({type:"tool_result",id,name:"press",text:"ok",is_error:false,duration_ms:1,frames:[]},3+i*2,i+2)];})];}
 function memory(on:boolean,values=texts,recall=false){const m=new PeopleIdCards(true,false,on,recall);for(const e of events(values))m.observe(e);return m;}
 function card(m:PeopleIdCards):string {const c=m.cards(here,"show")?.cards.find(c=>c.key==="name:MAY");if(c===undefined)throw Error("missing MAY card");return c.text;}
@@ -48,7 +49,7 @@ it("counts astral codepoints, indentation and separators instead of UTF-16 units
 it("mentions get_dialogue only when offered and proves an omitted page is searchable in its actual record",async()=>{
  const record=new DialogueRecord();for(const e of events(texts))record.observe(e);
  const on=card(memory(true,texts,true));expect(block(on)).toContain("earlier pages are left out; get_dialogue finds them");expect(on).not.toContain(texts[0]);
- const result=await record.tool().execute("recall",{contains:texts[0],last:1});expect(result.content).toContainEqual({type:"text",text:expect.stringContaining(texts[0]??"")});
+ const result=await record.tool().execute("recall",{contains:search,last:1});expect(result.content).toContainEqual({type:"text",text:expect.stringContaining(texts[0]??"")});
  expect(block(card(memory(true)))).not.toContain("get_dialogue");expect(card(memory(true,texts.slice(0,2),true))).toBe(card(memory(false,texts.slice(0,2),true)));
 });
 it("keeps the full-other-list fingerprint and identical first/changed emission timing",()=>{
@@ -68,7 +69,7 @@ it("production playGameTools honors ON/OFF and records the same bounded card del
   for(const e of events(texts))for(const fn of subs)fn(e);
   const out=await tools[0]?.execute("show",{});const text=out?.content.filter(p=>p.type==="text").map(p=>p.type==="text"?p.text:"").join("\n")??"";
   const delivered=cards.find(c=>c.key==="name:MAY");expect(delivered).toBeDefined();expect(text).toContain(delivered?.text);expect(block(delivered?.text??"").includes("left out")).toBe(on);expect(text.includes(texts[0]??"")).toBe(!on);
-  const recall=tools.find(t=>t.name==="get_dialogue");expect(recall).toBeDefined();const found=await recall?.execute("lookup",{contains:texts[0],last:1});expect(JSON.stringify(found?.content)).toContain(texts[0]);if(on)expect(block(delivered?.text??"")).toContain("get_dialogue finds them");
+  const recall=tools.find(t=>t.name==="get_dialogue");expect(recall).toBeDefined();const found=await recall?.execute("lookup",{contains:search,last:1});expect(JSON.stringify(found?.content)).toContain(texts[0]);if(on)expect(block(delivered?.text??"")).toContain("get_dialogue finds them");
  }
 });
 it("registers once with its dependency, default OFF and recorded membership only when ON",()=>{

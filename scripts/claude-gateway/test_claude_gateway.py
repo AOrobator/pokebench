@@ -81,9 +81,14 @@ def make(
         "backoff": (0.01, 0.02),
         "keepalive": 0.01,
     }
+    run_features = extra.pop("run_features", None)
     sleep = extra.pop("sleep_fn", time.sleep)
     fields.update(extra)
     (tmp_path / "runs" / "run-a").mkdir(parents=True, exist_ok=True)
+    if run_features is not None:
+        (tmp_path / "runs" / "run-a" / "events.jsonl").write_text(
+            json.dumps({"type": "run_start", "evaluation": {"features": run_features}}) + "\n"
+        )
     return cg.Gateway(cg.Config(**fields), sleep=sleep)  # type: ignore[arg-type]
 
 
@@ -822,14 +827,14 @@ def test_assistant_terminal_request_resends_no_reply(tmp_path: Path) -> None:
     }
     raw = json.dumps(body).encode()
     assert cg.parse_request(raw).current_turn == ()
-    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True})
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
     assert "MY OWN REPLY" not in text and "[assistant" not in text
 
 
 def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path) -> None:
-    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True})
     raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
@@ -839,3 +844,26 @@ def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path)
     screens = sorted(p.name for p in (tmp_path / "bridge" / "screens").iterdir())
     assert screens and all(n.startswith("turn-1-1-") for n in screens)
     assert text.count("(screenshot saved at") == len(screens)
+
+
+@pytest.mark.parametrize("features", [None, {}, {"gateway-current-turn-v1": False}])
+def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(tmp_path: Path, features: object) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features=features)
+    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    request = cg.parse_request(raw)
+    assert gateway.answer(raw)[1].reply is not None
+    actual = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"]
+    paths = sorted((tmp_path / "bridge" / "screens").iterdir())
+    assert paths and all(p.name.startswith("turn-1-0-") for p in paths)
+    blocks = [{"type": "text", "text": cg._tool_listing(request.tools)}]
+    for message, images in zip(request.dialogue[-2:], [paths, []], strict=True):
+        blocks.extend(cg._render(message, cg._screenshot_note(images)))
+    blocks.append({"type": "text", "text": "Reply now with the one JSON object."})
+    assert actual == list(cg._merge_text(blocks))
+    assert "[tool result of call_600]" not in str(actual)
+
+
+def test_current_turn_rejects_non_boolean_recorded_feature(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [], mode="session", run_features={"gateway-current-turn-v1": "true"})
+    with pytest.raises(cg.GatewayError, match="must be a boolean"):
+        gateway._first_prompt(1, cg.parse_request(request(1)))

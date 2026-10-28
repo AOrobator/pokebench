@@ -109,3 +109,12 @@ Fix: `ChatRequest.current_turn` is every message after the model's latest assist
   2. Receipts were "missing". Rebuttal: runs/ is gitignored, so they live in the main checkout at /Users/user/dev/pokebench/runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/ (4 files), not in the worktree.
 - Review round 2 (packet 74529db0, head 9edf0dbe1): Claude LGTM, fallback LGTM, Codex LGTM (rebuttal accepted; receipts verified).
 - [ ] Hold for the operator: landing and any gateway restart for f60d
+
+## Codex handoff: registered current-turn correction
+
+2026-10-27 9:52 PM ET user authorization relayed verbatim: "yes we need this fixed. codex can do it". Existing clean 3b360a236 handed off; work continues on codex/gateway-current-turn-fix in the same isolated worktree, synced with fd621a45d. Preserves reviewed continuation-session support stacked below. No live gateway edits or run restart. Review and landing are authorized; later gameplay activation is separate.
+
+Register gateway-current-turn-v1, omitted/default OFF for old presets; current recipe ON in both arms per coordinator's user rule for correctness fixes. The gateway reads the bound run_start evaluation FeatureSet, then passes one selected message span to both screen capture and prompt rendering. No transport extras sent to other providers. OFF must reproduce old last-two prompt and screenshot indices exactly. Native capture/request logs declare which span was used. Existing current_turn pure selection stays independently tested.
+
+RED addition: factory tests bind actual run_start features, cover ON delivery, absent/false exact legacy bytes, malformed recorded values, and assistant-terminal requests. Targeted execution pending cleared CPU window. No claims of improved gameplay or reduced token cost; restoring large omitted observations increases prompt size.
+RED observed: 4 targeted gateway failures (3 OFF prompt/index mismatches, one malformed flag accepted), and 2 registry/current-recipe failures. The initial malformed test accidentally called request without its required turn; corrected and reran, obtaining the intended DID NOT RAISE failure. Receipt /tmp/gateway-current-turn-red.txt, copied below into canonical ignored evidence before final review. Light tests cleared by coordinator21:55.

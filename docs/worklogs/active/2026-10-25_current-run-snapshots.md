@@ -526,3 +526,5 @@ B1 four new targeted mutations actually executed/restored independently (m4-r3-n
 Pre-gate dependency sync14:07EDT: destination-first guidance landed main9415839b9 and is now merged cleanly.19 upstream files, no App/controls/current-browser replacement. Own B1 correction unchanged. Explicit CPU queue now junk-filter, story checkpoints, YAML, then snapshots; no heavy run before START.
 
 Pre-gate sync14:22EDT: junk-filter seam landed f67571b7f; merged cleanly before our full gates. Own viewer current/B1 paths unchanged. Queue now junk postmerge test/refresh then snapshots; no heavy job until explicit START.
+
+START granted14:31EDT after junk-filter release; main6cffebd98 evidence-only afterf67571b7f synced before gates. Run corrected lint/63focused/48mutations/build/three-width unknown/reset/held/current/full coverage/vendor serially, release immediately on exit. No actual-root service/viewer activation in M4; remains M5.

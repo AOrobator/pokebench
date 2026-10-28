@@ -325,12 +325,10 @@ def test_neutral_field_controls_describe_both_choices_in_fixed_order(
     assert "To answer" not in text
     # Enabling the replacement cannot re-enable an explicitly disabled parent.
     assert expected not in format_readout(state, frozenset({SWITCH}))
-    assert (
-        format_readout(state, frozenset({NEUTRAL})).replace(
-            NO_LINE if selected == "YES" else YES_LINE, expected
-        )
-        == text
-    )
+    legacy = format_readout(state, frozenset({NEUTRAL}))
+    legacy_line = NO_LINE if selected == "YES" else YES_LINE
+    assert legacy_line in legacy
+    assert legacy.replace(legacy_line, expected) == text
 
 
 @pytest.mark.parametrize("selected", ["YES", "NO"])

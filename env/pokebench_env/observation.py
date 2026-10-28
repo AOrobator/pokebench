@@ -19,6 +19,8 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_learner
 from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
+from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
+from pokebench_env.player_map_visibility import MapMemory
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
@@ -75,6 +77,8 @@ def install_observation(
     links = LinkCache() if RESPAWN not in off else None
     memory = RespawnMemory() if RESPAWN not in off else None
 
+    visibility = MapMemory()
+
     def decode(read: ReadMemory) -> GameState:
         if (
             COHERENT_BATTLE_FEATURE not in off
@@ -82,7 +86,9 @@ def install_observation(
             and main_loop_idle(read) is None
         ):
             raise HTTPException(status_code=503, detail="native battle CPU coherence unavailable")
-        state = read_state(read, maps, active_ui=enabled, off=off, links=links)
+        state = read_state(
+            read, maps, active_ui=enabled, off=off, links=links, visibility=visibility
+        )
         if memory is not None:
             memory.note(state)
         return state
@@ -289,7 +295,16 @@ def install_observation(
     @app.post("/pokebench/trainer-sight")
     def trainer_sight(body: TrainerSightRequest) -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            return sight_report(read_memory, body.map_id, body.tiles)
+            visible_ids = None
+            if VISIBILITY not in off:
+                current = decode(read_memory)
+                visible_ids = frozenset(
+                    o.local_id
+                    for o in (
+                        () if current.world_context is None else current.world_context.objects
+                    )
+                )
+            return sight_report(read_memory, body.map_id, body.tiles, visible_ids=visible_ids)
 
     if battle_wait is not None:
         wait = battle_wait

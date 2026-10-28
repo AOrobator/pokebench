@@ -379,6 +379,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
+ "player-map-visibility-v1":"player-map-visibility-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",
  "gateway-schema-hint-v1":"gateway-schema-hint-v1.html",

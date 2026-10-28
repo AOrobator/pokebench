@@ -145,7 +145,8 @@ export class PeopleLedger {
    const talk=this.last(o.key,callId);
    return `- object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${talk===undefined?"not talked to this run":this.since(talk)}`;
   });
-  const out=lines.length===0?[`${PEOPLE_HEADER} none`]:[PEOPLE_HEADER,...lines];
+  const header=state.map_visibility==null?PEOPLE_HEADER:"People and objects currently visible (a sprite kind is a graphic, not a name):";
+  const out=lines.length===0?[`${header} none`]:[header,...lines];
   if(characters!==null)out.push(`Story characters here: ${characters.here.length===0?"none":characters.here.join(", ")}. Not on this map: ${characters.absent}.`);
   return out.join("\n");
  }

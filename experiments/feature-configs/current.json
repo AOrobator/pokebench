@@ -154,7 +154,8 @@
   "self-named-speaker-v1",
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
-  "type-gap-team-last-message-v1"
+  "type-gap-team-last-message-v1",
+  "player-map-visibility-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -441,6 +442,7 @@
   "self-named-speaker-v1": true,
   "story-briefing-native-milestones-v1": true,
   "retire-reached-story-line-v1": true,
-  "instruction-memory-dedup-v1": false
+  "instruction-memory-dedup-v1": false,
+  "player-map-visibility-v1": true
  }
 }

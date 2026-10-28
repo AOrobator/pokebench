@@ -5,6 +5,7 @@ UpdateSprites' rendered OAM coordinates (sprite.c), field text printer (text.c).
 US addresses reuse the verified world_context/naming/game_state readers.
 """
 
+import os
 import threading
 from collections import deque
 from collections.abc import Callable
@@ -18,6 +19,15 @@ from pokebench_env.game_state import FIELD_CONTROLS_LOCK, SAVE_BLOCK_PTRS
 from pokebench_env.live_map import MAP_OFFSET, OBJECT_EVENTS
 from pokebench_env.naming import SPRITES
 from pokebench_env.native_text import decode_native_text, native_text_payload
+from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
+from pokebench_env.player_map_visibility import (
+    VIEWPORT,
+    illumination,
+    lit_rect,
+    screen_visible,
+    sprite_rect,
+)
+from pokebench_env.readout import features_off_from_env
 from pokebench_env.transition_coherence import main_loop_idle
 from pokebench_env.world_context import GRAPHICS, STRING_VAR4, read_field_message
 
@@ -77,7 +87,7 @@ def _exact(read: ReadMemory, address: int, count: int) -> bytes:
     return raw
 
 
-def read_scene(read: ReadMemory) -> Scene:
+def read_scene(read: ReadMemory, *, player_visibility: bool = False) -> Scene:
     callback = int.from_bytes(_exact(read, GMAIN + 4, 4), "little")
     screen = SCREENS.get(callback, "unknown")
     if screen != "overworld":
@@ -88,6 +98,7 @@ def read_scene(read: ReadMemory) -> Scene:
         raise ValueError("scene map owner unavailable")
     group, num = _exact(read, save + 4, 2)
     map_id = (group, num)
+    light = illumination(read, map_id) if player_visibility and screen_visible(read) else None
     actors = []
     bodies = _exact(read, OBJECT_EVENTS, 16 * 0x24)
     for offset in range(0, len(bodies), 0x24):
@@ -113,6 +124,16 @@ def read_scene(read: ReadMemory) -> Scene:
             py -= 256
         if not (-width < px < 240 and -height < py < 160):
             continue
+        if player_visibility:
+            rect = sprite_rect(read, body)
+            # A locked scene may animate the light, so its destination radius is not proof.
+            if (
+                (locked and light != VIEWPORT)
+                or light is None
+                or rect is None
+                or not lit_rect(light, rect)
+            ):
+                continue
         x = int.from_bytes(body[0x10:0x12], "little", signed=True) - MAP_OFFSET
         y = int.from_bytes(body[0x12:0x14], "little", signed=True) - MAP_OFFSET
         actors.append(Actor(body[8], body[5], x, y, bool(body[2] & 1)))
@@ -134,9 +155,16 @@ def read_scene(read: ReadMemory) -> Scene:
 
 
 class SceneJournal:
-    def __init__(self, capacity: int = CAPACITY, visual_interval: int = VISUAL_INTERVAL) -> None:
+    def __init__(
+        self,
+        capacity: int = CAPACITY,
+        visual_interval: int = VISUAL_INTERVAL,
+        *,
+        player_visibility: bool = False,
+    ) -> None:
         if capacity < 1 or visual_interval < 1:
             raise ValueError("scene journal bounds must be positive")
+        self.player_visibility = player_visibility
         self.lock = threading.RLock()
         self.entries: deque[dict[str, object]] = deque(maxlen=capacity)
         self.frame = 0
@@ -165,7 +193,9 @@ class SceneJournal:
                 self.last_message = None
                 return
             try:
-                self._observe(read_scene(read), screenshot)
+                self._observe(
+                    read_scene(read, player_visibility=self.player_visibility), screenshot
+                )
             except Exception as error:
                 self.errors += 1
                 self.last_error = str(error)
@@ -265,7 +295,7 @@ class Stepped(Protocol):
 def install_scene_journal(
     api: FastAPI, emulator: type[Stepped], read: ReadMemory, screenshot: Callable[[], str]
 ) -> SceneJournal:
-    journal = SceneJournal()
+    journal = SceneJournal(player_visibility=VISIBILITY not in features_off_from_env(os.environ))
     step = emulator.run_frame_with_buttons
 
     def recording(self: Stepped, buttons: list[str]) -> None:

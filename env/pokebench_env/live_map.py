@@ -245,7 +245,7 @@ class FullMap:
             "height": self.height,
             "elevation": elevation,
             "rows": [
-                "".join(f"{cells[(x, y)]:04x}" for x in range(self.width))
+                "".join(f"{cells.get((x, y), 0xFFFF):04x}" for x in range(self.width))
                 for y in range(self.height)
             ],
             "objects": [{"x": x, "y": y} for _, x, y in self.objects],

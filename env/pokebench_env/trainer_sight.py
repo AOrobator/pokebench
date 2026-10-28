@@ -473,7 +473,13 @@ def check_route(
     return tuple(sorted(found, key=lambda s: (s.step, s.local_id)))
 
 
-def sight_report(read: ReadMemory, map_id: MapId, route: Sequence[Point]) -> dict[str, object]:
+def sight_report(
+    read: ReadMemory,
+    map_id: MapId,
+    route: Sequence[Point],
+    *,
+    visible_ids: frozenset[int] | None = None,
+) -> dict[str, object]:
     """The JSON the endpoint serves: a report, or why there is none."""
     try:
         save1 = struct.unpack("<I", read(SAVE_BLOCK_PTRS, 4))[0]
@@ -489,6 +495,8 @@ def sight_report(read: ReadMemory, map_id: MapId, route: Sequence[Point]) -> dic
         if grid is None:
             return {"available": False, "reason": "map grid unreadable"}
         trainers, blockers = read_sight_trainers(read, save1, map_id)
+        if visible_ids is not None:
+            trainers = tuple(t for t in trainers if t.local_id in visible_ids)
         return SightReport(map_id, trainers, check_route(grid, trainers, blockers, route)).json()
     except (ValueError, OSError, struct.error, IndexError):
         return {"available": False, "reason": "game memory unreadable"}

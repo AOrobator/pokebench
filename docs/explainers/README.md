@@ -328,3 +328,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Claude schema re-ask hint](gateway-schema-hint-v1.html): an anyOf/oneOf re-ask lists the forms generated from the tool schema; recorded switch, exact legacy OFF.
 
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
+
+- [Player map visibility](player-map-visibility-v1.html): visible and remembered terrain, darkness, hidden-object filtering and discovered-terrain navigation.

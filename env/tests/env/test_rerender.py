@@ -23,6 +23,7 @@ ROM_START = 0x08000000
 # Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1,
 # adjacent-tiles-v1 and battle-message-waiting-v1, so its recorded harness features leave them off.
 RECORDED_OFF = [
+    "player-map-visibility-v1",
     "type-gap-team-v1",
     "map-observability-v1",
     "player-elevation-readout-v1",
@@ -256,6 +257,7 @@ def test_parse_request_keeps_order():
 
 
 def test_main_reads_the_archive_with_the_operator_rom(monkeypatch, tmp_path):
+    monkeypatch.setattr(rerender.MapMemory, "project", lambda self, read, state: state)
     rom = tmp_path / "rom.gba"
     rom.write_bytes(b"ROM")
     calls: list[tuple[Path, str, bytes]] = []

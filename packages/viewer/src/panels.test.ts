@@ -1806,3 +1806,5 @@ it("links unique instruction memory to its tracked explainer",()=>{
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("Unique instruction memory");expect(html).toContain("OFF");expect(html).toContain("ON");
 });
+
+it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});

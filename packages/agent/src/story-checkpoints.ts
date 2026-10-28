@@ -1,9 +1,9 @@
-// Deterministic story checkpoints for instruction-memory-cap-v1, from the move-in through the DEVON GOODS delivery in
+// Legacy deterministic checkpoints for instruction-memory-cap-v1, from the move-in through the DEVON GOODS delivery in
 // Slateport. Each closes the episodes heard, at or before its milestones, entirely within its scope: a pret map
 // (data/maps/map_groups.json group/number) and the speakers of that scene there (an OBJ_EVENT_GFX_ sprite on the
 // map, a "NAME:" prefix from the scene's scripts, or null for unattributed narration). Milestones come from the
 // harness's existing readers (milestones.ts, story-progress.ts); flag names are pret include/constants/flags.h.
-// Coverage ends at DEVON_GOODS_DELIVERED: the Route 110 rival, Mauville and later scenes have no checkpoint yet. DAD's
+// Legacy coverage ends at DEVON_GOODS_DELIVERED; the opt-in table below adds later conservative scopes. DAD's
 // Petalburg Gym advice (DadGoCollectBadges, NormanGoToRustboro) has none: it stays open until NORMAN is defeated.
 // The Rusturf Tunnel scene ends with BRINEY's "find me in my cottage" (pret ThankYouLetsGoHomePeeko) before
 // FLAG_RECOVERED_DEVON_GOODS is set, so it closes with briney-voyages, after both deliveries. MOM's "introduce

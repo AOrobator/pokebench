@@ -103,3 +103,6 @@ COMMIT: record current-source mutations and four-mode stream parity after junk i
 
 Pre-gate evidence-only main sync 6cffebd98d79755f91e6b7c55ac0e3c0dbf50e49: only the junk-filter worklog changed relative f67571b7f; production tree unchanged. Targeted lint for own merged production/fixture files passes. Final gate base is this main pin.
 COMMIT: sync landed junk-filter proof before re-gates.
+
+Pre-review documentation cleanup: legacy table header now distinguishes the optional later-game extension. Explainer points to this worklog for evolving gate/review/landing status and keeps activation a separate operator decision; no stale pending status will be shipped. No behavior/data change.
+COMMIT: clarify legacy-table scope and durable explainer status.

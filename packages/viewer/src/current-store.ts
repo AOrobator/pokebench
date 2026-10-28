@@ -54,6 +54,7 @@ export function openCurrentStore(path:string,options:{readOnly?:boolean;auxBytes
   boundRoot:():string|null=>{const row=db.prepare("SELECT identity FROM root_binding WHERE id=1").get();return row===undefined?null:String(row["identity"]);},
   bindRoot:(identity:string):void=>{transaction(()=>{const row=db.prepare("SELECT identity FROM root_binding WHERE id=1").get();if(row!==undefined&&row["identity"]!==identity)throw new Error("Snapshot database belongs to another recordings root");db.prepare("INSERT OR IGNORE INTO root_binding VALUES(1,?)").run(identity);});},
   pending:():boolean=>db.prepare("SELECT 1 FROM auxiliary WHERE json_extract(value,'$.reconstruct')=1 AND json_extract(value,'$.complete')=0 AND json_extract(value,'$.problem') IS NULL LIMIT 1").get()!==undefined,
+  runIds:():string[]=>db.prepare("SELECT run FROM current UNION SELECT run FROM rebuild ORDER BY run").all().map(row=>String(row["run"])),
   active:():string[]=>db.prepare("SELECT run FROM current WHERE json_extract(state,'$.end') IS NULL ORDER BY run").all().map(row=>String(row["run"])),
   seed:(state:CurrentState,source:CurrentSource,index:readonly HistoryOffset[],auxiliary:string):SavedCurrent=>transaction(()=>{
    valid(state,source,index);const revision=change(state.run,false);db.prepare("DELETE FROM history WHERE run=?").run(state.run);putIndex(state.run,source,index);setAux(state.run,auxiliary);

@@ -34,7 +34,7 @@ export class CurrentProjector{
   for(const key of Object.keys(PROJECTOR_LIMITS) as (keyof typeof PROJECTOR_LIMITS)[]){const value=this.limits[key];if(!Number.isSafeInteger(value)||value<1||value>PROJECTOR_LIMITS[key])throw new Error("Invalid projector limits");}
   this.workBytes=Math.max(3*this.limits.chunkBytes+65536,this.limits.chunkBytes+this.limits.tailBytes+32768);if(this.limits.burstBytes<this.workBytes)throw new Error("Projector burst cannot cover a bounded batch");
   this.tokens=this.limits.burstBytes;this.tokenAt=this.monotonic();if(!Number.isFinite(this.tokenAt)||this.tokenAt<0)throw new Error("Invalid monotonic clock");this.lease=rootLease(this.root);let opened:ReturnType<typeof openCurrentStore>|undefined;
-  try{opened=(options.storeFactory??openCurrentStore)(options.database);const stat=lstatSync(this.root);opened.bindRoot(`${this.root}:${String(stat.dev)}:${String(stat.ino)}`);this.store=opened;this.priority=new Set(this.store.active());}catch(error){opened?.close();this.lease.close();throw error;}
+  try{opened=(options.storeFactory??openCurrentStore)(options.database);const stat=lstatSync(this.root);opened.bindRoot(`${this.root}:${String(stat.dev)}:${String(stat.ino)}`);this.store=opened;this.priority=new Set(this.store.active());this.ids=this.store.runIds();}catch(error){opened?.close();this.lease.close();throw error;}
  }
  current(run:string):SavedCurrent|null{return this.store.get(run);}
  reconstruction(run:string):SavedCurrent|null{return this.store.rebuilding(run);}
@@ -46,6 +46,7 @@ export class CurrentProjector{
  private discover():void{
   if(this.ids.length>0&&this.monotonic()-this.discoveryAt<this.limits.discoveryMs)return;
   const ids=new Set<string>();for(const base of [this.root,join(this.root,"human")])if(existsSync(base)){for(const entry of readdirSync(base,{withFileTypes:true})){if(entry.isDirectory()&&new RegExp(RUN_ID_PATTERN).test(entry.name)&&existsSync(join(base,entry.name,"events.jsonl")))ids.add(entry.name);if(ids.size>this.limits.candidates)throw new Error("Source discovery candidate limit exceeded");}}
+  for(const run of this.ids)if(!ids.has(run)){this.store.remove(run);this.jobs.delete(run);this.initializing.delete(run);this.priority.delete(run);this.scanned.delete(run);this.failures.delete(run);this.failedSource.delete(run);this.waitingHeaders.delete(run);for(const [port,probe] of this.probes)if(probe.run===run){probe.controller.abort();clearTimeout(probe.timer);this.probes.delete(port);}for(const [port,owner] of this.owners)if(owner.run===run)this.owners.delete(port);}
   this.ids=[...ids].sort().reverse();this.discoveryAt=this.monotonic();
  }
  private healthOwner(job:Job):void{

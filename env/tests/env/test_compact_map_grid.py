@@ -133,3 +133,22 @@ def test_compact_header_reads_multi_digit_columns_top_to_bottom() -> None:
     compact = render_observation(shown, build_observation(shown, (0, 0), elements), compact=True)
     tens, ones = compact.split("\n")[2:4]
     assert tens.rstrip().endswith("1 1") and ones.rstrip().endswith("0 1")
+
+
+def test_server_switch_is_default_off_and_only_recodes_the_grid() -> None:
+    from test_map_observation_wiring import MAPS, map_memory, off_set
+
+    from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
+    from pokebench_env.rerender import read_state, render
+
+    switch = "compact-map-grid-v1"
+    assert switch in SERVER_FEATURES and switch in features_off_from_env({})
+    state = read_state(map_memory().read, MAPS, active_ui=False, off=off_set())
+    verbose = render(state, off_set())
+    compact = render(state, off_set() - {switch})
+    assert "observed elements v1)" in verbose and "compact codes" not in verbose
+    assert "Current map (observed elements v1, compact codes)" in compact
+    grid = slice(compact.index("Current map"), compact.index("Base glyph"))
+    assert parse(compact[grid.start:]) == parse(verbose[verbose.index("Current map"):])
+    assert compact[: grid.start] == verbose[: verbose.index("Current map")]
+    assert compact[grid.stop:] == verbose[verbose.index("Base glyph"):]

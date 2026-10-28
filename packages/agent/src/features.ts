@@ -301,6 +301,7 @@ export const SWITCHABLE_FEATURES = [
   "retire-reached-story-line-v1",
   "instruction-memory-dedup-v1",
   "scene-journal-safe-capture-v1",
+  "compact-map-grid-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -722,6 +723,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("retire-reached-story-line-v1", "observation", "RETIRE REACHED STORY LINE", "unfinished-activity-v1", "Default off. Bundle run a702 kept Dad's turn-312 line \"Head for RUSTBORO CITY beyond this town.\" at the top of every result for 90+ turns as \"Story line heard … Reached: RUSTBORO CITY\", after it had entered RUSTBORO CITY (turn 378) and beaten ROXANNE there (turn 578), and the model quoted it as its current goal. With this switch, a story line all of whose places the player has reached retires once the game observes a story milestone, or any step of the extended campaign catalog (a place reached such as DEWFORD TOWN, or an event such as STEVEN LETTER RECEIVED; The operator 2026-10-28), after the player has entered every place it names since the line (a battle won, another measurement-only step or an optional activity does not count; scoring is unchanged). It retires the way stale-story-goal-v1 retires a finished line: the Story goal line says the line is done, naming the place, the arrival turn and the milestone (with stale-story-goal-v2 the line is omitted), and the walk-away supervisor gets no goal from it. Dialogue history is unchanged and no replacement is invented. Needs unfinished-activity-v1, which records the arrivals. Off: a reached line stays in the header as \"Story line heard … Reached: …\"."),
   on("instruction-memory-dedup-v1", "guidance", "UNIQUE INSTRUCTION MEMORY", "delivered-place-evidence-v1", "Default off. Combines the existing instruction and person/place evidence projections into one compact block, with each selected delivered episode shown once by its original result reference. Keeps whole quotes, unknown speakers, source names and display names, dialogue/state references and current delivered progress. Existing milestone-proof retirement stays unchanged; arrival and age never complete a task. Inactive when instruction-goal-ledger-v1 replaces this memory owner. Off: the existing separate projections and all request bytes remain unchanged."),
   on("scene-journal-safe-capture-v1", "observation", "SAFE SCENE CAPTURE", "cutscene-journal-v1", "Default off. Samples scene history only at confirmed game idle points. Reports deferred samples separately from actual read failures and never infers events across them. Keeps an eight-snapshot full native RAM/CPU incident window with two pre-samples and two recovery samples where space permits; at most two exported diagnostic windows persist outside the frame hook. Current observations and transcript archives remain separate. Off: the previous scene-journal hook, failure wording and endpoint payload are unchanged; no raw diagnostic buffers are allocated."),
+  on("compact-map-grid-v1", "observation", "COMPACT MAP GRID", "map-observability-v1", "Default off. The observed-elements map grid (map-observability-v1) pads every cell to its widest token, and tokens such as ~/Wa:o/Lv:1 are long, so bundle run a702's last tool result carried a 46,558-char grid for ROUTE 104 and the request overflowed the 65,536-token window at turn 1303; pret's 80x80 routes render at about 160,000 chars. On: each distinct multi-character token gets a one- or two-letter code that is not a single-character glyph, listed once on a Codes line under the title (\"Codes: A = ~/Wa:o/Lv:1; ...\"); cells are padded to the longest code and column numbers are stacked digit lines. Every tile, gate edge, junction and the legend are still shown, so nothing is lost (round-trip tested at every pret layout size). Off: the padded full-token grid."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -815,6 +817,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "type-gap-team-v1",
   "pokenav-short-list-v1",
   "scene-journal-safe-capture-v1",
+  "compact-map-grid-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1102,6 +1105,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("retire-reached-story-line-v1"),
     ...when("instruction-memory-dedup-v1"),
     ...when("scene-journal-safe-capture-v1"),
+    ...when("compact-map-grid-v1"),
   ];
 }
 

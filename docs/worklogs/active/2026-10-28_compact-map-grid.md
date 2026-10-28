@@ -29,9 +29,9 @@ Gate edges (`|`, `-`), junctions (`*`), the legend and everything after the grid
 ## M1: renderer + server switch
 
 - [x] RED: `env/tests/env/test_compact_map_grid.py`. A synthetic grid at every distinct pret layout size (layouts.json at pret 731ad5bfd, with fallback sizes if absent) parses back to the same cells, gate edges, junctions and trailing text as the verbose form. The test also checks: off by default, codes skip glyph letters, and the multi-digit header. RED before the implementation: `render_observation` had no `compact` parameter.
-- [x] GREEN: `compact_codes()` and `render_observation(compact=…)` in `map_observation.py`. 203 passed; 80×80 goes from 161,825 to 28,222 chars.
-- [ ] Server wiring: `compact-map-grid-v1` in readout SERVER_FEATURES and the default-off env list; readout passes `compact=` through. Wiring test.
-- [ ] TS registry (features.ts SERVER_FEATURES / SWITCHABLE_FEATURES / FEATURES), play-preset, next-run; registry tests.
+- [x] GREEN: `compact_codes()` and `render_observation(compact=…)` in `map_observation.py`. 200 passed (197 distinct sizes + 3); 80×80 goes from 161,825 to 28,222 chars.
+- [x] Server wiring: `compact-map-grid-v1` in readout SERVER_FEATURES and the default-off env list; readout passes `compact=` through. Wiring test `test_server_switch_is_default_off_and_only_recodes_the_grid`: RED against the unwired readout (1 failed), GREEN after; the text before the grid and from `Base glyph` on is byte-identical. 201 passed; neighbours test_map_observation_wiring + test_adjacent_tiles 139 passed.
+- [x] TS registry (features.ts SWITCHABLE_FEATURES index 294 / FEATURES / SERVER_FEATURES / serverFeatureEnv, needs map-observability-v1), play-preset (schema, legacy filter, union, normalize and flag defaults false), next-run default false. `compact-map-grid.test.ts` 2/2 with features.test.ts (30 passed); agent and viewer `tsc --noEmit` clean. Written after the registration, so no separate RED.
 - [ ] Explainer + feature-card link.
 - [ ] a702 T1300 measurement (chars and tokens).
 - [ ] Activation commit: current.json `switches` (bundle ON); recipe sha change noted.

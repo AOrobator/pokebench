@@ -1773,7 +1773,11 @@ it("links citation evidence to its exact tracked explainer without inventing his
 
 it("links complete Claude turn delivery to the tracked explanation",()=>{
  const id="gateway-current-turn-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
- const log=new Log();log.add(0,{...START,harness_features:[id]});
- const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
- expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
 });

@@ -848,6 +848,15 @@ def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path)
     screens = sorted(p.name for p in (tmp_path / "bridge" / "screens").iterdir())
     assert screens and all(n.startswith("turn-1-1-") for n in screens)
     assert text.count("(screenshot saved at") == len(screens)
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert {k: row[k] for k in ("request", "current_turn", "messages", "run_id")} == {
+        "request": 1,
+        "current_turn": True,
+        "messages": 3,
+        "run_id": "run-a",
+    }
 
 
 @pytest.mark.parametrize("features", [None, {}, {"gateway-current-turn-v1": False}])

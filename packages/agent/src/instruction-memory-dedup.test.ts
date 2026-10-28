@@ -76,3 +76,14 @@ it.each(["estimated","exact"] as const)("preserves complete unique memory in the
   expect(JSON.stringify(requests[2])).toContain("Current question: sail back?");expect(requests[2]?.messages.filter(m=>m.role==="assistant")).toHaveLength(1);
  }finally{await new Promise<void>((resolve,reject)=>{server.close(error=>{if(error)reject(error);else resolve();});});}
 });
+
+it("does not add unselected progress or visit history when only the place projection existed",async()=>{
+ const s=setup(true,false,false);
+ s.feed([dialogue("unknown",[page("Our daughter is upstairs, I think.",null)]),result("unknown"),{...result("unrelated"),seq:8,text:"Location: UNRELATED ROOM"}]);
+ await s.wiring.transformContext([]);
+ const text=s.records[0]?.text??"";
+ expect(payload(text).episodes.map(e=>e.result)).toEqual([6]);
+ expect(text).toContain("Our daughter is upstairs, I think.");
+ expect(text).not.toContain("UNRELATED ROOM");
+ expect(payload(text).observed_locations).toBeUndefined();
+});

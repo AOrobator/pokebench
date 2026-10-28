@@ -155,3 +155,22 @@ The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude 
 - f60d is untouched. Its swap (f60d-gateway-swap-steps.md, swap_gateway.py with --current-turn on) waits for the operator's explicit OK.
 - Follow-up: the anyOf re-ask text should list each option's required keys. f60d request 1007 failed twice on navigate_to_target target shape.
 - Post-merge `just test` on main 45ff0b86f (2026-10-27 11:00–11:02 PM ET, clean tree, coordinator window): exit 0. Agent 4665/4665, viewer 2157/2157, pytest 4463 (97.48/93.61/100), gateway 89/89, trainer-card check passed. `just viewer-main` done earlier (viewer at 45ff0b86f, ppid 1).
+
+## M7 — tool schemas every turn, and a schema hint on re-ask (two switches)
+
+Coordinator, 2026-10-27 ~10:57 PM ET (relaying the operator's go for the anyOf fix): split into two switches, each with its own override, logging and tests. Measurement (read-only): runs/reviews/gateway-tool-schemas/compaction-schema-loss.md. f60d ran 416 of 478 turns after its tool listing was compacted away; all 8 re-asks and 2 reply failures came after that. 3642 ran 465 of 575 turns after, with 1 re-ask.
+
+- **gateway-tool-schemas-v1** (`--tool-schemas auto|on|off`): session mode appends `_tool_listing(tools)` to the system prompt on every call (snapshot off, never compacted). The per-turn message names the tools and points to the system prompt. Recorded in `session_input` as `tool_schemas` and `tool_schemas_source`; invalid recorded values log `tool_schemas_feature_invalid`. Off: byte-identical (listing only on the first turn or a tool change).
+- **gateway-schema-hint-v1** (`--schema-hint auto|on|off`): when the validation error names an anyOf/oneOf path, the one re-ask appends a line for each such path. The line is generated from the named tool's schema (const and enum discriminators, required keys with types, optional keys). Recorded in a `reask` event (`schema_hint`, `source`, `hint_chars`, `error`); invalid values log `schema_hint_feature_invalid`. Off: byte-identical re-ask.
+- Both are registered like gateway-current-turn-v1:
+  - SWITCHABLE slots 286 and 287, not server features
+  - FEATURES entries with an "Off:" sentence
+  - FeatureSetSchema optional, normalized to ??false, false in flagFeatures and DEFAULT_NEXT_RUN
+  - viewer explainer links, current.json onInBoth and true
+  - explainers gateway-tool-schemas-v1.html and gateway-schema-hint-v1.html (themed, pages-check clean)
+- Tests:
+  - Gateway 102 pass, coverage 99.37/97.16/100. Fixtures are reduced real f60d requests 1007 and 1041. Override matrices on the in-memory runner. The real hint for 1007 and 1041 lists `{kind: "warp", x (integer), y (integer)}`.
+  - Agent gateway-tool-schemas 4/4 and the related agent suites 62/62; viewer targeted 404/404; TS lint clean.
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- [ ] Full gates (coordinator CPU window), land ff-only
+- f60d untouched; any swap waits for the operator.

@@ -202,6 +202,10 @@ class Config:
     # Session mode's current-turn delivery: "auto" follows the bound run's recorded
     # gateway-current-turn-v1; "on"/"off" is an operator override for this gateway only.
     current_turn: Literal["auto", "on", "off"] = "auto"
+    # gateway-tool-schemas-v1: the full tool listing in every session system prompt.
+    tool_schemas: Literal["auto", "on", "off"] = "auto"
+    # gateway-schema-hint-v1: an anyOf/oneOf re-ask lists the schema's allowed forms.
+    schema_hint: Literal["auto", "on", "off"] = "auto"
 
     @property
     def advertised(self) -> str:
@@ -534,11 +538,18 @@ def session_prompt(
     screens: Sequence[Sequence[Path]],
     first: bool,
     tools_changed: bool,
+    tool_schemas: bool = False,
 ) -> Prompt:
     """This turn's harness messages; screenshots appear as file paths to Read."""
     system = f"{request.system}\n\n{REPLY_CONTRACT}\n\n{SESSION_CONTRACT}"
     blocks: list[JsonObject] = []
-    if first or tools_changed:
+    if tool_schemas:
+        # The system prompt is re-sent every call and never compacted.
+        system = f"{system}\n\n{_tool_listing(request.tools)}"
+        names = ", ".join(t.name for t in request.tools)
+        text = f"Harness tools: {names} (full parameter schemas are in the system prompt)."
+        blocks.append({"type": "text", "text": text})
+    elif first or tools_changed:
         blocks.append({"type": "text", "text": _tool_listing(request.tools)})
     else:
         names = ", ".join(t.name for t in request.tools)
@@ -549,8 +560,72 @@ def session_prompt(
     return Prompt(system, _merge_text(blocks))
 
 
-def reask(prompt: Prompt, reply: str, error: str, session: bool) -> Prompt:
+def _describe_option(option: JsonObject) -> str:
+    properties = option.get("properties")
+    if isinstance(properties, dict):
+        props = _obj(properties, "properties")
+        listed = option.get("required")
+        required = [k for k in listed if isinstance(k, str)] if isinstance(listed, list) else []
+        parts = []
+        for key in required:
+            prop = props.get(key)
+            spec = _obj(prop, key) if isinstance(prop, dict) else {}
+            if "const" in spec:
+                parts.append(f"{key}: {json.dumps(spec['const'])}")
+            elif isinstance(spec.get("enum"), list):
+                parts.append(f"{key}: one of {json.dumps(spec['enum'])}")
+            else:
+                parts.append(f"{key} ({spec.get('type', 'any')})")
+        optional = [k for k in props if k not in required]
+        extra = f" optional: {', '.join(optional)}" if optional else ""
+        return "{" + ", ".join(parts) + "}" + extra
+    if "const" in option:
+        return json.dumps(option["const"])
+    if isinstance(option.get("enum"), list):
+        return f"one of {json.dumps(option['enum'])}"
+    return str(option.get("type", "any"))
+
+
+def _alternatives(schema: JsonObject, path: str) -> Iterator[tuple[str, str, list[JsonObject]]]:
+    for keyword in ("anyOf", "oneOf"):
+        options = schema.get(keyword)
+        if isinstance(options, list):
+            parsed = [_obj(o, keyword) for o in options if isinstance(o, dict)]
+            yield path, keyword, parsed
+            for option in parsed:
+                yield from _alternatives(option, path)
+    properties = schema.get("properties")
+    if isinstance(properties, dict):
+        for key, sub in properties.items():
+            if isinstance(sub, dict):
+                yield from _alternatives(_obj(sub, str(key)), f"{path}.{key}")
+    items = schema.get("items")
+    if isinstance(items, dict):
+        yield from _alternatives(_obj(items, "items"), f"{path}[]")
+
+
+def schema_hint(reply: str, tools: Sequence[Tool], error: str) -> str:
+    """For each anyOf/oneOf the error names, its allowed forms, generated from the schema."""
+    by_name = {tool.name: tool for tool in tools}
+    name = next(
+        (c.get("name") for c in _json_candidates(reply) if isinstance(c, dict) and "name" in c),
+        None,
+    )
+    if not isinstance(name, str) or name not in by_name:
+        return ""
+    lines = []
+    for path, keyword, options in _alternatives(by_name[name].parameters, "arguments"):
+        if f"{path} matches" in error and options:
+            forms = "; ".join(_describe_option(o) for o in options)
+            word = "exactly one" if keyword == "oneOf" else "one"
+            lines.append(f"{path} must match {word} of these {len(options)} forms: {forms}")
+    return "\n".join(lines)
+
+
+def reask(prompt: Prompt, reply: str, error: str, session: bool, hint: str = "") -> Prompt:
     note = f"Your reply could not be used: {error}. Reply again with only the one JSON object."
+    if hint:
+        note = f"{note}\n{hint}"
     if session:
         return Prompt(prompt.system, ({"type": "text", "text": note},))
     shown = f"Your previous reply was:\n{reply}\n{note}"
@@ -727,7 +802,7 @@ class RunBinder:
             return self.run_id
         return None
 
-    def current_turn_enabled(self) -> bool:
+    def recorded_feature(self, name: str) -> bool:
         """Read the actual recorded FeatureSet for this bound run, never today's defaults."""
         run = self.resolve()
         if run is None:
@@ -744,9 +819,9 @@ class RunBinder:
             raise GatewayError(f"the first event is {start.get('type')!r}, not run_start")
         evaluation = _obj(start.get("evaluation") or {}, "evaluation")
         features = _obj(evaluation.get("features") or {}, "features")
-        enabled = features.get("gateway-current-turn-v1", False)
+        enabled = features.get(name, False)
         if not isinstance(enabled, bool):
-            raise GatewayError("gateway-current-turn-v1 must be a boolean")
+            raise GatewayError(f"{name} must be a boolean")
         return enabled
 
     def _started_here(self, path: Path) -> bool:
@@ -848,6 +923,8 @@ class Gateway:
             autocompact=self.config.autocompact,
             continue_from=self.config.continue_from,
             current_turn=self.config.current_turn,
+            tool_schemas=self.config.tool_schemas,
+            schema_hint=self.config.schema_hint,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -909,27 +986,36 @@ class Gateway:
             screens.append(paths)
         return screens
 
-    def _first_prompt(self, seq: int, request: ChatRequest) -> Prompt:
-        override = self.config.current_turn
+    def _decide(self, seq: int, feature: str, override: str, invalid: str) -> tuple[bool, str]:
+        """A session-mode gateway switch: the run's recorded feature, or an operator override."""
         source = "run_features" if override == "auto" else "operator_override"
         try:
-            recorded = override == "auto" and self.binder.current_turn_enabled()
+            recorded = override == "auto" and self.binder.recorded_feature(feature)
         except GatewayError as error:
-            # Fail safe to the legacy input rather than killing a request whose stream is open.
-            self.event("current_turn_feature_invalid", request=seq, error=str(error))
+            # Fail safe to the legacy behavior rather than killing a request whose stream is open.
+            self.event(invalid, request=seq, error=str(error))
             recorded = False
-        enabled = self.config.mode == "session" and (
-            recorded if override == "auto" else override == "on"
+        chosen = recorded if override == "auto" else override == "on"
+        return self.config.mode == "session" and chosen, source
+
+    def _first_prompt(self, seq: int, request: ChatRequest) -> Prompt:
+        enabled, source = self._decide(
+            seq, "gateway-current-turn-v1", self.config.current_turn, "current_turn_feature_invalid"
         )
         messages = request.current_turn if enabled else request.dialogue[-2:]
         screens = self._save_screens(seq, messages)
         if self.config.mode == "stateless":
             return stateless_prompt(request)
+        schemas, schemas_source = self._decide(
+            seq, "gateway-tool-schemas-v1", self.config.tool_schemas, "tool_schemas_feature_invalid"
+        )
         self.event(
             "session_input",
             request=seq,
             current_turn=enabled,
             source=source,
+            tool_schemas=schemas,
+            tool_schemas_source=schemas_source,
             messages=len(messages),
             run_id=self.binder.run_id,
         )
@@ -951,7 +1037,8 @@ class Gateway:
         sha = hashlib.sha256(_tool_listing(request.tools).encode()).hexdigest()
         changed = sha != self.session.tools_sha
         self.session.tools_sha = sha
-        return session_prompt(request, messages, screens, self.session.session_id is None, changed)
+        first = self.session.session_id is None
+        return session_prompt(request, messages, screens, first, changed, schemas)
 
     def _spec(self, seq: int, attempt: int, prompt: Prompt) -> CallSpec:
         bridge = self.config.bridge
@@ -1014,7 +1101,19 @@ class Gateway:
                     self.event("invalid_reply", request=seq, error=str(error))
                     return Outcome(None, f"invalid reply after one re-ask: {error}", waits > 0)
                 reasked = True
-                prompt = reask(prompt, result.text, str(error), self.config.mode == "session")
+                hint = ""
+                hinting, hint_source = self._decide(
+                    seq, "gateway-schema-hint-v1", self.config.schema_hint,
+                    "schema_hint_feature_invalid",
+                )  # fmt: skip
+                if hinting:
+                    hint = schema_hint(result.text, request.tools, str(error))
+                self.event(
+                    "reask", request=seq, schema_hint=hinting, source=hint_source,
+                    hint_chars=len(hint), error=str(error),
+                )  # fmt: skip
+                session = self.config.mode == "session"
+                prompt = reask(prompt, result.text, str(error), session, hint)
 
     def _per_call_cost(self, spec: CallSpec, result: CallResult) -> CallResult:
         """A resumed session's cost is its new total minus the total already logged."""
@@ -1241,6 +1340,20 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         help="session input: auto follows the run's recorded gateway-current-turn-v1; "
         "on/off overrides it for this gateway (logged as operator_override)",
     )
+    parser.add_argument(
+        "--tool-schemas",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="full tool listing in every session system prompt: auto follows the run's "
+        "recorded gateway-tool-schemas-v1; on/off overrides it (logged as operator_override)",
+    )
+    parser.add_argument(
+        "--schema-hint",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="anyOf/oneOf re-ask lists the schema's forms: auto follows the run's recorded "
+        "gateway-schema-hint-v1; on/off overrides it (logged as operator_override)",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1262,6 +1375,8 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         autocompact=args.autocompact,
         continue_from=args.continue_session_from,
         current_turn=args.current_turn,
+        tool_schemas=args.tool_schemas,
+        schema_hint=args.schema_hint,
     )
     return config, args.port
 

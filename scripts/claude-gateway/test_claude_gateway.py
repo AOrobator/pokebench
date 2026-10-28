@@ -97,12 +97,14 @@ def make(
 class MemoryRunner:
     """An in-memory claude: records each call's spec and answers GOOD, with no process."""
 
-    def __init__(self) -> None:
+    def __init__(self, replies: tuple[str, ...] = ()) -> None:
         self.specs: list[cg.CallSpec] = []
+        self.replies = list(replies)
 
     def __call__(self, config: cg.Config, spec: cg.CallSpec) -> cg.CallResult:
         self.specs.append(spec)
-        return cg.CallResult(GOOD, spec.session_id or "memory-session", cg.Usage(), (), 0)
+        text = self.replies.pop(0) if self.replies else GOOD
+        return cg.CallResult(text, spec.session_id or "memory-session", cg.Usage(), (), 0)
 
     def content(self) -> list[object]:
         return list(self.specs[-1].prompt.content)
@@ -987,3 +989,184 @@ def test_switch_is_read_only_from_a_run_start_record(tmp_path: Path) -> None:
     invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
     assert len(invalid) == 1 and "not run_start" in str(invalid[0]["error"])
     assert next(e for e in events if e["event"] == "session_input")["current_turn"] is False
+
+
+WARP_BY_INDEX = json.dumps(
+    {
+        "name": "navigate_to_target",
+        "arguments": {"map_id": [0, 21], "target": {"kind": "warp", "index": 0}},
+    }
+)
+WARP_BY_XY = json.dumps(
+    {
+        "name": "navigate_to_target",
+        "arguments": {"map_id": [0, 21], "target": {"kind": "warp", "x": 5, "y": 3}},
+    }
+)
+
+
+@pytest.mark.parametrize(
+    ("override", "features", "listed", "source"),
+    [
+        ("auto", {"gateway-tool-schemas-v1": True}, True, "run_features"),
+        ("auto", None, False, "run_features"),
+        ("auto", {"gateway-tool-schemas-v1": False}, False, "run_features"),
+        ("on", None, True, "operator_override"),
+        ("off", {"gateway-tool-schemas-v1": True}, False, "operator_override"),
+    ],
+)
+def test_tool_schemas_in_every_system_prompt(
+    tmp_path: Path, override: str, features: object, listed: bool, source: str
+) -> None:
+    runner = MemoryRunner()
+    gateway = make(
+        tmp_path, [], mode="session", run_features=features, tool_schemas=override, runner=runner
+    )
+    raw = fixture("bundle-d06b9f4db-request-1041.json")
+    request = cg.parse_request(raw)
+    gateway.session.session_id = "established"
+    gateway.session.run_id = "run-a"
+    gateway.session.tools_sha = (
+        __import__("hashlib").sha256(cg._tool_listing(request.tools).encode()).hexdigest()
+    )
+    assert gateway.answer(raw)[1].reply is not None
+    spec = runner.specs[-1]
+    first = spec.prompt.content[0]
+    assert isinstance(first, dict)
+    assert (cg._tool_listing(request.tools) in spec.prompt.system) is listed
+    assert ('"const": "warp"' in spec.prompt.system) is listed
+    if listed:
+        assert str(first["text"]).startswith("Harness tools: observe, press")
+        assert "full parameter schemas are in the system prompt" in str(first["text"])
+    else:
+        assert str(first["text"]).startswith("Harness tools unchanged: ")
+        assert spec.prompt.system.endswith(cg.SESSION_CONTRACT)
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert (row["tool_schemas"], row["tool_schemas_source"]) == (listed, source)
+
+
+def test_tool_schemas_invalid_feature_falls_back(tmp_path: Path) -> None:
+    runner = MemoryRunner()
+    gateway = make(
+        tmp_path, [], mode="session", run_features={"gateway-tool-schemas-v1": 1}, runner=runner
+    )
+    assert gateway.answer(fixture("bundle-d06b9f4db-request-1041.json"))[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    assert any(e["event"] == "tool_schemas_feature_invalid" for e in events)
+    assert next(e for e in events if e["event"] == "session_input")["tool_schemas"] is False
+
+
+@pytest.mark.parametrize(
+    ("name", "override", "features", "hinted", "source"),
+    [
+        (
+            "bundle-d06b9f4db-request-1007.json",
+            "auto",
+            {"gateway-schema-hint-v1": True},
+            True,
+            "run_features",
+        ),
+        (
+            "bundle-d06b9f4db-request-1041.json",
+            "auto",
+            {"gateway-schema-hint-v1": True},
+            True,
+            "run_features",
+        ),
+        ("bundle-d06b9f4db-request-1041.json", "auto", None, False, "run_features"),
+        ("bundle-d06b9f4db-request-1041.json", "on", None, True, "operator_override"),
+        (
+            "bundle-d06b9f4db-request-1041.json",
+            "off",
+            {"gateway-schema-hint-v1": True},
+            False,
+            "operator_override",
+        ),
+    ],
+)
+def test_anyof_reask_lists_the_schema_forms(
+    tmp_path: Path, name: str, override: str, features: object, hinted: bool, source: str
+) -> None:
+    runner = MemoryRunner((WARP_BY_INDEX, WARP_BY_XY))
+    gateway = make(
+        tmp_path, [], mode="session", run_features=features, schema_hint=override, runner=runner
+    )
+    assert gateway.answer(fixture(name))[1].reply == cg.Reply(
+        "navigate_to_target", {"map_id": [0, 21], "target": {"kind": "warp", "x": 5, "y": 3}}, ""
+    )
+    note = runner.specs[-1].prompt.content
+    assert len(note) == 1 and isinstance(note[0], dict)
+    text = str(note[0]["text"])
+    base = (
+        "Your reply could not be used: arguments.target matches 0 of the anyOf options. "
+        "Reply again with only the one JSON object."
+    )
+    if hinted:
+        assert text.startswith(base + "\n")
+        assert '{kind: "warp", x (integer), y (integer)}' in text
+        assert "these 5 forms" in text
+    else:
+        assert text == base
+    row = next(e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "reask")
+    assert (row["schema_hint"], row["source"], row["hint_chars"] > 0) == (hinted, source, hinted)
+
+
+def test_schema_hint_describes_options_from_the_schema() -> None:
+    tool = cg.Tool(
+        "pick",
+        "",
+        {
+            "type": "object",
+            "properties": {
+                "mode": {"oneOf": [{"const": "fast"}, {"enum": ["a", "b"]}, {"type": "integer"}]},
+                "list": {
+                    "type": "array",
+                    "items": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "pair": {
+                    "anyOf": [
+                        {"type": "object", "required": ["k"], "properties": {"k": {}, "note": {}}},
+                    ]
+                },
+            },
+        },
+    )
+    reply = json.dumps({"name": "pick", "arguments": {}})
+    hint = cg.schema_hint(reply, [tool], "arguments.mode matches 2 of the oneOf options")
+    assert (
+        hint
+        == "arguments.mode must match exactly one of these 3 forms: "
+        + '"fast"; one of ["a", "b"]; integer'
+    )
+    assert "string; null" in cg.schema_hint(
+        reply, [tool], "arguments.list[] matches 0 of the anyOf options"
+    )
+    assert "{k (any)} optional: note" in cg.schema_hint(
+        reply, [tool], "arguments.pair matches 0 of the anyOf options"
+    )
+    assert cg.schema_hint('{"name": "other"}', [tool], "arguments.mode matches") == ""
+    assert cg.schema_hint("not json", [tool], "x") == ""
+
+
+def test_schema_switch_arguments(tmp_path: Path) -> None:
+    base = [
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    config = cg.parse_args(base)[0]
+    assert (config.tool_schemas, config.schema_hint) == ("auto", "auto")
+    config = cg.parse_args([*base, "--tool-schemas", "on", "--schema-hint", "off"])[0]
+    assert (config.tool_schemas, config.schema_hint) == ("on", "off")
+    events_config = cg.Gateway(cg.replace(config, bridge=tmp_path / "b", runs_root=tmp_path / "r"))
+    start = jsonl(tmp_path / "b" / "gateway.jsonl")[0]
+    assert (start["tool_schemas"], start["schema_hint"]) == ("on", "off") and events_config.seq == 0

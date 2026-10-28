@@ -147,7 +147,9 @@
   "pokenav-short-list-v1",
   "menu-option-honest-refusal-v1",
   "no-story-foreknowledge-v1",
-  "gateway-current-turn-v1"
+  "gateway-current-turn-v1",
+  "gateway-tool-schemas-v1",
+  "gateway-schema-hint-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -427,6 +429,8 @@
   "pokenav-short-list-v1": true,
   "menu-option-honest-refusal-v1": true,
   "no-story-foreknowledge-v1": true,
-  "gateway-current-turn-v1": true
+  "gateway-current-turn-v1": true,
+  "gateway-tool-schemas-v1": true,
+  "gateway-schema-hint-v1": true
  }
 }

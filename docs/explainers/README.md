@@ -322,3 +322,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Scene follow-up](scene-followup-prompt-v1.html): once-only SUPERVISOR note after an unexplained scene.
 
 - [Complete Claude turn delivery](gateway-current-turn-v1.html): keep the current observation, screenshot and trailing harness blocks together; recorded switch, exact legacy OFF.
+- [Claude tool schemas every turn](gateway-tool-schemas-v1.html): the full tool listing in every session system prompt, so schemas survive auto-compaction; recorded switch, exact legacy OFF.
+- [Claude schema re-ask hint](gateway-schema-hint-v1.html): an anyOf/oneOf re-ask lists the forms generated from the tool schema; recorded switch, exact legacy OFF.

@@ -293,6 +293,8 @@ export const SWITCHABLE_FEATURES = [
   "menu-option-honest-refusal-v1",
   "no-story-foreknowledge-v1",
   "gateway-current-turn-v1",
+  "gateway-tool-schemas-v1",
+  "gateway-schema-hint-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -706,6 +708,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("menu-option-honest-refusal-v1", "guidance", "HONEST MENU REFUSAL", "menu-option-tool-v1", "Default off. When select_menu_option is called while an open menu is one it does not support (for example the PokéNav menu), its result says it supports only the START menu and field multichoice menus, names the current menu phase and says to use press. Off: the refusal says only that the requested menu is not currently ready and verified."),
   on("no-story-foreknowledge-v1", "observation", "NO STORY FOREKNOWLEDGE", null, "Default off; on in both arms of the current recipe (scope approved by the operator 2026-10-27; 9:14 PM: keep it on in both arms going forward). Run 2026-10-21T13-33-36_qwen36-gpu1_d548 (seq 10001, turn 306) was told \"A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher\" before any delivered page had shown TEAM AQUA or DEVON, and \"Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.\", of which BRENDAN, NORMAN and STEVEN had not been shown (MOM, PROF. BIRCH, MAY, WALLY and ROXANNE had, by turns 56 to 257). With this switch on, model-facing copy names a story character only once a delivered dialogue or battle page has shown that name in this run (its NAME: label, or the name in capitals). The Story characters line stays, with every character on this map as before; its \"Not on this map\" list keeps only names the game has shown (\"none named in dialogue yet\" when it has shown none). The low-HP, story-battle, heal-before-trainers and heal-first warnings keep every sentence of advice (HP, the blackout cost, heal places, BAG items, no running) and drop only the name until the game shows it: \"your rival\" for MAY or BRENDAN, \"the Gym Leader\" for the Gym Leader ROXANNE, \"a grunt\" for a TEAM AQUA grunt and \"the researcher\" for the DEVON researcher. Only dialogue and battle pages count: a name shown only on a sign (\"LEADER: NORMAN\") stays hidden, and NORMAN, said as DAD, stays hidden all run. Still named before the game shows them: characters on this map in the Story characters line, sprite kinds such as ROXANNE, and the warnings' story facts (the forest-path ambush). The system prompt, including \"Your rival usually battles you when you talk to them.\", is unchanged, and every harness reader of the Story characters line still sees the whole cast. Off: the full \"Not on this map\" list and the names in every warning, as before."),
   on("gateway-current-turn-v1", "observation", "COMPLETE CLAUDE TURN DELIVERY", null, "Correctness fix, on in both current arms; omitted historical presets stay off. A compatible Claude session gateway reads this run’s recorded switch and forwards every message after the latest assistant reply, keeping the tool result, screenshots and trailing memory or supervisor blocks together. Saves screenshot handles from that same span and records session_input evidence. Does not affect other model gateways or choose actions. Off: forwards and saves only the last two non-system messages, preserving the legacy prompt and screenshot indices."),
+  on("gateway-tool-schemas-v1", "observation", "CLAUDE TOOL SCHEMAS EVERY TURN", null, "Correctness fix for the Claude session gateway, on in both current arms; omitted historical presets stay off. Session mode puts the full harness tool listing (names, descriptions and JSON parameter schemas) in the system prompt of every call, which Claude Code re-sends each call and never compacts, so the schemas survive auto-compaction. The per-turn message names the tools and points to the system prompt. Records tool_schemas in session_input. Does not affect other model gateways. Off: the listing is sent only in a session's first turn or when the tool set changes, and later turns say only that the tools are unchanged."),
+  on("gateway-schema-hint-v1", "guidance", "CLAUDE SCHEMA RE-ASK HINT", null, "Correctness fix for the Claude session gateway, on in both current arms; omitted historical presets stay off. When a reply's arguments fail an anyOf or oneOf in the tool's schema, the one re-ask also lists each allowed option, generated from that schema: its const discriminator values and required keys (for example {kind: \"warp\", x, y}). Records schema_hint on the call. Does not affect other model gateways. Off: the re-ask carries only the validation error, such as \"arguments.target matches 0 of the anyOf options\"."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1077,6 +1081,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("menu-option-honest-refusal-v1"),
     ...when("no-story-foreknowledge-v1"),
     ...when("gateway-current-turn-v1"),
+    ...when("gateway-tool-schemas-v1"),
+    ...when("gateway-schema-hint-v1"),
   ];
 }
 

@@ -1,0 +1,492 @@
+{
+ "model": "claude-opus-5-5",
+ "messages": [
+  {
+   "role": "system",
+   "content": "(system prompt omitted from the fixture)"
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Attached image(s) from tool result:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": "I'm asking the harness to try a reachable untried target on Route 106, since my manual probes haven't found the cavern.",
+   "tool_calls": [
+    {
+     "id": "call_1040",
+     "type": "function",
+     "function": {
+      "name": "explore_map",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "content": "Read from game memory, always true:\n\nGym progress (game memory): RUSTBORO CITY GYM complete; ROXANNE defeated.\nExploration: no untried listed interaction or walking connection has a supported route in the current navigation map.\nWhat the game said right after your moves this run (its own words):\n- WATER GUN on WINGULL: \"It's not very effective\u2026\" (turns 31, 40)\n- WATER GUN on TREECKO: \"It's not very effective\u2026\" (turn 41)\n- MUD SHOT on LOTAD: \"It's not very effective\u2026\" (turn 174)\n- MUD SHOT on SHROOMISH: \"It's not very effective\u2026\" (turns 184, 185)\nYour moves by foe type this run (counted from the game's \"\u2026 used \u2026!\" pages and the line it printed right after):\n- WATER/FLYING (WINGULL): WATER GUN used 2, \"It's not very effective\u2026\" 2\n- GRASS (TREECKO, SHROOMISH): MUD SHOT used 2, \"It's not very effective\u2026\" 2; TACKLE used 1 (no effectiveness line printed); WATER GUN used 1, \"It's not very effective\u2026\" 1\n- WATER/GRASS (LOTAD): MUD SHOT used 1, \"It's not very effective\u2026\" 1\n- Foe types met this run that none of your moves has drawn \"It's super effective!\" against: WATER/FLYING, GRASS, WATER, WATER/GRASS, NORMAL, FIGHTING/PSYCHIC, WATER/POISON\nType words the game printed this run, and what in this battle they name:\n- Foe TENTACOOL (WATER/POISON): SUPERSONIC is NORMAL-type \u2014 said on DEWFORD TOWN GYM: \"Going against him with NORMAL-type POK\u00e9MON is asking for trouble.\"\n- Your MARSHTOMP (WATER/GROUND): TACKLE is NORMAL-type \u2014 said on DEWFORD TOWN GYM: \"Going against him with NORMAL-type POK\u00e9MON is asking for trouble.\"\nPreviously observed against NED (trainer 340): TENTACOOL Lv11. Full party not established by these observations.",
+   "tool_call_id": "call_1040"
+  },
+  {
+   "role": "user",
+   "content": "OBSERVED INSTRUCTION MEMORY \u2014 selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n{\"columns\":[\"speaker\",\"speaker_source\",\"text\",\"map\",\"map_id\",\"state_event\"],\"episodes\":[{\"result\":96,\"dialogue\":[92],\"turn\":1,\"pages\":[[\"SCIENTIST_1\",\"faced_sprite\",\"There you go, A!\",\"RUSTBORO CITY\",[0,3],55],[\"SCIENTIST_1\",\"faced_sprite\",\"I added a new feature named\\nMATCH CALL to your POK\u00e9NAV.\",\"RUSTBORO CITY\",[0,3],61],[\"SCIENTIST_1\",\"faced_sprite\",\"Using the MATCH CALL feature,\\nyou can chat with people who have\\nbeen registered in your POK\u00e9NAV.\",\"RUSTBORO CITY\",[0,3],72],[\"SCIENTIST_1\",\"faced_sprite\",\"A, our PRESIDENT STONE should\\nbe registered in your POK\u00e9NAV.\",\"RUSTBORO CITY\",[0,3],78],[\"SCIENTIST_1\",\"faced_sprite\",\"Test it out.\\nPlease give our PRESIDENT a call.\",\"RUSTBORO CITY\",[0,3],84]]},{\"result\":118,\"dialogue\":[116],\"turn\":2,\"pages\":[[\"SCIENTIST_1\",\"faced_sprite\",\"Please select the POK\u00e9NAV.\",\"RUSTBORO CITY\",[0,3],108]]},{\"result\":430,\"dialogue\":[428],\"turn\":14,\"pages\":[[\"SCIENTIST_1\",\"faced_sprite\",\"Okay, I'd better get back to work.\\nPlease take care, A!\",\"RUSTBORO CITY\",[0,3],415]]},{\"result\":680,\"dialogue\":[678],\"turn\":19,\"pages\":[[\"MAY\",\"name_prefix\",\"MAY: Oh, hi, A!\",\"RUSTBORO CITY\",[0,3],624],[\"MAY\",\"name_prefix\",\"You had a MATCH CALL feature put\\non your POK\u00e9NAV!\",\"RUSTBORO CITY\",[0,3],635],[\"MAY\",\"name_prefix\",\"Let's register each other so we can\\ncontact one another anytime!\",\"RUSTBORO CITY\",[0,3],641],[\"MAY\",\"name_prefix\",\"\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\",\"RUSTBORO CITY\",[0,3],647],[\"MAY\",\"name_prefix\",\"Registered MAY\\nin the POK\u00e9NAV.\",\"RUSTBORO CITY\",[0,3],653],[\"MAY\",\"name_prefix\",\"MAY: Oh, by the way, I passed\\nMR. BRINEY in PETALBURG WOODS.\",\"RUSTBORO CITY\",[0,3],659],[\"MAY\",\"name_prefix\",\"I guess he's on his way home to his\\ncottage by the sea.\",\"RUSTBORO CITY\",[0,3],665],[\"MAY\",\"name_prefix\",\"How's your POK\u00e9DEX coming along,\\nA? Mine's looking pretty decent!\",\"RUSTBORO CITY\",[0,3],671],[\"MAY\",\"name_prefix\",\"So\u2026\\nHow about a little battle?\",\"RUSTBORO CITY\",[0,3],677]]},{\"result\":735,\"dialogue\":[733],\"turn\":21,\"pages\":[[\"MAY\",\"name_prefix\",\"MAY: Oh, what's the matter?\",\"RUSTBORO CITY\",[0,3],709],[\"MAY\",\"name_prefix\",\"Haven't you caught or raised your\\nPOK\u00e9MON very much?\",\"RUSTBORO CITY\",[0,3],715],[\"MAY\",\"name_prefix\",\"That's not very good for a TRAINER!\",\"RUSTBORO CITY\",[0,3],721]]},{\"result\":750,\"dialogue\":[748],\"turn\":22,\"pages\":[[\"MAY\",\"name_prefix\",\"MAY: So, what do you think?\\nHow about a little battle here?\",\"RUSTBORO CITY\",[0,3],747]]},{\"result\":794,\"dialogue\":[792],\"turn\":24,\"pages\":[[\"MAY\",\"name_prefix\",\"MAY: You just became a TRAINER,\\nA. I'm not going to lose!\",\"RUSTBORO CITY\",[0,3],773]]},{\"result\":1794,\"dialogue\":[1792],\"turn\":67,\"pages\":[[\"Sign text \\\"\u201cRejuvenate your tired partners!\u201d | POK\u00e9MON CENTER\\\"\",\"faced_target\",\"\u201cRejuvenate your tired partners!\u201d\\nPOK\u00e9MON CENTER\",\"RUSTBORO CITY\",[0,3],1786]]},{\"result\":1891,\"dialogue\":[1889],\"turn\":71,\"pages\":[[null,null,\"Hello, and welcome to\\nthe POK\u00e9MON CENTER.\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1876],[null,null,\"We restore your tired POK\u00e9MON\\nto full health.\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1882],[null,null,\"Would you like to rest your POK\u00e9MON?\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1888]]},{\"result\":1925,\"dialogue\":[1923],\"turn\":72,\"pages\":[[null,null,\"Okay, I'll take your POK\u00e9MON\\nfor a few seconds.\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1907],[null,null,\"Thank you for waiting.\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1908],[null,null,\"We've restored your POK\u00e9MON\\nto full health.\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1914],[null,null,\"We hope to see you again!\",\"RUSTBORO CITY POKEMON CENTER 1F\",[11,5],1915]]},{\"result\":3267,\"dialogue\":[3265],\"turn\":120,\"pages\":[[\"Sign text \\\"RUSTBORO CITY | \u201cThe city probing the integration of | nature and science.\u201d\\\"\",\"faced_target\",\"RUSTBORO CITY\",\"RUSTBORO CITY\",[0,3],3253],[\"Sign text \\\"RUSTBORO CITY | \u201cThe city probing the integration of | nature and science.\u201d\\\"\",\"faced_target\",\"\u201cThe city probing the integration of\\nnature and science.\u201d\",\"RUSTBORO CITY\",[0,3],3259]]},{\"result\":3526,\"dialogue\":[3524],\"turn\":126,\"pages\":[[\"Sign text \\\"\u201cSelected items for your convenience!\u201d | POK\u00e9MON MART\\\"\",\"faced_target\",\"\u201cSelected items for your convenience!\u201d\\nPOK\u00e9MON MART\",\"RUSTBORO CITY\",[0,3],3518]]},{\"result\":3609,\"dialogue\":[3607],\"turn\":128,\"pages\":[[\"TWIN\",\"faced_sprite\",\"Wow, you have POK\u00e9MON with you, too.\",\"RUSTBORO CITY\",[0,3],3595],[\"TWIN\",\"faced_sprite\",\"When I get bigger, I'm going to go\\nplaces with POK\u00e9MON, too.\",\"RUSTBORO CITY\",[0,3],3601]]},{\"result\":3813,\"dialogue\":[3811],\"turn\":132,\"pages\":[[\"BOY_2\",\"faced_sprite\",\"The old sailor MR. BRINEY lives in\\na cottage by the sea.\",\"RUSTBORO CITY\",[0,3],3793],[\"BOY_2\",\"faced_sprite\",\"He said he was going shopping in\\nSLATEPORT for his pet, PEEKO.\",\"RUSTBORO CITY\",[0,3],3799],[\"BOY_2\",\"faced_sprite\",\"That old sea dog, he must really love\\nthat PEEKO.\",\"RUSTBORO CITY\",[0,3],3805]]},{\"result\":3860,\"dialogue\":[3858],\"turn\":133,\"pages\":[[\"Sign text \\\"CUTTER'S HOUSE\\\"\",\"faced_target\",\"CUTTER'S HOUSE\",\"RUSTBORO CITY\",[0,3],3852]]},{\"result\":3909,\"dialogue\":[3907],\"turn\":134,\"pages\":[[\"DEVON_EMPLOYEE\",\"faced_sprite\",\"Oh? Who might you be?\\nYou're a new face around these parts.\",\"RUSTBORO CITY\",[0,3],3895],[\"DEVON_EMPLOYEE\",\"faced_sprite\",\"Have you just transferred into the\\nPOK\u00e9MON TRAINER'S SCHOOL?\",\"RUSTBORO CITY\",[0,3],3901]]},{\"result\":4066,\"dialogue\":[4064],\"turn\":136,\"pages\":[[\"WOMAN_5\",\"faced_sprite\",\"I challenged the GYM LEADER, but\u2026\",\"RUSTBORO CITY\",[0,3],4046],[\"WOMAN_5\",\"faced_sprite\",\"It's not going to be easy winning with\\nmy FIRE-type POK\u00e9MON\u2026\",\"RUSTBORO CITY\",[0,3],4052],[\"WOMAN_5\",\"faced_sprite\",\"FIRE-type POK\u00e9MON don't match up\\nwell against ROCK-type POK\u00e9MON\u2026\",\"RUSTBORO CITY\",[0,3],4058]]},{\"result\":4145,\"dialogue\":[4142],\"turn\":137,\"pages\":[[\"Sign text \\\"POK\u00e9MON TRAINER'S SCHOOL | \u201cWe'll teach you anything about | POK\u00e9MON!\u201d\\\"\",\"faced_target\",\"POK\u00e9MON TRAINER'S SCHOOL\",\"RUSTBORO CITY\",[0,3],4130],[\"Sign text \\\"POK\u00e9MON TRAINER'S SCHOOL | \u201cWe'll teach you anything about | POK\u00e9MON!\u201d\\\"\",\"faced_target\",\"\u201cWe'll teach you anything about\\nPOK\u00e9MON!\u201d\",\"RUSTBORO CITY\",[0,3],4136]]},{\"result\":4194,\"dialogue\":[4192],\"turn\":138,\"pages\":[[\"NINJA_BOY\",\"faced_sprite\",\"POK\u00e9MON TRAINER'S SCHOOL!\",\"RUSTBORO CITY\",[0,3],4180],[\"NINJA_BOY\",\"faced_sprite\",\"If I go to this school, will I be able\\nto catch rare POK\u00e9MON easily?\",\"RUSTBORO CITY\",[0,3],4186]]},{\"result\":4271,\"dialogue\":[4269],\"turn\":139,\"pages\":[[\"BOY_1\",\"faced_sprite\",\"Did you know this?\",\"RUSTBORO CITY\",[0,3],4240],[\"BOY_1\",\"faced_sprite\",\"You can have a 2-on-2 battle even\\nif you're not with another TRAINER.\",\"RUSTBORO CITY\",[0,3],4246],[\"BOY_1\",\"faced_sprite\",\"If you catch the eyes of two TRAINERS\\nwhen you have two or more POK\u00e9MON,\\nthey'll both challenge you.\",\"RUSTBORO CITY\",[0,3],4257],[\"BOY_1\",\"faced_sprite\",\"Don't you think it'd be cool if you\\ncould beat two TRAINERS by yourself?\",\"RUSTBORO CITY\",[0,3],4263]]},{\"result\":4679,\"dialogue\":[4676],\"turn\":149,\"pages\":[[\"Sign text \\\"ROUTE 1O4 | \u2191 RUSTBORO CITY\\\"\",\"faced_target\",\"ROUTE 1O4\\n\u2191 RUSTBORO CITY\",\"ROUTE104\",[0,19],4670]]},{\"result\":4786,\"dialogue\":[4784],\"turn\":150,\"pages\":[[\"FISHERMAN\",\"faced_sprite\",\"Why keep it a secret?\\nI'm the WATER POK\u00e9MON expert!\",\"ROUTE104\",[0,19],4759],[\"FISHERMAN\",\"faced_sprite\",\"Huh?\\nYou don't know me?\",\"ROUTE104\",[0,19],4765]]},{\"result\":5120,\"dialogue\":[5117],\"turn\":163,\"pages\":[[\"BERRY_TREE_LATE_STAGES\",\"faced_sprite\",\"You found 2 CHERI BERRIES!\",\"ROUTE104\",[0,19],5110],[\"BERRY_TREE_LATE_STAGES\",\"faced_sprite\",\"Do you want to pick the\\nCHERI BERRIES?\",\"ROUTE104\",[0,19],5116]]},{\"result\":5144,\"dialogue\":[5142],\"turn\":164,\"pages\":[[null,null,\"A left the CHERI BERRIES\\nunpicked.\",\"ROUTE104\",[0,19],5136]]},{\"result\":5199,\"dialogue\":[5197],\"turn\":165,\"pages\":[[\"BERRY_TREE_LATE_STAGES\",\"faced_sprite\",\"You found 2 LEPPA BERRIES!\",\"ROUTE104\",[0,19],5190],[\"BERRY_TREE_LATE_STAGES\",\"faced_sprite\",\"Do you want to pick the\\nLEPPA BERRIES?\",\"ROUTE104\",[0,19],5196]]},{\"result\":5223,\"dialogue\":[5221],\"turn\":166,\"pages\":[[null,null,\"A left the LEPPA BERRIES\\nunpicked.\",\"ROUTE104\",[0,19],5215]]},{\"result\":5331,\"dialogue\":[5329],\"turn\":170,\"pages\":[[\"EXPERT_F\",\"faced_sprite\",\"If you see BERRIES growing in loamy\\nsoil, feel free to take them.\",\"ROUTE104\",[0,19],5285],[\"EXPERT_F\",\"faced_sprite\",\"But make sure you plant a BERRY in the\\nsame spot. That's common courtesy.\",\"ROUTE104\",[0,19],5291],[\"EXPERT_F\",\"faced_sprite\",\"Here, I'll share this with you.\",\"ROUTE104\",[0,19],5297],[\"EXPERT_F\",\"faced_sprite\",\"Obtained the CHESTO BERRY!\",\"ROUTE104\",[0,19],5304],[null,null,\"A put away the CHESTO BERRY\\nin the BERRIES POCKET.\",\"ROUTE104\",[0,19],5305],[\"EXPERT_F\",\"faced_sprite\",\"The way you look, you must be a\\nTRAINER, no?\",\"ROUTE104\",[0,19],5311],[\"EXPERT_F\",\"faced_sprite\",\"TRAINERS often make POK\u00e9MON hold\\nBERRIES.\",\"ROUTE104\",[0,19],5317],[\"EXPERT_F\",\"faced_sprite\",\"It's up to you whether to grow BERRIES\\nor use them.\",\"ROUTE104\",[0,19],5323]]},{\"result\":5489,\"dialogue\":[5485],\"turn\":171,\"pages\":[[\"GINA\",\"name_prefix\",\"GINA: You are strong!\\nWe have to train lots more!\",\"ROUTE104\",[0,19],5479]]},{\"result\":5534,\"dialogue\":[5532],\"turn\":172,\"pages\":[[\"MIA\",\"name_prefix\",\"MIA: We will train our POK\u00e9MON more\\nand be strong like you.\",\"ROUTE104\",[0,19],5526]]},{\"result\":5642,\"dialogue\":[5640],\"turn\":173,\"pages\":[[\"LASS\",\"faced_sprite\",\"Should I\u2026\\nOr shouldn't I?\",\"ROUTE104\",[0,19],5615],[\"LASS\",\"faced_sprite\",\"Okay, sure, I will battle!\",\"ROUTE104\",[0,19],5621]]},{\"result\":5947,\"dialogue\":[5945],\"turn\":185,\"pages\":[[\"LASS\",\"faced_sprite\",\"You're strong, but should I register\\nyou in my POK\u00e9NAV?\\nMaybe I shouldn't\u2026\",\"ROUTE104\",[0,19],5927],[\"LASS\",\"faced_sprite\",\"Okay, sure, I will register you!\",\"ROUTE104\",[0,19],5933],[\"LASS\",\"faced_sprite\",\"Registered LASS HALEY\\nin the POK\u00e9NAV.\",\"ROUTE104\",[0,19],5939]]},{\"result\":6017,\"dialogue\":[6015],\"turn\":188,\"pages\":[[\"CUTTABLE_TREE\",\"faced_sprite\",\"This tree looks like it can be\\nCUT down!\",\"ROUTE104\",[0,19],6009]]},{\"result\":6266,\"dialogue\":[6264],\"turn\":199,\"pages\":[[\"RICH_BOY\",\"faced_sprite\",\"Oh, sure, I'll accept your challenge.\\nI have a lot of money.\",\"ROUTE104\",[0,19],6240]]},{\"result\":6370,\"dialogue\":[6368],\"turn\":200,\"pages\":[[\"RICH_BOY\",\"faced_sprite\",\"Hm?\\nAh, you've obtained a POK\u00e9NAV.\",\"ROUTE104\",[0,19],6338],[\"RICH_BOY\",\"faced_sprite\",\"I will gladly register you.\\nAfter all, I have plenty of money.\",\"ROUTE104\",[0,19],6348],[\"RICH_BOY\",\"faced_sprite\",\"Registered RICH BOY WINSTON\\nin the POK\u00e9NAV.\",\"ROUTE104\",[0,19],6354]]},{\"result\":6632,\"dialogue\":[6630],\"turn\":203,\"pages\":[[\"WOMAN_2\",\"faced_sprite\",\"Hello, we meet again.\",\"ROUTE104\",[0,19],6612],[\"WOMAN_2\",\"faced_sprite\",\"We seem to be drawn together. Let's\\nregister each other in our POK\u00e9NAVS.\",\"ROUTE104\",[0,19],6618],[\"WOMAN_2\",\"faced_sprite\",\"Registered LADY CINDY\\nin the POK\u00e9NAV.\",\"ROUTE104\",[0,19],6624]]},{\"result\":6733,\"dialogue\":[6730],\"turn\":204,\"pages\":[[\"Sign text \\\"MR. BRINEY'S COTTAGE\\\"\",\"faced_target\",\"MR. BRINEY'S COTTAGE\",\"ROUTE104\",[0,19],6724]]},{\"result\":6804,\"dialogue\":[6801],\"turn\":205,\"pages\":[[\"GIRL_2\",\"faced_sprite\",\"That seaside cottage is where\\nMR. BRINEY lives.\",\"ROUTE104\",[0,19],6789],[\"GIRL_2\",\"faced_sprite\",\"He was once a mighty sailor who never\\nfeared the sea, however stormy.\",\"ROUTE104\",[0,19],6795]]},{\"result\":6909,\"dialogue\":[6905],\"turn\":208,\"pages\":[[null,null,\"A found one POTION!\",\"ROUTE104\",[0,19],6898],[null,null,\"A put away the POTION\\nin the ITEMS POCKET.\",\"ROUTE104\",[0,19],6899]]},{\"result\":6967,\"dialogue\":[6965],\"turn\":209,\"pages\":[[\"FISHERMAN\",\"faced_sprite\",\"I fished up a tough-looking POK\u00e9MON!\",\"ROUTE104\",[0,19],6940],[\"FISHERMAN\",\"faced_sprite\",\"It has this magical quality to it!\\nIt surely looks tough, yes it does!\",\"ROUTE104\",[0,19],6946]]},{\"result\":7212,\"dialogue\":[7210],\"turn\":218,\"pages\":[[\"PEEKO\",\"name_prefix\",\"PEEKO: Pii piihyoro!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7204]]},{\"result\":7315,\"dialogue\":[7313],\"turn\":219,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Hold on, lass!\\nWait up, PEEKO!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7265],[\"MR. BRINEY\",\"name_prefix\",\"Hm? You're A!\\nYou saved my darling PEEKO!\\nWe owe so much to you!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7276],[\"MR. BRINEY\",\"name_prefix\",\"What's that?\\nYou want to sail with me?\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7282],[\"MR. BRINEY\",\"name_prefix\",\"Hmhm\u2026\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7288],[\"MR. BRINEY\",\"name_prefix\",\"You have a LETTER bound for DEWFORD\\nand a package for SLATEPORT, then?\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7294],[\"MR. BRINEY\",\"name_prefix\",\"Quite the busy life you must lead!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7300],[\"MR. BRINEY\",\"name_prefix\",\"But, certainly, what you're asking is\\nno problem at all.\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7306],[\"MR. BRINEY\",\"name_prefix\",\"You've come to the right man!\\nWe'll set sail for DEWFORD.\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7312]]},{\"result\":7362,\"dialogue\":[7360],\"turn\":221,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Is that so?\\nYour deliveries can wait?\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7340],[\"MR. BRINEY\",\"name_prefix\",\"You just go on and tell me whenever\\nyou want to set sail!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7346]]},{\"result\":7428,\"dialogue\":[7426],\"turn\":223,\"pages\":[[\"vase\",\"faced_target\",\"This vase looks expensive\u2026\\nPeered inside\u2026\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7414],[\"vase\",\"faced_target\",\"But, it was empty.\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],7420]]},{\"result\":9729,\"dialogue\":[9727],\"turn\":307,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Ahoy!\\nI know exactly what you want to say!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9708],[\"MR. BRINEY\",\"name_prefix\",\"You're to deliver a LETTER to DEWFORD\\nand a package to SLATEPORT.\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9714],[\"MR. BRINEY\",\"name_prefix\",\"What you need me to do is no problem\\nat all--I'm the man for the job!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9720],[\"MR. BRINEY\",\"name_prefix\",\"First, we'll set sail for DEWFORD.\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9726]]},{\"result\":9769,\"dialogue\":[9766],\"turn\":309,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: DEWFORD it is, then!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9753],[\"MR. BRINEY\",\"name_prefix\",\"Anchors aweigh!\\nPEEKO, we're setting sail, my darling!\",\"ROUTE104 MR BRINEYS HOUSE\",[17,0],9759],[null,null,\"\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\\n\u2026 \u2026 \u2026 \u2026 \u2026 Beep!\\nDAD: Oh, A?\\n\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\\nWhere are you now?\\nIt sounds windy wherever you are.\\nI just heard from DEVON's MR. STONE\\nabout your POK\u00e9NAV, so I decided\\nto give you a call.\\nIt sounds like you're doing fine,\\nso that's fine with me.\\nYou take care now.\\n\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\\n\u2026 \u2026 \u2026 \u2026 \u2026 Click!\",\"ROUTE105\",[0,20],9765]]},{\"result\":10017,\"dialogue\":[10012],\"turn\":316,\"pages\":[[null,null,\"Registered DAD NORMAN\\nin the POK\u00e9NAV.\",\"ROUTE105\",[0,20],9985],[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Ahoy!\\nWe've hit land in DEWFORD.\",\"DEWFORD TOWN\",[0,11],9991],[\"MR. BRINEY\",\"name_prefix\",\"I suppose you're off to deliver that\\nLETTER to, who was it now, STEVEN!\",\"DEWFORD TOWN\",[0,11],10006]]},{\"result\":10048,\"dialogue\":[10046],\"turn\":318,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Have you delivered your\\nLETTER?\",\"DEWFORD TOWN\",[0,11],10039],[\"MR. BRINEY\",\"name_prefix\",\"Or were you meaning to sail back to\\nPETALBURG?\",\"DEWFORD TOWN\",[0,11],10045]]},{\"result\":10072,\"dialogue\":[10070],\"turn\":319,\"pages\":[[\"MR. BRINEY\",\"name_prefix\",\"MR. BRINEY: Then you go on and deliver\\nthe LETTER. I'll be waiting.\",\"DEWFORD TOWN\",[0,11],10064]]},{\"result\":10104,\"dialogue\":[10102],\"turn\":320,\"pages\":[[\"Sign text \\\"DEWFORD TOWN | \u201cA tiny island in the blue sea.\u201d\\\"\",\"faced_target\",\"DEWFORD TOWN\\n\u201cA tiny island in the blue sea.\u201d\",\"DEWFORD TOWN\",[0,11],10096]]},{\"result\":10211,\"dialogue\":[10208],\"turn\":321,\"pages\":[[\"WOMAN_2\",\"faced_sprite\",\"DEWFORD is a tiny island community.\\nIf something gets trendy here,\\neveryone picks up on it right away.\",\"DEWFORD TOWN\",[0,11],10202]]},{\"result\":10256,\"dialogue\":[10254],\"turn\":322,\"pages\":[[\"Sign text \\\"\u201cRejuvenate your tired partners!\u201d | POK\u00e9MON CENTER\\\"\",\"faced_target\",\"\u201cRejuvenate your tired partners!\u201d\\nPOK\u00e9MON CENTER\",\"DEWFORD TOWN\",[0,11],10248]]},{\"result\":10391,\"dialogue\":[10389],\"turn\":324,\"pages\":[[\"BOY_1\",\"faced_sprite\",\"I like what's hip, happening, and trendy.\\nI'm always checking it out.\",\"DEWFORD TOWN\",[0,11],10354],[\"BOY_1\",\"faced_sprite\",\"Listen, have you heard about this new\\n\u201cSKILL EVENT\u201d?\",\"DEWFORD TOWN\",[0,11],10360],[\"BOY_1\",\"faced_sprite\",\"That's right!\\nOf course you know!\",\"DEWFORD TOWN\",[0,11],10366],[\"BOY_1\",\"faced_sprite\",\"I mean, sheesh,\\n\u201cSKILL EVENT\u201d\u2026\\nIt's the hottest thing in cool!\",\"DEWFORD TOWN\",[0,11],10377],[\"BOY_1\",\"faced_sprite\",\"Wherever you're from,\\n\u201cSKILL EVENT\u201d\\nis the biggest happening thing, right?\",\"DEWFORD TOWN\",[0,11],10388]]},{\"result\":10450,\"dialogue\":[10448],\"turn\":328,\"pages\":[[\"BOY_1\",\"faced_sprite\",\"Hunh?\\nIt's not the hip and happening thing?\",\"DEWFORD TOWN\",[0,11],10434],[\"BOY_1\",\"faced_sprite\",\"Well, hey, you have to tell me,\\nwhat's new and what's \u201cin\u201d?\",\"DEWFORD TOWN\",[0,11],10440]]},{\"result\":10580,\"dialogue\":[10578],\"turn\":337,\"pages\":[[\"BOY_1\",\"faced_sprite\",\"Well, if you hear of any happening new\\ntrends, come share them with me, okay?\",\"DEWFORD TOWN\",[0,11],10572]]},{\"result\":10626,\"dialogue\":[10624],\"turn\":338,\"pages\":[[\"Sign text \\\"DEWFORD HALL | \u201cEveryone's information exchange!\u201d\\\"\",\"faced_target\",\"DEWFORD HALL\\n\u201cEveryone's information exchange!\u201d\",\"DEWFORD TOWN\",[0,11],10618]]},{\"result\":10749,\"dialogue\":[10746],\"turn\":339,\"pages\":[[\"Sign text \\\"DEWFORD TOWN POK\u00e9MON GYM | LEADER: BRAWLY | \u201cA big wave in fighting!\u201d\\\"\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\\nLEADER: BRAWLY\\n\u201cA big wave in fighting!\u201d\",\"DEWFORD TOWN\",[0,11],10740]]},{\"result\":10777,\"dialogue\":[10775],\"turn\":340,\"pages\":[[\"FISHERMAN\",\"faced_sprite\",\"This is a renowned fishing spot.\\nAre you getting the itch to fish?\",\"DEWFORD TOWN\",[0,11],10774]]},{\"result\":10857,\"dialogue\":[10855],\"turn\":341,\"pages\":[[\"FISHERMAN\",\"faced_sprite\",\"I hear you, and I like what\\nyou're saying!\",\"DEWFORD TOWN\",[0,11],10793],[\"FISHERMAN\",\"faced_sprite\",\"I'll give you one of my fishing RODS.\",\"DEWFORD TOWN\",[0,11],10799],[\"FISHERMAN\",\"faced_sprite\",\"Obtained the OLD ROD!\",\"DEWFORD TOWN\",[0,11],10806],[null,null,\"A put away the OLD ROD\\nin the KEY ITEMS POCKET.\",\"DEWFORD TOWN\",[0,11],10807],[\"FISHERMAN\",\"faced_sprite\",\"And, as an added bonus, I'll even throw\\nin a little fishing advice!\",\"DEWFORD TOWN\",[0,11],10813],[\"FISHERMAN\",\"faced_sprite\",\"First, you want to face the water,\\nthen use the ROD.\",\"DEWFORD TOWN\",[0,11],10819],[\"FISHERMAN\",\"faced_sprite\",\"Focus your mind\u2026\\nIf you get a bite, pull on the ROD.\",\"DEWFORD TOWN\",[0,11],10825],[\"FISHERMAN\",\"faced_sprite\",\"Sometimes you can snag something\\nimmediately, but with bigger catches,\\nyou need to time the pulls on your ROD\\nto haul them in.\",\"DEWFORD TOWN\",[0,11],10841]]},{\"result\":10959,\"dialogue\":[10957],\"turn\":344,\"pages\":[[\"MAN_1\",\"faced_sprite\",\"There's a lot to be said for living on\\na small island like this in harmony with\\nPOK\u00e9MON and the family.\",\"DEWFORD TOWN HOUSE1\",[3,0],10951]]},{\"result\":11010,\"dialogue\":[11008],\"turn\":345,\"pages\":[[\"ZIGZAGOON\",\"name_prefix\",\"ZIGZAGOON: Guguuh!\",\"DEWFORD TOWN HOUSE1\",[3,0],11002]]},{\"result\":11116,\"dialogue\":[11114],\"turn\":346,\"pages\":[[\"WOMAN_3\",\"faced_sprite\",\"I left the major port of SLATEPORT\\nCITY when I married my husband here.\",\"DEWFORD TOWN HOUSE1\",[3,0],11089],[\"WOMAN_3\",\"faced_sprite\",\"Life goes by slowly on this little\\nisland. But being surrounded by the\\nbeautiful sea--that's happiness, too.\",\"DEWFORD TOWN HOUSE1\",[3,0],11100]]},{\"result\":11155,\"dialogue\":[11153],\"turn\":347,\"pages\":[[\"bookshelf\",\"faced_target\",\"It's filled with all sorts of books.\",\"DEWFORD TOWN HOUSE1\",[3,0],11147]]},{\"result\":11248,\"dialogue\":[11246],\"turn\":351,\"pages\":[[\"television\",\"faced_target\",\"DAD might like this program.\\n\u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026\",\"DEWFORD TOWN HOUSE1\",[3,0],11234],[\"television\",\"faced_target\",\"Better get going!\",\"DEWFORD TOWN HOUSE1\",[3,0],11240]]},{\"result\":11286,\"dialogue\":[11284],\"turn\":352,\"pages\":[[\"picture book shelf\",\"faced_target\",\"There's a set of POK\u00e9MON picture books.\",\"DEWFORD TOWN HOUSE1\",[3,0],11278]]},{\"result\":11496,\"dialogue\":[11494],\"turn\":355,\"pages\":[[\"MAN_2\",\"faced_sprite\",\"Hey, how's it going, CHAMPION-\\nbound A?\",\"DEWFORD TOWN GYM\",[3,3],11447],[\"MAN_2\",\"faced_sprite\",\"DEWFORD's GYM LEADER BRAWLY commands\\nFIGHTING-type POK\u00e9MON.\",\"DEWFORD TOWN GYM\",[3,3],11453],[\"MAN_2\",\"faced_sprite\",\"Going against him with NORMAL-type\\nPOK\u00e9MON is asking for trouble.\",\"DEWFORD TOWN GYM\",[3,3],11459],[\"MAN_2\",\"faced_sprite\",\"FIGHTING POK\u00e9MON will lay a serious\\nsmack down on NORMAL POK\u00e9MON,\\nso be careful!\",\"DEWFORD TOWN GYM\",[3,3],11470],[\"MAN_2\",\"faced_sprite\",\"What's worse, the GYM is as dark as\\nthe ocean floor.\",\"DEWFORD TOWN GYM\",[3,3],11476],[\"MAN_2\",\"faced_sprite\",\"But it will get brighter after defeating\\nthe TRAINERS in your way.\",\"DEWFORD TOWN GYM\",[3,3],11482],[\"MAN_2\",\"faced_sprite\",\"Hey, okay, go for it!\",\"DEWFORD TOWN GYM\",[3,3],11488]]},{\"result\":11566,\"dialogue\":[11564],\"turn\":358,\"pages\":[[\"Left Gym Statue\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\",\"DEWFORD TOWN GYM\",[3,3],11558]]},{\"result\":11608,\"dialogue\":[11606],\"turn\":359,\"pages\":[[\"Right Gym Statue\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\",\"DEWFORD TOWN GYM\",[3,3],11600]]},{\"result\":11712,\"dialogue\":[11710],\"turn\":361,\"pages\":[[\"GIRL_3\",\"faced_sprite\",\"Don't you dare brush me off!\\nIt's not my fault if you cry!\",\"DEWFORD TOWN GYM\",[3,3],11691]]},{\"result\":11861,\"dialogue\":[11859],\"turn\":364,\"pages\":[[\"GIRL_3\",\"faced_sprite\",\"I battle in the dark to make my heart\\nstronger.\",\"DEWFORD TOWN GYM\",[3,3],11847],[\"GIRL_3\",\"faced_sprite\",\"But because it's so dark, I can never\\nsee BRAWLY's face\u2026\",\"DEWFORD TOWN GYM\",[3,3],11853]]},{\"result\":12098,\"dialogue\":[12095],\"turn\":367,\"pages\":[[\"MAN_3\",\"faced_sprite\",\"Even if a POK\u00e9MON faints and can't\\nbattle, it can still use a move learned\\nfrom a HIDDEN MACHINE (HM).\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12089]]},{\"result\":12142,\"dialogue\":[12140],\"turn\":368,\"pages\":[[\"pokemon center bookshelf\",\"faced_target\",\"POK\u00e9MON magazines!\\nPOK\u00e9MON PAL\u2026\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12128],[\"pokemon center bookshelf\",\"faced_target\",\"POK\u00e9MON HANDBOOK\u2026\\nADORABLE POK\u00e9MON\u2026\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12134]]},{\"result\":12270,\"dialogue\":[12268],\"turn\":371,\"pages\":[[null,null,\"Hello, and welcome to\\nthe POK\u00e9MON CENTER.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12255],[null,null,\"We restore your tired POK\u00e9MON\\nto full health.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12261],[null,null,\"Would you like to rest your POK\u00e9MON?\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12267]]},{\"result\":12305,\"dialogue\":[12303],\"turn\":372,\"pages\":[[null,null,\"Okay, I'll take your POK\u00e9MON\\nfor a few seconds.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12286],[null,null,\"Thank you for waiting.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12287],[null,null,\"We've restored your POK\u00e9MON\\nto full health.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12295],[null,null,\"We hope to see you again!\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12296]]},{\"result\":12367,\"dialogue\":[12365],\"turn\":373,\"pages\":[[\"POKEFAN_F\",\"faced_sprite\",\"There's a stone cavern at the edge\\nof town.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12353],[\"POKEFAN_F\",\"faced_sprite\",\"I've heard you can find rare stones\\nthere.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12359]]},{\"result\":12401,\"dialogue\":[12399],\"turn\":374,\"pages\":[[null,null,\"A booted up the PC.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12392],[\"pc\",\"faced_target\",\"Which PC should be accessed?\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12398]]},{\"result\":12476,\"dialogue\":[12474],\"turn\":377,\"pages\":[[null,null,\"A took a closer look at the\\nHOENN region map.\",\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12458]]},{\"result\":12810,\"dialogue\":[12808],\"turn\":388,\"pages\":[[\"vase\",\"faced_target\",\"This vase looks expensive\u2026\\nPeered inside\u2026\",\"DEWFORD TOWN HOUSE2\",[3,5],12796],[\"vase\",\"faced_target\",\"But, it was empty.\",\"DEWFORD TOWN HOUSE2\",[3,5],12802]]},{\"result\":12848,\"dialogue\":[12846],\"turn\":389,\"pages\":[[\"BOY_2\",\"faced_sprite\",\"Wow, you bothered to cross the sea\\nto visit DEWFORD?\",\"DEWFORD TOWN HOUSE2\",[3,5],12828],[\"BOY_2\",\"faced_sprite\",\"Did you maybe come here because you\\nheard about BRAWLY?\",\"DEWFORD TOWN HOUSE2\",[3,5],12834],[\"BOY_2\",\"faced_sprite\",\"He's so cool\u2026\\nEveryone idolizes him.\",\"DEWFORD TOWN HOUSE2\",[3,5],12840]]},{\"result\":13040,\"dialogue\":[13038],\"turn\":395,\"pages\":[[\"MAN_3\",\"faced_sprite\",\"Gorge your eyes on this!\",\"DEWFORD TOWN HOUSE2\",[3,5],13006],[\"MAN_3\",\"faced_sprite\",\"It's a SILK SCARF. It's right at the\\ncutting edge of fashion, yeah!\",\"DEWFORD TOWN HOUSE2\",[3,5],13012],[\"MAN_3\",\"faced_sprite\",\"Oh, I can see your eyes twinkling!\\nYou appreciate my dazzling style!\",\"DEWFORD TOWN HOUSE2\",[3,5],13018],[\"MAN_3\",\"faced_sprite\",\"Oh, you're a delight!\\nHere you go. I want you to have it!\",\"DEWFORD TOWN HOUSE2\",[3,5],13024],[\"MAN_3\",\"faced_sprite\",\"Obtained the SILK SCARF!\",\"DEWFORD TOWN HOUSE2\",[3,5],13031],[null,null,\"A put away the SILK SCARF\\nin the ITEMS POCKET.\",\"DEWFORD TOWN HOUSE2\",[3,5],13032]]},{\"result\":13207,\"dialogue\":[13204],\"turn\":399,\"pages\":[[\"GIRL_2\",\"faced_sprite\",\"What's in vogue? Why, it has to be\\n\u201cSKILL EVENT\u201d!\",\"DEWFORD TOWN HALL\",[3,4],13192],[\"GIRL_2\",\"faced_sprite\",\"I can't imagine what life would be like\\nwithout \u201cSKILL EVENT\u201d!\",\"DEWFORD TOWN HALL\",[3,4],13198]]},{\"result\":13242,\"dialogue\":[13240],\"turn\":400,\"pages\":[[\"MAN_1\",\"faced_sprite\",\"I'm studying up on the hip and trendy\\n\u201cSKILL EVENT\u201d now.\",\"DEWFORD TOWN HALL\",[3,4],13228],[\"MAN_1\",\"faced_sprite\",\"Is it true that there's a deep link\\nbetween \u201cSKILL EVENT\u201d\\nand \u201cDIGITAL\u201d?\",\"DEWFORD TOWN HALL\",[3,4],13239]]},{\"result\":13291,\"dialogue\":[13289],\"turn\":403,\"pages\":[[\"MAN_1\",\"faced_sprite\",\"What?!\\nIs that so?!\",\"DEWFORD TOWN HALL\",[3,4],13277],[\"MAN_1\",\"faced_sprite\",\"It's not easy for an older fellow like\\nme to keep up with trends!\",\"DEWFORD TOWN HALL\",[3,4],13283]]},{\"result\":13407,\"dialogue\":[13405],\"turn\":406,\"pages\":[[\"WOMAN_2\",\"faced_sprite\",\"I'm teaching my POK\u00e9MON about\\n\u201cSKILL EVENT,\u201d\\nbut it's not going well.\",\"DEWFORD TOWN HALL\",[3,4],13393],[\"WOMAN_2\",\"faced_sprite\",\"It's a bit too much, I think.\",\"DEWFORD TOWN HALL\",[3,4],13399]]},{\"result\":13494,\"dialogue\":[13492],\"turn\":407,\"pages\":[[\"TWIN\",\"faced_sprite\",\"Across the sea\u2026\",\"DEWFORD TOWN HALL\",[3,4],13480],[\"TWIN\",\"faced_sprite\",\"Is \u201cSKILL EVENT\u201d\\neven more popular?\",\"DEWFORD TOWN HALL\",[3,4],13486]]},{\"result\":13552,\"dialogue\":[13549],\"turn\":408,\"pages\":[[\"Painting\",\"faced_target\",\"It's titled \u201cTHE LAST\\nSKILL EVENT\u201d.\",\"DEWFORD TOWN HALL\",[3,4],13543]]},{\"result\":13595,\"dialogue\":[13592],\"turn\":409,\"pages\":[[\"television\",\"faced_target\",\"DAD might like this program.\\n\u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026 \u2026\",\"DEWFORD TOWN HALL\",[3,4],13580],[\"television\",\"faced_target\",\"Better get going!\",\"DEWFORD TOWN HALL\",[3,4],13586]]},{\"result\":13626,\"dialogue\":[13624],\"turn\":410,\"pages\":[[\"EXPERT_M\",\"faced_sprite\",\"This whole business about\\n\u201cSKILL EVENT\u201d\u2026\\nIsn't there a TV show on it?\",\"DEWFORD TOWN HALL\",[3,4],13618]]},{\"result\":13761,\"dialogue\":[13759],\"turn\":411,\"pages\":[[\"LITTLE_BOY\",\"faced_sprite\",\"I collect official\\n\u201cSKILL EVENT\u201d\\nlicensed merchandise.\",\"DEWFORD TOWN HALL\",[3,4],13724],[\"LITTLE_BOY\",\"faced_sprite\",\"I have official\\n\u201cSKILL EVENT\u201d DOLLS\u2026\",\"DEWFORD TOWN HALL\",[3,4],13730],[\"LITTLE_BOY\",\"faced_sprite\",\"Official \u201cSKILL EVENT\u201d\\nbrand clothing\u2026\",\"DEWFORD TOWN HALL\",[3,4],13736],[\"LITTLE_BOY\",\"faced_sprite\",\"And officially licensed\\n\u201cSKILL EVENT\u201d\\npicture books.\",\"DEWFORD TOWN HALL\",[3,4],13747],[\"LITTLE_BOY\",\"faced_sprite\",\"Heheh, I own!\\nI'm not sharing anything with you!\",\"DEWFORD TOWN HALL\",[3,4],13753]]},{\"result\":13858,\"dialogue\":[13854],\"turn\":412,\"pages\":[[null,null,\"Hey, listen, I composed a theme song\\nfor \u201cSKILL EVENT.\u201d\",\"DEWFORD TOWN HALL\",[3,4],13802],[null,null,\"\u201cSKILL EVENT\u201d\\nis really popular right now.\",\"DEWFORD TOWN HALL\",[3,4],13808],[null,null,\"Okay, listen!\\n\u2026 \u2026\",\"DEWFORD TOWN HALL\",[3,4],13814],[null,null,\"Oh!\\nSKILL EVENT!\",\"DEWFORD TOWN HALL\",[3,4],13820],[null,null,\"Wonderful\\nSKILL EVENT!\",\"DEWFORD TOWN HALL\",[3,4],13826],[\"SCHOOL_KID_M\",\"faced_sprite\",\"\u2026 \u2026\",\"DEWFORD TOWN HALL\",[3,4],13832],[\"SCHOOL_KID_M\",\"faced_sprite\",\"I dare say, chap, it would pay for you\\nto work on your singing before you\\ntrifle yourself with\\n\u201cSKILL EVENT.\u201d\",\"DEWFORD TOWN HALL\",[3,4],13848]]},{\"result\":13950,\"dialogue\":[13948],\"turn\":413,\"pages\":[[\"PSYCHIC_M\",\"faced_sprite\",\"Hey, listen, I composed a theme song\\nfor \u201cSKILL EVENT.\u201d\",\"DEWFORD TOWN HALL\",[3,4],13896],[\"PSYCHIC_M\",\"faced_sprite\",\"\u201cSKILL EVENT\u201d\\nis really popular right now.\",\"DEWFORD TOWN HALL\",[3,4],13902],[\"PSYCHIC_M\",\"faced_sprite\",\"Okay, listen!\\n\u2026 \u2026\",\"DEWFORD TOWN HALL\",[3,4],13908],[\"PSYCHIC_M\",\"faced_sprite\",\"Oh!\\nSKILL EVENT!\",\"DEWFORD TOWN HALL\",[3,4],13914],[\"PSYCHIC_M\",\"faced_sprite\",\"Wonderful\\nSKILL EVENT!\",\"DEWFORD TOWN HALL\",[3,4],13920],[\"PSYCHIC_M\",\"faced_sprite\",\"\u2026 \u2026\",\"DEWFORD TOWN HALL\",[3,4],13926],[\"PSYCHIC_M\",\"faced_sprite\",\"I dare say, chap, it would pay for you\\nto work on your singing before you\\ntrifle yourself with\\n\u201cSKILL EVENT.\u201d\",\"DEWFORD TOWN HALL\",[3,4],13942]]},{\"result\":14118,\"dialogue\":[14116],\"turn\":416,\"pages\":[[null,null,\"A found one HEART SCALE!\",\"ROUTE106\",[0,21],14109],[null,null,\"A put away the HEART SCALE\\nin the ITEMS POCKET.\",\"ROUTE106\",[0,21],14110]]},{\"result\":14183,\"dialogue\":[14181],\"turn\":419,\"pages\":[[\"FISHERMAN\",\"faced_sprite\",\"What do people do if they need to go\\nto a washroom?\",\"ROUTE106\",[0,21],14156],[\"FISHERMAN\",\"faced_sprite\",\"What if my ROD hooks a big one while\\nI'm in the washroom? I just can't go\u2026\",\"ROUTE106\",[0,21],14162]]}],\"current\":{\"result_event\":14823,\"state_event\":14822,\"location\":\"ROUTE106\",\"story\":\"player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Norman first meeting complete; Route 103 rival battle won; Pok\u00e9dex received; starter tutorial complete; running shoes received; Wally tutorial complete; Petalburg Woods Aqua event complete; Rustboro Gym complete; Stone Badge received; Rock Tomb received; petalburg woods lyle defeated; petalburg woods james defeated; petalburg woods aqua grunt defeated; route116 clark defeated; route116 karen defeated; route116 devan defeated; route116 johnson defeated; roxanne defeated; route102 calvin defeated; route102 rick defeated; route102 tiana defeated; route104 ivan defeated; route104 haley defeated; route104 winston defeated; route104 cindy defeated; route104 gina mia defeated; route104 darian defeated\"}}\n\nDELIVERED PERSON AND PLACE EVIDENCE \u2014 historical quotes, not current presence or an active objective. Unknown speakers stay unknown; relative words refer to the quoted source location. Current observations override old statements. No route or person identity is inferred. Exact whole episodes; audited native completion may retire them, unknown variants stay.\n{\"columns\":[\"speaker\",\"speaker_source\",\"text\",\"source_map_display\",\"source_map_name\",\"map_id\",\"state_event\"],\"episodes\":[{\"result\":680,\"dialogue\":[678],\"turn\":19,\"pages\":[[\"MAY\",\"name_prefix\",\"MAY: Oh, hi, A!\",null,\"RUSTBORO CITY\",[0,3],624],[\"MAY\",\"name_prefix\",\"You had a MATCH CALL feature put\\non your POK\u00e9NAV!\",null,\"RUSTBORO CITY\",[0,3],635],[\"MAY\",\"name_prefix\",\"Let's register each other so we can\\ncontact one another anytime!\",null,\"RUSTBORO CITY\",[0,3],641],[\"MAY\",\"name_prefix\",\"\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\",null,\"RUSTBORO CITY\",[0,3],647],[\"MAY\",\"name_prefix\",\"Registered MAY\\nin the POK\u00e9NAV.\",null,\"RUSTBORO CITY\",[0,3],653],[\"MAY\",\"name_prefix\",\"MAY: Oh, by the way, I passed\\nMR. BRINEY in PETALBURG WOODS.\",null,\"RUSTBORO CITY\",[0,3],659],[\"MAY\",\"name_prefix\",\"I guess he's on his way home to his\\ncottage by the sea.\",null,\"RUSTBORO CITY\",[0,3],665],[\"MAY\",\"name_prefix\",\"How's your POK\u00e9DEX coming along,\\nA? Mine's looking pretty decent!\",null,\"RUSTBORO CITY\",[0,3],671],[\"MAY\",\"name_prefix\",\"So\u2026\\nHow about a little battle?\",null,\"RUSTBORO CITY\",[0,3],677]]},{\"result\":3267,\"dialogue\":[3265],\"turn\":120,\"pages\":[[\"Sign text \\\"RUSTBORO CITY | \u201cThe city probing the integration of | nature and science.\u201d\\\"\",\"faced_target\",\"RUSTBORO CITY\",null,\"RUSTBORO CITY\",[0,3],3253],[\"Sign text \\\"RUSTBORO CITY | \u201cThe city probing the integration of | nature and science.\u201d\\\"\",\"faced_target\",\"\u201cThe city probing the integration of\\nnature and science.\u201d\",null,\"RUSTBORO CITY\",[0,3],3259]]},{\"result\":3813,\"dialogue\":[3811],\"turn\":132,\"pages\":[[\"BOY_2\",\"faced_sprite\",\"The old sailor MR. BRINEY lives in\\na cottage by the sea.\",null,\"RUSTBORO CITY\",[0,3],3793],[\"BOY_2\",\"faced_sprite\",\"He said he was going shopping in\\nSLATEPORT for his pet, PEEKO.\",null,\"RUSTBORO CITY\",[0,3],3799],[\"BOY_2\",\"faced_sprite\",\"That old sea dog, he must really love\\nthat PEEKO.\",null,\"RUSTBORO CITY\",[0,3],3805]]},{\"result\":3860,\"dialogue\":[3858],\"turn\":133,\"pages\":[[\"Sign text \\\"CUTTER'S HOUSE\\\"\",\"faced_target\",\"CUTTER'S HOUSE\",null,\"RUSTBORO CITY\",[0,3],3852]]},{\"result\":4066,\"dialogue\":[4064],\"turn\":136,\"pages\":[[\"WOMAN_5\",\"faced_sprite\",\"I challenged the GYM LEADER, but\u2026\",null,\"RUSTBORO CITY\",[0,3],4046],[\"WOMAN_5\",\"faced_sprite\",\"It's not going to be easy winning with\\nmy FIRE-type POK\u00e9MON\u2026\",null,\"RUSTBORO CITY\",[0,3],4052],[\"WOMAN_5\",\"faced_sprite\",\"FIRE-type POK\u00e9MON don't match up\\nwell against ROCK-type POK\u00e9MON\u2026\",null,\"RUSTBORO CITY\",[0,3],4058]]},{\"result\":4679,\"dialogue\":[4676],\"turn\":149,\"pages\":[[\"Sign text \\\"ROUTE 1O4 | \u2191 RUSTBORO CITY\\\"\",\"faced_target\",\"ROUTE 1O4\\n\u2191 RUSTBORO CITY\",null,\"ROUTE104\",[0,19],4670]]},{\"result\":6804,\"dialogue\":[6801],\"turn\":205,\"pages\":[[\"GIRL_2\",\"faced_sprite\",\"That seaside cottage is where\\nMR. BRINEY lives.\",null,\"ROUTE104\",[0,19],6789],[\"GIRL_2\",\"faced_sprite\",\"He was once a mighty sailor who never\\nfeared the sea, however stormy.\",null,\"ROUTE104\",[0,19],6795]]},{\"result\":10104,\"dialogue\":[10102],\"turn\":320,\"pages\":[[\"Sign text \\\"DEWFORD TOWN | \u201cA tiny island in the blue sea.\u201d\\\"\",\"faced_target\",\"DEWFORD TOWN\\n\u201cA tiny island in the blue sea.\u201d\",null,\"DEWFORD TOWN\",[0,11],10096]]},{\"result\":10749,\"dialogue\":[10746],\"turn\":339,\"pages\":[[\"Sign text \\\"DEWFORD TOWN POK\u00e9MON GYM | LEADER: BRAWLY | \u201cA big wave in fighting!\u201d\\\"\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\\nLEADER: BRAWLY\\n\u201cA big wave in fighting!\u201d\",null,\"DEWFORD TOWN\",[0,11],10740]]},{\"result\":11116,\"dialogue\":[11114],\"turn\":346,\"pages\":[[\"WOMAN_3\",\"faced_sprite\",\"I left the major port of SLATEPORT\\nCITY when I married my husband here.\",null,\"DEWFORD TOWN HOUSE1\",[3,0],11089],[\"WOMAN_3\",\"faced_sprite\",\"Life goes by slowly on this little\\nisland. But being surrounded by the\\nbeautiful sea--that's happiness, too.\",null,\"DEWFORD TOWN HOUSE1\",[3,0],11100]]},{\"result\":11496,\"dialogue\":[11494],\"turn\":355,\"pages\":[[\"MAN_2\",\"faced_sprite\",\"Hey, how's it going, CHAMPION-\\nbound A?\",null,\"DEWFORD TOWN GYM\",[3,3],11447],[\"MAN_2\",\"faced_sprite\",\"DEWFORD's GYM LEADER BRAWLY commands\\nFIGHTING-type POK\u00e9MON.\",null,\"DEWFORD TOWN GYM\",[3,3],11453],[\"MAN_2\",\"faced_sprite\",\"Going against him with NORMAL-type\\nPOK\u00e9MON is asking for trouble.\",null,\"DEWFORD TOWN GYM\",[3,3],11459],[\"MAN_2\",\"faced_sprite\",\"FIGHTING POK\u00e9MON will lay a serious\\nsmack down on NORMAL POK\u00e9MON,\\nso be careful!\",null,\"DEWFORD TOWN GYM\",[3,3],11470],[\"MAN_2\",\"faced_sprite\",\"What's worse, the GYM is as dark as\\nthe ocean floor.\",null,\"DEWFORD TOWN GYM\",[3,3],11476],[\"MAN_2\",\"faced_sprite\",\"But it will get brighter after defeating\\nthe TRAINERS in your way.\",null,\"DEWFORD TOWN GYM\",[3,3],11482],[\"MAN_2\",\"faced_sprite\",\"Hey, okay, go for it!\",null,\"DEWFORD TOWN GYM\",[3,3],11488]]},{\"result\":11566,\"dialogue\":[11564],\"turn\":358,\"pages\":[[\"Left Gym Statue\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\",null,\"DEWFORD TOWN GYM\",[3,3],11558]]},{\"result\":11608,\"dialogue\":[11606],\"turn\":359,\"pages\":[[\"Right Gym Statue\",\"faced_target\",\"DEWFORD TOWN POK\u00e9MON GYM\",null,\"DEWFORD TOWN GYM\",[3,3],11600]]},{\"result\":12367,\"dialogue\":[12365],\"turn\":373,\"pages\":[[\"POKEFAN_F\",\"faced_sprite\",\"There's a stone cavern at the edge\\nof town.\",null,\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12353],[\"POKEFAN_F\",\"faced_sprite\",\"I've heard you can find rare stones\\nthere.\",null,\"DEWFORD TOWN POKEMON CENTER 1F\",[3,1],12359]]}]}"
+  },
+  {
+   "role": "user",
+   "content": "Observed battle actions (last 8 delivered intervals, up to 8 game pages each and 60 source rows; game pages and native HP, not advice):\nHP is net change between the stated battle snapshots; attribution to individual moves is unknown.\n- Turn 162 \u00b7 observation interval 4983 \u2192 5050; HP endpoint 5043 (last delivered battle-page snapshot; final observation 5050): Player MARSHTOMP used MUD SHOT!; Foe game page: Foe MAGIKARP fainted!; Player MARSHTOMP HP 50/50 \u2192 50/50 (net 0); Foe MAGIKARP HP 19/19 \u2192 0/19 (net -19)\n- Turn 174 \u00b7 observation interval 5641 \u2192 5727: Player MARSHTOMP used MUD SHOT!; Foe game page: Foe LOTAD fainted!; Player MARSHTOMP: no comparable HP delta for this member.; Foe LOTAD HP 20/20 \u2192 0/20 (net -20)\n- Turn 184 \u00b7 observation interval unknown \u2192 5838: Player MARSHTOMP used MUD SHOT!; Foe SHROOMISH used ABSORB!; HP changes: unknown (paired battle snapshots unavailable).\n- Turn 185 \u00b7 observation interval 5838 \u2192 5946; HP endpoint 5912 (last delivered battle-page snapshot; final observation 5946): Player MARSHTOMP used MUD SHOT!; Foe game page: Foe SHROOMISH fainted!; Player MARSHTOMP HP 43/53 \u2192 43/53 (net 0); Foe SHROOMISH HP 10/23 \u2192 0/23 (net -10)\n- Turn 200 \u00b7 observation interval 6265 \u2192 6369; HP endpoint 6332 (last delivered battle-page snapshot; final observation 6369): Player MARSHTOMP used MUD SHOT!; Foe game page: Foe ZIGZAGOON fainted!; Player MARSHTOMP HP 43/53 \u2192 43/53 (net 0); Foe ZIGZAGOON HP 22/22 \u2192 0/22 (net -22)\n- Turn 215 \u00b7 observation interval unknown \u2192 7088; HP endpoint 7081 (last delivered battle-page snapshot; final observation 7088): Player MARSHTOMP used MUD SHOT!; Foe game page: Foe MAGIKARP fainted!; HP changes: unknown (paired battle snapshots unavailable).\n- Turn 362 \u00b7 observation interval 11711 \u2192 11745: Player MARSHTOMP used MUD SHOT!; Foe MEDITITE used BIDE!; Player MARSHTOMP HP 43/53 \u2192 43/53 (net 0); Foe MEDITITE HP 33/33 \u2192 12/33 (net -21)\n- Turn 363 \u00b7 observation interval 11745 \u2192 11822; HP endpoint 11815 (last delivered battle-page snapshot; final observation 11822): Player MARSHTOMP used MUD SHOT!; Player move page: A critical hit!; Foe game page: Foe MEDITITE fainted!; Player MARSHTOMP HP 43/53 \u2192 43/53 (net 0); Foe MEDITITE HP 12/33 \u2192 0/33 (net -12)"
+  }
+ ],
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "observe",
+    "description": "See the current game screen and the game state read from memory (location, party, map). Pending ordinary battle text advances to the next decision; all messages are listed. Pending ordinary field dialogue also advances to the next decision; all pages are listed.",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "press",
+    "description": "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state. Direction-only field travel runs whenever native controls permit it; the harness, not the model, owns this choice. Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent. Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "buttons"
+     ],
+     "properties": {
+      "buttons": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "A",
+         "B",
+         "START",
+         "SELECT",
+         "UP",
+         "DOWN",
+         "LEFT",
+         "RIGHT"
+        ]
+       },
+       "minItems": 1,
+       "maxItems": 8
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "choose_evolution",
+    "description": "Explicitly choose whether to evolve or cancel the current POK\u00e9MON evolution. The game waits for this decision at the native cancellation window. Neither option is recommended. Ordinary buttons cannot resolve this choice. Move-learning prompts afterward use their own controls. Refuses when no eligible evolution is waiting.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "decision"
+     ],
+     "properties": {
+      "decision": {
+       "enum": [
+        "evolve",
+        "cancel"
+       ],
+       "description": "evolve allows the current evolution to complete; cancel stops it."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "navigate_to",
+    "description": "Walks to a tile two or more tiles away; give the destination and it finds the route around walls, ledges, water and people. For a person, object, warp or map exit that the readout lists with a navigate_to_target target, use navigate_to_target with that target instead. Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain, hops a ledge only in its arrow direction, never crosses a walled side of a + tile, walks sand, cave and other floor the game allows, and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A. Inspect the returned state before continuing. It cannot walk while a message is open: dismiss the message with B first. To talk to a person, use an object, or go through a door, stairs, another warp or a map exit that the readout lists with a navigate_to_target target, call navigate_to_target with that target instead. Straight corridors of plain floor or tall grass use explicit strides of at most 8 tiles, validated against native movement before each step. Strides stop before turns, other grass, ledges, warps, objects, script coordinates and elevation changes; special steps walk without automatic running. Before it walks, it checks the planned route against the sight of every trainer on this map you have not beaten; when one can see a tile of the route it does not walk and names the trainer and the tile. Call it again with confirm_trainer_sight: true to walk that route anyway. Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement. If it ends in dialogue or a battle, the text advances automatically to the next decision point and its pages are listed. Give because: {quote, rationale?}; quote contains only exact observed words. Optional rationale is your unverified explanation. Matching verifies words only, not speaker identity or destination.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "x",
+      "y",
+      "map_id",
+      "because"
+     ],
+     "properties": {
+      "x": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "y": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "map_id": {
+       "type": "array",
+       "additionalItems": false,
+       "items": [
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        },
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        }
+       ],
+       "minItems": 2
+      },
+      "confirm_trainer_sight": {
+       "type": "boolean",
+       "description": "Only after navigate_to said a trainer you have not beaten can see a tile of this route: true walks the route anyway."
+      },
+      "because": {
+       "type": "object",
+       "required": [
+        "quote"
+       ],
+       "properties": {
+        "quote": {
+         "type": "string",
+         "minLength": 1,
+         "description": "Only the exact words copied from a game observation that make this destination the place to go. Do not add a speaker name or explanation. Line breaks, case and curly quotes are ignored."
+        },
+        "rationale": {
+         "type": "string",
+         "description": "Optional explanation in your own words. This is not checked or treated as observed evidence."
+        }
+       },
+       "additionalProperties": false,
+       "description": "Required. Quote, word for word, what the game showed you that makes this the place to go: a person's words, the Story goal line, or a readout line that shows the destination on this map (a door, a person's position, an exit or a Map connections line). Copy it; do not paraphrase or add to it. An exit the readout says cannot be reached on foot from where you stand is not a reason to walk to it. Put only copied evidence in quote; rationale is optional and unverified."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "navigate_to_target",
+    "description": "The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. Dialogue the activation opens is advanced for you as with navigate_to. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to. For a loaded NPC selected by object local_id, navigate_to_target follows its verified current position after each bounded movement action, then faces it and presses A once. This path returns after at most 32 movement, facing or activation attempts, including changed-state retries, or earlier if identity, field control or a supported route becomes unavailable. Before it walks, it checks the route it plans against the sight of every trainer on this map you have not beaten, except one you asked to talk to; when one can see a tile of the route it does not walk and names the trainer and the tile. Call it again with confirm_trainer_sight: true to walk that route anyway. Exception for an explicitly requested unloaded trainer listed in current-map trainer facts: navigate_to_target may approach its template tile, then returns without facing or pressing A. The template may have moved; inspect the current returned state before choosing an interaction. For a static scripted object template listed in current-map native facts, pass target kind static_object with its local_id. This approaches only: current presence and position are unverified, scripts may relocate it, and the tool returns without facing or pressing A even if the object has loaded. No automatic field or battle text is advanced. If it ends in dialogue or a battle, the text advances automatically to the next decision point and its pages are listed. Static template requests return immediately without automatic field or battle text advancement.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "map_id",
+      "target"
+     ],
+     "properties": {
+      "map_id": {
+       "type": "array",
+       "additionalItems": false,
+       "items": [
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        },
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        }
+       ],
+       "minItems": 2
+      },
+      "target": {
+       "anyOf": [
+        {
+         "type": "object",
+         "required": [
+          "kind",
+          "local_id"
+         ],
+         "properties": {
+          "kind": {
+           "type": "string",
+           "const": "object"
+          },
+          "local_id": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 255
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "required": [
+          "kind",
+          "interaction_kind",
+          "x",
+          "y"
+         ],
+         "properties": {
+          "kind": {
+           "type": "string",
+           "const": "interaction"
+          },
+          "interaction_kind": {
+           "type": "string",
+           "minLength": 1,
+           "pattern": "^(?!(?:object|warp)$).+$"
+          },
+          "x": {
+           "type": "integer",
+           "minimum": 0
+          },
+          "y": {
+           "type": "integer",
+           "minimum": 0
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "required": [
+          "kind",
+          "x",
+          "y"
+         ],
+         "properties": {
+          "kind": {
+           "type": "string",
+           "const": "warp"
+          },
+          "x": {
+           "type": "integer",
+           "minimum": 0
+          },
+          "y": {
+           "type": "integer",
+           "minimum": 0
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "required": [
+          "kind",
+          "direction"
+         ],
+         "properties": {
+          "kind": {
+           "type": "string",
+           "const": "connection"
+          },
+          "direction": {
+           "enum": [
+            "NORTH",
+            "SOUTH",
+            "EAST",
+            "WEST"
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "required": [
+          "kind",
+          "local_id"
+         ],
+         "properties": {
+          "kind": {
+           "type": "string",
+           "const": "static_object"
+          },
+          "local_id": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 254
+          }
+         },
+         "additionalProperties": false
+        }
+       ]
+      },
+      "confirm_trainer_sight": {
+       "type": "boolean",
+       "description": "Only after navigate_to_target said a trainer you have not beaten can see a tile of its route: true walks the route anyway."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "explore_map",
+    "description": "Deterministically chooses one reachable listed interaction not previously attempted by this explorer. When none remain, chooses a reachable walking connection. It navigates to and activates only that one target, returning immediately on battle, dialogue, menus, scripts, forced movement or map changes. If it ends in dialogue or a battle, the text advances automatically to the next decision point and its pages are listed.",
+    "parameters": {
+     "type": "object",
+     "properties": {},
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "battle_action",
+    "description": "Choose a battle action in one call, only while a battle waits for your choice: action fight with move (a move name your active POK\u00e9MON knows), bag, pokemon or run. The harness reads the battle menu's cursor from the game's memory and presses the buttons one at a time (moving the highlight, then A), checking the cursor after each press; it stops and says why if anything is not as expected. It refuses without pressing when no battle is waiting for a choice, when the active POK\u00e9MON does not know the move, or when the move has no PP. bag and pokemon open the BAG or the POK\u00e9MON screen and stop there; choose the item or POK\u00e9MON with press. In a double battle the game asks for each of your POK\u00e9MON in turn: call battle_action once for each; the result names the POK\u00e9MON it chose for and the one asked next. A move that hits one chosen POK\u00e9MON needs target there, and the harness moves the target highlight the same checked way. YES/NO and Safari choices are not handled; use press. A refused call presses nothing and does not automatically advance text. When the returned state says a message is waiting for A or B, use press with A or B; battle_action cannot choose FIGHT there. While the game runs its own text or animation without a waiting input, wait and observe. Pending ordinary field dialogue advances first; the queued action is not executed, so choose again from the returned state. Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed. If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "action"
+     ],
+     "properties": {
+      "action": {
+       "enum": [
+        "fight",
+        "bag",
+        "pokemon",
+        "run"
+       ],
+       "description": "fight, bag, pokemon or run: the battle menu option to choose."
+      },
+      "move": {
+       "type": "string",
+       "minLength": 1,
+       "description": "With fight: the name of the move to use, as the battle shows it (for example EMBER)."
+      },
+      "target": {
+       "type": "string",
+       "minLength": 1,
+       "description": "With fight in a double battle: the POK\u00e9MON the move hits, by its name as the battle shows it, or foe left / foe right / ally / self (left and right as on the screen). Needed for a move that hits one chosen POK\u00e9MON; ignored otherwise."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "learn_move",
+    "description": "Answer the game's move-learning prompts in one call, only while one is open for the move being learned: \"Delete a move to make room for \u2026?\", \"Stop learning \u2026?\", the \"\u2026 is trying to learn \u2026\" and \"\u2026 can't learn more than four moves\" pages before them, or the summary screen's list of moves to forget. forget is one of the four moves the POK\u00e9MON knows, as the game names it: the harness answers YES to deleting a move, moves the summary screen's highlight one step at a time to that move (checking the highlighted move after each press) and presses A. forget \"none\": it answers NO to deleting a move and YES to \"Stop learning \u2026?\", so the POK\u00e9MON keeps the moves it knows. It then checks the party's moves and reports what the game printed. It refuses without pressing when no move-learning prompt is open or the move is not one of the four, and stops and says why if the screen changes unexpectedly. Neither choice is recommended. press still works on these prompts. When forget is \"none\", decline_move is required: name the offered move you intend to decline, as the game shows it. The harness checks the actual offered move after waiting and before every input; a different or unreadable offer stops the action and returns the current observation. Inspect it and make a fresh choice. A matching named decline remains allowed.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "forget"
+     ],
+     "properties": {
+      "forget": {
+       "type": "string",
+       "minLength": 1,
+       "description": "The move to forget for the new move, by its name as the game lists it among the four moves the POK\u00e9MON knows (for example SCRATCH), or \"none\" to keep the four moves and not learn the new one."
+      },
+      "decline_move": {
+       "type": "string",
+       "minLength": 1,
+       "description": "Required when forget is \"none\": the name of the offered move you are declining, as the game shows it. A mismatch refuses without declining."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "get_dialogue",
+    "description": "Search every dialogue page the harness advanced through this run, newest first, each whole with its speaker, map, position, turn and event number. Filters: speaker, contains (words), map (name or map id), last (default 10). It reads the record only; it does not press buttons.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "speaker": {
+       "type": "string",
+       "description": "Only pages whose speaker contains this text (case-insensitive), such as MOM or SCIENTIST_1."
+      },
+      "contains": {
+       "type": "string",
+       "description": "Only pages containing these words (case-insensitive)."
+      },
+      "map": {
+       "type": "string",
+       "description": "Only pages shown on a map whose name or map id (for example 1/4) contains this text."
+      },
+      "last": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "How many matching pages to return, newest first (default 10)."
+      }
+     }
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "select_menu_option",
+    "description": "Select one currently visible option in a verified vertical START or field multichoice menu, using checked UP/DOWN and one A press.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "phase",
+      "menu_id",
+      "option"
+     ],
+     "properties": {
+      "phase": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 80
+      },
+      "menu_id": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "option": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  }
+ ]
+}

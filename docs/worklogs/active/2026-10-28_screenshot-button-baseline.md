@@ -54,11 +54,28 @@ Current landing smoke at cd0c96c4c: real native game with fake HTTP model return
 
 Landing remaining:
 - [x] Fresh full gates on synced branch.
-- [ ] Frozen principles/boundary and required cloud lane review.
-- [ ] Board slot and fast-forward local main.
-- [ ] Post-main test and coordinated single viewer refresh/live explainer and OFF-arm proof.
+- [x] Frozen principles/boundary, available review lanes and verified standing Grok waiver (reduced diversity).
+- [x] Board slot and fast-forward local main.
+- [x] Post-main test and coordinated single viewer refresh/live explainer and OFF-arm proof.
 
 Activation milestone/readiness: baseline applies from boot; it is a reusable ablation configuration, not a patch benefit claim. Initial N=1 establishes feasibility only. Any future run requires its own endpoint coordination. Current comparison arms explicitly exclude this flag. Landing does not activate it.
 
 
 Fresh landing gates: first full pass at63766d47e passed agent4942/viewer2297/Python4869/gateway116, all per-metric floors, three approved-card widths, lint/build/vendor. Main advanced with the test-build prerequisite during that window; merged9d294b816 into branch with no conflicts, then reran all gates at bdb07f680. Final pass: agent4942, viewer2297, Python4875, gateway116; TS agent lines99.21/branches92.70/functions97.51, viewer98.33/90.76/94.95; Python/gateway floors PASS; cards3 PASS; lint/build/vendor PASS. Source logs: runs/baseline-preflight/landing/gates-synced. RELEASE sent to shared CPU owner immediately. Baseline binary diff remained byte-identical across both main syncs (08cd4bb5ba5ce4e0c67bf70b29e6466ce7938fb02d0da7a588dc91fcea939aff before this evidence-only worklog addition). No extra source changes or inference. Freeze/review now includes this evidence-only update.
+
+
+## Landing completion and review synthesis
+
+Implementation landed by board-authorized fast-forward at f8928e3810ec3e9764e36a68374cb4ba41136826. Reviewed base9d294b816/head7c5313eb2, exact binary diff SHA256935938d48ac0bf89351dd506172aadc972460edec4209ed181a30af0544fbdd0. Main's subsequent e13fab2ed update changed only another worklog; final sync to f8928e381 retained that exact diff. Coordinator confirmed the already-passing gates stand for the evidence-only advance. No production changes followed review.
+
+Fresh review: Claude CLI cloud LGTM (exit0, empty stderr, one terminal verdict), isolated GPT gpt-6.1-sol/xhigh LGTM, distinct isolated fallback Sol and Astra LGTM. All three subagents used fork_turns=none and independently verified pre/post clean status, frozen HEAD and exact diff digest. Grok4.7 and CursorGrok4.5 both exited1 with ActionRequiredError out of usage and no verdict. Reduced vendor diversity is explicit. Standing operator waiver verified from server-relayed user records in Claude transcript 00000000-0000-4000-8000-1bb4e739f4f4.jsonl lines4145/4964/6309: user the operator's 2026-10-22T14:47:31Z message [private message reference] says "land without grok"; earlier "yes dont wait for grok" answered general scope with Claude+GPT+fallback. Current request explicitly authorizes this standalone landing. No fresh permission was requested unnecessarily.
+
+Consensus: exact prompt/image-only delivery, valid pinned-pi assistant-last continuation, OFF invariance, private grading and existing action timing retained; all four current recipes explicitly exclude baseline in both arms/all phases. Zero blocking findings and no scope expansion. All PB1–PB13 and all nine test-quality dimensions scored with evidence in the frozen principles and synthesis. Non-blocking follow-ups: hypothetical stride receipt cannot occur through the exclusive factory; absolute ordinal307 follows the current skill; the frozen packet's fixture-I/O paragraph overstated control-base reads. Correct accounting is definition+current-recipe reads (eight file reads across four cases), then bounded in-memory work; no control-base-byte coverage is claimed. No adjacent hardening was added.
+
+Post-main just test on f8928e381 PASS:4942 agent,2297 viewer,4875 Python,116 gateway; all per-metric coverage floors and all three approved trainer-card widths PASS. Source logs and full review packet preserved at canonical runs/baseline-landing. Compiled production recipe proof (arm-proof.json) confirms baseline=false for both arms, every phase and arm feature bits in bundle-v-control, bundle-v-control-2h, glm53-flash-4h and hyperqwen-control-3h. Standalone preset enables only screenshot-button-baseline-v1 and exposes exactly observe/press.
+
+One coordinator-approved, file-locked just viewer-main refresh completed 2026-10-28 06:10:51 PM EDT from clean cache runtime /Users/user/.cache/pokebench/viewer-screenshot-baseline-f8928e3810ec. Actual8790 listener and its own clean build stamp name f8928e381; served main/app/panels module bytes hash-match that runtime. Existing gameplay PID98262 kept the same start time across refresh; no live process was lost. Workbench shows 9c88 live and e845 ended without build-skew problems; the first snapshot was still filling historical caches (not claimed as a complete catalog audit).
+
+Actual recorded baseline e845 was explicitly selected through the Run control: baseline card ON and exact explainer link work by pointer and keyboard at1280/1440/375; all three screenshots inspected. First browser attempt followed the viewer's default live selection and showed NOT RECORDED for old9c88; retained separately, not counted as baseline proof. Corrected explicit-selection receipt: runs/mockups/screenshot-button-baseline-landing/baseline-live-card-receipt.json and card-shots/baseline-live-*.png. Historical metadata remains untouched. Canonical explainer returns200.
+
+Landing is complete. This evidence-only commit touches only docs/worklogs, per execute-worklog's post-landing exception. No new gameplay/inference, control/bundle activation, promotion or archive. Future baseline runs remain explicit opt-in and need normal endpoint coordination.

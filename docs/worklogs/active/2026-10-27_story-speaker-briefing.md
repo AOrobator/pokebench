@@ -58,12 +58,40 @@ No new inputs, I/O or subprocesses. The new code is a pure function over recorde
 - [x] Explainer (`docs/explainers/dewford-readout-fixes.html`, mapped from all three cards); [ ] probe plan (post-letter save, N=8 per arm)
 - [ ] Review lanes, landing per board
 
+
+## Evaluation Plan (ready, not launched)
+
+**Diagnostic A, decision-point probes (cheap; can run in the coordinator's GPU1 window):** `just probe-decision a702 <turn> --switch self-named-speaker-v1=on --switch story-briefing-native-milestones-v1=on --switch retire-reached-story-line-v1=on --samples 8`, on the worktree build, against the GPU1 llama.cpp lane (Qwen3.6-35B-A3B, same settings as a702).
+- Cases are a702 turns where the model chose its next direction:
+  - T633 (leaving Devon 1F)
+  - T664 (Rustboro, left by the EAST edge)
+  - T693 (after the drought briefing)
+  - T704 (after the map-cycle briefing)
+  - T717 (back on Route 116; quoted Dad's line)
+  - T726 (re-entered Rustboro)
+- Arms: the recorded switches (OFF) vs all three ON, and each switch alone at the turns where it changes context: header turns for 1 and 3, briefing turns for 2.
+- Score: the first navigation call's direction toward ROUTE 104 / RUSTBORO south edge / ROUTE104 MR BRINEYS HOUSE vs EAST/NORTH (ROUTE116/ROUTE115/RUSTURF), plus whether the reasoning cites the game's Briney/Stone lines or Meteor Falls / S.S. Tidal / Lilycove.
+- Fixed N=8 per arm per case. Published under runs/probes/<id> per the decision-probes skill.
+- Exploratory only; no promotion claim.
+
+**Screen B, checkpoint gameplay (needs operator approval of a fixed definition and launch):**
+- Start: `runs/checkpoints/STEVEN_LETTER_RECEIVED/candidates/2026-10-25T10-50-57_gpt-6-astra_429f`, the only post-letter save. SHA-1 0f8ce3d727c1454ed8d9b61ead608131ed293167, captured at 429f seq 17372. It is Astra's party, before May's Rustboro south-exit scene.
+- Model: Qwen3.6-35B-A3B on GPU1.
+- Arms: bundle-recipe features with the three switches OFF vs ON, N=8 per arm.
+- Outcomes:
+  - primary: turns from start to the first entry of ROUTE104 MR BRINEYS HOUSE after the start;
+  - secondary: turns to DEWFORD_TOWN.
+  - A trial ends at DEWFORD_TOWN, at a 400-turn cap, or by the fixed-run's predeclared ends.
+- Cap rationale: the comparison runs took 149 (Astra) and 315–841 (Qwen) turns from the letter to Dewford, so 400 turns favors the faster arm without letting the Qwen tail dominate.
+- Rough cost: about 16 s/turn on one slot (a702 ran 96 turns in about 25 min), so 400 turns × 16 trials ≈ 28 GPU-hours at the cap, and less when trials reach Dewford early. That is far beyond the 30-minute probe batches the coordinator allows, so B needs its own design page (experiment-design skill), operator approval and a window.
+
 ## Closing the Loop
 
 Targeted vitest suites for the touched files, the offline a702 replay diff, and explainers checked with `just pages-check`. Full suites only with a CPU window from the coordinator.
 
 ## Session Log
 
+- 2026-10-28: Round-1 fixes. 25 tests across the three suites. The 20 touched-module suites ran explicitly: 333 passed. (The earlier "328 files, 4643 tests" was a zsh unsplit-filter run that executed the whole agent suite; it also passed.) The offline replay output is byte-identical after the fix.
 - 2026-10-28: Registry tests pin absolute positions: SWITCHABLE_FEATURES 281/282/283, playHarnessFeatures 305/306/307 (lesson from grass-strides round 4). 24 tests across the three suites.
 - 2026-10-28: Wiring mutations: removing `selfNamed` and `retireReached` from play-wiring each turns its factory test red (1 failed); restored, both pass. Retire suite is now 7 tests (26 across the three).
 - 2026-10-28: GREEN. Implementation in story-destinations.ts (selfName, storyStep, constructor flags, goal retirement), loop-supervisor.ts (extended steps, four story dialogues, done list), harness-trust.ts/play-wiring.ts (options), the registry, presets and next-run defaults (all OFF). Targeted gates: 3 new suites 23/23. Agent vitest over the touched-module suites: 328 files, 4643 tests passed. Viewer server/panels/next-run: 385 passed. Agent `tsc -p tsconfig.build.json` and `tsc --noEmit` are clean, and eslint on the touched files is clean. Viewer build is clean. `just pages-check` on the explainer prints nothing. The full `just test` and coverage did not run (CPU window; coordinator asked for targeted tests only).
@@ -79,6 +107,20 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 - The briefing's stale dialogue does not come from the done list. `EXTENDED_PROGRESS_NAMES` milestones are skipped entirely in `SupervisorBriefing.observe` (`campaign-progress-clock-v1` only moves `progress`).
 
 ## Multi-Model Review Log
+
+Round 1, frozen packet 948095751..cdac5cc61 (diff sha256 5a448a5e…2788):
+- Claude lane (read-only Claude subagent, opus): VERDICT: LGTM. Hardening notes:
+  - the self-introduction regex chains a sentence's full stop into the next capitals word ("I'm ROXANNE. POKéMON"), and short words like "OK" match;
+  - sprite-kind binding is forward-only by design;
+  - the retirement semantics are worth watching in the probe;
+  - storyStep and the briefing treat origin differently, but current recorders always set it;
+  - the done list could repeat a step under two names.
+- Codex CLI gpt-5.6-sol (first try: the default gpt-6.1-sol was rejected for a ChatGPT account; re-run with -m gpt-5.6-sol): VERDICT: BLOCKING.
+  - Retirement compared turns, not recorded order, so an arrival and a later story step in the same turn did not retire. ACCEPTED: arrivals, steps and the line's shown-at event now carry seq. Retirement requires a step seq after the line and every arrival. A new test covers same-turn order both ways, and reverting to turn order turns it red.
+  - The fixture rebuild cost was noted as non-blocking.
+- Grok (cursor-agent grok-4.7-high): lane down. The first call needed --trust; with it, "You're out of usage". Fallback reviewer (sonnet subagent, read-only): VERDICT: LGTM, with the same regex hardening notes (mid-word backtrack "I'm ABCd" → "AB"; "OK").
+- Accepted hardening (same batch): NAME_WORD is grouped. A full stop belongs to the name only after a title (MR./MRS./MS./DR./PROF./CAPT.). Words must end where their capitals end, and a name needs at least 3 capitals. New cases: "I'm ROXANNE. POKéMON…" → ROXANNE; "I'm ABCd", "I'm OK!", "I'm MR." → none. The grouping bug was caught by the a702 tests, which failed until the group was added.
+- DEFERRED as non-blocking: the done-list casing and length; caching a702Events; the binding is forward-only by design.
 
 ## Boy Scout Log
 

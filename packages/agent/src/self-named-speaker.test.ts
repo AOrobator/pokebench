@@ -31,6 +31,11 @@ describe("selfName: a page in which its speaker gives a name in capitals",()=>{
   expect(selfName("I'm a POKéMON TRAINER!")).toBeNull();
   expect(selfName("I'm X.")).toBeNull();
   expect(selfName("Our PRESIDENT would like to have\na word with you.")).toBeNull();
+  // Review round 1: a sentence's full stop never joins the next word; a word must end where its capitals end.
+  expect(selfName("I'm ROXANNE. POKéMON are great.")).toBe("ROXANNE");
+  expect(selfName("I'm ABCd here.")).toBeNull();
+  expect(selfName("I'm OK!")).toBeNull();
+  expect(selfName("I'm MR.")).toBeNull();
  });
 });
 

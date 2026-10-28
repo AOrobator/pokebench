@@ -44,5 +44,16 @@ export function a702Events(turn:number):RunEvent[] {
  return [...arrivals,...rest].filter(e=>e.turn<=turn).sort((a,b)=>a.seq-b.seq);
 }
 export const A702_RUN=RAW.run;
+// The turn-690 state recorded as an arrival on `map` at `seq`/`turn`.
+export function a702Arrival(seq:number,turn:number,map:readonly [number,number],location:string):RunEvent {
+ const template=stateEvent("690");
+ return {...template,seq,turn,map_id:[map[0],map[1]],location};
+}
+// A recorded a702 milestone moved to `seq`/`turn`.
+export function a702Milestone(name:string,seq:number,turn:number):RunEvent {
+ const found=RAW.milestones.map(e=>checkEvent(e)).find(e=>e.type==="milestone"&&e.name===name);
+ if(found===undefined)throw Error(`no milestone ${name}`);
+ return {...found,seq,turn};
+}
 // The feature set a702 recorded at run_start (harness 5940bc2fb); switches registered later are OFF.
 export const A702_FEATURES:FeatureSet=normalizeFeatures(Value.Parse(FeatureSetSchema,RAW.features));

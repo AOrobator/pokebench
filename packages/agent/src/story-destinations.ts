@@ -129,12 +129,13 @@ function namedIn(text:string):string[] {
 }
 
 // self-named-speaker-v1: a page in which its speaker gives a name in capitals ("They call me MR. BRINEY.",
-// "I'm MR. STONE, the PRESIDENT of…"). Words in capitals only; the trailing full stop ends the sentence.
-const NAME_WORD="[A-Z][A-Z'é]*(?![a-z])\\.?";
+// "I'm MR. STONE, the PRESIDENT of…"). Whole words in capitals only, at least three letters in all; a full stop is part of
+// the name only after a title (MR., DR., …), so "I'm ROXANNE. POKéMON…" names ROXANNE.
+const NAME_WORD="(?:(?:MRS|MR|MS|DR|PROF|CAPT)\\.|[A-Z][A-Z'é]*(?![A-Za-z'é]))";
 const SELF_NAMED=new RegExp(`(?:^|[\\s!?.…])(?:They call me|I'm|I am|My name is) (${NAME_WORD}(?: ${NAME_WORD})*)`);
 export function selfName(text:string):string|null {
- const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]?.replace(/\.$/,"")??null;
- return name!==null&&/[A-Z]{2}/.test(name)?name:null;
+ const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]??null;
+ return name!==null&&!name.endsWith(".")&&/[A-Z]{3}/.test(name.replaceAll(/[^A-Z]/g,""))?name:null;
 }
 // retire-reached-story-line-v1: a story milestone the game recorded, other than a trainer win, a measurement-only step or an optional activity.
 function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
@@ -151,18 +152,20 @@ export class StoryDestinations {
  // unknown; it never becomes evidence that an instruction is complete.
  private readonly birchLabStages:{readonly seq:number;readonly stage:number|null}[]=[];
  // unfinished-activity-v1: the maps the player entered, in order, with the turn.
- private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
+ private readonly arrivals:{readonly map:MapId;readonly turn:number;readonly seq:number}[]=[];
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
  private readonly taskCompletion:TaskGoalCompletion|null;
  // retire-reached-story-line-v1: the story milestones the game recorded, in order.
- private readonly steps:{readonly turn:number;readonly name:string}[]=[];
+ private readonly steps:{readonly turn:number;readonly seq:number;readonly name:string}[]=[];
+ // retire-reached-story-line-v1: the recorded event (the page's state, else its dialogue event) each story line was shown at.
+ private readonly shownAt=new WeakMap<StoryLine,number>();
  constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
-  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,name:event.name});return;}
+  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,seq:event.seq,name:event.name});return;}
   if(event.type==="state"&&"started" in event){
    this.taskCompletion?.observe(event);
    const map=event.map_id;
-   if(event.started&&map!==null){const last=this.arrivals.at(-1);if(last===undefined||!same(last.map,map))this.arrivals.push({map,turn:event.turn});}
+   if(event.started&&map!==null){const last=this.arrivals.at(-1);if(last===undefined||!same(last.map,map))this.arrivals.push({map,turn:event.turn,seq:event.seq});}
    // An unreadable state is a boundary, not permission to reuse an older known stage for later dialogue.
    const stage=event.story?.birch_lab_stage ?? null;
    if(this.birchLabStages.at(-1)?.stage!==stage)this.birchLabStages.push({seq:event.seq,stage});
@@ -178,7 +181,12 @@ export class StoryDestinations {
   }
   if(event.type!=="tool_result")return;
   const lines=this.pending.get(event.id);this.pending.delete(event.id);
-  if(lines!==undefined&&!event.is_error)this.lines.push(...lines.map(line=>line.deliveredPlace===undefined?line:{...line,deliveredPlace:{...line.deliveredPlace,result_event:event.seq}}));
+  if(lines!==undefined&&!event.is_error)this.lines.push(...lines.map(line=>{
+   if(line.deliveredPlace===undefined)return line;
+   const delivered={...line,deliveredPlace:{...line.deliveredPlace,result_event:event.seq}};
+   const at=this.shownAt.get(line);if(at!==undefined)this.shownAt.set(delivered,at);
+   return delivered;
+  }));
  }
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
@@ -202,7 +210,11 @@ export class StoryDestinations {
  private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
   const tasks=this.taskCompletion?.tasks(pages);
-  const makeLine=(page:Page,line:StoryLine):StoryLine=>{const next=this.withBirchLabStage(page,line),task=tasks?.get(page);return task===undefined?next:{...next,task};};
+  const makeLine=(page:Page,line:StoryLine):StoryLine=>{
+   const staged=this.withBirchLabStage(page,line),task=tasks?.get(page),next=task===undefined?staged:{...staged,task};
+   if(this.retireReached)this.shownAt.set(next,page.state_seq??dialogueEvent);
+   return next;
+  };
   // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
   // coordinate triggers show this exact guidance and physically lead the player to the Gym.
   const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
@@ -271,8 +283,10 @@ export class StoryDestinations {
   if(doneReason!==null)return {line,resolved,done:true,doneReason};
   const reached=this.activity?this.reached(line,resolved,here):null;
   if(reached!==null&&this.retireReached){
-   const last=Math.max(line.turn,...reached.map(r=>r.turn));
-   const step=this.steps.find(s=>s.turn>last);
+   // Recorded order (event seq), not turns: an arrival and a story step can share a turn.
+   const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here)?.at.seq);
+   const last=Math.max(this.shownAt.get(line)??-Infinity,...arrived.map(a=>a??Infinity));
+   const step=this.steps.find(s=>s.seq>last);
    if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
   }
   return reached===null?{line,resolved}:{line,resolved,reached};
@@ -283,15 +297,18 @@ export class StoryDestinations {
   const out:Reached[]=[];
   for(const r of resolved){
    if(r.target===null)return null;
-   const map=r.target.map_id;
-   // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
-   const entered=this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
-   const stay=entered===undefined&&same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
-   if(entered!==undefined)out.push({target:r.target,turn:entered.turn,entered:true});
-   else if(stay!==undefined)out.push({target:r.target,turn:stay.turn,entered:false});
-   else return null;
+   const found=this.arrival(line,r.target.map_id,here);
+   if(found===undefined)return null;
+   out.push({target:r.target,turn:found.at.turn,entered:found.entered});
   }
   return out;
+ }
+ // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
+ private arrival(line:StoryLine,map:MapId,here:MapId):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
+  const entered=this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
+  if(entered!==undefined)return {at:entered,entered:true};
+  const stay=same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
+  return stay===undefined?undefined:{at:stay,entered:false};
  }
  private resolveLine(line:StoryLine,here:MapId,player:string|null,places:readonly Place[],heads:ReadonlySet<string>):Resolved[] {
   const resolved:Resolved[]=[];

@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {A702_PLACES,a702Events,a702State} from "../test-support/a702-dewford.js";
+import {A702_PLACES,a702Arrival,a702Events,a702Milestone,a702State} from "../test-support/a702-dewford.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures} from "./features.js";
 import {HarnessTrust,type TrustOptions} from "./harness-trust.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
@@ -8,6 +8,7 @@ const ID="retire-reached-story-line-v1";
 // The bundle arm's harness-trust options (play-wiring), as a702 ran them.
 const A702:TrustOptions={supervisor:true,goalOnce:false,retireLab:true,stageBound:true,nativeTasks:true,omitEmptyGoal:true,scriptedGuidance:true,reachableGoal:true,semanticTargets:true,exitSections:true,activity:true,playerName:true,gymEvidence:true,deliveredPlaces:true};
 const route116=a702State("690");
+const a702StateAtRustboro=()=>({...route116,map_id:[0,3] as [number,number],location:"RUSTBORO CITY"});
 const lines=(options:TrustOptions,turn:number)=>{
  const trust=new HarnessTrust(options);
  for(const e of a702Events(turn))trust.observe(e);
@@ -32,6 +33,17 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
  it("trainer wins and measurement-only steps after the arrival do not retire it",()=>{
   // Turns 379-454: three Rustboro Gym trainers, ROXANNE_FIRST_INTERACTION and Petalburg Woods trainers; no story step yet.
   expect(lines({...A702,retireReached:true},460).header).toContain(DAD);
+ });
+ it("orders by recorded event, not turn: a story step after the arrival in the same turn retires it, one before it does not",()=>{
+  const rustboro=a702StateAtRustboro();
+  const run=(arrivalSeq:number,stepSeq:number)=>{
+   const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+   const events=[...a702Events(377),a702Arrival(arrivalSeq,378,[0,3],"RUSTBORO CITY"),a702Milestone("ROXANNE_DEFEATED",stepSeq,378)].sort((a,b)=>a.seq-b.seq);
+   for(const e of events)trust.observe(e);
+   return trust.lines("Location: RUSTBORO CITY",rustboro,"later",A702_PLACES).header;
+  };
+  expect(run(15816,15817)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 378.");
+  expect(run(15817,15816)).toContain(DAD);
  });
  it("with self-named-speaker-v1 too, Stone's turn-630 request is the Story goal at turn 704",()=>{
   expect(lines({...A702,retireReached:true,selfNamed:true},704).header).toContain('Story goal: "Well, on the way, could you stop off in DEWFORD TOWN?" (MR. STONE, turn 630) -> "DEWFORD TOWN" = DEWFORD TOWN (map 0/11).');

@@ -290,8 +290,16 @@ def test_identical_text_after_message_closes_or_scene_ends_is_delivered_again(mo
 def raw_sample(frame):
     from pokebench_env.raw_ram import REGIONS, RawRamSnapshot
 
-    return RawRamSnapshot(1, frame, frame + 100, frame, "a" * 40, tuple(range(16)), 0x1F,
-                          tuple((name, address, size, bytes(size)) for name, address, size in REGIONS))
+    return RawRamSnapshot(
+        1,
+        frame,
+        frame + 100,
+        frame,
+        "a" * 40,
+        tuple(range(16)),
+        0x1F,
+        tuple((name, address, size, bytes(size)) for name, address, size in REGIONS),
+    )
 
 
 def test_safe_capture_defers_unknown_frames_and_recovers_without_inventing_motion(monkeypatch):
@@ -319,27 +327,34 @@ def test_safe_capture_defers_unknown_frames_and_recovers_without_inventing_motio
     assert not any("(20,21) -> (29,21)" in e["text"] for e in journal.entries)
 
 
-def test_safe_capture_retains_bounded_incident_window_and_persists_off_frame_hook(monkeypatch, tmp_path):
+def test_safe_capture_retains_bounded_incident_window_and_persists_off_frame_hook(
+    monkeypatch, tmp_path
+):
+    import json
+
     import pokebench_env.scene_journal as module
     from pokebench_env.raw_ram import load_raw_ram
-    import json
 
     idle = True
     monkeypatch.setattr(module, "main_loop_idle", lambda read: idle)
     journal = SceneJournal(safe_capture=True, raw_capture=raw_sample)
     m = field()
-    for _ in range(3):journal.advance(m.read)
+    for _ in range(3):
+        journal.advance(m.read)
     idle = False
-    for _ in range(20):journal.advance(m.read)
+    for _ in range(20):
+        journal.advance(m.read)
     idle = True
     journal.advance(m.read)
     journal.advance(m.read)
     first = journal.snapshot(0)["coverage"]
     assert first["diagnostic_samples"] == 8
+    assert first["diagnostic_omitted_samples"] == 16
     assert not list(tmp_path.iterdir())
     journal.persist_diagnostics(tmp_path)
     manifest = json.loads((tmp_path / "current.json").read_text())
     assert manifest["samples"] == 8 and manifest["retained_windows"] == 2
+    assert manifest["omitted_samples"] == 16
     index = tmp_path / manifest["directory"] / "index.jsonl"
     receipts = [json.loads(line) for line in index.read_text().splitlines()]
     assert len(receipts) == 8
@@ -347,12 +362,16 @@ def test_safe_capture_retains_bounded_incident_window_and_persists_off_frame_hoo
         archived = load_raw_ram(index.parent / receipt["path"], receipt["sha256"])
         assert archived.metadata["frame"] == receipt["frame"]
     # Ordinary frames do not overwrite the incident after it has recovered.
-    for _ in range(20):journal.advance(m.read)
+    for _ in range(20):
+        journal.advance(m.read)
     journal.persist_diagnostics(tmp_path)
     assert json.loads((tmp_path / "current.json").read_text()) == manifest
     for _ in range(3):
-        idle = False;journal.advance(m.read)
-        idle = True;journal.advance(m.read);journal.advance(m.read)
+        idle = False
+        journal.advance(m.read)
+        idle = True
+        journal.advance(m.read)
+        journal.advance(m.read)
         journal.persist_diagnostics(tmp_path)
     assert len(list(tmp_path.glob("window-*"))) == 2
 
@@ -362,12 +381,147 @@ def test_safe_capture_off_is_exact_legacy_and_real_failures_are_not_deferrals(mo
 
     m = field()
     monkeypatch.setattr(module, "main_loop_idle", lambda read: False)
-    old, off = SceneJournal(), SceneJournal(safe_capture=False, raw_capture=lambda frame: (_ for _ in ()).throw(AssertionError()))
-    old.advance(m.read);off.advance(m.read)
+    old, off = (
+        SceneJournal(),
+        SceneJournal(
+            safe_capture=False, raw_capture=lambda frame: (_ for _ in ()).throw(AssertionError())
+        ),
+    )
+    old.advance(m.read)
+    off.advance(m.read)
     assert old.snapshot(0) == off.snapshot(0)
     assert "coverage" not in off.snapshot(0)
     monkeypatch.setattr(module, "main_loop_idle", lambda read: True)
-    on = SceneJournal(safe_capture=True, raw_capture=lambda frame: (_ for _ in ()).throw(OSError("native copy failed")))
+    on = SceneJournal(
+        safe_capture=True,
+        raw_capture=lambda frame: (_ for _ in ()).throw(OSError("native copy failed")),
+    )
     on.advance(m.read)
     assert on.errors == 1 and "native copy failed" in on.last_error
     assert on.snapshot(0)["coverage"]["deferred_frames"] == 0
+
+
+def test_safe_capture_production_server_factory_and_endpoint(monkeypatch, tmp_path):
+    import json
+    import types
+
+    from fastapi import FastAPI
+    from pydantic import BaseModel
+    from test_view import get
+
+    import pokebench_env.scene_journal as module
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.readout import SERVER_FEATURES
+    from pokebench_env.serve import run
+
+    server = tmp_path / "server"
+    server.mkdir()
+    monkeypatch.chdir(server)
+    idle = False
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: idle)
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        ",".join(
+            f
+            for f in SERVER_FEATURES
+            if f not in {"cutscene-journal-v1", "scene-journal-safe-capture-v1"}
+        ),
+    )
+
+    class Shot(BaseModel):
+        screenshot_base64: str = "image"
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons):
+            pass
+
+    def step():
+        nonlocal idle
+        emulator = Emulator()
+        emulator.run_frame_with_buttons([])
+        idle = True
+        emulator.run_frame_with_buttons([])
+
+    api = FastAPI()
+    run(
+        [],
+        types.SimpleNamespace(run=lambda *a, **kw: None),
+        step,
+        observation=(api, lambda: Shot(), field().read, MapNames({})),
+        frames=Emulator,
+        scene_raw_capture=raw_sample,
+    )
+    status, _, body = get(api, "/pokebench/scene/events")
+    assert status == 200
+    reply = json.loads(body)
+    assert reply["errors"] == 0
+    assert reply["coverage"]["deferred_frames"] == 1
+    assert reply["coverage"]["safe_frames"] == 1
+    assert reply["coverage"]["persisted_revision"] > 0
+    assert (tmp_path / "scene-diagnostics/current.json").exists()
+
+
+def test_diagnostic_writer_is_outside_frame_lock_and_retries_failed_publication(
+    monkeypatch, tmp_path
+):
+    import threading
+
+    import pokebench_env.raw_ram as raw
+    import pokebench_env.scene_journal as module
+
+    idle = False
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: idle)
+    journal = SceneJournal(safe_capture=True, raw_capture=raw_sample)
+    m = field()
+    journal.advance(m.read)
+    idle = True
+    journal.advance(m.read)
+    original = module.persist_diagnostic_window
+
+    def concurrent_writer(directory, revision, samples, omitted):
+        done = threading.Event()
+        thread = threading.Thread(target=lambda: (journal.advance(m.read), done.set()))
+        thread.start()
+        assert done.wait(5), "diagnostic persistence held the frame journal lock"
+        thread.join()
+        return original(directory, revision, samples, omitted)
+
+    monkeypatch.setattr(module, "persist_diagnostic_window", concurrent_writer)
+    replace = raw.os.replace
+
+    def fail_once(source, destination):
+        raise OSError("disk publication failed")
+
+    monkeypatch.setattr(raw.os, "replace", fail_once)
+    journal.persist_diagnostics(tmp_path)
+    assert journal.snapshot(0)["coverage"]["diagnostic_error"] == "disk publication failed"
+    assert journal.persisted_revision == 0
+    monkeypatch.setattr(raw.os, "replace", replace)
+    journal.persist_diagnostics(tmp_path)
+    assert journal.snapshot(0)["coverage"]["diagnostic_error"] is None
+    assert journal.persisted_revision > 0
+
+
+def test_diagnostic_window_bounds_and_revision_integrity(tmp_path):
+    from dataclasses import replace
+
+    import pytest
+
+    from pokebench_env.raw_ram import persist_diagnostic_window
+
+    for revision, samples, omitted in [
+        (0, (raw_sample(1),), 0),
+        (1, (), 0),
+        (1, (raw_sample(1),) * 9, 0),
+        (1, (raw_sample(1),), -1),
+    ]:
+        with pytest.raises(ValueError, match="bounds"):
+            persist_diagnostic_window(tmp_path, revision, samples, omitted)
+    sample = raw_sample(1)
+    first = persist_diagnostic_window(tmp_path, 1, (sample,))
+    assert persist_diagnostic_window(tmp_path, 1, (sample,)) == first
+    with pytest.raises(ValueError, match="different evidence"):
+        persist_diagnostic_window(tmp_path, 1, (replace(sample, frame=500),))
+    assert not list(tmp_path.glob(".window-*"))
+    with pytest.raises(ValueError, match="native raw"):
+        SceneJournal(safe_capture=True)

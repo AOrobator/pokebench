@@ -399,6 +399,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
 
  "moving-npc-target-v1":"moving-npc-target-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
+ "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",

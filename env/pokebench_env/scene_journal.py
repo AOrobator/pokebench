@@ -9,6 +9,7 @@ import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from fastapi import FastAPI, HTTPException, Query
@@ -18,6 +19,7 @@ from pokebench_env.game_state import FIELD_CONTROLS_LOCK, SAVE_BLOCK_PTRS
 from pokebench_env.live_map import MAP_OFFSET, OBJECT_EVENTS
 from pokebench_env.naming import SPRITES
 from pokebench_env.native_text import decode_native_text, native_text_payload
+from pokebench_env.raw_ram import RawRamSnapshot, persist_diagnostic_window
 from pokebench_env.transition_coherence import main_loop_idle
 from pokebench_env.world_context import GRAPHICS, STRING_VAR4, read_field_message
 
@@ -134,9 +136,31 @@ def read_scene(read: ReadMemory) -> Scene:
 
 
 class SceneJournal:
-    def __init__(self, capacity: int = CAPACITY, visual_interval: int = VISUAL_INTERVAL) -> None:
+    def __init__(
+        self,
+        capacity: int = CAPACITY,
+        visual_interval: int = VISUAL_INTERVAL,
+        *,
+        safe_capture: bool = False,
+        raw_capture: Callable[[int], RawRamSnapshot] | None = None,
+    ) -> None:
         if capacity < 1 or visual_interval < 1:
             raise ValueError("scene journal bounds must be positive")
+        if safe_capture and raw_capture is None:
+            raise ValueError("safe scene capture requires native raw evidence")
+        self.safe_capture = safe_capture
+        self.raw_capture = raw_capture
+        if safe_capture:
+            self.safe_frames = self.deferred_frames = self.recoveries = 0
+            self._deferred_run = 0
+            self._raw_history: deque[RawRamSnapshot] = deque(maxlen=2)
+            self._incident: deque[RawRamSnapshot] = deque(maxlen=8)
+            self._post_frames = 0
+            self._incident_open = False
+            self.diagnostic_revision = self.persisted_revision = 0
+            self.diagnostic_omitted_samples = 0
+            self.diagnostic_error: str | None = None
+            self._persist_lock = threading.Lock()
         self.lock = threading.RLock()
         self.entries: deque[dict[str, object]] = deque(maxlen=capacity)
         self.frame = 0
@@ -158,6 +182,9 @@ class SceneJournal:
     def advance(self, read: ReadMemory, screenshot: Callable[[], str] | None = None) -> None:
         with self.lock:
             self.frame += 1
+            if self.safe_capture:
+                self._advance_safe(read, screenshot)
+                return
             if main_loop_idle(read) is False:
                 self.errors += 1
                 self.last_error = "frame ended mid-callback; coherent scene snapshot unavailable"
@@ -172,6 +199,71 @@ class SceneJournal:
                 # Do not infer movement across a failed read.
                 self.previous = None
                 self.last_message = None
+
+    def _advance_safe(self, read: ReadMemory, screenshot: Callable[[], str] | None) -> None:
+        sample = None
+        incident = False
+        try:
+            assert self.raw_capture is not None
+            sample = self.raw_capture(self.frame)
+            if main_loop_idle(read) is not True:
+                self.deferred_frames += 1
+                self._deferred_run += 1
+                incident = True
+                self.previous = None
+                self.last_message = None
+            else:
+                self._observe(read_scene(read), screenshot)
+                self.safe_frames += 1
+                if self._deferred_run:
+                    self.recoveries += 1
+                    self._deferred_run = 0
+        except Exception as error:
+            self.errors += 1
+            self.last_error = str(error)
+            self.previous = None
+            self.last_message = None
+            incident = True
+        if sample is None:
+            return
+        if incident:
+            if not self._incident_open:
+                self._incident.clear()
+                self.diagnostic_omitted_samples = 0
+                self._incident.extend(self._raw_history)
+            self._incident_open = True
+            self._post_frames = 2
+        if self._incident_open:
+            if len(self._incident) == self._incident.maxlen:
+                self.diagnostic_omitted_samples += 1
+            self._incident.append(sample)
+            self.diagnostic_revision += 1
+            if not incident:
+                self._post_frames -= 1
+                self._incident_open = self._post_frames > 0
+        self._raw_history.append(sample)
+
+    def persist_diagnostics(self, directory: Path) -> None:
+        if not self.safe_capture:
+            return
+        # The HTTP reader calls this outside the emulator's memory lock. Only
+        # immutable snapshots cross this boundary; frame execution never waits
+        # for compression, fsync or diagnostic retention cleanup.
+        with self._persist_lock:
+            with self.lock:
+                revision, snapshots = self.diagnostic_revision, tuple(self._incident)
+                omitted = self.diagnostic_omitted_samples
+                if not snapshots or revision == self.persisted_revision:
+                    return
+            try:
+                persist_diagnostic_window(directory, revision, snapshots, omitted)
+            except Exception as error:
+                with self.lock:
+                    self.diagnostic_error = str(error)
+                return
+            with self.lock:
+                self.persisted_revision = revision
+                self.diagnostic_error = None
 
     def _observe(self, scene: Scene, screenshot: Callable[[], str] | None) -> None:
         prev = self.previous
@@ -248,7 +340,25 @@ class SceneJournal:
                     visual_count += 1
                     if visual_count > MAX_VISUALS:
                         del entry["image"]
+            coverage = (
+                {}
+                if not self.safe_capture
+                else {
+                    "coverage": {
+                        "frames": self.frame,
+                        "safe_frames": self.safe_frames,
+                        "deferred_frames": self.deferred_frames,
+                        "recoveries": self.recoveries,
+                        "diagnostic_samples": len(self._incident),
+                        "diagnostic_omitted_samples": self.diagnostic_omitted_samples,
+                        "diagnostic_revision": self.diagnostic_revision,
+                        "persisted_revision": self.persisted_revision,
+                        "diagnostic_error": self.diagnostic_error,
+                    }
+                }
+            )
             return {
+                **coverage,
                 "first_id": self.entries[0]["id"] if self.entries else self.last_id + 1,
                 "last_id": self.last_id,
                 "entries": entries,
@@ -263,9 +373,18 @@ class Stepped(Protocol):
 
 
 def install_scene_journal(
-    api: FastAPI, emulator: type[Stepped], read: ReadMemory, screenshot: Callable[[], str]
+    api: FastAPI,
+    emulator: type[Stepped],
+    read: ReadMemory,
+    screenshot: Callable[[], str],
+    *,
+    safe_capture: bool = False,
+    raw_capture: Callable[[int], RawRamSnapshot] | None = None,
+    diagnostics_dir: Path | None = None,
 ) -> SceneJournal:
-    journal = SceneJournal()
+    if safe_capture and diagnostics_dir is None:
+        raise ValueError("safe scene capture requires a diagnostic directory")
+    journal = SceneJournal(safe_capture=safe_capture, raw_capture=raw_capture)
     step = emulator.run_frame_with_buttons
 
     def recording(self: Stepped, buttons: list[str]) -> None:
@@ -278,6 +397,8 @@ def install_scene_journal(
     @api.get("/pokebench/scene/events")
     def events(after: int = Query(default=0, ge=0)) -> dict[str, object]:
         try:
+            if diagnostics_dir is not None:
+                journal.persist_diagnostics(diagnostics_dir)
             return journal.snapshot(after)
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error

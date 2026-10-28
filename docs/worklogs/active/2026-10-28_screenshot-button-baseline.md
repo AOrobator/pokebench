@@ -6,11 +6,11 @@ Approved prompt: You are playing Pokémon Emerald. Make as much progress as you 
 
 One bounded milestone: default-off screenshot-button-baseline-v1 selects this prompt and image-only successful observe/press results. A baseline preset disables every other behavior switch, retains ordinary conversation history and private RAM/native scoring/complete exposed reasoning recording. Existing button timing/schema unchanged. No navigation, auto-dialogue, supervisor coaching or injected memory. New errors remain explicit failures rather than invented game evidence. No incumbent activation or promotion. N=1 is exploratory, no effectiveness claim.
 
-- [ ] RED and exact OFF tests.
-- [ ] GREEN, production factory proof and wiring deletion check.
-- [ ] Full gates and cloud review.
-- [ ] Fake-game rehearsal proves delivered prompt, tool schemas, screenshots, action/result chain and recorded thinking.
-- [ ] Launch one GPU1 run from boot, 30m wall maximum, verify viewer, release lease and notify owner.
+- [x] RED and exact OFF tests.
+- [x] GREEN, production factory proof and wiring deletion check.
+- [x] Prior full gates and review completed with Grok unavailable; fresh landing gate below remains required.
+- [x] Fake-game rehearsal proves delivered prompt, tool schemas, screenshots, action/result chain and recorded thinking.
+- [x] Launch one GPU1 run from boot, 30m wall maximum, verify viewer, release lease and notify owner.
 
 Production boundary: feature registry and preset/default normalization; play prompt and ToolSwitches mapping; successful game-tool result content; feature explainer/card mapping; single-run preset and ignored launch/rehearsal artifacts. No changes to action semantics, game server, supervisor algorithms, viewer layout or scoring. Runtime source pinned to clean reviewed branch; landing follows normal board if needed for viewer compatibility. GPU lease begins only after rehearsal.
 
@@ -48,3 +48,14 @@ Prior implementation gates at189c41932: agent4855, viewer2237, Python4869, gatew
 Landing sync to main4c4649b80: preserve the four newer switches, append baseline at index307, normalize it OFF and extend standalone preset with those switches OFF. Current arms retain their existing behavior. New actual-recipe regression: four definitions fail exactly on missing offInBoth membership (arms-red.log); next-run default remains false. Initial stale-dist attempts failed on unknown newer IDs and are not counted as behavioral RED. Build required a matching type-level Exclude for the new optional schema key; corrected before behavioral RED. Full CPU gates queued behind YAML's main viewer-test OOM diagnosis; fresh gates/reviews and board landing pending.
 
 Landing exclusion GREEN: current feature-config owner explicitly lists baseline in offInBoth and features=false. Four actual recipes, both arms, every phase, arm bits and next-run default PASS (5tests). Baseline+governor targeted74tests PASS after sync. The RED is also the performed deletion test for offInBoth membership; the first attempted partial GREEN lacking features=false correctly fails fixed-design validation. Explainer now documents standalone reuse and exclusion from comparison arms. No launcher added.
+
+
+Current landing smoke at cd0c96c4c: real native game with fake HTTP model returned four requests, exact system prompt and toolset, no injected follow-up, two successful image-only results, three exposed-thinking records, one button press, six private state events and run_end/budget. Receipt: runs/baseline-preflight/rehearsal-landing/receipt.json. No GPU traffic. Explainer pages-check passes; HTTP200 and inspected screenshots at1280/1440/375 show readable cards and no page overflow (wide figure scrolls internally). Evidence: main runs/mockups/screenshot-button-baseline-landing. First copy used wrong cwd and returned404, preserved as receipt-failed-copy.json; corrected copy proves200.
+
+Landing remaining:
+- [ ] Fresh full gates on synced branch.
+- [ ] Frozen principles/boundary and required cloud lane review.
+- [ ] Board slot and fast-forward local main.
+- [ ] Post-main test and coordinated single viewer refresh/live explainer and OFF-arm proof.
+
+Activation milestone/readiness: baseline applies from boot; it is a reusable ablation configuration, not a patch benefit claim. Initial N=1 establishes feasibility only. Any future run requires its own endpoint coordination. Current comparison arms explicitly exclude this flag. Landing does not activate it.

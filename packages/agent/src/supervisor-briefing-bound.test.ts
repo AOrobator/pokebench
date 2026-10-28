@@ -5,6 +5,7 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as REGISTRY_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {BRIEFING_DIALOGUE_CHARS,BRIEFING_ELSEWHERE_CHARS,BRIEFING_EXITS_CHARS,SupervisorBriefing} from "./loop-supervisor.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
 
 const ID="supervisor-briefing-bound-v1";
 const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false,"next-milestone-hint-v1":false,"briefing-exits-v1":false,"dialogue-context-kept-v1":true,"stall-briefing-v1":true};
@@ -68,6 +69,32 @@ describe("supervisor-briefing-bound-v1: the story lead-up dialogue",()=>{
   expect(l).toContain("(1 earlier page is left out; get_dialogue");
   expect(l).toContain("x".repeat(BRIEFING_DIALOGUE_CHARS+10));
   expect(l).not.toContain("Older page.");
+ });
+});
+
+describe("supervisor-briefing-bound-v1: budgets in code points, through the production factories",()=>{
+ it("counts code points, not UTF-16 units: two astral pages that fit by code points both stay",()=>{
+  const b=new SupervisorBriefing(ON);story(b,1,1,"A");
+  shown(b,10,2,`Older ${"😀".repeat(1500)}`);shown(b,12,3,`Newer ${"😀".repeat(1500)}`);story(b,20,4,"B");
+  const l=line(b.stallText(STALL,9),HEAD);
+  expect(l).not.toContain("left out");
+  expect(l).toContain("Older ");expect(l).toContain("Newer ");
+ });
+ // The factories the agent loop calls forward the run's switches to the briefing they build.
+ const feed=(features:FeatureSet)=>{
+  const subs:((e:RunEvent)=>void)[]=[];const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},textOnlySupervisor:()=>undefined};
+  const loop=loopSupervisor({...features,"loop-guard-supervisor-v1":true},recorder);
+  const textOnly=textOnlySupervisor({...features,"text-only-supervisor-v1":true},recorder);
+  const b={observe:(e:RunEvent)=>{for(const fn of subs)fn(e);}} as unknown as SupervisorBriefing;
+  story(b,1,1,"FIRST_STEP");
+  for(let i=0;i<120;i++)shown(b,10+2*i,2+i,`Page ${String(i).padStart(3,"0")} of a long talk that goes on and on.`);
+  story(b,1000,130,"SECOND_STEP");
+  return {loop:loop?.("cycle",200)??"",textOnly:textOnly?.(3,1)??""};
+ };
+ it("loopSupervisor and textOnlySupervisor bound the dialogue line only when the switch is on",()=>{
+  const on=feed(ON),off=feed(OFF);
+  for(const text of [on.loop,on.textOnly])expect(line(text,HEAD)).toMatch(/oldest first \(\d+ earlier pages are left out/);
+  for(const text of [off.loop,off.textOnly]){expect(line(text,HEAD)).not.toContain("left out");expect(line(text,HEAD).split(" | ")).toHaveLength(120);}
  });
 });
 

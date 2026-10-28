@@ -44,3 +44,17 @@ The rest of that note is about 6,300 chars. At a702 T1300 the briefing was 23,67
 
 - Supervisor "Exits to maps you have not entered": bounded in M2.
 - Refusal ledger: one entry per refused target on the current map. A single entry's "Latest result" line can be about 3,000 chars, because it carries the whole navigation result with its departure alternatives (9e33 T2417: 10 entries, 24,803 chars). Its attempts turn list also grows with repeats. This is bound 3.
+
+## Review round 1 (head 5d1236cb0, base main 90b351b55)
+
+Lane availability: the Claude CLI's OAuth has expired, Cursor is out of usage, and Codex's default model is refused. The roster is therefore Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent (the operator's standing lane rule).
+
+- Claude: LGTM.
+- Fallback: LGTM.
+- Codex: BLOCKING, on four points:
+  1. Budgets count UTF-16 units; the cap counts code points. Accepted.
+  2. No production-factory test. Accepted.
+  3. The replay evidence is not durable. Accepted: the scripts and receipts move to runs/analysis/bounded-input-20261028/replays/.
+  4. No full gate on the frozen head. It runs on the final head.
+
+- [x] RED: `counts code points, not UTF-16 units` fails. The `loopSupervisor`/`textOnlySupervisor` factory test passes against the wiring and goes RED when either factory forces the switch off (checked, then restored).

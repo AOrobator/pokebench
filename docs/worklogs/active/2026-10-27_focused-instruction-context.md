@@ -1,0 +1,17 @@
+# Focused instruction context
+
+User authorization (2026-10-27): verify what survives context trimming, audit existing switches for DRY, implement the smallest switch-gated change; inspect extraneous/stale information. No gameplay or inference runs. Work remains isolated; no shared viewer/service changes or launch.
+
+Single bounded implementation milestone: audit production request assembly and existing instruction projection, reproduce one supported redundant-context defect, add a default-OFF treatment in its existing owner with exact OFF invariance, evidence preservation and an explainer. Do not build a second task/goal authority, fuzzy task retirement, route advice or a new summarizer. No changes to active recordings. Preserve unknown/mixed/future/reusable dialogue and existing native-proof retirement rules.
+
+- [ ] Audit source ordering, final-payload retention via fake HTTP production path, and frozen a702 context composition. Separate generated memory from verified sent request.
+- [ ] RED committed first on owned branch; GREEN minimal implementation and registration; production wiring mutation verified.
+- [ ] Gate, independent review and local explainer/recording proof. Report committed/reviewed/landed/live separately. No runs.
+
+Base: 791db6f3cf30651524503f68ad73ef0fc1049350. Branch codex/focused-instruction-context; managed isolated worktree focused-instruction-context/pokebench. Previous context-budget repair memory notes a blocking JIT-v2 guidance-retention review; this task does not revive or land that old repair.
+
+Initial audit: observed-instructions-v1 is the evidence owner; milestone-instruction-memory-v1 already performs exact-source/native-proof retirement and suppresses duplicate conversation history; delivered-place-evidence-v1 maintains a second ObservedInstructions instance and appends its spatial episodes after the first projection, potentially duplicating whole episodes. Legacy estimated budgeting happens before memory injection; exact counting happens on final provider payload. Need quantify and prove survival at actual fake HTTP consumer before choosing minimal fix.
+
+Audit: production paths match historical a702 pin5940bc2 for observed-instructions, milestone-memory and harness fitting; current provider additionally supports exact final-payload fitting. Replayed through seq44780: 81 archived episodes, 21 already retired, 60 selected; all12 spatial projection episodes are duplicates of selected base episodes. Exact reconstructed chars match all four recorded ledger_context events:41039(t631),42345(t672),46468(t840),50401(t894). Letter request exists in both blocks. Legacy estimator fits prior history before injection, so cannot evict newly appended memory (and its compaction count is not final request size). Exact counter fits after provider assembly and preserves the trailing memory while dropping oldest turns. Historical final request body was not captured; do not claim retrospective wire proof.
+
+Minimal selected implementation: instruction-memory-dedup-v1 consolidates the two existing instruction/place projections into one compact union keyed by source result, preserving whole episodes, uncertain attribution, spatial metadata, existing retention and evidence references. Requires delivered-place-evidence-v1. No new task interpretation or additional retirements. Default OFF, no recipe activation. RED tests cover exact OFF text, union metadata, missing delivery, registry and real pinned pi HTTP requests after estimated/exact forced fitting.

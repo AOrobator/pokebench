@@ -30,8 +30,15 @@ An entry's "at turns …" list also grows with every repeat of the same refusal.
 - [x] Activation commit (this branch only; not landed): appended to current.json `switches` (bundle ON) and `features` false (control OFF). Recipe sha256 on main 0df1c0a1f is 5188c278…; on this branch 6fb2ac82…. Once several bounds land, the final sha is computed on main. Launch definitions with featureRecipe "current" need `just fixed-run approve` again. Config readers: viewer 51 passed, agent 61 passed.
 - [ ] Gates on a CPU grant; three-lane review.
 
+## M2: disproved-beliefs-bound-v1 (coordinator 2026-10-28 12:00 PM NY)
+
+The other half of the same belief-ledger message is "Things the game has contradicted", from `disproved-beliefs.ts`. It is a different class, so it gets its own small switch here, needing disproved-beliefs-v1. Same rule: whole entries, newest first, within 4,000 chars, under `N older entries are left out.`, and each turn list shows its latest 10 `(and N earlier turns)`.
+
+- [x] RED: `disproved-beliefs-bound.test.ts`, 5 tests. It replays sh02's recorded turn-146 push-back (TWIN, LITTLEROOT TOWN), shifted east once per entry. The 2 OFF tests pass; the 2 ON tests and the registry test fail.
+- [ ] GREEN.
+
 ## Lines that grow with run length (running list)
 
 - Supervisor "Exits to maps you have not entered": bounded in supervisor-briefing-bound-v1 (M2).
 - Refusal ledger entries and the per-entry turn list: this switch.
-- Disproved beliefs ("Things the game has contradicted", the other half of the belief ledger): entries last until a story flag changes, and each push-back or misplaced-person entry's turn list grows with repeats. It never appeared in 9e33, a702, 88ea or 429f. Not bounded yet.
+- Disproved beliefs ("Things the game has contradicted", the other half of the belief ledger): entries last until a story flag changes, and each push-back or misplaced-person entry's turn list grows with repeats. It never appeared in 9e33, a702, 88ea or 429f. Bounded in M2.

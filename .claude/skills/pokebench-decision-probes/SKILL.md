@@ -45,10 +45,10 @@ These are priors for choosing candidates, not rules. Each one comes from a small
    - a702 Dewford is the failure case. Every-story-goal and jit-exit-dialogue put Briney's correct line in the header and beside the correct exit. Dewford in the reasoning went 9/24 → 23/24 at T681, but westward or southward moves went 8/48 → 0/48 at T681 and T664. Meteor Falls was in the reasoning in 8/8 samples of every arm.
    - A readout that changes the stated goal is not a result. Score the action.
    - Facts can also steer wrongly: a "Ways off" line drove 4/8 walk-aways at f28d T451.
-3. **An imperative tied to what was just observed works. Beliefs, explanations, plan corrections, questions and abstract strategy do not.**
+3. **In the scenes tested, an imperative tied to what was just observed worked best. Beliefs, explanations, plan corrections and abstract strategy did little; questions moved some samples but less than the imperative.**
    - Scene note "walk to the nearest person who took part… press A": DEV 90/96 vs off 2/96; fresh held-out 141/160 vs 5/160.
    - Heal-first (97a0 t157): fact plus rule plus game quote plus exit moved walking to MAY from 13/16 to 4/16.
-   - Abstract prompts failed: Roxanne used 10 mechanisms and scored at best 1/3; belief or question wordings scored 0–2/16.
+   - Abstract prompts failed: Roxanne used 10 mechanisms and scored at best 1/3. In the scene study the belief wordings scored 0–3/16 and the question forms 7–10/16, against 15/16 for the concrete imperative and 0/16 off.
    - Never name the failed call. The positive supervisor's naming of it made T3259 repeat it: 9 → 21–27/32.
 4. **Name what the game showed.** In the scene note, quoting the participants by name (C_said_who) beat the generic note: fresh held-out 111/160 → 141/160. It also cut the forced-misfire cost from 25/32 to 2/32. Quotes alone were worse than the generic note: C_said 71% vs 82%. The names do the work.
 5. **Removing stale or misleading text often beats adding text, but not always.**
@@ -65,7 +65,7 @@ These are priors for choosing candidates, not rules. Each one comes from a small
    - Double Kick improved blanket refusals (10 → 4/116) but worsened false claims (23 → 44) and illegal requests (0 → 3) on held-out.
    - Do not promote against held-out regressions. Switches promoted without probe support, or against held-out results (Double Kick, the Dewford readouts, positive supervisor variant A), are open questions, not evidence.
 
-**Effect sizes and N.** Real wins were large, +40 to +90 points on the next action, and nulls were common at 8–16 per arm. Explore at 8–16 per arm on several distinct contexts. Confirm at 32 per arm on 4–5 untouched source runs, plus forced-misfire negative controls, then rerun the confirmation on the landed code path. Never use N=1–3 per arm: the 54-turn input-cuts sweep at N=1 with fidelity false told us nothing.
+**Effect sizes and N.** Real wins were large, +40 to +90 points on the next action, and nulls were common at 8–16 per arm. What has worked so far: exploration at 8–16 per arm on several distinct contexts, and confirmation at 32 per arm on 4–5 untouched source runs plus forced-misfire negative controls, rerun on the landed code path. These are observed study sizes, not a rule; size each batch from the expected effect, the precision needed and the budget. Never use N=1–3 per arm: the 54-turn input-cuts sweep at N=1 with fidelity false told us nothing.
 
 **The missing step.** As of 2026-10-28, no fixed-run cohort has confirmed any probe-driven switch. A probe win is a candidate for a cohort, not a measured benchmark gain.
 
@@ -93,10 +93,10 @@ These are priors for choosing candidates, not rules. Each one comes from a small
 The 2026-10-28 GPU windows lost runs to each of these. Check them with a `--context-only` dry run before taking the GPU lock:
 
 1. **`.env` must be present.** Linked worktrees do not get the main checkout's gitignored `.env`, so `POKEBENCH_ROM` is unset and the re-render step fails at once. Call through `just` so `.env` loads. The operator links it (`ln -s ~/dev/pokebench/.env <worktree>/.env`).
-2. **The vendored submodule must be checked out.** Run `git submodule update --init env/vendor/continual-harness` in the worktree. Without it, map tables such as `porymap/data/maps/map_groups.json` are missing.
+2. **The vendored submodule must be checked out.** Run `git submodule update --init env/vendor/continual-harness` in the worktree. Without it, map tables such as `env/vendor/continual-harness/pokemon_env/porymap/data/maps/map_groups.json` are missing.
 3. **Rebuild `dist` after a merge.** Tests and the CLI read `@pokebench/agent` from `dist`. After merging new switches, run `pnpm -r build`, or new switch ids show up as "unknown feature".
 4. **Record the probe's exit status.** In a batch script, write `just probe-decision … ; rc=$?` and log `$rc`. `echo "… $(date …) rc $?"` logs the status of `date`, so failed runs showed rc 0.
-5. **Check the context budget and fidelity.** The rebuilt context must match the recorded message, image and token counts. Use `--recorded-trim` when the run trimmed context. Use `--trust-header` when the change is to harness-trust's Story goal line. A context larger than the model's window yields 0 samples.
+5. **Check the context budget and fidelity.** The rebuilt context must match the recorded message, image and token counts. Use `--recorded-trim` when the run trimmed context. Use `--trust-header` when the change is to harness-trust's Story goal line.
 6. **Fit the context to the lane's window.** A context larger than the serving lane's window comes back as a model error, and `sample()` records it as a decision. Every 88ea sample (80,848 tokens against GPU1's 65,536) was an error. Before scoring, grep the samples for "model error", and only probe runs recorded on a lane with the same window.
 7. **`--trust-header` keeps the recorded exits line word for word.** An arm that flips a switch which changes the exits line (jit-exit-dialogue-v1) shows nothing new unless that line is re-derived too. The 2026-10-28 jit arms at a702 T681 and T664 were effectively control arms. Confirm the arm's text with `--context-only` or a dry dump of the last result.
 8. **Replay-runner gaps.**

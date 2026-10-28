@@ -1,0 +1,206 @@
+{
+ "model": "claude-opus-5-5",
+ "messages": [
+  {
+   "role": "system",
+   "content": "(system prompt omitted from the fixture)"
+  },
+  {
+   "role": "assistant",
+   "content": "NOSEPASS has 8/37 HP left, so one more WATER GUN should finish it.",
+   "tool_calls": [
+    {
+     "id": "call_398",
+     "type": "function",
+     "function": {
+      "name": "press",
+      "arguments": "{\"buttons\":[\"A\",\"RIGHT\",\"DOWN\",\"A\"]}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "content": "pressed A, RIGHT, DOWN, A\nPress result: A: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven) | then RIGHT: interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown) | then DOWN: interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown) | then A: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\nBattle text auto-advance: the harness pressed B 0 times to advance battle messages; stopped: the battle action menu is ready (FIGHT, BAG, POKEMON, RUN); highlighted FIGHT.\nDialogue shown during this call (4 pages, in order, whole):\n1. turn 398 \u00b7 RUSTBORO CITY GYM (map 11/3) \u00b7 battle turn 6: \"LEADER ROXANNE\nused POTION!\"\n2. turn 398 \u00b7 RUSTBORO CITY GYM (map 11/3) \u00b7 battle turn 6: \"Foe NOSEPASS's POTION\nrestored health!\"\n3. turn 398 \u00b7 RUSTBORO CITY GYM (map 11/3) \u00b7 battle turn 6: \"MUDKIP used\nWATER GUN!\"\n4. turn 398 \u00b7 RUSTBORO CITY GYM (map 11/3) \u00b7 battle turn 6: \"It's super effective!\"\n\nScreen: battle\nDialog: none\nMenu: battle_input; selected battler 0: FIGHT\nInterface: battle_input; input ready; selected battler 0: FIGHT; Use the game-owned battle input and selected control when ready\nMenu state: input phases: action; battler 0 ready: YES; battler 0 action cursor: 0; battler 0 selected: FIGHT\nBag: POTION \u00d74; POK\u00e9 BALL \u00d73; GREAT BALL \u00d71\nBattle details: TRAINER single \u00b7 turn 7 \u00b7 input ready (action select)\nFoe NOSEPASS Lv15 \u00b7 ROCK \u00b7 HP 16/37 \u00b7 status OK \u00b7 ability STURDY \u00b7 item none \u00b7 stats Atk 24 Def 44 Spe 17 SpA 22 SpD 35 \u00b7 stages neutral \u00b7 moves: BLOCK NORMAL status acc 100 PP 4/5; HARDEN NORMAL status never misses PP 30/30; TACKLE NORMAL physical pow 35 acc 95 PP 35/35; ROCK TOMB ROCK physical pow 50 acc 80 PP 8/10\nActions (2\u00d72 FIGHT BAG / POK\u00e9MON RUN; menu open, highlighted \u25b6 FIGHT): FIGHT \u00b7 BAG allowed \u2014 has a battle use (whether it does anything now is not checked): POTION \u00d74; balls POK\u00e9 BALL \u00d73, GREAT BALL \u00d71: the TRAINER blocks the BALL (\"Don't be a thief!\") and the ball is used up \u00b7 POK\u00e9MON switching REFUSED \u2014 \"MUDKIP can't be switched out!\" \u00b7 RUN REFUSED \u2014 \"No! There's no running from a TRAINER battle!\"\nYou MUDKIP Lv14 \u00b7 WATER \u00b7 HP 25/40 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 stats Atk 25 Def 19 Spe 18 SpA 19 SpD 19 \u00b7 stages Spe -1 \u00b7 conditions can't escape (MEAN LOOK/BLOCK)\nYour moves (2\u00d72 1 2 / 3 4; menu not open):\n  1 TACKLE NORMAL physical pow 35 acc 95 PP 35/35\n  2 GROWL NORMAL status acc 100 PP 40/40\n  3 MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\n  4 WATER GUN WATER special pow 40 acc 100 PP 18/25\nParty (game party slots):\n  1 MUDKIP Lv14 WATER \u00b7 HP 25/40 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 in battle \u00b7 moves TACKLE NORMAL physical pow 35 acc 95 PP 35/35; GROWL NORMAL status acc 100 PP 40/40; MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10; WATER GUN WATER special pow 40 acc 100 PP 18/25\n  2 POOCHYENA Lv4 DARK \u00b7 HP 16/16 \u00b7 status OK \u00b7 ability RUN AWAY \u00b7 item none \u00b7 can switch in \u00b7 moves TACKLE NORMAL physical pow 35 acc 95 PP 35/35\n  3 RALTS Lv4 PSYCHIC \u00b7 HP 16/16 \u00b7 status OK \u00b7 ability TRACE \u00b7 item none \u00b7 can switch in \u00b7 moves GROWL NORMAL status acc 100 PP 40/40\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Norman first meeting complete; Route 103 rival battle won; Pok\u00e9dex received; starter tutorial complete; running shoes received; Wally tutorial complete; Petalburg Woods Aqua event complete; Rustboro Gym Josh defeated; petalburg woods lyle defeated; petalburg woods james defeated; petalburg woods aqua grunt defeated; route102 calvin defeated; route102 rick defeated; route102 tiana defeated; route104 cindy defeated; route104 gina mia defeated\nPlayer: A\nLocation: RUSTBORO CITY GYM\nPosition: X=5, Y=3, facing up\nParty (player): MUDKIP Lv14 HP 25/40 \u00b7 moves TACKLE PP 35, GROWL PP 40, MUD-SLAP PP 10, WATER GUN PP 18 \u00b7 nickname MUDKIP; POOCHYENA Lv4 HP 16/16 \u00b7 moves TACKLE PP 35 \u00b7 nickname POOCHYENA; RALTS Lv4 HP 16/16 \u00b7 moves GROWL PP 40 \u00b7 nickname RALTS\nMoney: \u20bd2614\nBadges: none\nIn battle: yes\nPlay time: 1:34:37\nNavigation map_id: [11,3] (current map only)\nMap topology: unavailable",
+   "tool_call_id": "call_398"
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Attached image(s) from tool result:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": "ROXANNE used a POTION and NOSEPASS is back to 16/37, so MUDKIP keeps using WATER GUN.",
+   "tool_calls": [
+    {
+     "id": "call_399",
+     "type": "function",
+     "function": {
+      "name": "press",
+      "arguments": "{\"buttons\":[\"A\",\"RIGHT\",\"DOWN\",\"A\"]}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "content": "pressed A, RIGHT, DOWN, A\nPress result: A: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven) | then RIGHT: interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown) | then DOWN: interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown) | then A: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\nBattle text auto-advance: the harness pressed B 0 times to advance battle messages; stopped: the battle action menu is ready (FIGHT, BAG, POKEMON, RUN); highlighted FIGHT.\nDialogue shown during this call (4 pages, in order, whole):\n1. turn 399 \u00b7 unknown location \u00b7 battle turn 7: \"LEADER ROXANNE\nused POTION!\"\n2. turn 399 \u00b7 unknown location \u00b7 battle turn 7: \"Foe NOSEPASS's POTION\nrestored health!\"\n3. turn 399 \u00b7 unknown location \u00b7 battle turn 7: \"MUDKIP used\nWATER GUN!\"\n4. turn 399 \u00b7 unknown location \u00b7 battle turn 7: \"It's super effective!\"\n\nScreen: battle\nDialog: none\nMenu: battle_input; selected battler 0: FIGHT\nInterface: battle_input; input ready; selected battler 0: FIGHT; Use the game-owned battle input and selected control when ready\nMenu state: input phases: action; battler 0 ready: YES; battler 0 action cursor: 0; battler 0 selected: FIGHT\nBattle state: input; input True; turn 8; outcome ongoing\nBattler 0 MUDKIP Lv14 HP 25/40; status 0/67108864/0; stages (6, 6, 6, 5, 6, 6, 6, 6); moves TACKLE PP 35/35, GROWL PP 40/40, MUD-SLAP PP 10/10, WATER GUN PP 17/25\nBattler 1 NOSEPASS Lv15 HP 23/37; status 0/0/0; stages (6, 6, 6, 6, 6, 6, 6, 6); moves BLOCK PP 4/5, HARDEN PP 30/30, TACKLE PP 35/35, ROCK TOMB PP 8/10\nBattle input 0: action; ready True; selected FIGHT; target None\nStory: unavailable (story state not readable right now)\nSave-backed world state unavailable: save data is not initialized or valid.",
+   "tool_call_id": "call_399"
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Attached image(s) from tool result:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    }
+   ]
+  }
+ ],
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "observe",
+    "description": "See the current game screen and the game state read from memory (location, party, map). Pending ordinary battle text advances to the next decision; all messages are listed.",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "press",
+    "description": "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state. Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent. Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "buttons"
+     ],
+     "properties": {
+      "buttons": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "A",
+         "B",
+         "START",
+         "SELECT",
+         "UP",
+         "DOWN",
+         "LEFT",
+         "RIGHT"
+        ]
+       },
+       "minItems": 1,
+       "maxItems": 8
+      },
+      "walking": {
+       "type": "boolean",
+       "description": "Walk deliberately; do not add automatic running to directional travel."
+      }
+     }
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "navigate_to",
+    "description": "The main way to move: use it for every walk of two or more tiles; give the destination and it finds the route around walls, ledges, water and people. Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain, hops a ledge only in its arrow direction, never crosses a walled side of a + tile, walks sand, cave and other floor the game allows, and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates. After \"command limit\", call it again with the same destination to continue. If it ends in dialogue or a battle, the text advances automatically to the next decision point and its pages are listed.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "x",
+      "y",
+      "map_id"
+     ],
+     "properties": {
+      "x": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "y": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "map_id": {
+       "type": "array",
+       "additionalItems": false,
+       "items": [
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        },
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        }
+       ],
+       "minItems": 2
+      },
+      "walking": {
+       "type": "boolean",
+       "description": "Walk deliberately without automatic running."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "get_dialogue",
+    "description": "Search every dialogue page the harness advanced through this run, newest first, each whole with its speaker, map, position, turn and event number. Filters: speaker, contains (words), map (name or map id), last (default 10). It reads the record only; it does not press buttons.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "speaker": {
+       "type": "string",
+       "description": "Only pages whose speaker contains this text (case-insensitive), such as MOM or SCIENTIST_1."
+      },
+      "contains": {
+       "type": "string",
+       "description": "Only pages containing these words (case-insensitive)."
+      },
+      "map": {
+       "type": "string",
+       "description": "Only pages shown on a map whose name or map id (for example 1/4) contains this text."
+      },
+      "last": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "How many matching pages to return, newest first (default 10)."
+      }
+     }
+    },
+    "strict": false
+   }
+  }
+ ]
+}

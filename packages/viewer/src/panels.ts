@@ -378,6 +378,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "mauville-puzzle-readout-v1":"mauville-puzzle-readout-v1.html",
  "map-observability-v1":"map-observability-v1.html",
  "interface-guidance-v1":"interface-guidance-v1.html",
@@ -565,6 +566,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "context-token-budget-v1":"context-token-budget-v1.html",
  "context-exact-count-v1":"context-exact-count-v1.html",
  "grass-strides-v1":"grass-strides-v1.html",
+ "no-story-foreknowledge-v1":"no-story-foreknowledge-v1.html",
  "briefing-repeat-count-v1":"briefing-repeat-count-v1.html",
  "navigate-already-here-v1":"navigate-already-here-v1.html",
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",

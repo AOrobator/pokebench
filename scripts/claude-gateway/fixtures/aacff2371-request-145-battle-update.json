@@ -1,0 +1,211 @@
+{
+ "model": "claude-opus-5-5",
+ "messages": [
+  {
+   "role": "system",
+   "content": "(system prompt omitted from the fixture)"
+  },
+  {
+   "role": "tool",
+   "content": "pressed A\nPress result: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\n\nScreen: bag_menu\nDialog: none\nMenu: bag_context_menu; selected USE\nInterface: bag_context_menu; input ready; selected USE; Directions select; A accepts; B cancels\nMenu state: pocket: KEY ITEMS; bag location: 1; selected index (zero based): 0; quantity available: 5; item id: 4; options: USE | CANCEL\nBag: POK\u00e9 BALL \u00d75\nBattle details: WILD single \u00b7 turn 3 \u00b7 resolving (no input until the game asks)\nFoe POOCHYENA Lv3 \u00b7 DARK \u00b7 HP 1/15 \u00b7 status OK \u00b7 ability RUN AWAY \u00b7 item none \u00b7 stats Atk 8 Def 7 Spe 6 SpA 6 SpD 6 \u00b7 stages neutral \u00b7 moves: TACKLE NORMAL physical pow 35 acc 95 PP 33/35\nActions (2\u00d72 FIGHT BAG / POK\u00e9MON RUN; menu not open): FIGHT \u00b7 BAG allowed \u2014 balls POK\u00e9 BALL \u00d75: usable (a ball is used up on every throw) \u00b7 POK\u00e9MON switching allowed \u2014 no other Pok\u00e9mon can battle \u00b7 RUN allowed \u2014 escape guaranteed (your Spe 11 \u2265 foe Spe 6)\nYou MUDKIP Lv7 \u00b7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 stats Atk 15 Def 12 Spe 11 SpA 12 SpD 12 \u00b7 stages neutral\nYour moves (2\u00d72 1 2 / 3 4; menu not open):\n  1 TACKLE NORMAL physical pow 35 acc 95 PP 33/35\n  2 GROWL NORMAL status acc 100 PP 40/40\n  3 MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nParty (game party slots):\n  1 MUDKIP Lv7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 in battle \u00b7 moves TACKLE NORMAL physical pow 35 acc 95 PP 33/35; GROWL NORMAL status acc 100 PP 40/40; MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Route 103 rival battle won; Pok\u00e9dex received; starter tutorial complete; running shoes received\nPlayer: A\nLocation: ROUTE101\nPosition: X=13, Y=10, facing right\nParty (player): MUDKIP Lv7 HP 22/24 \u00b7 moves TACKLE PP 33, GROWL PP 40, MUD-SLAP PP 10 \u00b7 nickname MUDKIP\nMoney: \u20bd3300\nBadges: none\nIn battle: yes\nPlay time: 0:24:41\nNavigation map_id: [0,16] (current map only)\nMap topology: unavailable",
+   "tool_call_id": "call_143"
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Attached image(s) from tool result:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": "USE is highlighted, so I'll throw the POK\u00e9 BALL.",
+   "tool_calls": [
+    {
+     "id": "call_144",
+     "type": "function",
+     "function": {
+      "name": "press",
+      "arguments": "{\"buttons\":[\"A\"]}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "content": "pressed A\nPress result: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\nBattle text auto-advance: the harness pressed B 2 times to advance battle messages; stopped: the battle kept running on its own for 3 waits of 600 emulated frames with no message waiting and no input open; inspect before acting.\nDialogue shown during this call (3 pages, in order, whole):\n1. turn 144 \u00b7 ROUTE101 (map 0/16) \u00b7 battle turn 3: \"A used\nPOK\u00e9 BALL!\"\n2. turn 144 \u00b7 ROUTE101 (map 0/16) \u00b7 battle turn 3: \"Gotcha!\nPOOCHYENA was caught!\"\n3. turn 144 \u00b7 ROUTE101 (map 0/16) \u00b7 battle turn 3: \"POOCHYENA's data was\nadded to the POK\u00e9DEX.\"\n\nScreen: battle\nDialog: none\nMenu: no menu choice open (the Interface line says what owns input)\nInterface: battle_resolving; input not ready; Use the game-owned battle input and selected control when ready\nMenu state: input phases: controller_busy; battler 0 ready: NO\nBag: POK\u00e9 BALL \u00d74\nBattle details: WILD single \u00b7 turn 3 \u00b7 resolving (the game is playing animations or a message that closes on its own; no input until the game asks)\nFoe POOCHYENA Lv3 \u00b7 DARK \u00b7 HP 1/15 \u00b7 status OK \u00b7 ability RUN AWAY \u00b7 item none \u00b7 stats Atk 8 Def 7 Spe 6 SpA 6 SpD 6 \u00b7 stages neutral \u00b7 moves: TACKLE NORMAL physical pow 35 acc 95 PP 33/35\nActions (2\u00d72 FIGHT BAG / POK\u00e9MON RUN; menu not open): FIGHT \u00b7 BAG allowed \u2014 balls POK\u00e9 BALL \u00d74: usable (a ball is used up on every throw) \u00b7 POK\u00e9MON switching allowed \u2014 no other Pok\u00e9mon can battle \u00b7 RUN allowed \u2014 escape guaranteed (your Spe 11 \u2265 foe Spe 6)\nYou MUDKIP Lv7 \u00b7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 stats Atk 15 Def 12 Spe 11 SpA 12 SpD 12 \u00b7 stages neutral\nYour moves (2\u00d72 1 2 / 3 4; menu not open):\n  1 TACKLE NORMAL physical pow 35 acc 95 PP 33/35\n  2 GROWL NORMAL status acc 100 PP 40/40\n  3 MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nParty (game party slots):\n  1 MUDKIP Lv7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 in battle \u00b7 moves TACKLE NORMAL physical pow 35 acc 95 PP 33/35; GROWL NORMAL status acc 100 PP 40/40; MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Route 103 rival battle won; Pok\u00e9dex received; starter tutorial complete; running shoes received\nPlayer: A\nLocation: ROUTE101\nPosition: X=13, Y=10, facing right\nParty (player): MUDKIP Lv7 HP 22/24 \u00b7 moves TACKLE PP 33, GROWL PP 40, MUD-SLAP PP 10 \u00b7 nickname MUDKIP\nMoney: \u20bd3300\nBadges: none\nIn battle: yes\nPlay time: 0:25:33\nNavigation map_id: [0,16] (current map only)\nMap topology: unavailable",
+   "tool_call_id": "call_144"
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Attached image(s) from tool result:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "Harness battle update before your next decision:"
+    },
+    {
+     "type": "image_url",
+     "image_url": {
+      "url": "data:image/png;base64,iVBORyBmaXh0dXJl"
+     }
+    },
+    {
+     "type": "text",
+     "text": "Battle text auto-advance: the harness pressed B 0 times to advance battle messages; stopped: the battle kept running on its own for 3 waits of 600 emulated frames with no message waiting and no input open; inspect before acting.\nNo complete dialogue page was shown during this call.\nScreen: battle\nDialog: none\nMenu: no menu choice open (the Interface line says what owns input)\nInterface: battle_resolving; input not ready; Use the game-owned battle input and selected control when ready\nMenu state: input phases: controller_busy; battler 0 ready: NO\nBag: POK\u00e9 BALL \u00d74\nBattle details: WILD single \u00b7 turn 3 \u00b7 resolving (the game is playing animations or a message that closes on its own; no input until the game asks)\nFoe POOCHYENA Lv3 \u00b7 DARK \u00b7 HP 1/15 \u00b7 status OK \u00b7 ability RUN AWAY \u00b7 item none \u00b7 stats Atk 8 Def 7 Spe 6 SpA 6 SpD 6 \u00b7 stages neutral \u00b7 moves: TACKLE NORMAL physical pow 35 acc 95 PP 33/35\nActions (2\u00d72 FIGHT BAG / POK\u00e9MON RUN; menu not open): FIGHT \u00b7 BAG allowed \u2014 balls POK\u00e9 BALL \u00d74: usable (a ball is used up on every throw) \u00b7 POK\u00e9MON switching allowed \u2014 no other Pok\u00e9mon can battle \u00b7 RUN allowed \u2014 escape guaranteed (your Spe 11 \u2265 foe Spe 6)\nYou MUDKIP Lv7 \u00b7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 stats Atk 15 Def 12 Spe 11 SpA 12 SpD 12 \u00b7 stages neutral\nYour moves (2\u00d72 1 2 / 3 4; menu not open):\n  1 TACKLE NORMAL physical pow 35 acc 95 PP 33/35\n  2 GROWL NORMAL status acc 100 PP 40/40\n  3 MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nParty (game party slots):\n  1 MUDKIP Lv7 WATER \u00b7 HP 22/24 \u00b7 status OK \u00b7 ability TORRENT \u00b7 item none \u00b7 in battle \u00b7 moves TACKLE NORMAL physical pow 35 acc 95 PP 33/35; GROWL NORMAL status acc 100 PP 40/40; MUD-SLAP GROUND physical pow 20 acc 100 PP 10/10\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Route 103 rival battle won; Pok\u00e9dex received; starter tutorial complete; running shoes received\nPlayer: A\nLocation: ROUTE101\nPosition: X=13, Y=10, facing right\nParty (player): MUDKIP Lv7 HP 22/24 \u00b7 moves TACKLE PP 33, GROWL PP 40, MUD-SLAP PP 10 \u00b7 nickname MUDKIP\nMoney: \u20bd3300\nBadges: none\nIn battle: yes\nPlay time: 0:26:03\nNavigation map_id: [0,16] (current map only)\nMap topology: unavailable"
+    }
+   ]
+  }
+ ],
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "observe",
+    "description": "See the current game screen and the game state read from memory (location, party, map). Pending ordinary battle text advances to the next decision; all messages are listed.",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "press",
+    "description": "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state. Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent. Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "buttons"
+     ],
+     "properties": {
+      "buttons": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "A",
+         "B",
+         "START",
+         "SELECT",
+         "UP",
+         "DOWN",
+         "LEFT",
+         "RIGHT"
+        ]
+       },
+       "minItems": 1,
+       "maxItems": 8
+      },
+      "walking": {
+       "type": "boolean",
+       "description": "Walk deliberately; do not add automatic running to directional travel."
+      }
+     }
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "navigate_to",
+    "description": "The main way to move: use it for every walk of two or more tiles; give the destination and it finds the route around walls, ledges, water and people. Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain, hops a ledge only in its arrow direction, never crosses a walled side of a + tile, walks sand, cave and other floor the game allows, and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates. After \"command limit\", call it again with the same destination to continue. If it ends in dialogue or a battle, the text advances automatically to the next decision point and its pages are listed.",
+    "parameters": {
+     "type": "object",
+     "required": [
+      "x",
+      "y",
+      "map_id"
+     ],
+     "properties": {
+      "x": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "y": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "map_id": {
+       "type": "array",
+       "additionalItems": false,
+       "items": [
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        },
+        {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        }
+       ],
+       "minItems": 2
+      },
+      "walking": {
+       "type": "boolean",
+       "description": "Walk deliberately without automatic running."
+      }
+     },
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "get_dialogue",
+    "description": "Search every dialogue page the harness advanced through this run, newest first, each whole with its speaker, map, position, turn and event number. Filters: speaker, contains (words), map (name or map id), last (default 10). It reads the record only; it does not press buttons.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "speaker": {
+       "type": "string",
+       "description": "Only pages whose speaker contains this text (case-insensitive), such as MOM or SCIENTIST_1."
+      },
+      "contains": {
+       "type": "string",
+       "description": "Only pages containing these words (case-insensitive)."
+      },
+      "map": {
+       "type": "string",
+       "description": "Only pages shown on a map whose name or map id (for example 1/4) contains this text."
+      },
+      "last": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "How many matching pages to return, newest first (default 10)."
+      }
+     }
+    },
+    "strict": false
+   }
+  }
+ ]
+}

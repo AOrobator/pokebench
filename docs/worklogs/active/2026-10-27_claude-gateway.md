@@ -87,3 +87,70 @@ The operator, 2026-10-27 ~6:30 PM ET (relayed): leave the live runs 36b5 and 76c
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
 - [ ] Land ff-only
 - M4 review (packet 5ab4bad6, head 4acd3f050): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM. Synced with main (docs only); the packet stayed byte-identical. Gateway tests 69 pass (99.29/97.01/100), ruff clean. Landed ff-only as 94f1b29a3 (2026-10-27 ~6:40 PM ET). Not applied to 36b5 or 76cd: The operator chose to leave the live runs untouched. Recorded difference: the Claude runs compact near their 1M window, while Astra's Codex sessions reported model_context_window 258400 (~/.codex/sessions, 10/25).
+
+## M5 — `--continue-session-from` (continuation runs keep the parent's Claude session)
+
+The operator, 2026-10-27 ~9:09 PM ET, via Codex (relayed by the coordinator): continue the stopped Opus run 3642 from its latest checkpoint on the current bundle, keeping the original run and labeling the continuation. To keep Opus's compacted memory, the continuation's gateway reuses 3642's bridge folder, because Claude Code finds a session by its cwd's project folder. The new option lets the newly bound run adopt a stored session only when that session's run_id equals the named parent run. It's logged once as `session_continued`. Any other mismatch still resets the session. The option is recorded in gateway_start.
+- [x] Option, tests (72 pass; 99.29/97.03/100), ruff and mypy --strict clean
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+
+## M6 — session mode sends the whole current turn, not a fixed last two messages
+
+Found by Codex's read-only audit and confirmed 2026-10-27 ~9:35 PM ET. Session mode sent `dialogue[-2:]`, copying Astra's next.py. On the current bundle (d06b9f4db) the harness appends an "OBSERVED INSTRUCTION MEMORY" user message after the screenshot message, so the tool result fell out on every turn: continuation f60d, requests 577–606, 30/30. Claude's native transcript contains the call_600 tool text 0 times. On aacff2371 it fell out only when an extra user message (a battle update or a SUPERVISOR stall message) followed the screenshot: 3642 17/574, 36b5 8/303, 76cd 8/287, 318a 1/104. Astra itself, through next.py: 174/2740 (6.4%).
+
+Fix: `ChatRequest.current_turn` is every message after the model's latest assistant reply: the tool result plus all trailing harness blocks. It's the whole dialogue before any reply, and empty when the request ends on an assistant message, so the model's own reply is never resent. session_prompt and _save_screens use it.
+
+- Tests: built from real reduced requests (fixtures/: bundle request 601, aacff 145 with a battle update, aacff 400).
+- Replay receipt: runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/, before and after for requests 601 and 577.
+- Expected cost: payloads grow when the tool result is large; request 577's observe result is about 58K chars.
+- 77 tests pass, coverage 99.41/97.46/100.
+- Review round 1 (packet 044aa305): Claude LGTM, fallback LGTM, Codex BLOCKING:
+  1. The `dialogue[-1:]` fallback resent an assistant-terminal reply. Fixed: no fallback, plus a negative test.
+  2. Receipts were "missing". Rebuttal: runs/ is gitignored, so they live in the main checkout at /Users/user/dev/pokebench/runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/ (4 files), not in the worktree.
+- Review round 2 (packet 74529db0, head 9edf0dbe1): Claude LGTM, fallback LGTM, Codex LGTM (rebuttal accepted; receipts verified).
+- [ ] Hold for the operator: landing and any gateway restart for f60d
+
+## Codex handoff: registered current-turn correction
+
+2026-10-27 9:52 PM ET user authorization relayed verbatim: "yes we need this fixed. codex can do it". Existing clean 3b360a236 handed off; work continues on codex/gateway-current-turn-fix in the same isolated worktree, synced with fd621a45d. Preserves reviewed continuation-session support stacked below. No live gateway edits or run restart. Review and landing are authorized; later gameplay activation is separate.
+
+Register gateway-current-turn-v1, omitted/default OFF for old presets; current recipe ON in both arms per coordinator's user rule for correctness fixes. The gateway reads the bound run_start evaluation FeatureSet, then passes one selected message span to both screen capture and prompt rendering. No transport extras sent to other providers. OFF must reproduce old last-two prompt and screenshot indices exactly. Native capture/request logs declare which span was used. Existing current_turn pure selection stays independently tested.
+
+RED addition: factory tests bind actual run_start features, cover ON delivery, absent/false exact legacy bytes, malformed recorded values, and assistant-terminal requests. Targeted execution pending cleared CPU window. No claims of improved gameplay or reduced token cost; restoring large omitted observations increases prompt size.
+RED observed: 4 targeted gateway failures (3 OFF prompt/index mismatches, one malformed flag accepted), and 2 registry/current-recipe failures. The initial malformed test accidentally called request without its required turn; corrected and reran, obtaining the intended DID NOT RAISE failure. Receipt /tmp/gateway-current-turn-red.txt, copied below into canonical ignored evidence before final review. Light tests cleared by coordinator21:55.
+GREEN targeted: all78 gateway tests pass; ruff and strict mypy pass. Agent registry tests2 pass; agent tsc passes after correctly excluding the new optional field from the legacy required-field map and using an actually omitted property in the regression. A performed mutation removed production binding, making the delivery test RED, then restoredGREEN; receipt wiring-mutation-red.txt. Offline production-factory replays on real f60d requests577/601 prove whole tool text includedON, omittedOFF, ordered screen handles retained; no model calls or game inputs. Receipts canonical runs/reviews/gateway-current-turn-fix. Explainer themed/pages-check clean; background screenshots1280/1440/375 inspected, no page overflow (diagram scrolls inside its container on phone). Full gates/review/landing pending CPU window. Local worktree receives a copy of canonical mgba binding for gates, no ROM copied or live runtime changed.
+Extended recorded-prefix check: replayed every archived f60d request577–606 through the production prompt factory in both modes (60cases, no inference). All30ON prompts contain the complete current tool text; all30OFF prompts omit it and preserve screenshot ordering/count. Source hashes, rendered output hashes and counts saved in replay-receipt.json. This measures delivery only, not gameplay benefit. Synced latest main through6caa63b35; exact main may move again before full gates/review. No registry reorder or unrelated source repair.
+Registry regression pins the new switch's absolute285 slot after no-story-foreknowledge-v1 and asserts it is gateway-only (absent from server feature transport). Existing registry membership/order stays intact. Full gates pending the shared CPU queue, no parallel full-suite load started.
+Final scoped regressions also check the gateway session_input receipt (appliedON,3messages, request/run binding), normalize the current recipe into both arm presets, and keep older Harness Config cards NOT RECORDED rather than inferring today'sON default. No change to old run files or native sessions.
+
+## Claude takeover (2026-10-27 ~10:25 PM ET): operator override and fail-safe read
+
+The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude resumed from 6d1f640dc, clean and synced with main bb32b94c4.
+- `--current-turn auto|on|off` (default auto) is per the coordinator's instruction. auto follows the bound run's recorded gateway-current-turn-v1. on/off is an operator override for this gateway only. It's logged in gateway_start, and every session_input carries `source` (run_features or operator_override).
+- The control.jsonl schema accepts only run actions (pause/resume/stop/cancel_stop/abort/extend), so the gateway can't write a note into the run's own record. An override used on a live run is recorded in that run's probe provenance.json plus gateway.jsonl.
+- Fail-safe read (from the fallback review of 6d1f640dc): an unreadable run_start (OS or JSON error) or a non-boolean recorded value now falls back to the legacy input and logs `current_turn_feature_invalid`. Previously it raised inside a request whose SSE stream was already open.
+- Gateway tests 88 pass, coverage 99.32/97.11/100, ruff and mypy --strict clean.
+- Not applied to f60d: the swap waits for the operator's explicit OK.
+- Review of 7b002b525:
+  - Fallback LGTM.
+  - Claude BLOCKING: an unreadable run_start fell back silently, with no `current_turn_feature_invalid`. Fixed: the read error becomes a GatewayError that _first_prompt logs before falling back.
+  - Codex BLOCKING:
+    1. Same as Claude's. Fixed.
+    2. The switch was read from any first event. Fixed: it must be `type: run_start`, else it's invalid and falls back. New negative test.
+    3. Full gates pending. Sequencing: they run in the coordinator's CPU window before landing.
+    4. Repeated fixture reads. Fixed: fixtures are read once (functools.cache).
+  - Gateway tests 89 pass, coverage 99.32/97.13/100.
+- Review round 2 (packet 2c2d316f, head b37ac80ef): Claude LGTM, fallback LGTM. Codex verified the fixes and found no production regression, but blocked on test shape: the OFF and override matrices launched the fake-claude process 8 times. Coordinator chose to fix it. Those rows now use an in-memory runner through the Gateway's injectable `runner`, with 0 subprocess launches (receipt runs/reviews/gateway-current-turn-fix/runtime-shape-receipt.txt). The real-adapter tests are kept: bundle ON delivery and assistant-terminal. 89 pass, coverage 99.44/97.54/100. Test-only change.
+- Synced main d641b8dc9 (merge ee0b0f71e; current.json and features.ts conflicts resolved by keeping both no-story-foreknowledge-v1 and gateway-current-turn-v1). Confirmation round on packet dc089359: Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM.
+- Full gates on ee0b0f71e (2026-10-27 10:48–10:52 PM ET, coordinator's CPU window), all passing:
+  - build 0, TS lint 0, env ruff and mypy (134 files) clean, gateway ruff and mypy --strict clean
+  - agent 4665/4665, viewer 2157/2157
+  - pytest 4463 passed (97.48/93.61/100), gateway 89/89 (99.44/97.54/100)
+  - trainer-card guard 0, Playwright trainer cards 3/3 (approved art linked from the main checkout's runs/sprites)
+
+## Landed (current turn, continue-session, override)
+
+- `git merge --ff-only ee0b0f71e`, 2026-10-27 ~10:53 PM ET, slot 1 on the landing board. The packet is byte-identical to the reviewed dc089359. This lands both --continue-session-from and gateway-current-turn-v1 with --current-turn.
+- Post-merge `just test` on main and `just viewer-main` (the switch adds a Harness Config card) are pending a coordinator CPU and viewer window.
+- f60d is untouched. Its swap (f60d-gateway-swap-steps.md, swap_gateway.py with --current-turn on) waits for the operator's explicit OK.
+- Follow-up: the anyOf re-ask text should list each option's required keys. f60d request 1007 failed twice on navigate_to_target target shape.

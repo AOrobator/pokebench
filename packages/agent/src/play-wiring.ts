@@ -16,6 +16,7 @@ import {withNavigateFirst} from "./navigate-first.js";
 import {healArm,withLowHpTrainerWarning,type HealArm,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import {StoryBattleHealGate,withStoryBattleHealGate,type GateDecision} from "./story-battle-heal-gate.js";
 import {withHealFirst,type HealFirstRecorder} from "./heal-first.js";
+import {ShownStoryNames,withShownCast} from "./story-foreknowledge.js";
 import type {FeatureSet} from "./features.js";
 import {ContextBudget,budgetLimit,type BudgetTrim} from "./context-budget.js";
 import {ExactContext,type PayloadCounter} from "./exact-context.js";
@@ -167,6 +168,9 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // story-battle-heal-first-v1 wraps everything, harness-trust-v1's header included, so its line is the first line of every
 // result it fires on (right under that header when the header is there), a story-battle-heal-gate-v1 refusal among them.
 // stale-plan-fact-v1 wraps everything, so its line is the last thing a result says.
+// no-story-foreknowledge-v1 wraps everything, so every Story characters line any wrapper adds lists only the absent names
+// the game has shown, and the recorded result is the text the model saw; the low-HP warnings and the heal-first line
+// share its record of shown names.
 // trainer-sight-check-v1 asks the game server through the same state source (POST /pokebench/trainer-sight) and records
 // each check as a trainer_sight_check event.
 export interface SightRecorder {trainerSightCheck?(check:TrainerSightCheck):void}
@@ -199,11 +203,13 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const arm=features["story-battle-heal-gate-v1"]&&!features["factual-healing-guidance-v1"]?healArm(features,state):undefined;
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate,base.find(tool=>tool.name==="observe")),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const names=features["no-story-foreknowledge-v1"]?new ShownStoryNames():null;
+ if(names!==null)recorder.subscribe(event=>{names.observe(event);});
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate,base.find(tool=>tool.name==="observe"),features["menu-option-honest-refusal-v1"]),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm,names),features,recorder,state),features,recorder)];
  const progress=withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(facts,features,recorder),features,state),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"],structuredEvidence:features["citation-evidence-v1"]});
- return withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"]),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state);
+ return withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state),names);
 }
 
 

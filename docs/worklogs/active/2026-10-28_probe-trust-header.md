@@ -108,6 +108,8 @@ DEFERRED hardening:
 - no idempotence or real-cut unit test with stateful transforms;
 - `starts` could mirror fit exactly when rest[0] is not an assistant message.
 
+Synced with main 45ff0b86f. The one conflict, in play-wiring.ts, came from main adding the withShownCast wrapper. Main's trust-options object is byte-identical to trustOptions(), so the call now passes trustOptions(features) inside main's wrapper. Probe suites pass 34/34.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

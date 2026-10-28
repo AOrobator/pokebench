@@ -10,8 +10,8 @@ Modes:
   stateless  every turn is one fresh call carrying the whole harness window and
              its images; no tools, no session on disk, an empty working dir.
   session    one persistent Claude Code session per run, continued with
-             --resume. Each turn sends only the last two harness messages and the
-             paths of that turn's screenshots; Read, confined to the bridge's
+             --resume. Each turn sends only the harness messages since the model's
+             last reply and the paths of that turn's screenshots; Read, confined to the bridge's
              screens folder, is its only tool.
 
 A usage limit or any other provider failure never reaches the harness as an
@@ -124,6 +124,14 @@ class ChatRequest:
     def dialogue(self) -> tuple[Message, ...]:
         return tuple(m for m in self.messages if m.role != "system")
 
+    @property
+    def current_turn(self) -> tuple[Message, ...]:
+        """Everything after the model's latest reply: its tool result and every message the
+        harness added since (screenshots, battle updates, supervisor and memory blocks)."""
+        dialogue = self.dialogue
+        last = max((i for i, m in enumerate(dialogue) if m.role == "assistant"), default=-1)
+        return dialogue[last + 1 :]
+
 
 @dataclass(frozen=True)
 class Reply:
@@ -189,6 +197,11 @@ class Config:
     call_timeout: float = CALL_TIMEOUT_SECONDS
     # Claude Code's auto-compact window in tokens; None keeps its default (the model's window).
     autocompact: int | None = None
+    # A stopped run whose Claude session a continuation run may adopt (memory carries over).
+    continue_from: str | None = None
+    # Session mode's current-turn delivery: "auto" follows the bound run's recorded
+    # gateway-current-turn-v1; "on"/"off" is an operator override for this gateway only.
+    current_turn: Literal["auto", "on", "off"] = "auto"
 
     @property
     def advertised(self) -> str:
@@ -516,9 +529,13 @@ def _screenshot_note(paths: Sequence[Path]) -> Callable[[int], str]:
 
 
 def session_prompt(
-    request: ChatRequest, screens: Sequence[Sequence[Path]], first: bool, tools_changed: bool
+    request: ChatRequest,
+    messages: Sequence[Message],
+    screens: Sequence[Sequence[Path]],
+    first: bool,
+    tools_changed: bool,
 ) -> Prompt:
-    """The last two harness messages; screenshots appear as file paths to Read."""
+    """This turn's harness messages; screenshots appear as file paths to Read."""
     system = f"{request.system}\n\n{REPLY_CONTRACT}\n\n{SESSION_CONTRACT}"
     blocks: list[JsonObject] = []
     if first or tools_changed:
@@ -526,7 +543,7 @@ def session_prompt(
     else:
         names = ", ".join(t.name for t in request.tools)
         blocks.append({"type": "text", "text": f"Harness tools unchanged: {names}."})
-    for message, paths in zip(request.dialogue[-2:], screens, strict=True):
+    for message, paths in zip(messages, screens, strict=True):
         blocks.extend(_render(message, _screenshot_note(paths)))
     blocks.append({"type": "text", "text": "Reply now with the one JSON object."})
     return Prompt(system, _merge_text(blocks))
@@ -710,6 +727,28 @@ class RunBinder:
             return self.run_id
         return None
 
+    def current_turn_enabled(self) -> bool:
+        """Read the actual recorded FeatureSet for this bound run, never today's defaults."""
+        run = self.resolve()
+        if run is None:
+            return False
+        path = self.runs_root / run / "events.jsonl"
+        if not path.exists():
+            return False
+        try:
+            with path.open(encoding="utf8") as handle:
+                start = _obj(json.loads(handle.readline()), "run_start")
+        except (OSError, ValueError) as error:
+            raise GatewayError(f"run_start unreadable: {error}") from error
+        if start.get("type") != "run_start":
+            raise GatewayError(f"the first event is {start.get('type')!r}, not run_start")
+        evaluation = _obj(start.get("evaluation") or {}, "evaluation")
+        features = _obj(evaluation.get("features") or {}, "features")
+        enabled = features.get("gateway-current-turn-v1", False)
+        if not isinstance(enabled, bool):
+            raise GatewayError("gateway-current-turn-v1 must be a boolean")
+        return enabled
+
     def _started_here(self, path: Path) -> bool:
         try:
             if path.stat().st_mtime < self.started:
@@ -807,6 +846,8 @@ class Gateway:
             model=self.config.model,
             effort=self.config.effort,
             autocompact=self.config.autocompact,
+            continue_from=self.config.continue_from,
+            current_turn=self.config.current_turn,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -854,9 +895,9 @@ class Gateway:
                 if self.holding:
                     self.control("resume")
 
-    def _save_screens(self, seq: int, request: ChatRequest) -> list[list[Path]]:
+    def _save_screens(self, seq: int, messages: Sequence[Message]) -> list[list[Path]]:
         screens: list[list[Path]] = []
-        for index, message in enumerate(request.dialogue[-2:]):
+        for index, message in enumerate(messages):
             paths: list[Path] = []
             for part in message.parts:
                 if part.image is None:
@@ -869,13 +910,40 @@ class Gateway:
         return screens
 
     def _first_prompt(self, seq: int, request: ChatRequest) -> Prompt:
-        screens = self._save_screens(seq, request)
+        override = self.config.current_turn
+        source = "run_features" if override == "auto" else "operator_override"
+        try:
+            recorded = override == "auto" and self.binder.current_turn_enabled()
+        except GatewayError as error:
+            # Fail safe to the legacy input rather than killing a request whose stream is open.
+            self.event("current_turn_feature_invalid", request=seq, error=str(error))
+            recorded = False
+        enabled = self.config.mode == "session" and (
+            recorded if override == "auto" else override == "on"
+        )
+        messages = request.current_turn if enabled else request.dialogue[-2:]
+        screens = self._save_screens(seq, messages)
         if self.config.mode == "stateless":
             return stateless_prompt(request)
+        self.event(
+            "session_input",
+            request=seq,
+            current_turn=enabled,
+            source=source,
+            messages=len(messages),
+            run_id=self.binder.run_id,
+        )
         bound = self.binder.run_id
         known = self.session.run_id
-        # A session belongs to exactly one run; unknown ownership never carries over.
-        if self.session.session_id is not None and bound != known:
+        # A session belongs to exactly one run; unknown ownership never carries over, except
+        # the named parent run's session, adopted once by its bound continuation.
+        continuing = known is not None and known == self.config.continue_from and bound is not None
+        if self.session.session_id is not None and bound != known and continuing:
+            self.event(
+                "session_continued", old_run=known, run_id=bound, session=self.session.session_id
+            )
+            self.session.run_id = bound
+        elif self.session.session_id is not None and bound != known:
             self.event(
                 "session_reset", old_run=known, run_id=bound, old_session=self.session.session_id
             )
@@ -883,7 +951,7 @@ class Gateway:
         sha = hashlib.sha256(_tool_listing(request.tools).encode()).hexdigest()
         changed = sha != self.session.tools_sha
         self.session.tools_sha = sha
-        return session_prompt(request, screens, self.session.session_id is None, changed)
+        return session_prompt(request, messages, screens, self.session.session_id is None, changed)
 
     def _spec(self, seq: int, attempt: int, prompt: Prompt) -> CallSpec:
         bridge = self.config.bridge
@@ -1161,6 +1229,18 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         type=_autocompact,
         help="Claude Code auto-compact window, 100k-1M tokens (default: the model's window)",
     )
+    parser.add_argument(
+        "--continue-session-from",
+        metavar="RUN_ID",
+        help="a stopped run whose session (in this --bridge) the newly bound run continues",
+    )
+    parser.add_argument(
+        "--current-turn",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="session input: auto follows the run's recorded gateway-current-turn-v1; "
+        "on/off overrides it for this gateway (logged as operator_override)",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1180,6 +1260,8 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         backoff=args.backoff,
         keepalive=args.keepalive,
         autocompact=args.autocompact,
+        continue_from=args.continue_session_from,
+        current_turn=args.current_turn,
     )
     return config, args.port
 

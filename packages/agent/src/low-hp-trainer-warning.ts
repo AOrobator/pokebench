@@ -9,6 +9,7 @@ import {Value} from "typebox/value";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {PlacesBodySchema,type Place,type PlaceSource} from "./story-destinations.js";
+import {capital,opponentShown,roleWord,type ShownStoryNames,type Shows} from "./story-foreknowledge.js";
 
 export interface LowHpTrainerWarningFacts {
  readonly species:string;readonly hp:number;readonly max_hp:number;
@@ -56,10 +57,12 @@ export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarning
 // What a blackout costs, as every warning here says it. DoWhiteOut keeps floor(money/2), so the amount lost is the rest.
 export const blackout=(money:number|null):string=>`If your party faints, you black out: you lose half your money${money===null?"":` (₽${String(money-Math.floor(money/2))} of ₽${String(money)})`} and wake up back at the last POKéMON CENTER you entered, or at home.`;
 
-export function warningText(f:LowHpTrainerWarningFacts):string {
+// no-story-foreknowledge-v1 (shows): "your rival" until the game shows the rival's name.
+export function warningText(f:LowHpTrainerWarningFacts,shows?:Shows):string {
  const them=f.rival==="MAY"?"her":"him";
+ const rival=opponentShown("rival",f.rival,shows)?`your rival ${f.rival}`:roleWord("rival");
  const bag=f.items.length===0?"":` Your BAG has ${f.items.map(i=>`${i.name} ×${String(i.quantity)}`).join(" and ")}; using one on ${f.species} restores HP.`;
- return `SUPERVISOR: Your ${f.species} has ${String(f.hp)}/${String(f.max_hp)} HP (below half), and your rival ${f.rival} is on this map at (${String(f.x)},${String(f.y)}). Talking to ${them} starts a trainer battle you cannot run from. ${blackout(f.money)} Heal before you talk to ${them}: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
+ return `SUPERVISOR: Your ${f.species} has ${String(f.hp)}/${String(f.max_hp)} HP (below half), and ${rival} is on this map at (${String(f.x)},${String(f.y)}). Talking to ${them} starts a trainer battle you cannot run from. ${blackout(f.money)} Heal before you talk to ${them}: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }
 
 // The arm: fires on the first state that meets the condition, then stays quiet until a state shows the lead
@@ -141,11 +144,14 @@ export function storyBattleWarning(state:GameStateSnapshot):StoryBattleWarningFa
  return {kind:here.battle.kind,opponent:here.opponent,x:here.x,y:here.y,map_id:here.battle.map,party,money:state.money,items:bagItems(state,party)};
 }
 
-export function storyBattleText(f:StoryBattleWarningFacts,factual=false):string {
+// no-story-foreknowledge-v1 (shows): a role word for each name the game has not shown; every other word stays.
+export function storyBattleText(f:StoryBattleWarningFacts,factual=false,shows?:Shows):string {
  const tile=f.x===null||f.y===null?"":`, at (${String(f.x)},${String(f.y)})`;
- const who=f.kind==="rival"?`your rival ${f.opponent}${tile}. Talking to ${f.opponent==="MAY"?"her":"him"} starts a trainer battle you cannot run from.`
-  :f.kind==="gym_leader"?`the Gym Leader ${f.opponent}${tile}. Talking to her starts a trainer battle you cannot run from.`
-  :"a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher, and that trainer battle cannot be run from.";
+ const named=opponentShown(f.kind,f.opponent,shows);
+ const researcher=shows===undefined||shows("DEVON")?"the DEVON researcher":"the researcher";
+ const who=f.kind==="rival"?`${named?`your rival ${f.opponent}`:roleWord("rival")}${tile}. Talking to ${f.opponent==="MAY"?"her":"him"} starts a trainer battle you cannot run from.`
+  :f.kind==="gym_leader"?`${named?`the Gym Leader ${f.opponent}`:roleWord("gym_leader")}${tile}. Talking to her starts a trainer battle you cannot run from.`
+  :`${named?"a TEAM AQUA grunt":"a grunt"}. He stops you on the forest path when you reach ${researcher}, and that trainer battle cannot be run from.`;
  const bag=f.items.length===0?"":` Your BAG has ${f.items.map(i=>`${i.name} ×${String(i.quantity)}`).join(" and ")}; using one restores HP.`;
  return `SUPERVISOR: A story battle is on this map: ${who} Your party is not at full HP: ${f.party.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${blackout(f.money)} ${factual?"HP alone does not establish whether you will win. Healing options:":"Heal to full before this battle:"} the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }
@@ -418,9 +424,10 @@ export function healPlaceDescription(h:HealPlace,here:readonly [number,number],n
  const shown=h.shown===undefined?"":now?`; you have not entered it; this result lists it as an exit at ${tile}`:`; you have not entered it, but an earlier result listed it as an exit at ${tile}`;
  return `${where} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${shown}${h.kind==="pokemon_center"?`; ${NURSE_SAYS}`:`, ${MOM_SAYS}`}`;
 }
-const STORY_ROLE=(t:NamedTrainer):string=>t.story===undefined?"":`the Gym Leader ${t.story}, `;
-export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts,factual=false):string {
- const list=f.trainers.map(t=>`${STORY_ROLE(t)}object ${String(t.local_id)}, sprite ${t.sprite_kind??"unknown"}, at (${String(t.x)},${String(t.y)})${t.loaded===false?" (not loaded now: the tile the map places it on)":""}`).join("; ");
+const STORY_ROLE=(t:NamedTrainer,shows?:Shows):string=>t.story===undefined?"":opponentShown("gym_leader",t.story,shows)?`the Gym Leader ${t.story}, `:`${roleWord("gym_leader")}, `;
+// no-story-foreknowledge-v1 (shows): "the Gym Leader" without the name until the game shows it.
+export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts,factual=false,shows?:Shows):string {
+ const list=f.trainers.map(t=>`${STORY_ROLE(t,shows)}object ${String(t.local_id)}, sprite ${t.sprite_kind??"unknown"}, at (${String(t.x)},${String(t.y)})${t.loaded===false?" (not loaded now: the tile the map places it on)":""}`).join("; ");
  const who=f.trainers.length===1?`A trainer you have not beaten is on this map: ${list}.`:`Trainers you have not beaten are on this map: ${list}.`;
  const story=f.hurt===undefined?"":` Your party is not at full HP: ${f.hurt.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${factual?"HP alone does not establish whether you will win.":"Heal to full before a story battle."}`;
  const weak=f.weak.length===0?"":` Your party is weak for a battle: ${weakList(f.weak)}.`;
@@ -623,7 +630,7 @@ export function placesOnce(source:PlaceSource):()=>Promise<readonly Place[]|null
 
 // One warning rule: what fired on a result's state, its paragraph and how to record it.
 interface Fired {readonly text:string;readonly record:(tool:string)=>void}
-type Rule=(state:GameStateSnapshot|undefined,result:AgentToolResult<unknown>)=>Promise<Fired|null>;
+type Rule=(state:GameStateSnapshot|undefined,result:AgentToolResult<unknown>,shows:Shows|undefined)=>Promise<Fired|null>;
 const textOf=(result:AgentToolResult<unknown>):string=>result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
 
 // One wrapper for every warning: v1 (the Route 103 rival below half HP) or, with v2, every visible story battle below
@@ -636,18 +643,20 @@ export function healArm(features:FeatureSet,source:PlaceSource):HealArm {
  const v2=features["heal-before-trainers-v2"];
  return {table,heal:features["heal-before-trainers-v1"]?new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:table,items:features["bag-healing-items-v1"],...(v2?{v2}:{})}):null};
 }
-export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource={},shared?:HealArm):readonly AgentTool[] {
- if(features["coherent-healing-feedback-v1"])return withCoherentHealing(tools,features,recorder,source,shared);
+// no-story-foreknowledge-v1: names, when on, is the run's record of the story names the game has shown.
+export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource={},shared?:HealArm,names:ShownStoryNames|null=null):readonly AgentTool[] {
+ const known=(id:string):Shows|undefined=>names===null||!features["no-story-foreknowledge-v1"]?undefined:name=>names.shows(name,id);
+ if(features["coherent-healing-feedback-v1"])return withCoherentHealing(tools,features,recorder,source,shared,known);
  if(!features["low-hp-trainer-warning-v1"])return tools;
  const rules:Rule[]=[];
  if(features["low-hp-trainer-warning-v2"]){
   const record=recorder.storyBattleWarning?.bind(recorder);
   if(record===undefined)throw new Error("low-hp-trainer-warning-v2 needs a recorder for story_battle_warning events");
   const story=new StoryBattleWarning();
-  rules.push(state=>{const facts=story.observe(state);if(facts===null)return Promise.resolve(null);const text=storyBattleText(facts,features["factual-healing-guidance-v1"]);return Promise.resolve({text,record:tool=>{record(tool,facts,text);}});});
+  rules.push((state,_,shows)=>{const facts=story.observe(state);if(facts===null)return Promise.resolve(null);const text=storyBattleText(facts,features["factual-healing-guidance-v1"],shows);return Promise.resolve({text,record:tool=>{record(tool,facts,text);}});});
  }else{
   const watch=new LowHpTrainerWarning();
-  rules.push(state=>{const facts=watch.observe(state);if(facts===null)return Promise.resolve(null);const text=warningText(facts);return Promise.resolve({text,record:tool=>{recorder.lowHpTrainerWarning(tool,facts,text);}});});
+  rules.push((state,_,shows)=>{const facts=watch.observe(state);if(facts===null)return Promise.resolve(null);const text=warningText(facts,shows);return Promise.resolve({text,record:tool=>{recorder.lowHpTrainerWarning(tool,facts,text);}});});
  }
  if(features["heal-before-trainers-v1"]){
   const record=recorder.healBeforeTrainersWarning?.bind(recorder);
@@ -657,10 +666,10 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const table=arm.table;
   const heal=arm.heal;
   if(heal===null)throw new Error("heal-before-trainers-v1 needs its arm");
-  const write=v2?(facts:HealBeforeTrainersFacts)=>healBeforeTrainersV2Text(facts,features["factual-healing-guidance-v1"]):healBeforeTrainersText;
-  rules.push(async(state,result)=>{
+  const write=v2?(facts:HealBeforeTrainersFacts,shows:Shows|undefined)=>healBeforeTrainersV2Text(facts,features["factual-healing-guidance-v1"],shows):healBeforeTrainersText;
+  rules.push(async(state,result,shows)=>{
    if(v2)await heal.shownIn(state,textOf(result));
-   const facts=await heal.observe(state);if(facts===null)return null;const text=write(facts);return {text,record:tool=>{record(tool,facts,text);}};
+   const facts=await heal.observe(state);if(facts===null)return null;const text=write(facts,shows);return {text,record:tool=>{record(tool,facts,text);}};
   });
   if(features["gym-heal-warning-v1"]){
    const recordGym=recorder.gymHealWarning?.bind(recorder);
@@ -673,15 +682,16 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const result=await tool.execute(...args);
   const state=stateOf(result);
   const texts:string[]=[];
+  const shows=known(args[0]);
   for(const rule of rules){
-   const fired=await rule(state,result);
+   const fired=await rule(state,result,shows);
    if(fired!==null){fired.record(tool.name);texts.push(fired.text);}
   }
   return texts.length===0?result:{...result,content:[...result.content,...texts.map(text=>({type:"text" as const,text}))]};
  }}));
 }
 
-function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource,shared?:HealArm):readonly AgentTool[] {
+function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource,shared:HealArm|undefined,known:(id:string)=>Shows|undefined):readonly AgentTool[] {
  const arm=shared??healArm(features,source);
  let previous:string|null=null;
  return tools.map(tool=>({...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
@@ -704,7 +714,7 @@ function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,reco
   const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,rival?.rival,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
   if(previous===key)return result;
   const risk=weakList(weak);
-  const context=story!==null?`${story.opponent}'s trainer battle cannot be run from.`:NO_RUNNING;
+  const context=story===null?NO_RUNNING:opponentShown(story.kind,story.opponent,known(args[0]))?`${story.opponent}'s trainer battle cannot be run from.`:`${capital(roleWord(story.kind))}'s trainer battle cannot be run from.`;
   const where=heal===null?"":` ${healPlaceSentence(heal,state.map_id,arm.heal?.listedNow(heal)??false)}`;
   const items=bagHealingItems(state,weak);
   const bag=items.length===0?"":bagSentence(items);

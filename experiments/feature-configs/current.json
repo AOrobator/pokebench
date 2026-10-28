@@ -68,7 +68,6 @@
   "supplies-v1",
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1",
-  "type-gap-team-last-message-v1",
   "instruction-memory-dedup-v1"
  ],
  "offInBoth": [
@@ -155,6 +154,7 @@
   "self-named-speaker-v1",
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
+  "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1"
  ],
  "features": {
@@ -438,7 +438,7 @@
   "gateway-current-turn-v1": true,
   "gateway-tool-schemas-v1": true,
   "gateway-schema-hint-v1": true,
-  "type-gap-team-last-message-v1": false,
+  "type-gap-team-last-message-v1": true,
   "self-named-speaker-v1": true,
   "story-briefing-native-milestones-v1": true,
   "retire-reached-story-line-v1": true,

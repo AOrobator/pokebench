@@ -69,7 +69,8 @@
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1",
   "instruction-memory-dedup-v1",
-  "neutral-yes-no-readout-v1"
+  "neutral-yes-no-readout-v1",
+  "refusal-ledger-bound-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -443,6 +444,7 @@
   "story-briefing-native-milestones-v1": true,
   "retire-reached-story-line-v1": true,
   "instruction-memory-dedup-v1": false,
-  "neutral-yes-no-readout-v1": false
+  "neutral-yes-no-readout-v1": false,
+  "refusal-ledger-bound-v1": false
  }
 }

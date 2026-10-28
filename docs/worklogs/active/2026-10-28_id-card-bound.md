@@ -56,3 +56,7 @@ None; no adjacent refactor.
 Notauthorized.
 
 M1RED:8tests,6intendedFAIL/2PASS, nofixture/schemaerrors. Failing suffix/count/newest/edge/recall/factory/registration behavior onincumbent; full-fingerprint and small/OFFcases alreadyPASS. Productiontest usesactualplayGameTools withboundedfakeports andsubscribeddelivery,notnewhelper. No per-pageIOoraccumulatingvalidatedstate. Ownnewworktree setup pnpmoffline/uv/submodulePASS; mgba pointsread-onlytocanonical3.11binding.
+
+M2GREEN:29targetedPASS (8new+21incumbent).8independentmutantsallassertionRED/restored29GREEN: factory, bound, newlinecounter, UTF16counter,newestexception,fullfingerprint,recallwording,wholelines. Receiptsmutations-r0. Strengthenedproductionfactoryfixturetovalidpeopleledger+auto-advancetoolchainusingordinarycheckedpressadapter; omittedpageactuallyretrievedthroughattachedget_dialogue. Initialsimplefakepresscorrectlyrejectedbyexistingordinary-toolguard,logpreserved; addedrealadapterwithrejectingnetworkport (nevercalled).2freshvalidfactorymutants boundflag/recallflag eachREDthenrestored29GREEN. ExistingPeopleIdCardsowner+19lineprojectiononly, no newruntimeowner. OFFrenderandfullfingerprintunchanged, codePointsreused. Build/fullgatesawaitCPUgrant.
+
+Replayhelperprepared(notrun):stream3completearchives, bounded16statecache, samePeopleIdCardsconstructorflags, beforetool_resultdeliverycards; compareeveryrecordedpeople_id_cardexacttextandactualtoolresultsubstring/count, andON/OFFemissionidentity. Reportsfullsourcehash/bytes/cardcount/0mismatchrequired/largestpair/maxON/newestexception. NoGPU.

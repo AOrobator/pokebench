@@ -9,6 +9,7 @@ import {DialogueRecord,pageLine,type DialoguePage} from "./dialogue-auto-advance
 import {codePoints} from "./instruction-memory-cap.js";
 import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,dependencyProblems,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
+import {pressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
 
 const ID="id-card-bound-v1",HEAD="- Other pages that name them";
@@ -63,15 +64,16 @@ it("production playGameTools honors ON/OFF and records the same bounded card del
   const subs:((e:RunEvent)=>void)[]=[],cards:IdCard[]=[];
   const rec={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:2,turn:1}),lowHpTrainerWarning:()=>undefined,peopleIdCard:(_tool:string,_id:string,c:IdCard)=>{cards.push(c);}};
   const game:AgentTool={name:"observe",label:"Observe",description:"fixture",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROUTE103\nPosition: X=5, Y=5"}],details:{state:here}})};
-  const tools=playGameTools([game],{...OFF,"people-id-cards-v1":true,"character-presence-v1":true,[ID]:on},{read:()=>Promise.resolve(here)},rec);
+  const tools=playGameTools([game,pressTool("http://unused",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},()=>Promise.reject(new Error("unexpected press")))],{...OFF,"dialogue-auto-advance-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true,"character-presence-v1":true,[ID]:on},{read:()=>Promise.resolve(here)},rec);
   for(const e of events(texts))for(const fn of subs)fn(e);
   const out=await tools[0]?.execute("show",{});const text=out?.content.filter(p=>p.type==="text").map(p=>p.type==="text"?p.text:"").join("\n")??"";
   const delivered=cards.find(c=>c.key==="name:MAY");expect(delivered).toBeDefined();expect(text).toContain(delivered?.text);expect(block(delivered?.text??"").includes("left out")).toBe(on);expect(text.includes(texts[0]??"")).toBe(!on);
+  const recall=tools.find(t=>t.name==="get_dialogue");expect(recall).toBeDefined();const found=await recall?.execute("lookup",{contains:texts[0],last:1});expect(JSON.stringify(found?.content)).toContain(texts[0]);if(on)expect(block(delivered?.text??"")).toContain("get_dialogue finds them");
  }
 });
 it("registers once with its dependency, default OFF and recorded membership only when ON",()=>{
  expect(SWITCHABLE_FEATURES.filter(x=>x===ID)).toEqual([ID]);expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"people-id-cards-v1"});
  expect(dependencyProblems({...OFF,[ID]:true})).toContain(`${ID} needs people-id-cards-v1`);
- const {[ID]:_value,...omitted}=ALL_ON as FeatureSet&Record<typeof ID,boolean>;expect(normalizeFeatures(omitted)[ID]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
+ const {[ID]:_value,...omitted}=ALL_ON as FeatureSet&Record<typeof ID,boolean>;expect(_value).toBe(true);expect(normalizeFeatures(omitted)[ID]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
 });

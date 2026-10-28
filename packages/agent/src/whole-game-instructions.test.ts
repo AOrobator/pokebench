@@ -89,6 +89,26 @@ describe("deterministic pret-only whole-game instruction stream",()=>{
   const flag=(n:number)=>(Number.parseInt(after.story_progress?.flags.slice(2*(n>>3),2*(n>>3)+2)??"0",16)&(1<<(n&7)))!==0;
   expect(flag(1801)).toBe(true);expect(flag(821)).toBe(true);expect(flag(822)).toBe(true);expect(after.badges).toContain("DYNAMO");
  });
+ it.each([
+  {id:"matt-chase",caller:"AquaHideout_B2F_EventScript_Matt",gfx:"OBJ_EVENT_GFX_AQUA_MEMBER_M",label:"AquaHideout_B2F_Text_MattPostBattle"},
+  {id:"grunt6-item",caller:"AquaHideout_B2F_EventScript_Grunt6",gfx:"OBJ_EVENT_GFX_AQUA_MEMBER_F",label:"AquaHideout_B2F_Text_Grunt6PostBattle"},
+ ])("keeps unresolved Aqua Hideout advice after submarine escape: $id",({id,caller,gfx,label})=>{
+  const map="AquaHideout_B2F",source=readFileSync(join(PRET,"data/maps",map,"scripts.inc"),"utf8");
+  const objects=JSON.parse(readFileSync(join(PRET,"data/maps",map,"map.json"),"utf8")) as {object_events:{graphics_id:string;script:string}[]};
+  expect(objects.object_events.find(o=>o.script===caller)?.graphics_id,id).toBe(gfx);
+  const escape=source.slice(source.indexOf("AquaHideout_B2F_EventScript_SubmarineEscape::"),source.indexOf("AquaHideout_B2F_Movement_SumbarineDepartLeft:"));
+  expect(escape).toMatch(/msgbox AquaHideout_B2F_Text_MattPostBattle[\s\S]*setflag FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE/);
+  const row={id,region:"d",role:"story",map,map_id:[24,25],speaker_gfx:gfx,text_label:label,milestone_after:["AQUA_HIDEOUT_ESCAPE_COMPLETE"]};
+  const entries=loadWholeGameScript(PRET,"held-aqua.json",p=>p==="held-aqua.json"?JSON.stringify([row]):readFileSync(p,"utf8"));
+  const steps=buildWholeGameStream(entries);
+  for(const whole of [false,true]){
+   const memory=new ObservedInstructions(true,true,true,true,false,whole);
+   for(const step of steps)for(const e of [...step.before,...step.after])memory.observe(e);
+   const kept=payload(memory.text()??"").episodes;
+   expect(kept,`${id}, whole-game ${String(whole)}: escape does not complete this advice`).toHaveLength(1);
+   expect(kept[0]?.pages.map(p=>p[2]),id).toEqual(entries[0]?.pages);
+  }
+ });
  it("rehearses six source-owned signs separately, retaining unknown attribution and the main stream unchanged",()=>{
   const script=join(import.meta.dirname,"../test-support/whole-game-signs.json");
   const signs=loadWholeGameScript(PRET,script);expect(signs).toHaveLength(6);

@@ -44,7 +44,7 @@ it.each([
   const target=defs.get(scenario.id);if(target===undefined)throw Error("missing target");
   for(const arm of ["bundle","control"] as const){
    const captured:FixedRunOptions[]=[],errors:string[]=[];
-   const deps:FixedCliDeps={root,runsRoot:join(root,arm),out:()=>undefined,err:line=>errors.push(line),randomSeed:()=>"feedfacefeedface",interactive:false,prompt:forbidden,now:()=>new Date("2026-10-24T15:42:49Z"),user:"offline rehearsal",head:()=>"0".repeat(40),sha1File:path=>path==="/fake-rom"?target.romSha1:starts.get(path)??null,rom:"/fake-rom",run:options=>{captured.push(options);return Promise.resolve("finished");},host:()=>host};
+   const deps:FixedCliDeps={root,runsRoot:join(root,arm),out:()=>undefined,err:line=>errors.push(line),randomSeed:()=>"feedfacefeedface",head:()=>"0".repeat(40),sha1File:path=>path==="/fake-rom"?target.romSha1:starts.get(path)??null,rom:"/fake-rom",run:options=>{captured.push(options);return Promise.resolve("finished");},host:()=>host};
    const argv=["dry-run",scenario.id,"--phase","cook","--wall-ms",String(scenario.wallMs),"--arm",arm,"--lane",scenario.lane,...(scenario.recipe===undefined?[]:["--feature-recipe",scenario.recipe])];
    expect(await main(argv,deps),errors.join("\n")).toBe(0);expect(errors).toEqual([]);expect(captured).toHaveLength(1);
    const options=captured[0];if(options===undefined)throw Error("fake run port not reached");

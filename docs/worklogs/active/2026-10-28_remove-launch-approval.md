@@ -7,12 +7,13 @@ Why: the approval bound only a hash of the definition text plus its feature reci
 ## Change
 
 - [x] RED: `run` launches with no approval.json present (fixed-cli.test.ts).
-- [ ] GREEN: fixed-cli.ts drops `approve`, the Approval record, both run/rerun gates, the `check` approval line, the usage line and the interactive/prompt/user deps and readline.
-- [ ] Tests: approval assertions removed from fixed-cli.test.ts; the shared-config test now asserts the launch uses the new hash.
-- [ ] Docs: justfile comment, fixed-run-launch, experiment-design skills. Old runs/experiments/*/approval.json files stay (never prune run data).
-- [ ] Targeted gates: fixed-cli tests, viewer tsc, eslint on touched files (no CPU window needed).
+- [x] GREEN: fixed-cli.ts drops `approve`, the Approval record, both run/rerun gates, the `check` approval line, the usage line and the interactive/prompt/user/now deps and readline (`now` was used only by approve).
+- [x] Tests: approval assertions removed from fixed-cli.test.ts (an `approve` command now prints usage, exit 2; an edited definition runs under its new hash; the rerun refusal for a changed definition becomes a refusal for a plan that does not match its seed); the shared-config test asserts each run carries the hash of the config it read. drought-progress-facts and player-elevation-bundle fixtures drop the removed deps.
+- [x] Docs: justfile comment, fixed-run-launch, experiment-design skills. patch-evaluation, run-coordination, feature-switch and CLAUDE.md mention operator-approved definitions or approving experiments as an operator decision, not the removed command, and stay as they are. Old runs/experiments/*/approval.json files stay (never prune run data).
+- [x] Targeted gates: fixed-cli tests, viewer tsc, eslint on touched files (no CPU window needed).
 - [ ] Review: Claude, Grok, GPT lanes on the frozen packet.
 - [ ] Land ff-only via the landing board; record the merge SHA.
 
 ## Log
 - RED: fixed-cli.test.ts 1 failed (runs a checked definition with no approval file: exit 1 'is not approved'), 36 passed.
+- GREEN: fixed-cli, drought-progress-facts, player-elevation-bundle: 51 passed. viewer `tsc --noEmit` clean; eslint on the four touched files clean. No full suite (no CPU window used).

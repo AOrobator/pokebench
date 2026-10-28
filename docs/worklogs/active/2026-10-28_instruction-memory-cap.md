@@ -64,3 +64,19 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 - Merged, not rebased. The registry, presets and next-run take main's entries and re-append instruction-memory-cap-v1 after instruction-memory-dedup-v1. The type-gap index test takes main's pinned index.
 - `observed-instructions.ts`: the cap runs after dedup's merge (dedup first, then selection under the budget). Rows carry dedup's two source-map columns when dedup is on (`CapRow` gains a rest element; the cap reads only the first six), and the payload keeps dedup's keys (`current` only with base episodes, `observed_locations` when dedup has no retention). With the cap off, the render is main's string.
 - Focused: 137 agent and 247 viewer tests after the registry test moved its anchor to instruction-memory-dedup-v1.
+
+## Review round 1 (frozen 9716b71b5): Claude subagent (CLI login expired), Codex gpt-5.6-sol, fallback subagent, all BLOCKING
+
+Accepted:
+- **Checkpoint retires a live instruction (all three lanes).** `wally-catch-tutorial` covered DAD in the Petalburg Gym. pret `PetalburgCity_Gym/scripts.inc` shows DadGoCollectBadges ("Head for RUSTBORO CITY… ROXANNE… Collect BADGES") before `setvar VAR_PETALBURG_GYM_STATE, 2`, so T312 retired at once. `dad-sends-to-dewford` had the same flaw: NormanGoToRustboro's four-badge battle is still open at KNUCKLE. `briney-voyages` closed the "package for CAPT. STERN" lines at Slateport entry, before DEVON_GOODS_DELIVERED. Fix: drop DAD/NORMAN from the Wally scope, remove dad-sends-to-dewford, make briney-voyages close after DEVON_GOODS_DELIVERED, and make mom-home-instructions also need DAD_FIRST_MEETING (MOM's "your DAD at the PETALBURG GYM").
+- **Not a hard cap (Codex).** Anchor and nearby were always kept. Now every group is under the budget, in priority order anchor, nearby, named, recency, newest first. An episode that cannot fit is left out, never cut.
+- **Quadratic fill (Codex).** Each candidate re-rendered the whole block. Now each episode is measured once (single-episode render minus the empty render, plus a measured separator, plus the left-out line by digit count), with one final render check.
+- **Stale anchor marked Done under the block (Claude, fallback).** The "Latest story line naming a place" form prints `Done:` on a later line; that is now read.
+- **Header truthfulness (Claude, fallback).** When episodes are left out, "Unknown, mixed, future and reusable dialogue stays." and the older form's "none retires a quote" are replaced so the header does not contradict the cap.
+
+Rebutted or deferred:
+- Full-gate evidence (Codex): waiting for the coordinator's CPU window, which can't be self-granted. Recorded as pending, not waived.
+- Legacy-form scope (Codex, fallback): the operator asked for "nothing we give to the model should be able to grow unbounded", so the boundary is amended to include it.
+- The replay reference shares the checkpoint table (all lanes): true. The semantic check is now the pret-grounded unit tests for each risky scope, plus a pre-STONE replay turn.
+
+- [x] RED round-1 tests (5 failing).

@@ -1,10 +1,10 @@
 # instruction-memory-yaml-v1 (OBSERVED INSTRUCTION MEMORY as YAML)
 
-Operator request, relayed: The operator 2026-10-28 8:00 AM NY, "can we make the instructions delivered yaml? its so hard to read". Coordinator brief: a separate switch, default OFF, guidance category, on its own branch, same gates and review. It changes the format only; content and selection stay the same. If YAML costs more tokens, the cap budget must be measured in the delivered form. Initial hold (superseded by the 13:14 handoff below): do not land or edit the current recipe.
+Operator request, relayed: The operator 2026-10-28 8:00 AM NY, "can we make the instructions delivered yaml? its so hard to read". Coordinator brief: a separate switch, default OFF, guidance category, on its own branch, same gates and review. It changes serialization while preserving whole text and the existing selection policy; format cost can change which whole episodes fit. If YAML costs more tokens, the cap budget must be measured in the delivered form. Initial hold (superseded by the 13:14 handoff below): do not land or edit the current recipe.
 
 Branch `claude/instruction-memory-yaml`, cut from `claude/bounded-model-input` (instruction-memory-cap-v1), because both change the same renderer.
 
-## Measured choice (a702 T1301, Qwen3.6 /tokenize, report `2026-10-28_instruction-memory-rule-a`)
+## Historical prototype measurement (a702 T1301, Qwen3.6 /tokenize, report `2026-10-28_instruction-memory-rule-a`)
 
 | Form | Capped T1301 chars | Tokens |
 |---|---|---|
@@ -18,7 +18,7 @@ The built form costs about 5–10% more tokens than JSON for the same episodes. 
 
 - Header: the selected-form header, with "pages follow the columns below" reworded to "each page gives its speaker, map, state event and exact text". Then the left-out line (only when the cap leaves something out), then one line explaining carried-over fields.
 - Each episode: `turn`, `delivered_result`, `dialogue_events`, `pages`. A page writes `speaker`, `speaker_source`, `map`, `map_id` only when they differ from the page before, then always `state_event` and `text`.
-- Text uses a `|-` block scalar, which keeps quotes, colons, `#` and POKéNAV as they are. It falls back to a JSON string (valid YAML) for empty text, a leading space or newline, trailing spaces on any line, a blank line, a final newline, or any control, C1, U+2028/2029 or BOM character.
+- Text uses a `|-` block scalar, which keeps quotes, colons, `#` and POKéNAV as they are. It falls back to a JSON string (valid YAML) for empty text, a leading space or newline, trailing spaces on any line, a blank line, a final newline, or any control, C1, U+2028/2029, BOM, lone surrogate or U+FFFE/FFFF character.
 - Other scalars are plain only if they start with a letter, use letters, digits, `_ .,'()/&-`, do not end in a space or `.`, and are not a YAML 1.1 bool/null word. Otherwise they are JSON strings.
 - `current` is a small mapping, or `current: null`.
 - Applies to the selected form (milestone-instruction-memory-v1 ON). The older form is already YAML-like and stays unchanged.
@@ -31,9 +31,9 @@ The built form costs about 5–10% more tokens than JSON for the same episodes. 
 - [x] Wiring removal check: without the flag in `observedInstructions`, 2 failed; restored, 5/5.
 - [x] Round trip: 56 recorded selected blocks (every 40th in a702 and 88ea, `yaml-sample.mjs`). The built YAML equals `yaml_form.to_yaml_compact` byte for byte, and PyYAML reads it back to identical fields and text. Capped YAML (`replay-cap.mjs`, `rule_a2.py` YAML mode): a702 T700 15,915 and T1301 18,991 (27 kept); 88ea T400 17,164 and T800 18,986, byte-identical. The JSON path is unchanged (a702 T1301 still 15,923).
 - [x] Explainer `docs/explainers/instruction-memory-yaml-v1.html` (real a702 excerpt in both forms, token table, quoting rules), README, FEATURE_EXPLAINERS, panels/server tests; pages-check clean; headless 1280/375 with no overflow.
-- [ ] Gates: `just lint`, full `just test`. Waiting for a coordinator heavy-CPU window; focused tsc and eslint are clean.
-- [ ] Review: personas across the Claude CLI, Codex CLI and fallback lanes.
-- [ ] Final sync, full gates, required review and board-controlled landing; bundle ON/control OFF under the superseding operator instruction.
+- [x] Gates: full isolated lint/build/test/vendor passed on4c4649b80; final canonical combined build/test/vendor passed on607739b69, all90percentfloors and3protectedcards.
+- [x] Review: ClaudeCLI +independentGPT +distinctSol/Astra allLGTM under verified standing Grok waiver, including cumulative Unicode fixes.
+- [x] Final sync, checks, reviews and board-controlled FF landing; served bundleON/controlOFF under superseding operator instruction.
 
 ## Synced with claude/bounded-model-input (which carries main 56a54f7ab: instruction-memory-dedup-v1 and the cap's round-1 fixes)
 
@@ -93,3 +93,16 @@ Unicode fix GREEN: existing literal-unsafe owner rejects isolatedD800–DFFF plu
 Validated RED8assertions→GREEN32 YAML tests; restored broader179agent PASS, focused eslint and agent-only build PASS. Fresh42mutation attempts eachAssertionError/exit1 and source hashes restored; nine new mutations separately exercise surrogate range/operands/endpoints, both literal noncharacters and both quoted regex operands. Snapshotted under unicode-fix-mutations-20261028, uniquely named and immutable. Earlier reruns reused mutation filenames; old detailed33attempt logs/receipt were overwritten and cannot be claimed durably retained. Those historical attempts were reviewed at the time, but only this fresh42attempt snapshot is the retained final mutation proof.
 
 Native320OFF comparisons and8reference cuts rerun after fix remainexact. PyYAML6.0.3 reconstructs10native+7edge vectors (17total) including all4newUnicode values in text, carried metadata, current andlocations. Largestnative18,989; originalprefixhashes unchanged. Candidate built viewer headless proof nowPASS: ONcard→explainer, exactservedbytes,1280/1440/375, trace→selectedledger→rawJSON. Synthetic UI fixture labeled as such, archivedframe supportsviewer only; not a gameplayrun. First browserattempt failedbecause phone hides desktopnavigationbutton; second usesexistingphonepageselect, no productchange. Final fullbuild/gates/liveproof stillpending.
+
+
+## Landing and live receipt — COMPLETE, 2026-10-28
+
+Exact reviewed YAML code4c4649b80 landedFF. Canonical postmerge uncovered pre-existing near4GBpaneltestretentionpressure; separatelyapproved/reviewed heapbudgetc61ebd4f1 and exactguardexpectation607739b69 landedFF underexplicitcoordinator repair-slot instruction. AllselectedClaude/GPT/Sol/Astra lanesLGTM for each cumulative reviewedchange, reducedvendordiversityunderprimaryverifiedhumanGrokwaiver; invalid5verdictClaudeformatattemptnotcredited, same-packetretryoneLGTM/exit0. No localinference reviewer.
+
+Final canonical607739b69 build0, justtest0, vendor0:4936agent/2292viewer/4869Python/116gateway and3protectedtrainercards. TSagent line/branch/function99.21/92.69/97.50%; viewer98.33/90.76/94.95%; Python97.50/93.62/99.89%; gateway99.12/96.22/100%. Every90percentfloorpassed. Sixprotectedprocessidentities unchanged duringcombinedgate. OriginalfullYAMLlint/build/test/vendor on4cpassed; changedPythonexactguardalsofocusedruff0 and6testsPASS withtwoactualnegativecheckmutations.
+
+ONE justviewer-main refresh at17:29:45EDT undernonblockingpreparelock; cleanpersistentruntime /Users/user/.cache/pokebench/viewer-instruction-memory-yaml-607739b699ea, servedstamp607739b69 dirtyfalse, cleanGitstatus, sole8790listenerPID205. Sixprotectedprocessidentities unchanged;559runsbefore/after,0lost. Browsermodules+explainerHTTPbytes matchruntime/canonicalsources andno build-skewproblem.
+
+Actualexisting Qwen9c88 RUNNING, live240x160framedecodedandpixelsinspected. NewYAMLcard saysNOTRECORDED onexistingrun; pointer+keyboardopenscorrectexplainer at1280/1440/375, screenshotsopened. Existingrunflags/controllers/budgets/source/historicalmetadatauntouched. Actualservedruntimeprojectsall4currentrecipes/everyphase: YAMLbundletrue/controlfalse; player-map-visibility trueinbotharms. No newgameplay/inference/launchperformed. This proves configuration forfuturestarts andservedUI, notgameplaybenefit orYAMLretrofitintoactiveplayer.
+
+Durablereceipts: runs/reviews/instruction-memory-yaml-final-20261028 and runs/reviews/viewer-coverage-heap-final-20261028; screenshots runs/mockups/instruction-memory-yaml-v1/live-shots. Oldoverwrittenmutation/OOMdetailqualificationsremainexplicit above; final42mutation snapshot andnativeOOMexcerpts retained, no lostfile falselycredited. Worklog remainsactive; no archiveauthorized.

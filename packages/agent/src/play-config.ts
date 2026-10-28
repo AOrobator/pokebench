@@ -1,3 +1,4 @@
+import {destinationFirstPrompt} from "./destination-first.js";
 import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
@@ -278,7 +279,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
     prompt += `\n\n${instructionGoalsSection(features)}`;
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
-  return prompt;
+  return features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.

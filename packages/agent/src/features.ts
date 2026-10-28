@@ -304,6 +304,7 @@ export const SWITCHABLE_FEATURES = [
   "neutral-yes-no-readout-v1",
   "instruction-memory-cap-v1",
   "pokenav-call-auto-advance-v1",
+  "destination-first-navigation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -728,6 +729,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("neutral-yes-no-readout-v1", "observation", "NEUTRAL YES/NO CONTROLS", "yes-no-answer-readout-v1", "Default off when omitted; ON in the current bundle by operator approval on 2026-10-28. Replaces the other-option instruction with a fixed YES, NO control mapping and the current selection. Reports B as NO only for handlers where it takes the NO branch; the battle forfeit box says B closes without choosing. Applies to the same ready, known YES/NO boxes as v1. No suggested answer or story objective. Off: the original To answer YES/NO instruction, byte for byte."),
   on("instruction-memory-cap-v1", "guard", "INSTRUCTION MEMORY CAP", null, "Default off (the operator 2026-10-28: \"we def need to have a hard cap on instruction memory. nothing we give to the model should be able to grow unbounded\", after run a702's request reached 66,676 tokens against a 65,536 window; rule A, variant A′). It caps either memory form: the episodes milestone-instruction-memory-v1 keeps when that switch is on, or every delivered episode when it is off. The OBSERVED INSTRUCTION MEMORY block stays at or under 16,000 characters, about 6,100 Qwen3.6 tokens. It keeps or leaves out whole episodes and never cuts their text. Each episode is taken in this order. 1, the story anchor: the episode the latest observation readout's story line came from, unless the quote names a gym leader whose badge flag is set. 2 (checked first, never kept, even for the anchor), proven done: a pret-audited milestone-memory template whose milestones are recorded, or an episode whose every page is a pret receipt string (item put away, badge received, POKéNAV registration, berry picked) or a line said by the trainer the player faced while still unbeaten, whose trainer flag is now set (not gym leaders). 3, nearby, kept: heard on the current map, a connected map or a map a listed warp leads to. 4, named target: names an unvisited pret map section, a story character or gym leader not yet heard from, or a key item in the bag. 5, the rest. Every step is under the cap: 1, 3, 4 then 5 are added newest first while the whole block fits, and a proven-done episode (2) is never kept. Under the cap, observed_locations keeps its newest whole entries within 2,000 characters and counts the rest, and current is left out whole (current_left_out) only if the block would pass the cap even with no episodes. When any episode is left out, one line after the header says \"N other episodes are left out and remain in the run recording.\" When nothing is left out the block is byte-for-byte unchanged. 2, proven done, also covers 15 story checkpoints from the move-in to the DEVON GOODS delivery, each closing a scene's speakers on its maps once a pret flag or var the harness reads is set. Off: the block has no size limit."),
   on("pokenav-call-auto-advance-v1", "guidance", "POKéNAV CALL AUTO-ADVANCE", "pokenav-short-list-v1", "Default off; explicitly enabled in the current bundle. Advances verified Match Call text with ordinary A presses and preserves the call text. In the native forced tutorial, opens POKéNAV and MATCH CALL, calls the sole registered contact, and exits after the required call. Stops on unknown ownership, changed map/contact, unexpected menu, 50 presses or 90 seconds. Ordinary contact selection stays with the model. Off: no automatic PokéNav inputs or call-printer readout; existing results and prompts are unchanged."),
+  on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1113,6 +1115,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("neutral-yes-no-readout-v1"),
     ...when("instruction-memory-cap-v1"),
     ...when("pokenav-call-auto-advance-v1"),
+    ...when("destination-first-navigation-v1"),
   ];
 }
 

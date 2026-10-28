@@ -17,7 +17,7 @@ describe("compact-map-grid-v1 registry",()=>{
  });
 
  it("is a server feature that is turned off on the game server unless on",()=>{
-  expect(SERVER_FEATURES.at(-1)).toBe(ID);
+  expect(SERVER_FEATURES[98]).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });

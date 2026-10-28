@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {describe,it,expect} from 'vitest';
 import type {AgentMessage} from '@mariozechner/pi-agent-core';
-import {ALL_ON,SWITCHABLE_FEATURES,SERVER_FEATURES,playHarnessFeatures} from './features.js';
+import {ALL_ON,SWITCHABLE_FEATURES,SERVER_FEATURES,playHarnessFeatures,featureInfo} from './features.js';
 import {featuresOf} from './features.js';
 import {normalizeFeatures} from './play-preset.js';
 import type {RunEvent} from './events.js';
@@ -38,7 +38,7 @@ describe('move-learn-type-matchup-v1',()=>{
   const y=make();y.observe({...state,seq:40000,screen:'overworld',active_ui:null});y.observe({...result,seq:40001,state_seq:40000});expect(y.block()).toBeNull();
  });
  it('registers default OFF and server delivery without changing prior features',()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(MATCHUP_ID)).toBe(305);expect(SERVER_FEATURES).toContain(MATCHUP_ID);
+  expect(SWITCHABLE_FEATURES.indexOf(MATCHUP_ID)).toBe(305);expect(SERVER_FEATURES).toContain(MATCHUP_ID);expect(featureInfo(MATCHUP_ID).needs).toBe('battle-effective-damage-v1');
   const {[MATCHUP_ID]:omitted,...old}=featuresOf([]);expect(omitted).toBe(false);expect(normalizeFeatures(old)[MATCHUP_ID]).toBe(false);expect(featuresOf([])[MATCHUP_ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[MATCHUP_ID]:false},null)).not.toContain(MATCHUP_ID);
  });
@@ -61,7 +61,7 @@ describe('move matchup delivery boundaries',()=>{
    const observers:((e:RunEvent)=>void)[]=[];
    const noop=()=>{};
    const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLedgerContext:noop,recordNavigationContext:noop,recordMilestoneHint:noop,recordBeliefLedger:noop,recordLoopBreaker:noop};
-   const wired=contextTools({...featuresOf([]),[MATCHUP_ID]:on},recorder,m=>Promise.resolve(m));
+   const wired=contextTools({...featuresOf([]),'battle-effective-damage-v1':true,'battle-details-v2':true,'expanded-menu-battle-information-v1':true,'ram-state-v1':true,[MATCHUP_ID]:on},recorder,m=>Promise.resolve(m));
    for(const e of events)for(const o of observers)o(e);
    return wired;
   };

@@ -66,6 +66,7 @@ def read_state(
     links: LinkCache | None = None,
     visibility: MapMemory | None = None,
 ) -> GameState:
+    matchup = "move-learn-type-matchup-v1" not in off and "battle-effective-damage-v1" not in off
     state = read_game_state(
         read,
         maps,
@@ -79,11 +80,9 @@ def read_state(
             "battle-details-v2",
             "battle-triage-guidance-v1",
             "battle-effective-damage-v1",
-            "move-learn-type-matchup-v1",
         }
         <= off,
-        battle_damage_enabled=not {"battle-effective-damage-v1", "move-learn-type-matchup-v1"}
-        <= off,
+        battle_damage_enabled="battle-effective-damage-v1" not in off,
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
         displayed_names_enabled="displayed-place-names-v1" not in off,
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
@@ -128,8 +127,7 @@ def read_state(
         <= off,
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
         move_learning_early_enabled=(
-            "move-learn-type-matchup-v1" not in off
-            or (MOVE_EARLY not in off and MOVE_COMPARISON not in off)
+            matchup or (MOVE_EARLY not in off and MOVE_COMPARISON not in off)
         ),
         berry_readout_enabled="berry-readout-v1" not in off,
         overhead_cover_enabled=SCREEN_CENTER not in off,
@@ -139,8 +137,8 @@ def read_state(
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
-        type_gap_enabled=not {TYPE_GAP, "move-learn-type-matchup-v1"} <= off,
-        move_matchup_enabled="move-learn-type-matchup-v1" not in off,
+        type_gap_enabled=TYPE_GAP not in off,
+        move_matchup_enabled=matchup,
         map_wide_triggers_enabled="map-wide-triggers-v1" not in off
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,

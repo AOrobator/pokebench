@@ -211,6 +211,7 @@ class GameState:
     pokedex: Pokedex | None = None
     # type-gap-team-v1: party species and move types and the ROM type chart; None when off.
     type_gap: TypeGap | None = None
+    move_matchup_enabled: bool = False
 
 
 DYNAMIC_WARP = 0x14
@@ -564,7 +565,11 @@ def read_game_state(
             menu_window_drawn=window_drawn,
             mid_frame=mid_frame_enabled and readable and torn,
             type_gap=read_type_gap(read, None)
-            if move_matchup_enabled and field_initialized and not pregame
+            if move_matchup_enabled
+            and field_initialized
+            and not pregame
+            and battle is not None
+            and battle.ready is True
             else None,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
@@ -923,6 +928,11 @@ def read_game_state(
     state = _with_training(
         read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )
-    if type_gap_enabled and state.started:
+    matchup_scene = move_matchup_enabled and (
+        state.move_learning is not None or (state.battle is not None and state.battle.ready is True)
+    )
+    if matchup_scene:
+        state = replace(state, move_matchup_enabled=True)
+    if (type_gap_enabled or matchup_scene) and state.started:
         state = replace(state, type_gap=read_type_gap(read, state.party))
     return state

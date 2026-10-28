@@ -42,7 +42,7 @@ from pokebench_env.move_learn import (
 )
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
-from pokebench_env.rerender import PORYMAP_MAPS, read_state, render
+from pokebench_env.rerender import PORYMAP_MAPS, read_state, render as _render
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import FrameSettle, Settled
 from pokebench_env.ui_state import ActiveUi
@@ -107,7 +107,14 @@ def maps() -> MapNames:
 
 
 def state(name: str, off: frozenset[str] = frozenset()) -> GameState:
-    return read_state(archived(name), maps(), active_ui=True, off=off)
+    return read_state(
+        archived(name), maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"}
+    )
+
+
+def render(snapshot: GameState, off: frozenset[str]) -> str:
+    """Keep the historical comparison tests on their original feature set."""
+    return _render(snapshot, off | {"move-learn-type-matchup-v1"})
 
 
 def interface_block(text: str) -> list[str]:
@@ -273,7 +280,10 @@ def test_production_run_hooks_the_frame_settle_only_with_the_switch_on(
     monkeypatch: pytest.MonkeyPatch, off: str, hooked: bool
 ) -> None:
     monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "scene-journal-safe-capture-v1"]))
+        "POKEBENCH_FEATURES_OFF",
+        ",".join(
+            filter(None, [off, "scene-journal-safe-capture-v1", "move-learn-type-matchup-v1"])
+        ),
     )
     captured: list[FrameSettle] = []
     original = serve.install_frame_settle

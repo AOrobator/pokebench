@@ -745,7 +745,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
   on("instruction-memory-junk-filter-v1", "guard", "INSTRUCTION MEMORY JUNK FILTER", "instruction-memory-cap-v1", "Default off. Filters whole historical instruction episodes before the existing cap fills: source-matched service text, berry trees, lead-less signs, represented repeats, faced-trainer lines and approved generic NPC flavor. Current story anchors and useful leads stay; named-place/person/key-item protection reuses the cap owner. Cutter’s House and the Cycling Road camper stay; the Rock Smash exchange retires only when native flag 0x6B is set. Unknown variants with useful signals stay. No text is cut and no answer or route is selected. Off: the existing cap and instruction memory are byte-identical."),
   on("id-card-bound-v1", "observation", "BOUNDED ID-CARD MENTIONS", "people-id-cards-v1", "Default off. An ID card’s other pages that name this person keep the newest contiguous whole pages whose quoted lines fit in 1,500 Unicode code points, shown oldest first. The newest page always stays even if it alone exceeds that budget. The header counts omitted earlier pages and, when dialogue auto-advance provides it, says get_dialogue finds them. All other card lines and the fingerprint from the full list stay unchanged. Off: every other page that names this person is listed, as before."),
-  on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", null, "Default off. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
+  on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", "battle-effective-damage-v1", "Default off. Needs the existing effective-damage readout and its battle-information dependencies. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -842,8 +842,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "neutral-yes-no-readout-v1",
   "pokenav-call-auto-advance-v1",
   "player-map-visibility-v1",
-  "move-learn-type-matchup-v1",
   "compact-map-grid-v1",
+  "move-learn-type-matchup-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {

@@ -95,6 +95,12 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 
 ## Session Log
 
+- 2026-10-28: Full `just test` on 68c6b4f0e (CPU window, 10:00:58 to 10:04:53 PM) passed:
+  - agent 331 files, 4692 tests (statements/branches/functions/lines 96.51/92.69/97.48/99.19);
+  - viewer 164 files, 2155 tests (95.24/91.16/95.12/98.27);
+  - Python 4463 passed (gate lines 97.48, branches 93.61, functions 100; floor 90);
+  - claude-gateway 69 passed (99.41/97.44).
+  The trainer-card step first failed 3/3 because the worktree lacked the ignored card art ("Approved font/art did not load"). Rerun alone with the documented `POKEBENCH_CARD_ART=~/dev/pokebench/runs/sprites/trainer-card-v1`, it passed 3/3.
 - 2026-10-28: Synced with main ae0e36582 (CPU window from the coordinator, 9:59 PM). Main had four new switches: scene-followup-prompt-v1, pokenav-short-list-v1, menu-option-honest-refusal-v1 and no-story-foreknowledge-v1. Mine are appended after them, and the absolute pins are now SWITCHABLE_FEATURES 285/286/287 and playHarnessFeatures 309/310/311. Targeted after sync: 20 agent suites, 337 passed; viewer server, panels and next-run, 387 passed; tsc clean.
 - 2026-10-28: Round-4 fixes. 28 tests in the three suites; 20 touched suites 336 passed; replay byte-identical.
 - 2026-10-28: Round-2 fixes. Three new suites: 26 passed. 20 touched suites: 334 passed. tsc and eslint are clean. The a702 replay is byte-identical.

@@ -1806,3 +1806,13 @@ it("links unique instruction memory to its tracked explainer",()=>{
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("Unique instruction memory");expect(html).toContain("OFF");expect(html).toContain("ON");
 });
+
+it("links the neutral YES/NO card without guessing a historical activation",()=>{
+ const id="neutral-yes-no-readout-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[]});
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(log),[{id,title:"NEUTRAL YES/NO CONTROLS",description:"Both choices.",group:"observation",switchable:true,needs:"yes-no-answer-readout-v1"}]);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.textContent).toContain("NOT RECORDED");
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

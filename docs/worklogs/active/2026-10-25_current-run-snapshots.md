@@ -3,7 +3,7 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** implementation — M2 landed dormant; post-main test blocked
+**Current Phase:** implementation — M2 closed dormant; M3 pending
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots-service`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -122,9 +122,11 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M2 (landed dormant; post-main existing human-test timeout blocks M3)
+## Current Milestone: M3 (contract/RED next; no service activation or shared refresh)
 
 ### Completed Milestones
+
+M2 dormant projector: source21d8e71d0; original main timeout retained; subsequent full canonical post-main PASSfd621a45d, all stages/coverage. No live service activation or shared refresh.
 
 M1 foundation: source landed7c3b52c12; original postmerge failure retained; current-main closeout PASS2ad999682. Review disposition includes explicit operator Sol/Grok waivers. Runtime service/API/browser integration not claimed.
 
@@ -390,3 +392,7 @@ M2 round2 closeout: frozen76987366a/base d06b9f4db/digestddfd91bbe51fe60e1d46262
 Main executable dependency moved to791db6f3c (PokéNav). Final owned sync21d8e71d0d7982b12f455c72fc63d3c1185f6e6f has EXACT same binary own-delta SHA256ddfd91bb...dba46, independently asserted before/after merge. Fresh synced gates all PASS: build19.76s/lint87.14s/test150.13s/vendor0.12s, receipts m2-sync-final-* and m2-final-sync.json. Joined board with actual session 00000000-0000-4000-8000-5c2156fb325f, waited position3→2→1; canonical main clean. Fast-forwarded main exactly to21d8e71d0. No existing server/app/CLI startup imports this service, no card writer changes, no runtime activation/shared refresh/actual game probes or active-run control.
 
 Canonical postmerge build PASS20.83s (needed fresh compiled native fixture modules). Required just-test FAIL36.92s: unchanged agent live-human.test.ts32 assigned-human/canonical-lease case timed out5000ms (observed5214ms),4642PASS/1FAIL. Viewer/Python/protected-card postmerge stages not reached. Exact test/live.ts M2 diff empty; existing fragile-child-recovery/history records same cold-live-entry timeout, source call graph imports broad gameplay wiring. Root cause not yet experimentally diagnosed, no automatic retry/timeout increase/skip/suppression or unrelated code fix. CPU released immediately and exact existing-fixture blocker routed to coordinator/previous recovery owner to avoid duplication. Receipt m2-postmerge-failure.json plus build/test logs preserved. M2 source landed dormant; post-main closeout NOT complete and M3-M5 NOT started. No activation permission inferred from landing. This evidence-only main commit touches only docs/worklogs; release landing slot after receipt.
+
+M2 post-main closeout: coordinator first proposed isolated live-human test; owner correctly declined treating a targeted-only result as full-gate success because viewer/Python/cards had not run. Coordinator replaced it with one FULL just-test in explicitly isolated CPU window. Initial START21:38 was immediately retracted when an unreserved focused-instruction-context suite was detected; owner had NOT started, acknowledged HOLD. Actual START21:40 only after that suite ended and coordinator confirmed no competing heavy tests/builds. No targeted-only re-run occurred. No source/test/deadline/floor/skip edits, no retry loop, original failure retained.
+
+Full canonical just-test PASS150.50s on fd621a45d0f1479eee53c615a2c4271020530aa3, HEAD unchanged before/after and zero executable changes since built21d8e71d0. Agent4643/viewer2154/Python4463/gateway69/protectedcards3 PASS; all coverage floors and actual native3 child-process cases included. m2-closeout-main-test.json/log record exact identities, source stability and changed CPU constraint. This satisfies required full main check without an assistant gate waiver; original timeout root cause is not claimed fixed, separate existing-fixture repair remains coordinator-owned. CPU released immediately after process exit. M2 implementation/review/source landing/post-main gate complete; this docs-only closeout leaves runtime activation/shared refresh STOP intact. M3 endpoint implementation may proceed after receipt. No actual-run service, health probe, gameplay/server/runner input or process change occurred.

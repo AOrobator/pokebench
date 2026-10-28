@@ -69,19 +69,26 @@ export class ObservedInstructions {
   // the exact recorded YAML even when this convenience index fills.
   return [...refs].sort((a,b)=>a-b).slice(-64);
  }
- placeEvidence():string|null {
+ placeEpisodes():readonly InstructionEpisode[] {
   const retention=this.retention();
   const kept=new Set(retention?.kept.map(e=>e.result_event)??this.archive().map(e=>e.result_event));
-  const episodes=this.archive().filter(e=>kept.has(e.result_event)&&e.pages.some(p=>/\b(?:upstairs|downstairs|next door|lives|went|house|lab|town|city|route|woods|gym)\b/i.test(p.text)));
+  return this.archive().filter(e=>kept.has(e.result_event)&&e.pages.some(p=>/\b(?:upstairs|downstairs|next door|lives|went|house|lab|town|city|route|woods|gym)\b/i.test(p.text)));
+ }
+ placeEvidence():string|null {
+  const episodes=this.placeEpisodes();
   if(episodes.length===0)return null;
   return "DELIVERED PERSON AND PLACE EVIDENCE — historical quotes, not current presence or an active objective. Unknown speakers stay unknown; relative words refer to the quoted source location. Current observations override old statements. No route or person identity is inferred. Exact whole episodes; audited native completion may retire them, unknown variants stay.\n"+quote({columns:["speaker","speaker_source","text","source_map_display","source_map_name","map_id","state_event"],episodes:episodes.map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,p.map_display??null,p.map,p.map_id,p.state_seq])}))});
  }
- text():string|null {
-  if(this.episodes.size===0)return null;
+ text(places?:readonly InstructionEpisode[]):string|null {
+  const hasBase=this.episodes.size>0;
+  if(!hasBase&&(places?.length??0)===0)return null;
   const retention=this.retention();
-  if(retention!==null){
-   const selected=new Set(retention.kept.map(e=>e.result_event));
-   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq])})),current:this.current};
+  if(retention!==null||places!==undefined){
+   const selected=new Set(retention?.kept.map(e=>e.result_event)??this.archive().map(e=>e.result_event));
+   const episodes=new Map(this.archive().filter(e=>selected.has(e.result_event)).map(e=>[e.result_event,e]));
+   for(const episode of places??[])episodes.set(episode.result_event,episode);
+   const spatial=new Set(places?.map(e=>e.result_event));
+   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:[...episodes.values()].map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(places===undefined?[]:spatial.has(e.result_event)?[p.map,p.map_display??null]:[null,null])])})),...(hasBase?{current:this.current}:{}),...(hasBase&&places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})};
    return "OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n"+quote(payload);
   }
   const out=[
@@ -105,10 +112,11 @@ export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecord
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{
-  const base=memory.text(),placeText=places?.placeEvidence()??null;
+  const unique=features["instruction-memory-dedup-v1"]&&places!==null?places.placeEpisodes():undefined;
+  const base=memory.text(unique),placeText=unique===undefined?places?.placeEvidence()??null:null;
   const text=base===null?placeText:placeText===null?base:`${base}\n\n${placeText}`;
   if(text===null)return transform(messages);
-  const retention=placeText===null?memory.retention():null;
+  const retention=(unique===undefined?placeText===null:unique.length===0)?memory.retention():null;
   recorder.recordLedgerContext({text,evidence:[...new Set([...memory.evidence(),...(places?.evidence()??[])])].slice(-64),...(retention===null?{}:{retention})});
   return transform([...messages,{role:"user",content:text,timestamp:Date.now()}]);
  };

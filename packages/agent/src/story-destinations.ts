@@ -12,7 +12,9 @@ import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
+import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS,canonicalStoryCharacterName,storyCharacter} from "./script-line-presence.js";
+import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {semanticWalk} from "./semantic-targets.js";
 
 const closed={additionalProperties:false};
@@ -126,6 +128,24 @@ function namedIn(text:string):string[] {
  return out;
 }
 
+// self-named-speaker-v1: a page in which its speaker gives a name in capitals ("They call me MR. BRINEY.",
+// "I'm MR. STONE, the PRESIDENT of…"). Whole words in capitals only, at least three letters in all; a full stop is part of
+// the name only after a title (MR., DR., …), so "I'm ROXANNE. POKéMON…" names ROXANNE.
+const NAME_WORD="(?:(?:MRS|MR|MS|DR|PROF|CAPT)\\.|[A-Z][A-Z'é]*(?![A-Za-z'é]))";
+const SELF_NAMED=new RegExp(`(?:^|[\\s!?.…])(?:They call me|I'm|I am|My name is) (${NAME_WORD}(?: ${NAME_WORD})*)`);
+export function selfName(text:string):string|null {
+ const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]??null;
+ return name!==null&&!name.endsWith(".")&&/[A-Z]{3}/.test(name.replaceAll(/[^A-Z]/g,""))?name:null;
+}
+// retire-reached-story-line-v1: a milestone the game observed during the run, a story one or any step of the extended
+// campaign catalog (a place reached counts there too; The operator 2026-10-28), other than a battle won (a trainer's, the rival's
+// or a leader's), another measurement-only step or an optional activity.
+const BATTLE_WIN=/_TRAINER_|_DEFEATED$|_WON$/;
+function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
+ const extended=EXTENDED_PROGRESS_NAMES.has(event.name);
+ return (event.kind==="story"||extended)&&event.origin==="observed"&&!BATTLE_WIN.test(event.name)&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&(extended||!MEASUREMENT_ONLY_MILESTONES.has(event.name));
+}
+
 export class StoryDestinations {
  private readonly lines:StoryLine[]=[];
  private readonly pending=new Map<string,StoryLine[]>();
@@ -136,15 +156,20 @@ export class StoryDestinations {
  // unknown; it never becomes evidence that an instruction is complete.
  private readonly birchLabStages:{readonly seq:number;readonly stage:number|null}[]=[];
  // unfinished-activity-v1: the maps the player entered, in order, with the turn.
- private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
+ private readonly arrivals:{readonly map:MapId;readonly turn:number;readonly seq:number}[]=[];
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
  private readonly taskCompletion:TaskGoalCompletion|null;
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
+ // retire-reached-story-line-v1: the story milestones the game recorded, in order.
+ private readonly steps:{readonly turn:number;readonly seq:number;readonly name:string}[]=[];
+ // retire-reached-story-line-v1: the recorded event (the page's state, else its dialogue event) each story line was shown at.
+ private readonly shownAt=new WeakMap<StoryLine,number>();
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
+  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,seq:event.seq,name:event.name});return;}
   if(event.type==="state"&&"started" in event){
    this.taskCompletion?.observe(event);
    const map=event.map_id;
-   if(event.started&&map!==null){const last=this.arrivals.at(-1);if(last===undefined||!same(last.map,map))this.arrivals.push({map,turn:event.turn});}
+   if(event.started&&map!==null){const last=this.arrivals.at(-1);if(last===undefined||!same(last.map,map))this.arrivals.push({map,turn:event.turn,seq:event.seq});}
    // An unreadable state is a boundary, not permission to reuse an older known stage for later dialogue.
    const stage=event.story?.birch_lab_stage ?? null;
    if(this.birchLabStages.at(-1)?.stage!==stage)this.birchLabStages.push({seq:event.seq,stage});
@@ -160,7 +185,12 @@ export class StoryDestinations {
   }
   if(event.type!=="tool_result")return;
   const lines=this.pending.get(event.id);this.pending.delete(event.id);
-  if(lines!==undefined&&!event.is_error)this.lines.push(...lines.map(line=>line.deliveredPlace===undefined?line:{...line,deliveredPlace:{...line.deliveredPlace,result_event:event.seq}}));
+  if(lines!==undefined&&!event.is_error)this.lines.push(...lines.map(line=>{
+   if(line.deliveredPlace===undefined)return line;
+   const delivered={...line,deliveredPlace:{...line.deliveredPlace,result_event:event.seq}};
+   const at=this.shownAt.get(line);if(at!==undefined)this.shownAt.set(delivered,at);
+   return delivered;
+  }));
  }
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
@@ -184,15 +214,26 @@ export class StoryDestinations {
  private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
   const tasks=this.taskCompletion?.tasks(pages);
-  const makeLine=(page:Page,line:StoryLine):StoryLine=>{const next=this.withBirchLabStage(page,line),task=tasks?.get(page);return task===undefined?next:{...next,task};};
+  const makeLine=(page:Page,line:StoryLine):StoryLine=>{
+   const staged=this.withBirchLabStage(page,line),task=tasks?.get(page),next=task===undefined?staged:{...staged,task};
+   if(this.retireReached)this.shownAt.set(next,page.state_seq??dialogueEvent);
+   return next;
+  };
   // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
   // coordinate triggers show this exact guidance and physically lead the player to the Gym.
   const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
   const gymBoy=(page:Page)=>(page.speaker===null&&page.speaker_source===null)||(page.speaker==="BOY_2"&&page.speaker_source==="faced_sprite");
   const forcedGym=this.scriptedGuidance&&pages.some(page=>gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>gymBoy(page)&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
+  // self-named-speaker-v1: sprite kinds and printed names this conversation has heard introduce themselves.
+  const sprites=new Map<string,string>(),named=new Set<string>();
   for(const page of pages){
    if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
-   const speaker=this.speaker(page);
+   if(this.selfNamed&&page.speaker!==null){
+    const name=selfName(page.text);
+    if(name!==null){named.add(name);if(page.speaker_source==="faced_sprite")sprites.set(page.speaker,name);}
+   }
+   const own=this.speaker(page);
+   const speaker=own!==null||!this.selfNamed||page.speaker===null?own:page.speaker_source==="faced_sprite"?sprites.get(page.speaker)??null:page.speaker_source==="name_prefix"&&named.has(page.speaker)?page.speaker:null;
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
    if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
@@ -245,6 +286,14 @@ export class StoryDestinations {
   const doneReason=stageBound?stageRetirement(line,resolved,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
   if(doneReason!==null)return {line,resolved,done:true,doneReason};
   const reached=this.activity?this.reached(line,resolved,here):null;
+  if(reached!==null&&this.retireReached){
+   // Recorded order (event seq), not turns: an arrival and a story step can share a turn.
+   const shown=this.shownAt.get(line);
+   const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here,shown)?.at.seq);
+   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??Infinity));
+   const step=this.steps.find(s=>s.seq>last);
+   if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
+  }
   return reached===null?{line,resolved}:{line,resolved,reached};
  }
  // Each place reached: the map the player is in now (since its latest arrival), or the first arrival after the line.
@@ -253,15 +302,20 @@ export class StoryDestinations {
   const out:Reached[]=[];
   for(const r of resolved){
    if(r.target===null)return null;
-   const map=r.target.map_id;
-   // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
-   const entered=this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
-   const stay=entered===undefined&&same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
-   if(entered!==undefined)out.push({target:r.target,turn:entered.turn,entered:true});
-   else if(stay!==undefined)out.push({target:r.target,turn:stay.turn,entered:false});
-   else return null;
+   const found=this.arrival(line,r.target.map_id,here);
+   if(found===undefined)return null;
+   out.push({target:r.target,turn:found.at.turn,entered:found.entered});
   }
   return out;
+ }
+ // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
+ // retire-reached-story-line-v1 passes the line's shown-at event, so "since the line" is by recorded order, not turn.
+ private arrival(line:StoryLine,map:MapId,here:MapId,shown?:number):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
+  const entered=this.arrivals.find(a=>(shown===undefined?a.turn>=line.turn:a.seq>shown)&&same(a.map,map));
+  if(entered!==undefined)return {at:entered,entered:true};
+  // Retirement (shown known) needs an entry after the line; being there when it was said is not one.
+  const stay=shown===undefined&&same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
+  return stay===undefined?undefined:{at:stay,entered:false};
  }
  private resolveLine(line:StoryLine,here:MapId,player:string|null,places:readonly Place[],heads:ReadonlySet<string>):Resolved[] {
   const resolved:Resolved[]=[];
@@ -424,7 +478,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

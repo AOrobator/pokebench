@@ -48,7 +48,7 @@ Reasoning text is not evidence of cause. What the model wrote it was thinking do
    | `prior-over-evidence: no-alternative` | The model accepted the plan failed but could not form another. |
    | `spatial` | Misread the map, coordinates, warps or elevation. |
    | `interface-mechanics` | Menus, battle UI, dialogue or naming input. |
-   | `infrastructure` | Model error, emulator crash, gateway outage. Exclude it from behavior conclusions. |
+   | `infrastructure` | Model error, emulator crash, gateway outage. The run still counts in results (end reason never excludes, the operator 2026-10-27); do not attribute the infrastructure ending itself to model behavior. |
    | `harness-stop` | A loop-guard `stuck` or stall `stalled` stop ended a run that might still have progressed. Check whether the stop was right. |
    | `budget` | The run was progressing and hit the cap. |
 
@@ -81,6 +81,6 @@ State plainly what the evidence cannot show.
 - What the model saw was audited against RAM before any failure was blamed on the model.
 - Every message the model received was checked for truth.
 - Reasoning text never used as causal evidence.
-- Infrastructure failures excluded from behavior counts.
+- Infrastructure endings labelled, still counted in results; the ending itself is not scored as model behavior.
 - Hidden progress and grading blind spots reported to their owners.
 - Nothing edited, run or restarted.

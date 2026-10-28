@@ -66,7 +66,9 @@ subprocesses, paths or ROM handling.
   - Recipe `experiments/feature-configs/current.json` sha256 f6c80529… -> 2219b7d7d7b634cb67b7996739ece617ed5321eaa143363980910ea559c337bb.
   - Definition hashes (before -> after): bundle-v-control 69e22beb… -> 4d1bf70172d2…; bundle-v-control-2h c524f1c6… -> aac8acac7eb4…; glm53-flash-4h 3df4a91e… -> 1d887bbe9a12…; hyperqwen-control-3h f7ab9554… -> 742f2029b097….
   - Launch approvals: only hyperqwen-control-3h has one (andrew, 2026-10-27 3:22 PM ET, definition e88187ff…). It was already stale before this landing and still needs re-approval. The other three have none recorded.
-- [ ] `just viewer-main` (slot #1), then the post-landing `just test` on main once the coordinator relays a CPU window
+- [x] `just viewer-main`: viewer at 948095751, pid 50860 under /sbin/launchd; all 3 live gameplay processes unchanged; explainer served at 8790 and 8791.
+- [x] Post-landing `just test` on main 948095751 (CPU window 8:15 PM ET). The first attempt failed 5/4620 only because main's packages/agent/dist predated the merge ("unknown feature grass-strides-v1", plus 2 timeouts). After `pnpm -r build`, the re-run passed: agent 4620, viewer 2093, Python 4446 (97.48 / 93.60 / 100), gateway 69 (99.29 / 97.01 / 100), trainer cards 3/3.
+- [ ] ASK USER: archive this worklog
 
 ## Closing the Loop
 
@@ -82,6 +84,8 @@ operator's arm decision.
 - RED: `packages/agent/src/grass-strides.test.ts` 6 failing; `env/tests/env/test_strides.py` 4 new failing (default-refusal test passes today, as INV-2 requires).
 
 ## Surprises
+
+- `just viewer-main` builds into /private/tmp/pokebench-viewer, not into main's own packages/*/dist. Run `pnpm -r build` in the main checkout before the post-landing `just test`, or any test that imports `@pokebench/agent/features` sees the pre-merge registry.
 
 - trainer-card-check reads gitignored art from `runs/sprites/trainer-card-v1`; a fresh worktree needs `POKEBENCH_CARD_ART` (or that folder) or all 3 cards fail to load. Environment only.
 

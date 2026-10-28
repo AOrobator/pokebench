@@ -95,6 +95,7 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 
 ## Session Log
 
+- 2026-10-28: Synced with main ae0e36582 (CPU window from the coordinator, 9:59 PM). Main had four new switches: scene-followup-prompt-v1, pokenav-short-list-v1, menu-option-honest-refusal-v1 and no-story-foreknowledge-v1. Mine are appended after them, and the absolute pins are now SWITCHABLE_FEATURES 285/286/287 and playHarnessFeatures 309/310/311. Targeted after sync: 20 agent suites, 337 passed; viewer server, panels and next-run, 387 passed; tsc clean.
 - 2026-10-28: Round-4 fixes. 28 tests in the three suites; 20 touched suites 336 passed; replay byte-identical.
 - 2026-10-28: Round-2 fixes. Three new suites: 26 passed. 20 touched suites: 334 passed. tsc and eslint are clean. The a702 replay is byte-identical.
 - 2026-10-28: Round-1 fixes. 25 tests across the three suites. The 20 touched-module suites ran explicitly: 333 passed. (The earlier "328 files, 4643 tests" was a zsh unsplit-filter run that executed the whole agent suite; it also passed.) The offline replay output is byte-identical after the fix.

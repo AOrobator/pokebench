@@ -75,10 +75,11 @@ it("historical archived protocol: the next bundle: control gains the battle tool
  expect(controlBaseProblems(cook,recipeText(new URL(`../../../${cook.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
 });
 
-type Ending = "budget" | "model_error" | "never-started" | "milestone";
+type Ending = "budget" | "operator_abort" | "model_error" | "never-started" | "milestone";
 interface FakeOptions {
   readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;
   readonly extensionMs?: number;
+  readonly throwAfterEvents?: (n: number) => boolean;
   readonly ending?: (launch: FixedLaunch, n: number) => Ending;
   readonly serving?: (lane: FixedLane, n: number) => ServingReceipt;
   readonly verifyBuild?: (n: number) => string | null;
@@ -136,6 +137,7 @@ class Fake implements FixedHost {
     const ending = this.options.ending?.(l, n) ?? "budget";
     if (ending !== "never-started") writeEvents(this.runsRoot, l, ending, this.options.extensionMs ?? 0);
     this.running -= 1;
+    if (this.options.throwAfterEvents?.(n) === true) throw new Error("launcher lost the child");
     return ending === "never-started" ? 1 : 0;
   }
   snapshot(): void {
@@ -144,7 +146,7 @@ class Fake implements FixedHost {
   }
 }
 
-function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error" | "milestone", extensionMs = 0): void {
+function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error" | "milestone" | "operator_abort", extensionMs = 0): void {
   const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; target?:string|null;stopAt?:string;limits: { maxWallMs: number }; features: Record<string, boolean>; start?: { path: string; sha1: string } };
   const port = Number(new URL(l.env["POKEBENCH_GAME_SERVER_URL"] ?? "").port);
   const log = new Log();
@@ -203,22 +205,39 @@ describe("runFixed", () => {
     for (const lane of def.lanes) expect(existsSync(leaseDir(runsRoot, lane.modelUrl.replace(/^http:\/\//, "")))).toBe(false);
   });
 
-  it("replaces an invalid trial with the same arm on the same lane at the end of its phase, after a backoff", async () => {
+  it("counts a gateway-error trial as a valid outcome without replacing it, and backs its lane off", async () => {
     const { def, runsRoot, dir } = setup();
     const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "model_error" : "budget") });
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     const ledger = readLedger(join(dir, "trials.jsonl"));
-    const invalid = outcomes(ledger).filter((o) => !o.valid);
-    expect(invalid).toEqual([expect.objectContaining({ reason: "model/gateway error: model error: HTTP 502" })]);
-    const first = host.launches[0];
-    const replacement = launchesOf(ledger).find((e) => e.replaces !== undefined);
-    expect(replacement).toMatchObject({ lane: first?.lane, arm: first?.arm, phase: "confirmatory", replaces: first?.slot, slot: 13 });
-    expect(outcomes(ledger)).toHaveLength(13);
+    expect(outcomes(ledger).filter((o) => !o.valid)).toEqual([]);
+    expect(outcomes(ledger).filter((o) => o.reason === "model/gateway error: model error: HTTP 502")).toHaveLength(1);
+    expect(launchesOf(ledger).find((e) => e.replaces !== undefined)).toBeUndefined();
+    expect(outcomes(ledger)).toHaveLength(12);
     const status = parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")));
-    expect(status).toMatchObject({ valid: 12, invalid: 1, reserve: { usedMs: 900_000, totalMs: 1_800_000 } });
-    expect(status.invalidTrials).toHaveLength(1);
-    expect(status.lastError).toMatch(/^lane [AB]: model\/gateway error/);
-    expect(host.statuses.some((s) => s.lanes.some((l) => l.state === "paused" && l.reason.startsWith("invalid trial: model/gateway error") && l.retryAt !== null))).toBe(true);
+    expect(status).toMatchObject({ valid: 12, invalid: 0, reserve: { usedMs: 0, totalMs: 1_800_000 } });
+    expect(host.statuses.some((s) => s.lanes.some((l) => l.state === "paused" && l.reason.startsWith("backing off after model/gateway error") && l.retryAt !== null))).toBe(true);
+  });
+
+  it("keeps a run that began as its own outcome when the launcher errors afterwards, without replacing it", async () => {
+    const { def, runsRoot, dir } = setup();
+    const host = new Fake(runsRoot, { throwAfterEvents: (n) => n === 1 });
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+    const ledger = readLedger(join(dir, "trials.jsonl"));
+    expect(outcomes(ledger)).toHaveLength(12);
+    expect(outcomes(ledger).filter((o) => o.reason.endsWith("; launcher reported: launcher lost the child"))).toEqual([expect.objectContaining({ valid: true })]);
+    expect(launchesOf(ledger).find((e) => e.replaces !== undefined)).toBeUndefined();
+  });
+
+  it("counts an operator-aborted trial as a valid outcome, never replaces it and keeps its lane playing", async () => {
+    const { def, runsRoot, dir } = setup();
+    const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "operator_abort" : "budget") });
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+    const ledger = readLedger(join(dir, "trials.jsonl"));
+    expect(outcomes(ledger)).toHaveLength(12);
+    expect(outcomes(ledger).filter((o) => o.endReason === "operator_abort")).toEqual([expect.objectContaining({ valid: true, reason: "ended by the operator (operator_abort); progress before it counts" })]);
+    expect(launchesOf(ledger).find((e) => e.replaces !== undefined)).toBeUndefined();
+    expect(host.statuses.some((s) => s.lanes.some((l) => l.state === "paused"))).toBe(false);
   });
 
   it("pauses only the lane that cannot serve, says why, and retries it with growing backoff while the other lane plays", async () => {
@@ -434,6 +453,8 @@ describe("runFixed", () => {
     expect(outcome).toMatchObject({ valid: false, reason: "no run_start: the run never began (exit unknown); a server, emulator or checkpoint load failure" });
     expect(host.launches.some((l) => l.slot === slot.slot)).toBe(false);
     expect(checks).toBe(3);
+    // An adopted trial backs its lane off exactly like one this runner launched.
+    expect(host.statuses.some((s) => s.lanes.find((l) => l.id === "A")?.state === "paused" && s.lanes.find((l) => l.id === "A")?.reason.startsWith("invalid trial: no run_start") === true)).toBe(true);
   });
 
   it("waits for the gameplay lease of a lane's model pool, saying which pool and who holds it", async () => {

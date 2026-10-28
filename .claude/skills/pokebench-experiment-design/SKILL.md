@@ -79,7 +79,7 @@ Inputs, each with its source:
 - **Baseline rate:** the control arm's rate on the primary milestone in the latest comparable cohort, as k/n.
 - **Smallest lift worth detecting:** an operator judgment. Offer two or three values.
 - **Alpha and target power:** 0.05 and 80% by default, 90% for a headline claim.
-- **Cap, executors and outage rate:** `--failure-rate` is the share of trials lost to outages outside the arm, which are re-run (step 7). Model errors and crashes are outcomes; they are not in this rate.
+- **Cap, executors and outage rate:** `--failure-rate` is the share of launches that never begin (no `run_start`), which the runner re-runs (step 7). Every trial that began is an outcome whatever ended it, crashes and gateway errors included (the operator 2026-10-27).
 - **The operator's GPU-hour budget.**
 
 ```bash
@@ -121,9 +121,9 @@ Write these into the design, the driver and the overview:
 
   `stuck`, `stalled`, `budget`, `crash` and `model_error` count as not reached in their arm.
 - **Failures are results (PB2).** Every launched trial stays in the primary analysis, and model errors and crashes count as not reached: a treatment that causes more of them is worse.
-  - Only an outage outside the arm (the gateway down, or an emulator crash with no model call involved) is re-run, at the end of the queue, and reported.
-  - Report invalid and failed trials per arm. A predeclared sensitivity analysis may exclude failures shown to be outside the arm. Check the arms for imbalance in failures.
-- **External cohort drivers** may re-run an outage outside the arm, and order arms in randomized balanced blocks so time of day and machine drift do not line up with one arm. A driver never halts silently: it writes the stop reason where the viewer shows it.
+  - Only a trial that never began (no `run_start`) is re-run, at the end of the queue, and reported. A trial that began and then hit a gateway outage or crash is an outcome and is not re-run (the operator 2026-10-27); the runner backs that lane off.
+  - Every launched trial counts in the primary analysis whatever ended it (the operator 2026-10-27); report failures and flagged trials per arm and check the arms for imbalance. A predeclared sensitivity analysis may set aside failures shown to be outside the arm, reported beside the primary result; only the operator excludes a run (`just exclude-run`).
+- **External cohort drivers** may re-run only a trial that never began (no `run_start`); a trial that began and then hit an outage is an outcome (the operator 2026-10-27). They order arms in randomized balanced blocks so time of day and machine drift do not line up with one arm. A driver never halts silently: it writes the stop reason where the viewer shows it.
 - **Target stop:** a run with `evaluation.target` must have `native-target-stop-v1` on in every arm (`patch-results.ts` requires it); it ends the trial at the verified milestone.
 - **Several executors** (for example both 4090s):
   - Verify live that every executor serves the same model file, quantization and context. An alias name proves nothing.

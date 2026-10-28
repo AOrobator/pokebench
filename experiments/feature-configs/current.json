@@ -67,7 +67,8 @@
   "cutscene-journal-v1",
   "type-gap-team-v1",
   "supplies-v1",
-  "untalked-in-gym-v1"
+  "untalked-in-gym-v1",
+  "scene-followup-prompt-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -142,7 +143,9 @@
   "fixed-point-breaker-v1",
   "drought-battle-heal-hold-v1",
   "context-exact-count-v1",
-  "grass-strides-v1"
+  "grass-strides-v1",
+  "pokenav-short-list-v1",
+  "menu-option-honest-refusal-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -417,6 +420,9 @@
   "type-gap-team-v1": false,
   "supplies-v1": false,
   "untalked-in-gym-v1": false,
-  "grass-strides-v1": true
+  "grass-strides-v1": true,
+  "scene-followup-prompt-v1": false,
+  "pokenav-short-list-v1": true,
+  "menu-option-honest-refusal-v1": true
  }
 }

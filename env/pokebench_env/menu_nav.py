@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 NAV_CALLBACK = 0x081C7401
 NAV_POINTER = 0x0203CF40
 NAV_CALLBACK_TABLE = 0x0861F3EC
+SHORT_LIST = "pokenav-short-list-v1"
 
 
 def _ptr(read: ReadMemory, resource: int, index: int, size: int) -> int:
@@ -27,7 +28,7 @@ def _ptr(read: ReadMemory, resource: int, index: int, size: int) -> int:
 
 
 def _list_cursor(
-    read: ReadMemory, resource: int, *, require_drawn: bool = True
+    read: ReadMemory, resource: int, *, require_drawn: bool = True, short_list: bool = False
 ) -> tuple[int, bytes, dict[str, MenuValue]]:
     from pokebench_env.ui_state import _window_drawn
 
@@ -37,7 +38,14 @@ def _list_cursor(
     top, length, _offscreen, row, shown = struct.unpack_from("<5H", raw)
     item_size, items = struct.unpack_from("<II", raw, 12)
     index = top + row
-    if not 0 < shown <= length <= 426 or row >= shown or index >= length or item_size != 4:
+    # pokenav_list.c CopyPokenavListTemplate: entriesOnscreen = maxShowed even when the
+    # list is shorter (one Match Call contact shows in an 8-row window).
+    valid = (
+        0 < length <= 426 and 0 < shown and row < min(shown, length)
+        if short_list
+        else 0 < shown <= length <= 426 and row < shown
+    )
+    if not valid or index >= length or item_size != 4:
         raise ValueError("invalid PokeNav list length/cursor/item size")
     if not _ewram(items, length * item_size) or (require_drawn and not _window_drawn(read, window)):
         raise ValueError("invalid or undrawn PokeNav list")
@@ -47,6 +55,21 @@ def _list_cursor(
         "visible_list_entries": list(read(items + top * 4, min(shown, length - top) * 4)),
     }
     return index, read(items + index * 4, 4), details
+
+
+def _call_text_printing(read: ReadMemory, resource: int) -> bool:
+    """pokenav_match_call_gfx.c DoMatchCallMessage: the message box prints sText_CallingDots
+    from ROM first; only PrintMatchCallMessage buffers the call into gStringVar4 and prints it.
+    Until then gStringVar4 still holds earlier text, so it is the call only while the
+    msgBoxWindowId printer reads from it."""
+    from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE
+
+    gfx = _ptr(read, resource, 6, 22)
+    window = int(struct.unpack("<H", read(gfx + 20, 2))[0])
+    if window >= 32:
+        raise ValueError("invalid Match Call message window")
+    current = int(struct.unpack("<I", read(0x020201B0 + window * 0x24, 4))[0])
+    return STRING_VAR4 <= current < STRING_VAR4 + STRING_VAR4_SIZE
 
 
 def _mon_list(read: ReadMemory, pointer: int) -> dict[str, MenuValue]:
@@ -136,7 +159,7 @@ def _match_call_flavor(
     return [_text_pointer(read, pointer) if pointer else None for pointer in pointers]
 
 
-def read_nav_ui(read: ReadMemory, callback: int) -> "ActiveUi | None":
+def read_nav_ui(read: ReadMemory, callback: int, *, short_list: bool = False) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi
 
     if callback != NAV_CALLBACK:
@@ -271,7 +294,7 @@ def read_nav_ui(read: ReadMemory, callback: int) -> "ActiveUi | None":
                 if menu_index in (12, 14)
                 else "pokenav_condition_search_results"
             )
-            _, entry, cursor_details = _list_cursor(read, pointer)
+            _, entry, cursor_details = _list_cursor(read, pointer, short_list=short_list)
             box, slot, value = struct.unpack("<BBH", entry)
             if box > 14 or slot >= (6 if box == 14 else 30):
                 raise ValueError("invalid PokeNav list Pokemon box/slot")
@@ -299,7 +322,10 @@ def read_nav_ui(read: ReadMemory, callback: int) -> "ActiveUi | None":
             registered = struct.unpack_from("<H", raw, 10)[0]
             input_callback = struct.unpack_from("<I", raw, 24)[0]
             index, entry, cursor_details = _list_cursor(
-                read, pointer, require_drawn=input_callback not in (0x081CACB9, 0x081CACF9)
+                read,
+                pointer,
+                require_drawn=input_callback not in (0x081CACB9, 0x081CACF9),
+                short_list=short_list,
             )
             special, section, header_id = struct.unpack("<BBH", entry)
             details.update(cursor_details)
@@ -341,7 +367,8 @@ def read_nav_ui(read: ReadMemory, callback: int) -> "ActiveUi | None":
                 from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE, decode_message
 
                 phase = "pokenav_match_call_call"
-                details["message"] = decode_message(read(STRING_VAR4, STRING_VAR4_SIZE))
+                if not short_list or _call_text_printing(read, pointer):
+                    details["message"] = decode_message(read(STRING_VAR4, STRING_VAR4_SIZE))
             known_input = (0x081CAB45, 0x081CAC05, 0x081CACB9, 0x081CACF9)
             ready = ready and input_callback in known_input
             if input_callback == 0x081CAC05:

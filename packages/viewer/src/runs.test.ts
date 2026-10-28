@@ -322,13 +322,14 @@ it("offers finished comparable humans explicitly, never as the automatic baselin
   expect(result.baseline).toBeNull();
 });
 
-it("excludes incomplete and aborted human references, preserving crash DNF partial splits", () => {
+// Operator rule (the operator 2026-10-27): how a session ended never decides whether it can be the reference.
+it("excludes only unfinished human references; aborted and crashed sessions keep their partial splits", () => {
   const r = root();
   writeRun(r, "live-human", humanLog(0, false));
   writeRun(r, "abort-human", humanLog(0, true, "operator_abort"));
   writeRun(r, "crash-human", humanLog(0, true, "crash"));
   expect(() => baselineOf(r, "live-human")).toThrow(/finished human/);
-  expect(() => baselineOf(r, "abort-human")).toThrow(/aborted human/);
+  expect(baselineOf(r, "abort-human").milestones).toEqual([{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 100 }]);
   expect(baselineOf(r, "crash-human").milestones).toEqual([{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 100 }]);
 });
 

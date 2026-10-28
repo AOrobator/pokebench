@@ -86,8 +86,8 @@ describe("self-named-speaker-v1 on a702's recorded Story line",()=>{
 
 describe("self-named-speaker-v1 registry and factory",()=>{
  it("is registered after the earlier switches, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(281);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(305);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(285);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(309);
   expect(featureInfo(ID).description).toContain(" Off: only the listed story characters (and DAD) speak story lines.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);

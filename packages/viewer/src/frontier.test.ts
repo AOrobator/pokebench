@@ -399,7 +399,7 @@ describe("zoom to frontier", () => {
     expect(document.querySelector('[data-run="older"][data-split="BIRCH_RESCUE_REQUESTED"]')).toBeNull();
     document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("newer", ["birch-rescue-requested-v1"])], 900);
     expect(points("newer")).toEqual([2, 2]);
-    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...route("invalid-older", []), excluded: "Invalid fixed-run trial: crash" }], 900);
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...route("invalid-older", []), flag: "Invalid fixed-run trial: crash" }], 900);
     expect(points("invalid-older")).toEqual([4]);
   });
   it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
@@ -445,11 +445,14 @@ describe("invalid fixed-run trials", () => {
     const r = measured(id, [100000, 150000, 400000, 500000, 900000, 950000, 1000000, 1200000]);
     if (r.config === null) throw new Error("config");
     r.config = { ...r.config, start: "save_state", resume: "MAIN_MENU" };
-    return { ...r, cohort: "experiment:bundle-cook-4h@08287126ff77", excluded: `Invalid fixed-run trial: ${reason}` };
+    return { ...r, cohort: "experiment:bundle-cook-4h@08287126ff77", flag: `Invalid fixed-run trial: ${reason}` };
   };
-  it("plots an invalid trial's story progress as a dotted, labelled line that never becomes the frontier", () => {
+  // Operator rule (the operator 2026-10-27): a flagged trial is drawn dotted for attention but still counts.
+  it("plots a flagged trial's story progress as a dotted, labelled line that still competes for the frontier", () => {
     const crashed = invalid("2026-10-19T20-12-11_qwen36-gpu1_86ac", "emulator or game server crash");
-    const refs = frontierReferences([human(), best(), crashed]);
+    expect(crashed.excluded).toBeNull();
+    expect(frontierReferences([human(), best(), crashed]).best?.id).toBe(crashed.id);
+    const refs = frontierReferences([human(), best()]);
     expect(refs.best?.id).toBe("dea1");
     document.body.innerHTML = frontierPlot(refs, [crashed], 900);
     const line = document.querySelector(`polyline[data-series="${crashed.id}"]`);
@@ -458,7 +461,7 @@ describe("invalid fixed-run trials", () => {
     const series = line?.closest(".wb-series");
     expect(series?.classList.contains("wb-invalid-run")).toBe(true);
     expect(series?.getAttribute("data-invalid")).toBe("emulator or game server crash");
-    expect(document.querySelector(`[data-run="${crashed.id}"][data-split="RIVAL_MET"]`)?.getAttribute("aria-label")).toContain("invalid trial: emulator or game server crash");
+    expect(document.querySelector(`[data-run="${crashed.id}"][data-split="RIVAL_MET"]`)?.getAttribute("aria-label")).toContain("flagged: emulator or game server crash");
     expect(document.querySelector("[data-invalid-notice]")).toBeNull();
   });
   it("gives invalid trials a version color and a legend count, and explains the dotted line", () => {
@@ -468,6 +471,8 @@ describe("invalid fixed-run trials", () => {
     document.body.innerHTML = frontierLegend({ human: null, best: null }, [crashed], versions, legendState);
     expect(document.querySelector(".wb-ver-grid")).not.toBeNull();
     expect(document.querySelector("[data-bar=marks]")?.textContent).toContain("Dotted line");
+    expect(document.querySelector("[data-bar=marks]")?.textContent).toContain("still counts");
+    expect(document.querySelector("[data-bar=marks]")?.textContent).not.toContain("never counts as the agent frontier");
   });
   it("keeps other exclusions and a resumed invalid trial's dashes as before", () => {
     const probe = { ...invalid("probe", "x"), excluded: "Excluded probe session" };
@@ -488,10 +493,11 @@ describe("invalid fixed-run trials", () => {
 });
 
 describe("recorded comparison coverage", () => {
-  it.each(["Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("retains %s with its exclusion reason and never promotes it", excluded => {
-    const stopped = { ...measured("stopped", [1000, 2000, 3000]), excluded };
-    const refs = frontierReferences([stopped]);
-    expect(refs.best).toBeNull();
+  it.each(["Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("keeps %s as a labelled flag and still lets it lead the frontier", flag => {
+    const excluded = flag;
+    const stopped = { ...measured("stopped", [1000, 2000, 3000]), flag };
+    expect(frontierReferences([stopped]).best?.id).toBe("stopped");
+    const refs = frontierReferences([]);
     document.body.innerHTML = frontierPlot(refs, [stopped], 900);
     expect(document.querySelectorAll('[data-run="stopped"]')).toHaveLength(3);
     expect(document.querySelector('polyline[data-series="stopped"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
@@ -539,6 +545,10 @@ describe("operator-stopped frontier", () => {
     expect(invalidTrial(stopped)).toBeNull();
     document.body.innerHTML = frontierPlot(frontierReferences([stopped]), [stopped], 900);
     expect(document.body.textContent).toContain(`Ended by operator ${reason === "operator_abort" ? "abort" : "stop"} (${reason})`);
+  });
+  it("lets a run whose process died without run_end lead the frontier: how it ended never removes it", () => {
+    const died = { ...best(), id: "died", status: "unresponsive" as const, reason: null };
+    expect(frontierReferences([died]).best?.id).toBe("died");
   });
   it("keeps an operator-excluded run off the chart and names the operator's reason", () => {
     const excluded = { ...best(), id: "excluded", excluded: "Operator exclusion: wrong ROM" };

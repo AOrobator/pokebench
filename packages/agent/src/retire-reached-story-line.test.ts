@@ -117,8 +117,8 @@ describe("retire-reached-story-line-v1 production factory",()=>{
 
 describe("retire-reached-story-line-v1 registry",()=>{
  it("is registered after story-briefing-native-milestones-v1, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(283);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(307);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(287);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(311);
   expect(featureInfo(ID).description).toContain(" Off: a reached line stays in the header as \"Story line heard … Reached: …\".");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);

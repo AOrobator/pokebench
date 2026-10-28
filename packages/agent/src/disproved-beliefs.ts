@@ -4,6 +4,7 @@ import type {BodyOf,RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {RefusalLedger} from "./refusal-ledger.js";
 import type {RunRecorder} from "./recorder.js";
+import {absentCast} from "./story-foreknowledge.js";
 
 // disproved-beliefs-v1: what the model pursued that the game already contradicted, with the game's own evidence.
 // Both sides come from the recorded run: tool arguments, positions, dialogue pages, readout lines and the model's
@@ -125,7 +126,8 @@ export class DisprovedBeliefs {
   if(advance!==undefined&&advance.pages.length>0)this.remember(advance);
   const presence=CHARACTERS.exec(event.text);
   if(presence!==null){
-   const absent=(presence[1]??"").split(",").map(n=>n.trim()).filter(n=>n!==""&&n!=="none");
+   // no-story-foreknowledge-v1 shows the model only the absent names the game has shown; the ledger keeps the whole cast.
+   const absent=this.features["no-story-foreknowledge-v1"]?absentCast(presence[0])??[]:(presence[1]??"").split(",").map(n=>n.trim()).filter(n=>n!==""&&n!=="none");
    this.readout={turn:event.turn,seq:event.seq,map,mapId:state.map_id?.join("/")??"",room:roomOf(state,this.features),absent,line:presence[0]};
    for(const entry of this.entries.values())if(entry.kind==="absent"&&entry.map===map&&!absent.includes(entry.name))this.entries.delete(entry.key);
   } else if(this.readout?.map!==map)this.readout=null;

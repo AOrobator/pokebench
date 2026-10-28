@@ -18,6 +18,7 @@ import {TRUST_HEADER} from "./harness-trust.js";
 import {NO_SPEAKER,field,linesOf,type Line} from "./instruction-ledger-v2.js";
 import {hurt,onMap,placesOnce,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
 import {storyCharacters} from "./people-ledger.js";
+import {opponentShown,roleWord,type ShownStoryNames,type Shows} from "./story-foreknowledge.js";
 import type {Place,PlaceSource} from "./story-destinations.js";
 
 type Map2=readonly [number,number];
@@ -125,11 +126,14 @@ function told(h:HeardLine):string {
 }
 
 // The one shared wording: this line, and the lead of story-battle-heal-gate-v1's refusal (it passes through the same wrapper).
-export function healFirstText(f:HealFirstFacts,factual=false):string {
+// no-story-foreknowledge-v1 (shows): the opponent's role word until the game shows its name.
+export function healFirstText(f:HealFirstFacts,factual=false,shows?:Shows):string {
  const hp=f.party.map(p=>`${p.species} has ${String(p.hp)}/${String(p.max_hp)} HP.`).join(" ");
  const parts=[hp];
- if(factual) return `${hp} ${f.opponent}'s battle cannot be run from. HP alone does not establish whether you will win.`;
- parts.push(f.kind==="aqua_grunt"?`The ${f.opponent}'s battle cannot be run from, so heal before ${f.pronoun.subject} stops you on the forest path.`:`${f.opponent}'s battle cannot be run from, so heal before talking to ${f.pronoun.object}.`);
+ const role=opponentShown(f.kind,f.opponent,shows)?null:capital(roleWord(f.kind));
+ if(factual) return `${hp} ${role??f.opponent}'s battle cannot be run from. HP alone does not establish whether you will win.`;
+ if(role!==null)parts.push(f.kind==="aqua_grunt"?`${role}'s battle cannot be run from, so heal before ${f.pronoun.subject} stops you on the forest path.`:`${role}'s battle cannot be run from, so heal before talking to ${f.pronoun.object}.`);
+ else parts.push(f.kind==="aqua_grunt"?`The ${f.opponent}'s battle cannot be run from, so heal before ${f.pronoun.subject} stops you on the forest path.`:`${f.opponent}'s battle cannot be run from, so heal before talking to ${f.pronoun.object}.`);
  if(f.heard!==null)parts.push(told(f.heard));
  const e=f.exit;
  if(e!==null)parts.push(e.direction!==null?`${e.to} is the ${e.direction} edge of this map.`:`${e.to} is the warp at ${e.tiles.map(at).join(" or ")} of this map.`);
@@ -195,7 +199,7 @@ export interface HealFirstRecorder {
  healFirstLine?(tool:string,toolCallId:string,facts:HealFirstFacts,text:string):void;
 }
 // Outermost of the game tools, so the line leads every result, a story-battle-heal-gate-v1 refusal among them.
-export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:HealFirstRecorder,source:PlaceSource,factual=false):AgentTool[] {
+export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:HealFirstRecorder,source:PlaceSource,factual=false,names:ShownStoryNames|null=null):AgentTool[] {
  if(!on)return [...tools];
  const record=recorder.healFirstLine?.bind(recorder);
  if(record===undefined)throw new Error("story-battle-heal-first-v1 needs a recorder for heal_first_line events");
@@ -206,7 +210,7 @@ export function withHealFirst(tools:readonly AgentTool[],on:boolean,recorder:Hea
   if(state===null)return result;
   const facts=await heal.facts(state,result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n"),id);
   if(facts===null)return result;
-  const text=healFirstText(facts,factual);
+  const text=healFirstText(facts,factual,names===null?undefined:name=>names.shows(name,id));
   record(tool,id,facts,text);
   return leadWith(result,text);
  };

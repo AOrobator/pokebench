@@ -85,3 +85,5 @@ shared packet): eval integrity, ML engineer, data scientist "holds with changes"
   2752 cast lines; results changed 574/818, 674/954, 185/304; storyCharacters roster mismatches 0; unshown names left in
   any absent list 0; absentCast vs Python's list mismatches 0. First shown (a702): MOM t51, PROF. BIRCH t59, MAY t74,
   WALLY t311, ROXANNE t312, TEAM AQUA/DEVON t360, STEVEN t630; BRENDAN and NORMAN never.
+- Gates on 3121b0271 (coordinator CPU window, 8:36 PM NY): `just lint` 0; `just test` 0: agent 4639/4639 (stmts 96.49 / br 92.68 / fn 97.46 / ln 99.18), viewer 2093/2093 (95.81 / 91.68 / 95.32 / 98.26), Python 4446 (ln 97.48 / br 93.60 / fn 100), gateway 69 (99.41 / 97.44 / 100), trainer cards 3/3.
+- Synced main 80d00d743 (scene-followup-prompt-v1): append-point conflicts only; switch re-applied after scene-followup-prompt-v1.

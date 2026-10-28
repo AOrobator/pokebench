@@ -1,0 +1,1886 @@
+{
+ "theft-9e33": {
+  "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+  "seq": 52168,
+  "event": {
+   "v": 1,
+   "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+   "seq": 52168,
+   "t": "2026-10-24T23:00:47.881-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 1384,
+   "tool_call_id": "9g6bSIbaeFYZprxumQf1z97GEDYMmTwe",
+   "tool": "press",
+   "requested": [
+    "B"
+   ],
+   "sent": [
+    "B"
+   ],
+   "dropped": [],
+   "auto_presses": 2,
+   "pages": [
+    {
+     "state_seq": 52150,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Get out!\nOut of the way!",
+     "on_screen": [
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 52156,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Wait! Pleeeaaase!",
+     "on_screen": [
+      {
+       "local_id": 9,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 20,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 52162,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Don't take my GOODS!",
+     "on_screen": [
+      {
+       "local_id": 9,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 20,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 6941
+  }
+ },
+ "theft-d41e": {
+  "run": "2026-10-24T19-31-52_qwen36-gpu1_d41e",
+  "seq": 47633,
+  "event": {
+   "v": 1,
+   "run": "2026-10-24T19-31-52_qwen36-gpu1_d41e",
+   "seq": 47633,
+   "t": "2026-10-24T23:13:15.744-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 1210,
+   "tool_call_id": "93E9oZhPKCHzIarLqUykLr0LH6Xh3rSR",
+   "tool": "navigate_to_target",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 3,
+   "pages": [
+    {
+     "state_seq": 47615,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Get out!\nOut of the way!",
+     "on_screen": [
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 47621,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Wait! Pleeeaaase!",
+     "on_screen": [
+      {
+       "local_id": 9,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 20,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 47627,
+     "map": "RUSTBORO CITY",
+     "map_id": [
+      0,
+      3
+     ],
+     "position": {
+      "x": 23,
+      "y": 24
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Don't take my GOODS!",
+     "on_screen": [
+      {
+       "local_id": 9,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 20,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 6,
+       "graphics_id": 33,
+       "sprite_kind": "MAN_3",
+       "x": 26,
+       "y": 23,
+       "character": null
+      },
+      {
+       "local_id": 13,
+       "graphics_id": 65,
+       "sprite_kind": "MAN_4",
+       "x": 19,
+       "y": 27,
+       "character": null
+      }
+     ]
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 10428
+  }
+ },
+ "woods-grunt": {
+  "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+  "seq": 25405,
+  "event": {
+   "v": 1,
+   "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+   "seq": 25405,
+   "t": "2026-10-24T21:07:16.283-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 787,
+   "tool_call_id": "HKBrIg86kmMwReGM70xgazRhqh6xhowX",
+   "tool": "battle_action",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 20,
+   "battle_auto_presses": 8,
+   "pages": [
+    {
+     "state_seq": 25266,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "TORCHIC used\nEMBER!",
+     "battle_turn": 2,
+     "battle_message_id": 366
+    },
+    {
+     "state_seq": 25266,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Foe POOCHYENA\nfainted!",
+     "battle_turn": 2,
+     "battle_message_id": 367
+    },
+    {
+     "state_seq": 25275,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "TORCHIC gained\n105 EXP. Points!",
+     "battle_turn": 2,
+     "battle_message_id": 368
+    },
+    {
+     "state_seq": 25286,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "TORCHIC grew to\nLV. 13!",
+     "battle_turn": 2,
+     "battle_message_id": 369
+    },
+    {
+     "state_seq": 25294,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Level-up stats box, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +1, DEFENSE +1, SP. ATK +2, SP. DEF +1, SPEED +1",
+     "battle_turn": 2
+    },
+    {
+     "state_seq": 25300,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Level-up stats box, page 2 of 2 (new totals): MAX. HP 38, ATTACK 24, DEFENSE 19, SP. ATK 23, SP. DEF 17, SPEED 19",
+     "battle_turn": 2
+    },
+    {
+     "state_seq": 25309,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Player defeated\nTEAM AQUA GRUNT!",
+     "battle_turn": 2,
+     "battle_message_id": 370
+    },
+    {
+     "state_seq": 25316,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "You're kidding me! You're tough!",
+     "battle_turn": 2,
+     "battle_message_id": 371
+    },
+    {
+     "state_seq": 25324,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "RED got \u00a5180\nfor winning!",
+     "battle_turn": 2,
+     "battle_message_id": 372
+    },
+    {
+     "state_seq": 25339,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Grrr\u2026 You've got some nerve\nmeddling with TEAM AQUA!\nCome on and battle me again!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 26,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 26,
+       "y": 24,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 25345,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "I wish I could say that, but I'm out of\nPOK\u00e9MON\u2026",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 26,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 26,
+       "y": 24,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 25351,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "And, hey, we of TEAM AQUA are also\nafter something in RUSTBORO.",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 26,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 26,
+       "y": 24,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 25357,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "I'll let you go today!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 26,
+       "y": 21,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 26,
+       "y": 24,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 25363,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": "MAN_2",
+     "speaker_source": "faced_sprite",
+     "text": "Whew\u2026\nThat was awfully close!"
+    },
+    {
+     "state_seq": 25369,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": "MAN_2",
+     "speaker_source": "faced_sprite",
+     "text": "Thanks to you, he didn't rob me of\nthese important papers."
+    },
+    {
+     "state_seq": 25375,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": "MAN_2",
+     "speaker_source": "faced_sprite",
+     "text": "I know, I'll give you a GREAT BALL as\nmy thanks!"
+    },
+    {
+     "state_seq": 25382,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "RED put away the GREAT BALL\nin the POK\u00e9 BALLS POCKET.",
+     "on_screen": [
+      {
+       "local_id": 4,
+       "graphics_id": 23,
+       "sprite_kind": "MAN_2",
+       "x": 26,
+       "y": 24,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 25393,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": "MAN_2",
+     "speaker_source": "faced_sprite",
+     "text": "Didn't that TEAM AQUA thug say\nthey were after something in\nRUSTBORO, too?"
+    },
+    {
+     "state_seq": 25399,
+     "map": "PETALBURG WOODS",
+     "map_id": [
+      24,
+      11
+     ],
+     "position": {
+      "x": 26,
+      "y": 23
+     },
+     "speaker": "MAN_2",
+     "speaker_source": "faced_sprite",
+     "text": "Uh-oh! It's a crisis!\nI can't be wasting time!"
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 29725
+  }
+ },
+ "birch-rescue": {
+  "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+  "seq": 5850,
+  "event": {
+   "v": 1,
+   "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+   "seq": 5850,
+   "t": "2026-10-24T19:53:07.812-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 244,
+   "tool_call_id": "XfAMOu4Kf1apg0iLM21AbYCsezPJIFFv",
+   "tool": "press",
+   "requested": [
+    "UP"
+   ],
+   "sent": [
+    "UP"
+   ],
+   "dropped": [],
+   "auto_presses": 3,
+   "pages": [
+    {
+     "state_seq": 5832,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 11,
+      "y": 19
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "H-help me!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 97,
+       "sprite_kind": "BIRCHS_BAG",
+       "x": 7,
+       "y": 14,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 5838,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 11,
+      "y": 15
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Hello! You over there!\nPlease! Help!",
+     "on_screen": [
+      {
+       "local_id": 2,
+       "graphics_id": 64,
+       "sprite_kind": "PROF_BIRCH",
+       "x": 4,
+       "y": 13,
+       "character": "PROF. BIRCH"
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 98,
+       "sprite_kind": "ZIGZAGOON_1",
+       "x": 5,
+       "y": 13,
+       "character": null
+      },
+      {
+       "local_id": 3,
+       "graphics_id": 97,
+       "sprite_kind": "BIRCHS_BAG",
+       "x": 7,
+       "y": 14,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 5844,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 11,
+      "y": 15
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "In my BAG!\nThere's a POK\u00e9 BALL!",
+     "on_screen": [
+      {
+       "local_id": 2,
+       "graphics_id": 64,
+       "sprite_kind": "PROF_BIRCH",
+       "x": 4,
+       "y": 13,
+       "character": "PROF. BIRCH"
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 98,
+       "sprite_kind": "ZIGZAGOON_1",
+       "x": 5,
+       "y": 13,
+       "character": null
+      },
+      {
+       "local_id": 3,
+       "graphics_id": 97,
+       "sprite_kind": "BIRCHS_BAG",
+       "x": 7,
+       "y": 14,
+       "character": null
+      }
+     ]
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 6997
+  }
+ },
+ "dont-leave-me": {
+  "run": "2026-10-16T05-51-58_qwen36-gpu0_7a95",
+  "seq": 3777,
+  "event": {
+   "v": 1,
+   "run": "2026-10-16T05-51-58_qwen36-gpu0_7a95",
+   "seq": 3777,
+   "t": "2026-10-16T06:05:03.619-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 167,
+   "tool_call_id": "PrI4lJlD2v6FeVEDAF8zleUvlEExYSQF",
+   "tool": "navigate_to",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 1,
+   "pages": [
+    {
+     "state_seq": 3771,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 6,
+      "y": 15
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Wh-Where are you going?!\nDon't leave me like this!",
+     "on_screen": [
+      {
+       "local_id": 2,
+       "graphics_id": 64,
+       "sprite_kind": "PROF_BIRCH",
+       "x": 4,
+       "y": 13,
+       "character": "PROF. BIRCH"
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 98,
+       "sprite_kind": "ZIGZAGOON_1",
+       "x": 5,
+       "y": 13,
+       "character": null
+      },
+      {
+       "local_id": 3,
+       "graphics_id": 97,
+       "sprite_kind": "BIRCHS_BAG",
+       "x": 7,
+       "y": 14,
+       "character": null
+      }
+     ]
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 6771
+  }
+ },
+ "rusturf-grunt": {
+  "run": "2026-10-22T20-40-54_glm53-mac_0d5d",
+  "seq": 50766,
+  "event": {
+   "v": 1,
+   "run": "2026-10-22T20-40-54_glm53-mac_0d5d",
+   "seq": 50766,
+   "t": "2026-10-23T03:36:09.654-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 542,
+   "tool_call_id": "zm35jwMGIWWJgV1DcNOU8rJRLR2I49oo",
+   "tool": "navigate_to",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 1,
+   "pages": [
+    {
+     "state_seq": 50760,
+     "map": "RUSTURF TUNNEL",
+     "map_id": [
+      24,
+      4
+     ],
+     "position": {
+      "x": 9,
+      "y": 5
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "What, are you coming?\nCome and get some, then!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 59,
+       "sprite_kind": "ITEM_BALL",
+       "x": 3,
+       "y": 1,
+       "character": null
+      },
+      {
+       "local_id": 7,
+       "graphics_id": 211,
+       "sprite_kind": "WINGULL",
+       "x": 13,
+       "y": 4,
+       "character": null
+      },
+      {
+       "local_id": 6,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 13,
+       "y": 5,
+       "character": null
+      }
+     ]
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 3742
+  }
+ },
+ "museum": {
+  "run": "2026-10-22T20-40-54_glm53-mac_0d5d",
+  "seq": 122910,
+  "event": {
+   "v": 1,
+   "run": "2026-10-22T20-40-54_glm53-mac_0d5d",
+   "seq": 122910,
+   "t": "2026-10-23T12:15:16.602-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 1061,
+   "tool_call_id": "SnL4Fnoc2VNgas15e7BWzUx6Ncf9v5FS",
+   "tool": "battle_action",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 33,
+   "battle_auto_presses": 8,
+   "pages": [
+    {
+     "state_seq": 122694,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "MARSHTOMP used\nMUD SHOT!",
+     "battle_turn": 3,
+     "battle_message_id": 888
+    },
+    {
+     "state_seq": 122694,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Foe CARVANHA\nfainted!",
+     "battle_turn": 3,
+     "battle_message_id": 889
+    },
+    {
+     "state_seq": 122703,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "MARSHTOMP gained\n264 EXP. Points!",
+     "battle_turn": 3,
+     "battle_message_id": 890
+    },
+    {
+     "state_seq": 122716,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "MARSHTOMP grew to\nLV. 21!",
+     "battle_turn": 3,
+     "battle_message_id": 891
+    },
+    {
+     "state_seq": 122722,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Level-up stats box, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1",
+     "battle_turn": 3
+    },
+    {
+     "state_seq": 122728,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Level-up stats box, page 2 of 2 (new totals): MAX. HP 63, ATTACK 45, DEFENSE 37, SP. ATK 27, SP. DEF 38, SPEED 29",
+     "battle_turn": 3
+    },
+    {
+     "state_seq": 122738,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Player defeated\nTEAM AQUA GRUNT!",
+     "battle_turn": 3,
+     "battle_message_id": 892
+    },
+    {
+     "state_seq": 122744,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "What?!\nI lost, too!",
+     "battle_turn": 3,
+     "battle_message_id": 893
+    },
+    {
+     "state_seq": 122752,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": null,
+     "speaker": null,
+     "speaker_source": null,
+     "text": "AAAAA got \u00a5280\nfor winning!",
+     "battle_turn": 3,
+     "battle_message_id": 894
+    },
+    {
+     "state_seq": 122758,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Now what? If we don't get the parts,\nwe're in for it!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 5,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 6,
+       "character": null
+      },
+      {
+       "local_id": 1,
+       "graphics_id": 46,
+       "sprite_kind": "SCIENTIST_1",
+       "x": 13,
+       "y": 6,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 122767,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "Arrgh, I didn't count on being meddled\nwith by some meddling kid!",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 5,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 6,
+       "character": null
+      },
+      {
+       "local_id": 1,
+       "graphics_id": 46,
+       "sprite_kind": "SCIENTIST_1",
+       "x": 13,
+       "y": 6,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 122778,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "I came to see what was taking so\nlong to snatch some parts, and you\nsimps are held up by a mere child?",
+     "on_screen": [
+      {
+       "local_id": 3,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 5,
+       "character": null
+      },
+      {
+       "local_id": 2,
+       "graphics_id": 195,
+       "sprite_kind": "ARCHIE",
+       "x": 10,
+       "y": 6,
+       "character": null
+      },
+      {
+       "local_id": 1,
+       "graphics_id": 46,
+       "sprite_kind": "SCIENTIST_1",
+       "x": 13,
+       "y": 6,
+       "character": null
+      },
+      {
+       "local_id": 4,
+       "graphics_id": 117,
+       "sprite_kind": "AQUA_MEMBER_M",
+       "x": 10,
+       "y": 7,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 122784,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "We are TEAM AQUA,\nand we love the sea!"
+    },
+    {
+     "state_seq": 122790,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "And I am TEAM AQUA's leader,\nARCHIE!"
+    },
+    {
+     "state_seq": 122796,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "What makes you interfere with us?"
+    },
+    {
+     "state_seq": 122802,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "\u2026No! You can't be!\nYou're not one of TEAM MAGMA?"
+    },
+    {
+     "state_seq": 122808,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "Wait, that can't be right.\nYou're not dressed for the part."
+    },
+    {
+     "state_seq": 122814,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "\u2026 \u2026 \u2026 \u2026 \u2026 \u2026\n\u2026 \u2026 \u2026 \u2026 \u2026 \u2026"
+    },
+    {
+     "state_seq": 122820,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "POK\u00e9MON, people\u2026 All life depends on\nthe sea."
+    },
+    {
+     "state_seq": 122826,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "So, TEAM AQUA is dedicated to\nthe expansion of the sea."
+    },
+    {
+     "state_seq": 122832,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "Don't you agree? What we are doing\nis a magnificent undertaking."
+    },
+    {
+     "state_seq": 122843,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "Ah, fine\u2026\nYou're still too young to understand\nour noble objective."
+    },
+    {
+     "state_seq": 122849,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "But, I warn you, don't even consider\ninterfering with our plans again."
+    },
+    {
+     "state_seq": 122855,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "The consequences will cost you\ndearly!"
+    },
+    {
+     "state_seq": 122861,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "ARCHIE",
+     "speaker_source": "faced_sprite",
+     "text": "And don't you forget it!"
+    },
+    {
+     "state_seq": 122867,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "CAPT. STERN: You're\u2026\nAh, okay, you're AAAAA\u2026"
+    },
+    {
+     "state_seq": 122873,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "Anyway, that was a tense situation!\nThank you for saving us!"
+    },
+    {
+     "state_seq": 122879,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "Oh, yes, I almost forgot that you\neven brought the parts from DEVON!"
+    },
+    {
+     "state_seq": 122885,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "CAPT. STERN: Whoops!\nThere's no time to lose!"
+    },
+    {
+     "state_seq": 122892,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "We have to set out on our ocean-floor\nexpedition really soon."
+    },
+    {
+     "state_seq": 122898,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "Thanks again, but now I've got\nto go!"
+    },
+    {
+     "state_seq": 122904,
+     "map": "SLATEPORT CITY OCEANIC MUSEUM 2F",
+     "map_id": [
+      9,
+      8
+     ],
+     "position": {
+      "x": 12,
+      "y": 6
+     },
+     "speaker": "CAPT. STERN",
+     "speaker_source": "name_prefix",
+     "text": "Feel free to wander around and check\nout our facilities, though."
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 44976
+  }
+ },
+ "birch-lab": {
+  "run": "2026-10-16T19-48-44_qwen36-gpu1_fb46",
+  "seq": 10264,
+  "event": {
+   "v": 1,
+   "run": "2026-10-16T19-48-44_qwen36-gpu1_fb46",
+   "seq": 10264,
+   "t": "2026-10-16T20:28:04.656-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 421,
+   "tool_call_id": "uv70DOq4rRrkImWoBWG39U2GzcGX2W51",
+   "tool": "press",
+   "requested": [
+    "UP",
+    "UP",
+    "UP",
+    "UP",
+    "UP",
+    "UP"
+   ],
+   "sent": [
+    "UP",
+    "UP"
+   ],
+   "dropped": [
+    "UP",
+    "UP",
+    "UP",
+    "UP"
+   ],
+   "auto_presses": 18,
+   "pages": [
+    {
+     "state_seq": 10156,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "PROF. BIRCH: Oh, hi, AAAAAAA!"
+    },
+    {
+     "state_seq": 10162,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "I heard you beat MAY on\nyour first try. That's excellent!"
+    },
+    {
+     "state_seq": 10168,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "MAY's been helping with my research\nfor a long time."
+    },
+    {
+     "state_seq": 10174,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "MAY has an extensive history as\na TRAINER already."
+    },
+    {
+     "state_seq": 10185,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "Here, AAAAAAA, I ordered this for my\nresearch, but I think you should have\nthis POK\u00e9DEX."
+    },
+    {
+     "state_seq": 10191,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "AAAAAAA received the POK\u00e9DEX!",
+     "on_screen": [
+      {
+       "local_id": 2,
+       "graphics_id": 64,
+       "sprite_kind": "PROF_BIRCH",
+       "x": 6,
+       "y": 4,
+       "character": "PROF. BIRCH"
+      },
+      {
+       "local_id": 3,
+       "graphics_id": 105,
+       "sprite_kind": "RIVAL_MAY_NORMAL",
+       "x": 7,
+       "y": 4,
+       "character": "MAY"
+      },
+      {
+       "local_id": 1,
+       "graphics_id": 46,
+       "sprite_kind": "SCIENTIST_1",
+       "x": 9,
+       "y": 8,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 10198,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "PROF. BIRCH: The POK\u00e9DEX is a high-tech\ntool that automatically makes a record\nof any POK\u00e9MON you meet or catch."
+    },
+    {
+     "state_seq": 10204,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "My kid, MAY, goes everywhere\nwith it."
+    },
+    {
+     "state_seq": 10220,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "PROF. BIRCH",
+     "speaker_source": "name_prefix",
+     "text": "Whenever my kid catches a rare POK\u00e9MON\nand records its data in the POK\u00e9DEX,\nwhy, MAY looks for me while I'm out\ndoing fieldwork, and shows me."
+    },
+    {
+     "state_seq": 10226,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "MAY",
+     "speaker_source": "name_prefix",
+     "text": "MAY: Oh, wow, AAAAAAA!\nYou got a POK\u00e9DEX, too!"
+    },
+    {
+     "state_seq": 10232,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "MAY",
+     "speaker_source": "name_prefix",
+     "text": "That's great! Just like me!\nI've got something for you, too!"
+    },
+    {
+     "state_seq": 10239,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": null,
+     "speaker_source": null,
+     "text": "AAAAAAA put away the POK\u00e9 BALLS\nin the POK\u00e9 BALLS POCKET.",
+     "on_screen": [
+      {
+       "local_id": 2,
+       "graphics_id": 64,
+       "sprite_kind": "PROF_BIRCH",
+       "x": 6,
+       "y": 4,
+       "character": "PROF. BIRCH"
+      },
+      {
+       "local_id": 3,
+       "graphics_id": 105,
+       "sprite_kind": "RIVAL_MAY_NORMAL",
+       "x": 7,
+       "y": 5,
+       "character": "MAY"
+      },
+      {
+       "local_id": 1,
+       "graphics_id": 46,
+       "sprite_kind": "SCIENTIST_1",
+       "x": 9,
+       "y": 8,
+       "character": null
+      }
+     ]
+    },
+    {
+     "state_seq": 10245,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "MAY",
+     "speaker_source": "name_prefix",
+     "text": "MAY: It's fun if you can get a lot of\nPOK\u00e9MON!"
+    },
+    {
+     "state_seq": 10251,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "MAY",
+     "speaker_source": "name_prefix",
+     "text": "I'm going to look all over the place\nbecause I want different POK\u00e9MON."
+    },
+    {
+     "state_seq": 10257,
+     "map": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+     "map_display": "PROF. BIRCH'S POK\u00e9MON LAB",
+     "map_id": [
+      1,
+      4
+     ],
+     "position": {
+      "x": 6,
+      "y": 5
+     },
+     "speaker": "MAY",
+     "speaker_source": "name_prefix",
+     "text": "If I find any cute POK\u00e9MON, I'll catch\nthem with POK\u00e9 BALLS!"
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 37624
+  }
+ },
+ "gym-youngster": {
+  "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+  "seq": 51913,
+  "event": {
+   "v": 1,
+   "run": "2026-10-24T19-31-52_qwen36-gpu0_9e33",
+   "seq": 51913,
+   "t": "2026-10-24T22:59:33.355-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 1378,
+   "tool_call_id": "9bt1bRjSESWNDJzzvAtQu8OoBACQ7Fsf",
+   "tool": "navigate_to_target",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 2,
+   "pages": [
+    {
+     "state_seq": 51901,
+     "map": "RUSTBORO CITY GYM",
+     "map_id": [
+      11,
+      3
+     ],
+     "position": {
+      "x": 3,
+      "y": 8
+     },
+     "speaker": "YOUNGSTER",
+     "speaker_source": "faced_sprite",
+     "text": "ROXANNE is stronger than me by\nseveral times."
+    },
+    {
+     "state_seq": 51907,
+     "map": "RUSTBORO CITY GYM",
+     "map_id": [
+      11,
+      3
+     ],
+     "position": {
+      "x": 3,
+      "y": 8
+     },
+     "speaker": "YOUNGSTER",
+     "speaker_source": "faced_sprite",
+     "text": "You'd better be on your guard!"
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 12906
+  }
+ }
+}

@@ -868,6 +868,7 @@ export class App {
     });
     this.ui("trace").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
+      if(target.closest("[data-history-retry]")!==null){void this.current?.history();return;}
       if (target.closest("[data-trace-more]") !== null) {
         this.holdTrace(this.ui("trace"));
         this.traceLimit += TRACE_TURNS;
@@ -1483,7 +1484,8 @@ export class App {
     const activity=this.traceOwner(),events=activity.events;
     for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
     const live = this.current?.state.selected===this.runId?(this.current.state.snapshot?.phase.kind==="thinking"?{turn:this.view.turn}:null):activity.isThinking?{turn:activity.turn}:null;
-    const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}|${String(this.historyBefore)}|${String(this.historyLoading)}`;
+    const historyProblem=this.current?.state.selected===this.runId?this.current.state.historyProblem:null;
+    const key = `${historyProblem??""}|${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}|${String(this.historyBefore)}|${String(this.historyLoading)}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
       this.traceKey = key;
@@ -1493,7 +1495,8 @@ export class App {
       const elapsed=startMs===null||(this.current?.state.selected===this.runId&&this.current.state.before!==null)?null:(ms:number):number=>(ms-startMs-activity.control.pausedBefore(ms))/1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0), page: TRACE_TURNS });
       const older = more > 0 ? moreButton(more, TRACE_TURNS) : this.historyBefore === null ? "" : `<button type="button" class="pbtn trace-more" data-trace-more data-history-more${this.historyLoading ? " disabled" : ""}>${this.historyLoading ? "LOADING OLDER TURNS…" : "LOAD OLDER TURNS"}</button>`;
-      reconcile(box, groups, (groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+      const recovery=historyProblem===null?"":`<p class="nodata">${esc(historyProblem)}</p><button type="button" class="pbtn" data-history-retry${this.historyLoading?" disabled":""}>RETRY HISTORY</button>`;
+      reconcile(box, groups, recovery+(groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
     }
     const sideView = this.recordedThinking;
     const sideTrace = this.recordedThinkingTrace;
@@ -1551,8 +1554,8 @@ export class App {
     mode.className = `mode ${label.cls}`;
     this.setHtml("run-controls", controlBar(view, this.controlLive, this.holdFraction()));
     const historyStatus = this.ui("history-status");
-    historyStatus.hidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale:this.historyBefore===null;
-    historyStatus.textContent=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.historyLoading?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    historyStatus.hidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale&&!this.historyLoading&&this.current.state.historyProblem===null:this.historyBefore===null;
+    historyStatus.textContent=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:this.historyLoading?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
     if (layer !== null) {
@@ -1563,7 +1566,7 @@ export class App {
       }
     }
     const current=this.current?.state.selected===this.runId?this.current.state:null;
-    this.setHtml("stats", sideStats(view,nowMs,current?.snapshot===null||current===null?undefined:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null,timeKnown:current.snapshot.run.elapsedMs!==null}));
+    this.setHtml("stats", sideStats(view,nowMs,current===null?undefined:current.snapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null,timeKnown:current.snapshot.run.elapsedMs!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);

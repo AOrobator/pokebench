@@ -86,3 +86,15 @@ it("records delivered scene text and images durably with current frame first",as
  const last=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).findLast(e=>e.type==="decision_input");
  expect(last?.type==="decision_input"?last.frames.map(f=>f.path):[]).toEqual(last?.type==="decision_input"?[`frames/${String(last.seq).padStart(6,"0")}_0.png`,`frames/${String(last.seq).padStart(6,"0")}_1.png`]:["missing decision"]);
 });
+
+it("production safe-capture switch distinguishes deferred scene samples from archive failure and keeps OFF bytes",async()=>{
+ const id="scene-journal-safe-capture-v1";
+ const coverage={frames:30,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_revision:8,persisted_revision:8,diagnostic_error:null};
+ const payload={...reply(),coverage};
+ const watcher=new StateWatcher("http://scene.test",()=>Promise.resolve(new Response(JSON.stringify(payload))));
+ const on=playGameTools([base],{...OFF,[ID]:true,[id]:true},watcher,rec)[0];if(!on)throw Error("missing");
+ const result=await on.execute("safe",{});expect(text(result)).toContain("6 deferred");expect(text(result)).toContain("not a transcript/archive failure");expect(text(result)).not.toContain("CAPTURE GAP");expect(result.content[0]).toEqual({type:"text",text:"final observation"});
+ const off=playGameTools([base],{...OFF,[ID]:true},watcher,rec)[0];if(!off)throw Error("missing");expect(text(await off.execute("off",{}))).toBe("final observation");
+ expect(OFF[id]).toBe(false);expect(featureInfo(id)).toMatchObject({needs:ID});expect(playHarnessFeatures({...OFF,[ID]:true,[id]:true},null)).toContain(id);
+ expect(serverFeatureEnv({...OFF,[ID]:true,[id]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(id);
+});

@@ -285,3 +285,89 @@ def test_identical_text_after_message_closes_or_scene_ends_is_delivered_again(mo
     quotations = [e["text"] for e in j.entries if "field text" in e["text"]]
     assert len(quotations) == 3, quotations
     assert all(line.endswith('"Wait!"') for line in quotations), quotations
+
+
+def raw_sample(frame):
+    from pokebench_env.raw_ram import REGIONS, RawRamSnapshot
+
+    return RawRamSnapshot(1, frame, frame + 100, frame, "a" * 40, tuple(range(16)), 0x1F,
+                          tuple((name, address, size, bytes(size)) for name, address, size in REGIONS))
+
+
+def test_safe_capture_defers_unknown_frames_and_recovers_without_inventing_motion(monkeypatch):
+    import pokebench_env.scene_journal as module
+
+    m = field()
+    actor(m, 1, 9, 20, 21)
+    idle = True
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: idle)
+    journal = SceneJournal(safe_capture=True, raw_capture=raw_sample)
+    journal.advance(m.read)
+    idle = False
+    actor(m, 1, 9, 25, 21)
+    journal.advance(m.read)
+    idle = None
+    journal.advance(m.read)
+    assert journal.errors == 0
+    assert journal.snapshot(0)["coverage"]["deferred_frames"] == 2
+    idle = True
+    actor(m, 1, 9, 29, 21)
+    journal.advance(m.read)
+    coverage = journal.snapshot(0)["coverage"]
+    assert coverage["frames"] == 4 and coverage["safe_frames"] == 2
+    assert coverage["recoveries"] == 1
+    assert not any("(20,21) -> (29,21)" in e["text"] for e in journal.entries)
+
+
+def test_safe_capture_retains_bounded_incident_window_and_persists_off_frame_hook(monkeypatch, tmp_path):
+    import pokebench_env.scene_journal as module
+    from pokebench_env.raw_ram import load_raw_ram
+    import json
+
+    idle = True
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: idle)
+    journal = SceneJournal(safe_capture=True, raw_capture=raw_sample)
+    m = field()
+    for _ in range(3):journal.advance(m.read)
+    idle = False
+    for _ in range(20):journal.advance(m.read)
+    idle = True
+    journal.advance(m.read)
+    journal.advance(m.read)
+    first = journal.snapshot(0)["coverage"]
+    assert first["diagnostic_samples"] == 8
+    assert not list(tmp_path.iterdir())
+    journal.persist_diagnostics(tmp_path)
+    manifest = json.loads((tmp_path / "current.json").read_text())
+    assert manifest["samples"] == 8 and manifest["retained_windows"] == 2
+    index = tmp_path / manifest["directory"] / "index.jsonl"
+    receipts = [json.loads(line) for line in index.read_text().splitlines()]
+    assert len(receipts) == 8
+    for receipt in receipts:
+        archived = load_raw_ram(index.parent / receipt["path"], receipt["sha256"])
+        assert archived.metadata["frame"] == receipt["frame"]
+    # Ordinary frames do not overwrite the incident after it has recovered.
+    for _ in range(20):journal.advance(m.read)
+    journal.persist_diagnostics(tmp_path)
+    assert json.loads((tmp_path / "current.json").read_text()) == manifest
+    for _ in range(3):
+        idle = False;journal.advance(m.read)
+        idle = True;journal.advance(m.read);journal.advance(m.read)
+        journal.persist_diagnostics(tmp_path)
+    assert len(list(tmp_path.glob("window-*"))) == 2
+
+
+def test_safe_capture_off_is_exact_legacy_and_real_failures_are_not_deferrals(monkeypatch):
+    import pokebench_env.scene_journal as module
+
+    m = field()
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: False)
+    old, off = SceneJournal(), SceneJournal(safe_capture=False, raw_capture=lambda frame: (_ for _ in ()).throw(AssertionError()))
+    old.advance(m.read);off.advance(m.read)
+    assert old.snapshot(0) == off.snapshot(0)
+    assert "coverage" not in off.snapshot(0)
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: True)
+    on = SceneJournal(safe_capture=True, raw_capture=lambda frame: (_ for _ in ()).throw(OSError("native copy failed")))
+    on.advance(m.read)
+    assert on.errors == 1 and "native copy failed" in on.last_error
+    assert on.snapshot(0)["coverage"]["deferred_frames"] == 0

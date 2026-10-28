@@ -17,7 +17,7 @@ Each cell is padded to the widest token, and tokens like `~/Wa:o/Lv:1` are long.
 
 When the switch is ON, the server renders the same grid with these changes:
 
-- Each distinct multi-character token gets a short code. The codes are letters not used as single-character glyphs: one letter, then two.
+- Each distinct multi-character token gets a short code. The codes are letters that are neither glyphs on the map nor element legend keys: one letter, then two, then longer (round 2).
 - A `Codes: A = token; …` line follows the title. It reads `Codes: none` when no token needs a code.
 - Every cell is padded to the longest code, with one space between cells.
 - Column numbers are stacked digit lines, read top to bottom.
@@ -71,3 +71,4 @@ The fallback lane returned BLOCKING. When the origin is negative (a local view w
 - [x] Merged main 606bf6d24 (pokenav-call-auto-advance-v1 landed). Registry conflicts were resolved by keeping main's entries and adding this branch's switch after it. Index pins +1. The resolver had dropped the single-line FEATURES on() entry for compact and supervisor; it was restored and the resolver hardened. Focused agent tests plus viewer panels/server/next-run/feature-config/fixed-definition (421) pass.
 - [x] Round 3: Claude LGTM, fallback LGTM. Codex BLOCKING because the 700-token test never reached three-letter codes (26 usable letters give 702 one- and two-letter codes). The test now derives the alphabet from CODE_LETTERS minus legend and glyphs, uses one more token than 26+26², and asserts the last code has three letters. Explainer updated to match.
 - [x] Merged main 92b6b8fb8 (player-map-visibility-v1 landed): registry-list conflicts only, resolved by appending this branch's switches after main's; index pins +1. Focused agent tests, viewer panels/server/next-run/feature-config/fixed-definition (423) and, for compact, the env compact and wiring tests (273) pass against the merged renderer.
+- [x] Round 4 (Codex delta check): the switch description, explainer caption and this worklog still said codes are one or two letters; all three now say codes grow in length.

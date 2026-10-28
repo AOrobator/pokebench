@@ -13,7 +13,9 @@ setup:
 
 # Every suite runs once, coverage-instrumented, and the 90% floor is enforced in the same pass
 # (project override of the global 95%; see CLAUDE.md).
+# Viewer tests import compiled agent registry/schema exports; rebuild them before coverage.
 test:
+    just build
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
     cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90

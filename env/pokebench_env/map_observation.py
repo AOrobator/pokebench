@@ -308,7 +308,8 @@ def render_observation(
         rendered = [[codes.get(token, token) for token in row] for row in rendered]
         width = max([1, *(len(code) for code in codes.values())])
         widths = [width] * observation.width
-        digits = len(str(ox + observation.width - 1))
+        # A local view near the west edge starts at a negative column: the widest can be the first.
+        digits = max(len(str(ox + x)) for x in range(observation.width))
         numbers = [str(ox + x).rjust(digits) for x in range(observation.width)]
         lines = [
             "Current map (observed elements v1, compact codes); "

@@ -10,7 +10,15 @@ from pathlib import Path
 import pytest
 
 from pokebench_env.live_map import FullMap, MapTile
-from pokebench_env.map_observation import build_observation, render_observation
+from pokebench_env.map_observation import (
+    COLOR_TOKENS,
+    DIRECTION_TOKENS,
+    KIND_TOKENS,
+    STATE_TOKENS,
+    build_observation,
+    compact_codes,
+    render_observation,
+)
 from pokebench_env.map_observation_types import MapElement
 
 PRET = Path(os.environ.get("POKEEMERALD_DIR", Path.home() / "dev" / "pokeemerald"))
@@ -82,7 +90,7 @@ def parse(text: str) -> dict[str, object]:
     while (
         lines[i][:4].strip() == ""
         and lines[i].strip() != ""
-        and set(lines[i].strip()) <= set("0123456789 ")
+        and set(lines[i].strip()) <= set("-0123456789 ")
     ):
         header.append(lines[i])
         i += 1
@@ -181,8 +189,10 @@ def test_server_switch_is_default_off_and_only_recodes_the_grid() -> None:
 
 
 @pytest.mark.parametrize("ox,width", [(-5, 15), (-12, 4), (-7, 15), (95, 10), (0, 1)])
-def test_compact_header_numbers_every_column_including_negative_origins(ox: int, width: int) -> None:
-    # A local view near the west or north edge starts at a negative origin (live_map.read_local_map).
+def test_compact_header_numbers_every_column_including_negative_origins(
+    ox: int, width: int
+) -> None:
+    # A local view near the west or north edge starts at a negative origin (read_local_map).
     shown, _ = synthetic(width, 2, 11)
     observation = dataclasses.replace(build_observation(shown, (0, 0), ()), origin=(ox, 0))
     lines = render_observation(shown, observation, compact=True).split("\n")
@@ -194,7 +204,9 @@ def test_compact_header_numbers_every_column_including_negative_origins(ox: int,
         i += 1
     span = max(len(c) for c in parse_codes(lines[1])) if parse_codes(lines[1]) else 1
     columns = [
-        "".join(h.ljust(5 + (width) * (span + 1))[5 + x * (span + 1) + span - 1] for h in header).strip()
+        "".join(
+            h.ljust(5 + width * (span + 1))[5 + x * (span + 1) + span - 1] for h in header
+        ).strip()
         for x in range(width)
     ]
     assert columns == [str(ox + x) for x in range(width)]
@@ -204,3 +216,17 @@ def parse_codes(line: str) -> list[str]:
     if line == "Codes: none":
         return []
     return [part.split(" = ", 1)[0] for part in line[len("Codes: ") :].split("; ")]
+
+
+def test_codes_never_reuse_a_glyph_or_an_element_legend_key() -> None:
+    legend = {
+        v
+        for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS)
+        for v in table.values()
+    }
+    tokens = [f"./T:{i}" for i in range(700)]
+    codes = compact_codes([["#", ".", "g", "W", "N", *tokens]])
+    assert len(set(codes.values())) == len(tokens)
+    for code in codes.values():
+        assert code not in legend and code not in {"#", ".", "g", "W", "N"}
+        assert code.isalpha()

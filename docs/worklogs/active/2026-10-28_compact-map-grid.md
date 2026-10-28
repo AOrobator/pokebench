@@ -60,4 +60,7 @@ So the roster is Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback
 The fallback lane returned BLOCKING. When the origin is negative (a local view within 7 tiles of the west edge, from `read_local_map`), the stacked header sized its digit lines from the last column only, so "-5".."-1" all printed as "-".
 
 - [x] RED: `test_compact_header_numbers_every_column_including_negative_origins`. Origins -5, -12 and -7 fail; 95 and 0 pass.
-- [ ] GREEN: digits = the longest column number.
+- [x] GREEN: digits is now the longest column number, and the test parser accepts "-" in header lines. 269 env tests pass with the wiring tests; ruff and mypy are clean.
+- The Claude lane (opus subagent) also returned BLOCKING on the same header bug, plus a strongly recommended hardening: codes could reuse an element legend key (`I` is ice in the legend), which risks a misreading. Accepted.
+- [x] RED: `test_codes_never_reuse_a_glyph_or_an_element_legend_key`, with 700 tokens so it also proves the code supply is unbounded. It fails because codes include legend keys.
+- [ ] GREEN: reserve every KIND/STATE/DIRECTION/COLOR token value and generate codes of growing length.

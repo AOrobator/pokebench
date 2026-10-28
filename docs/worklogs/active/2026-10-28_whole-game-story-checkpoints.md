@@ -68,3 +68,6 @@ Outcome: investigate whether the existing delivered-place evidence can distingui
 
 Full gates queued at position3 by coordinator; await START. Worktree-only dependencies restored (pinned pristine vendor, existing native binding and protected sprite-asset links). No gameplay/GPU process started. Main has advanced to98ab50598; commit this source checkpoint, sync main, and rebuild before frozen reviews/headless candidate proof. No self-merge or activation claim.
 COMMIT: implement pret-only whole-game stream, explicit known limits and report section.
+
+Additional source-audit RED: a wrong per-page fixture that persists TATE onto the page explicitly beginning LIZA was accepted because the validator allowed an unchanged previous name. Added a real pret counterexample; reads-each test now fails its expected-rejection assertion. This is fixture-audit correctness only, not a runtime attribution parser or a ranking change. Receipt: /tmp/whole-game-prefix-change-red.log.
+COMMIT: reject stale fixture attribution when the next page prints another name (RED).

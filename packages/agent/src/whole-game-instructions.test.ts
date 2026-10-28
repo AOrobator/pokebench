@@ -67,6 +67,9 @@ describe.skipIf(!havePret)("deterministic pret-only whole-game instruction strea
   expect(fixture([{...first,page_names:[pageNames[0],null,...pageNames.slice(2)]}])).toThrow("lost printed name");
   const {page_names:pageNamesRemoved,...withoutPages}=first;expect(pageNamesRemoved).toBeDefined();
   expect(fixture([withoutPages])()).toHaveLength(1);
+  const twins=source.find(e=>e.id==="tate-liza");if(twins===undefined)throw Error("missing twins fixture");
+  const names=twins.page_names as string[];
+  expect(fixture([{...twins,page_names:[names[0],"TATE",...names.slice(2)]}])).toThrow("page printed name");
   const label=String(first.text_label);
   expect(fixture([first],(p,t)=>p.endsWith("scripts.inc")?t.replaceAll(`msgbox ${label}`,"msgbox OtherText"):t)).toThrow("uncalled pret text");
   expect(fixture([first],(p,t)=>p.endsWith("scripts.inc")?t.replace('MOM: {PLAYER}',String.raw`MOM: \q{PLAYER}`):t)).toThrow("unsupported text escape");

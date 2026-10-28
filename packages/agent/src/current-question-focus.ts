@@ -8,6 +8,7 @@ type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type Question={run:string;map:readonly number[];text:string;dialog:string;evidence:number[]};
 const HEADER="CURRENT QUESTION";
+const DECISION_CHECK="Decision check: Interpret YES and NO against the CURRENT QUESTION separately. Compare those two meanings with your current intention, then choose the corresponding displayed input. Distinguish what the question actually asks from what an earlier page asked. If the game's later consequence is unknown, do not invent it to justify the answer.";
 const normalized=(s:string)=>s.replace(/\s+/g," ").trim();
 const sameMap=(a:readonly number[]|null,b:readonly number[]|null)=>a!==null&&b!==null&&a.length===2&&a.every((v,i)=>v===b[i]);
 function ready(s:State|null):{selected:"YES"|"NO";controls:string}|null {
@@ -24,8 +25,10 @@ function readout(text:string,ui:{selected:"YES"|"NO";controls:string}):{dialog:s
  if(dialogs.length!==1||interfaces.length!==1)return null;
  const line=interfaces[0]?.[0],dialog=dialogs[0]?.[1];
  if(line===undefined||dialog===undefined||!line.startsWith(`Interface: field_yes_no; input ready; selected ${ui.selected};`)||!line.includes(`; ${ui.controls}`)||body.includes("STATE COVERAGE ERROR:"))return null;
- const answer=body.match(/^To answer .*$/m)?.[0]??null;
- if(answer!==null&&!answer.includes(`Pressing A now answers ${ui.selected}.`))return null;
+ const answers=body.match(/^(?:To answer |YES\/NO controls: ).*$/gm)??[];
+ if(answers.length>1)return null;
+ const answer=answers[0]??null;
+ if(answer!==null&&(answer.startsWith("YES/NO controls: ")?!answer.startsWith(`YES/NO controls: selected ${ui.selected};`):!answer.includes(`Pressing A now answers ${ui.selected}.`)))return null;
  return {dialog,interface:line,answer};
 }
 
@@ -51,7 +54,7 @@ export function currentQuestionFocus(features:FeatureSet,recorder:Pick<RunRecord
     question=page!==undefined&&advance.run===e.run&&page.state_seq!==null&&page.state_seq<=latest.seq&&sameMap(page.map_id,latest.map_id)&&normalized(current.dialog).endsWith(normalized(page.text))?{run:e.run,map:[...(latest.map_id??[])],text:page.text,dialog:current.dialog,evidence:[advance.seq,page.state_seq,e.seq]}:null;
    }
    if(question===null||question.run!==e.run||!sameMap(question.map,latest.map_id)||question.dialog!==current.dialog){question=null;return;}
-   due={id:e.id,tool:e.name,seq:e.seq,text:[HEADER,question.text,current.interface,...(current.answer===null?[]:[current.answer])].join("\n"),visible:[`Dialog: "${current.dialog}"`,current.interface,...(current.answer===null?[]:[current.answer])],evidence:[...new Set([...question.evidence,e.seq,latest.seq])],recorded:false};
+   due={id:e.id,tool:e.name,seq:e.seq,text:[HEADER,question.text,current.interface,...(current.answer===null?[]:[current.answer])].join("\n")+"\n\n"+DECISION_CHECK,visible:[`Dialog: "${current.dialog}"`,current.interface,...(current.answer===null?[]:[current.answer])],evidence:[...new Set([...question.evidence,e.seq,latest.seq])],recorded:false};
   }
   if(e.type==="ledger_context"&&e.text.startsWith(`${HEADER}\n`)&&due!==null&&e.evidence.includes(due.seq))due.recorded=true;
  },true);

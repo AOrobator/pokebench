@@ -1,3 +1,4 @@
+import {parsePlayPreset} from "@pokebench/agent/play-preset";
 import {expect,it} from "vitest";
 import {recipeText} from "../test-support/recipe-text.js";
 import {armFeatures,armPreset,parseFixedDefinition} from "./fixed-design.js";
@@ -16,7 +17,8 @@ it.each(CURRENT)("%s enables the tested question cue only in future bundles",nam
   const bundle=armPreset(definition,phase.id,"bundle"),control=armPreset(definition,phase.id,"control");
   expect(bundle.features[ID],`${name}/${phase.id}/bundle`).toBe(true);
   expect(bundle.features["dialogue-auto-advance-v1"]).toBe(true);
-  expect(control,`${name}/${phase.id}/control unchanged`).toEqual(armPreset(before,phase.id,"control"));
+  expect(parsePlayPreset(control),`${name}/${phase.id}/normalized control unchanged`).toEqual(parsePlayPreset(armPreset(before,phase.id,"control")));
+  expect(parsePlayPreset(bundle)).toMatchObject({features:{[ID]:true}});
   expect(control.features[ID]).toBe(false);
  }
 });

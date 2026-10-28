@@ -76,7 +76,8 @@
   "refusal-ledger-bound-v1",
   "disproved-beliefs-bound-v1",
   "id-card-bound-v1",
-  "instruction-memory-yaml-v1"
+  "instruction-memory-yaml-v1",
+  "current-question-focus-v1"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",

@@ -86,4 +86,128 @@ main hr{border:0;border-top:4px double #9fb2c8}
 }
 </style>
 <main><h1>Bounded ID-card mentions</h1><p><code>id-card-bound-v1</code> · default OFF · requires people-id-cards-v1</p><section class="card"><h2>A shorter mention list</h2><p>A person's ID card can repeat every earlier dialogue page that names them. This switch keeps the newest whole pages in that list, within 1,500 Unicode code points including each line’s indentation and the newlines between lines. It shows them in their usual order, oldest first.</p><div class="flow"><div class="card"><strong>Full history</strong><p>Delivered pages that name this person, each once.</p></div><div class="card"><strong>Select backwards</strong><p>Keep a contiguous newest suffix of whole quoted lines.</p></div><div class="card"><strong>Show forwards</strong><p>Oldest first; count omitted earlier pages.</p></div></div><p>Flow: full history → newest-first selection → oldest-first display. The newest page always stays, even when that single line exceeds 1,500 code points. This is a list budget with that explicit exception, not a hard cap on the entire card.</p></section><section class="card"><h2>What stays the same</h2><p>The name and where it came from, first seen or seen on, last conversation, battle text, and also-spoke note stay unchanged. The fingerprint still uses the full mention list, so clipping does not change when cards are shown again. The archive is unchanged.</p><p>OFF lists every mention as before. ON with no omitted pages is byte-identical to OFF.</p></section><section class="card"><h2>Exact output</h2><p>Illustrative header when one page is omitted:</p><pre>- Other pages that name them (each once, in order, whole; 1 earlier page is left out):</pre><p>When dialogue-auto-advance-v1 provides get_dialogue, the shared dialogue record holds the omitted pages and the header can say:</p><pre>- Other pages that name them (each once, in order, whole; 3 earlier pages are left out; get_dialogue finds them):
-  turn 123 · ROUTE103 (map 0/18) · at 5,5 · PROF. BIRCH: "An illustrative whole page naming MAY."</pre><p>That payload line is illustrative, not an extracted game quote. Omitted pages remain searchable through the existing tool; this switch adds no tool or game action.</p></section><section class="card"><h2>Switch and evaluation</h2><p>people-id-cards-v1 is ON in both current arms. The separately approved activation makes this bound ON only in the bundle and OFF in control, so the arms intentionally differ in card size. No existing run’s header, prompts or configuration is rewritten, and no new run is launched by this change.</p><p>Unit tests cover whole lines, exact code-point boundaries, astral text, singular/plural counts, oversized newest pages, full-history fingerprints, actual dialogue recall, and the production playGameTools path. Recorded card replay compares OFF bytes against GLM0d5d, a702 and88ea. Gates, independent review and landing status are recorded in the feature worklog. Context-size evidence alone does not show better gameplay.</p></section></main></html>
+  turn 123 · ROUTE103 (map 0/18) · at 5,5 · PROF. BIRCH: "An illustrative whole page naming MAY."</pre><p>That payload line is illustrative, not an extracted game quote. Omitted pages remain searchable through the existing tool; this switch adds no tool or game action.</p></section><section class="card"><h2>Switch and evaluation</h2><p>people-id-cards-v1 is ON in both current arms. The separately approved activation makes this bound ON only in the bundle and OFF in control, so the arms intentionally differ in card size. No existing run’s header, prompts or configuration is rewritten, and no new run is launched by this change.</p><p>Unit tests cover whole lines, exact code-point boundaries, astral text, singular/plural counts, oversized newest pages, full-history fingerprints, actual dialogue recall, and the production playGameTools path. Recorded card replay compares OFF bytes against GLM0d5d, a702 and88ea. Gates, independent review and landing status are recorded in the feature worklog. Context-size evidence alone does not show better gameplay.</p></section><section class="card"><h2>Recorded card replay</h2><p>Complete recordings, 566 cards, zero OFF mismatches; ON and OFF show cards on the same calls. The table measures full cards. Only the other-pages list is bounded, so last words and battle text can keep a card larger than 1,500 code points.</p><div style="overflow-x:auto;max-width:100%"><table><thead><tr><th>Run</th><th>Cards</th><th>OFF mismatches</th><th>Largest OFF card → same card ON</th><th>Largest ON card</th></tr></thead><tbody><tr><td>0d5d</td><td>247</td><td>0</td><td>5,646 → 5,434</td><td>5,434</td></tr><tr><td>a702</td><td>165</td><td>0</td><td>2,929 → 2,929</td><td>2,929</td></tr><tr><td>88ea</td><td>154</td><td>0</td><td>2,904 → 2,904</td><td>2,904</td></tr></tbody></table></div><p>These are offline selection and byte-comparison results, not measured gameplay benefit. Source hashes, result sequences and full receipts remain in the feature’s ignored evidence folder and the specified analysis replay receipt.</p><details><summary>Actual GLM 0d5d example: turn 1128, result event 138330</summary><h3>OFF</h3><pre>ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 28, at 34,54 on ROUTE110 (map 0/25)
+- Name: MAY. The game first showed this name on turn 37.
+- Seen on: PROF. BIRCH&#x27;S HOUSE 2F (map 1/3) from turn 35; ROUTE103 (map 0/18) from turn 94; OLDALE TOWN (map 0/10) from turn 106; PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) from turn 124; RUSTBORO CITY (map 0/3) from turn 600; ROUTE110 (map 0/25) from turn 1128.
+- Last spoke to you: turn 723, 1 page, whole:
+  turn 723 · RUSTBORO CITY (map 0/3) · at 16,49 · MAY: &quot;MAY: You just became a TRAINER,
+AAAAA. I&#x27;m not going to lose!&quot;
+- Other pages that name them (each once, in order, whole):
+  turn 37 · PROF. BIRCH&#x27;S HOUSE 2F (map 1/3) · at 5,5 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Um… I&#x27;m MAY.
+Glad to meet you!&quot;
+  turn 68 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;My kid, MAY, is also studying
+POKéMON while helping me out.&quot;
+  turn 68 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;AAAAA, don&#x27;t you think it might be
+a good idea to go see MAY?&quot;
+  turn 69 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;PROF. BIRCH: Great!
+MAY should be happy, too.&quot;
+  turn 69 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;Get MAY to teach you what it
+means to be a TRAINER.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;I heard you beat MAY on
+your first try. That&#x27;s excellent!&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;MAY&#x27;s been helping with my research
+for a long time.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;MAY has an extensive history as
+a TRAINER already.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;My kid, MAY, goes everywhere
+with it.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;Whenever my kid catches a rare POKéMON
+and records its data in the POKéDEX,
+why, MAY looks for me while I&#x27;m out
+doing fieldwork, and shows me.&quot;
+  turn 604 · RUSTBORO CITY (map 0/3) · at 16,53 · MAY: &quot;Registered MAY
+in the POKéNAV.&quot;
+  turn 1080 · ROUTE110 (map 0/25) · at 10,85 · PROF. BIRCH: &quot;And where might my MAY be?&quot;
+  turn 1080 · ROUTE110 (map 0/25) · at 10,85 · PROF. BIRCH: &quot;Please keep an eye out for my MAY.
+… … … … … …&quot;
+- Battles with you (the game&#x27;s own battle text, in order, whole):
+  turn 97 · ROUTE103 (map 0/18) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 97 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 101 · ROUTE103 (map 0/18) · battle turn 4: &quot;Player defeated
+PKMN TRAINER MAY!&quot;
+  turn 605 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 605 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 609 · RUSTBORO CITY (map 0/3) · battle turn 4: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 610 · unknown location · battle turn 4: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 705 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 705 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 707 · RUSTBORO CITY (map 0/3) · battle turn 2: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 710 · unknown location · battle turn 2: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 723 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 723 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 727 · RUSTBORO CITY (map 0/3) · battle turn 4: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 730 · unknown location · battle turn 4: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;</pre><h3>ON</h3><pre>ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 28, at 34,54 on ROUTE110 (map 0/25)
+- Name: MAY. The game first showed this name on turn 37.
+- Seen on: PROF. BIRCH&#x27;S HOUSE 2F (map 1/3) from turn 35; ROUTE103 (map 0/18) from turn 94; OLDALE TOWN (map 0/10) from turn 106; PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) from turn 124; RUSTBORO CITY (map 0/3) from turn 600; ROUTE110 (map 0/25) from turn 1128.
+- Last spoke to you: turn 723, 1 page, whole:
+  turn 723 · RUSTBORO CITY (map 0/3) · at 16,49 · MAY: &quot;MAY: You just became a TRAINER,
+AAAAA. I&#x27;m not going to lose!&quot;
+- Other pages that name them (each once, in order, whole; 2 earlier pages are left out; get_dialogue finds them):
+  turn 68 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;AAAAA, don&#x27;t you think it might be
+a good idea to go see MAY?&quot;
+  turn 69 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;PROF. BIRCH: Great!
+MAY should be happy, too.&quot;
+  turn 69 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;Get MAY to teach you what it
+means to be a TRAINER.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;I heard you beat MAY on
+your first try. That&#x27;s excellent!&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;MAY&#x27;s been helping with my research
+for a long time.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;MAY has an extensive history as
+a TRAINER already.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;My kid, MAY, goes everywhere
+with it.&quot;
+  turn 124 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;Whenever my kid catches a rare POKéMON
+and records its data in the POKéDEX,
+why, MAY looks for me while I&#x27;m out
+doing fieldwork, and shows me.&quot;
+  turn 604 · RUSTBORO CITY (map 0/3) · at 16,53 · MAY: &quot;Registered MAY
+in the POKéNAV.&quot;
+  turn 1080 · ROUTE110 (map 0/25) · at 10,85 · PROF. BIRCH: &quot;And where might my MAY be?&quot;
+  turn 1080 · ROUTE110 (map 0/25) · at 10,85 · PROF. BIRCH: &quot;Please keep an eye out for my MAY.
+… … … … … …&quot;
+- Battles with you (the game&#x27;s own battle text, in order, whole):
+  turn 97 · ROUTE103 (map 0/18) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 97 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 101 · ROUTE103 (map 0/18) · battle turn 4: &quot;Player defeated
+PKMN TRAINER MAY!&quot;
+  turn 605 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 605 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 609 · RUSTBORO CITY (map 0/3) · battle turn 4: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 610 · unknown location · battle turn 4: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 705 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 705 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 707 · RUSTBORO CITY (map 0/3) · battle turn 2: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 710 · unknown location · battle turn 2: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;
+  turn 723 · RUSTBORO CITY (map 0/3) · battle turn 1: &quot;PKMN TRAINER MAY
+would like to battle!&quot;
+  turn 723 · unknown location · battle turn 1: &quot;PKMN TRAINER MAY sent
+out WINGULL!&quot;
+  turn 727 · RUSTBORO CITY (map 0/3) · battle turn 4: &quot;PKMN TRAINER MAY is
+about to use TREECKO.&quot;
+  turn 730 · unknown location · battle turn 4: &quot;PKMN TRAINER MAY sent
+out TREECKO!&quot;</pre></details></section></main></html>

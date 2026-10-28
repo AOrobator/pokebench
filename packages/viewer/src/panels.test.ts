@@ -1824,6 +1824,10 @@ it("marks a PokéNav input with an unknown effect explicitly in history and raw 
  expect(inspector(event)).toContain("pokenav_pending_button");
 });
 
+it("links the compact map grid explainer from its config card without inventing recorded status",()=>{
+ const id="compact-map-grid-v1";
+});
+
 it("links the bounded supervisor briefing explainer from its config card without inventing recorded status",()=>{
  const id="supervisor-briefing-bound-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

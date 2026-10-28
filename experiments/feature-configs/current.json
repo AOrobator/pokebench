@@ -71,6 +71,7 @@
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
   "pokenav-call-auto-advance-v1",
+  "compact-map-grid-v1",
   "supervisor-briefing-bound-v1"
  ],
  "offInBoth": [
@@ -451,6 +452,7 @@
   "instruction-memory-cap-v1": true,
   "pokenav-call-auto-advance-v1": false,
   "player-map-visibility-v1": true,
+  "compact-map-grid-v1": false,
   "supervisor-briefing-bound-v1": false
  }
 }

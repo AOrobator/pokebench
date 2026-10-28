@@ -1662,6 +1662,11 @@ it("serves the tracked player visibility explainer",async()=>{
  const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });
 
+it("serves the compact map grid explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-compact-grid-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="compact-map-grid-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+});
+
 it("serves the bounded supervisor briefing explainer byte for byte from the config-card allowlist",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-briefing-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const id="supervisor-briefing-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);

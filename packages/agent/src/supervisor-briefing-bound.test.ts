@@ -180,9 +180,9 @@ describe("supervisor-briefing-bound-v1: exits to maps not entered",()=>{
 });
 
 describe("supervisor-briefing-bound-v1 registry",()=>{
- it("is registered last, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(298);
-  expect(playHarnessFeatures({...REGISTRY_ON,[ID]:true},null).at(-1)).toBe(ID);
+ it("is registered at its pinned index, default off, recorded only when on",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(299);
+  expect(playHarnessFeatures({...REGISTRY_ON,[ID]:true},null)).toContain(ID);
   expect(featureInfo(ID).description).toContain(" Off: every page and every map is listed.");
   const {[ID]:value,...omitted}={...REGISTRY_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);

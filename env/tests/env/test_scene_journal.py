@@ -525,3 +525,98 @@ def test_diagnostic_window_bounds_and_revision_integrity(tmp_path):
     assert not list(tmp_path.glob(".window-*"))
     with pytest.raises(ValueError, match="native raw"):
         SceneJournal(safe_capture=True)
+
+
+def test_repeated_failed_publications_stay_bounded_and_recover(monkeypatch, tmp_path):
+    import json
+
+    import pokebench_env.raw_ram as raw
+    import pokebench_env.scene_journal as module
+
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: False)
+    journal = SceneJournal(safe_capture=True, raw_capture=raw_sample)
+    journal.advance(field().read)
+    journal.persist_diagnostics(tmp_path)
+    published = json.loads((tmp_path / "current.json").read_text())
+    replace = raw.os.replace
+
+    def fail_publication(source, destination):
+        raise OSError("disk publication failed")
+
+    monkeypatch.setattr(raw.os, "replace", fail_publication)
+    for _ in range(4):
+        journal.advance(field().read)
+        journal.persist_diagnostics(tmp_path)
+        assert journal.diagnostic_error == "disk publication failed"
+        assert journal.persisted_revision == published["revision"]
+        assert json.loads((tmp_path / "current.json").read_text()) == published
+        windows = list(tmp_path.glob("window-*"))
+        assert len(windows) <= 2, windows
+        assert (tmp_path / published["directory"] / "window.json").exists()
+    monkeypatch.setattr(raw.os, "replace", replace)
+    journal.persist_diagnostics(tmp_path)
+    assert journal.diagnostic_error is None
+    assert journal.persisted_revision == journal.diagnostic_revision
+    assert len(list(tmp_path.glob("window-*"))) == 2
+
+
+def test_failed_retention_refuses_new_window_and_preserves_published_pointer(monkeypatch, tmp_path):
+    import json
+
+    import pytest
+
+    import pokebench_env.raw_ram as raw
+
+    for revision in (1, 2):
+        raw.persist_diagnostic_window(tmp_path, revision, (raw_sample(revision),))
+    published = json.loads((tmp_path / "current.json").read_text())
+    original = raw.shutil.rmtree
+
+    def fail_old_window(path, *args, **kwargs):
+        if str(path).endswith("window-000000000001"):
+            raise OSError("retention cleanup failed")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(raw.shutil, "rmtree", fail_old_window)
+    for revision in (3, 4):
+        with pytest.raises(OSError, match="retention cleanup failed"):
+            raw.persist_diagnostic_window(tmp_path, revision, (raw_sample(revision),))
+        assert json.loads((tmp_path / "current.json").read_text()) == published
+        assert len(list(tmp_path.glob("window-*"))) == 2
+    monkeypatch.setattr(raw.shutil, "rmtree", original)
+    raw.persist_diagnostic_window(tmp_path, 5, (raw_sample(5),))
+    assert json.loads((tmp_path / "current.json").read_text())["revision"] == 5
+    assert len(list(tmp_path.glob("window-*"))) == 2
+
+
+def test_failed_rollback_keeps_current_window_during_next_admission(monkeypatch, tmp_path):
+    import json
+
+    import pytest
+
+    import pokebench_env.raw_ram as raw
+
+    published = raw.persist_diagnostic_window(tmp_path, 1, (raw_sample(1),))
+    original_remove, original_replace = raw.shutil.rmtree, raw.os.replace
+
+    def fail_new_window(path, *args, **kwargs):
+        if str(path).endswith("window-000000000002"):
+            raise OSError("rollback cleanup failed")
+        return original_remove(path, *args, **kwargs)
+
+    def fail_publication(source, destination):
+        raise OSError("disk publication failed")
+
+    monkeypatch.setattr(raw.shutil, "rmtree", fail_new_window)
+    monkeypatch.setattr(raw.os, "replace", fail_publication)
+    with pytest.raises(OSError, match="cleanup failed"):
+        raw.persist_diagnostic_window(tmp_path, 2, (raw_sample(2),))
+    monkeypatch.setattr(raw.shutil, "rmtree", original_remove)
+    with pytest.raises(OSError, match="disk publication failed"):
+        raw.persist_diagnostic_window(tmp_path, 3, (raw_sample(3),))
+    assert json.loads((tmp_path / "current.json").read_text()) == published
+    assert (tmp_path / published["directory"]).is_dir()
+    assert len(list(tmp_path.glob("window-*"))) == 1
+    monkeypatch.setattr(raw.os, "replace", original_replace)
+    raw.persist_diagnostic_window(tmp_path, 4, (raw_sample(4),))
+    assert len(list(tmp_path.glob("window-*"))) == 2

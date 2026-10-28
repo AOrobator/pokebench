@@ -331,4 +331,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
 
+- [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
 - [Player map visibility](player-map-visibility-v1.html): visible and remembered terrain, darkness, hidden-object filtering and discovered-terrain navigation.

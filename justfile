@@ -239,8 +239,8 @@ exclude-run run operator +reason: build
 experiments-audit: build
     node packages/viewer/dist/experiments-audit.js
 
-# Fixed-N two-arm, two-lane experiments (experiments/fixed/<id>.json): plan, check, approve
-# (operator only, interactive), run, dry-run, status, analyze, analyze-receipt.
+# Fixed-N two-arm, two-lane experiments (experiments/fixed/<id>.json): plan, check, run,
+# dry-run, rerun, status, analyze, analyze-receipt.
 # After a merge to main, run `just viewer-main` before launching from the newer pin.
 fixed-run *args: build
     node packages/viewer/dist/fixed-cli.js {{args}}

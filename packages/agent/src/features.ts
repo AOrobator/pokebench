@@ -301,6 +301,7 @@ export const SWITCHABLE_FEATURES = [
   "retire-reached-story-line-v1",
   "instruction-memory-dedup-v1",
   "scene-journal-safe-capture-v1",
+  "neutral-yes-no-readout-v1",
   "player-map-visibility-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -723,6 +724,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("retire-reached-story-line-v1", "observation", "RETIRE REACHED STORY LINE", "unfinished-activity-v1", "Default off. Bundle run a702 kept Dad's turn-312 line \"Head for RUSTBORO CITY beyond this town.\" at the top of every result for 90+ turns as \"Story line heard … Reached: RUSTBORO CITY\", after it had entered RUSTBORO CITY (turn 378) and beaten ROXANNE there (turn 578), and the model quoted it as its current goal. With this switch, a story line all of whose places the player has reached retires once the game observes a story milestone, or any step of the extended campaign catalog (a place reached such as DEWFORD TOWN, or an event such as STEVEN LETTER RECEIVED; The operator 2026-10-28), after the player has entered every place it names since the line (a battle won, another measurement-only step or an optional activity does not count; scoring is unchanged). It retires the way stale-story-goal-v1 retires a finished line: the Story goal line says the line is done, naming the place, the arrival turn and the milestone (with stale-story-goal-v2 the line is omitted), and the walk-away supervisor gets no goal from it. Dialogue history is unchanged and no replacement is invented. Needs unfinished-activity-v1, which records the arrivals. Off: a reached line stays in the header as \"Story line heard … Reached: …\"."),
   on("instruction-memory-dedup-v1", "guidance", "UNIQUE INSTRUCTION MEMORY", "delivered-place-evidence-v1", "Default off. Combines the existing instruction and person/place evidence projections into one compact block, with each selected delivered episode shown once by its original result reference. Keeps whole quotes, unknown speakers, source names and display names, dialogue/state references and current delivered progress. Existing milestone-proof retirement stays unchanged; arrival and age never complete a task. Inactive when instruction-goal-ledger-v1 replaces this memory owner. Off: the existing separate projections and all request bytes remain unchanged."),
   on("scene-journal-safe-capture-v1", "observation", "SAFE SCENE CAPTURE", "cutscene-journal-v1", "Default off. Samples scene history only at confirmed game idle points. Reports deferred samples separately from actual read failures and never infers events across them. Keeps an eight-snapshot full native RAM/CPU incident window with two pre-samples and two recovery samples where space permits; at most two exported diagnostic windows persist outside the frame hook. Current observations and transcript archives remain separate. Off: the previous scene-journal hook, failure wording and endpoint payload are unchanged; no raw diagnostic buffers are allocated."),
+  on("neutral-yes-no-readout-v1", "observation", "NEUTRAL YES/NO CONTROLS", "yes-no-answer-readout-v1", "Default off when omitted; ON in the current bundle by operator approval on 2026-10-28. Replaces the other-option instruction with a fixed YES, NO control mapping and the current selection. Reports B as NO only for handlers where it takes the NO branch; the battle forfeit box says B closes without choosing. Applies to the same ready, known YES/NO boxes as v1. No suggested answer or story objective. Off: the original To answer YES/NO instruction, byte for byte."),
   on("player-map-visibility-v1", "observation", "PLAYER MAP VISIBILITY", null, "Reveals terrain only inside the player’s screen and current illumination, remembers previously seen terrain without refreshing hidden tiles, and hides unseen people and map targets from observations and navigation. Current recipe enables this in both arms. Off: retains full-map memory, off-screen templates and unrestricted route geometry."),
 ];
 
@@ -817,6 +819,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "type-gap-team-v1",
   "pokenav-short-list-v1",
   "scene-journal-safe-capture-v1",
+  "neutral-yes-no-readout-v1",
   "player-map-visibility-v1",
 ];
 
@@ -1105,6 +1108,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("retire-reached-story-line-v1"),
     ...when("instruction-memory-dedup-v1"),
     ...when("scene-journal-safe-capture-v1"),
+    ...when("neutral-yes-no-readout-v1"),
     ...when("player-map-visibility-v1"),
   ];
 }

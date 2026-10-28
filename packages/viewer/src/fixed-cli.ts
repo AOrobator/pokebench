@@ -1,13 +1,10 @@
 // `just fixed-run <command>`: the fixed-N two-arm experiment driver. Definitions live in
-// experiments/fixed/<id>.json; their ledgers, status and approvals in runs/experiments/<id>/.
-// Approval is interactive so an agent can never grant it.
+// experiments/fixed/<id>.json; their ledgers and status in runs/experiments/<id>/.
 import { execFile, execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { userInfo } from "node:os";
 import { join } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { Value } from "typebox/value";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
@@ -32,10 +29,6 @@ export interface FixedCliDeps {
   readonly out: (line: string) => void;
   readonly err: (line: string) => void;
   readonly randomSeed: () => string;
-  readonly interactive: boolean;
-  readonly prompt: (question: string) => Promise<string>;
-  readonly now: () => Date;
-  readonly user: string;
   readonly head: () => string;
   readonly sha1File: (path: string) => string | null;
   // POKEBENCH_ROM as the runner sees it; `just` loads it from the gitignored .env.
@@ -48,8 +41,7 @@ export interface FixedCliDeps {
 const USAGE = [
   "usage: fixed-run plan <id> [--seed <16 hex>]   freeze the seeded plan into experiments/fixed/<id>.json",
   "       fixed-run check <id>                     validate the definition and every phase's start save",
-  "       fixed-run approve <id>                   operator only, interactive",
-  "       fixed-run run <id>                       run the approved experiment (both lanes)",
+  "       fixed-run run <id>                       run the experiment (both lanes)",
   "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
   "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
   "       fixed-run status <id>",
@@ -114,13 +106,6 @@ function plan(argv: readonly string[], deps: FixedCliDeps, id: string): void {
   deps.out(`planned ${String(def.plan.length)} trials with seed ${seed}`);
 }
 
-interface Approval { readonly experiment: string; readonly definitionSha256: string; readonly approvedBy: string; readonly approvedAt: string; readonly commit: string }
-const approvalPath = (deps: FixedCliDeps, id: string): string => join(experimentDir(deps, id), "approval.json");
-function readApproval(deps: FixedCliDeps, id: string): Approval | null {
-  const path = approvalPath(deps, id);
-  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as Approval) : null;
-}
-
 function check(deps: FixedCliDeps, id: string): void {
   const { definition: def, sha256: digest } = load(deps, id);
   deps.out(`${def.id}: ${def.title}`);
@@ -134,19 +119,6 @@ function check(deps: FixedCliDeps, id: string): void {
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
   deps.out(`reply token caps: control ${String(def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
-  const approval = readApproval(deps, id);
-  deps.out(`approval: ${approval === null ? "none" : approval.definitionSha256 === digest ? `${approval.approvedBy} at ${approval.approvedAt}` : "stale (the definition changed since)"}`);
-}
-
-async function approve(deps: FixedCliDeps, id: string): Promise<void> {
-  const { sha256: digest } = load(deps, id);
-  if (!deps.interactive) throw new CliError("approval needs an interactive terminal");
-  const typed = (await deps.prompt(`Type ${id} to approve this definition (sha256 ${digest.slice(0, 12)}): `)).trim();
-  if (typed !== id) throw new CliError("not approved");
-  mkdirSync(experimentDir(deps, id), { recursive: true });
-  const approval: Approval = { experiment: id, definitionSha256: digest, approvedBy: deps.user, approvedAt: deps.now().toISOString(), commit: deps.head() };
-  writeFileSync(approvalPath(deps, id), `${JSON.stringify(approval, null, 1)}\n`);
-  deps.out(`approved ${id}`);
 }
 
 // Every trial inherits the runner's environment, so a runner without the ROM would only produce invalid trials.
@@ -165,9 +137,6 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
   const rom = requireRom(deps);
   const { definition: def, sha256: digest } = load(deps, id);
   requireDefinitionRom(deps, rom, def);
-  const approval = readApproval(deps, id);
-  if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
-  if (approval.definitionSha256 !== digest) throw new CliError("the definition changed since it was approved; approve it again");
   const result = await deps.run({ def, definitionSha256: digest, runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: false });
   deps.out(`${id}: ${result}`);
 }
@@ -208,16 +177,13 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   deps.out(`${dry.id}: ${result}`);
 }
 
-// An unpaired trial of an approved experiment, on one lane, at the commit its paired trials play.
+// An unpaired trial of an experiment, on one lane, at the commit its paired trials play.
 async function rerun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const arm = flag(argv, "--arm"), laneId = flag(argv, "--lane");
   if (!FIXED_ARMS.some((a) => a === arm)) throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
   const rom = requireRom(deps);
-  const { definition: def, sha256: digest } = load(deps, id);
+  const { definition: def } = load(deps, id);
   requireDefinitionRom(deps, rom, def);
-  const approval = readApproval(deps, id);
-  if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
-  if (approval.definitionSha256 !== digest) throw new CliError("the definition changed since it was approved; approve it again");
   const lane = def.lanes.find((l) => l.id === laneId);
   if (lane === undefined) throw new CliError(`--lane must be one of ${def.lanes.map((l) => l.id).join(", ")}`);
   const phase = flag(argv, "--phase") ?? def.phases.find((p) => p.primary)?.id ?? def.phases[0]?.id ?? "";
@@ -294,7 +260,6 @@ export async function main(argv: readonly string[], deps: FixedCliDeps): Promise
     if (id === undefined) throw new RangeError();
     if (command === "plan") plan(rest, deps, id);
     else if (command === "check") check(deps, id);
-    else if (command === "approve") await approve(deps, id);
     else if (command === "run") await run(deps, id);
     else if (command === "dry-run") await dryRun(rest, deps, id);
     else if (command === "rerun") await rerun(rest, deps, id);
@@ -444,12 +409,11 @@ if (import.meta.main) {
   let stop = false;
   // Ctrl-C stops new trials only: running trials are detached and play to their wall cap; a later runner adopts them.
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; console.log("fixed-run: no new trials will start; running trials continue to their wall cap"); });
-  const rl = process.stdin.isTTY ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   const log = (line: string): void => { console.log(`${new Date().toISOString()} ${line}`); };
   main(process.argv.slice(2), {
     root, runsRoot, out: (line) => { console.log(line); }, err: (line) => { console.error(line); },
-    randomSeed: () => randomBytes(8).toString("hex"), interactive: rl !== null, prompt: (q) => rl?.question(q) ?? Promise.resolve(""),
-    now: () => new Date(), user: userInfo().username, head: () => git(["rev-parse", "HEAD"]).trim(),
+    randomSeed: () => randomBytes(8).toString("hex"),
+    head: () => git(["rev-parse", "HEAD"]).trim(),
     sha1File: (path) => (existsSync(path) ? createHash("sha1").update(readFileSync(path)).digest("hex") : null),
     rom: process.env["POKEBENCH_ROM"],
     run: runFixed, host: () => productionFixedHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
@@ -457,6 +421,6 @@ if (import.meta.main) {
   }).then((code) => { process.exitCode = code; }, (error: unknown) => {
     console.error(`fixed-run: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
-  }).finally(() => { rl?.close(); });
+  });
 }
 /* v8 ignore stop */

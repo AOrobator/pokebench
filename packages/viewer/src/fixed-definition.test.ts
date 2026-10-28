@@ -90,3 +90,13 @@ it("reports missing resolvers, malformed configs and invalid config schemas",()=
  expect(()=>parseFixedDefinition(JSON.stringify(source),()=>"not json")).toThrow();
  expect(()=>parseFixedDefinition(JSON.stringify(source),()=>JSON.stringify({...recipe,features:{wrong:"not boolean"}}))).toThrow("invalid feature recipe");
 });
+
+it("enables neutral YES/NO controls only in the current bundle",()=>{
+ for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
+  const d=readFixedDefinition(root,name).definition;
+  expect(armFeatures(d,"bundle")["neutral-yes-no-readout-v1"],name).toBe(true);
+  expect(armFeatures(d,"control")["neutral-yes-no-readout-v1"],name).toBe(false);
+  expect(armFeatureBits(d,"bundle")["neutral-yes-no-readout-v1"],name).toBe(true);
+  expect(d.switches,name).toContain("neutral-yes-no-readout-v1");
+ }
+});

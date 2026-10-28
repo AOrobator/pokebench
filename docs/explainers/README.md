@@ -332,3 +332,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
 
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
+
+- [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.

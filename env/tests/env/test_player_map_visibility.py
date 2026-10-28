@@ -188,6 +188,9 @@ def test_installed_observation_factory_delivers_masked_state_and_readout(monkeyp
     assert status == 200
     payload = json.loads(body)
     assert "Map visibility:" in payload["state_text"]
+    assert "Whole current map from live memory" in payload["state_text"]
+    assert "Next tiles:" in payload["state_text"]
+    assert "?" in payload["state_text"].split("Whole current map", 1)[1]
     assert payload["state"]["map_grid"]["rows"][3][16:20] == "ffff"
     assert payload["screenshot_base64"] == "encoded game frame"
     assert payload["state"]["map_visibility"]["known"]
@@ -263,6 +266,16 @@ def test_trainer_sight_cannot_name_a_hidden_trainer():
     assert hidden["trainers"] == [] and hidden["sightings"] == []
 
 
+def test_hidden_sight_blockers_do_not_supply_privileged_occlusion_facts():
+    from test_trainer_sight import MAP, loaded, sight_report, template, world
+
+    m = world()
+    template(m, 0, 3, 5, 2)
+    loaded(m, 0, 7, 3, 2, trainer_type=0)
+    assert not sight_report(m.read, MAP, [(2, 2)])["sightings"]
+    assert sight_report(m.read, MAP, [(2, 2)], visible_ids=frozenset({3}))["sightings"]
+
+
 def test_bright_scripted_scenes_still_capture_currently_visible_people():
     from pokebench_env.scene_journal import read_scene
 
@@ -270,3 +283,58 @@ def test_bright_scripted_scenes_still_capture_currently_visible_people():
     m.put(0x030022C4, struct.pack("<I", 0x08085E5D))
     m.put(0x03000F2C, b"\x01")
     assert len(read_scene(m.read, player_visibility=True).actors) == 1
+
+
+def test_respawn_guidance_keeps_visible_centers_without_disclosing_hidden_entrances():
+    from pokebench_env.rerender import render
+    from pokebench_env.respawn import CenterExit, Respawn
+
+    hidden = CenterExit((3, 1), "DEWFORD TOWN POKEMON CENTER 1F", 4, 3)
+    visible = CenterExit((2, 1), "OLDALE TOWN POKEMON CENTER 1F", 11, 10)
+    respawn = Respawn((0, 11), "DEWFORD TOWN", 2, 11, 5, (hidden, visible))
+    result = MapMemory().project(field().read, replace(state(), respawn=respawn))
+    assert result.respawn.centers == (visible,)
+    assert result.respawn.hops is None
+    text = render(result, frozenset())
+    assert "at (4,3)" not in text
+    assert "at (11,10)" in text
+    assert "5 map changes" not in text
+
+
+def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_graph(
+    monkeypatch, tmp_path
+):
+    from fastapi import FastAPI
+    from pydantic import BaseModel
+    from test_view import get
+
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.observation import install_observation
+    from pokebench_env.places import Links, Place, PlaceDirectory
+
+    class Shot(BaseModel):
+        screenshot_base64: str = "game frame"
+
+    place = Place((24, 46), "CAVE", "CAVE", Links(((4, 3, (24, 47)),), (("NORTH", (24, 48)),)))
+    monkeypatch.setattr(PlaceDirectory, "places", lambda self, **kw: [place])
+    for enabled in (False, True):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if enabled else "player-map-visibility-v1")
+        app = FastAPI()
+        install_observation(app, Shot, field().read, MapNames({}))
+        status, _, body = get(app, "/pokebench/places")
+        assert status == 200
+        found = json.loads(body)["places"][0]
+        from pokebench_env import rerender
+
+        ref = rerender.RawRef("raw-ram/unused.json.gz", "unused")
+        replay = rerender.places(
+            tmp_path,
+            ref,
+            lambda path, sha: field().read,
+            MapNames({}),
+            {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v1"},
+        )
+        assert replay == [found]
+        assert found["name"] == "CAVE"
+        assert found["warps"] == ([] if enabled else place.json()["warps"])
+        assert found["connections"] == ([] if enabled else place.json()["connections"])

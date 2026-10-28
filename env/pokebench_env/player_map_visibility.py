@@ -9,6 +9,7 @@ attributes may be exposed; tiles outside that region remain unknown.
 
 import struct
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, TypeVar
 
@@ -17,6 +18,7 @@ from pokebench_env.live_map import MAP_OFFSET, OBJECT_EVENTS, FullMap, LocalMap,
 from pokebench_env.map_layout import read_layout_context
 from pokebench_env.menus import PALETTE_FADE
 from pokebench_env.naming import SPRITES
+from pokebench_env.places import Links, Place
 
 if TYPE_CHECKING:
     from pokebench_env.game_state import GameState
@@ -31,6 +33,12 @@ SIZES = (
 VIEWPORT = ((0, 240),) * 160
 Point = tuple[int, int]
 View = TypeVar("View", LocalMap, FullMap)
+
+
+def place_names_only(places: Sequence[Place]) -> tuple[Place, ...]:
+    # The global ROM link graph is not discovered terrain. Keep the name dictionary
+    # for interpreting dialogue, without supplying hidden entrances or route distances.
+    return tuple(replace(place, links=Links((), ())) for place in places)
 
 
 def screen_visible(read: ReadMemory) -> bool:
@@ -273,6 +281,10 @@ class MapMemory:
         observation = state.map_observation
         topology = state.topology
         trainers = state.heal_trainers
+        actor_tiles = frozenset(
+            (o.x, o.y) for o in (() if context is None else context.objects) if o.local_id in actors
+        )
+        respawn = state.respawn
         return replace(
             state,
             local_map=None,
@@ -302,6 +314,17 @@ class MapMemory:
             offscreen_objects=None,
             static_npc_templates=None,
             story_characters=None,
+            respawn=None
+            if respawn is None
+            else replace(
+                respawn,
+                hops=None,
+                centers=tuple(
+                    c
+                    for c in respawn.centers
+                    if (c.x is None and c.y is None) or (c.x, c.y) in visible
+                ),
+            ),
             exit_labels=None,
             exit_sections=None,
             exit_reach=None,
@@ -314,7 +337,7 @@ class MapMemory:
             berry_readout=None,
             object_elevations=None
             if state.object_elevations is None
-            else tuple(o for o in state.object_elevations if o[:2] in visible),
+            else tuple(o for o in state.object_elevations if o[:2] in actor_tiles),
             topology=None
             if topology is None
             else replace(

@@ -327,7 +327,13 @@ def test_places_honors_displayed_place_names(monkeypatch, tmp_path):
         return lambda a, n: b""
 
     for off in ("", "displayed-place-names-v1"):
-        out = rerender.places(tmp_path, ref, load, MapNames({}), {"POKEBENCH_FEATURES_OFF": off})
+        out = rerender.places(
+            tmp_path,
+            ref,
+            load,
+            MapNames({}),
+            {"POKEBENCH_FEATURES_OFF": ",".join(filter(None, (off, "player-map-visibility-v1")))},
+        )
         assert out == [{"name": "DEWFORD TOWN"}]
     assert seen == [True, False]
     assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")] * 2
@@ -354,7 +360,12 @@ def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_pa
         }
     )
     out = io.StringIO()
-    assert rerender.main({"POKEBENCH_FEATURES_OFF": ""}, io.StringIO(request), out) == 0
+    assert (
+        rerender.main(
+            {"POKEBENCH_FEATURES_OFF": "player-map-visibility-v1"}, io.StringIO(request), out
+        )
+        == 0
+    )
     assert json.loads(out.getvalue()) == {"readouts": [], "places": [{"name": "DEWFORD TOWN"}]}
     assert seen == [True]
     assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")]

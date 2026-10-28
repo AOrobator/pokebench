@@ -497,6 +497,7 @@ def sight_report(
         trainers, blockers = read_sight_trainers(read, save1, map_id)
         if visible_ids is not None:
             trainers = tuple(t for t in trainers if t.local_id in visible_ids)
+            blockers = tuple(b for b in blockers if b.local_id in visible_ids)
         return SightReport(map_id, trainers, check_route(grid, trainers, blockers, route)).json()
     except (ValueError, OSError, struct.error, IndexError):
         return {"available": False, "reason": "game memory unreadable"}

@@ -37,7 +37,7 @@ from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.places import PlaceDirectory
 from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
-from pokebench_env.player_map_visibility import MapMemory
+from pokebench_env.player_map_visibility import MapMemory, place_names_only
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
@@ -232,7 +232,10 @@ def places(
 ) -> list[dict[str, object]]:
     displayed = "displayed-place-names-v1" not in features_off_from_env(env)
     directory = PlaceDirectory(load(run_dir / ref.path, ref.sha256), maps)
-    return [place.json() for place in directory.places(displayed=displayed)]
+    entries = directory.places(displayed=displayed)
+    if VISIBILITY not in features_off_from_env(env):
+        entries = place_names_only(entries)
+    return [place.json() for place in entries]
 
 
 def main(env: Mapping[str, str], stdin: TextIO, stdout: TextIO) -> int:

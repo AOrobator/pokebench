@@ -20,7 +20,7 @@ from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_
 from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
 from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
-from pokebench_env.player_map_visibility import MapMemory
+from pokebench_env.player_map_visibility import MapMemory, place_names_only
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
@@ -288,7 +288,10 @@ def install_observation(
     @app.get("/pokebench/places")
     def places() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            return {"places": [place.json() for place in directory.places(displayed=displayed)]}
+            entries = directory.places(displayed=displayed)
+            if VISIBILITY not in off:
+                entries = place_names_only(entries)
+            return {"places": [place.json() for place in entries]}
 
     # trainer-sight-check-v1 (agent side) posts navigate_to's planned route here before it walks; it
     # changes nothing the model sees and is called only with that switch on.

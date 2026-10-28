@@ -695,7 +695,10 @@ def format_readout(
         and not state.in_battle
     )
     puzzle_map = None
-    if state.local_map is not None and "live-map-v1" not in off:
+    if (
+        state.local_map is not None
+        or (state.map_visibility is not None and state.nearby is not None)
+    ) and "live-map-v1" not in off:
         configured_whole = "full-map-navigation-v1" not in off
         whole = state.full_map is not None and configured_whole
         shown = state.full_map if whole else state.nearby
@@ -775,7 +778,7 @@ def format_readout(
                 rules_in_prompt=rules and whole == configured_whole,
             )
             if shown is not None
-            else state.local_map
+            else state.local_map or ""
         )
         if puzzle_note:
             lines.append(puzzle_note)

@@ -449,3 +449,102 @@ def test_special_all_direction_trainer_sight_is_unavailable_instead_of_claiming_
         m.read, MAP, [(4, 2)], visible_ids=frozenset({3}), visible_tiles=state().full_map.tiles
     )
     assert safe["available"] is False
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_archive_factory_delivers_visibility_and_retains_hidden_terrain(
+    monkeypatch, tmp_path, enabled
+):
+    from pokebench_env import rerender
+    from pokebench_env.game_state import MapNames
+
+    original = replace(state(), local_map="native geometry")
+    changed = replace(
+        original,
+        full_map=replace(
+            original.full_map,
+            rows=tuple(
+                row[:14] + "#" + row[15:] if y == 10 else row
+                for y, row in enumerate(original.full_map.rows)
+            ),
+            tiles=tuple(
+                replace(t, collision=1) if (t.x, t.y) == (14, 10) else t
+                for t in original.full_map.tiles
+            ),
+        ),
+    )
+    snapshots = iter((original, changed))
+    monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: next(snapshots))
+    readers = iter((field(0).read, field(7).read))
+    refs = [
+        rerender.RawRef("raw-ram/first.json.gz", "first"),
+        rerender.RawRef("raw-ram/second.json.gz", "second"),
+    ]
+    outputs = rerender.rerender(
+        tmp_path,
+        refs,
+        lambda path, sha: next(readers),
+        MapNames({}),
+        {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v1"},
+    )
+    assert len(outputs) == 2
+    assert ("Map visibility:" in outputs[1]) is enabled, outputs[1]
+    assert ("?" in outputs[1]) is enabled, outputs[1]
+    assert ("#" in outputs[1]) is not enabled, outputs[1]
+    remembered_row = next(line for line in outputs[1].splitlines() if line.startswith("  10 "))
+    assert remembered_row[5 + 14] == ("." if enabled else "#"), outputs[1]
+
+
+@pytest.mark.parametrize("safe_capture", [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_installed_scene_history_filters_hidden_actors_in_both_capture_modes(
+    monkeypatch, tmp_path, safe_capture, enabled
+):
+    from fastapi import FastAPI
+    from test_scene_journal import actor, raw_sample
+    from test_scene_journal import field as scene_field
+    from test_view import get
+
+    import pokebench_env.scene_journal as module
+
+    m = scene_field()
+    m.put(0x05000000, b"\xff\x7f")
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if enabled else "player-map-visibility-v1")
+    monkeypatch.setattr(module, "main_loop_idle", lambda read: True)
+    monkeypatch.setattr(module, "illumination", lambda read, map_id: module.VIEWPORT)
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons):
+            actor(m, 1, 9, 10, 10)
+            actor(m, 2, 10, 11, 10)
+            # The old journal ignores the native offscreen bit; the visible actor owner rejects it.
+            m.put(0x02037350 + 2 * 0x24 + 1, b"\x40")
+
+    api = FastAPI()
+    module.install_scene_journal(
+        api,
+        Emulator,
+        m.read,
+        lambda: "png",
+        safe_capture=safe_capture,
+        raw_capture=raw_sample if safe_capture else None,
+        diagnostics_dir=tmp_path if safe_capture else None,
+    )
+    Emulator().run_frame_with_buttons([])
+    status, _, body = get(api, "/pokebench/scene/events")
+    assert status == 200
+    entries = json.loads(body)["entries"]
+    text = "\n".join(e["text"] for e in entries)
+    assert "object 9 " in text, entries
+    assert ("object 10 " in text) is not enabled, entries
+
+
+@pytest.mark.parametrize(("tiles", "route"), [((), ()), ((MapTile(1, 1, 0, 0, 0, 3),), ((4, 4),))])
+def test_visibility_forecast_requires_nonempty_terrain_and_every_route_tile(tiles, route):
+    from test_trainer_sight import MAP, sight_report, world
+
+    report = sight_report(world().read, MAP, route, visible_ids=frozenset(), visible_tiles=tiles)
+    assert report == {
+        "available": False,
+        "reason": "trainer sight requires currently visible terrain",
+    }

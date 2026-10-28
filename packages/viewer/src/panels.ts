@@ -560,6 +560,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "starter-decision-salience-v1":"starter-decision-salience-v1.html",
  "context-token-budget-v1":"context-token-budget-v1.html",
  "context-exact-count-v1":"context-exact-count-v1.html",
+ "no-story-foreknowledge-v1":"no-story-foreknowledge-v1.html",
  "briefing-repeat-count-v1":"briefing-repeat-count-v1.html",
  "navigate-already-here-v1":"navigate-already-here-v1.html",
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",

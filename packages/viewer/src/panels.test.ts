@@ -1824,6 +1824,30 @@ it("marks a PokéNav input with an unknown effect explicitly in history and raw 
  expect(inspector(event)).toContain("pokenav_pending_button");
 });
 
+it("links the compact map grid explainer from its config card without inventing recorded status",()=>{
+ const id="compact-map-grid-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded supervisor briefing explainer from its config card without inventing recorded status",()=>{
+ const id="supervisor-briefing-bound-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
 it("links the bounded refusal history explainer from its config card without inventing recorded status",()=>{
  const id="refusal-ledger-bound-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

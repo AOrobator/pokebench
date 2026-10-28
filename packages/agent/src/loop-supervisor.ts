@@ -6,6 +6,7 @@ import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {codePoints} from "./instruction-memory-cap.js";
 import {UNFINISHED_BRIEFING} from "./unfinished-activity.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import {StoryCharacterGate} from "./stall-gate.js";
@@ -84,6 +85,25 @@ const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===
 export function navigationSaid(text:string):string|undefined {
  const line=/^Navigation: (.*)$/m.exec(text)?.[1];
  return line?.replace(/;? ?\d+ (?:ordinary button attempts?|bounded movement actions?)\.?$/,"").replace(/[;.]\s*$/,"");
+}
+// supervisor-briefing-bound-v1: room for the story lead-up pages and for the untried targets on other maps.
+export const BRIEFING_DIALOGUE_CHARS=4000;
+export const BRIEFING_ELSEWHERE_CHARS=2000;
+export const BRIEFING_EXITS_CHARS=2000;
+// How many items, from the front of newest-first `items`, fit in `budget` code points when joined with `sep`; the newest always stays.
+function newestWithin(items:readonly string[],budget:number,sep:string):number {
+ let used=0,n=0;
+ for(const item of items){
+  const add=codePoints(item)+(n===0?0:codePoints(sep));
+  if(n>0&&used+add>budget)break;
+  used+=add;n++;
+ }
+ return n;
+}
+// Newest-first map entries joined with " | ", with the earlier ones over `budget` counted.
+function mapsWithin(rooms:readonly string[],budget:number):string {
+ const kept=newestWithin(rooms,budget," | "),left=rooms.length-kept;
+ return `${rooms.slice(0,kept).join(" | ")}${left===0?"":`; ${String(left)} earlier ${left===1?"map is":"maps are"} left out`}`;
 }
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
@@ -453,7 +473,12 @@ export class SupervisorBriefing {
   for(const [i,step] of [...this.stories.entries()].reverse()){
    const before=this.stories[i-1]?.seq??-Infinity;
    const pages=entries.filter(e=>e.seq>before&&e.seq<step.seq);
-   if(pages.length>0)return `${head} (${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}), oldest first: ${pages.map(quote).join(" | ")}\n`;
+   if(pages.length===0)continue;
+   const quoted=pages.map(quote),label=`${head} (${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}), oldest first`;
+   if(!this.features["supervisor-briefing-bound-v1"])return `${label}: ${quoted.join(" | ")}\n`;
+   const kept=newestWithin([...quoted].reverse(),BRIEFING_DIALOGUE_CHARS," | "),left=quoted.length-kept;
+   const tool=this.features["dialogue-auto-advance-v1"]?"; get_dialogue searches the pages the harness advanced through":"";
+   return `${label}${left===0?"":` (${String(left)} earlier ${left===1?"page is":"pages are"} left out${tool})`}: ${quoted.slice(left).join(" | ")}\n`;
   }
   return `${head}: none recorded\n`;
  }
@@ -520,7 +545,8 @@ export class SupervisorBriefing {
    const items=[...exits.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(s,c,this.features["exit-labels-v3"])??(name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`)}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
-  return rooms.length===0?"none":rooms.join(" | ");
+  if(rooms.length===0)return "none";
+  return this.features["supervisor-briefing-bound-v1"]?mapsWithin(rooms,BRIEFING_EXITS_CHARS):rooms.join(" | ");
  }
  // The same untried list as for the current map, for the other maps walked since the last progress.
  private untriedElsewhere():string {
@@ -531,7 +557,8 @@ export class SupervisorBriefing {
    const open=this.open(s);
    return open.length===0?[]:[`${roomOf(s,this.features)}: ${open.join("; ")}`];
   });
-  return rooms.length===0?"none":rooms.join(" | ");
+  if(rooms.length===0)return "none";
+  return this.features["supervisor-briefing-bound-v1"]?mapsWithin(rooms,BRIEFING_ELSEWHERE_CHARS):rooms.join(" | ");
  }
  // connection-edge-tiles-v1: the current map's walk-off edge tiles, as the server read them; off, nothing.
  // story-character-stall-gate-v1: a walk tries its target only when it ends on it or next to it.

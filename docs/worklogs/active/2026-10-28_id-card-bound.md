@@ -34,7 +34,7 @@ Read-onlydeliveredtext; no privilegedstate,newtool,gamewrite,networkinference,se
 - [ ] FullPB1–PB13selfreview,frozenboundary/packet,Claude/Grok-or-approvedfallback/GPT,synthesis.
 **M4 — Land and activation**
 - [ ] Syncmain,seamrecheck,boardff-only; coordinatedpostmainfulltest+singleviewerrefresh preservingactiveruns.
-- [ ] Separateapprovedactivationcommit: currentswitchesaddid-card-bound-v1 andfeaturesfalse; verifyactualbundleON/controlOFF, no runlaunch/restart.
+- [ ] Prepare separateapprovedactivationcommit beforefreezingreview: currentswitchesaddid-card-bound-v1 andfeaturesfalse; landwithreviewedfeature, verifyactualbundleON/controlOFF, no runlaunch/restart.
 - [ ] Evidenceonlyworklogcommit/land-done.
 
 ## Closing the Loop
@@ -60,3 +60,5 @@ M1RED:8tests,6intendedFAIL/2PASS, nofixture/schemaerrors. Failing suffix/count/n
 M2GREEN:29targetedPASS (8new+21incumbent).8independentmutantsallassertionRED/restored29GREEN: factory, bound, newlinecounter, UTF16counter,newestexception,fullfingerprint,recallwording,wholelines. Receiptsmutations-r0. Strengthenedproductionfactoryfixturetovalidpeopleledger+auto-advancetoolchainusingordinarycheckedpressadapter; omittedpageactuallyretrievedthroughattachedget_dialogue. Initialsimplefakepresscorrectlyrejectedbyexistingordinary-toolguard,logpreserved; addedrealadapterwithrejectingnetworkport (nevercalled).2freshvalidfactorymutants boundflag/recallflag eachREDthenrestored29GREEN. ExistingPeopleIdCardsowner+19lineprojectiononly, no newruntimeowner. OFFrenderandfullfingerprintunchanged, codePointsreused. Build/fullgatesawaitCPUgrant.
 
 Replayhelperprepared(notrun):stream3completearchives, bounded16statecache, samePeopleIdCardsconstructorflags, beforetool_resultdeliverycards; compareeveryrecordedpeople_id_cardexacttextandactualtoolresultsubstring/count, andON/OFFemissionidentity. Reportsfullsourcehash/bytes/cardcount/0mismatchrequired/largestpair/maxON/newestexception. NoGPU.
+
+Separateactivationcommit, ownedbranchonly: authorizedbytrustedcoordinatorrelayof the operator “they all need to be on in the bundle” (spec(e)Activation; assignment explicitly “default OFF, bundle-only ON (the operator approved)”). Addid-card-bound-v1 tocurrent.switches andcurrent.features[id]=false. Allothercurrentsettingsunchanged; actualresolvedbundle/controlverificationpendingbuild. people-id-cards-v1 ONbotharms, so this deliberatelycreatescard-sizeasymmetry; registry/defaultviewer/legacyflagsstayOFF. Noexistingrunorhistoricalrecipe/promptmutated. Thisactivationcommitwillbereviewedwiththefeaturebeforefflanding, ratherthanmakinganunreviewedpostlandingconfigchange.

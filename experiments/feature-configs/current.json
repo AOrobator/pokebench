@@ -157,7 +157,8 @@
   "self-named-speaker-v1",
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
-  "type-gap-team-last-message-v1"
+  "type-gap-team-last-message-v1",
+  "instruction-memory-cap-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -446,6 +447,7 @@
   "retire-reached-story-line-v1": true,
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
+  "instruction-memory-cap-v1": true,
   "refusal-ledger-bound-v1": false,
   "disproved-beliefs-bound-v1": false
  }

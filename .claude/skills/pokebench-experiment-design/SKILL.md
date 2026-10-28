@@ -138,7 +138,7 @@ Write these into the design, the driver and the overview:
 - **The HTML overview, required for every design** (step 9).
 - **The active worklog:** record the operator's budget and any judgments, such as the smallest lift worth detecting, with dates.
 
-Approval and launch stay with the operator (`fixed-run-launch`). This skill never approves or launches.
+The decision to launch stays with the operator (`fixed-run-launch`). This skill never launches.
 
 ## 9. Write the HTML overview
 

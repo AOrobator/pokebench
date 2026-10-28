@@ -28,6 +28,7 @@ An entry's "at turns …" list also grows with every repeat of the same refusal.
 - [x] Replay of recorded events through the built `RefusalLedger`. OFF matches every recorded refusal history: 9e33 1,284, a702 408, 88ea 830, all byte for byte. Largest recorded → same turn ON → largest ON in the run: 9e33 T2417 24,803 → 3,212 → 4,723; a702 T852 10,310 → 2,664 → 3,440; 88ea T843 15,065 → 3,231 → 3,509. 88ea was read only.
 - [x] Explainer `docs/explainers/refusal-ledger-bound-v1.html` (theme, pages-check clean, headless screenshots), README, `FEATURE_EXPLAINERS`; panels/server link tests 2/2.
 - [x] Activation commit (this branch only; not landed): appended to current.json `switches` (bundle ON) and `features` false (control OFF). Recipe sha256 on main 0df1c0a1f is 5188c278…; on this branch 6fb2ac82…. Once several bounds land, the final sha is computed on main. Launch definitions with featureRecipe "current" need `just fixed-run approve` again. Config readers: viewer 51 passed, agent 61 passed.
+- [x] Merged main 780154405 (the cap landed). Registry conflicts were resolved by keeping main's entries and adding these switches after instruction-memory-cap-v1. Indexes: refusal 295 → 296, disproved 296 → 297. current.json: both switches are in `switches`, and cap stays true. Focused: 123 passed.
 - [ ] Gates on a CPU grant; three-lane review.
 
 ## M2: disproved-beliefs-bound-v1 (coordinator 2026-10-28 12:00 PM NY)

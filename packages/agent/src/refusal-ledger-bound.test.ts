@@ -63,6 +63,7 @@ describe("refusal-ledger-bound-v1: whole entries within the budget",()=>{
   const on=ledger(ON,same).text()??"",off=ledger(OFF,same).text()??"";
   expect(off).toContain(`40 times navigation returned this reason, at turns ${Array.from({length:40},(_,i)=>String(i+1)).join(", ")}. `);
   expect(on).toContain(`40 times navigation returned this reason, at turns ${Array.from({length:REFUSAL_TURNS_SHOWN},(_,i)=>String(41-REFUSAL_TURNS_SHOWN+i)).join(", ")} (and ${String(40-REFUSAL_TURNS_SHOWN)} earlier turns). `);
+  expect(ledger(ON,Array.from({length:REFUSAL_TURNS_SHOWN+1},()=>[20,60] as const)).text()).toContain("(and 1 earlier turn). ");
   const few=Array.from({length:REFUSAL_TURNS_SHOWN},()=>[20,60] as const);
   expect(ledger(ON,few).text()).toBe(ledger(OFF,few).text());
  });

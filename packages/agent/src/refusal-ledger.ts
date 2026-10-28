@@ -1,3 +1,4 @@
+import {codePoints} from "./instruction-memory-cap.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
@@ -84,7 +85,7 @@ export class RefusalLedger {
   const bound=this.features["refusal-ledger-bound-v1"];
   const lines=[...this.entries.values()].map(entry=>{
    const attempts=entry.attempts,earlier=bound?Math.max(0,attempts.length-REFUSAL_TURNS_SHOWN):0;
-   const turns=`${attempts.slice(earlier).map(a=>String(a.turn)).join(", ")}${earlier===0?"":` (and ${String(earlier)} earlier turns)`}`;
+   const turns=`${attempts.slice(earlier).map(a=>String(a.turn)).join(", ")}${earlier===0?"":` (and ${String(earlier)} earlier turn${earlier===1?"":"s"})`}`;
    return `- Target ${entry.target.label} in ${entry.room}: ${String(attempts.length)} time${attempts.length===1?"":"s"} navigation returned this reason, at turn${attempts.length===1?"":"s"} ${turns}. Latest result: "${entry.line}"`;
   });
   // refusal-ledger-bound-v1: whole entries, newest first, within the budget; the newest always stays.
@@ -92,7 +93,7 @@ export class RefusalLedger {
   if(bound){
    let used=0;kept=0;
    for(const line of [...lines].reverse()){
-    const add=line.length+(kept===0?0:1);
+    const add=codePoints(line)+(kept===0?0:1);
     if(kept>0&&used+add>REFUSAL_LEDGER_CHARS)break;
     used+=add;kept++;
    }

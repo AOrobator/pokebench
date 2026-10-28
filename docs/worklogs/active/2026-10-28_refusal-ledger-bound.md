@@ -61,3 +61,8 @@ Roster: Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent
   - Code points: one test per ledger.
   - Disproved recency: entry A is created first and repeated last, and must be kept.
   - `contextTools` tests per switch: they pass against the wiring and go RED when `disprovedBeliefs()` forces either bound off (checked, then restored).
+- [x] GREEN:
+  - Both ledgers count code points through the cap's `codePoints` (one owner).
+  - DisprovedBeliefs picks the newest by each entry's latest evidence seq. Both kinds append seqs on repeat. Display order is unchanged.
+  - "(and 1 earlier turn)" is now singular.
+  - Results: 101 passed with the ledger and registry tests; tsc and eslint clean.

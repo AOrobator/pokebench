@@ -330,3 +330,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
 
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
+
+- [Compact map grid](compact-map-grid-v1.html): lossless short codes for the observed-elements map grid; a702 T1300 grid 12,180 → 3,871 tokens.

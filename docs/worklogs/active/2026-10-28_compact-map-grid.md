@@ -32,8 +32,8 @@ Gate edges (`|`, `-`), junctions (`*`), the legend and everything after the grid
 - [x] GREEN: `compact_codes()` and `render_observation(compact=…)` in `map_observation.py`. 200 passed (197 distinct sizes + 3); 80×80 goes from 161,825 to 28,222 chars.
 - [x] Server wiring: `compact-map-grid-v1` in readout SERVER_FEATURES and the default-off env list; readout passes `compact=` through. Wiring test `test_server_switch_is_default_off_and_only_recodes_the_grid`: RED against the unwired readout (1 failed), GREEN after; the text before the grid and from `Base glyph` on is byte-identical. 201 passed; neighbours test_map_observation_wiring + test_adjacent_tiles 139 passed.
 - [x] TS registry (features.ts SWITCHABLE_FEATURES index 294 / FEATURES / SERVER_FEATURES / serverFeatureEnv, needs map-observability-v1), play-preset (schema, legacy filter, union, normalize and flag defaults false), next-run default false. `compact-map-grid.test.ts` 2/2 with features.test.ts (30 passed); agent and viewer `tsc --noEmit` clean. Written after the registration, so no separate RED.
-- [ ] Explainer + feature-card link.
-- [ ] a702 T1300 measurement (chars and tokens).
+- [x] Explainer `docs/explainers/compact-map-grid-v1.html` (pages-theme, pages-check clean), README entry, `FEATURE_EXPLAINERS` mapping; panels/server link tests 2/2. Live READ EXPLAINER click waits for landing (8790 runs main).
+- [x] a702 T1300 measurement: raw-ram/00032220.json.gz re-rendered through `rerender.main` with a702's switches. The OFF grid is 46,558 chars, matching the recording. Qwen3.6 /tokenize on 88ea (4 calls): grid 46,558 chars / 12,180 tokens → 7,283 / 3,871; whole observe result 62,809 / 17,601 → 23,534 / 9,292.
 - [ ] Activation commit: current.json `switches` (bundle ON); recipe sha change noted.
 - [ ] Gates on a CPU grant: `just lint`, `just test`.
 - [ ] Review: Claude, Grok, GPT/Codex lanes.

@@ -37,8 +37,8 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 - [x] M1 RED: OFF goldens, ON copy per site, shown-name tracker, disproved-beliefs, factory and the B1 stall-gate test.
 - [x] M2 GREEN: implementation, registry, presets, next-run default; `just test`, `just lint`, coverage >= 90.
 - [x] M3 explainer + Harness Config link, readiness in this worklog (the readiness.md ledger and pending queue entries were retired 2026-10-22).
-- [ ] M4 review: one pass, full pokebench-review personas; lanes Claude CLI + Codex CLI gpt-5.6-sol + fresh Codex (Grok stand-in).
-- [ ] M5 land ff-only via the landing board; ON in both arms of experiments/feature-configs/current.json (recipe hash changes: launch approvals need re-approval).
+- [x] M4 review: one pass, full pokebench-review personas; lanes Claude CLI + Codex CLI gpt-5.6-sol + fresh Codex (Grok stand-in).
+- [ ] M5 (landed f6efe433b; pin pending) land ff-only via the landing board; ON in both arms of experiments/feature-configs/current.json (recipe hash changes: launch approvals need re-approval).
 - [ ] M6 ablation probe on the Mac (current copy / narrow ON / advice removed).
 
 ## Log
@@ -103,3 +103,19 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
   in this worklog; not a correctness defect.
 - Synced main 2c8240b8b (end-reason-orthogonal; no conflicts). This switch's own registry test re-pinned by position after scene-followup-prompt-v1 instead of at(-1).
 - Synced main 791db6f3c (PokéNav fix: pokenav-short-list-v1, menu-option-honest-refusal-v1; it re-pinned scene-followup by absolute index, taken as theirs). This switch re-applied after menu-option-honest-refusal-v1 and its own pin follows it. The operator 9:14 PM: no checkpoint run or save seeding; evaluation is decision probes plus ON in both arms going forward. The operator 9:19 PM: wording "A" (the role words in code) as an operator amendment to the round-1 boundary.
+
+### Review rounds 3 and 4, landing
+
+- Round 3, packet 2c8240b8b..4c384f410: Claude `VERDICT: LGTM`; GPT and Grok stand-in `VERDICT: BLOCKING` on the missing
+  exact-head gate receipt (gates on 4c384f410 then passed: lint 0, test 0) and, GPT only, the wording vs the round-1
+  boundary literals. The operator's operator amendment, 2026-10-27 9:19 PM in the project thread: "A" (the role words in code:
+  "a grunt", "The grunt's trainer battle", "the researcher", "none named in dialogue yet"). The operator 9:14 PM: no checkpoint
+  run or save seeding; evaluation is decision probes plus ON in both arms going forward.
+- Synced main fd621a45d. Gates on exactly f6efe433b (coordinator CPU window 9:48 PM): `just lint` 0; `just test` 0:
+  agent 4663/4663 (stmts 96.5 / br 92.69 / fn 97.47 / ln 99.18), viewer 2154/2154 (95.23 / 91.15 / 95.12 / 98.27),
+  Python 4463 (ln 97.48 / br 93.61 / fn 100), gateway 69, trainer cards 3/3.
+- Round 4, packet fd621a45d..f6efe433b (runs/reviews/2026-10-27-nsf-narrow/round4): Claude CLI `VERDICT: LGTM`, Codex
+  gpt-5.6-sol xhigh `VERDICT: LGTM`, fresh Codex gpt-5.6-sol xhigh (Grok stand-in) `VERDICT: LGTM`.
+- LANDED: `git merge --ff-only` from landing-board slot 1; main = f6efe433b, exactly the reviewed head.
+- Next: pin ON in both arms of experiments/feature-configs/current.json (the operator approved) as its own small reviewed change;
+  `just viewer-main` after it lands; remaining probe chunk (d41e held-out).

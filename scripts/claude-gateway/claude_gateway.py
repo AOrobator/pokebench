@@ -130,7 +130,7 @@ class ChatRequest:
         harness added since (screenshots, battle updates, supervisor and memory blocks)."""
         dialogue = self.dialogue
         last = max((i for i, m in enumerate(dialogue) if m.role == "assistant"), default=-1)
-        return dialogue[last + 1 :] or dialogue[-1:]
+        return dialogue[last + 1 :]
 
 
 @dataclass(frozen=True)

@@ -98,11 +98,14 @@ The operator, 2026-10-27 ~9:09 PM ET, via Codex (relayed by the coordinator): co
 
 Found by Codex's read-only audit and confirmed 2026-10-27 ~9:35 PM ET. Session mode sent `dialogue[-2:]`, copying Astra's next.py. On the current bundle (d06b9f4db) the harness appends an "OBSERVED INSTRUCTION MEMORY" user message after the screenshot message, so the tool result fell out on every turn: continuation f60d, requests 577–606, 30/30. Claude's native transcript contains the call_600 tool text 0 times. On aacff2371 it fell out only when an extra user message (a battle update or a SUPERVISOR stall message) followed the screenshot: 3642 17/574, 36b5 8/303, 76cd 8/287, 318a 1/104. Astra itself, through next.py: 174/2740 (6.4%).
 
-Fix: `ChatRequest.current_turn` is every message after the model's latest assistant reply (the tool result plus all trailing harness blocks), falling back to the last message. session_prompt and _save_screens use it.
+Fix: `ChatRequest.current_turn` is every message after the model's latest assistant reply: the tool result plus all trailing harness blocks. It's the whole dialogue before any reply, and empty when the request ends on an assistant message, so the model's own reply is never resent. session_prompt and _save_screens use it.
 
 - Tests: built from real reduced requests (fixtures/: bundle request 601, aacff 145 with a battle update, aacff 400).
 - Replay receipt: runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/, before and after for requests 601 and 577.
 - Expected cost: payloads grow when the tool result is large; request 577's observe result is about 58K chars.
 - 77 tests pass, coverage 99.41/97.46/100.
-- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- Review round 1 (packet 044aa305): Claude LGTM, fallback LGTM, Codex BLOCKING:
+  1. The `dialogue[-1:]` fallback resent an assistant-terminal reply. Fixed: no fallback, plus a negative test.
+  2. Receipts were "missing". Rebuttal: runs/ is gitignored, so they live in the main checkout at /Users/user/dev/pokebench/runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/ (4 files), not in the worktree.
+- [ ] Review round 2
 - [ ] Hold for the operator: landing and any gateway restart for f60d

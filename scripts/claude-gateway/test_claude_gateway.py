@@ -812,14 +812,20 @@ def test_current_turn_keeps_the_tool_result_and_every_trailing_message(
     assert turn[0].tool_call_id is not None
 
 
-def test_current_turn_falls_back_to_the_last_message() -> None:
+def test_assistant_terminal_request_resends_no_reply(tmp_path: Path) -> None:
     body = {
-        "messages": [{"role": "user", "content": "go"}, {"role": "assistant", "content": "ok"}],
-        "tools": [OBSERVE],
+        "messages": [
+            {"role": "user", "content": "go"},
+            {"role": "assistant", "content": "MY OWN REPLY"},
+        ],
+        "tools": [PRESS, OBSERVE],
     }
-    assert [m.role for m in cg.parse_request(json.dumps(body).encode()).current_turn] == [
-        "assistant"
-    ]
+    raw = json.dumps(body).encode()
+    assert cg.parse_request(raw).current_turn == ()
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    assert gateway.answer(raw)[1].reply is not None
+    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    assert "MY OWN REPLY" not in text and "[assistant" not in text
 
 
 def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path) -> None:

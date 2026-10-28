@@ -3,7 +3,7 @@
 ## Problem Statement
 The cap may spend its16,000code-point budget on service boilerplate, berry trees, lead-less signs, repeats, trainer lines and generic NPC chatter, displacing useful whole episodes. Implement the exact six-rule filter in the delegated spec, before the existing cap fill, without changing OFF behavior or the story anchor.
 
-Authorization/provenance: Claude coordinator delegation references the operator's 12:22PM direct delegation request [private message reference]. Full approved task contract is /Users/user/dev/pokebench/runs/analysis/bounded-input-20261028/specs/a-instruction-memory-junk-filter-v1.md (read before acceptance). Worklog translates that supplied contract; no additional scope inferred. ACCEPT sent. Sourcebase606bf6d24dc75fa58d298a3bf93bcd650bee89ff, ownedbranchcodex/instruction-memory-junk-filter in separate managedworktree. Prior completed/unlandedquestion-focus branch preserved. Landing requires fresh operator OK; activation left to the operator, currentrecipeuntouched. No modelcalls/gameplay authorized/planned for this coding handoff.
+Authorization/provenance: Claude coordinator delegation references the operator's 12:22PM direct delegation request [private message reference]. Full approved task contract is /Users/user/dev/pokebench/runs/analysis/bounded-input-20261028/specs/a-instruction-memory-junk-filter-v1.md (read before acceptance). Worklog translates that supplied contract; no additional scope inferred. ACCEPT sent. Sourcebase606bf6d24dc75fa58d298a3bf93bcd650bee89ff, ownedbranchcodex/instruction-memory-junk-filter in separate managedworktree. Prior completed/unlandedquestion-focus branch preserved. Coordinator correction authorizes default-OFF landing under standing review/gate/board/ff-only rules and the Grok waiver; activation remains with the operator, current recipe untouched. No modelcalls/gameplay authorized/planned for this coding handoff.
 
 ## Skills Loaded
 feature-switch; feature-worklog; execute-worklog; pokebench-game-state. Feature-explainer, agent-observability, story-milestones, close-the-loop and multi-model-review apply at their relevant steps. Switch-membership assertions remain unordered per explicit operator correction overriding old skillindex advice.
@@ -38,8 +38,9 @@ Local deterministic data/readers only; bound template matching to whole observed
 - [ ] Explainer/theme/check/defaultfeaturecard/ledger visibility in headlessdesktopphone; preserve trainer baselines and closedtimeline.
 - [ ] Request CPUwindow; build/lint/fullcoverage/vendor/cardgates; no inference review lanes on localGPU.
 - [ ] Principles PB1–PB13, frozenboundary, Claude/Grok-or-documentedfallback/GPTread-onlyreview and synthesis; COMMIT evidence.
-**M4 — Operator checkpoint**
-- [ ] ASK USER/the operator OK before landboard/fastforwardlanding. No merge or activation under thishandoff alone.
+**M4 — Landing under corrected authorization**
+- [ ] After gates and Claude + GPT + distinct fallback LGTM under the coordinator-attested Grok waiver, join the board and land ff-only. No fresh the operator OK is required for default-OFF landing.
+- [ ] Keep activation in every arm unchanged; The operator owns activation.
 - [ ] Archive only withoperatorapproval.
 
 ## Closing the Loop
@@ -78,3 +79,5 @@ Added an explicit reproducibility test that regenerates checked-intext/lexicons 
 Exact-rule self-audit: R3 initially required everypage to have faced_target source, overlooking the global receipt exception. AddedREDsign+nativeitemreceiptcase, then allowedreceiptpages inR3. Threeaffectedmutations(lead/source/receipt) eachRED; restored52PASS includingpinnedsource-regenerationtest. Receiptsmutations-r1-r3 preserveprior28r0receipts. No cap/factory/data/other-rulebehaviorchanged. StillPAUSED forsharedCPUqueue; preparedserialgaterunner and offline7cut/2form replay comparator withoutstartingthem. Frozen-main606cap/memorysources willbecomparedbyteforbyte toswitchOFF; historicalactual-recipe parity separatefromprospectiveallfield/trim/display/dedup modes. Six-phrasecounterfactual remainsignoredofflineartifact, notshippeddata/modelinput.
 
 Synchronized latestmain1f340093e91319a8f72e391b12fd097103684af0 into ownedbranch whileCPUheavyPAUSED. Preservednewmainmap-visibilityregistry/defaults/viewer testsandourjunkfeature; resolvedappendconflictsbyretainingmainthenappendingourregisteredid/cardtests. Cap/ObservedInstructions sourcehasnointerveningmainchanges. Targeted52PASS afterintegration; nofullgates/replaysyet. No canonicalmainwrite.
+
+Authorization correction received from Claude through the Codex coordinator (thread 00000000-0000-4000-8000-f5efe0494f81): “You do not need a fresh the operator OK to land. The operator approved the keep/drop flavor list at12:22PM, and a default-OFF switch lands under the standing agent-merge rule: gates pass, Claude + GPT + distinct fallback LGTM under the Grok waiver, board, ff-only.” This supersedes the handoff's earlier fresh-OK checkpoint only for default-OFF landing. Turning it ON remains a separate the operator decision. No waiver is inferred for failing gates or blocking review findings. CPUheavy still paused awaitingRESUME.

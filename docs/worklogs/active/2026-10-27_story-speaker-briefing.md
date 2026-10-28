@@ -164,6 +164,8 @@ Round 6, frozen head 444af97f0 (cumulative sha256 634845a6…ca32b):
 - Operator observation (Claude lane): every extended milestone is measurement-only, so this switch retires lines only on base milestones, the last of which is ROCK_TOMB_RECEIVED. Stone's Dewford line can never retire under it. This is the open question to the operator.
 - NOT LANDED: held by the coordinator pending the operator's answer on extended steps. Before landing: sync with main (a newer switch, scene-followup-prompt-v1, shifts the absolute registry positions in the tests), run full `just test` in a CPU window, and decide activation (coordinator confirmation).
 
+Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 65efc854…7a30c5): Codex gpt-5.6-sol, Claude (opus) and fallback (sonnet) all VERDICT: LGTM. The merge resolution only appends our three switches after main's (default OFF) and adds the trust options. Production code is byte-identical to the approved 444af97f0, and the tests changed only their pins. Still held for the operator's answer on extended steps and activation.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

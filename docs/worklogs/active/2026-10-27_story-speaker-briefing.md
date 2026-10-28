@@ -213,3 +213,5 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
 - experiments/feature-configs/current.json: self-named-speaker-v1, story-briefing-native-milestones-v1 and retire-reached-story-line-v1 are added to onInBoth and set true in the shared features base. The README records the promotion.
 - Dependencies are already on in both arms: dialogue-auto-advance-v1, loop-guard-supervisor-v1, unfinished-activity-v1, harness-trust-v1.
 - Config tests: viewer fixed-definition, feature-config-registry and fixed-cli pass 50/50. The six agent config suites pass.
+- Activation review: Codex LGTM on 26618e9a4..966e2ba21 (packet f41331ee…ed85).
+- Second sync with main 88947e66a (gateway preflight landing): merged cleanly with no conflicts.

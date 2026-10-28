@@ -190,3 +190,54 @@ Coordinator, 2026-10-27 ~10:57 PM ET (relaying the operator's go for the anyOf f
 - Post-landing `just test` on main 87cf6a8c7 (11:32–11:35 PM ET, clean tree): exit 0. Agent 4689, viewer 2160, pytest 4466, gateway 102, trainer cards passed.
 - `just viewer-main` is still needed: the two switches add Harness Config cards.
 - f60d is untouched. It has had 3 counted reply failures (requests 1007, 1041, 1156), all navigate_to_target target shape after schema loss. Its staged swap would pass `--current-turn on --tool-schemas on --schema-hint on` and needs the operator's OK.
+
+## M8 — `just gateway-preflight`: prove delivery before a long run
+
+The operator, 2026-10-28 ~7:51 AM ET ("sure", relayed): build the delivery preflight. Step 1 stub replay first (receipts runs/reviews/gateway-delivery-proof/): 303 f60d requests on main's gateway with switches recorded ON. Tool result delivered 303/303, versus 9/303 on the old gateway f60d ran. Schemas in the system prompt 303/303, no echo 303/303, re-ask hint 3/3 (1007, 1041, 1156). OFF byte-identity vs the pre-switch gateway: 124/124 (62 aacff/3642 requests, first and later turn).
+
+- `scripts/claude-gateway/preflight.py` and `just gateway-preflight --preset P --out DIR [--current-turn/--tool-schemas/--schema-hint …] REQUESTS…`. It replays recorded requests through this gateway with a stub claude (no model calls) as later turns of an established session (the post-compaction state). Switches come from the run's preset plus the launch overrides. Checks:
+  - every tool result after the latest reply is in the prompt
+  - the full tool listing is in the system prompt
+  - the model's own reply is not echoed
+  - a generated bad anyOf/oneOf reply gets a re-ask listing the forms
+
+  A check that no request exercises counts as a failure. Writes preflight-receipt.json (gateway sha256, preset sha256, switches, overrides, totals, failures); exit 1 on any failure.
+- Enforcement: `claude_gateway.py` in session mode refuses to start without `--preflight-receipt` naming a passing receipt for its own sha256 and the same overrides. Stateless mode and replay.py (which builds the Gateway directly) are unaffected. A probe that copies the gateway script must copy preflight.py beside it.
+- Live receipts:
+  - f60d's own preset in auto: FAIL (tool_result, schemas and hint false), exit 1. That's the bug this gate exists to catch.
+  - Same requests with overrides on: PASS (tool_result 299/299, schemas 300/300, no_echo 300/300, hint 254/254). runs/reviews/gateway-delivery-proof/preflight-*/.
+- Tests: gateway folder 109 pass, coverage 99.26/96.86/100; ruff and mypy --strict clean (preflight.py added to the lint and coverage lines; gate-wiring test updated, 6/6).
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- [ ] Full gates (coordinator CPU window), land ff-only
+- Review round 1 (packet a3dc474c, head 3b1a783be): Claude LGTM, fallback LGTM, Codex gpt-5.6-sol BLOCKING on three points. All are fixed:
+  1. A bare receipt (just passed, sha and overrides) cleared startup. The receipt is now validated structurally: version 1, passed, gateway sha256, **preflight_sha256** (it also binds preflight.py), overrides, requests ≥ 1, no failures, and every required check applicable > 0 with passed == applicable.
+  2. Vacuous passes. no_echo is None with no assistant reply or reply text; it also fails on an echoed `(called …)` line or `[assistant` header. Empty or image-only tool results don't count toward tool_result.
+  3. Per-request temp gateway trees. One Bench (a single temp tree and Gateway) now serves the whole preflight.
+- Also fixed, from the fallback's note: a deliberate legacy (OFF) A/B arm was unlaunchable. Without `--allow-off`, any check whose switch would run OFF fails ("would run OFF"). With it, those checks are recorded as `off_checks` and not required, and the gateway accepts that receipt.
+- Follow-up, not done (Codex: scope expansion): bind the receipt to the run's recorded switches when an override is auto.
+- Live receipts re-run:
+  - f60d preset auto: FAIL ("would run OFF", tool_result 53/299, schemas 0/300, hint 0/254)
+  - overrides on: PASS (299/299, 300/300, 299/299, 254/254)
+  - --allow-off: PASS with off_checks recorded
+- 114 tests pass, coverage 99.03/95.88/100.
+- Review round 2 (packet 53953e61, head 08592b7a6): Claude LGTM, fallback LGTM, Codex BLOCKING on two points.
+  1. Fixed: `off_checks` were trusted as written. The receipt now needs typed `preset_switches` (all three switches, booleans), and `off_checks` must equal exactly what those switches and the overrides imply, empty unless `allow_off`. no_echo can never be skipped. There's an adversarial test.
+  2. Rebutted, with one small concession: "per-row production persistence". The preflight deliberately drives the real `Gateway.answer` (request, screenshot, call and session writes, recorded-feature reads), because that path is what it proves; a pure prompt-builder seam would skip the code that failed in f60d. Per-row cost is linear and bounded (300 requests in about 5 s). Test receipt construction is now cached once per test module.
+- Live receipts re-run on the new build: overrides-on PASS, allow-off PASS, auto FAIL. 115 tests pass, coverage 99.03/95.93/100.
+- Review round 3 (packet 4fcaa95f, head fa66d47be): Claude LGTM, fallback LGTM. Codex accepted the round-2 rebuttal (the real Gateway.answer path stays) but blocked on something new and real: JSON booleans passed as counts (`True == 1`). Fixed: `requests`, `applicable` and `passed` must be integers, never booleans, with 0 < applicable ≤ requests. Adversarial test added. 116 tests pass, coverage 99.12/96.22/100. Live receipts re-run: PASS, PASS, FAIL as before.
+- Review round 4 (packet 696bdc4f, head 5bf646568): Claude, fallback and Codex gpt-5.6-sol all LGTM.
+- Full gates on 5bf646568 (2026-10-28 8:11–8:15 AM ET; the coordinator said no CPU grant was needed), all passing:
+  - build, TS lint, env ruff and mypy, gateway ruff and mypy --strict (3 files)
+  - agent 4702, viewer 2202
+  - pytest 4466 (97.49/93.61/100), gateway 116 (99.12/96.22/100)
+  - trainer cards 3/3
+
+## Landed (M8)
+
+- `git merge --ff-only 5bf646568`, 2026-10-28 ~8:15 AM ET, slot 1. The packet is byte-identical to the reviewed one.
+- Post-landing `just test` on main 5bf646568 (8:15–8:18 AM ET, clean tree): exit 0. Agent 4702, viewer 2202, pytest 4466, gateway 116.
+- Every session-mode `claude-gateway` launch now needs `just gateway-preflight` first. A probe that copies the gateway must copy preflight.py beside it.
+- Follow-ups:
+  - bind the receipt to the bound run's recorded switches when an override is auto
+  - make the hint check compare the exact expected forms
+- No model calls in M8. The next real Claude run waits for the operator's weekly reset (Mon 11 PM ET) and his explicit OK.

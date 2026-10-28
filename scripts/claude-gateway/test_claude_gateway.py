@@ -13,6 +13,15 @@ from pathlib import Path
 import pytest
 
 import claude_gateway as cg
+import preflight
+
+
+@pytest.fixture(autouse=True)
+def cleared_preflight(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Argument tests run as if a passing receipt exists; enforcement has its own tests."""
+    if "enforce_preflight" not in request.keywords:
+        monkeypatch.setattr(preflight, "receipt_problem", lambda *a: None)
+
 
 FAKE = Path(__file__).with_name("fake_claude.py").resolve()
 PNG = b"\x89PNG fake screen"
@@ -491,6 +500,8 @@ def test_wait_kind_labels() -> None:
 def test_parse_args(tmp_path: Path) -> None:
     config, port = cg.parse_args(
         [
+            "--preflight-receipt",
+            "receipt.json",
             "--mode",
             "session",
             "--model",
@@ -724,6 +735,8 @@ def test_autocompact_reaches_claude_and_the_logs(tmp_path: Path) -> None:
 )
 def test_autocompact_argument(tmp_path: Path, text: str, tokens: int) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -742,6 +755,8 @@ def test_autocompact_argument(tmp_path: Path, text: str, tokens: int) -> None:
 @pytest.mark.parametrize("text", ["50k", "2m", "auto", "1001k", ""])
 def test_autocompact_argument_rejects(tmp_path: Path, text: str) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -800,6 +815,8 @@ def test_continuation_never_adopts_another_runs_session(tmp_path: Path) -> None:
 
 def test_continue_session_argument(tmp_path: Path) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -963,6 +980,8 @@ def test_current_turn_override_modes(
 
 def test_current_turn_argument(tmp_path: Path) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -1152,6 +1171,8 @@ def test_schema_hint_describes_options_from_the_schema() -> None:
 
 def test_schema_switch_arguments(tmp_path: Path) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",

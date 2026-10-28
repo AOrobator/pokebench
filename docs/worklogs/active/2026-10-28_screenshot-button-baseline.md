@@ -53,9 +53,12 @@ Landing exclusion GREEN: current feature-config owner explicitly lists baseline 
 Current landing smoke at cd0c96c4c: real native game with fake HTTP model returned four requests, exact system prompt and toolset, no injected follow-up, two successful image-only results, three exposed-thinking records, one button press, six private state events and run_end/budget. Receipt: runs/baseline-preflight/rehearsal-landing/receipt.json. No GPU traffic. Explainer pages-check passes; HTTP200 and inspected screenshots at1280/1440/375 show readable cards and no page overflow (wide figure scrolls internally). Evidence: main runs/mockups/screenshot-button-baseline-landing. First copy used wrong cwd and returned404, preserved as receipt-failed-copy.json; corrected copy proves200.
 
 Landing remaining:
-- [ ] Fresh full gates on synced branch.
+- [x] Fresh full gates on synced branch.
 - [ ] Frozen principles/boundary and required cloud lane review.
 - [ ] Board slot and fast-forward local main.
 - [ ] Post-main test and coordinated single viewer refresh/live explainer and OFF-arm proof.
 
 Activation milestone/readiness: baseline applies from boot; it is a reusable ablation configuration, not a patch benefit claim. Initial N=1 establishes feasibility only. Any future run requires its own endpoint coordination. Current comparison arms explicitly exclude this flag. Landing does not activate it.
+
+
+Fresh landing gates: first full pass at63766d47e passed agent4942/viewer2297/Python4869/gateway116, all per-metric floors, three approved-card widths, lint/build/vendor. Main advanced with the test-build prerequisite during that window; merged9d294b816 into branch with no conflicts, then reran all gates at bdb07f680. Final pass: agent4942, viewer2297, Python4875, gateway116; TS agent lines99.21/branches92.70/functions97.51, viewer98.33/90.76/94.95; Python/gateway floors PASS; cards3 PASS; lint/build/vendor PASS. Source logs: runs/baseline-preflight/landing/gates-synced. RELEASE sent to shared CPU owner immediately. Baseline binary diff remained byte-identical across both main syncs (08cd4bb5ba5ce4e0c67bf70b29e6466ce7938fb02d0da7a588dc91fcea939aff before this evidence-only worklog addition). No extra source changes or inference. Freeze/review now includes this evidence-only update.

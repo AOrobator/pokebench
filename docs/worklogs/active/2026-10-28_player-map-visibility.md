@@ -53,3 +53,5 @@ Additional R3 boundary hardening before review: visibility-mode trainer checks r
 ### Shared-main integration before third review
 
 Merged the landed neutral YES/NO and launch workflow changes, retaining their registry order and both sets of tests. Player visibility follows the newly landed switch in the append-only registry and remains ON in both current arms. The authorized full suite will use the resulting synchronized source.
+
+The coordinated full suite on b9db68d84 passed all4752 agent tests and coverage; viewer passed2062 tests but failed parsing server.test.ts because the integration conflict lost the neutral test closing line. Restored that line, retaining both tests. Full suite stopped before Python and later gates; CPU released. Early third-review process stopped without counting a verdict before changing its frozen candidate.

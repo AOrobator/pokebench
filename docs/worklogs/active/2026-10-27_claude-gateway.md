@@ -107,5 +107,5 @@ Fix: `ChatRequest.current_turn` is every message after the model's latest assist
 - Review round 1 (packet 044aa305): Claude LGTM, fallback LGTM, Codex BLOCKING:
   1. The `dialogue[-1:]` fallback resent an assistant-terminal reply. Fixed: no fallback, plus a negative test.
   2. Receipts were "missing". Rebuttal: runs/ is gitignored, so they live in the main checkout at /Users/user/dev/pokebench/runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/ (4 files), not in the worktree.
-- [ ] Review round 2
+- Review round 2 (packet 74529db0, head 9edf0dbe1): Claude LGTM, fallback LGTM, Codex LGTM (rebuttal accepted; receipts verified).
 - [ ] Hold for the operator: landing and any gateway restart for f60d

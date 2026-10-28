@@ -2,7 +2,7 @@ import {describe,expect,it,vi} from "vitest";
 import type {RunEvent} from "./events.js";
 import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode,type CapRow} from "./instruction-memory-cap.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
-import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
+import {LEGACY_STORY_CHECKPOINTS} from "./story-checkpoints.js";
 import {observedInstructions} from "./observed-instructions.js";
 import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,ALL_ON,type FeatureSet} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
@@ -262,7 +262,7 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
 describe("instruction-memory-cap-v1 registry",()=>{
  it("is a default-off guard registered after neutral-yes-no-readout-v1, needing nothing, with OFF copy",()=>{
   expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(295);expect(SWITCHABLE_FEATURES.indexOf("neutral-yes-no-readout-v1")).toBe(294);expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-dedup-v1")).toBe(292);
-  expect(featureInfo("instruction-memory-cap-v1").description).toContain(`${String(STORY_CHECKPOINTS.length)} story checkpoints`);
+  expect(featureInfo("instruction-memory-cap-v1").description).toContain(`${String(LEGACY_STORY_CHECKPOINTS.length)} story checkpoints`);
   expect(featureInfo("instruction-memory-cap-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"INSTRUCTION MEMORY CAP"});
   expect(featureInfo("instruction-memory-cap-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["instruction-memory-cap-v1"]).toBe(false);

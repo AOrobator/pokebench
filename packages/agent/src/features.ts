@@ -1,3 +1,5 @@
+import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
+
 // The harness feature registry: every feature id a play run can record, what
 // it changes for the model, and whether the operator can switch it off. The
 // descriptions are user-facing copy for the viewer's switchboard; each was
@@ -310,6 +312,10 @@ export const SWITCHABLE_FEATURES = [
   "refusal-ledger-bound-v1",
   "disproved-beliefs-bound-v1",
   "destination-first-navigation-v1",
+  "instruction-memory-junk-filter-v1",
+  "id-card-bound-v1",
+  "story-checkpoints-whole-game-v1",
+  "instruction-memory-yaml-v1",
   "screenshot-button-baseline-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -741,6 +747,10 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("refusal-ledger-bound-v1", "guidance", "BOUNDED REFUSAL HISTORY", "refusal-ledger-v1", "Default off. refusal-ledger-v1's \"Navigation refusal history\" keeps one entry per refused target on the current map, each quoting the whole latest navigation result; water and wall refusals carry their departure alternatives, so one entry runs about 3,000 chars, and Qwen run 9e33 at turn 2417 sent 10 entries in 24,803 chars. An entry's turn list also grew with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older refusal entries on this map are left out.\"; the newest entry always stays and quoted results are never cut. A repeated refusal keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
   on("disproved-beliefs-bound-v1", "guidance", "BOUNDED CONTRADICTIONS", "disproved-beliefs-v1", "Default off. disproved-beliefs-v1's \"Things the game has contradicted\" keeps every push-back and misplaced-person entry until a story flag changes or the game shows otherwise, each quoting whole pages, and an entry's turn list grows with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older entries are left out.\"; the newest entry always stays and quoted pages are never cut. A repeated entry keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
   on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
+  on("instruction-memory-junk-filter-v1", "guard", "INSTRUCTION MEMORY JUNK FILTER", "instruction-memory-cap-v1", "Default off. Filters whole historical instruction episodes before the existing cap fills: source-matched service text, berry trees, lead-less signs, represented repeats, faced-trainer lines and approved generic NPC flavor. Current story anchors and useful leads stay; named-place/person/key-item protection reuses the cap owner. Cutter’s House and the Cycling Road camper stay; the Rock Smash exchange retires only when native flag 0x6B is set. Unknown variants with useful signals stay. No text is cut and no answer or route is selected. Off: the existing cap and instruction memory are byte-identical."),
+  on("id-card-bound-v1", "observation", "BOUNDED ID-CARD MENTIONS", "people-id-cards-v1", "Default off. An ID card’s other pages that name this person keep the newest contiguous whole pages whose quoted lines fit in 1,500 Unicode code points, shown oldest first. The newest page always stays even if it alone exceeds that budget. The header counts omitted earlier pages and, when dialogue auto-advance provides it, says get_dialogue finds them. All other card lines and the fingerprint from the full list stay unchanged. Off: every other page that names this person is listed, as before."),
+  on("story-checkpoints-whole-game-v1", "guard", "WHOLE-GAME STORY CHECKPOINTS", "instruction-memory-cap-v1", `Default off. Uses ${String(STORY_CHECKPOINTS.length)} story checkpoints through the Hall of Fame and the optional Rayquaza encounter. Retires only whole episodes heard by every required native milestone and wholly within the owning map/speaker scopes. Mixed or reusable rival tutorials remain eligible for memory. This records no new route advice. Off: the cap uses the original 15 checkpoints through the Slateport Devon Goods delivery; memory bytes are unchanged.`),
+  on("instruction-memory-yaml-v1", "guidance", "INSTRUCTION MEMORY YAML", null, "Default off; enabled only in the current bundle by operator approval on 2026-10-28. Formats the selected OBSERVED INSTRUCTION MEMORY payload as YAML, preserving whole dialogue text, provenance and current progress. Page speaker and map fields carry over only within an episode, as the header explains. Text uses literal blocks or escaped quoted scalars when whitespace or control characters require them. With instruction-memory-cap-v1, the existing selection policy measures the actual YAML against 19,000 code points; the episode count can differ from JSON. Whole-field omission markers and bounded location history remain visible. The legacy form keeps its existing format and 16,000 cap. Off: the selected block remains the current JSON payload, byte for byte."),
   on("screenshot-button-baseline-v1", "guidance", "SCREENSHOT AND BUTTON BASELINE", null, "Default off. Requires every other behavior switch off. Uses the operator-approved short screenshot/button prompt and removes text from successful observe/press results while retaining private state for scoring. Pair with the baseline preset, which disables every other behavior switch. Ordinary conversation history, exposed reasoning recording, button schema and timing are retained. Off: preserves the previous prompt and tool-result bytes."),
 ];
 
@@ -1140,6 +1150,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("refusal-ledger-bound-v1"),
     ...when("disproved-beliefs-bound-v1"),
     ...when("destination-first-navigation-v1"),
+    ...when("instruction-memory-junk-filter-v1"),
+    ...when("id-card-bound-v1"),
+    ...when("story-checkpoints-whole-game-v1"),
+    ...when("instruction-memory-yaml-v1"),
     ...when("screenshot-button-baseline-v1"),
   ];
 }

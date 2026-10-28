@@ -74,7 +74,9 @@
   "compact-map-grid-v1",
   "supervisor-briefing-bound-v1",
   "refusal-ledger-bound-v1",
-  "disproved-beliefs-bound-v1"
+  "disproved-beliefs-bound-v1",
+  "id-card-bound-v1",
+  "instruction-memory-yaml-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -459,6 +461,8 @@
   "supervisor-briefing-bound-v1": false,
   "refusal-ledger-bound-v1": false,
   "disproved-beliefs-bound-v1": false,
-  "destination-first-navigation-v1": true
+  "destination-first-navigation-v1": true,
+  "id-card-bound-v1": false,
+  "instruction-memory-yaml-v1": false
  }
 }

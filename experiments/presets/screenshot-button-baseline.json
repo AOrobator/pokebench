@@ -316,6 +316,10 @@
     "refusal-ledger-bound-v1": false,
     "disproved-beliefs-bound-v1": false,
     "destination-first-navigation-v1": false,
+    "instruction-memory-junk-filter-v1": false,
+    "id-card-bound-v1": false,
+    "story-checkpoints-whole-game-v1": false,
+    "instruction-memory-yaml-v1": false,
     "screenshot-button-baseline-v1": true
   }
 }

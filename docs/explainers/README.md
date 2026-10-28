@@ -318,6 +318,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Supplies](supplies-v1.html) — money, balls, healing items, party size and where this map sells things, on arrival.
 - [Untalked people in gym](untalked-in-gym-v1.html) — people on a gym map not talked to this run, first in the result.
 - [Gym type gap, last message](type-gap-team-last-message-v1.html) — the same gym type block repeated as the request's final message.
+- [Instruction memory YAML](instruction-memory-yaml-v1.html) — the selected instruction-memory block in YAML instead of JSON, preserving whole text; the measured format can change which whole episodes fit the cap.
 - [Instruction memory cap](instruction-memory-cap-v1.html) — the OBSERVED INSTRUCTION MEMORY block held at 16,000 characters, whole episodes chosen by game memory.
 
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
@@ -345,5 +346,11 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.
 
 - [Destination-first navigation](destination-first-navigation-v1.html): one destination policy across prompt, tools and observations; explicitly ON in both current arms.
+
+- [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.
+
+- [Bounded ID-card mentions](id-card-bound-v1.html): newest whole mention pages within1,500codepoints, with an always-kept newest page.
+
+- [Whole-game story checkpoints](story-checkpoints-whole-game-v1.html): conservative, default-OFF whole-episode retirement through the endgame.
 
 - [Screenshot and button baseline](screenshot-button-baseline-v1.html) — minimal prompt, image-only results and all-off preset.

@@ -1,3 +1,4 @@
+import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
@@ -1485,7 +1486,7 @@ it("links the recorded Gym door label treatment to its tracked explainer",()=>{
 
 describe("tracked explainer links",()=>{
  // One Harness Config render with every listed switch on, indexed once by feature id, serves every row.
- const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1"];
+ const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1","instruction-memory-yaml-v1"];
  const log=new Log();log.add(0,{...START,harness_features:LINKED});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  const cards=new Map([...doc.querySelectorAll("[data-feature]")].map(card=>[card.getAttribute("data-feature"),card]));
@@ -1891,3 +1892,25 @@ it("links the neutral YES/NO card without guessing a historical activation",()=>
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});
+
+it("links the instruction junk filter's exact card and preserves recorded status",()=>{
+ const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded ID-card feature's exact card and preserves recorded status",()=>{
+ const id="id-card-bound-v1";expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});

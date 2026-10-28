@@ -6,15 +6,17 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
-import {CAP_LOCATION_CHARS,INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {CAPPED_SELECTION,CAP_LOCATION_CHARS,INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+
+import {INSTRUCTION_MEMORY_YAML_CAP_CHARS,instructionMemoryYaml} from "./instruction-memory-yaml.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 // instruction-memory-cap-v1, only when it leaves episodes out: the headers stop claiming every episode stays.
-export const CAPPED_SELECTION="Finished episodes, and less relevant ones over the size cap, are left out.";
+export {CAPPED_SELECTION} from "./instruction-memory-cap.js";
 const CAPPED_LEGACY="finished episodes, and less relevant ones over the size cap, are left out";
 type Result=Extract<RunEvent,{type:"tool_result"}>;
 type Episode=InstructionEpisode;
-interface Progress {result_event:number;state_event:number|null;location:string|null;story:string|null}
+type Progress={result_event:number;state_event:number|null;location:string|null;story:string|null};
 interface Locations {observed_locations:Pick<Progress,"result_event"|"state_event"|"location">[];earlier_locations_left_out?:number}
 interface Fixed {readonly current:Progress|null;readonly current_left_out?:true;readonly locations:Locations}
 const without=(fx:Fixed):Fixed=>({current:null,current_left_out:true,locations:fx.locations});
@@ -28,7 +30,8 @@ export class ObservedInstructions {
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
  // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps, after instruction-memory-dedup-v1's
  // merge; see instruction-memory-cap.ts.
- constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap():null;}
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false,junk=false,wholeGame=false,private readonly yaml=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap(junk,wholeGame):null;}
+
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
  retention():MemoryRetention|null{return this.policy?.select(this.archive())??null;}
@@ -101,24 +104,26 @@ export class ObservedInstructions {
    const spatial=new Set(places?.map(e=>e.result_event));
    const rows=[...episodes.values()].map(e=>this.row(e,places===undefined?undefined:spatial.has(e.result_event)));
    let fx=this.fixed();
-   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})});
+   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true as const}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})});
+   const columns=["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])];
+   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,columns,{...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true as const}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})}):json;
    if(this.cap===null)return render(rows,0);
-   if(this.over(render([],rows.length)))fx=without(fx);
-   const capped=this.cap.select(rows,render);
+   if(this.over(render([],rows.length),this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS))fx=without(fx);
+   const capped=this.cap.select(rows,render,this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS);
    return render(capped.kept,capped.omitted);
   }
   const all=this.archive().map(e=>this.row(e));
   let fx=this.fixed();
   if(this.cap===null)return this.legacy(all,0,fx);
   if(this.over(this.legacy([],all.length,fx)))fx=without(fx);
-  const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted,fx));
+  const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted,fx),INSTRUCTION_MEMORY_CAP_CHARS);
   return this.legacy(capped.kept,capped.omitted,fx);
  }
  // The part of the block that is not episodes, computed once per request so selection never re-serializes it.
  private fixed():Fixed {return {current:this.current,locations:this.locations()};}
  // instruction-memory-cap-v1: current is left out whole (current_left_out) only when, with no episodes at all, the
  // block would still pass the cap; it is never cut.
- private over(empty:string):boolean {return this.current!==null&&codePoints(empty)>INSTRUCTION_MEMORY_CAP_CHARS;}
+ private over(empty:string,budget=INSTRUCTION_MEMORY_CAP_CHARS):boolean {return this.current!==null&&codePoints(empty)>budget;}
  // instruction-memory-cap-v1: the newest whole entries whose JSON fits CAP_LOCATION_CHARS, and a count of the rest.
  private locations():Locations {
   const all=[...this.visits.values()];
@@ -148,8 +153,9 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"]);
- const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"],features["instruction-memory-junk-filter-v1"],features["story-checkpoints-whole-game-v1"],features["instruction-memory-yaml-v1"]);
+
+ const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true,false,false,false,false,false):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{
   const unique=features["instruction-memory-dedup-v1"]&&places!==null?places.placeEpisodes():undefined;

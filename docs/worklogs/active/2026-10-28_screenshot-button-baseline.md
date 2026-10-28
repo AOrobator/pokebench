@@ -1,6 +1,6 @@
 # Screenshot and button baseline
 
-The operator requested one minimal baseline and explicitly approved the prompt quoted below (2026-10-28). GPU1 owner Claude granted N=1, <=30 minutes, :[local inference port] only, normal exclusive lease; GPU0 run 9c88 stays untouched. No inference yet.
+The operator requested one minimal baseline and explicitly approved the prompt quoted below (2026-10-28). GPU1 owner Claude granted N=1, <=30 minutes, :[local inference port] only, normal exclusive lease; GPU0 run 9c88 stays untouched. The approved exploratory run has since completed; see the landing status below.
 
 Approved prompt: You are playing Pokémon Emerald. Make as much progress as you can. You receive screenshots and can use `observe` to view the screen or `press` to press buttons: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. Choose your actions from what you see.
 
@@ -37,3 +37,12 @@ Final compatibility resolution replaces attempted composition: existing prompt t
 Full agent coverage pass reached4853PASS with2failures: legacy-preset fixtures in gym-evidence/coherent-battle spread rawcurrentALL_ON, thereby enabling a baseline that did not exist in the simulatedhistoricalpreset. Corrected only these2fixtureinputs to baselineOFF; every ownfeatureomission/default/registry assertion unchanged. Production source unchanged from reviewedcc02d3e77. Failure retained in gates/test-initial-failed.log. Re-run full gates after this bounded test-only fix.
 
 Second full pass: all4855agenttestsPASS; viewer2236PASS/1failure in valid advanced next-run draft fixture spreading rawALL_ON. Set only that validfixture baselineOFF and added an exact HTTP409 assertion for mixedbaseline inputs. All existing registry/draft/history/otherinvalidassertions retained; no application change. Retain test-viewer-fixture-failed.log. New HTTP seam gets its own guard-deletion RED/restored proof before whole-gate repeat.
+
+
+## Reusable implementation landing (operator request 2026-10-28)
+
+The operator: "land the baseline implementation so we can reuse it but i shouldnt be used for the control or bundle arms". Scope: land the existing default-OFF standalone mode and preset; explicitly exclude it from both current comparison arms. No new gameplay, promotion or historical recording edits. The earlier proposed text-only termination and prompt-composition approaches above were abandoned; the exclusive predicate and uncoached continuation are the final implementation.
+
+Prior implementation gates at189c41932: agent4855, viewer2237, Python4869, gateway116 PASS; lint/build/vendor PASS and approved trainer-card widths unchanged. Prior Claude/GPT/Sol/Astra reviews LGTM; Grok unavailable from usage limits, so those reviews did not authorize self-landing. Native launch-pin rehearsal and HTTP compiled-guard deletion receipts remain under runs/baseline-preflight. Actual exploratory run2026-10-28T19-20-55_qwen36-gpu1-baseline_e845 completed at the scheduled operator cap; lease released. Report: http://127.0.0.1:8791/reports/screenshot-baseline-e845/index.html. No efficacy claim or experiment promotion.
+
+Landing sync to main4c4649b80: preserve the four newer switches, append baseline at index307, normalize it OFF and extend standalone preset with those switches OFF. Current arms retain their existing behavior. New actual-recipe regression: four definitions fail exactly on missing offInBoth membership (arms-red.log); next-run default remains false. Initial stale-dist attempts failed on unknown newer IDs and are not counted as behavioral RED. Build required a matching type-level Exclude for the new optional schema key; corrected before behavioral RED. Full CPU gates queued behind YAML's main viewer-test OOM diagnosis; fresh gates/reviews and board landing pending.

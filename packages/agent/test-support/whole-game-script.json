@@ -1,0 +1,2638 @@
+[
+  {
+    "id": "move-in",
+    "region": "a",
+    "role": "story",
+    "map": "LittlerootTown",
+    "map_id": [
+      0,
+      9
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MOM",
+    "text_label": "LittlerootTown_Text_OurNewHomeLetsGoInside",
+    "milestone_after": [],
+    "page_names": [
+      "MOM",
+      "MOM",
+      "MOM",
+      "MOM",
+      "MOM",
+      "MOM"
+    ]
+  },
+  {
+    "id": "rival-met",
+    "region": "a",
+    "role": "story",
+    "map": "LittlerootTown_MaysHouse_2F",
+    "map_id": [
+      1,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_RIVAL_MAY_NORMAL",
+    "text_label": "RivalsHouse_2F_Text_MayWhoAreYou",
+    "milestone_after": [
+      "RIVAL_MET"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "birch-rescue",
+    "region": "a",
+    "role": "story",
+    "map": "Route101",
+    "map_id": [
+      0,
+      16
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_PROF_BIRCH",
+    "text_label": "Route101_Text_PleaseHelp",
+    "milestone_after": [
+      "BIRCH_RESCUE_COMPLETE"
+    ],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "birch-starter",
+    "region": "a",
+    "role": "story",
+    "map": "LittlerootTown_ProfessorBirchsLab",
+    "map_id": [
+      1,
+      4
+    ],
+    "name_prefix": "PROF. BIRCH",
+    "text_label": "LittlerootTown_ProfessorBirchsLab_Text_MightBeGoodIdeaToGoSeeRival",
+    "milestone_after": [
+      "BIRCH_STARTER_HANDOFF_COMPLETE"
+    ],
+    "page_names": [
+      "PROF. BIRCH",
+      "PROF. BIRCH",
+      "PROF. BIRCH"
+    ]
+  },
+  {
+    "id": "route103-rival",
+    "region": "a",
+    "role": "story",
+    "map": "Route103",
+    "map_id": [
+      0,
+      18
+    ],
+    "name_prefix": "MAY",
+    "text_label": "Route103_Text_MayRoute103Pokemon",
+    "milestone_after": [
+      "RIVAL_BATTLE_WON"
+    ],
+    "page_names": [
+      "MAY"
+    ]
+  },
+  {
+    "id": "pokedex",
+    "region": "a",
+    "role": "story",
+    "map": "LittlerootTown_ProfessorBirchsLab",
+    "map_id": [
+      1,
+      4
+    ],
+    "name_prefix": "PROF. BIRCH",
+    "text_label": "LittlerootTown_ProfessorBirchsLab_Text_HeardYouBeatRivalTakePokedex",
+    "milestone_after": [
+      "RECEIVED_POKEDEX"
+    ],
+    "page_names": [
+      "PROF. BIRCH",
+      "PROF. BIRCH",
+      "PROF. BIRCH",
+      "PROF. BIRCH",
+      "PROF. BIRCH"
+    ]
+  },
+  {
+    "id": "running-shoes",
+    "region": "a",
+    "role": "story",
+    "map": "LittlerootTown",
+    "map_id": [
+      0,
+      9
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MOM",
+    "text_label": "LittlerootTown_Text_WearTheseRunningShoes",
+    "milestone_after": [
+      "RUNNING_SHOES_RECEIVED"
+    ],
+    "page_names": [
+      "MOM",
+      "MOM",
+      "MOM",
+      "MOM",
+      "MOM"
+    ]
+  },
+  {
+    "id": "dad-first-meeting",
+    "region": "a",
+    "role": "story",
+    "map": "PetalburgCity_Gym",
+    "map_id": [
+      8,
+      1
+    ],
+    "name_prefix": "DAD",
+    "text_label": "PetalburgCity_Gym_Text_DadYoureHereWithYourPokemon",
+    "milestone_after": [
+      "DAD_FIRST_MEETING"
+    ],
+    "page_names": [
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD"
+    ]
+  },
+  {
+    "id": "wally-tutorial",
+    "region": "a",
+    "role": "story",
+    "map": "Route102",
+    "map_id": [
+      0,
+      17
+    ],
+    "text_label": "Route102_Text_WatchMeCatchPokemon",
+    "milestone_after": [
+      "WALLY_TUTORIAL_COMPLETE"
+    ],
+    "called_from": [
+      "PetalburgCity"
+    ],
+    "name_prefix": "WALLY",
+    "page_names": [
+      "WALLY",
+      "WALLY",
+      "WALLY"
+    ]
+  },
+  {
+    "id": "dad-badge-advice",
+    "region": "a",
+    "role": "story",
+    "map": "PetalburgCity_Gym",
+    "map_id": [
+      8,
+      1
+    ],
+    "name_prefix": "DAD",
+    "text_label": "PetalburgCity_Gym_Text_DadGoCollectBadges",
+    "milestone_after": [],
+    "page_names": [
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD"
+    ]
+  },
+  {
+    "id": "woods-aqua",
+    "region": "a",
+    "role": "story",
+    "map": "PetalburgWoods",
+    "map_id": [
+      24,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+    "text_label": "PetalburgWoods_Text_HandOverThosePapers",
+    "milestone_after": [
+      "TEAM_AQUA_WOODS_EVENT_COMPLETE"
+    ],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "roxanne",
+    "region": "a",
+    "role": "story",
+    "map": "RustboroCity_Gym",
+    "map_id": [
+      11,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_ROXANNE",
+    "text_label": "RustboroCity_Gym_Text_RoxanneIntro",
+    "milestone_after": [
+      "STONE_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "rusturf-rescue",
+    "region": "a",
+    "role": "story",
+    "map": "RusturfTunnel",
+    "map_id": [
+      24,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+    "text_label": "RusturfTunnel_Text_ComeAndGetSome",
+    "milestone_after": [
+      "DEVON_GOODS_RECOVERED"
+    ],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "devon-errands",
+    "region": "a",
+    "role": "story",
+    "map": "RustboroCity_DevonCorp_3F",
+    "map_id": [
+      11,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "match-call",
+    "region": "a",
+    "role": "story",
+    "map": "RustboroCity",
+    "map_id": [
+      0,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "RustboroCity_Text_AddedMatchCallPleaseCallMrStone",
+    "milestone_after": [
+      "MATCH_CALL_TUTORIAL_COMPLETE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "briney-voyage",
+    "region": "b",
+    "role": "story",
+    "map": "Route104_MrBrineysHouse",
+    "map_id": [
+      17,
+      0
+    ],
+    "name_prefix": "MR. BRINEY",
+    "text_label": "Route104_MrBrineysHouse_Text_NeedToMakeDeliveriesSailToDewford",
+    "milestone_after": [],
+    "page_names": [
+      "MR. BRINEY",
+      "MR. BRINEY",
+      "MR. BRINEY",
+      "MR. BRINEY"
+    ]
+  },
+  {
+    "id": "brawly",
+    "region": "b",
+    "role": "story",
+    "map": "DewfordTown_Gym",
+    "map_id": [
+      3,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BRAWLY",
+    "text_label": "DewfordTown_Gym_Text_BrawlyIntro",
+    "milestone_after": [
+      "KNUCKLE_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "steven-letter",
+    "region": "b",
+    "role": "story",
+    "map": "GraniteCave_StevensRoom",
+    "map_id": [
+      24,
+      10
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_STEVEN",
+    "text_label": "GraniteCave_StevensRoom_Text_ImStevenLetterForMe",
+    "milestone_after": [
+      "STEVEN_LETTER_DELIVERED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "stern-goods",
+    "region": "b",
+    "role": "story",
+    "map": "SlateportCity_OceanicMuseum_2F",
+    "map_id": [
+      9,
+      8
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "SlateportCity_OceanicMuseum_2F_Text_ThankYouForTheParts",
+    "milestone_after": [
+      "DEVON_GOODS_DELIVERED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "route110-itemfinder",
+    "region": "b",
+    "role": "story",
+    "map": "Route110",
+    "map_id": [
+      0,
+      25
+    ],
+    "name_prefix": "MAY",
+    "text_label": "Route110_Text_MayExplainItemfinder",
+    "milestone_after": [
+      "ROUTE_110_RIVAL_DEFEATED"
+    ],
+    "page_names": [
+      "MAY",
+      "MAY",
+      "MAY",
+      "MAY"
+    ]
+  },
+  {
+    "id": "mauville-wally",
+    "region": "b",
+    "role": "story",
+    "map": "MauvilleCity",
+    "map_id": [
+      0,
+      2
+    ],
+    "name_prefix": "WALLY",
+    "text_label": "MauvilleCity_Text_WallyWillYouBattleMe",
+    "milestone_after": [
+      "MAUVILLE_WALLY_DEFEATED"
+    ],
+    "page_names": [
+      "WALLY",
+      "WALLY",
+      "WALLY",
+      "WALLY"
+    ]
+  },
+  {
+    "id": "wattson",
+    "region": "b",
+    "role": "story",
+    "map": "MauvilleCity_Gym",
+    "map_id": [
+      10,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WATTSON",
+    "text_label": "MauvilleCity_Gym_Text_WattsonIntro",
+    "milestone_after": [
+      "DYNAMO_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "meteor-falls",
+    "region": "c",
+    "role": "story",
+    "map": "MeteorFalls_1F_1R",
+    "map_id": [
+      24,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAGMA_MEMBER_M",
+    "text_label": "MeteorFalls_1F_1R_Text_WithThisMeteorite",
+    "milestone_after": [
+      "METEOR_FALLS_CONFRONTATION_RESOLVED"
+    ],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "mt-chimney",
+    "region": "c",
+    "role": "story",
+    "map": "MtChimney",
+    "map_id": [
+      24,
+      12
+    ],
+    "name_prefix": "MAXIE",
+    "text_label": "MtChimney_Text_MaxieIntro",
+    "milestone_after": [
+      "MT_CHIMNEY_STORY_COMPLETE"
+    ],
+    "page_names": [
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE"
+    ]
+  },
+  {
+    "id": "flannery",
+    "region": "c",
+    "role": "story",
+    "map": "LavaridgeTown_Gym_1F",
+    "map_id": [
+      4,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FLANNERY",
+    "text_label": "LavaridgeTown_Gym_1F_Text_FlanneryIntro",
+    "milestone_after": [
+      "HEAT_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "norman",
+    "region": "c",
+    "role": "story",
+    "map": "PetalburgCity_Gym",
+    "map_id": [
+      8,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_NORMAN",
+    "text_label": "PetalburgCity_Gym_Text_NormanIntro",
+    "milestone_after": [
+      "BALANCE_BADGE"
+    ],
+    "page_names": [
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD",
+      "DAD"
+    ]
+  },
+  {
+    "id": "surf-handoff-held",
+    "region": "c",
+    "role": "story",
+    "map": "PetalburgCity_WallysHouse",
+    "map_id": [
+      8,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_POKEFAN_M",
+    "text_label": "PetalburgCity_WallysHouse_Text_SurfGoAllSortsOfPlaces",
+    "milestone_after": [
+      "HM_SURF_RECEIVED"
+    ],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "route118-steven-held",
+    "region": "c",
+    "role": "story",
+    "map": "Route118",
+    "map_id": [
+      0,
+      33
+    ],
+    "name_prefix": "STEVEN",
+    "text_label": "Route118_Text_StevenQuestions",
+    "milestone_after": [
+      "ROUTE_118_STEVEN_SCENE_COMPLETE"
+    ],
+    "page_names": [
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN"
+    ]
+  },
+  {
+    "id": "weather-institute",
+    "region": "c",
+    "role": "story",
+    "map": "Route119_WeatherInstitute_2F",
+    "map_id": [
+      32,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_F",
+    "text_label": "Route119_WeatherInstitute_2F_Text_WeHaveToHurryToMtPyre",
+    "milestone_after": [
+      "WEATHER_INSTITUTE_AQUA_WITHDRAWN"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "route119-fly-held",
+    "region": "c",
+    "role": "story",
+    "map": "Route119",
+    "map_id": [
+      0,
+      34
+    ],
+    "name_prefix": "MAY",
+    "text_label": "Route119_Text_MayExplainFly",
+    "milestone_after": [
+      "ROUTE_119_RIVAL_SCENE_COMPLETE"
+    ],
+    "page_names": [
+      "MAY",
+      "MAY",
+      "MAY",
+      "MAY",
+      "MAY"
+    ]
+  },
+  {
+    "id": "devon-scope-held",
+    "region": "c",
+    "role": "story",
+    "map": "Route120",
+    "map_id": [
+      0,
+      35
+    ],
+    "name_prefix": "STEVEN",
+    "text_label": "Route120_Text_StevenGiveDevonScope",
+    "milestone_after": [
+      "DEVON_SCOPE_RECEIVED",
+      "FORTREE_GYM_OBSTRUCTION_CLEARED"
+    ],
+    "page_names": [
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN"
+    ]
+  },
+  {
+    "id": "winona",
+    "region": "c",
+    "role": "story",
+    "map": "FortreeCity_Gym",
+    "map_id": [
+      12,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WINONA",
+    "text_label": "FortreeCity_Gym_Text_WinonaIntro",
+    "milestone_after": [
+      "FEATHER_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "lilycove-aqua",
+    "region": "d",
+    "role": "story",
+    "map": "LilycoveCity",
+    "map_id": [
+      0,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "LilycoveCity_Text_TeamAquaBeenTrainingWailmer",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "mt-pyre-aqua",
+    "region": "d",
+    "role": "story",
+    "map": "MtPyre_Summit",
+    "map_id": [
+      24,
+      22
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+    "text_label": "MtPyre_Summit_Text_Grunt1Intro",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "mt-pyre-emblem-held",
+    "region": "d",
+    "role": "story",
+    "map": "MtPyre_Summit",
+    "map_id": [
+      24,
+      22
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_F",
+    "text_label": "MtPyre_Summit_Text_BothOrbsTakenMagmaLeftThis",
+    "milestone_after": [
+      "MAGMA_EMBLEM_RECEIVED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "magma-hideout",
+    "region": "d",
+    "role": "story",
+    "map": "MagmaHideout_4F",
+    "map_id": [
+      24,
+      91
+    ],
+    "name_prefix": "MAXIE",
+    "text_label": "MagmaHideout_4F_Text_MaxieImGoingAfterGroudon",
+    "milestone_after": [
+      "MAGMA_HIDEOUT_STORY_COMPLETE"
+    ],
+    "page_names": [
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE",
+      "MAXIE"
+    ]
+  },
+  {
+    "id": "submarine-theft",
+    "region": "d",
+    "role": "story",
+    "map": "SlateportCity_Harbor",
+    "map_id": [
+      9,
+      9
+    ],
+    "name_prefix": "ARCHIE",
+    "text_label": "SlateportCity_Harbor_Text_ArchieYouAgainHideoutInLilycove",
+    "milestone_after": [
+      "SLATEPORT_SUBMARINE_THEFT_WITNESSED"
+    ],
+    "page_names": [
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE"
+    ]
+  },
+  {
+    "id": "aqua-hideout",
+    "region": "d",
+    "role": "story",
+    "map": "AquaHideout_B2F",
+    "map_id": [
+      24,
+      25
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+    "text_label": "AquaHideout_B2F_Text_OurBossGotThroughHisPreparations",
+    "milestone_after": [
+      "AQUA_HIDEOUT_ESCAPE_COMPLETE"
+    ],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "tate-liza",
+    "region": "d",
+    "role": "story",
+    "map": "MossdeepCity_Gym",
+    "map_id": [
+      14,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_TATE",
+    "text_label": "MossdeepCity_Gym_Text_TateAndLizaIntro",
+    "milestone_after": [
+      "MIND_BADGE"
+    ],
+    "page_names": [
+      "TATE",
+      "LIZA",
+      "TATE",
+      "TATE",
+      "TATE",
+      "TATE",
+      "TATE"
+    ]
+  },
+  {
+    "id": "space-center-magma",
+    "region": "d",
+    "role": "story",
+    "map": "MossdeepCity_SpaceCenter_2F",
+    "map_id": [
+      14,
+      10
+    ],
+    "name_prefix": "MAXIE",
+    "text_label": "MossdeepCity_SpaceCenter_2F_Text_MaxieDontInterfere",
+    "milestone_after": [
+      "SPACE_CENTER_STORY_COMPLETE"
+    ],
+    "page_names": [
+      "MAXIE"
+    ]
+  },
+  {
+    "id": "space-center-steven",
+    "region": "d",
+    "role": "story",
+    "map": "MossdeepCity_SpaceCenter_2F",
+    "map_id": [
+      14,
+      10
+    ],
+    "name_prefix": "STEVEN",
+    "text_label": "MossdeepCity_SpaceCenter_2F_Text_StevenThankYouComeSeeMeAtHome",
+    "milestone_after": [],
+    "page_names": [
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN"
+    ]
+  },
+  {
+    "id": "dive-held",
+    "region": "d",
+    "role": "story",
+    "map": "MossdeepCity_StevensHouse",
+    "map_id": [
+      14,
+      7
+    ],
+    "name_prefix": "STEVEN",
+    "text_label": "MossdeepCity_StevensHouse_Text_ExplainDive",
+    "milestone_after": [
+      "HM_DIVE_RECEIVED"
+    ],
+    "page_names": [
+      "STEVEN",
+      "STEVEN",
+      "STEVEN",
+      "STEVEN"
+    ]
+  },
+  {
+    "id": "seafloor",
+    "region": "e",
+    "role": "story",
+    "map": "SeafloorCavern_Room9",
+    "map_id": [
+      24,
+      36
+    ],
+    "name_prefix": "ARCHIE",
+    "text_label": "SeafloorCavern_Room9_Text_ArchieYouMustDisappear",
+    "milestone_after": [
+      "SEAFLOOR_KYOGRE_RELEASE_CONFIRMED"
+    ],
+    "page_names": [
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE"
+    ]
+  },
+  {
+    "id": "sootopolis-guide-held",
+    "region": "e",
+    "role": "story",
+    "map": "SootopolisCity",
+    "map_id": [
+      0,
+      7
+    ],
+    "name_prefix": "STEVEN",
+    "text_label": "SootopolisCity_Text_HereWereAreHelpWallace",
+    "milestone_after": [],
+    "page_names": [
+      "STEVEN",
+      "STEVEN",
+      "STEVEN"
+    ]
+  },
+  {
+    "id": "wallace-origin",
+    "region": "e",
+    "role": "story",
+    "map": "CaveOfOrigin_B1F",
+    "map_id": [
+      24,
+      42
+    ],
+    "name_prefix": "WALLACE",
+    "text_label": "CaveOfOrigin_B1F_Text_WellHeadToSkyPillar",
+    "milestone_after": [
+      "WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE"
+    ],
+    "page_names": [
+      "WALLACE",
+      "WALLACE",
+      "WALLACE"
+    ]
+  },
+  {
+    "id": "sky-pillar-door",
+    "region": "e",
+    "role": "story",
+    "map": "SkyPillar_Outside",
+    "map_id": [
+      24,
+      78
+    ],
+    "name_prefix": "WALLACE",
+    "text_label": "SkyPillar_Outside_Text_GotToGoBackForSootopolis",
+    "milestone_after": [
+      "SKY_PILLAR_OPENED"
+    ],
+    "page_names": [
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE"
+    ]
+  },
+  {
+    "id": "rayquaza-awakening",
+    "region": "e",
+    "role": "story",
+    "map": "SkyPillar_Top",
+    "map_id": [
+      24,
+      85
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_RAYQUAZA_STILL",
+    "text_label": "SkyPillar_Top_Text_RayquazaFlewOff",
+    "milestone_after": [
+      "RAYQUAZA_AWAKENED"
+    ],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "crisis-resolved",
+    "region": "e",
+    "role": "story",
+    "map": "SootopolisCity",
+    "map_id": [
+      0,
+      7
+    ],
+    "name_prefix": "ARCHIE",
+    "text_label": "SootopolisCity_Text_TryingMeaninglessToPokemon",
+    "milestone_after": [
+      "SOOTOPOLIS_CRISIS_RESOLVED"
+    ],
+    "page_names": [
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE",
+      "ARCHIE"
+    ]
+  },
+  {
+    "id": "waterfall-gym-held",
+    "region": "e",
+    "role": "story",
+    "map": "SootopolisCity",
+    "map_id": [
+      0,
+      7
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WALLACE",
+    "text_label": "SootopolisCity_Text_ExplainWaterfallGoToGym",
+    "milestone_after": [
+      "HM_WATERFALL_RECEIVED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "juan",
+    "region": "e",
+    "role": "story",
+    "map": "SootopolisCity_Gym_1F",
+    "map_id": [
+      15,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_JUAN",
+    "text_label": "SootopolisCity_Gym_1F_Text_JuanIntro",
+    "milestone_after": [
+      "RAIN_BADGE"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "victory-road-wally",
+    "region": "f",
+    "role": "story",
+    "map": "VictoryRoad_1F",
+    "map_id": [
+      24,
+      43
+    ],
+    "name_prefix": "WALLY",
+    "text_label": "VictoryRoad_1F_Text_WallyIntro",
+    "milestone_after": [
+      "VICTORY_ROAD_WALLY_DEFEATED"
+    ],
+    "page_names": [
+      "WALLY",
+      "WALLY",
+      "WALLY"
+    ]
+  },
+  {
+    "id": "elite-sidney",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_SidneysRoom",
+    "map_id": [
+      16,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SIDNEY",
+    "text_label": "EverGrandeCity_SidneysRoom_Text_IntroSpeech",
+    "milestone_after": [
+      "ELITE_FOUR_SIDNEY_DEFEATED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "elite-phoebe",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_PhoebesRoom",
+    "map_id": [
+      16,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_PHOEBE",
+    "text_label": "EverGrandeCity_PhoebesRoom_Text_IntroSpeech",
+    "milestone_after": [
+      "ELITE_FOUR_PHOEBE_DEFEATED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "elite-glacia",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_GlaciasRoom",
+    "map_id": [
+      16,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GLACIA",
+    "text_label": "EverGrandeCity_GlaciasRoom_Text_IntroSpeech",
+    "milestone_after": [
+      "ELITE_FOUR_GLACIA_DEFEATED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "elite-drake",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_DrakesRoom",
+    "map_id": [
+      16,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_DRAKE",
+    "text_label": "EverGrandeCity_DrakesRoom_Text_IntroSpeech",
+    "milestone_after": [
+      "ELITE_FOUR_DRAKE_DEFEATED"
+    ],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "champion",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_ChampionsRoom",
+    "map_id": [
+      16,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WALLACE",
+    "text_label": "EverGrandeCity_ChampionsRoom_Text_IntroSpeech",
+    "milestone_after": [
+      "WALLACE_DEFEATED"
+    ],
+    "page_names": [
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE",
+      "WALLACE"
+    ]
+  },
+  {
+    "id": "hall-of-fame",
+    "region": "f",
+    "role": "story",
+    "map": "EverGrandeCity_HallOfFame",
+    "map_id": [
+      16,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WALLACE",
+    "text_label": "EverGrandeCity_HallOfFame_Text_LetsRecordYouAndYourPartnersNames",
+    "milestone_after": [
+      "GAME_CLEAR_CONFIRMED"
+    ],
+    "page_names": [
+      "WALLACE"
+    ]
+  },
+  {
+    "id": "optional-rayquaza",
+    "region": "f",
+    "role": "story",
+    "map": "SkyPillar_Top",
+    "map_id": [
+      24,
+      85
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_RAYQUAZA_STILL",
+    "text_label": "SkyPillar_Top_Text_RayquazaFlewOff",
+    "milestone_after": [
+      "RAYQUAZA_ENCOUNTER_RETIRED"
+    ],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-a-progression_hint-0",
+    "region": "a",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "RustboroCity_PokemonCenter_1F",
+    "map_id": [
+      11,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GIRL_3",
+    "text_label": "RustboroCity_PokemonCenter_1F_Text_HMCutNextDoor",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-progression_hint-1",
+    "region": "a",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "LittlerootTown",
+    "map_id": [
+      0,
+      9
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_TWIN",
+    "text_label": "LittlerootTown_Text_DangerousIfYouDontHavePokemon",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-a-progression_hint-2",
+    "region": "a",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "RustboroCity_CuttersHouse",
+    "map_id": [
+      11,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_POKEFAN_M",
+    "text_label": "RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-0",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "RustboroCity_CuttersHouse",
+    "map_id": [
+      11,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_LASS",
+    "text_label": "RustboroCity_CuttersHouse_Text_DadHelpedClearLandOfTrees",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-1",
+    "region": "a",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "OldaleTown_PokemonCenter_1F",
+    "map_id": [
+      2,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "OldaleTown_PokemonCenter_1F_Text_TrainersCanUsePC",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-2",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "PetalburgCity",
+    "map_id": [
+      0,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCOTT",
+    "text_label": "PetalburgCity_Text_ImLookingForTalentedTrainers",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-3",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "OldaleTown_House2",
+    "map_id": [
+      2,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_POKEFAN_F",
+    "text_label": "OldaleTown_House2_Text_PokemonLevelUp",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-4",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "RustboroCity_Flat2_3F",
+    "map_id": [
+      11,
+      15
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_DEVON_EMPLOYEE",
+    "text_label": "RustboroCity_Flat2_3F_Text_PresidentCollectsRareStones",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-5",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "RustboroCity_Flat2_1F",
+    "map_id": [
+      11,
+      13
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SKITTY",
+    "text_label": "RustboroCity_Flat2_1F_Text_Skitty",
+    "milestone_after": [],
+    "page_names": [
+      "SKITTY"
+    ]
+  },
+  {
+    "id": "npc-a-noise-6",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "RustboroCity_House3",
+    "map_id": [
+      11,
+      16
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_OLD_WOMAN",
+    "text_label": "RustboroCity_House3_Text_NamingPikachuPekachu",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-7",
+    "region": "a",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "RustboroCity_PokemonSchool",
+    "map_id": [
+      11,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_RICH_BOY",
+    "text_label": "RustboroCity_PokemonSchool_Text_PokemontCantUseManMadeItems",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-8",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "RustboroCity_PokemonCenter_1F",
+    "map_id": [
+      11,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BOY_1",
+    "text_label": "RustboroCity_PokemonCenter_1F_Text_MaleAndFemalePokemon",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-a-noise-9",
+    "region": "a",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LittlerootTown",
+    "map_id": [
+      0,
+      9
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_TWIN",
+    "text_label": "LittlerootTown_Text_YouSavedBirch",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-b-progression_hint-0",
+    "region": "b",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "Route110",
+    "map_id": [
+      0,
+      25
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_CAMPER",
+    "text_label": "Route110_Text_WhichShouldIChoose",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-progression_hint-1",
+    "region": "b",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "GraniteCave_1F",
+    "map_id": [
+      24,
+      7
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_HIKER",
+    "text_label": "GraniteCave_1F_Text_ExplainFlash",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-progression_hint-2",
+    "region": "b",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "MauvilleCity",
+    "map_id": [
+      0,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_4",
+    "text_label": "MauvilleCity_Text_RydelVeryGenerous",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-0",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SlateportCity_SternsShipyard_1F",
+    "map_id": [
+      9,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "SlateportCity_SternsShipyard_1F_Text_SeaIsLikeLivingThing",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-1",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "VerdanturfTown",
+    "map_id": [
+      0,
+      14
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_2",
+    "text_label": "VerdanturfTown_Text_AirCleanHere",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-2",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SlateportCity_PokemonFanClub",
+    "map_id": [
+      9,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_AZUMARILL",
+    "text_label": "SlateportCity_PokemonFanClub_Text_Azumarill",
+    "milestone_after": [],
+    "page_names": [
+      "AZUMARILL"
+    ]
+  },
+  {
+    "id": "npc-b-noise-3",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "Route110",
+    "map_id": [
+      0,
+      25
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BOY_3",
+    "text_label": "Route110_Text_RideBikeAtFullSpeed",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-4",
+    "region": "b",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "Route118",
+    "map_id": [
+      0,
+      33
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FISHERMAN",
+    "text_label": "Route118_Text_YouAgreeGoodRodIsGood",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-5",
+    "region": "b",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SlateportCity_PokemonFanClub",
+    "map_id": [
+      9,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "SlateportCity_PokemonFanClub_Text_ExplainGreenScarf",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-6",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SlateportCity_SternsShipyard_2F",
+    "map_id": [
+      9,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "SlateportCity_SternsShipyard_2F_Text_ShipDesignMoreLikeBuilding",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-7",
+    "region": "b",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "MauvilleCity_GameCorner",
+    "map_id": [
+      10,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GIRL_2",
+    "text_label": "MauvilleCity_GameCorner_Text_DontBeNegative",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-8",
+    "region": "b",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "MauvilleCity_House1",
+    "map_id": [
+      10,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "MauvilleCity_House1_Text_MonCanFlyOutOfSmashedRock",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-b-noise-9",
+    "region": "b",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SlateportCity_PokemonCenter_1F",
+    "map_id": [
+      9,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "SlateportCity_PokemonCenter_1F_Text_RaiseDifferentTypesOfPokemon",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-progression_hint-0",
+    "region": "c",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "Route112_CableCarStation",
+    "map_id": [
+      19,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BEAUTY",
+    "text_label": "Route112_CableCarStation_Text_CableCarReadyGetOn",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-c-progression_hint-1",
+    "region": "c",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "FallarborTown_CozmosHouse",
+    "map_id": [
+      5,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_2",
+    "text_label": "FallarborTown_CozmosHouse_Text_CozmoWentToMeteorFalls",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-c-progression_hint-2",
+    "region": "c",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "Route120",
+    "map_id": [
+      0,
+      35
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_KECLEON",
+    "text_label": "Kecleon_Text_SomethingUnseeable",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-0",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "MtChimney_CableCarStation",
+    "map_id": [
+      19,
+      1
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BEAUTY",
+    "text_label": "MtChimney_CableCarStation_Text_RideAnotherTime",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-1",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LavaridgeTown",
+    "map_id": [
+      0,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_F",
+    "text_label": "LavaridgeTown_Text_NoRoomForThisEgg",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-2",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "FortreeCity",
+    "map_id": [
+      0,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_OLD_MAN",
+    "text_label": "FortreeCity_Text_EveryoneHealthyAndLively",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-3",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "Route119_House",
+    "map_id": [
+      32,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_4",
+    "text_label": "Route119_House_Text_RumorAboutCaveOfOrigin",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-4",
+    "region": "c",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "Route119",
+    "map_id": [
+      0,
+      34
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BOY_3",
+    "text_label": "Route119_Text_ThoughtFlyByCatchingBirdMons",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-5",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LavaridgeTown",
+    "map_id": [
+      0,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_OLD_MAN",
+    "text_label": "LavaridgeTown_Text_PokemonNippedBackside",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-6",
+    "region": "c",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "FallarborTown_PokemonCenter_1F",
+    "map_id": [
+      5,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GIRL_3",
+    "text_label": "FallarborTown_PokemonCenter_1F_Text_FossilManiacEdgeOfTown",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-7",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "Route113_GlassWorkshop",
+    "map_id": [
+      30,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_1",
+    "text_label": "Route113_GlassWorkshop_Text_IllMakeItemForYou",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-8",
+    "region": "c",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "Route111",
+    "map_id": [
+      0,
+      26
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_HIKER",
+    "text_label": "Route111_Text_ThatWasShockingSandRainedDown",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-c-noise-9",
+    "region": "c",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "FortreeCity_PokemonCenter_1F",
+    "map_id": [
+      12,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "FortreeCity_PokemonCenter_1F_Text_GoToSafariZone",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-progression_hint-0",
+    "region": "d",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "Route121",
+    "map_id": [
+      0,
+      36
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_3",
+    "text_label": "Route121_Text_AheadLoomsMtPyre",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-progression_hint-1",
+    "region": "d",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "MossdeepCity",
+    "map_id": [
+      0,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BOY_2",
+    "text_label": "MossdeepCity_Text_StevensHouseOverThere",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-d-progression_hint-2",
+    "region": "d",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "LilycoveCity",
+    "map_id": [
+      0,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "LilycoveCity_Text_TeamAquaBeenTrainingWailmer",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-0",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "MossdeepCity",
+    "map_id": [
+      0,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_1",
+    "text_label": "MossdeepCity_Text_SpecialSpaceCenterRock",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-1",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_ContestHall",
+    "map_id": [
+      13,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_1",
+    "text_label": "LilycoveCity_ContestHall_Text_CantWinOnBeautyAlone",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-2",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "MossdeepCity_SpaceCenter_2F",
+    "map_id": [
+      14,
+      10
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_RICH_BOY",
+    "text_label": "MossdeepCity_SpaceCenter_2F_Text_WishOrdinaryPeopleCouldGoIntoSpace",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-3",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_ContestHall",
+    "map_id": [
+      13,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_F",
+    "text_label": "LilycoveCity_ContestHall_Text_MyMonAppealSoMuchCuter",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-4",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_LilycoveMuseum_1F",
+    "map_id": [
+      13,
+      2
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "LilycoveCity_LilycoveMuseum_1F_Text_ImCuratorHaveYouViewedOurPaintings",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-5",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_DepartmentStore_2F",
+    "map_id": [
+      13,
+      17
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "LilycoveCity_DepartmentStore_2F_Text_StockUpOnItems",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-6",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity",
+    "map_id": [
+      0,
+      5
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_M",
+    "text_label": "LilycoveCity_Text_TeamAquaLotGoneForGood",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-7",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_Harbor",
+    "map_id": [
+      13,
+      10
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_BEAUTY",
+    "text_label": "LilycoveCity_Harbor_Text_SailAnotherTime",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-8",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_MoveDeletersHouse",
+    "map_id": [
+      13,
+      11
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_M",
+    "text_label": "LilycoveCity_MoveDeletersHouse_Text_MonsMoveShouldBeForgotten",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-d-noise-9",
+    "region": "d",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "LilycoveCity_DepartmentStore_1F",
+    "map_id": [
+      13,
+      16
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_POKEFAN_F",
+    "text_label": "LilycoveCity_DepartmentStore_1F_Text_IBuyAllSortsOfThings",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-e-progression_hint-0",
+    "region": "e",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "SootopolisCity_Gym_1F",
+    "map_id": [
+      15,
+      0
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_2",
+    "text_label": "SootopolisCity_Gym_1F_Text_GymGuidePostVictory",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-progression_hint-1",
+    "region": "e",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "SootopolisCity",
+    "map_id": [
+      0,
+      7
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_M",
+    "text_label": "SootopolisCity_Text_LeadSuperiorTrainerToCave",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-progression_hint-2",
+    "region": "e",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "PacifidlogTown",
+    "map_id": [
+      0,
+      15
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FISHERMAN",
+    "text_label": "PacifidlogTown_Text_SkyPillarTooScary",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-0",
+    "region": "e",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "PacifidlogTown_House2",
+    "map_id": [
+      7,
+      3
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "PacifidlogTown_House2_Text_ExplainReturnFrustration",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-1",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity_Mart",
+    "map_id": [
+      15,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "SootopolisCity_Mart_Text_DidSomethingAwaken",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-2",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity_MysteryEventsHouse_1F",
+    "map_id": [
+      15,
+      13
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_OLD_MAN",
+    "text_label": "SootopolisCity_MysteryEventsHouse_1F_Text_OnlyAmusementWatchingBattles",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-3",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity_LotadAndSeedotHouse",
+    "map_id": [
+      15,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FISHERMAN",
+    "text_label": "SootopolisCity_LotadAndSeedotHouse_Text_ThatsNotLotad",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-4",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "PacifidlogTown_House3",
+    "map_id": [
+      7,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GIRL_2",
+    "text_label": "PacifidlogTown_House3_Text_IsThatAPokedex",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-5",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity_Mart",
+    "map_id": [
+      15,
+      4
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FAT_MAN",
+    "text_label": "SootopolisCity_Mart_Text_TooScaryOutside",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-6",
+    "region": "e",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SootopolisCity_House4",
+    "map_id": [
+      15,
+      8
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_1",
+    "text_label": "SootopolisCity_House4_Text_AncientTreasuresWaitingInSea",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-7",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity_LotadAndSeedotHouse",
+    "map_id": [
+      15,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_HIKER",
+    "text_label": "SootopolisCity_LotadAndSeedotHouse_Text_SeenBiggerSeedot",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-8",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "PacifidlogTown_House5",
+    "map_id": [
+      7,
+      6
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "PacifidlogTown_House5_Text_MirageIslandAppearDependingOnWeather",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-e-noise-9",
+    "region": "e",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SootopolisCity",
+    "map_id": [
+      0,
+      7
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_NINJA_BOY",
+    "text_label": "SootopolisCity_Text_ThatWasWicked",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-f-progression_hint-0",
+    "region": "f",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "EverGrandeCity_PokemonLeague_1F",
+    "map_id": [
+      16,
+      10
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_3",
+    "text_label": "EverGrandeCity_PokemonLeague_1F_Text_HaventObtainedAllBadges",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-progression_hint-1",
+    "region": "f",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "EverGrandeCity_PokemonCenter_1F",
+    "map_id": [
+      16,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_WOMAN_5",
+    "text_label": "EverGrandeCity_PokemonCenter_1F_Text_LeagueAfterVictoryRoad",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-progression_hint-2",
+    "region": "f",
+    "role": "filler",
+    "category": "PROGRESSION_HINT",
+    "map": "EverGrandeCity_PokemonLeague_1F",
+    "map_id": [
+      16,
+      10
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MAN_3",
+    "text_label": "EverGrandeCity_PokemonLeague_1F_Text_MustHaveAllGymBadges",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-0",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "AbandonedShip_Rooms2_B1F",
+    "map_id": [
+      24,
+      59
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_CAMPER",
+    "text_label": "AbandonedShip_Rooms2_B1F_Text_PerfectPlaceToGoExploring",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-1",
+    "region": "f",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SSTidalCorridor",
+    "map_id": [
+      25,
+      41
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "SSTidalCorridor_Text_VisitOtherCabins",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-2",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "AbandonedShip_Rooms_B1F",
+    "map_id": [
+      24,
+      58
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_FAT_MAN",
+    "text_label": "AbandonedShip_Rooms_B1F_Text_GettingQueasy",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-3",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "AbandonedShip_Rooms_1F",
+    "map_id": [
+      24,
+      56
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+    "text_label": "AbandonedShip_Rooms_1F_Text_TakingALookAround",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-4",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "SSTidalCorridor",
+    "map_id": [
+      25,
+      41
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "SSTidalCorridor_Text_EnjoyYourCruise",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-5",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "AbandonedShip_Corridors_1F",
+    "map_id": [
+      24,
+      55
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_YOUNGSTER",
+    "text_label": "AbandonedShip_Corridors_1F_Text_IsntItFunHere",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-6",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "AbandonedShip_CaptainsOffice",
+    "map_id": [
+      24,
+      63
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+    "text_label": "AbandonedShip_CaptainsOffice_Text_ThisIsSSCactus",
+    "milestone_after": [],
+    "page_names": [
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-7",
+    "region": "f",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SSTidalCorridor",
+    "map_id": [
+      25,
+      41
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_SAILOR",
+    "text_label": "SSTidalCorridor_Text_CanRestInCabin2",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-8",
+    "region": "f",
+    "role": "filler",
+    "category": "USEFUL_OPTIONAL",
+    "map": "SSTidalRooms",
+    "map_id": [
+      25,
+      43
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_MANIAC",
+    "text_label": "SSTidalRooms_Text_NotSuspiciousTakeThis",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null
+    ]
+  },
+  {
+    "id": "npc-f-noise-9",
+    "region": "f",
+    "role": "filler",
+    "category": "FLAVOR",
+    "map": "EverGrandeCity_PokemonCenter_1F",
+    "map_id": [
+      16,
+      12
+    ],
+    "speaker_gfx": "OBJ_EVENT_GFX_EXPERT_M",
+    "text_label": "EverGrandeCity_PokemonCenter_1F_Text_BelieveInYourPokemon",
+    "milestone_after": [],
+    "page_names": [
+      null,
+      null,
+      null
+    ]
+  }
+]

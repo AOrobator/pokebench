@@ -1323,7 +1323,7 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
 describe("tracked explainers",()=>{
  // One viewer serves every row straight from the tracked docs/explainers (staticDir is this package's static folder),
  // with an empty temp root for runs and app that is removed after the table.
- const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1"];
+ const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1","instruction-memory-yaml-v1"];
  let root="",viewer:Viewer|null=null;
  const tracked=new Map(SERVED.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  beforeAll(async()=>{
@@ -1692,4 +1692,18 @@ it("serves the compact map grid explainer byte for byte from the config-card all
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the instruction junk filter explainer byte for byte",async()=>{
+ const file="instruction-memory-junk-filter-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-junk-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the bounded ID-card explainer byte for byte",async()=>{
+ const file="id-card-bound-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-id-card-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });

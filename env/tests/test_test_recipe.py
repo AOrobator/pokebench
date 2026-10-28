@@ -38,8 +38,11 @@ if name == "pnpm":
             sys.exit(23)
     else:
         raise SystemExit("unexpected pnpm arguments")
-elif name == "just" and args != ["trainer-card-check"]:
-    raise SystemExit("unexpected nested just recipe")
+elif name == "just":
+    if args == ["build"]:
+        os.execv(os.environ["RECIPE_REAL_JUST"], ["just", *args])
+    elif args != ["trainer-card-check"]:
+        raise SystemExit("unexpected nested just recipe")
 """
 
 
@@ -65,6 +68,7 @@ def run_recipe(tmp_path, recipe, artifact="stale", *, build_error=False):
         executable.chmod(0o755)
     trace = case / "calls.jsonl"
     env = {**os.environ, "PATH": f"{ports}{os.pathsep}{os.environ['PATH']}"}
+    env["RECIPE_REAL_JUST"] = JUST
     env["RECIPE_TRACE"] = str(trace)
     env["RECIPE_BUILD_ERROR"] = "1" if build_error else "0"
     result = subprocess.run(
@@ -85,7 +89,8 @@ def test_gate_builds_missing_or_stale_registry_before_viewer_coverage(tmp_path, 
     result, calls, source, compiled = run_recipe(tmp_path, recipe, artifact)
     assert result.returncode == 0, result.stdout + result.stderr
     assert compiled.read_bytes() == source.read_bytes()
-    assert calls[:2] == [["pnpm", "-r", "build"], ["pnpm", "-r", "coverage"]]
+    leaf_calls = [call for call in calls if call != ["just", "build"]]
+    assert leaf_calls[:2] == [["pnpm", "-r", "build"], ["pnpm", "-r", "coverage"]]
     assert calls.count(["pnpm", "-r", "coverage"]) == 1
     assert calls.count(["pnpm", "-r", "build"]) == 1
     assert calls[-1] == ["just", "trainer-card-check"]
@@ -96,4 +101,4 @@ def test_build_failure_stops_before_coverage_and_retains_the_build_error(tmp_pat
     result, calls, _, _ = run_recipe(tmp_path, recipe, build_error=True)
     assert result.returncode != 0
     assert "controlled build failure" in result.stderr
-    assert calls == [["pnpm", "-r", "build"]]
+    assert [call for call in calls if call != ["just", "build"]] == [["pnpm", "-r", "build"]]

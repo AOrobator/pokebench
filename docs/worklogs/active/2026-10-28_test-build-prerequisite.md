@@ -9,7 +9,7 @@ Authority: trusted coordinator delegation from 00000000-0000-4000-8000-f5efe0494
 feature-worklog, execute-worklog, talk-to-claude, close-the-loop, multi-model-review at review. CLAUDE read. Feature-switch and feature-explainer do not apply: this changes tooling order only, not harness behavior or viewer presentation.
 
 ## Architecture
-Reuse the existing build recipe as a dependency of test. Keep coverage: test. Do not add a stale-state detector, manifest, cache, configuration or runtime owner. One recipe-level regression test invokes the actual just binary and copied real justfile with controlled leaf executables. A fake viewer-coverage command rejects missing/stale compiled content until the existing build recipe reconstructs it; this tests orchestration rather than reimplementing the prerequisite. Full just test from this fresh worktree without manual build proves real TypeScript exports are prepared before real coverage.
+Invoke the existing build recipe as the first command of test. Keep coverage: test. Do not add a stale-state detector, manifest, cache, configuration or runtime owner. One recipe-level regression test invokes the actual just binary and copied real justfile with controlled leaf executables. A fake viewer-coverage command rejects missing/stale compiled content until the existing build recipe reconstructs it; this tests orchestration rather than reimplementing the prerequisite. Full just test from this fresh worktree without manual build proves real TypeScript exports are prepared before real coverage.
 
 ## Invariants
 - INV-1: test and coverage rebuild missing or stale exports before coverage starts.
@@ -26,7 +26,7 @@ No network or model calls. The test uses actual just with fake pnpm/uv/leaf just
 - [ ] Test missing/stale artifact and build-error behavior through actual just test/coverage.
 - [ ] Observe and commit RED before changing the recipe.
 **M2 — GREEN**
-- [ ] Add the one build dependency; retain existing coverage alias.
+- [ ] Add the one existing-build invocation; retain existing coverage alias.
 - [ ] Targeted GREEN; remove the dependency once to witness RED, restore and commit.
 **M3 — Verify and review**
 - [ ] Obtain START; sync main; run actual just test first from absent dist with no manual build, then lint/vendor serially. Verify build overhead and coverage order/counts.
@@ -54,3 +54,7 @@ No adjacent cleanup.
 Archiving is not authorized.
 
 M1 RED: six intended assertion failures in1.29s on the incumbent recipe. Both test/coverage reject missing and stale compiled content before any build; both build-error cases expose the wrong coverage failure instead of the controlled build failure. Targeted Ruff formatting/check pass. No recipe change yet.
+
+M2 GREEN: add the existing build recipe as the single test prerequisite; coverage remains coverage: test. Six targeted cases pass. Performed dependency-removal mutation gives six intended assertion failures, then restored six GREEN. No test/runtime/harness source changes beyond the tooling regression test. Bootstrap dependencies/submodule and read-only canonical mGBA link prepared; dist has intentionally not been built yet so the real gate can prove the prerequisite.
+
+The initial dependency-header prototype (`test: build`) passed six tests but the committed trainer-card guard rejected the commit: its recipe parser only recognizes `test:` and therefore interpreted the header as removing the existing trainer-card invocation. No receipt was invented and no hook was bypassed or weakened. Restored the incumbent and verified six RED cases with a transport that can delegate nested just build. Final fix keeps the literal test header and every existing command unchanged, adding just build first. Updated fake transport permits only that nested build and the existing trainer-card leaf, preserving full call logs; assertions normalize the optional runner wrapper, not build/coverage behavior. Final six GREEN; remove-inline-build mutation six RED; restored six GREEN. Existing trainer-card recipe and invocation remain byte-identical.

@@ -33,7 +33,7 @@ it("selects an ended catalog run when the recent current index is empty and pres
  await app.refreshRuns();for(let i=0;i<8;i++)await Promise.resolve();
  expect(urls).toContain(`/api/runs/${RUN}/current`);expect(streams).toHaveLength(1);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(false);
  expect(document.querySelector('[data-ui="stats"]')?.textContent).toContain("—");
- expect(document.querySelector('[data-ui="counters"]')?.textContent).toContain("Lifetime totals are still loading");
+ expect(document.querySelector('[data-ui="counters"]')?.textContent).toContain("Lifetime totals are still loading");expect(document.querySelector('[data-ui="clock"]')?.textContent).toContain("time loading");expect(document.querySelector('[data-ui="run-head"]')?.textContent).toContain("Time loading");
  streams[0]?.send("head",f.log.events);expect(app.mode).toBe("replay");
  expect(app.view.tokens.input).toBe(500);expect(document.querySelector('[data-ui="counters"]')?.textContent).not.toContain("Lifetime totals are still loading");
 });

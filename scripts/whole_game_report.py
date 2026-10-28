@@ -17,11 +17,11 @@ def html_section(data_root=None):
         return '<section><h2>Whole-game check</h2><p>Synthetic check data unavailable; no result is claimed.</p></section>'
     esc = lambda value: html.escape(str(value))
     out = ['<section id="whole-game-check"><style>#whole-game-check{font:14px/1.5 system-ui,sans-serif;scroll-margin-top:48px}#whole-game-check table{min-width:900px;border-collapse:collapse;font:13px/1.35 system-ui,sans-serif}#whole-game-check td{padding:8px;vertical-align:top}#whole-game-check td:first-child{min-width:145px}#whole-game-check th{padding:8px}</style><h2>Whole-game check</h2>',
-           '<div class="card"><p><strong>A one-character speaker correction moved which steps lost a hint.</strong> '
-           'Greedy whole-episode packing is fragile. These pinned steps describe one snapshot.</p>'
+           '<div class="card"><p><strong>The hint misses moved again after an advice-lifetime fix.</strong> '
+           'A one-character speaker correction also moved them earlier. Greedy whole-episode packing is fragile; these pinned steps describe one snapshot.</p>'
            '<p>Offline: 58 story steps, 78 NPC fillers, six separate signs, four modes, a 16,000-code-point cap. '
            'No gameplay benefit is measured.</p>'
-           '<p>With whole-game ON and dedup ON, the Steven-house hint is left out at Aqua Hideout and Tate/Liza. '
+           '<p>With whole-game ON and dedup ON, the Steven-house hint is left out at Aqua Hideout and Steven’s Space Center invitation. '
            'Other tested treatment steps retain the sampled active hints. The ranking follow-up is not built.</p></div>',
            '<p>One row per story step, before new completion milestones. Left out includes completed and over-budget episodes.</p>']
     for index, (label, name) in enumerate(MODES):

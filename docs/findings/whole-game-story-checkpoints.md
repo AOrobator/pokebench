@@ -2,7 +2,7 @@
 
 Reference: pret/pokeemerald `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, clean; US Emerald ROM SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`. Offline source/synthetic proof; no new native gameplay is claimed.
 
-42 checkpoints: the original 15 plus 27 default-OFF scopes. Existing map/speaker matching and whole-episode selection remain the only runtime owners. Every closing milestone must be recorded, and the episode turn must be at or before their latest turn. A mixed episode remains eligible.
+41 checkpoints: the original 15 plus 26 default-OFF scopes. Existing map/speaker matching and whole-episode selection remain the only runtime owners. Every closing milestone must be recorded, and the episode turn must be at or before their latest turn. A mixed episode remains eligible.
 
 ## Native predicates and writers
 
@@ -124,16 +124,6 @@ FLAG_MET_TEAM_AQUA_HARBOR (include/constants/flags.h:115); FLAG_TEAM_AQUA_ESCAPE
 Scopes: SlateportCity_Harbor [9/9]: ARCHIE, AQUA_MEMBER_M.
 
 - Writer `data/maps/SlateportCity_Harbor/scripts.inc:63`: `setflag FLAG_MET_TEAM_AQUA_HARBOR`
-- Writer `data/maps/AquaHideout_B2F/scripts.inc:44`: `setflag FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`
-
-### aqua-hideout-escape
-
-FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE (include/constants/flags.h:132). Native reader predicates, not arrival or inferred dialogue completion.
-
-- `AQUA_HIDEOUT_ESCAPE_COMPLETE`: `{"name":"AQUA_HIDEOUT_ESCAPE_COMPLETE","label":"Aqua Hideout submarine escape complete","flag":112,"anchor":"MOSSDEEP_GYM_ENTERED"}`
-
-Scopes: AquaHideout_B2F [24/25]: AQUA_MEMBER_M, AQUA_MEMBER_F.
-
 - Writer `data/maps/AquaHideout_B2F/scripts.inc:44`: `setflag FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`
 
 ### tate-liza-gym
@@ -323,6 +313,7 @@ Coordinator explicitly approved holding Route110/119 and directed retiring nothi
 
 | Map / speaker held | pret text labels | Reason |
 |---|---|---|
+| AquaHideout_B2F AQUA_MEMBER_M/F | MattIntro, MattDefeat, OurBossGotThroughHisPreparations, MattPostBattle, Grunt4Intro/Defeat/PostBattle, Grunt6Intro/Defeat/PostBattle, Grunt8Intro/Defeat/PostBattle (all AquaHideout_B2F_Text_ prefixes) | MattPostBattle gives undersea-cave chase directions immediately before the escape flag is set (scripts43-44,103-111). Female Grunt6 gives an unresolved MASTER BALL clue (137-141; map object→Grunt6 script). Escape proves neither later cave progress nor optional item collection. Both shared sprites remain unscoped; no inferred later completion. |
 | Route110 MAY/BRENDAN | Route110_Text_MayLetsBattle, MayDefeated, MayTakeThis, MayExplainItemfinder; matching BrendanLetsBattle, BrendanDefeated, BrendanTakeThis, BrendanExplainItemfinder | Battle completion cannot retire reusable Itemfinder instructions under the same key. |
 | Route119 MAY/BRENDAN | Route119_Text_MayIntro, MayDefeat, MayPresentForYou, MayExplainFly; BrendanIntro, BrendanDefeat, BrendanIllGiveYouThis, BrendanExplainFly | Mixed Fly mechanic, Fortree badge and optional return-home instructions. |
 | Route118 STEVEN | Route118_Text_StevenQuestions | General Pokémon/training advice has no provable scene-owned completion. |

@@ -9,11 +9,11 @@ import {codePoints,type CapEpisode} from "./instruction-memory-cap.js";
 import {buildWholeGameStream,loadWholeGameScript} from "../test-support/whole-game-stream.js";
 const PRET=process.env.POKEEMERALD_DIR??join(homedir(),"dev","pokeemerald");
 // Named limitations approved by the coordinator; no exemption for any other step or hint.
-// Reason: cap pressure after printed-name fidelity keeps DAD's reusable episode eligible.
-// Reproduction receipt: runs/analysis/whole-game-story-checkpoints-20261028/diagnostic-v3-whole-dedup.json.
+// Reason: greedy packing changes after source-fidelity and advice-lifetime corrections.
+// Reproduction receipt: runs/analysis/whole-game-story-checkpoints-20261028/diagnostic-v4-whole-dedup.json.
 const KNOWN_WHOLE_DEDUP_LIMITS:Readonly<Record<string,readonly string[]>>={
  "aqua-hideout":["npc-d-progression_hint-1"],
- "tate-liza":["npc-d-progression_hint-1"],
+ "space-center-steven":["npc-d-progression_hint-1"],
 };
 const payload=(text:string):{episodes:CapEpisode[]}=>JSON.parse(text.slice(text.indexOf("\n{")+1)) as {episodes:CapEpisode[]};
 
@@ -157,7 +157,7 @@ describe("deterministic pret-only whole-game instruction stream",()=>{
    for(const e of payload(after).episodes)expect(closed(e),`${step.entry.id} after: completed episode ${String(e.result)}`).toBe(false);
    if(step.entry.role==="story")summary.push({id:step.entry.id,region:step.entry.region,whole_game:wholeGame,dedup,chars:codePoints(shown),episodes_kept:kept.length,episodes_left_out:memory.archive().length-kept.length,speakers:[...new Set(kept.flatMap(e=>e.pages.map(p=>p[0])))],active_hints:activeHints.map(h=>h.entry.id),missing_hints:missingHints.map(h=>h.entry.id),text:shown});
   }
-  if(wholeGame)expect(misses).toEqual(dedup?[{step:"aqua-hideout",hint:"npc-d-progression_hint-1"},{step:"tate-liza",hint:"npc-d-progression_hint-1"}]:[]);
+  if(wholeGame)expect(misses).toEqual(dedup?[{step:"aqua-hideout",hint:"npc-d-progression_hint-1"},{step:"space-center-steven",hint:"npc-d-progression_hint-1"}]:[]);
   else expect(misses[0]).toEqual({step:dedup?"winona":"submarine-theft",hint:dedup?"npc-c-progression_hint-2":"npc-d-progression_hint-1"});
   const report=process.env.POKEBENCH_WHOLE_GAME_REPORT;
   if(report!==undefined)writeFileSync(`${report}-${wholeGame?"whole":"legacy"}-${dedup?"dedup":"split"}.json`,JSON.stringify(summary,null,2));

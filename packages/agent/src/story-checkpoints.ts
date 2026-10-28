@@ -87,8 +87,6 @@ export const STORY_CHECKPOINTS:readonly StoryCheckpoint[] = [...LEGACY_STORY_CHE
   {"map":"MagmaHideout_4F","map_id":[24,91],"speakers":["MAXIE","MAGMA_MEMBER_M"]}]},
  {"id":"slateport-submarine-theft","closes_after":["SLATEPORT_SUBMARINE_THEFT_WITNESSED","AQUA_HIDEOUT_ESCAPE_COMPLETE"],"game_fact":"FLAG_MET_TEAM_AQUA_HARBOR (include/constants/flags.h:115); FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE (include/constants/flags.h:132). Native reader predicates, not arrival or inferred dialogue completion.","set_on":["AquaHideout_B2F"],"scope":[
   {"map":"SlateportCity_Harbor","map_id":[9,9],"speakers":["ARCHIE","AQUA_MEMBER_M"]}]},
- {"id":"aqua-hideout-escape","closes_after":["AQUA_HIDEOUT_ESCAPE_COMPLETE"],"game_fact":"FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE (include/constants/flags.h:132). Native reader predicates, not arrival or inferred dialogue completion.","scope":[
-  {"map":"AquaHideout_B2F","map_id":[24,25],"speakers":["AQUA_MEMBER_M","AQUA_MEMBER_F"]}]},
  {"id":"tate-liza-gym","closes_after":["MIND_BADGE"],"game_fact":"FLAG_BADGE07_GET (include/constants/flags.h:1365). Native reader predicates, not arrival or inferred dialogue completion.","scope":[
   {"map":"MossdeepCity_Gym","map_id":[14,0],"speakers":["TATE","LIZA"]}]},
  {"id":"space-center-magma","closes_after":["SPACE_CENTER_STORY_COMPLETE"],"game_fact":"VAR_MOSSDEEP_SPACE_CENTER_STATE (include/constants/vars.h:179). Native reader predicates, not arrival or inferred dialogue completion.","scope":[

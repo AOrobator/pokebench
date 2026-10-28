@@ -71,6 +71,10 @@
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
   "pokenav-call-auto-advance-v1",
+  "compact-map-grid-v1",
+  "supervisor-briefing-bound-v1",
+  "refusal-ledger-bound-v1",
+  "disproved-beliefs-bound-v1",
   "instruction-memory-yaml-v1"
  ],
  "offInBoth": [
@@ -159,7 +163,8 @@
   "retire-reached-story-line-v1",
   "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1",
-  "player-map-visibility-v1"
+  "player-map-visibility-v1",
+  "destination-first-navigation-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -451,6 +456,11 @@
   "instruction-memory-cap-v1": true,
   "pokenav-call-auto-advance-v1": false,
   "player-map-visibility-v1": true,
+  "compact-map-grid-v1": false,
+  "supervisor-briefing-bound-v1": false,
+  "refusal-ledger-bound-v1": false,
+  "disproved-beliefs-bound-v1": false,
+  "destination-first-navigation-v1": true,
   "instruction-memory-yaml-v1": false
  }
 }

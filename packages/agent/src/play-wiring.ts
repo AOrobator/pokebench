@@ -1,3 +1,4 @@
+import {withDestinationFirst} from "./destination-first.js";
 import {withPokenavCallAutoAdvance} from "./pokenav-call-auto-advance.js";
 import {withSceneJournal} from "./scene-journal.js";
 import {withInterfaceGuidance} from "./interface-guidance.js";
@@ -213,7 +214,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const progress=withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(pokenav,features,recorder),features,state),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"],structuredEvidence:features["citation-evidence-v1"]});
- return withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state,features["scene-journal-safe-capture-v1"]),names);
+ return [...withDestinationFirst(withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state,features["scene-journal-safe-capture-v1"]),names),features)];
 }
 
 

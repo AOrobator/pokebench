@@ -1,3 +1,4 @@
+import {destinationFirstPrompt} from "./destination-first.js";
 import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
@@ -279,7 +280,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   if(features["player-map-visibility-v1"])prompt += "\n\nMap visibility: ? is unseen terrain. The map remembers terrain you have seen, but hidden tiles are not updated. People and interaction targets are listed only while visible. navigate_to and navigate_to_target use discovered terrain; to reveal more, choose a visible reachable tile near the edge of the known area, or use a single direction press and inspect the new screen. Illumination limits apply in dark places too. Trainer-sight checks use only currently visible terrain and trainers at their current observed positions; checks requiring unseen terrain are reported unavailable.";
-  return prompt;
+  return features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.

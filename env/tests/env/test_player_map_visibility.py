@@ -548,3 +548,49 @@ def test_visibility_forecast_requires_nonempty_terrain_and_every_route_tile(tile
         "available": False,
         "reason": "trainer sight requires currently visible terrain",
     }
+
+
+def test_installed_visibility_preserves_game_owned_measurement_facts(monkeypatch):
+    from fastapi import FastAPI
+    from test_feature_switches import MAPS, _Shot, map_memory
+    from test_view import get
+
+    from pokebench_env.observation import install_observation
+
+    states = []
+    for off in ("player-map-visibility-v1", ""):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        app = FastAPI()
+        install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
+        status, _, body = get(app, "/pokebench/observation")
+        assert status == 200, body
+        states.append(json.loads(body)["state"])
+    facts = (
+        "screen",
+        "active_ui",
+        "story",
+        "started",
+        "name",
+        "location",
+        "map_id",
+        "position",
+        "facing",
+        "in_battle",
+        "party_ownership",
+        "party",
+        "game_stats",
+        "story_progress",
+        "route103_rival",
+        "trainer_opponent",
+        "battle",
+        "running",
+        "blackout_active",
+        "money",
+        "badges",
+        "play_time_s",
+    )
+    assert {key: states[0][key] for key in facts} == {key: states[1][key] for key in facts}
+    assert "map_visibility" not in states[0]
+    assert "map_visibility" in states[1]
+    assert states[0]["navigation_grid"] is not None
+    assert states[1]["navigation_grid"] is None

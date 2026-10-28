@@ -185,9 +185,9 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Split triggers frozen: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
 - [x] Tests: read-only import accepts display fields only, rejects foreign/truncated/replaced sources; no imported totals/checkpoints/grade status; old/new mode never write card persistence concurrently; rollback restores prior mode without source mutation.
 - [x] RED commits: f98eec224 normal database,629a40245 heartbeat,fe272f973 reader/writer,91c81d514 lifecycle,20df418e1 upgrade rollback,1acda0ada all-card progress,5bdaa0f4c initial-health visibility; observed failures retained.
-- [ ] Implement reviewed handoff/configuration and rollout runbook. Legacy cache is not rewritten or deleted by migration; its reader is transitional and has a documented retirement follow-up.
-- [ ] Adversarial deletion; offline rollout/rollback rehearsal; full gates, coverage, protected cards and required multi-model review.
-- [ ] COMMIT: `feat(viewer): add controlled snapshot rollout and card handoff` (GREEN; SHA pending).
+- [x] Implement reviewed handoff/configuration and rollout runbook. Legacy cache is not rewritten or deleted by migration; its reader is transitional and has a documented retirement follow-up.
+- [x] Adversarial deletion; offline rollout/rollback rehearsal; full gates, coverage, protected cards and independent reviews, with direct human waiver of the remaining R2 startup-default test gap.
+- [x] COMMIT: M5 source landed at `65164293c8448ebeeec55c835a787186509ed45a`; exact R2 production plus clean current-main sync, missing startup-default caller test explicitly waived by human.
 - [x] Activation authorization received directly: service/viewer activation allowed after readiness; final behavior normal/default with no public or bundle switch. Fresh run/owner checks still required.
 
 ## Closing the Loop
@@ -636,3 +636,7 @@ Quiet actualbaseline COMPLETE and resourcewindow RELEASED explicitly:600.086s/20
 Direct human closeout decision: “Land current code; waive this test gap.” This explicitly waives only R2's missing normal main()->viewer_stamp caller test/proof and its blocked-review readiness result for the current code. No proposed test/R3 implemented. Claude/Astra remain recordedBLOCKING on that waived gap, GPT/SolLGTM; Grok unavailable under separately verified standing human waiver. Source cc3adbde5 production is unchanged; later own checkpoint is worklog-only. Remaining postmerge test/operational checks retained, activation already directly authorized.
 
 Landing sync: main54bd9236f current-question-focus source/decision-probe lessons now included by clean merge,18upstreamfiles; none supersedes M5 App/current/SQLite/API/runtime/loop caller changes. Preserve exact R2 code, prior gates/native receipts and human waiver; combined postmerge test proves integration under standing coordinator no-main-hold/nonoverlap policy. No fresh full prelanding cycle or scope expansion. No service/8790/game/GPU action yet.
+
+M5 SOURCE LANDED65164293c8448ebeeec55c835a787186509ed45a via verified board1/FF-only. Direct user “Land current code; waive this test gap” fulfilled without applying proposal or startingR3. NormalGPT/Sol R2LGTM; Claude/AstraBLOCK on that explicitly waived evidence gap retained honestly; Grokusage-out/standinghumanwaiver retained. No claim allreviewersLGTM.
+
+Canonical postmerge justtest PASS175.195s (auto build prerequisite,onecoverage pass):5007agent/2318viewer/4913Python/116gateway/3protectedcards, all90floors. L/B/Fagent99.15/92.43/97.46,viewer98.32/90.80/94.92,Python97.50/93.60/99.90,gateway99.12/96.22/100. Auto CPU RELEASE sent. Evidence-only commit touches only this worklog; canonicalrootWORKLOGpointerbelongsanotherchat and content preserved. Land-done follows; operationalshadow/service/ONEviewerrefresh stillpending coordinatorSTART. No gameplay/runner/GPU changes.

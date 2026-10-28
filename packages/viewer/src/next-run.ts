@@ -383,3 +383,5 @@ export class HumanRestarts {
 }
 
 Object.assign(DEFAULT_NEXT_RUN.features, {"player-map-visibility-v1":false});
+
+Object.assign(DEFAULT_NEXT_RUN.features, {"instruction-memory-yaml-v1":false});

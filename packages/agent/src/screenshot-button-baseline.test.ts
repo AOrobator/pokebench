@@ -56,3 +56,13 @@ it("delivers only the screenshot through real observe/press factories while pres
   const off = gameTools("http://game", { beforePress: () => undefined, afterPress: () => Promise.resolve() }, fake, toolSwitches(plain()));
   expect((await off[0].execute("off", {})).content).toEqual([image, { type: "text", text: "RAM SECRET plus fading-screen note" }]);
 });
+
+it("rejects mixed baseline presets and preserves advanced-tool factories for their raw feature fixtures", () => {
+  const preset = JSON.parse(readFileSync(new URL("../../../experiments/presets/screenshot-button-baseline.json", import.meta.url), "utf8")) as { features: Record<string, boolean> };
+  preset.features["battle-move-tool-v1"] = true;
+  expect(() => parsePlayPreset(preset)).toThrow("screenshot-button-baseline-v1 requires every other behavior switch OFF");
+  const mixed = { ...enabled(), "battle-move-tool-v1": true, "tool-prompt-docs-v1": true };
+  expect(playSystemPrompt(mixed, null)).toContain("- battle_action: while a battle waits for your choice");
+  expect(toolSwitches(mixed)).not.toHaveProperty("screenshotOnly");
+  expect(playSystemPrompt(enabled(), null)).toBe(prompt);
+});

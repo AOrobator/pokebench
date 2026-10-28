@@ -49,13 +49,13 @@ describe("tool-prompt-docs-v1",()=>{
   })).toEqual([]);
  });
  it("documents choose_evolution from its own tool description, recommending neither option",()=>{
-  const on={...ALL_ON,"screenshot-button-baseline-v1":false,[ID]:true};
+  const on={...ALL_ON,[ID]:true};
   const prompt=playSystemPrompt(on,null);
   expect(prompt).toContain("- choose_evolution: when the readout shows an evolution waiting for choose_evolution, call it with decision evolve (the evolution completes) or cancel (it stops). Ordinary buttons are blocked until you choose. Neither option is recommended. Move-learning prompts afterward use their own controls. It refuses, and presses nothing, when no evolution is waiting.");
   expect(playSystemPrompt({...on,"evolution-decision-v1":false},null)).not.toContain("choose_evolution");
  });
  it("documents battle_action from its own tool description, in the scenes that keep it",()=>{
-  const on={...ALL_ON,"screenshot-button-baseline-v1":false,[ID]:true};
+  const on={...ALL_ON,[ID]:true};
   const line="- battle_action: while a battle waits for your choice, chooses fight with move (a move your active POKéMON knows), bag, pokemon or run in one call. The harness moves the battle menu's highlight and presses A, checking the cursor after each press, and refuses without pressing when no battle is waiting for a choice, the active POKéMON does not know the move or the move has no PP. bag and pokemon stop on the BAG or POKéMON screen; choose there with press. YES/NO choices are not handled; use press.";
   expect(playSystemPrompt(on,null)).toContain(line);
   expect(playSystemPrompt({...on,"just-in-time-prompt-v1":true},null,"battle")).toContain(line);
@@ -63,7 +63,7 @@ describe("tool-prompt-docs-v1",()=>{
   expect(playSystemPrompt({...on,"battle-move-tool-v1":false},null)).not.toContain("- battle_action:");
  });
  it("gives a tool kept in a just-in-time scene one line when its own section is not shown there",()=>{
-  const on={...ALL_ON,"screenshot-button-baseline-v1":false,[ID]:true,"just-in-time-prompt-v1":true};
+  const on={...ALL_ON,[ID]:true,"just-in-time-prompt-v1":true};
   const battle=playSystemPrompt(on,null,"battle");
   for(const line of [
    "- get_dialogue: searches every dialogue page the harness advanced through this run, by speaker, words, map or recency. It presses nothing.",

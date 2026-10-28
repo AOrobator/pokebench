@@ -28,7 +28,7 @@ function setup(on:boolean){
  const wired=contextTools({...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"script-line-presence-v1":true,[ID]:on},recorder,m=>Promise.resolve(m));
  const emit=(e:RunEvent)=>{for(const f of listeners)f(checkEvent(e));};
  const result=(a:Advance,seq=a.seq+2,id=a.tool_call_id):RunEvent=>({v:1,run:a.run,seq,turn:a.turn,t:a.t,type:"tool_result",id,name:a.tool,text:"result",is_error:false,state_seq:seq-1,duration_ms:0,frames:[]});
- const reply=(a:Advance,seq:number,stop:"toolUse"|"stop"|"error"):RunEvent=>({v:1,run:a.run,seq,turn:a.turn+1,t:a.t,type:"assistant",thinking:"",text:"",tool_calls:[],usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null,stop_reason:stop});
+ const reply=(a:Advance,seq:number,stop:"toolUse"|"stop"|"error"|"aborted"):RunEvent=>({v:1,run:a.run,seq,turn:a.turn+1,t:a.t,type:"assistant",thinking:"",text:"",tool_calls:[],usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null,stop_reason:stop});
  return {wired,notes,listeners,emit,result,reply};
 }
 
@@ -101,13 +101,24 @@ describe(ID,()=>{
   }
  });
 
- it("is resent after a failed model call, since the model never read it",async()=>{
+ it.each(["error","aborted"] as const)("is resent after a model call that ended %s, since the model never read it",async stop=>{
   const s=setup(true),theft=ev("theft-9e33");
   s.emit(theft);s.emit(s.result(theft));
   await s.wired.transformContext(messages);
-  s.emit(s.reply(theft,theft.seq+5,"error"));
+  s.emit(s.reply(theft,theft.seq+5,stop));
   expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
   expect(s.notes).toHaveLength(1);
+ });
+
+ it("a newer scene replaces an undelivered note",async()=>{
+  const s=setup(true),a=ev("theft-9e33"),b=ev("theft-d41e");
+  s.emit(a);s.emit(s.result(a));s.emit(b);s.emit(s.result(b));
+  const out=await s.wired.transformContext(messages),note=out.at(-1);
+  expect(out).toHaveLength(messages.length+1);
+  expect(note).toMatchObject({role:"user"});
+  const scene=sceneFollowup(b);
+  if(scene!==null)expect(note).toMatchObject({content:sceneFollowupNote(scene)});
+  expect(s.notes).toEqual([{text:scene===null?"":sceneFollowupNote(scene),evidence:[b.seq,b.seq+2]}]);
  });
 
  it("replayed history does not re-arm an old scene: any successful reply after it means the model had its turn",async()=>{

@@ -33,15 +33,16 @@ export function sceneFollowupNote(scene:Scene):string {
  return `SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: ${scene.texts.map(t=>`"${t}"`).join(" ")} The people in it were: ${scene.people.join("; ")} (where they stood during the scene). That was a story event, not background flavor. Before anything else, walk up to the nearest person who took part in it and talk to them (face them and press A). Only then return to older plans.`;
 }
 
-// Armed by the scene's own tool result, the note joins every request until the model has answered one that
-// carried it (a reply that did not fail), so other results in the same turn cannot drop it and it is read once.
+// Armed by the scene's own tool result, the note joins every request until the next model reply that did not
+// fail: live, that reply answers a request carrying the note; on replayed history it means the turn already passed.
+// Other results in the same turn cannot drop it, and the model reads it once.
 export function sceneFollowupContext(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,base:Transform):Transform {
  if(!features["scene-followup-prompt-v1"])return base;
  let pending:{id:string;seq:number;note:string}|null=null,due:{note:string;evidence:number[];sent:boolean}|null=null;
  recorder.subscribe(e=>{
   if(e.type==="dialogue_auto_advance"){const scene=sceneFollowup(e);pending=scene===null?null:{id:e.tool_call_id,seq:e.seq,note:sceneFollowupNote(scene)};}
   if(e.type==="tool_result"&&pending!==null&&e.id===pending.id){due={note:pending.note,evidence:[pending.seq,e.seq],sent:false};pending=null;}
-  if(e.type==="assistant"&&due?.sent===true&&e.stop_reason!=="error"&&e.stop_reason!=="aborted")due=null;
+  if(e.type==="assistant"&&e.stop_reason!=="error"&&e.stop_reason!=="aborted")due=null;
  },true);
  return async messages=>{
   const out=await base(messages);

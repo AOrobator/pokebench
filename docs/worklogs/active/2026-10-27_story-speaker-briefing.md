@@ -191,3 +191,13 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
   - Walk-through places in the extended catalog (ROUTE_106, ROUTE_110, GRANITE_CAVE, the *_GYM_ENTERED maps, and others) now retire a reached line. ROUTE_116 and RUSTURF_TUNNEL are not in the extended catalog, so they do not; that inconsistency predates this change.
   - Stone's line retires on arrival in DEWFORD TOWN, before the letter reaches Steven in Granite Cave.
 - Merged into claude/every-story-goal (d9b791b10) and into the new claude/jit-exit-dialogue (b26900cc1).
+- Full gate, 2026-10-28, at 858872f73 (coordinator CPU window; nobody on the landing board).
+  - `just test`: every test suite and coverage gate passed.
+    - agent vitest: 331 files, 4694 tests. Coverage: statements 96.51%, branches 92.69%, functions 97.48%, lines 99.19%.
+    - viewer vitest: 164 files, 2155 tests. Coverage: statements 95.24%, branches 91.16%, functions 95.12%, lines 98.27%.
+    - env pytest: 4463 passed. Gate: lines 97.48%, branches 93.61%, functions 100%.
+    - claude-gateway: 69 passed. Gate: lines 99.29%, branches 97.01%, functions 100%.
+  - The recipe exited 1 at its last step, trainer-card-check: 3 Playwright cards failed with "Approved font/art did not load".
+    - Cause: design-tests/serve.mjs reads card art from ../../runs/sprites/trainer-card-v1. That folder is ROM-derived and gitignored, so it exists only in the main checkout, not in this worktree.
+    - Rerun with POKEBENCH_CARD_ART=~/dev/pokebench/runs/sprites/trainer-card-v1 `just trainer-card-check`: guard OK, 3/3 Playwright cards pass.
+  - The branch is not synced with current main. Landing needs a sync and a rerun.

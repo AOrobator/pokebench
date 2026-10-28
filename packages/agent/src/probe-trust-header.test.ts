@@ -24,7 +24,8 @@ const ports=(places=true):ProbePorts=>({frame:()=>"",rerender:()=>Promise.resolv
 const STALE=`${TRUST_HEADER}\nStory goal: "something else" (MOM, turn 1) -> "LAB" = nowhere.`;
 
 const envelope=new Set(["v","run","seq","t","type","turn"]);
-const snapshot=(seq:number|undefined)=>{const event=EVENTS.find(e=>e.seq===seq);return event===undefined?undefined:Object.fromEntries(Object.entries(event).filter(([key])=>!envelope.has(key)));};
+// States by seq, built once per replayed stream.
+const statesOf=(events:readonly RunEvent[])=>new Map(events.flatMap(e=>e.type==="state"?[[e.seq,Object.fromEntries(Object.entries(e).filter(([key])=>!envelope.has(key)))] as const]:[]));
 const WALKS=new Set(["navigate_to"]);
 // What the production wrapper prints on every annotated result, fed the same recorded events in order: each result is
 // annotated before its tool_result event is recorded. navigate_to returns its Navigation text and the readout as separate
@@ -39,10 +40,11 @@ async function production(until:number,features:FeatureSet=FEATURES):Promise<Map
   return Promise.resolve({content:parts.map(text=>({type:"text" as const,text})),details:{state:current.state}});
  }}));
  const wrapped=withHarnessTrust(tools,true,{subscribe:fn=>{listeners.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve({places:PLACES})},{...trustOptions(features),supervisor:true});
+ const snapshots=statesOf(EVENTS);
  for(const e of EVENTS){
   if(e.seq>until)break;
   if(e.type==="tool_result"&&!e.is_error&&["observe","press","navigate_to"].includes(e.name)){
-   const state=snapshot(e.state_seq);
+   const state=e.state_seq===undefined?undefined:snapshots.get(e.state_seq);
    if(state!==undefined&&state["started"]===true){
     current={text:e.text,state,walk:WALKS.has(e.name)};
     const r=await wrapped.find(t=>t.name===e.name)?.execute(e.id,{});
@@ -124,15 +126,16 @@ describe("--trust-header re-derives harness-trust-v1's header from the recorded 
    const printed=await production(last.seq,features);
    expect([...printed.values()].join("\n")).toContain("SUPERVISOR: Your last two moves took you farther from");
    const recorded=await recordedWithHeaders(last.seq,features);
-   for(const seq of printed.keys()){
-    const alone=new Map<number,string>();
-    await rederiveTrustHeaders(recorded,alone,features,features,ports(),new Set([seq]));
-    expect(alone.get(seq)).toBe(printed.get(seq));
-   }
+   // The result that carries the note, kept alone: the note counts the presses collapsed out of the window.
+   const noted=[...printed.entries()].find(([,text])=>text.includes("SUPERVISOR: Your last two moves took you farther from"))?.[0];
+   if(noted===undefined)throw Error("no note");
+   const alone=new Map<number,string>();
+   await rederiveTrustHeaders(recorded,alone,features,features,ports(),new Set([noted]));
+   expect(alone.get(noted)).toBe(printed.get(noted));
   }finally{EVENTS.splice(0,EVENTS.length,...original);}
  });
  it("refuses an arm that changes a switch behind the header lines it keeps as recorded",async()=>{
-  for(const id of ["harness-trust-v2","semantic-navigation-v2","character-presence-v1","exit-reachability-v1","exit-labels-v3","untalked-people-header-v1"] as const)
+  for(const id of ["harness-trust-v2","semantic-navigation-v2","character-presence-v1","exit-reachability-v1","exit-labels-v3","untalked-people-header-v1","displayed-place-names-v1"] as const)
    await expect(rederiveTrustHeaders([],new Map(),{...FEATURES,[id]:!FEATURES[id]},FEATURES,ports(),new Set())).rejects.toThrow(`leave ${id} as recorded`);
  });
  it("refuses without harness-trust-v1 in both the run and the arm, without the map table, and on a header with no body",async()=>{

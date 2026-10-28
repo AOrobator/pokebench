@@ -65,6 +65,13 @@ Round 1, frozen d06b9f4db..b40e669d2 (sha256 87c27b9a…3b7d):
   - B2: other wrappers prepend parts on press and observe (requested-movement heads, gym progress, citations, semantic navigation and more), so the first-part rule can't be reconstructed from joined text. a702 T214/T331/T332 would gain a characters line production never printed. ACCEPTED by narrowing the scope: `--trust-header` re-derives only the Story goal line and the walk-away note, which are what story switches change, and keeps the other recorded header lines verbatim. It refuses an arm that flips harness-trust-v2, semantic-navigation-v2, character-presence-v1, exit-reachability-v1, exit-labels-v3 or untalked-people-header-v1. Tests cover a stale goal line replaced to equal production, a recorded-only line kept, and the refusals; restoring the old whole-header replacement turns 3 tests red.
   - Rehearsal: OFF re-derived equals recorded at a702 T215, T332, T333, T633, T664, T705 and T717.
 
+Round 2, frozen head 06ce8ac1b:
+- Fallback (sonnet): VERDICT: LGTM. Hardening note: no omit-goal ↔ recorded-no-goal test.
+- Codex gpt-5.6-sol: VERDICT: BLOCKING, two points, both ACCEPTED:
+  1. displayed-place-names-v1 also shapes the kept exits line, so it is added to the refusal list.
+  2. Test setup did repeated whole-stream scans, and the Python feature loop made two ROM reads. Fixed: states are indexed once per replay; the walk-away test replays once and checks the noted result kept alone (still red without the all-results fix); the displayed-names behavior is tested on `places()` directly, with one real `main()` adapter call.
+- Claude (opus): pending at the time of the fixes.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

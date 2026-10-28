@@ -297,19 +297,7 @@ def test_places_is_absent_unless_requested_and_checked_like_raw_ram():
         rerender.parse_places('{"places": {"path": "../x", "sha256": "s"}}')
 
 
-def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_path):
-    rom = tmp_path / "rom.gba"
-    rom.write_bytes(b"ROM")
-    loaded: list[tuple[Path, str]] = []
-    monkeypatch.setattr(rerender, "resolve_rom", lambda env: rom)
-    monkeypatch.setattr(
-        rerender,
-        "load_raw_ram",
-        lambda path, sha, rom: loaded.append((path, sha)) or (lambda a, n: b""),
-    )
-    monkeypatch.setattr(rerender.MapNames, "load", classmethod(lambda cls, maps_dir: MapNames({})))
-    seen: list[bool] = []
-
+def _fake_directory(seen: list[bool]) -> type:
     class Place:
         def json(self) -> dict[str, object]:
             return {"name": "DEWFORD TOWN"}
@@ -322,7 +310,39 @@ def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_pa
             seen.append(displayed)
             return (Place(),)
 
-    monkeypatch.setattr(rerender, "PlaceDirectory", Directory)
+    return Directory
+
+
+def test_places_honors_displayed_place_names(monkeypatch, tmp_path):
+    seen: list[bool] = []
+    monkeypatch.setattr(rerender, "PlaceDirectory", _fake_directory(seen))
+    ref = rerender.RawRef("raw-ram/9.json.gz", "z")
+    loaded: list[tuple[Path, str]] = []
+
+    def load(path: Path, sha: str):
+        loaded.append((path, sha))
+        return lambda a, n: b""
+
+    for off in ("", "displayed-place-names-v1"):
+        out = rerender.places(tmp_path, ref, load, MapNames({}), {"POKEBENCH_FEATURES_OFF": off})
+        assert out == [{"name": "DEWFORD TOWN"}]
+    assert seen == [True, False]
+    assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")] * 2
+
+
+def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_path):
+    rom = tmp_path / "rom.gba"
+    rom.write_bytes(b"ROM")
+    loaded: list[tuple[Path, str]] = []
+    monkeypatch.setattr(rerender, "resolve_rom", lambda env: rom)
+    monkeypatch.setattr(
+        rerender,
+        "load_raw_ram",
+        lambda path, sha, rom: loaded.append((path, sha)) or (lambda a, n: b""),
+    )
+    monkeypatch.setattr(rerender.MapNames, "load", classmethod(lambda cls, maps_dir: MapNames({})))
+    seen: list[bool] = []
+    monkeypatch.setattr(rerender, "PlaceDirectory", _fake_directory(seen))
     request = json.dumps(
         {
             "run_dir": str(tmp_path),
@@ -330,9 +350,8 @@ def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_pa
             "places": {"path": "raw-ram/9.json.gz", "sha256": "z"},
         }
     )
-    for off in ("", "displayed-place-names-v1"):
-        out = io.StringIO()
-        assert rerender.main({"POKEBENCH_FEATURES_OFF": off}, io.StringIO(request), out) == 0
-        assert json.loads(out.getvalue()) == {"readouts": [], "places": [{"name": "DEWFORD TOWN"}]}
-    assert seen == [True, False]
-    assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")] * 2
+    out = io.StringIO()
+    assert rerender.main({"POKEBENCH_FEATURES_OFF": ""}, io.StringIO(request), out) == 0
+    assert json.loads(out.getvalue()) == {"readouts": [], "places": [{"name": "DEWFORD TOWN"}]}
+    assert seen == [True]
+    assert loaded == [(tmp_path / "raw-ram/9.json.gz", "z")]

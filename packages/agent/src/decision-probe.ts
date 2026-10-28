@@ -254,7 +254,7 @@ export type Derivation = "recorded" | "replayed";
 // switches. The header's other lines (story characters, exits, people) come from parts of the result the recording joined,
 // so they are kept as recorded, and an arm that changes the switches behind them is refused.
 const TRUST_TOOLS = new Set(["observe", "press", "navigate_to"]);
-const KEPT_LINE_SWITCHES: readonly SwitchableFeature[] = ["harness-trust-v2", "semantic-navigation-v2", "character-presence-v1", "exit-reachability-v1", "exit-labels-v3", "untalked-people-header-v1"];
+const KEPT_LINE_SWITCHES: readonly SwitchableFeature[] = ["harness-trust-v2", "semantic-navigation-v2", "character-presence-v1", "exit-reachability-v1", "exit-labels-v3", "untalked-people-header-v1", "displayed-place-names-v1"];
 const GOAL_LINE = /^(Story goal: |Story line heard |Historical named place evidence: )/;
 const AWAY_NOTE = /^SUPERVISOR: /;
 // The recorded header with its goal line and walk-away note replaced: `fresh` is the re-derived header (goal line second).

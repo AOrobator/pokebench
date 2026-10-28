@@ -83,7 +83,7 @@ describe("self-named-speaker-v1 registry and factory",()=>{
  it("is registered after the earlier switches, default off, recorded only when on",()=>{
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("grass-strides-v1")+1);
   expect(featureInfo(ID).description).toContain(" Off: only the listed story characters (and DAD) speak story lines.");
-  const {[ID]:_,...omitted}={...ALL_ON};
+  const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

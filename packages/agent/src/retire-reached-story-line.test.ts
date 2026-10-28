@@ -38,11 +38,29 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
  });
 });
 
+describe("retire-reached-story-line-v1 production factory",()=>{
+ it("the trust header from playGameTools honors the switch",async()=>{
+  const {playGameTools}=await import("./play-wiring.js");
+  const {Type}=await import("typebox");
+  const run=async(on:boolean)=>{
+   const listeners:((e:import("./events.js").RunEvent)=>void)[]=[];
+   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"harness-trust-v1":true,"unfinished-activity-v1":true,[ID]:on} as typeof ALL_ON;
+   const observe={name:"observe",label:"Observe",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Location: ROUTE116"}],details:{state:route116}})};
+   const recorder={subscribe:(fn:(e:import("./events.js").RunEvent)=>void)=>{listeners.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+   const tools=playGameTools([observe],features,{read:()=>Promise.resolve(route116),places:()=>Promise.resolve({places:A702_PLACES})},recorder);
+   for(const e of a702Events(704))for(const fn of listeners)fn(e);
+   return JSON.stringify((await tools.find(t=>t.name==="observe")?.execute("later",{}))?.content);
+  };
+  expect(await run(false)).toContain("Story line heard (DAD, turn 312)");
+  expect(await run(true)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 578.");
+ });
+});
+
 describe("retire-reached-story-line-v1 registry",()=>{
  it("is registered after story-briefing-native-milestones-v1, default off, recorded only when on",()=>{
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("story-briefing-native-milestones-v1")+1);
   expect(featureInfo(ID).description).toContain(" Off: a reached line stays in the header as \"Story line heard … Reached: …\".");
-  const {[ID]:_,...omitted}={...ALL_ON};
+  const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

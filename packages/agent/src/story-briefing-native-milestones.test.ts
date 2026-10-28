@@ -54,7 +54,7 @@ describe("story-briefing-native-milestones-v1 registry",()=>{
  it("is registered after self-named-speaker-v1, default off, recorded only when on",()=>{
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("self-named-speaker-v1")+1);
   expect(featureInfo(ID).description).toContain(" Off: the briefings use only the base milestones and the readout's checklist, byte for byte as before.");
-  const {[ID]:_,...omitted}={...ALL_ON};
+  const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

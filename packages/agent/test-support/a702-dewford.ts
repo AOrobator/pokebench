@@ -6,21 +6,22 @@ import {gunzipSync} from "node:zlib";
 import {checkEvent,type RunEvent} from "../src/events.js";
 import {parseGameState,type GameStateSnapshot} from "../src/game-state.js";
 import type {FeatureSet} from "../src/features.js";
-import {normalizeFeatures} from "../src/play-preset.js";
+import {Value} from "typebox/value";
+import {FeatureSetSchema,normalizeFeatures} from "../src/play-preset.js";
 import type {PlacesBody} from "../src/story-destinations.js";
 
-interface Extract {
+interface A702Extract {
  readonly run:string;
  readonly dialogues:readonly unknown[];
  readonly results:readonly unknown[];
  readonly milestones:readonly unknown[];
  readonly arrivals:readonly (readonly [number,number,readonly [number,number],string|null])[];
  readonly states:Readonly<Record<"630"|"690",Record<string,unknown>>>;
- readonly features:Readonly<Record<string,boolean>>;
+ readonly features:unknown;
 }
 type StateEvent=Extract<RunEvent,{type:"state";started:boolean}>;
 
-const RAW=JSON.parse(gunzipSync(readFileSync(new URL("./a702-dewford.json.gz",import.meta.url))).toString("utf8")) as Extract;
+const RAW=JSON.parse(gunzipSync(readFileSync(new URL("./a702-dewford.json.gz",import.meta.url))).toString("utf8")) as A702Extract;
 export const A702_PLACES=(JSON.parse(readFileSync(new URL("./story-destinations-places.json",import.meta.url),"utf8")) as PlacesBody).places;
 
 const stateEvent=(turn:"630"|"690"):StateEvent=>{const e=checkEvent(RAW.states[turn]);if(e.type!=="state"||!("started" in e))throw Error("not a state");return e;};
@@ -44,4 +45,4 @@ export function a702Events(turn:number):RunEvent[] {
 }
 export const A702_RUN=RAW.run;
 // The feature set a702 recorded at run_start (harness 5940bc2fb); switches registered later are OFF.
-export const A702_FEATURES:FeatureSet=normalizeFeatures(RAW.features);
+export const A702_FEATURES:FeatureSet=normalizeFeatures(Value.Parse(FeatureSetSchema,RAW.features));

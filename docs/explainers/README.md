@@ -141,6 +141,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Safe planned navigation strides](safe-navigation-strides-v1.html)
 - [Grass strides](grass-strides-v1.html)
+- [Dewford readout fixes: self-named speakers, briefing native milestones, retired reached lines](dewford-readout-fixes.html)
 - [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.
 
 

@@ -41,21 +41,21 @@ No new inputs, I/O or subprocesses. The new code is a pure function over recorde
 ## Milestones
 
 **M1 — self-named-speaker-v1**
-- [ ] RED tests from a702 T621/T630 pages (Briney's line becomes the Story line; Stone's DEWFORD TOWN line supersedes it; OFF keeps Dad T312; negatives)
-- [ ] GREEN, registry, presets, wiring, factory test
-- [ ] Targeted tests
+- [x] RED tests from a702 T621/T630 pages (Briney's line becomes the Story line; Stone's DEWFORD TOWN line supersedes it; OFF keeps Dad T312; negatives)
+- [x] GREEN, registry, presets, wiring, factory test
+- [x] Targeted tests
 
 **M2 — story-briefing-native-milestones-v1**
-- [ ] RED tests from a702 milestones and T621/T630/T663 pages
-- [ ] GREEN, registry, presets, factory test
+- [x] RED tests from a702 milestones and T621/T630/T663 pages
+- [x] GREEN, registry, presets, factory test
 
 **M3 — retire-reached-story-line-v1**
-- [ ] RED tests (Dad T312, Rustboro reached T378, ROXANNE_DEFEATED T578; trainer wins do not retire)
-- [ ] GREEN, registry, presets, wiring
+- [x] RED tests (Dad T312, Rustboro reached T378, ROXANNE_DEFEATED T578; trainer wins do not retire)
+- [x] GREEN, registry, presets, wiring
 
 **M4 — evidence**
-- [ ] Offline replay of a702 through the production classes: before/after header and briefing text at T631, T690, T693, T704, T717
-- [ ] Explainer, probe plan (post-letter save, N=8 per arm)
+- [x] Offline replay of a702 through the production classes: before/after header and briefing text at T631, T690, T693, T704, T717
+- [x] Explainer (`docs/explainers/dewford-readout-fixes.html`, mapped from all three cards); [ ] probe plan (post-letter save, N=8 per arm)
 - [ ] Review lanes, landing per board
 
 ## Closing the Loop
@@ -64,10 +64,16 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 
 ## Session Log
 
+- 2026-10-28: Wiring mutations: removing `selfNamed` and `retireReached` from play-wiring each turns its factory test red (1 failed); restored, both pass. Retire suite is now 7 tests (26 across the three).
+- 2026-10-28: GREEN. Implementation in story-destinations.ts (selfName, storyStep, constructor flags, goal retirement), loop-supervisor.ts (extended steps, four story dialogues, done list), harness-trust.ts/play-wiring.ts (options), the registry, presets and next-run defaults (all OFF). Targeted gates: 3 new suites 23/23. Agent vitest over the touched-module suites: 328 files, 4643 tests passed. Viewer server/panels/next-run: 385 passed. Agent `tsc -p tsconfig.build.json` and `tsc --noEmit` are clean, and eslint on the touched files is clean. Viewer build is clean. `just pages-check` on the explainer prints nothing. The full `just test` and coverage did not run (CPU window; coordinator asked for targeted tests only).
+- 2026-10-28: Offline replay (`runs/analysis/a702-dewford-20261027/replay/replay.mjs`, read-only, worktree dist) of a702's recorded events to T720 through the production HarnessTrust and SupervisorBriefing. OFF reproduces the recorded T704 stall briefing in 15 of 16 lines; the 16th is the headline call counter, which the script passes. The ON header at T631–T717 is Stone's DEWFORD TOWN line, and Dad's reached line retires at T579. The ON briefings at T693 and T704 quote Briney's cottage page and Stone's DEWFORD request. Diff: `runs/analysis/a702-dewford-20261027/replay/prompt-diff.txt`.
 - 2026-10-28: RED: 23 tests across self-named-speaker, story-briefing-native-milestones and retire-reached-story-line, built from the a702 extract `test-support/a702-dewford.json.gz` (53 KB: field calls at T312/T578/T621/T630/T634/T663, 79 milestones, 157 arrivals, states at T630/T690, the run's feature set). Without the implementation, 16 fail and 7 pass (the pass-without-impl ones are the OFF/negative cases).
 - 2026-10-28: Verified the mechanism in code and in a702 events (dialogue_auto_advance speaker/speaker_source; milestone kinds; EXTENDED_PROGRESS_NAMES early return). Branch `claude/story-speaker-briefing` off main `948095751`.
 
 ## Surprises
+
+- stale-story-goal-v1's checklist rule retires any line that resolves only to PETALBURG WOODS once "Petalburg Woods Aqua event complete" is up. So Briney's T621 cottage line (which names PETALBURG WOODS) is retired the moment it would become the goal, and a702 shows no goal T622–629 with switch 1 on. That is a v1 place-based retirement limit, not changed here; follow-up candidate.
+- The a702 extract cannot reproduce the recorded T578 quote offline (it came from field messages the extract does not carry), so the unit test asserts "predates turn 621" and the full-stream replay carries the exact comparison.
 
 - The briefing's stale dialogue does not come from the done list. `EXTENDED_PROGRESS_NAMES` milestones are skipped entirely in `SupervisorBriefing.observe` (`campaign-progress-clock-v1` only moves `progress`).
 

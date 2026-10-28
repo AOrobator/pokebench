@@ -12,7 +12,9 @@ import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
+import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS,canonicalStoryCharacterName,storyCharacter} from "./script-line-presence.js";
+import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {semanticWalk} from "./semantic-targets.js";
 
 const closed={additionalProperties:false};
@@ -126,6 +128,19 @@ function namedIn(text:string):string[] {
  return out;
 }
 
+// self-named-speaker-v1: a page in which its speaker gives a name in capitals ("They call me MR. BRINEY.",
+// "I'm MR. STONE, the PRESIDENT of…"). Words in capitals only; the trailing full stop ends the sentence.
+const NAME_WORD="[A-Z][A-Z'é]*(?![a-z])\\.?";
+const SELF_NAMED=new RegExp(`(?:^|[\\s!?.…])(?:They call me|I'm|I am|My name is) (${NAME_WORD}(?: ${NAME_WORD})*)`);
+export function selfName(text:string):string|null {
+ const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]?.replace(/\.$/,"")??null;
+ return name!==null&&/[A-Z]{2}/.test(name)?name:null;
+}
+// retire-reached-story-line-v1: a story milestone the game recorded, other than a trainer win, a measurement-only step or an optional activity.
+function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
+ return event.kind==="story"&&event.origin!=="present_at_start"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&(!MEASUREMENT_ONLY_MILESTONES.has(event.name)||EXTENDED_PROGRESS_NAMES.has(event.name));
+}
+
 export class StoryDestinations {
  private readonly lines:StoryLine[]=[];
  private readonly pending=new Map<string,StoryLine[]>();
@@ -139,8 +154,11 @@ export class StoryDestinations {
  private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
  private readonly taskCompletion:TaskGoalCompletion|null;
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
+ // retire-reached-story-line-v1: the story milestones the game recorded, in order.
+ private readonly steps:{readonly turn:number;readonly name:string}[]=[];
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
+  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,name:event.name});return;}
   if(event.type==="state"&&"started" in event){
    this.taskCompletion?.observe(event);
    const map=event.map_id;
@@ -190,9 +208,16 @@ export class StoryDestinations {
   const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
   const gymBoy=(page:Page)=>(page.speaker===null&&page.speaker_source===null)||(page.speaker==="BOY_2"&&page.speaker_source==="faced_sprite");
   const forcedGym=this.scriptedGuidance&&pages.some(page=>gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>gymBoy(page)&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
+  // self-named-speaker-v1: sprite kinds and printed names this conversation has heard introduce themselves.
+  const sprites=new Map<string,string>(),named=new Set<string>();
   for(const page of pages){
    if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
-   const speaker=this.speaker(page);
+   if(this.selfNamed&&page.speaker!==null){
+    const name=selfName(page.text);
+    if(name!==null){named.add(name);if(page.speaker_source==="faced_sprite")sprites.set(page.speaker,name);}
+   }
+   const own=this.speaker(page);
+   const speaker=own!==null||!this.selfNamed||page.speaker===null?own:page.speaker_source==="faced_sprite"?sprites.get(page.speaker)??null:page.speaker_source==="name_prefix"&&named.has(page.speaker)?page.speaker:null;
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
    if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
@@ -245,6 +270,11 @@ export class StoryDestinations {
   const doneReason=stageBound?stageRetirement(line,resolved,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
   if(doneReason!==null)return {line,resolved,done:true,doneReason};
   const reached=this.activity?this.reached(line,resolved,here):null;
+  if(reached!==null&&this.retireReached){
+   const last=Math.max(line.turn,...reached.map(r=>r.turn));
+   const step=this.steps.find(s=>s.turn>last);
+   if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
+  }
   return reached===null?{line,resolved}:{line,resolved,reached};
  }
  // Each place reached: the map the player is in now (since its latest arrival), or the first arrival after the line.
@@ -424,7 +454,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

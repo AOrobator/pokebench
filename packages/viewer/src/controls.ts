@@ -140,6 +140,7 @@ function bar(label: string, fraction: number, value: string, of: string): string
 
 export function sideStats(view:RunView,nowMs:number,current?:{complete:boolean;contextKnown:boolean;timeKnown?:boolean}):string {
   const start = view.start;
+  const absent = current?.complete === false && start === null;
   const turns = view.effectiveTurnLimit ?? undefined;
   const wall = view.control.maxWallMs ?? start?.budgets.max_wall_ms;
   const seconds = runSeconds(view, nowMs);
@@ -149,9 +150,9 @@ export function sideStats(view:RunView,nowMs:number,current?:{complete:boolean;c
   const context = readout?.tokens ?? 0;
   const window = start?.model.context_window ?? 0;
   return [
-    bar("TURN",current?.complete===false||turns===undefined?0:view.turn/turns,String(view.turn),current?.complete===false?"limit loading":turns===undefined?"":`of ${String(turns)}`),
+    bar("TURN",current?.complete===false||turns===undefined?0:view.turn/turns,absent?"—":String(view.turn),current?.complete===false?"limit loading":turns===undefined?"":`of ${String(turns)}`),
     bar("TIME",current?.timeKnown===false||current?.complete===false||wall===undefined?0:(seconds*1000)/wall,current?.timeKnown===false||current?.complete===false?"—":hms(seconds),current?.timeKnown===false||current?.complete===false?"unavailable":wall===undefined?"":`of ${hms(wall/1000)}`),
-    `<div class="stat">FAILURES<b>${current?.complete===false&&view.retry===null?"—":String(failures)}</b>of ${String(limit)}</div>`,
+    `<div class="stat">FAILURES<b>${current?.complete===false&&view.retry===null?"—":String(failures)}</b>${absent?"limit loading":`of ${String(limit)}`}</div>`,
     bar("CONTEXT",window===0?0:context/window,current?.contextKnown===false?"—":`${readout?.measured===false?"~":""}${num(Math.round(context/1000))}k`,window===0?"":`of ${num(Math.round(window/1000))}k`),
     ...(view.control.maxTurns===null && view.operatorTurnLimit===null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${String(start?.budgets.max_turns ?? "unknown")} turns</p>`]),
     ...(view.control.maxWallMs === null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${hms((start?.budgets.max_wall_ms ?? 0) / 1000)}</p>`]),

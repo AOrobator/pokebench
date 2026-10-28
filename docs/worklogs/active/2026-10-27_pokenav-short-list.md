@@ -36,7 +36,12 @@ Run a702 (Qwen3.6 bundle, harness 5940bc2fb) spent turns 641–661 on the Match 
     - the six START-menu refusals with correct-looking arguments (ML engineer: 9e33 t5259/5264/5295, 6bbd t270/271)
     - a model-behavior probe on the fixed t642 readout (needs the operator and GPU time)
     - per-turn compaction (a model-side switch)
-- [ ] Review round 2 on the fix batch
+- [x] Review round 2 on head 5dae792c0:
+  - Claude: LGTM. Fallback: LGTM.
+  - Codex: BLOCKING on one point only, the viewer test's setup cost (repeated preset builds and a duplicate validation).
+  - Per the cap rule, I asked the operator after two rounds. The coordinator relayed option 1: fix the test cost, then a Codex-only round 3 on that delta.
+- [x] Round 2 fix: `pokenav-correctness-bundle.test.ts` builds each (phase, arm) preset once and reuses it for both ids and the server check. It drops the duplicate `definitionProblems`, since `parseFixedDefinition` already throws on problems.
+- [ ] Review round 3 (Codex, test-only delta)
 - [ ] Full gates (`just test`, `just lint`) once the heavy-CPU window is granted
 - [ ] Land ff-only via the landing board; evidence commit; `just land-done`
 - [ ] Explainer pages (deferred follow-up)

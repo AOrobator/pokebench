@@ -31,7 +31,7 @@ it("selects an ended catalog run when the recent current index is empty and pres
   urls.push(url);return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[]}):url==="/api/runs"?Promise.resolve([{id:RUN,model:"fixture",started:f.snapshot.header.t,ended:true,problem:null}]):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));
  },sendJson:writes,openStream:()=>{const stream=new ReplayStream();streams.push(stream);return stream;},now:()=>BASE_MS+4000,hash:""});apps.push(app);
  await app.refreshRuns();for(let i=0;i<8;i++)await Promise.resolve();
- expect(urls).toContain(`/api/runs/${RUN}/current`);expect(streams).toHaveLength(1);
+ expect(urls).toContain(`/api/runs/${RUN}/current`);expect(streams).toHaveLength(1);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(false);
  expect(document.querySelector('[data-ui="stats"]')?.textContent).toContain("—");
  expect(document.querySelector('[data-ui="counters"]')?.textContent).toContain("Lifetime totals are still loading");
  streams[0]?.send("head",f.log.events);expect(app.mode).toBe("replay");
@@ -49,4 +49,15 @@ it("retains source-guarded display splits without seeding current counters or el
  dom();const f=currentFixture(),saved={...f.summary.run,excluded:"display-only",splits:[{name:"PLAYER_NAME_CONFIRMED",elapsedMs:1,segmentMs:1,seq:3,turn:1,inputTokens:999999,outputTokens:999999}]};
  const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>url==="/sprites/manifest.json"?Promise.resolve(null):defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[saved]}):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);await app.pollCards();
  expect(document.querySelector('[data-ui="split-preview"]')?.textContent).toContain("NAME ✔");expect(app.view.tokens.input).toBe(500);expect(app.view.milestones).toEqual([]);expect(app.view.events).toEqual([]);
+});
+it("keeps nonselected active card progress source-bound across a generation reset",async()=>{
+ dom();const f=currentFixture(),other=currentFixture({run:RUN+"-other"}),reset=currentFixture({run:RUN+"-other",generation:"reset",revision:8,headerOnly:true,complete:false});let changed=false;
+ const split={name:"PLAYER_NAME_CONFIRMED",elapsedMs:1,segmentMs:1,seq:3,turn:1,inputTokens:500,outputTokens:100};
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{
+  if(url==="/sprites/manifest.json")return Promise.resolve({version:1,tiers:["green","bronze","copper","silver","gold"],trainers:["may"],icons:[280,412],egg:412});
+  if(url.startsWith("/sprites/"))return Promise.reject(new Error("Optional fixture art"));
+  return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[f.summary,other.summary]}):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...f.summary.run,splits:[split]},{...other.summary.run,splits:[split]}]}):url.includes("current-updates")?Promise.resolve({kind:"updates",version:1,epoch:"epoch",cursor:"next",reset:false,more:false,changes:changed?[{id:other.snapshot.id,removed:false,summary:reset.summary}]:[]} satisfies CurrentAnswer):new Promise(()=>{}));
+ },sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);await app.pollCards();
+ const card=()=>document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent;
+ expect(card()).toContain("1/45");changed=true;await app.pollCurrent();expect(card()).not.toContain("1/45");expect(app.view.tokens.input).toBe(500);
 });

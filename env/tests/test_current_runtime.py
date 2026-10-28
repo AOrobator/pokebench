@@ -194,3 +194,15 @@ def test_first_failed_install_and_unloaded_stop_preserve_owned_files(tmp_path):
     stop(config, target, 42, run)
     assert not target.exists()
     assert all("bootout" not in call for call in calls)
+
+
+def test_prepare_refuses_a_different_commit_even_when_clean(tmp_path):
+    tree = tmp_path / ("a" * 40)
+    tree.mkdir()
+
+    def run(args, **kwargs):
+        output = "a" * 40 if args[-1] == "main" else "b" * 40 if args[-1] == "HEAD" else ""
+        return CompletedProcess(args, 0, output, "")
+
+    with pytest.raises(RuntimeError, match="clean and at its named commit"):
+        prepare(tmp_path, tmp_path, run=run)

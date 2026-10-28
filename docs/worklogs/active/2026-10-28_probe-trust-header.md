@@ -97,6 +97,17 @@ The plan A GPU window (10:12:02 to 10:14:21 PM) produced no samples: llama.cpp r
   Each final request carries the outer transforms' one extra message, which a702's model also received. With the switches ON, the context differs only in the re-derived header messages.
 - Tests: probe-recorded-trim.test.ts has 6 tests: cut, no-trim, refusal with delta, flag, report, and decisionContext integration. Removing the measuring innermost step turns the integration test red. Probe suites: 11 files, 143 passed. tsc and eslint clean.
 
+Round 4 (M2), frozen head 5aadfe1c8 (cumulative 561a4135…e522; delta 75db6230…9ae4): Codex gpt-5.6-sol, Claude (opus) and fallback (sonnet) all VERDICT: LGTM. They confirmed:
+- the measuring step sits where live.ts puts recorder.transformContext;
+- the cuts match ContextBudget.fit when rest[0] is an assistant message;
+- per-candidate transform calls don't change the final request;
+- the flag-off path is unchanged.
+DEFERRED hardening:
+- the flipped arm could hit the hard failure if a switch changes message counts; the error does not name the arm;
+- fidelity is true by construction on messages and images, with tokens printed but not compared;
+- no idempotence or real-cut unit test with stateful transforms;
+- `starts` could mirror fit exactly when rest[0] is not an assistant message.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

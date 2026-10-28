@@ -2,9 +2,10 @@
 // the game has already shown in this run. The Story characters line stays (it stops the model placing characters that
 // are not on the map), but its "Not on this map" list keeps only names the game has shown; the heal warnings keep
 // their advice and use role words (your rival, the Gym Leader, a trainer, a researcher) until the game shows a name.
-// Run 2026-10-21T13-33-36_qwen36-gpu1_d548 (seq 10001) was told "a TEAM AQUA grunt. He stops you on the forest path when
-// you reach the DEVON researcher" and "Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN"
-// before the game had shown any of those names.
+// Run 2026-10-21T13-33-36_qwen36-gpu1_d548 (seq 10001, turn 306) was told "a TEAM AQUA grunt. He stops you on the forest
+// path when you reach the DEVON researcher" before any delivered page had shown TEAM AQUA or DEVON, and "Not on this map:
+// PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN", three of which (BRENDAN, NORMAN, STEVEN) it had not
+// been shown; MOM, PROF. BIRCH, MAY, WALLY and ROXANNE had been, by turns 56 to 257.
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
@@ -21,6 +22,8 @@ import {TRAINER_HEAL_SECTION,playSystemPrompt} from "./play-config.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
 import {StoryCharacterGate} from "./stall-gate.js";
+import {charactersLine} from "./harness-trust.js";
+import {GymProgress} from "./gym-readiness.js";
 import {ShownStoryNames,shownCast} from "./story-foreknowledge.js";
 
 const ID="no-story-foreknowledge-v1" as const;
@@ -120,6 +123,12 @@ describe("character presence: the Not on this map list",()=>{
  it("every reader of the line still parses the rewritten line the same way (review B1 of the min branch)",()=>{
   expect(storyCharacters(shownCast(PYTHON,NONE))).toEqual(storyCharacters(PYTHON));
   expect(storyCharacters(shownCast(LEDGER,NONE))).toEqual(storyCharacters(LEDGER));
+  // harness-trust-v1's copy and gym-readiness' leader evidence read only the "here" list too.
+  expect(charactersLine(shownCast(PYTHON,NONE))).toBe(charactersLine(PYTHON));
+  const gym="Story characters here (from this map's own object list): ROXANNE at 5,2. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.";
+  const known=(text:string)=>{const g=new GymProgress();g.observe(checkEvent({v:1,run:"r",seq:1,t:"2026-10-27T20:00:00.000-04:00",type:"tool_result",turn:1,id:"c1",name:"observe",is_error:false,duration_ms:1,text:`Location: RUSTBORO CITY GYM\n${text}`,frames:[]}));return g.block({...IN_GAME,story:{...(IN_GAME.story as NonNullable<GameStateSnapshot["story"]>),rustboro_gym_complete:false,roxanne_defeated:false}});};
+  expect(known(gym)).toContain("ROXANNE not defeated");
+  expect(known(shownCast(gym,NONE))).toBe(known(gym));
  });
 });
 
@@ -220,6 +229,19 @@ describe("registry and factory",()=>{
    expect(gate.holds()).toEqual({reason:"untalked",character:"MAY",map_id:[0,18]});
    expect(gate.untalked()).toEqual(["MAY at 10,3"]);
   }
+ });
+ // coherent-healing-feedback-v1 (on in the current recipe's bundle arm) names the story opponent in its own clause.
+ it("coherent healing keeps \"trainer battle\" and swaps only the name (54a7 T363)",async()=>{
+  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
+  const state=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
+  const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
+  const texts:string[]=[];
+  const recorder={lowHpTrainerWarning:()=>undefined,storyBattleWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
+  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true,"low-hp-trainer-warning-v2":true,"coherent-healing-feedback-v1":true,"heal-before-trainers-v1":false,"gym-heal-warning-v1":false};
+  const names=new ShownStoryNames();
+  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
+  expect(texts[1]).toContain(" MAY's trainer battle cannot be run from. ");
+  expect(texts[0]).toBe(texts[1]?.replace(" MAY's trainer battle"," Your rival's trainer battle"));
  });
  // Run 2026-10-16T04-51-03_qwen36-gpu0_54a7 T363: TORCHIC at 3/21 HP with MAY at (10,3) on Route 103.
  it("the warnings in the production chain use role words until the game shows the name (54a7 T363)",async()=>{

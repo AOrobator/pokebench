@@ -714,7 +714,7 @@ function withCoherentHealing(tools:readonly AgentTool[],features:FeatureSet,reco
   const key=JSON.stringify([state.map_id,weak,state.party.map(p=>[p.species,p.hp,p.max_hp]),story?.opponent,rival?.rival,trainers?.trainers.map(t=>t.local_id),gym?.gym.map_id,heal]);
   if(previous===key)return result;
   const risk=weakList(weak);
-  const context=story===null?NO_RUNNING:opponentShown(story.kind,story.opponent,known(args[0]))?`${story.opponent}'s trainer battle cannot be run from.`:`${capital(roleWord(story.kind))}'s battle cannot be run from.`;
+  const context=story===null?NO_RUNNING:opponentShown(story.kind,story.opponent,known(args[0]))?`${story.opponent}'s trainer battle cannot be run from.`:story.kind==="aqua_grunt"?"The trainer's battle cannot be run from.":`${capital(roleWord(story.kind))}'s trainer battle cannot be run from.`;
   const where=heal===null?"":` ${healPlaceSentence(heal,state.map_id,arm.heal?.listedNow(heal)??false)}`;
   const items=bagHealingItems(state,weak);
   const bag=items.length===0?"":bagSentence(items);

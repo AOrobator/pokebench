@@ -26,7 +26,8 @@ Switch `no-story-foreknowledge-v1`, observation group, default OFF, OFF byte-ide
 - Heal warnings keep every sentence of advice (HP facts, blackout cost, heal sites, bag items, "cannot be run from"):
   low-hp-trainer-warning v1/v2, coherent-healing-feedback-v1's opponent clause, heal-before-trainers-v2 STORY_ROLE and
   story-battle-heal-first-v1 put a role word in place of a name the game has not shown: MAY/BRENDAN -> "your rival",
-  ROXANNE -> "the Gym Leader", TEAM AQUA grunt -> "a trainer", DEVON researcher -> "a researcher".
+  ROXANNE -> "the Gym Leader", TEAM AQUA grunt -> "a trainer" (and "the trainer" where a sentence refers back to it,
+  as heal-first's and coherent healing's possessive), DEVON researcher -> "a researcher".
 - play-config TRAINER_HEAL_SECTION is untouched, rival sentence included.
 
 Out of scope (narrow): names in the "here" list of present characters, sprite kinds (`sprite ROXANNE`), the
@@ -53,3 +54,23 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 - Synced main 896088908 (type-gap-team, supplies, untalked-in-gym): conflicts only at append points; re-applied this switch after untalked-in-gym-v1.
 - Merged tip: main's type-gap-registry.test.ts pinned its three switches as the last three (slice(-3)); re-pinned them by position after context-exact-count-v1 (feature-switch skill: registry tests pin absolute positions, so a new switch edits no other switch's test).
 - Synced main 948095751 (grass-strides-v1; main's own fix to the type-gap registry test supersedes db59af397's, taken as theirs): this switch re-applied after grass-strides-v1.
+
+### Review pass (one pass), packet 948095751..3686d60fa, diff SHA-256 in runs/reviews/2026-10-27-nsf-narrow/packet.sha256
+
+Lanes: Claude CLI (~/.claude-review, plan mode) `VERDICT: LGTM`; Codex CLI gpt-5.6-sol xhigh `VERDICT: BLOCKING`; fresh
+Codex CLI gpt-5.6-sol xhigh (Grok stand-in; Cursor out of usage) `VERDICT: BLOCKING`. Personas (Claude subagents, one
+shared packet): eval integrity, ML engineer, data scientist "holds with changes"; harness engineer pending at this commit.
+
+- REAL, fixed: the motivating sentence (features.ts, explainer, test header) said d548 had been shown none of the names
+  by seq 10001. By the switch's own rule it had been shown MOM t56, PROF. BIRCH t66, MAY t81, WALLY t255, ROXANNE t257;
+  ON would have dropped TEAM AQUA, DEVON, BRENDAN, NORMAN, STEVEN. Wording corrected to that (Grok stand-in B1, eval integrity).
+- REAL, fixed: coherent-healing-feedback-v1 ON dropped the word "trainer" ("Your rival's battle"). Now only the name is
+  swapped ("Your rival's trainer battle", "The Gym Leader's trainer battle"); the Aqua grunt keeps heal-first's wording
+  ("The trainer's battle") to avoid "trainer's trainer battle". New test on 54a7 T363 with coherent healing on (GPT B1).
+- Hardening added: direct ON tests for harness-trust charactersLine and GymProgress (Grok stand-in follow-up).
+- Gates on the frozen head (GPT B2, Grok stand-in B2): correct, not yet run there; they run on the fix head when the
+  coordinator grants the CPU window, before landing.
+- Rebutted / out of scope, for the operator: names only count from dialogue pages, so NORMAN (said as DAD; sign text
+  "LEADER: NORMAN" is a readout line) stays hidden for the whole run; checkpoint starts begin with an empty shown set;
+  the "here" list and sprite kinds still name characters; ON changes the model's text on most overworld turns, so the
+  landing pin is an incumbent change and before/after records are descriptive only.

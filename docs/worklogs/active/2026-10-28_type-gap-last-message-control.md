@@ -19,7 +19,7 @@ Evidence (runs/probes/type-gap-team-20261027, held-out probe A, four runs × 16 
 
 ## Fixed definitions whose hash changes (re-approval needed)
 
-They use `featureRecipe: "current"`; no other definition under experiments/fixed/ uses a recipe. Against main 56a54f7ab:
+They use `featureRecipe: "current"`; no other definition under experiments/fixed/ uses a recipe. Against main 56a54f7ab, unchanged after the rebase onto 06dbd752e:
 
 - `bundle-v-control-2h`: `e19bbcdf14a6fa1052d29245b93c70f831e97515973ba28cc861b4a6276a35c5` → `e3f40bfe71980aa1945a74d0a7801e7b9f5601c7ad1fe3ccbcdf32f4689bb3b5`
 - `bundle-v-control`: `e4db35e34b27bea941945f87220a7c7be1551647b3cbc19599f89e909feb1106` → `94597352f90f20100d656d4968ea969f3180ddf91870e982d74e83b1a1b70ac4`
@@ -33,6 +33,9 @@ Live runs run from their pinned checkouts and are not touched.
 (pending the coordinator's CPU window: `just test`, `just lint`)
 
 ## Reviews
+
+- Round 1 (base 56a54f7ab, head 7d116ea66, diff eada0047…afc9): Claude LGTM (hardening note: the features.ts descriptions of both type-gap switches still say "Bundle arm only", left as in the type-gap-team-v1 promotion), Sonnet fallback LGTM (recomputed the four hashes).
+- Rebased onto main 06dbd752e (test: switch registration as unordered membership, which also edits type-gap-last-message.test.ts outside this hunk): clean, change unchanged in substance, targeted test 13/13. Diff digest changed, so round 2 reruns Claude and Sonnet.
 
 - [ ] Claude
 - [ ] Sonnet fallback

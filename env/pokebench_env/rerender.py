@@ -41,6 +41,7 @@ from pokebench_env.screen_center import SWITCH as SCREEN_CENTER
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.training_readout import SWITCH as EXP_NEXT
+from pokebench_env.type_gap import SWITCH as TYPE_GAP
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 PORYMAP_MAPS = (
@@ -121,6 +122,7 @@ def read_state(
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
+        type_gap_enabled=TYPE_GAP not in off,
         map_wide_triggers_enabled="map-wide-triggers-v1" not in off
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,

@@ -32,3 +32,9 @@ At 248ce5d53 (CPU window 9:29 PM NY): `just test` exit 0 (agent 4643, viewer 210
 - At the land turn main had moved to d641b8dc9 (no-story-foreknowledge-v1 pin, which also edits current.json); slot released. Rebased: one conflict at the end of `onInBoth`, resolved keeping main's no-story-foreknowledge-v1 and adding type-gap-team-v1 after it. The change is still only type-gap-team-v1 moving to onInBoth (base true); needs new gates and a review round at the new head.
 - Round 4 (base d641b8dc9, head 2c709683c): Claude LGTM, fallback LGTM, GPT LGTM (round4b, with exact-head gates: `just test` exit 0, agent 4663, viewer 2154, Python 4463 + 69, trainer cards 3/3; `just lint` exit 0).
 - Main then moved to 713bfa541 (gateway-current-turn-v1 pin, which also appends to `onInBoth` and `features` in current.json). Rebased: the same one-line conflict at the end of `onInBoth`, resolved keeping gateway-current-turn-v1 and adding type-gap-team-v1 after it. Change unchanged in substance; needs gates and a review round at the new head.
+- Round 5 (base 713bfa541, head f4b2257ea, packet 9fc93071e8a1575ba6bcf35906d7acbb4f01ca74bf7db781530bb7a6776e0819): Sonnet fallback LGTM; Claude BLOCKING only on missing exact-head gate receipts, then LGTM after them; GPT LGTM. Gates at f4b2257ea (CPU window 11:18 PM NY): `just test` exit 0 (agent 4685, viewer 2157, Python 4466 + 89, coverage floors, trainer cards 3/3), `just lint` exit 0. The gate summary above for 248ce5d53 is superseded by these.
+
+## Landing
+
+- LANDED 11:23 PM NY: `git merge --ff-only claude/type-gap-control` moved main from 713bfa541 to f4b2257ea92bb464ef0420bc074401544c3fa049, the reviewed head. Post-landing `just test` on main exit 0 in the same CPU window.
+- Re-approval needed for the four definitions above, at the hashes listed.

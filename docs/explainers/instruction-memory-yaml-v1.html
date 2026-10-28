@@ -6,7 +6,7 @@ main li,main p{overflow-wrap:anywhere}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:60vh;overflow-y:auto}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pair>div{min-width:0}
 @media (max-width:760px){.pair{grid-template-columns:1fr}}
-</style><style id="pb-emerald">
+</style><style>.pair>div{min-width:0}.pair pre{white-space:pre;overflow:auto;max-height:30rem;word-break:normal}main code{overflow-wrap:anywhere}</style><style>main{font-family:system-ui,Arial,sans-serif;line-height:1.55}.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}.kpi{padding:14px;font-family:inherit;line-height:1.4}.pair pre{font-size:13px;line-height:1.5;padding:14px}.pair>div:first-child pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}@media(max-width:750px){.kpis{grid-template-columns:1fr}}</style><style id="pb-emerald">
 /* PokeBench Emerald page theme: the viewer's PokéNav look for reports and explainers.
    Layered after a page's own CSS. Pixel font for headings and labels, system fonts for prose.
    Frame colours: graphics/text_window/1.png (text window frame 1). Screen, ring and bar colours: the viewer's PokéNav. */
@@ -95,75 +95,51 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </style>
 </head><body><main>
 <h1>Instruction memory YAML</h1>
-<p><code>instruction-memory-yaml-v1</code> sends the selected OBSERVED INSTRUCTION MEMORY block as YAML instead of a JSON payload. The episodes, pages, game text and current progress do not change; only the layout does. Default off. The operator, 2026-10-28: “can we make the instructions delivered yaml? its so hard to read”.</p>
-<div class="kpis">
-<div class="kpi"><strong>6,088 → 6,687 tokens</strong><br><span>a702 turn 1301, same 31 capped episodes, JSON → YAML</span></div>
-<div class="kpi"><strong>56 of 56 blocks</strong><br><span>recorded a702 and 88ea blocks whose YAML parses back to identical text</span></div>
-<div class="kpi"><strong>19,000 chars</strong><br><span>the cap on the YAML form, the same ~6,100-token budget as 16,000 JSON chars</span></div>
-</div>
-<h2>The same two episodes, both forms</h2>
-<div class="pair"><div><h3>Off: JSON</h3><pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.
-81 earlier episodes are left out and remain in the run recording.
-{&quot;columns&quot;:[&quot;speaker&quot;,&quot;speaker_source&quot;,&quot;text&quot;,&quot;map&quot;,&quot;map_id&quot;,&quot;state_event&quot;],&quot;episodes&quot;:[{&quot;result&quot;:11388,&quot;dialogue&quot;:[11385],&quot;turn&quot;:309,&quot;pages&quot;:[[&quot;GENTLEMAN&quot;,&quot;faced_sprite&quot;,&quot;Let&#x27;s say you have six POKéMON.\nIf you catch another one…&quot;,&quot;PETALBURG CITY&quot;,[0,0],11373],[&quot;GENTLEMAN&quot;,&quot;faced_sprite&quot;,&quot;It is automatically sent to a STORAGE\nBOX over a PC connection.&quot;,&quot;PETALBURG CITY&quot;,[0,0],11379]]},{&quot;result&quot;:13389,&quot;dialogue&quot;:[13387],&quot;turn&quot;:333,&quot;pages&quot;:[[&quot;BOY_1&quot;,&quot;faced_sprite&quot;,&quot;If you&#x27;re going to throw a POKé BALL,\nweaken the wild POKéMON first.&quot;,&quot;ROUTE104&quot;,[0,19],13375],[&quot;BOY_1&quot;,&quot;faced_sprite&quot;,&quot;It will be easier to catch if it&#x27;s been\npoisoned, burned, or lulled to sleep.&quot;,&quot;ROUTE104&quot;,[0,19],13381]]}],&quot;current&quot;:{&quot;result_event&quot;:68106,&quot;state_event&quot;:68105,&quot;location&quot;:&quot;ROUTE 104 (map 0/19) — northwest terrain section [10,0]&quot;,&quot;story&quot;:&quot;player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Norman first meeting complete; Route 103 rival battle won; Pokédex received; starter tutorial complete; running shoes received; Wally tutorial complete; Petalburg Woods Aqua event complete; Rustboro Gym complete; Stone Badge received; Rock Tomb received; petalburg woods lyle defeated; petalburg woods james defeated; petalburg woods aqua grunt defeated; route116 jose defeated; route116 clark defeated; route116 karen defeated; route116 devan defeated; route116 johnson defeated; roxanne defeated; route102 calvin defeated; route102 rick defeated; route102 tiana defeated; route102 allen defeated; route104 haley defeated; route104 winston defeated; route104 cindy defeated&quot;}}</pre></div><div><h3>On: YAML</h3><pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; each page gives its speaker, map, state event and exact text. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.
-81 earlier episodes are left out and remain in the run recording.
-In each episode a page&#x27;s speaker, speaker_source, map and map_id are written only when they differ from the page before; otherwise they carry over.
-episodes:
-  - turn: 309
-    delivered_result: 11388
-    dialogue_events: [11385]
+<p>The selected instruction-memory payload becomes readable YAML. Whole game dialogue, source names, map references and progress stay intact. The current recipe enables <code>instruction-memory-yaml-v1</code> in the bundle; control stays OFF. Older presets default OFF, and active runs keep their recorded settings.</p>
+<div class="kpis"><div class="kpi"><strong>19,000 code points</strong><br>YAML delivery bound when the memory cap is ON</div><div class="kpi"><strong>80 / 80 identical</strong><br>JSON-OFF comparisons against the frozen main renderer</div><div class="kpi"><strong>13 round trips</strong><br>10 native blocks and 3 edge vectors preserve every field and text</div></div>
+<section class="card"><h2>Format follows selection</h2>
+<div class="diagram" style="overflow-x:auto"><svg viewBox="0 0 760 170" style="min-width:700px;width:100%;display:block" role="img" aria-label="Whole observed episodes follow the existing selection policy and then render as JSON or YAML"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#18324d"/></marker></defs><g fill="#edf5ec" stroke="#496778"><rect x="10" y="55" width="180" height="65" rx="8"/><rect x="245" y="55" width="205" height="65" rx="8"/><rect x="515" y="10" width="235" height="65" rx="8"/><rect x="515" y="95" width="235" height="65" rx="8"/></g><g stroke="#18324d" fill="none" marker-end="url(#arrow)"><path d="M190 88H240"/><path d="M450 88H480V42H510"/><path d="M480 88V127H510"/></g><g text-anchor="middle" fill="#18324d" font-size="16" font-family="system-ui"><text x="100" y="82">Whole observed</text><text x="100" y="105">dialogue episodes</text><text x="347" y="82">Existing selection policy</text><text x="347" y="105">No partial quotes</text><text x="632" y="36">OFF: JSON payload</text><text x="632" y="59">16,000 code points</text><text x="632" y="121">ON: YAML payload</text><text x="632" y="144">19,000 code points</text></g></svg></div>
+<p>Both bounds measure the actual delivered form. The policy is unchanged, but different formatting costs can change which whole episodes fit. The legacy form keeps its existing format and 16,000 bound. Turning the cap OFF retains the existing uncapped behavior.</p>
+</section><section class="card"><h2>The same two whole episodes, both forms</h2>
+<p>Recorded-data excerpt from <code>a702</code>, turn 450, result events 1887, 1973. These are whole episodes selected by the YAML replay. The rest of the payload and explanatory header are omitted from this document example; this is not a complete recorded block.</p>
+<div class="pair"><div><h3>JSON layout</h3><pre>{&quot;columns&quot;:[&quot;speaker&quot;,&quot;speaker_source&quot;,&quot;text&quot;,&quot;map&quot;,&quot;map_id&quot;,&quot;state_event&quot;],&quot;episodes&quot;:[{&quot;result&quot;:1887,&quot;dialogue&quot;:[1885],&quot;turn&quot;:83,&quot;pages&quot;:[[&quot;Machine&quot;,&quot;faced_target&quot;,&quot;It&#x27;s a serious-looking machine.\nThe PROF must use this for research.&quot;,&quot;PROF. BIRCH&#x27;S POKéMON LAB&quot;,[1,4],1879]]},{&quot;result&quot;:1973,&quot;dialogue&quot;:[1971],&quot;turn&quot;:84,&quot;pages&quot;:[[&quot;PC&quot;,&quot;faced_target&quot;,&quot;It&#x27;s a PC used for research.\nBetter not mess around with it.&quot;,&quot;PROF. BIRCH&#x27;S POKéMON LAB&quot;,[1,4],1965]]}]}</pre></div><div><h3>YAML layout</h3><pre>episodes:
+  - turn: 83
+    delivered_result: 1887
+    dialogue_events: [1885]
     pages:
-      - speaker: GENTLEMAN
-        speaker_source: faced_sprite
-        map: PETALBURG CITY
-        map_id: [0, 0]
-        state_event: 11373
+      - speaker: Machine
+        speaker_source: faced_target
+        map: PROF. BIRCH&#x27;S POKéMON LAB
+        map_id: [1, 4]
+        state_event: 1879
         text: |-
-          Let&#x27;s say you have six POKéMON.
-          If you catch another one…
-      - state_event: 11379
-        text: |-
-          It is automatically sent to a STORAGE
-          BOX over a PC connection.
-  - turn: 333
-    delivered_result: 13389
-    dialogue_events: [13387]
+          It&#x27;s a serious-looking machine.
+          The PROF must use this for research.
+  - turn: 84
+    delivered_result: 1973
+    dialogue_events: [1971]
     pages:
-      - speaker: BOY_1
-        speaker_source: faced_sprite
-        map: ROUTE104
-        map_id: [0, 19]
-        state_event: 13375
+      - speaker: PC
+        speaker_source: faced_target
+        map: PROF. BIRCH&#x27;S POKéMON LAB
+        map_id: [1, 4]
+        state_event: 1965
         text: |-
-          If you&#x27;re going to throw a POKé BALL,
-          weaken the wild POKéMON first.
-      - state_event: 13381
-        text: |-
-          It will be easier to catch if it&#x27;s been
-          poisoned, burned, or lulled to sleep.
-current:
-  result_event: 68106
-  state_event: 68105
-  location: &quot;ROUTE 104 (map 0/19) — northwest terrain section [10,0]&quot;
-  story: &quot;player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Norman first meeting complete; Route 103 rival battle won; Pokédex received; starter tutorial complete; running shoes received; Wally tutorial complete; Petalburg Woods Aqua event complete; Rustboro Gym complete; Stone Badge received; Rock Tomb received; petalburg woods lyle defeated; petalburg woods james defeated; petalburg woods aqua grunt defeated; route116 jose defeated; route116 clark defeated; route116 karen defeated; route116 devan defeated; route116 johnson defeated; roxanne defeated; route102 calvin defeated; route102 rick defeated; route102 tiana defeated; route102 allen defeated; route104 haley defeated; route104 winston defeated; route104 cindy defeated&quot;</pre></div></div>
-<p>A recorded example: a702 turn 1301, the first two episodes of the capped block. The <code>current</code> line is the same in both. In YAML, a page repeats speaker, speaker_source, map and map_id only when they change from the page before. A header line says so.</p>
-<h2>Why this layout</h2>
-<table><thead><tr><th>Form, a702 T1301</th><th>Uncapped chars</th><th>Uncapped tokens</th><th>Capped chars</th><th>Capped tokens</th></tr></thead><tbody>
-<tr><td>JSON (off)</td><td>53,962</td><td>21,124</td><td>15,923</td><td>6,088</td></tr>
-<tr><td>YAML, every field on every page</td><td>105,882</td><td>35,232</td><td>–</td><td>–</td></tr>
-<tr><td>YAML, fields only when they change (on)</td><td>72,433</td><td>23,821</td><td>20,744</td><td>6,687</td></tr>
+          It&#x27;s a PC used for research.
+          Better not mess around with it.</pre></div></div>
+<p>Within each episode, speaker, speaker source, map, map id and source-map fields carry over only when omitted on a later page. Every new episode resets them. State references and text are always explicit. A header line tells the model this rule.</p>
+</section><section class="card"><h2>Replay evidence</h2>
+<table><thead><tr><th>Recorded cut</th><th>Delivered YAML code points</th><th>Whole episodes kept</th></tr></thead><tbody>
+<tr><td>a702 T450</td><td>13,458</td><td>14</td></tr><tr><td>a702 T700</td><td>18,793</td><td>15</td></tr><tr><td>a702 T1301</td><td>18,930</td><td>22</td></tr><tr><td>88ea T400</td><td>18,874</td><td>19</td></tr><tr><td>88ea T800</td><td>18,989</td><td>25</td></tr>
 </tbody></table>
-<p>Counted with the Qwen3.6 llama.cpp /tokenize. Repeating every field costs 67% more tokens, so it was dropped. The built layout costs about 10% more than JSON for the same episodes. With <code>instruction-memory-cap-v1</code> on, the cap is measured on the YAML at 19,000 characters, so the token budget stays about the same and a few fewer episodes fit (27 instead of 31 at a702 T1301).</p>
-<h2>Keeping the game text exact</h2>
-<table><thead><tr><th>Value</th><th>Written as</th></tr></thead><tbody>
-<tr><td>Game text</td><td>a <code>|-</code> block scalar, line for line, so quotes, colons, <code>#</code> and POKéNAV stay as printed</td></tr>
-<tr><td>Text a block scalar could change: empty, a leading space or newline, trailing spaces, a blank line, a final newline, a control, C1, U+2028/2029 or BOM character</td><td>a JSON string, which is valid YAML</td></tr>
-<tr><td>Names, maps, sources</td><td>plain if they start with a letter, use only letters, digits and <code>_ .,'()/&amp;-</code>, do not end in a space or full stop, and are not a YAML yes/no/on/off/true/false/null word; otherwise a JSON string</td></tr>
-<tr><td>Numbers, ids, null</td><td>as is: <code>[0, 19]</code>, <code>null</code></td></tr>
-</tbody></table>
-<p>Proof: the built renderer equals the Python reference (<code>runs/analysis/bounded-input-20261028/yaml_form.py</code>) byte for byte on 56 recorded blocks and on the four capped turns. PyYAML reads each block back to the same turns, events, speakers, maps, ids and text.</p>
-<h2>Scope</h2>
-<ul><li>Only the selected form changes (<code>milestone-instruction-memory-v1</code> on). The older form is already YAML-like and stays unchanged.</li>
-<li>Place evidence and other ledgers are unchanged.</li></ul>
-<h2>Status</h2>
-<p>Branch <code>claude/instruction-memory-yaml</code>, built on <code>claude/bounded-model-input</code>. Default off. <code>experiments/feature-configs/current.json</code> is unchanged. Not landed and not measured in runs.</p>
-</main></body></html>
+<p>The merged place-evidence form also matches the independent reference at a702 T450, T700 and T1301: 14,460, 18,933 and 18,981 code points. The older YAML snapshots were regenerated because main’s cap policy and wording changed. Every selected result identity and change reason is retained in the review receipts.</p>
+<p>The 19,000 allowance comes from the earlier tokenizer study’s approximate equivalent budget. It is a character bound, not a claim of an exact token count or improved gameplay. No new inference or gameplay run was used for this implementation.</p>
+</section><section class="card"><h2>Exact text and explicit omissions</h2>
+<table><thead><tr><th>Value</th><th>Representation</th></tr></thead><tbody><tr><td>Ordinary dialogue, including quotes, colons and #</td><td><code>|-</code> literal block with the complete original lines</td></tr><tr><td>Empty text, leading or trailing whitespace, blank lines, controls and Unicode line separators</td><td>Quoted scalar with explicit escapes where needed</td></tr><tr><td>Ambiguous names such as YES, numeric-looking strings or syntax characters</td><td>Quoted scalar, so the YAML reader preserves a string</td></tr><tr><td>Empty episode or page collections</td><td><code>[]</code>, preserving an empty list rather than null</td></tr></tbody></table>
+<p>Current progress and location entries are kept or left out whole. Their existing omission markers remain visible. For example, this illustrative edge case explicitly reports whole fields left out:</p><pre>current: null
+current_left_out: true
+observed_locations: []
+earlier_locations_left_out: 3</pre>
+</section><section class="card"><h2>Scope and status</h2>
+<p>This is a format change behind a registered switch. It adds no dialogue, objective, route or retirement rule. Source archives and other ledgers stay unchanged. PyYAML 6.0.3 independently decoded the native and edge cases back to exact source fields and dialogue. Full gates, review and landing evidence belong to <code>docs/worklogs/active/2026-10-28_instruction-memory-yaml.md</code>.</p>
+</section></main></body></html>

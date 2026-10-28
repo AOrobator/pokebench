@@ -1,7 +1,7 @@
-import {describe,expect,it} from "vitest";
+import {describe,expect,it,vi} from "vitest";
 import type {RunEvent} from "./events.js";
 import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {INSTRUCTION_MEMORY_CAP_CHARS,codePoints,type CapEpisode} from "./instruction-memory-cap.js";
+import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,type CapEpisode} from "./instruction-memory-cap.js";
 import {INSTRUCTION_MEMORY_YAML_CAP_CHARS,YAML_CARRY_LINE,YAML_HEADER,instructionMemoryYaml,yamlScalar} from "./instruction-memory-yaml.js";
 import {observedInstructions} from "./observed-instructions.js";
 import {flagFeatures} from "./play-preset.js";
@@ -10,18 +10,32 @@ const COLS=["speaker","speaker_source","text","map","map_id","state_event"];
 const ep=(result:number,turn:number,pages:CapEpisode["pages"]):CapEpisode=>({result,dialogue:[result-2,result-1],turn,pages});
 
 describe("instruction-memory-yaml-v1 rendering",()=>{
- it("escapes Unicode controls and line separators even inside JSON-compatible scalars",()=>{
-  for(const code of [0x7f,0x85,0x9f,0x2028,0x2029,0xfeff]){
-   const value=`a${String.fromCodePoint(code)}b`,escaped=`"a\\u${code.toString(16).padStart(4,"0")}b"`;
-   expect(yamlScalar(value)).toBe(escaped);
-   const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,value,null,null,null]])],COLS,{});
-   expect(rendered).toContain(`text: ${escaped}`);
-  }
+ it.each([["7f",0x7f],["85",0x85],["9f",0x9f],["2028",0x2028],["2029",0x2029],["feff",0xfeff]] as const)("escapes Unicode U+%s in both scalar and text fields",(_label,code)=>{
+  const value=`a${String.fromCodePoint(code)}b`,escaped=`"a\\u${code.toString(16).padStart(4,"0")}b"`;
+  expect(yamlScalar(value)).toBe(escaped);
+  const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,value,null,null,null]])],COLS,{});
+  expect(rendered).toContain(`text: ${escaped}`);
+ });
+ it.each([""," leading","\nstart","end\n","two\n\nlines","trailing \nnext","tab\there","a\rb"])("quotes whitespace-sensitive text exactly: %j",value=>{
+  const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,value,null,null,null]])],COLS,{});
+  expect(rendered).toContain(`text: ${JSON.stringify(value)}`);
+  expect(rendered).not.toContain("text: |-");
+ });
+ it("writes ordinary multi-line dialogue literally",()=>{
+  const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,'MOM: POKéNAV #yes\nNext "line".',null,null,null]])],COLS,{});
+  expect(rendered).toContain('text: |-\n          MOM: POKéNAV #yes\n          Next "line".');
+ });
+ it("resets carried fields at every episode boundary",()=>{
+  const rows=[ep(10,3,[["MOM","name_prefix","one","HOUSE",[1,0],1]]),ep(20,4,[["MOM","name_prefix","two","HOUSE",[1,0],2]])];
+  const rendered=instructionMemoryYaml(0,rows,COLS,{});
+  expect(rendered.match(/- speaker: MOM/g)).toHaveLength(2);
+  expect(rendered.match(/map_id: \[1, 0\]/g)).toHaveLength(2);
  });
  it("keeps whole-field omission markers and empty lists in the delivered YAML",()=>{
   const rest={current:null,current_left_out:true as const,observed_locations:[],earlier_locations_left_out:3};
   const rendered=instructionMemoryYaml(4,[],COLS,rest);
   expect(rendered).toContain("\nepisodes: []\n");
+  expect(instructionMemoryYaml(0,[ep(11,4,[])],COLS,{})).toContain("\n    pages: []");
   expect(rendered).toContain("\ncurrent_left_out: true\n");
   expect(rendered).toContain("\nobserved_locations: []\nearlier_locations_left_out: 3");
  });
@@ -34,7 +48,7 @@ describe("instruction-memory-yaml-v1 rendering",()=>{
   const eps=[ep(10,3,[["MOM","name_prefix","MOM: Hi, \"hon\"!\nPOKéNAV: on.","HOUSE 1F",[1,0],5],["MOM","name_prefix","Bye.","HOUSE 1F",[1,0],6],[null,null,"Sign: a\n# b","LITTLEROOT TOWN",[0,9],7]]),
    ep(20,4,[["BOY_1","faced_sprite"," leading","ROUTE104",[0,19],8],["BOY_1","faced_sprite","trailing \nx","ROUTE104",[0,19],9],["BOY_1","faced_sprite","tab\there","ROUTE104",[0,19],null],["BOY_1","faced_sprite","blank\n\nline","ROUTE104",[0,19],10],["BOY_1","faced_sprite","end\n","ROUTE104",[0,19],11],["BOY_1","faced_sprite","sep\u2028x","ROUTE104",null,12]])];
   expect(instructionMemoryYaml(2,eps,COLS,{current:{result_event:30,state_event:null,location:"ROUTE104",story:"clock set; rival met"}})).toBe([
-   YAML_HEADER.replace("Unknown, mixed, future and reusable dialogue stays.","Over the size cap, finished and less relevant episodes are left out."),"2 earlier episodes are left out and remain in the run recording.",YAML_CARRY_LINE,"episodes:",
+   YAML_HEADER.replace("Unknown, mixed, future and reusable dialogue stays.","Finished episodes, and less relevant ones over the size cap, are left out."),"2 other episodes are left out and remain in the run recording.",YAML_CARRY_LINE,"episodes:",
    "  - turn: 3","    delivered_result: 10","    dialogue_events: [8, 9]","    pages:",
    "      - speaker: MOM","        speaker_source: name_prefix","        map: HOUSE 1F","        map_id: [1, 0]","        state_event: 5","        text: |-","          MOM: Hi, \"hon\"!","          POKéNAV: on.",
    "      - state_event: 6","        text: |-","          Bye.",
@@ -45,9 +59,9 @@ describe("instruction-memory-yaml-v1 rendering",()=>{
    "      - state_event: null","        text: \"tab\\there\"",
    "      - state_event: 10","        text: \"blank\\n\\nline\"",
    "      - state_event: 11","        text: \"end\\n\"",
-   "      - map_id: null","        state_event: 12","        text: \"sep\u2028x\"",
+   "      - map_id: null","        state_event: 12","        text: \"sep\\u2028x\"",
    "current:","  result_event: 30","  state_event: null","  location: ROUTE104","  story: \"clock set; rival met\""].join("\n"));
-  expect(instructionMemoryYaml(0,[],COLS,{current:null})).toBe([YAML_HEADER,YAML_CARRY_LINE,"episodes:","current: null"].join("\n"));
+  expect(instructionMemoryYaml(0,[],COLS,{current:null})).toBe([YAML_HEADER,YAML_CARRY_LINE,"episodes: []","current: null"].join("\n"));
   expect(YAML_HEADER).not.toContain("columns");
  });
 });
@@ -74,12 +88,15 @@ describe("instruction-memory-yaml-v1 through observedInstructions",()=>{
   const [legacyOff,legacyOn]=await Promise.all([recorded(3,false,false,false),recorded(3,true,false,false)]);
   expect(legacyOn.text).toBe(legacyOff.text);
  });
- it("with instruction-memory-cap-v1, measures the cap on the delivered YAML",async()=>{
-  const [json,yaml]=await Promise.all([recorded(60,false,true),recorded(60,true,true)]);
-  expect(codePoints(json.text)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
-  expect(codePoints(yaml.text)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_YAML_CAP_CHARS);expect(codePoints(yaml.text)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);
-  const left=Number(/^(\d+) earlier episodes are left out and remain in the run recording\.$/m.exec(yaml.text)?.[1]);
-  expect([...yaml.text.matchAll(/^ {2}- turn: /gm)].length+left).toBe(60);
+ it("with instruction-memory-cap-v1, passes the delivered-form budget to the real selector",async()=>{
+  expect(INSTRUCTION_MEMORY_CAP_CHARS).toBe(16000);expect(INSTRUCTION_MEMORY_YAML_CAP_CHARS).toBe(19000);
+  const spy=vi.spyOn(InstructionMemoryCap.prototype,"select");
+  try{
+   const json=await recorded(3,false,true),yaml=await recorded(3,true,true);
+   expect(spy.mock.calls.map(call=>call[2])).toEqual([INSTRUCTION_MEMORY_CAP_CHARS,INSTRUCTION_MEMORY_YAML_CAP_CHARS]);
+   expect(codePoints(json.text)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
+   expect(codePoints(yaml.text)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_YAML_CAP_CHARS);
+  }finally{spy.mockRestore();}
  });
 });
 
@@ -98,14 +115,13 @@ describe("instruction-memory-yaml-v1 with instruction-memory-dedup-v1 and the ca
  };
  it("renders dedup's merged block, source-map columns included, from the same JSON, capped or not",async()=>{
   for(const cap of [false,true]){
-   const [json,yaml]=await Promise.all([sent(cap?60:3,{yaml:false,dedup:true,cap}),sent(cap?60:3,{yaml:true,dedup:true,cap})]);
+   const [json,yaml]=await Promise.all([sent(cap?6:3,{yaml:false,dedup:true,cap}),sent(cap?6:3,{yaml:true,dedup:true,cap})]);
    expect(yaml).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");expect(yaml).toContain("source_map_name: FAR");expect(yaml).toContain("source_map_display: FAR AWAY");
    if(!cap){
     const payload=JSON.parse(json.slice(json.indexOf("\n{")+1)) as {columns:string[];episodes:CapEpisode[];current:Record<string,string|number|null>|null};
     expect(yaml).toBe(instructionMemoryYaml(0,payload.episodes,payload.columns,{current:payload.current}));
    }else{
     expect(codePoints(yaml)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_YAML_CAP_CHARS);
-    expect(yaml.split("\n")[0]).toContain("Over the size cap, finished and less relevant episodes are left out.");
    }
   }
  });

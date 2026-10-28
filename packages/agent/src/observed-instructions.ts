@@ -16,7 +16,7 @@ export {CAPPED_SELECTION} from "./instruction-memory-cap.js";
 const CAPPED_LEGACY="finished episodes, and less relevant ones over the size cap, are left out";
 type Result=Extract<RunEvent,{type:"tool_result"}>;
 type Episode=InstructionEpisode;
-interface Progress {result_event:number;state_event:number|null;location:string|null;story:string|null}
+type Progress={result_event:number;state_event:number|null;location:string|null;story:string|null};
 interface Locations {observed_locations:Pick<Progress,"result_event"|"state_event"|"location">[];earlier_locations_left_out?:number}
 interface Fixed {readonly current:Progress|null;readonly current_left_out?:true;readonly locations:Locations}
 const without=(fx:Fixed):Fixed=>({current:null,current_left_out:true,locations:fx.locations});
@@ -103,11 +103,11 @@ export class ObservedInstructions {
    const spatial=new Set(places?.map(e=>e.result_event));
    const rows=[...episodes.values()].map(e=>this.row(e,places===undefined?undefined:spatial.has(e.result_event)));
    let fx=this.fixed();
-   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})});
+   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. ${omitted===0?"Unknown, mixed, future and reusable dialogue stays.":CAPPED_SELECTION} Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:kept,...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true as const}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})});
    const columns=["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])];
-   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,columns,{...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})}):json;
+   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,columns,{...(hasBase?{current:fx.current,...(fx.current_left_out===true?{current_left_out:true as const}:{})}:{}),...(hasBase&&places!==undefined&&retention===null?fx.locations:{})}):json;
    if(this.cap===null)return render(rows,0);
-   if(this.over(render([],rows.length)))fx=without(fx);
+   if(this.over(render([],rows.length),this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS))fx=without(fx);
    const capped=this.cap.select(rows,render,this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS);
    return render(capped.kept,capped.omitted);
   }
@@ -115,14 +115,14 @@ export class ObservedInstructions {
   let fx=this.fixed();
   if(this.cap===null)return this.legacy(all,0,fx);
   if(this.over(this.legacy([],all.length,fx)))fx=without(fx);
-  const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted,fx));
+  const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted,fx),INSTRUCTION_MEMORY_CAP_CHARS);
   return this.legacy(capped.kept,capped.omitted,fx);
  }
  // The part of the block that is not episodes, computed once per request so selection never re-serializes it.
  private fixed():Fixed {return {current:this.current,locations:this.locations()};}
  // instruction-memory-cap-v1: current is left out whole (current_left_out) only when, with no episodes at all, the
  // block would still pass the cap; it is never cut.
- private over(empty:string):boolean {return this.current!==null&&codePoints(empty)>INSTRUCTION_MEMORY_CAP_CHARS;}
+ private over(empty:string,budget=INSTRUCTION_MEMORY_CAP_CHARS):boolean {return this.current!==null&&codePoints(empty)>budget;}
  // instruction-memory-cap-v1: the newest whole entries whose JSON fits CAP_LOCATION_CHARS, and a count of the rest.
  private locations():Locations {
   const all=[...this.visits.values()];

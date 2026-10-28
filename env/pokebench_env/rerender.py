@@ -66,6 +66,7 @@ def read_state(
     links: LinkCache | None = None,
     visibility: MapMemory | None = None,
 ) -> GameState:
+    matchup = "move-learn-type-matchup-v1" not in off and "battle-effective-damage-v1" not in off
     state = read_game_state(
         read,
         maps,
@@ -122,9 +123,12 @@ def read_state(
         pokenav_call_advance_enabled="pokenav-call-auto-advance-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
-        move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
+        move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON, "move-learn-type-matchup-v1"}
+        <= off,
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
-        move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
+        move_learning_early_enabled=(
+            matchup or (MOVE_EARLY not in off and MOVE_COMPARISON not in off)
+        ),
         berry_readout_enabled="berry-readout-v1" not in off,
         overhead_cover_enabled=SCREEN_CENTER not in off,
         object_elevations_enabled=ELEVATION_MAP not in off,
@@ -134,6 +138,7 @@ def read_state(
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
         type_gap_enabled=TYPE_GAP not in off,
+        move_matchup_enabled=matchup,
         map_wide_triggers_enabled="map-wide-triggers-v1" not in off
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,

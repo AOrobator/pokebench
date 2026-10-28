@@ -197,6 +197,7 @@ SERVER_FEATURES = (
     "pokenav-call-auto-advance-v1",
     "player-map-visibility-v1",
     "compact-map-grid-v1",
+    "move-learn-type-matchup-v1",
 )
 
 
@@ -217,7 +218,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "surf-gated-exits-v2,battle-effective-damage-v1,move-learn-type-matchup-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,caught-nickname-prompt-v2,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
@@ -309,7 +310,9 @@ def _move_learning_lines(state: GameState, off: frozenset[str]) -> list[str]:
     question = question_line(learning) if MOVE_QUESTION not in off else None
     if question is not None:
         lines.append(question)
-    if MOVE_COMPARISON not in off:
+    if MOVE_COMPARISON not in off or (
+        state.move_matchup_enabled and "move-learn-type-matchup-v1" not in off
+    ):
         lines.extend(comparison_lines(learning))
     return lines
 
@@ -513,6 +516,8 @@ def format_readout(
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,
+                    fixed_two_hits=state.move_matchup_enabled
+                    and "move-learn-type-matchup-v1" not in off,
                     ended=POST_BATTLE not in off
                     and battle.phase == "finishing"
                     and state.screen in POST_BATTLE_SCREENS,

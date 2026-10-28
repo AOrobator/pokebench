@@ -2,9 +2,13 @@
 
 from dataclasses import replace
 
+import pytest
+
 from pokebench_env.battle_damage import DamageContext, effective_damage_lines
-from pokebench_env.battle_details import BattleDetails, HeldItem
+from pokebench_env.battle_details import BattleDetails, HeldItem, battle_details_lines
 from pokebench_env.battle_state import BattleBattler, BattleInput, BattleMove, BattleState
+from pokebench_env.game_state import GameState
+from pokebench_env.rerender import render
 
 
 def move(
@@ -383,3 +387,125 @@ def test_screens_weather_burn_badges_and_hold_effects_are_current_not_assumed() 
     text = "\n".join(effective_damage_lines(battle(actor, foe), details(held, context=context)))
     assert "burn" in text and "REFLECT" in text
     assert "rain" in text and "LIGHT SCREEN" in text and "CHARCOAL" in text
+
+
+def test_move_matchup_fixed_two_hit_is_opt_in_and_keeps_per_hit_rounding() -> None:
+    actor = mon(
+        0,
+        0,
+        "COMBUSKEN",
+        level=16,
+        hp=47,
+        maximum=47,
+        stats=(37, 29, 24, 35, 24),
+        types=(10, 1),
+        moves=(move(0, 24, "DOUBLE KICK", 30, 1, effect=44), EMPTY, EMPTY, EMPTY),
+    )
+    target = mon(1, 1, "GEODUDE", hp=30, maximum=30, types=(5, 4), ability=5)
+    b = battle(actor, target)
+    d = details(context=DamageContext())
+    old = "\n".join(effective_damage_lines(b, d))
+    assert "not deterministically computed" in old
+    new = "\n".join(effective_damage_lines(b, d, fixed_two_hits=True))
+    # Independent Emerald integer arithmetic: level16/Attack37 against Defense15:
+    # ((8 * 30 * 37 // 15) // 50) + 2 = 13; STAB floors13*1.5 to19;
+    # ROCK weakness gives38; floor(38*85/100)=32. Two hits give64..76.
+    # Doubling power first would give62..74 total, so this pins per-hit rounding.
+    expected = "32-38 HP per hit; 2 hits total 64-76 HP before target fainting"
+    assert expected in new, new
+    assert "type ×2" in new and "STAB ×1.5" in new
+    assert "normal-hit KO rolls" not in new
+    assert effective_damage_lines(b, d, fixed_two_hits=False) == effective_damage_lines(b, d)
+
+
+@pytest.mark.parametrize(
+    ("ability", "actor_item", "target_item"),
+    [
+        (16, 0, 0),
+        (27, 0, 0),
+        (9, 0, 0),
+        (49, 0, 0),
+        (38, 0, 0),
+        (56, 0, 0),
+        (24, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+    ],
+    ids=[
+        "COLOR_CHANGE",
+        "EFFECT_SPORE",
+        "STATIC",
+        "FLAME_BODY",
+        "POISON_POINT",
+        "CUTE_CHARM",
+        "ROUGH_SKIN",
+        "actor_item",
+        "target_item",
+    ],
+)
+def test_move_matchup_two_hit_refuses_intervening_target_effects(
+    ability: int, actor_item: int, target_item: int
+) -> None:
+    actor = mon(
+        0,
+        0,
+        "COMBUSKEN",
+        types=(10, 1),
+        moves=(move(0, 24, "DOUBLE KICK", 30, 1, effect=44), EMPTY, EMPTY, EMPTY),
+    )
+    actor = replace(actor, held_item=actor_item)
+    target = replace(mon(1, 1, "KECLEON", types=(0, 0), ability=ability), held_item=target_item)
+    held = tuple(
+        HeldItem(slot, "MASTER BALL", 0, 0)
+        for slot, item in ((0, actor_item), (1, target_item))
+        if item
+    )
+    text = "\n".join(
+        effective_damage_lines(
+            battle(actor, target), details(*held, context=DamageContext()), fixed_two_hits=True
+        )
+    )
+    assert "between hits" in text, text
+    assert "2 hits total" not in text
+
+
+def test_move_matchup_two_hits_reach_production_render_with_exact_off_parity() -> None:
+    actor = mon(
+        0,
+        0,
+        "COMBUSKEN",
+        level=16,
+        hp=47,
+        maximum=47,
+        stats=(37, 29, 24, 35, 24),
+        types=(10, 1),
+        moves=(move(0, 24, "DOUBLE KICK", 30, 1, effect=44), EMPTY, EMPTY, EMPTY),
+    )
+    b = battle(actor, mon(1, 1, "GEODUDE", hp=30, maximum=30, types=(5, 4), ability=5))
+    d = details(context=DamageContext())
+    state = GameState(
+        "battle",
+        True,
+        "MAY",
+        None,
+        None,
+        None,
+        None,
+        True,
+        (),
+        None,
+        (),
+        None,
+        battle=b,
+        battle_details=d,
+        move_matchup_enabled=True,
+    )
+    expected = "32-38 HP per hit; 2 hits total 64-76 HP before target fainting"
+    direct = "\n".join(battle_details_lines(b, d, effective_damage=True, fixed_two_hits=True))
+    assert expected in direct, direct
+    on = render(state, frozenset())
+    assert expected in on, on
+    off = render(state, frozenset({"move-learn-type-matchup-v1"}))
+    assert off == render(replace(state, move_matchup_enabled=False), frozenset())
+    assert "not deterministically computed (variable hit count or move power)" in off, off
+    assert "2 hits total" not in off, off

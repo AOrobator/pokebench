@@ -79,6 +79,7 @@
   "instruction-memory-yaml-v1"
  ],
  "offInBoth": [
+  "screenshot-button-baseline-v1",
   "semantic-navigation-v1",
   "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
@@ -168,6 +169,7 @@
   "destination-first-navigation-v1"
  ],
  "features": {
+  "screenshot-button-baseline-v1": false,
   "native-task-goal-retirement-v1": false,
   "active-field-message-buffer-v1": true,
   "active-ui-ownership-v1": true,

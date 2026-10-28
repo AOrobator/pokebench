@@ -316,6 +316,8 @@ export const SWITCHABLE_FEATURES = [
   "id-card-bound-v1",
   "story-checkpoints-whole-game-v1",
   "instruction-memory-yaml-v1",
+  "screenshot-button-baseline-v1",
+  "move-learn-type-matchup-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -750,6 +752,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("id-card-bound-v1", "observation", "BOUNDED ID-CARD MENTIONS", "people-id-cards-v1", "Default off. An ID card’s other pages that name this person keep the newest contiguous whole pages whose quoted lines fit in 1,500 Unicode code points, shown oldest first. The newest page always stays even if it alone exceeds that budget. The header counts omitted earlier pages and, when dialogue auto-advance provides it, says get_dialogue finds them. All other card lines and the fingerprint from the full list stay unchanged. Off: every other page that names this person is listed, as before."),
   on("story-checkpoints-whole-game-v1", "guard", "WHOLE-GAME STORY CHECKPOINTS", "instruction-memory-cap-v1", `Default off. Uses ${String(STORY_CHECKPOINTS.length)} story checkpoints through the Hall of Fame and the optional Rayquaza encounter. Retires only whole episodes heard by every required native milestone and wholly within the owning map/speaker scopes. Mixed or reusable rival tutorials remain eligible for memory. This records no new route advice. Off: the cap uses the original 15 checkpoints through the Slateport Devon Goods delivery; memory bytes are unchanged.`),
   on("instruction-memory-yaml-v1", "guidance", "INSTRUCTION MEMORY YAML", null, "Default off; enabled only in the current bundle by operator approval on 2026-10-28. Formats the selected OBSERVED INSTRUCTION MEMORY payload as YAML, preserving whole dialogue text, provenance and current progress. Page speaker and map fields carry over only within an episode, as the header explains. Text uses literal blocks or escaped quoted scalars when whitespace or control characters require them. With instruction-memory-cap-v1, the existing selection policy measures the actual YAML against 19,000 code points; the episode count can differ from JSON. Whole-field omission markers and bounded location history remain visible. The legacy form keeps its existing format and 16,000 cap. Off: the selected block remains the current JSON payload, byte for byte."),
+  on("screenshot-button-baseline-v1", "guidance", "SCREENSHOT AND BUTTON BASELINE", null, "Default off. Requires every other behavior switch off. Uses the operator-approved short screenshot/button prompt and removes text from successful observe/press results while retaining private state for scoring. Pair with the baseline preset, which disables every other behavior switch. Ordinary conversation history, exposed reasoning recording, button schema and timing are retained. Off: preserves the previous prompt and tool-result bytes."),
+  on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", "battle-effective-damage-v1", "Default off. Needs the existing effective-damage readout and its battle-information dependencies. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -765,11 +769,16 @@ export function semanticNavigation(features: Pick<FeatureSet,"semantic-navigatio
   return features["semantic-navigation-v1"] || features["semantic-navigation-v2"];
 }
 
+export function screenshotButtonBaseline(features: FeatureSet): boolean {
+  return features["screenshot-button-baseline-v1"] && SWITCHABLE_FEATURES.every(id => id === "screenshot-button-baseline-v1" || !features[id]);
+}
+
 export function dependencyProblems(features: FeatureSet): string[] {
   return [...SWITCHABLE_FEATURES.flatMap((id) => {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
   }),
+  ...(features["screenshot-button-baseline-v1"] && !screenshotButtonBaseline(features) ? ["screenshot-button-baseline-v1 requires every other behavior switch OFF"] : []),
   ...(features["instruction-goal-ledger-v1"]&&features["objective-tracking-v1"]?["instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"]:[]),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
   ...(features["grass-strides-v1"] && !features["automatic-running-v1"] ? ["grass-strides-v1 needs automatic-running-v1"] : []),
@@ -847,6 +856,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "pokenav-call-auto-advance-v1",
   "player-map-visibility-v1",
   "compact-map-grid-v1",
+  "move-learn-type-matchup-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1147,6 +1157,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("id-card-bound-v1"),
     ...when("story-checkpoints-whole-game-v1"),
     ...when("instruction-memory-yaml-v1"),
+    ...when("screenshot-button-baseline-v1"),
+    ...when("move-learn-type-matchup-v1"),
   ];
 }
 

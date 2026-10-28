@@ -19,7 +19,7 @@ from functools import cache
 from pathlib import Path
 
 import pytest
-from test_move_learn import _rom, archived, interface_block, maps
+from test_move_learn import _rom, archived, interface_block, maps, render
 
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState
@@ -32,7 +32,7 @@ from pokebench_env.move_learn import (
 )
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
-from pokebench_env.rerender import read_state, render
+from pokebench_env.rerender import read_state
 from pokebench_env.ui_state import ActiveUi
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -78,11 +78,13 @@ def early(name: str) -> ReadMemory:
 
 
 def early_state(name: str, off: frozenset[str] = frozenset()) -> GameState:
-    return read_state(early(name), maps(), active_ui=True, off=off)
+    return read_state(early(name), maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"})
 
 
 def old_state(name: str, off: frozenset[str] = frozenset()) -> GameState:
-    return read_state(archived(name), maps(), active_ui=True, off=off)
+    return read_state(
+        archived(name), maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"}
+    )
 
 
 # --- the recorded states ------------------------------------------------------------------

@@ -141,6 +141,7 @@ export interface Limits {
 }
 
 export interface GovernorDeps {
+  readonly uncoachedBaseline?: boolean;
   readonly limits: Limits;
   retry(reason: string, attempt: number, limit: number): void;
   abort(): void;
@@ -207,7 +208,10 @@ export class Governor {
     this.deps.abort();
   }
 
+  get uncoachedBaseline(): boolean { return this.deps.uncoachedBaseline === true; }
+
   private nudge(): AgentMessage[] {
+    if (this.uncoachedBaseline) return [];
     if (!this.nudgeDue || this.stopReason !== null) return [];
     this.nudgeDue = false;
     const due = this.note;
@@ -365,12 +369,18 @@ async function finishPlay(initial:AgentMessage[],governor:Governor,loop:Loop):Pr
   for (;;) {
     if (governor.stopReason !== null) return governor.stopReason;
     const last = messages.at(-1);
+    if (governor.uncoachedBaseline && last?.role === "assistant" && last.stopReason !== "error" && last.stopReason !== "aborted") {
+      const more = await untilStopped(governor, () => loop.start([], [...messages]));
+      if (typeof more === "string") return more;
+      messages = [...messages, ...more];
+      continue;
+    }
     if (last?.role !== "assistant" || (last.stopReason !== "error" && last.stopReason !== "aborted")) {
       throw new Error("agent loop ended without a stop reason");
     }
     messages = messages.slice(0, -1);
     if (governor.modelError(last)) continue;
-    const more = await untilStopped(governor, () => loop.resume([...messages]));
+    const more = await untilStopped(governor, () => governor.uncoachedBaseline && messages.at(-1)?.role === "assistant" ? loop.start([], [...messages]) : loop.resume([...messages]));
     if (typeof more === "string") return more;
     messages = [...messages, ...more];
   }

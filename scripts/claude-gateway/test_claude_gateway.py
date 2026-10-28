@@ -1,6 +1,7 @@
 """The gateway against a fake `claude` executable, over real HTTP where it matters."""
 
 import base64
+import functools
 import http.client
 import json
 import os
@@ -12,6 +13,15 @@ from pathlib import Path
 import pytest
 
 import claude_gateway as cg
+import preflight
+
+
+@pytest.fixture(autouse=True)
+def cleared_preflight(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Argument tests run as if a passing receipt exists; enforcement has its own tests."""
+    if "enforce_preflight" not in request.keywords:
+        monkeypatch.setattr(preflight, "receipt_problem", lambda *a: None)
+
 
 FAKE = Path(__file__).with_name("fake_claude.py").resolve()
 PNG = b"\x89PNG fake screen"
@@ -81,10 +91,32 @@ def make(
         "backoff": (0.01, 0.02),
         "keepalive": 0.01,
     }
+    run_features = extra.pop("run_features", None)
     sleep = extra.pop("sleep_fn", time.sleep)
+    runner = extra.pop("runner", cg.run_claude)
     fields.update(extra)
     (tmp_path / "runs" / "run-a").mkdir(parents=True, exist_ok=True)
-    return cg.Gateway(cg.Config(**fields), sleep=sleep)  # type: ignore[arg-type]
+    if run_features is not None:
+        (tmp_path / "runs" / "run-a" / "events.jsonl").write_text(
+            json.dumps({"type": "run_start", "evaluation": {"features": run_features}}) + "\n"
+        )
+    return cg.Gateway(cg.Config(**fields), runner=runner, sleep=sleep)  # type: ignore[arg-type]
+
+
+class MemoryRunner:
+    """An in-memory claude: records each call's spec and answers GOOD, with no process."""
+
+    def __init__(self, replies: tuple[str, ...] = ()) -> None:
+        self.specs: list[cg.CallSpec] = []
+        self.replies = list(replies)
+
+    def __call__(self, config: cg.Config, spec: cg.CallSpec) -> cg.CallResult:
+        self.specs.append(spec)
+        text = self.replies.pop(0) if self.replies else GOOD
+        return cg.CallResult(text, spec.session_id or "memory-session", cg.Usage(), (), 0)
+
+    def content(self) -> list[object]:
+        return list(self.specs[-1].prompt.content)
 
 
 def fake_calls(tmp_path: Path) -> list[dict[str, object]]:
@@ -468,6 +500,8 @@ def test_wait_kind_labels() -> None:
 def test_parse_args(tmp_path: Path) -> None:
     config, port = cg.parse_args(
         [
+            "--preflight-receipt",
+            "receipt.json",
             "--mode",
             "session",
             "--model",
@@ -701,6 +735,8 @@ def test_autocompact_reaches_claude_and_the_logs(tmp_path: Path) -> None:
 )
 def test_autocompact_argument(tmp_path: Path, text: str, tokens: int) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -719,6 +755,8 @@ def test_autocompact_argument(tmp_path: Path, text: str, tokens: int) -> None:
 @pytest.mark.parametrize("text", ["50k", "2m", "auto", "1001k", ""])
 def test_autocompact_argument_rejects(tmp_path: Path, text: str) -> None:
     base = [
+        "--preflight-receipt",
+        "receipt.json",
         "--mode",
         "session",
         "--model",
@@ -732,3 +770,424 @@ def test_autocompact_argument_rejects(tmp_path: Path, text: str) -> None:
     ]
     with pytest.raises(SystemExit):
         cg.parse_args([*base, "--autocompact", text])
+
+
+def test_continuation_adopts_the_named_parent_session(tmp_path: Path) -> None:
+    gateway = make(
+        tmp_path, [{"result": GOOD, "cost": 0.05}, {"result": GOOD, "cost": 0.08}], mode="session"
+    )
+    assert gateway.answer(request(1))[1].reply is not None
+    parent = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    (tmp_path / "runs" / "run-b").mkdir()
+    child = cg.Gateway(cg.replace(gateway.config, run_id="run-b", continue_from="run-a"))
+    assert child.answer(request(2))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and argv[argv.index("--resume") + 1] == parent["session_id"]
+    state = json.loads((tmp_path / "bridge" / "session.json").read_text())
+    assert state["session_id"] == parent["session_id"] and state["run_id"] == "run-b"
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    continued = [e for e in events if e["event"] == "session_continued"]
+    assert continued == [{**continued[0], "old_run": "run-a", "run_id": "run-b"}]
+    assert not any(e["event"] == "session_reset" for e in events)
+    assert [e["continue_from"] for e in events if e["event"] == "gateway_start"] == [None, "run-a"]
+    assert round(float(str(jsonl(tmp_path / "bridge" / "calls.jsonl")[-1]["cost_usd"])), 6) == 0.03
+    again = cg.Gateway(child.config)
+    assert again.answer(request(3))[1].reply is not None
+    assert "--resume" in fake_calls(tmp_path)[-1]["argv"]  # type: ignore[operator]
+    assert (
+        sum(e["event"] == "session_continued" for e in jsonl(tmp_path / "bridge" / "gateway.jsonl"))
+        == 1
+    )
+
+
+def test_continuation_never_adopts_another_runs_session(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    assert gateway.answer(request(1))[1].reply is not None
+    (tmp_path / "runs" / "run-b").mkdir()
+    child = cg.Gateway(cg.replace(gateway.config, run_id="run-b", continue_from="run-x"))
+    assert child.answer(request(2))[1].reply is not None
+    argv = fake_calls(tmp_path)[-1]["argv"]
+    assert isinstance(argv, list) and "--resume" not in argv
+    assert [e["event"] for e in jsonl(tmp_path / "bridge" / "gateway.jsonl")].count(
+        "session_reset"
+    ) == 1
+
+
+def test_continue_session_argument(tmp_path: Path) -> None:
+    base = [
+        "--preflight-receipt",
+        "receipt.json",
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--game-port",
+        "2",
+    ]
+    assert cg.parse_args([*base, "--continue-session-from", "r0"])[0].continue_from == "r0"
+    assert cg.parse_args(base)[0].continue_from is None
+
+
+FIXTURES = Path(__file__).with_name("fixtures")
+
+
+@functools.cache
+def fixture(name: str) -> bytes:
+    return (FIXTURES / name).read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("name", "roles"),
+    [
+        ("bundle-d06b9f4db-request-601.json", ["tool", "user", "user"]),
+        ("aacff2371-request-145-battle-update.json", ["tool", "user", "user"]),
+        ("aacff2371-request-400.json", ["tool", "user"]),
+    ],
+)
+def test_current_turn_keeps_the_tool_result_and_every_trailing_message(
+    name: str, roles: list[str]
+) -> None:
+    parsed = cg.parse_request(fixture(name))
+    turn = parsed.current_turn
+    assert [m.role for m in turn] == roles
+    assert turn[0].tool_call_id is not None
+
+
+def test_assistant_terminal_request_resends_no_reply(tmp_path: Path) -> None:
+    body = {
+        "messages": [
+            {"role": "user", "content": "go"},
+            {"role": "assistant", "content": "MY OWN REPLY"},
+        ],
+        "tools": [PRESS, OBSERVE],
+    }
+    raw = json.dumps(body).encode()
+    assert cg.parse_request(raw).current_turn == ()
+    gateway = make(
+        tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True}
+    )
+    assert gateway.answer(raw)[1].reply is not None
+    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    assert "MY OWN REPLY" not in text and "[assistant" not in text
+
+
+def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path) -> None:
+    gateway = make(
+        tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True}
+    )
+    raw = fixture("bundle-d06b9f4db-request-601.json")
+    assert gateway.answer(raw)[1].reply is not None
+    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    assert "[tool result of call_600]" in text and "Gym progress (game memory)" in text
+    assert "OBSERVED INSTRUCTION MEMORY" in text
+    assert "MAY's pre-battle line is showing" not in text
+    screens = sorted(p.name for p in (tmp_path / "bridge" / "screens").iterdir())
+    assert screens and all(n.startswith("turn-1-1-") for n in screens)
+    assert text.count("(screenshot saved at") == len(screens)
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert {k: row[k] for k in ("request", "current_turn", "messages", "run_id")} == {
+        "request": 1,
+        "current_turn": True,
+        "messages": 3,
+        "run_id": "run-a",
+    }
+
+
+@pytest.mark.parametrize("features", [None, {}, {"gateway-current-turn-v1": False}])
+def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(
+    tmp_path: Path, features: object
+) -> None:
+    runner = MemoryRunner()
+    gateway = make(tmp_path, [], mode="session", run_features=features, runner=runner)
+    raw = fixture("bundle-d06b9f4db-request-601.json")
+    request = cg.parse_request(raw)
+    assert gateway.answer(raw)[1].reply is not None
+    actual = runner.content()
+    paths = sorted((tmp_path / "bridge" / "screens").iterdir())
+    assert paths and all(p.name.startswith("turn-1-0-") for p in paths)
+    blocks = [{"type": "text", "text": cg._tool_listing(request.tools)}]
+    for message, images in zip(request.dialogue[-2:], [paths, []], strict=True):
+        blocks.extend(cg._render(message, cg._screenshot_note(images)))
+    blocks.append({"type": "text", "text": "Reply now with the one JSON object."})
+    assert actual == list(cg._merge_text(blocks))
+    assert "[tool result of call_600]" not in str(actual)
+
+
+def test_non_boolean_recorded_feature_falls_back_to_legacy_input(tmp_path: Path) -> None:
+    gateway = make(
+        tmp_path,
+        [{"result": GOOD}],
+        mode="session",
+        run_features={"gateway-current-turn-v1": "true"},
+    )
+    raw = fixture("bundle-d06b9f4db-request-601.json")
+    assert gateway.answer(raw)[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert invalid and "must be a boolean" in str(invalid[0]["error"])
+    row = next(e for e in events if e["event"] == "session_input")
+    assert row["current_turn"] is False
+
+
+def test_unreadable_run_start_falls_back_to_legacy_input(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    (tmp_path / "runs" / "run-a" / "events.jsonl").write_text("{not json")
+    raw = fixture("bundle-d06b9f4db-request-601.json")
+    assert gateway.answer(raw)[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert invalid and "run_start unreadable" in str(invalid[0]["error"])
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert row["current_turn"] is False
+
+
+@pytest.mark.parametrize(
+    ("override", "features", "delivered", "source"),
+    [
+        ("auto", {"gateway-current-turn-v1": True}, True, "run_features"),
+        ("auto", None, False, "run_features"),
+        ("on", None, True, "operator_override"),
+        ("on", {"gateway-current-turn-v1": False}, True, "operator_override"),
+        ("off", {"gateway-current-turn-v1": True}, False, "operator_override"),
+    ],
+)
+def test_current_turn_override_modes(
+    tmp_path: Path, override: str, features: object, delivered: bool, source: str
+) -> None:
+    runner = MemoryRunner()
+    gateway = make(
+        tmp_path, [], mode="session", run_features=features, current_turn=override, runner=runner
+    )
+    raw = fixture("bundle-d06b9f4db-request-601.json")
+    assert gateway.answer(raw)[1].reply is not None
+    first = runner.content()[0]
+    assert isinstance(first, dict)
+    text = str(first["text"])
+    assert ("[tool result of call_600]" in text) is delivered
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    assert events[0]["event"] == "gateway_start" and events[0]["current_turn"] == override
+    row = next(e for e in events if e["event"] == "session_input")
+    assert (row["current_turn"], row["source"]) == (delivered, source)
+
+
+def test_current_turn_argument(tmp_path: Path) -> None:
+    base = [
+        "--preflight-receipt",
+        "receipt.json",
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    assert cg.parse_args(base)[0].current_turn == "auto"
+    assert cg.parse_args([*base, "--current-turn", "on"])[0].current_turn == "on"
+    with pytest.raises(SystemExit):
+        cg.parse_args([*base, "--current-turn", "yes"])
+
+
+def test_switch_is_read_only_from_a_run_start_record(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    first = {"type": "state", "evaluation": {"features": {"gateway-current-turn-v1": True}}}
+    (tmp_path / "runs" / "run-a" / "events.jsonl").write_text(json.dumps(first) + "\n")
+    assert gateway.answer(fixture("bundle-d06b9f4db-request-601.json"))[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert len(invalid) == 1 and "not run_start" in str(invalid[0]["error"])
+    assert next(e for e in events if e["event"] == "session_input")["current_turn"] is False
+
+
+WARP_BY_INDEX = json.dumps(
+    {
+        "name": "navigate_to_target",
+        "arguments": {"map_id": [0, 21], "target": {"kind": "warp", "index": 0}},
+    }
+)
+WARP_BY_XY = json.dumps(
+    {
+        "name": "navigate_to_target",
+        "arguments": {"map_id": [0, 21], "target": {"kind": "warp", "x": 5, "y": 3}},
+    }
+)
+
+
+@pytest.mark.parametrize(
+    ("override", "features", "listed", "source"),
+    [
+        ("auto", {"gateway-tool-schemas-v1": True}, True, "run_features"),
+        ("auto", None, False, "run_features"),
+        ("auto", {"gateway-tool-schemas-v1": False}, False, "run_features"),
+        ("on", None, True, "operator_override"),
+        ("off", {"gateway-tool-schemas-v1": True}, False, "operator_override"),
+    ],
+)
+def test_tool_schemas_in_every_system_prompt(
+    tmp_path: Path, override: str, features: object, listed: bool, source: str
+) -> None:
+    runner = MemoryRunner()
+    gateway = make(
+        tmp_path, [], mode="session", run_features=features, tool_schemas=override, runner=runner
+    )
+    raw = fixture("bundle-d06b9f4db-request-1041.json")
+    request = cg.parse_request(raw)
+    gateway.session.session_id = "established"
+    gateway.session.run_id = "run-a"
+    gateway.session.tools_sha = (
+        __import__("hashlib").sha256(cg._tool_listing(request.tools).encode()).hexdigest()
+    )
+    assert gateway.answer(raw)[1].reply is not None
+    spec = runner.specs[-1]
+    first = spec.prompt.content[0]
+    assert isinstance(first, dict)
+    assert (cg._tool_listing(request.tools) in spec.prompt.system) is listed
+    assert ('"const": "warp"' in spec.prompt.system) is listed
+    if listed:
+        assert str(first["text"]).startswith("Harness tools: observe, press")
+        assert "full parameter schemas are in the system prompt" in str(first["text"])
+    else:
+        assert str(first["text"]).startswith("Harness tools unchanged: ")
+        assert spec.prompt.system.endswith(cg.SESSION_CONTRACT)
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert (row["tool_schemas"], row["tool_schemas_source"]) == (listed, source)
+
+
+def test_tool_schemas_invalid_feature_falls_back(tmp_path: Path) -> None:
+    runner = MemoryRunner()
+    gateway = make(
+        tmp_path, [], mode="session", run_features={"gateway-tool-schemas-v1": 1}, runner=runner
+    )
+    assert gateway.answer(fixture("bundle-d06b9f4db-request-1041.json"))[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    assert any(e["event"] == "tool_schemas_feature_invalid" for e in events)
+    assert next(e for e in events if e["event"] == "session_input")["tool_schemas"] is False
+
+
+@pytest.mark.parametrize(
+    ("name", "override", "features", "hinted", "source"),
+    [
+        (
+            "bundle-d06b9f4db-request-1007.json",
+            "auto",
+            {"gateway-schema-hint-v1": True},
+            True,
+            "run_features",
+        ),
+        (
+            "bundle-d06b9f4db-request-1041.json",
+            "auto",
+            {"gateway-schema-hint-v1": True},
+            True,
+            "run_features",
+        ),
+        ("bundle-d06b9f4db-request-1041.json", "auto", None, False, "run_features"),
+        ("bundle-d06b9f4db-request-1041.json", "on", None, True, "operator_override"),
+        (
+            "bundle-d06b9f4db-request-1041.json",
+            "off",
+            {"gateway-schema-hint-v1": True},
+            False,
+            "operator_override",
+        ),
+    ],
+)
+def test_anyof_reask_lists_the_schema_forms(
+    tmp_path: Path, name: str, override: str, features: object, hinted: bool, source: str
+) -> None:
+    runner = MemoryRunner((WARP_BY_INDEX, WARP_BY_XY))
+    gateway = make(
+        tmp_path, [], mode="session", run_features=features, schema_hint=override, runner=runner
+    )
+    assert gateway.answer(fixture(name))[1].reply == cg.Reply(
+        "navigate_to_target", {"map_id": [0, 21], "target": {"kind": "warp", "x": 5, "y": 3}}, ""
+    )
+    note = runner.specs[-1].prompt.content
+    assert len(note) == 1 and isinstance(note[0], dict)
+    text = str(note[0]["text"])
+    base = (
+        "Your reply could not be used: arguments.target matches 0 of the anyOf options. "
+        "Reply again with only the one JSON object."
+    )
+    if hinted:
+        assert text.startswith(base + "\n")
+        assert '{kind: "warp", x (integer), y (integer)}' in text
+        assert "these 5 forms" in text
+    else:
+        assert text == base
+    row = next(e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "reask")
+    assert (row["schema_hint"], row["source"], row["hint_chars"] > 0) == (hinted, source, hinted)
+
+
+def test_schema_hint_describes_options_from_the_schema() -> None:
+    tool = cg.Tool(
+        "pick",
+        "",
+        {
+            "type": "object",
+            "properties": {
+                "mode": {"oneOf": [{"const": "fast"}, {"enum": ["a", "b"]}, {"type": "integer"}]},
+                "list": {
+                    "type": "array",
+                    "items": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "pair": {
+                    "anyOf": [
+                        {"type": "object", "required": ["k"], "properties": {"k": {}, "note": {}}},
+                    ]
+                },
+            },
+        },
+    )
+    reply = json.dumps({"name": "pick", "arguments": {}})
+    hint = cg.schema_hint(reply, [tool], "arguments.mode matches 2 of the oneOf options")
+    assert (
+        hint
+        == "arguments.mode must match exactly one of these 3 forms: "
+        + '"fast"; one of ["a", "b"]; integer'
+    )
+    assert "string; null" in cg.schema_hint(
+        reply, [tool], "arguments.list[] matches 0 of the anyOf options"
+    )
+    assert "{k (any)} optional: note" in cg.schema_hint(
+        reply, [tool], "arguments.pair matches 0 of the anyOf options"
+    )
+    assert cg.schema_hint('{"name": "other"}', [tool], "arguments.mode matches") == ""
+    assert cg.schema_hint("not json", [tool], "x") == ""
+
+
+def test_schema_switch_arguments(tmp_path: Path) -> None:
+    base = [
+        "--preflight-receipt",
+        "receipt.json",
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    config = cg.parse_args(base)[0]
+    assert (config.tool_schemas, config.schema_hint) == ("auto", "auto")
+    config = cg.parse_args([*base, "--tool-schemas", "on", "--schema-hint", "off"])[0]
+    assert (config.tool_schemas, config.schema_hint) == ("on", "off")
+    events_config = cg.Gateway(cg.replace(config, bridge=tmp_path / "b", runs_root=tmp_path / "r"))
+    start = jsonl(tmp_path / "b" / "gateway.jsonl")[0]
+    assert (start["tool_schemas"], start["schema_hint"]) == ("on", "off") and events_config.seq == 0

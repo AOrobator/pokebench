@@ -33,7 +33,7 @@ EXPECTED_COVERAGE = [
 # scripts/claude-gateway is outside env/'s coverage source, so it has its own pass and gate.
 EXPECTED_GATEWAY = [
     "uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway "
-    "scripts/claude-gateway --cov=claude_gateway --cov=replay --cov-branch "
+    "scripts/claude-gateway --cov=claude_gateway --cov=replay --cov=preflight --cov-branch "
     "--cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json",
     f"uv run --project env python -m pokebench_gates.coverage_gate "
     f"env/.claude-gateway-coverage.json --min {COVERAGE_FLOOR}",

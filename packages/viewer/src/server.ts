@@ -1,3 +1,5 @@
+import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
+import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
@@ -114,6 +116,7 @@ function sendReport(res: ServerResponse, path: string, type: string): void {
 }
 
 export interface ViewerOptions {
+  readonly current?: Omit<CurrentPoolOptions,"runsRoot">;
   readonly runsRoot: string;
   readonly staticDir: string;
   readonly appDir: string;
@@ -411,7 +414,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader, current: CurrentApi | null): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -430,6 +433,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendJson(res, 405, { error: "GET, or POST/PUT to /api" });
     return;
   }
+  if (current !== null && await current.handle(req, res, parts, (options.now?.() ?? new Date()).getTime())) return;
   const [head, second, id, leaf, file] = parts;
   if (parts.length === 2 && head === "api" && second === "run-lanes") {
     sendJson(res, 200, readFixedStatuses(options.runsRoot, pidAlive).flatMap(status => status.lanes.filter(lane => lane.run !== null).map(lane => ({run: lane.run, lane: lane.id, gpu: lane.gpu}))));
@@ -676,7 +680,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).
   const readCompleteWorkbench = (): Promise<WorkbenchData> => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), (options.now?.() ?? new Date()).getTime(), undefined, workbenchLoader, {}, catalog);
   const frontier = createFrontierCache({ read: async () => (await readCompleteWorkbench()).runs, now: () => (options.now?.() ?? new Date()).getTime(), file: options.frontier?.file ?? null, onError: error => { console.error(`frontier ranking failed: ${error instanceof Error ? error.message : String(error)}`); } });
-  if (options.frontier?.warm === true) frontier.warm();
+  if (options.current === undefined && options.frontier?.warm === true) frontier.warm();
   const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
@@ -701,6 +705,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const readUpdates = async (since: string | null): Promise<WorkbenchUpdate> => updates(await readWorkbench(), since);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
+  const currentPool = options.current === undefined ? null : createCurrentPool({...options.current, runsRoot:options.runsRoot});
+  const currentApi = currentPool === null ? null : createCurrentApi(currentPool);
   const loopDelay = monitorEventLoopDelay({ resolution: 10 });
   loopDelay.enable();
   const dispatchTimings = new Map<string, Timing>();
@@ -713,7 +719,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag, currentApi).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
@@ -770,14 +776,14 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const queue = options.queue;
   const ticker = queue === undefined ? null : setInterval(() => { queue.tick().catch(() => undefined); }, 1_000);
   await new Promise<void>((resolve, reject) => {
-    server.once("error", error => { loopDelay.disable(); reject(error); });
+    server.once("error", error => { loopDelay.disable(); void currentPool?.close(); reject(error); });
     server.listen(options.port, HOST, resolve);
   });
   const address = server.address() as AddressInfo;
   port = address.port;
   origins = allowedOrigins(port, options.publicOrigins ?? []);
   // Validate the catalog in the background so the first page load finds it ready.
-  if (options.baselines?.warm === true) for (const run of catalog()) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
+  if (options.current === undefined && options.baselines?.warm === true) for (const run of catalog()) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
   return {
     server,
     address: address.address,
@@ -793,7 +799,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         frameSockets.close();
         server.closeAllConnections();
         server.close(() => {
-          (options.baselines?.close?.() ?? Promise.resolve()).then(resolve, resolve);
+          Promise.all([options.baselines?.close?.(), currentPool?.close()]).then(() => {resolve();}, () => {resolve();});
         });
       }),
   };

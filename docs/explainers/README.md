@@ -334,3 +334,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
 - [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.
+
+- [Whole-game story checkpoints](story-checkpoints-whole-game-v1.html): conservative, default-OFF whole-episode retirement through the endgame.

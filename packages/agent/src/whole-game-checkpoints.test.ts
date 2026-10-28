@@ -4,6 +4,10 @@ import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureS
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {InstructionMemoryCap,type CapEpisode} from "./instruction-memory-cap.js";
 import {observedInstructions} from "./observed-instructions.js";
+import {parseGameState} from "./game-state.js";
+import {IN_GAME} from "../test-support/events.js";
+import {StateMilestones,ACTIVITY_MILESTONES,DEPTH_ORDER} from "./milestones.js";
+import {progressReached} from "./story-progress.js";
 import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 
 const feature="story-checkpoints-whole-game-v1";
@@ -16,15 +20,16 @@ describe(feature,()=>{
  it("covers the required late story and preserves the legacy prefix",()=>{
   expect(STORY_CHECKPOINTS.slice(0,15).map(c=>c.id)).toEqual(["mom-home-instructions","rival-first-meeting","birch-rescue","birch-lab-pokedex","rival-route103","wally-catch-tutorial","woods-team-aqua","roxanne-gym","devon-goods-recovery","devon-president-errands","pokenav-match-call","briney-voyages","brawly-gym","steven-letter","stern-devon-goods"]);
   const closed=new Set(late().flatMap(c=>c.closes_after));
-  for(const name of ["ROUTE_110_RIVAL_DEFEATED","DYNAMO_BADGE","METEOR_FALLS_CONFRONTATION_RESOLVED","MT_CHIMNEY_STORY_COMPLETE","HEAT_BADGE","BALANCE_BADGE","HM_SURF_RECEIVED","WEATHER_INSTITUTE_AQUA_WITHDRAWN","FEATHER_BADGE","MAGMA_EMBLEM_RECEIVED","MAGMA_HIDEOUT_STORY_COMPLETE","SLATEPORT_SUBMARINE_THEFT_WITNESSED","AQUA_HIDEOUT_ESCAPE_COMPLETE","MIND_BADGE","SPACE_CENTER_STORY_COMPLETE","HM_DIVE_RECEIVED","SEAFLOOR_KYOGRE_RELEASE_CONFIRMED","RAYQUAZA_AWAKENED","SOOTOPOLIS_CRISIS_RESOLVED","RAIN_BADGE","VICTORY_ROAD_WALLY_DEFEATED","ELITE_FOUR_SIDNEY_DEFEATED","ELITE_FOUR_PHOEBE_DEFEATED","ELITE_FOUR_GLACIA_DEFEATED","ELITE_FOUR_DRAKE_DEFEATED","GAME_CLEAR_CONFIRMED","RAYQUAZA_ENCOUNTER_RETIRED"])
+  for(const name of ["DYNAMO_BADGE","METEOR_FALLS_CONFRONTATION_RESOLVED","MT_CHIMNEY_STORY_COMPLETE","HEAT_BADGE","BALANCE_BADGE","WEATHER_INSTITUTE_AQUA_WITHDRAWN","FEATHER_BADGE","MAGMA_EMBLEM_RECEIVED","MAGMA_HIDEOUT_STORY_COMPLETE","SLATEPORT_SUBMARINE_THEFT_WITNESSED","AQUA_HIDEOUT_ESCAPE_COMPLETE","MIND_BADGE","SPACE_CENTER_STORY_COMPLETE","HM_DIVE_RECEIVED","SEAFLOOR_KYOGRE_RELEASE_CONFIRMED","RAYQUAZA_AWAKENED","SOOTOPOLIS_CRISIS_RESOLVED","RAIN_BADGE","VICTORY_ROAD_WALLY_DEFEATED","ELITE_FOUR_SIDNEY_DEFEATED","ELITE_FOUR_PHOEBE_DEFEATED","ELITE_FOUR_GLACIA_DEFEATED","ELITE_FOUR_DRAKE_DEFEATED","GAME_CLEAR_CONFIRMED","RAYQUAZA_ENCOUNTER_RETIRED"])
    expect(closed.has(name),name).toBe(true);
  });
  it("is registered, optional and OFF by default, with the table count in its description",()=>{
-  expect(SWITCHABLE_FEATURES).toContain(feature);
+  expect(SWITCHABLE_FEATURES.indexOf(feature)).toBe(297);
   expect(featureInfo(feature).description).toContain(`${String(STORY_CHECKPOINTS.length)} story checkpoints`);
   expect(featureInfo(feature).description).toContain(" Off: ");
   expect(featureInfo(feature)).toMatchObject({group:"guard",needs:"instruction-memory-cap-v1"});
-  expect(normalizeFeatures({...ALL_ON,[feature]:undefined})[feature]).toBe(false);
+  const legacy={...ALL_ON};Reflect.deleteProperty(legacy,feature);
+  expect(normalizeFeatures(legacy)[feature]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[feature]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[feature]:true},null)).toContain(feature);
  });
@@ -47,6 +52,19 @@ describe(feature,()=>{
     expect(select(true,checkpoint.closes_after,7,mixed)?.step,checkpoint.id).not.toBe("done");
    }
   }
+ });
+ it("keeps the optional Rayquaza battle separate from awakening, crisis resolution and frontier credit",()=>{
+  const raw=(bit:number)=>{const flags=Buffer.alloc(300);flags[bit>>3]=1<<(bit&7);return parseGameState({...IN_GAME,story_progress:{flags:flags.toString("hex"),rustboro_stage:0,devon_stage:0,letter:false,variables:"00".repeat(512)}});};
+  const before=raw(0),after=raw(0x1c0),name="RAYQUAZA_ENCOUNTER_RETIRED";
+  expect(progressReached(name,before)).toBe(false);expect(progressReached(name,after)).toBe(true);
+  expect(progressReached(name,raw(0x1c1))).toBe(false);
+  expect(progressReached(name,{...after,story_progress:null})).toBe(null);
+  expect(progressReached("RAYQUAZA_AWAKENED",after)).toBe(false);expect(progressReached("SOOTOPOLIS_CRISIS_RESOLVED",after)).toBe(false);
+  expect(ACTIVITY_MILESTONES.has(name)).toBe(true);expect(DEPTH_ORDER).not.toContain(name);
+  const tracker=new StateMilestones({read:()=>Promise.resolve(after)});tracker.initialize("save_state");
+  expect(tracker.observe(after,1).find(m=>m.name===name)?.origin).toBe("present_at_start");expect(tracker.observe(after,2).filter(m=>m.name===name)).toEqual([]);
+  const earned=new StateMilestones({read:()=>Promise.resolve(before)});earned.initialize("save_state");earned.observe(before,1);
+  expect(earned.observe(after,2).find(m=>m.name===name)).toMatchObject({origin:"observed",evidence:[2]});
  });
  it("wires the production factory to model delivery and recorded memory, leaving OFF bytes intact",async()=>{
   const text="WATTSON: scene fixture";

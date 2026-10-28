@@ -7,7 +7,7 @@ import type {RunEvent} from "./events.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {PRET_MAP_SECTIONS} from "./pret-map-sections.js";
 import {STORY_CHARACTERS} from "./script-line-presence.js";
-import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
+import {LEGACY_STORY_CHECKPOINTS,STORY_CHECKPOINTS} from "./story-checkpoints.js";
 
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
 // The cap counts characters as code points, as Python len() does in the reference implementation.
@@ -55,6 +55,7 @@ const word=(w:string,text:string,edge="A-Z0-9")=>new RegExp(`(?<![${edge}])${esc
 const oneLine=(pages:readonly CapRow[])=>pages.map(p=>p[2].replaceAll("\n"," ")).join(" ");
 
 export class InstructionMemoryCap {
+ constructor(private readonly wholeGame=false){}
  private run:string|null=null;
  private state:State|null=null;
  private readout:string|null=null;
@@ -111,7 +112,7 @@ export class InstructionMemoryCap {
  }
  // A story checkpoint closes an episode heard by the time its milestones were all recorded, every page in its scope.
  private checkpointDone(e:CapEpisode):string|null {
-  for(const c of STORY_CHECKPOINTS){
+  for(const c of this.wholeGame?STORY_CHECKPOINTS:LEGACY_STORY_CHECKPOINTS){
    const turns=c.closes_after.map(n=>this.milestones.get(n));
    if(turns.some(t=>t===undefined))continue;
    const by=turns.reduce<number>((a,t)=>Math.max(a,t??0),0);

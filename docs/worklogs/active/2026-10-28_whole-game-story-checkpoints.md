@@ -25,3 +25,18 @@ Coordinator relay received light CPU clearance (targeted builds/tests/offline re
 Committed RED test packages/agent/src/whole-game-checkpoints.test.ts: four tests fail against incumbent for missing late closures/registry/ON retirement/factory delivery. Fixed test timestamp instability before recording RED; compares exact delivered content, not wall-clock metadata. Evidence: /tmp/whole-game-red.log. No production edits yet. Cached source audit and native reader linkage remain to extend after candidate inventory.
 
 COMMIT: test whole-game checkpoint treatment before implementation.
+
+## Source audit and targeted GREEN
+
+Candidate interface: 42 total / 27 new source-owned checkpoints; complete IDs, scopes and production native predicates published at /Users/user/dev/pokebench/runs/analysis/whole-game-story-checkpoints-20261028/candidate-checkpoints.json. Full writer/line/predicate audit and the complete held-scene label inventory: docs/findings/whole-game-story-checkpoints.md. Coordinator approved leaving mixed rival advice unscoped; further reusable scenes held on the same conservative rule. No new parser/schema/route advice.
+
+55 targeted tests pass (whole-game switch/native optional reader, existing cap, cached pret audit with each native closing reader binding, story-progress and campaign-progress). Agent build and lint pass; viewer build passes. Two performed mutations each failed the intended test and restored exact bytes + GREEN: factory wiring deletion and Wattson/Flannery wrong milestone pairing. Receipts: shared evidence directory mutations.json and per-attempt logs. New flag is ordinal297, optional/defaultOFF, cap dependency; no server switch and no operator bundle changes. Optional Rayquaza adds measurement only and no frontier credit.
+
+The stricter binding audit first exposed the incumbent Pokédex game_fact mismatch (SYS_POKEDEX_GET versus actual decoder RECEIVED_POKEDEX_FROM_BIRCH); documentation corrected, runtime milestone/scope unchanged. New scope audit is map-local; legacy prefix behavior retained for exact OFF invariance rather than silently narrowing it. The first candidate Fortree hide-object flag was caught and the ambiguous reusable Devon Scope scene was held altogether.
+
+Replay byte parity passed 15 combinations: a702 T450/700/1301 and88ea T400/800, trim OFF/ON and dedup ON, comparing to baseline606bf6d24 runtime sources. Both explicit OFF and ON retain identical early-story bytes. Required replay scripts were also invoked; cap prototypes all match, legacy cap limits pass. The supplied 88ea dedup script against rule-a2-88ea.json prints false because that file is the non-dedup expected form; this is not treated as a passing prototype assertion. Baseline-vs-candidate exact replay parity supplies the relevant regression proof; baseline helper stdout comparison still pending.
+
+Tracked themed explainer and config mapping added; real headless card click/serving proof, full90 gates, frozen diverse review, landing and activation remain pending.
+
+Viewer targeted tests: 368 pass across panels/server, agent build/lint clean. The full source-audit targeted set is now55 tests after optional-native origin/unknown/frontier cases. Explainer themed and zero-network check clean. Baseline helper parity and synthetic follow-on remain in progress; this implementation checkpoint is not a merge/review/activation claim.
+COMMIT: implement conservative whole-game checkpoint treatment and source audit.

@@ -70,7 +70,7 @@ export class GymReadiness {
   if(trainers!=null&&trainers.length>0){
    // The trainer flag is set only by a win; a battle this run that left it clear was a loss.
    const status=(t:{trainer_id:number;defeated:boolean})=>t.defeated?"beaten":this.names.has(t.trainer_id)?"battled, not beaten":"not beaten";
-   lines.push(`Trainers on this map: ${trainers.map(t=>`${this.names.get(t.trainer_id)??t.sprite_kind??"a trainer"} at (${String(t.x)},${String(t.y)}) (${status(t)})`).join(", ")}`);
+   lines.push(`${state.map_visibility==null?"Trainers on this map":"Trainers currently visible"}: ${trainers.map(t=>`${this.names.get(t.trainer_id)??t.sprite_kind??"a trainer"} at (${String(t.x)},${String(t.y)}) (${status(t)})`).join(", ")}`);
   }
   return lines.join("\n");
  }

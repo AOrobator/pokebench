@@ -28,7 +28,8 @@ function setup(on:boolean){
  const wired=contextTools({...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"script-line-presence-v1":true,[ID]:on},recorder,m=>Promise.resolve(m));
  const emit=(e:RunEvent)=>{for(const f of listeners)f(checkEvent(e));};
  const result=(a:Advance,seq=a.seq+2,id=a.tool_call_id):RunEvent=>({v:1,run:a.run,seq,turn:a.turn,t:a.t,type:"tool_result",id,name:a.tool,text:"result",is_error:false,state_seq:seq-1,duration_ms:0,frames:[]});
- return {wired,notes,listeners,emit,result};
+ const reply=(a:Advance,seq:number,stop:"toolUse"|"stop"|"error"):RunEvent=>({v:1,run:a.run,seq,turn:a.turn+1,t:a.t,type:"assistant",thinking:"",text:"",tool_calls:[],usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null,stop_reason:stop});
+ return {wired,notes,listeners,emit,result,reply};
 }
 
 describe(ID,()=>{
@@ -81,12 +82,38 @@ describe(ID,()=>{
   expect(s.notes).toEqual([{text:NOTE,evidence:[theft.seq,theft.seq+2]}]);
  });
 
- it("stops at the next tool result: the note fires for one decision only",async()=>{
+ it("survives other results in the same turn and is delivered on the next request",async()=>{
+  const s=setup(true),theft=ev("theft-9e33");
+  s.emit(theft);s.emit(s.result(theft));s.emit(s.result(theft,theft.seq+5,"second-call-same-turn"));
+  expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
+ });
+
+ it("is delivered once: after the model answers a request that carried it, it never comes back",async()=>{
+  for(const stop of ["toolUse","stop"] as const){
+   const s=setup(true),theft=ev("theft-9e33");
+   s.emit(theft);s.emit(s.result(theft));
+   expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
+   s.emit(s.reply(theft,theft.seq+5,stop));
+   expect(await s.wired.transformContext(messages)).toEqual(messages);
+   s.emit(s.result(theft,theft.seq+9,"next-call"));
+   expect(await s.wired.transformContext(messages)).toEqual(messages);
+   expect(s.notes).toHaveLength(1);
+  }
+ });
+
+ it("is resent after a failed model call, since the model never read it",async()=>{
   const s=setup(true),theft=ev("theft-9e33");
   s.emit(theft);s.emit(s.result(theft));
+  await s.wired.transformContext(messages);
+  s.emit(s.reply(theft,theft.seq+5,"error"));
   expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
-  s.emit(s.result(theft,theft.seq+9,"next-call"));
-  expect(await s.wired.transformContext(messages)).toEqual(messages);
+  expect(s.notes).toHaveLength(1);
+ });
+
+ it("a reply before any delivery does not discard a note that is still due",async()=>{
+  const s=setup(true),theft=ev("theft-9e33");
+  s.emit(theft);s.emit(s.result(theft));s.emit(s.reply(theft,theft.seq+4,"toolUse"));
+  expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
  });
 
  it("stays quiet for a non-scene dialogue and for a result of another call",async()=>{

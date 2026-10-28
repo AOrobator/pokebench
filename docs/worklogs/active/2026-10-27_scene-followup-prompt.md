@@ -58,3 +58,11 @@ Branch reset onto main 896088908 (the unlanded system-prompt version is kept at 
 - [x] Explainer rewritten (pages-check clean), FEATURE_EXPLAINERS + README + panels/server tests; report status section added.
 - [x] Gates (final code): build, lint clean; agent vitest 4624/4624, viewer 2091/2091, pytest 4440 + 69, trainer-card 3/3. Coverage: stopped at coordinator CPU rule, pending a heavy-CPU window.
 - [ ] Gates, review (Claude + fallback; GPT out, the operator approved landing without it), land ff-only
+
+### M2 review round 1 (packet 596b1fb019e303704451718f74be808fe8efd1e98d95911dc8a0717c4cda3f58; base b3a2bf941 / 948095751, same diff)
+- Principles: 0 FAIL. Claude CLI lane: VERDICT: LGTM. Fallback Sonnet: LGTM. Fallback Opus: LGTM. GPT lane out (Cursor usage, Codex tokens); The operator approved landing on Claude + fallback.
+- Triage, all follow-ups (no Fix):
+  - several tool calls in one turn: a later result clears the note before it is sent (spec-literal); count it in the fixed run.
+  - live.ts autoTalkContext wraps outside contextTools and can append after the note in rare loop cases. The play-wiring comment overclaims "final message".
+  - a text-only reply resends the note without a new ledger_context; a continuation restore may deliver it once without a ledger record.
+  - boundary text said type-gap-registry shifted (it no longer is); a redundant legacy-features entry.

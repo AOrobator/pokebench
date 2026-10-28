@@ -632,3 +632,13 @@ it("keeps a tagged cold run selectable in its exact cohort until validated progr
   expect(warm.runs[0]?.problem).toBeNull();
   expect(warm.runs[0]?.splits.length).toBeGreaterThan(0);
 });
+
+it("does not overwrite legacy display snapshots when given only their reader capability",async()=>{
+ const r=root(),log=named(),path=write(r,"handoff",log),cards=createCardStore(r);
+ await createWorkbenchLoader({cards,cardWriter:cards}).load(r,"handoff");
+ const saved=fs.readFileSync(join(r,".viewer-cache","cards-v1","handoff.json"),"utf8");
+ const fresh=log.add(5000,state({name:"FRESH"}));fs.appendFileSync(path,JSON.stringify({...fresh,run:"handoff"})+"\n");
+ const loader=createWorkbenchLoader({cards});
+ expect((await loader.load(r,"handoff")).run.card?.name).toBe("FRESH");
+ expect(fs.readFileSync(join(r,".viewer-cache","cards-v1","handoff.json"),"utf8")).toBe(saved);
+});

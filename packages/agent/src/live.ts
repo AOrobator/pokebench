@@ -24,7 +24,7 @@ import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSyn
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { cutOffReplyNotice } from "./cut-off-reply.js";
-import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { screenshotButtonBaseline, playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
@@ -287,6 +287,7 @@ async function playAgent(): Promise<void> {
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       const {governor,control:runControl} = controlledRun({
         limits,
+        ...(screenshotButtonBaseline(features) ? { uncoachedBaseline: true } : {}),
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
         retry: (why, attempt, limit) => {
           recorder.retry(why, attempt, limit);

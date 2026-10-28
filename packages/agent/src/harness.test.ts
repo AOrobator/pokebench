@@ -1151,3 +1151,44 @@ it("bag-ineffective-loop-v1 records the warning and delivers it on the pinned pi
  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));expect(events.filter(e=>e.type==="loop_guard"&&e.phase==="warning")).toEqual([expect.objectContaining({kind:"ineffective",calls:3})]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+it("continues an uncoached baseline without injecting prompts or ending at the ordinary failure count", async () => {
+  let now = 0;
+  const g = new Governor({ limits: { maxTurns: Number.MAX_SAFE_INTEGER, maxWallMs: 1800000, failureLimit: Number.MAX_SAFE_INTEGER, replyFailuresEndRun: false }, retry: () => undefined, abort: () => undefined, now: () => now, uncoachedBaseline: true });
+  let calls = 0;
+  const loop: Loop = {
+    start: async (prompts, messages) => {
+      expect(prompts).toEqual(calls === 0 ? [TASK] : []);
+      expect(messages).toHaveLength(calls === 0 ? 0 : calls + 1);
+      calls++;
+      const message = reply([]);
+      now = calls === 8 ? 1800000 : calls;
+      expect(g.afterTurn(message, [])).toBe(calls === 8);
+      expect(await g.followUps()).toEqual([]);
+      return [...prompts, message];
+    },
+    resume: () => Promise.reject(new Error("no tool-less assistant continuation through pi continue")),
+  };
+  expect(await play(TASK, g, loop)).toBe("budget");
+  expect(calls).toBe(8);
+});
+
+it("resamples an error after an uncoached text reply without pi assistant-last continuation", async () => {
+  const g = new Governor({ limits: { maxTurns: Number.MAX_SAFE_INTEGER, maxWallMs: 1800000, failureLimit: Number.MAX_SAFE_INTEGER, replyFailuresEndRun: false }, retry: () => undefined, abort: () => undefined, now: () => 0, uncoachedBaseline: true });
+  let starts = 0;
+  const thought = reply([]), error = reply([], "error", "FAKE HTTP400");
+  const loop: Loop = {
+    start: (prompts, history) => {
+      starts++;
+      expect(prompts).toEqual(starts === 1 ? [TASK] : []);
+      if (starts === 1) return Promise.resolve([TASK, thought]);
+      expect(history).toEqual([TASK, thought]);
+      if (starts === 2) return Promise.resolve([error]);
+      g.abort("operator_abort");
+      return Promise.resolve([reply(), toolResult()]);
+    },
+    resume: () => Promise.reject(new Error("Cannot continue from message role: assistant")),
+  };
+  expect(await play(TASK, g, loop)).toBe("operator_abort");
+  expect(starts).toBe(3);
+});

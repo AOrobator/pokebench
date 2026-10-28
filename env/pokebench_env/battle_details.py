@@ -152,6 +152,7 @@ class BattleDetails:
         message_waiting: bool = False,
         levelup_box: bool = False,
         effective_damage: bool = False,
+        fixed_two_hits: bool = False,
         input_override: str | None = None,
         ended: bool = False,
     ) -> list[str]:
@@ -161,6 +162,7 @@ class BattleDetails:
             message_waiting=message_waiting,
             levelup_box=levelup_box,
             effective_damage=effective_damage,
+            fixed_two_hits=fixed_two_hits,
             input_override=input_override,
             ended=ended,
         )
@@ -589,6 +591,7 @@ def battle_details_lines(
     message_waiting: bool = False,
     levelup_box: bool = False,
     effective_damage: bool = False,
+    fixed_two_hits: bool = False,
     input_override: str | None = None,
     ended: bool = False,
 ) -> list[str]:
@@ -680,7 +683,7 @@ def battle_details_lines(
             refused = f' — REFUSED: "{NO_PP}"' if move.pp == 0 else ""
             lines.append(f" {mark}{slot + 1} {move_text(move)}{refused}")
     if effective_damage:
-        lines.extend(effective_damage_lines(battle, details))
+        lines.extend(effective_damage_lines(battle, details, fixed_two_hits=fixed_two_hits))
     if details.party is None:
         lines.append("Party: unreadable")
     else:

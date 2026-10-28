@@ -38,7 +38,7 @@ EXPECTED_GATEWAY = [
     f"uv run --project env python -m pokebench_gates.coverage_gate "
     f"env/.claude-gateway-coverage.json --min {COVERAGE_FLOOR}",
 ]
-EXPECTED_TEST = [*EXPECTED_COVERAGE, *EXPECTED_GATEWAY, "just trainer-card-check"]
+EXPECTED_TEST = ["just build", *EXPECTED_COVERAGE, *EXPECTED_GATEWAY, "just trainer-card-check"]
 
 EXPECTED_SETUP = [
     "git config core.hooksPath .githooks",
@@ -76,7 +76,14 @@ def test_coverage_names_the_same_single_pass() -> None:
 
 
 def test_python_gate_reads_the_report_pytest_writes(coverage_lines: list[str]) -> None:
-    pytest_line, gate_line = coverage_lines[1], coverage_lines[2]
+    pytest_line = next(
+        line for line in coverage_lines if line.startswith("cd env && uv run pytest ")
+    )
+    gate_line = next(
+        line
+        for line in coverage_lines
+        if line.startswith("cd env && uv run python -m pokebench_gates.coverage_gate ")
+    )
     report = pytest_line.split("--cov-report=json:", 1)[1].split()[0]
     assert gate_line.split()[8] == report
 
@@ -86,7 +93,10 @@ def test_typescript_coverage_script_and_thresholds_are_the_floor() -> None:
         path.parent for path in (REPO_ROOT / "packages").glob("*/package.json")
     ):
         scripts = json.loads((package_dir / "package.json").read_text())["scripts"]
-        assert scripts["coverage"] == "vitest run --coverage", package_dir
+        expected = "vitest run --coverage"
+        if package_dir.name == "viewer":
+            expected = "NODE_OPTIONS=--max-old-space-size=8192 vitest run --coverage"
+        assert scripts["coverage"] == expected, package_dir
         evaluated = subprocess.run(
             [
                 "node",

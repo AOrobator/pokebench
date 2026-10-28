@@ -17,7 +17,7 @@ A launch is not done until every check below passes. A check that fails means st
 
 ## 2. Launch
 
-- Approval is the operator's. `just fixed-run approve <id>` needs a TTY; type the id only when the operator has said, in this conversation, to start the runs.
+- Launch only when the operator has said, in this conversation, to start the runs. There is no approval file or approve command (removed 2026-10-28, the operator); `run` uses the definition and feature recipe as they are on main at launch, and the ledger records their hash.
 - Launch only through `just`, which loads `.env` (POKEBENCH_ROM and friends). Never run `node packages/viewer/dist/fixed-cli.js run` directly. Detach so the runner outlives the session:
 
   ```bash
@@ -46,7 +46,7 @@ An operator-caused or launch-procedure fault (wrong environment, wrong command, 
 
 - `kill -TERM` the runner (it stops starting trials), then `kill -TERM` each `live.js play` child. A play process ends its run as `operator_abort` on SIGTERM or SIGINT and stops its own game server. Never kill the `pokebench_env` server or use SIGKILL first: a killed server is recorded as a crash. Confirm the ports are free and `runner.json` is gone.
 - Move `runs/experiments/<id>/` and every run dir it launched to `runs/aborted/<id>-<UTC timestamp>/` (outside `runs/experiments/` and the run list). Never delete them.
-- Record what happened and the operator's decision in the experiment worklog, fix the cause with RED/GREEN, then relaunch from step 1 with a fresh approval.
+- Record what happened and the operator's decision in the experiment worklog, fix the cause with RED/GREEN, then relaunch from step 1 once the operator says to.
 
 ## 5. Report
 

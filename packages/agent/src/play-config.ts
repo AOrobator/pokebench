@@ -1,3 +1,5 @@
+import {destinationFirstPrompt} from "./destination-first.js";
+import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
@@ -8,7 +10,7 @@ import { LEARN_MOVE_SECTION, GUARDED_LEARN_MOVE_SECTION } from "./learn-move.js"
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
-import { semanticNavigation, type FeatureSet } from "./features.js";
+import { screenshotButtonBaseline, semanticNavigation, type FeatureSet } from "./features.js";
 import type { ToolSwitches } from "./game-tools.js";
 import { CYCLE_STOP_SENTENCE, MAX_FULL_ROUTE_COMMANDS, NAVIGATE_RULES, SEMANTIC_NAVIGATE_RULES } from "./navigation.js";
 import { mapRulesSection } from "./map-rules.js";
@@ -204,9 +206,11 @@ export function deliverInitialPlayTask<T>(start:{readonly kind:"boot"}|{readonly
 const SCREEN_CENTER_SECTION = "Finding yourself on screen: in the overworld the camera follows you, so your character is the sprite on the tile at the exact center of the screenshot (the 8th of the 15 columns across; the image's center point is the center of your tile, and your sprite's head reaches into the tile above). This holds except while a scripted scene moves the camera or a warp fades the screen. Any other character sprite on the screen is someone else. Some map tiles are drawn over your sprite when you walk under them; the readout says so when your tile or the one above it is one of them.";
 
 export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene | "core" = "unknown"): string {
+  if (screenshotButtonBaseline(features)) return "You are playing Pokémon Emerald. Make as much progress as you can. You receive screenshots and can use `observe` to view the screen or `press` to press buttons: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. Choose your actions from what you see.";
   const jit = features["just-in-time-prompt-v1"] && scene !== "unknown";
   const show = (...scenes: PromptScene[]): boolean => !jit || scenes.some(value => value === scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
+  if(features["pokenav-call-auto-advance-v1"])prompt+=`\n\n${POKENAV_CALL_NOTE}`;
   if (jit && features["contextual-interface-docs-v1"]) prompt = prompt.replace(CONTEXTUAL_CONTROLS, contextualFor(scene));
   if (jit && !show("overworld", "menu")) prompt = prompt.replace(/\n\nDialogue: [^\n]*/, "");
   if (show("overworld") && features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
@@ -276,7 +280,8 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
     prompt += `\n\n${instructionGoalsSection(features)}`;
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
-  return prompt;
+  if(features["player-map-visibility-v1"])prompt += "\n\nMap visibility: ? is unseen terrain. The map remembers terrain you have seen, but hidden tiles are not updated. People and interaction targets are listed only while visible. navigate_to and navigate_to_target use discovered terrain; to reveal more, choose a visible reachable tile near the edge of the known area, or use a single direction press and inspect the new screen. Illumination limits apply in dark places too. Trainer-sight checks use only currently visible terrain and trainers at their current observed positions; checks requiring unseen terrain are reported unavailable.";
+  return features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.
@@ -293,7 +298,7 @@ export function objectiveSwitches(features: FeatureSet): Required<ObjectiveSwitc
 }
 
 export function toolSwitches(features: FeatureSet): ToolSwitches {
-  return { ...(features["rejected-movement-stride-v1"]?{rejectedMovementStride:true}:{}), ...(features["rejected-movement-prefix-v1"]?{rejectedMovementPrefix:{ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game" as const:"legacy" as const,fieldMoveGates:features["field-move-gates-v1"]}}:{}), ...(features["rejected-movement-step-v1"]?{rejectedMovementStep:true}:{}), ...(features["navigation-tool-use-guard-v1"]?{navigationToolUseGuard:true}:{}), ...(features["evolution-decision-v1"]?{evolutionDecision:true}:{}), ...(features["random-starter-v1"]?{randomStarter:pickRandomStarter}:{}), ...(features["bag-press-feedback-v1"]?{bagPressFeedback:true}:{}), safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"], transitions: features["transition-press-result-v1"], warpArrival: features["warp-arrival-settle-v1"], blockedBatch: features["blocked-batch-result-v1"], liveMap: features["live-map-v1"], ledges: features["ledge-hops-v1"], edgeWalls: features["one-way-tiles-v1"], counters: features["counter-talk-v1"], topology: features["world-destinations-v1"], pushback: features["pushback-press-result-v1"], elevation: features["elevation-aware-map-v1"], ...(features["map-observability-v1"]?{mapObservability:true}:{}) };
+  return { ...(screenshotButtonBaseline(features) ? { screenshotOnly: true } : {}), ...(features["rejected-movement-stride-v1"]?{rejectedMovementStride:true}:{}), ...(features["rejected-movement-prefix-v1"]?{rejectedMovementPrefix:{ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game" as const:"legacy" as const,fieldMoveGates:features["field-move-gates-v1"]}}:{}), ...(features["rejected-movement-step-v1"]?{rejectedMovementStep:true}:{}), ...(features["navigation-tool-use-guard-v1"]?{navigationToolUseGuard:true}:{}), ...(features["evolution-decision-v1"]?{evolutionDecision:true}:{}), ...(features["random-starter-v1"]?{randomStarter:pickRandomStarter}:{}), ...(features["bag-press-feedback-v1"]?{bagPressFeedback:true}:{}), safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"], transitions: features["transition-press-result-v1"], warpArrival: features["warp-arrival-settle-v1"], blockedBatch: features["blocked-batch-result-v1"], liveMap: features["live-map-v1"], ledges: features["ledge-hops-v1"], edgeWalls: features["one-way-tiles-v1"], counters: features["counter-talk-v1"], topology: features["world-destinations-v1"], pushback: features["pushback-press-result-v1"], elevation: features["elevation-aware-map-v1"], ...(features["map-observability-v1"]?{mapObservability:true}:{}) };
 }
 
 export function playTools(features: FeatureSet): string[] {

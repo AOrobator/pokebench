@@ -627,6 +627,14 @@ it("serves only allowlisted tracked feature explainers with existing host and me
  expect((await get(viewer,"/explainers/private.html")).status).toBe(404);expect((await get(viewer,"/explainers/ledge-hops-v1.html")).status).toBe(404);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the destination-first navigation explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/destination-first-navigation-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"destination-first-navigation-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/destination-first-navigation-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
 it("serves the deterministic warp navigation explainer byte for byte",async()=>{
  const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"deterministic-warp-navigation-v1.html"),tracked);
@@ -1315,7 +1323,7 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
 describe("tracked explainers",()=>{
  // One viewer serves every row straight from the tracked docs/explainers (staticDir is this package's static folder),
  // with an empty temp root for runs and app that is removed after the table.
- const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1"];
+ const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1","instruction-memory-yaml-v1"];
  let root="",viewer:Viewer|null=null;
  const tracked=new Map(SERVED.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  beforeAll(async()=>{
@@ -1625,4 +1633,84 @@ it("serves the unique instruction memory explainer byte for byte",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked PokéNav call auto-advance explainer byte for byte",async()=>{
+ const file="pokenav-call-auto-advance-v1.html";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pokenav-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the safe scene capture explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-safe-scene-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="scene-journal-safe-capture-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the bounded refusal history explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="refusal-ledger-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the bounded supervisor briefing explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-briefing-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="supervisor-briefing-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked neutral YES/NO explainer byte for byte",async()=>{
+ const file="neutral-yes-no-readout-v1.html";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-neutral-explainer-"));
+ const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked player visibility explainer",async()=>{
+ const file="player-map-visibility-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-visibility-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the compact map grid explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-compact-grid-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="compact-map-grid-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the instruction junk filter explainer byte for byte",async()=>{
+ const file="instruction-memory-junk-filter-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-junk-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the bounded ID-card explainer byte for byte",async()=>{
+ const file="id-card-bound-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-id-card-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it('serves the tracked move matchup explainer byte for byte',async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL('../../../docs/explainers/move-learn-type-matchup-v1.html',import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),'pokebench-matchup-explainer-')),staticDir=join(root,'packages/viewer/static'),docs=join(root,'docs/explainers');mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,'move-learn-type-matchup-v1.html'),tracked);
+ const viewer=await startViewer({runsRoot:join(root,'runs'),staticDir,appDir:join(root,'app'),port:0});open.push(viewer);
+ const reply=await get(viewer,'/explainers/move-learn-type-matchup-v1.html');expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });

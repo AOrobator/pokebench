@@ -192,6 +192,12 @@ SERVER_FEATURES = (
     "map-observability-v1",
     "type-gap-team-v1",
     "pokenav-short-list-v1",
+    "scene-journal-safe-capture-v1",
+    "neutral-yes-no-readout-v1",
+    "pokenav-call-auto-advance-v1",
+    "player-map-visibility-v1",
+    "compact-map-grid-v1",
+    "move-learn-type-matchup-v1",
 )
 
 
@@ -212,7 +218,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "surf-gated-exits-v2,battle-effective-damage-v1,move-learn-type-matchup-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,caught-nickname-prompt-v2,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
@@ -221,8 +227,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1",
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v1,compact-map-grid-v1",
     )
     if raw == "":
         return frozenset()
@@ -304,7 +310,9 @@ def _move_learning_lines(state: GameState, off: frozenset[str]) -> list[str]:
     question = question_line(learning) if MOVE_QUESTION not in off else None
     if question is not None:
         lines.append(question)
-    if MOVE_COMPARISON not in off:
+    if MOVE_COMPARISON not in off or (
+        state.move_matchup_enabled and "move-learn-type-matchup-v1" not in off
+    ):
         lines.extend(comparison_lines(learning))
     return lines
 
@@ -422,7 +430,11 @@ def format_readout(
         elif ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
         # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
-        answer = answer_line(state) if YES_NO_ANSWER not in off else None
+        answer = (
+            answer_line(state, neutral="neutral-yes-no-readout-v1" not in off)
+            if YES_NO_ANSWER not in off
+            else None
+        )
         if answer is not None:
             lines.append(answer)
         lines.extend(_move_learning_lines(state, off))
@@ -504,6 +516,8 @@ def format_readout(
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,
+                    fixed_two_hits=state.move_matchup_enabled
+                    and "move-learn-type-matchup-v1" not in off,
                     ended=POST_BATTLE not in off
                     and battle.phase == "finishing"
                     and state.screen in POST_BATTLE_SCREENS,
@@ -566,6 +580,13 @@ def format_readout(
         return "\n".join(
             [*lines, "Save-backed world state unavailable: save data is not initialized or valid."]
         )
+    if state.map_visibility is not None:
+        lines.append(
+            "Map visibility: ? unseen; other terrain was previously seen. "
+            "Hidden terrain is not refreshed."
+        )
+        if state.map_visibility.diagnostic is not None:
+            lines.append(state.map_visibility.diagnostic)
     x, y = state.position
     named_status = STATUS_NAMES not in off
     poison_readout = POISON not in off
@@ -686,7 +707,10 @@ def format_readout(
         and not state.in_battle
     )
     puzzle_map = None
-    if state.local_map is not None and "live-map-v1" not in off:
+    if (
+        state.local_map is not None
+        or (state.map_visibility is not None and state.nearby is not None)
+    ) and "live-map-v1" not in off:
         configured_whole = "full-map-navigation-v1" not in off
         whole = state.full_map is not None and configured_whole
         shown = state.full_map if whole else state.nearby
@@ -724,6 +748,7 @@ def format_readout(
             next_tiles(
                 shown,
                 state.position,
+                unseen_unknown=state.map_visibility is not None,
                 coordinates="live-player-position-v1" not in off,
                 ledges=ledges,
                 edge_walls=edge_walls,
@@ -742,6 +767,7 @@ def format_readout(
         )
         lines.append(
             shown.text(
+                visible_only=state.map_visibility is not None,
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance=warp_guidance,
                 ledges=ledges,
@@ -758,6 +784,7 @@ def format_readout(
                     edge_walls=edge_walls,
                     counters=counters,
                     terrain=FIELD_MOVES not in off,
+                    compact="compact-map-grid-v1" not in off,
                 )
                 if observation is not None
                 else None,
@@ -765,7 +792,7 @@ def format_readout(
                 rules_in_prompt=rules and whole == configured_whole,
             )
             if shown is not None
-            else state.local_map
+            else state.local_map or ""
         )
         if puzzle_note:
             lines.append(puzzle_note)
@@ -986,6 +1013,7 @@ def format_readout(
             if state.topology is None
             else state.topology.text(
                 notes or None,
+                visible_only=state.map_visibility is not None,
                 targets=SEMANTIC_V2 not in off,
                 labels=None
                 if sections is None
@@ -1114,6 +1142,7 @@ def state_json(state: GameState) -> dict[str, object]:
     if state.map_observation is not None:
         full = {**full, "map_observation": state.map_observation.json()}
     return {
+        **({} if state.map_visibility is None else {"map_visibility": state.map_visibility.json()}),
         **full,
         **(
             {}

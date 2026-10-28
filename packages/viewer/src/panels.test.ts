@@ -1,3 +1,4 @@
+import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
@@ -1485,7 +1486,7 @@ it("links the recorded Gym door label treatment to its tracked explainer",()=>{
 
 describe("tracked explainer links",()=>{
  // One Harness Config render with every listed switch on, indexed once by feature id, serves every row.
- const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1"];
+ const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1","instruction-memory-yaml-v1"];
  const log=new Log();log.add(0,{...START,harness_features:LINKED});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  const cards=new Map([...doc.querySelectorAll("[data-feature]")].map(card=>[card.getAttribute("data-feature"),card]));
@@ -1805,4 +1806,117 @@ it("links unique instruction memory to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("Unique instruction memory");expect(html).toContain("OFF");expect(html).toContain("ON");
+});
+
+it("links destination-first guidance to its tracked explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["destination-first-navigation-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector('[data-feature="destination-first-navigation-v1"]');
+ expect(card?.textContent).toContain("ON");
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/destination-first-navigation-v1.html");
+});
+
+it("shows the exact PokéNav automatic buttons and links its feature explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["pokenav-call-auto-advance-v1"]});
+ const event=log.add(100,{type:"dialogue_auto_advance",turn:2,tool_call_id:"nav",tool:"select_menu_option",requested:[],sent:[],dropped:[],auto_presses:3,pokenav_buttons:["A","A","B"],pages:[{state_seq:1,map:"RUSTBORO CITY",map_id:[0,3],position:null,speaker:"MR. STONE",speaker_source:"name_prefix",text:"MR. STONE: Hello!"}],stop:"menu",detail:"PokéNav closed",duration_ms:50});
+ expect(eventText(event,view(log))).toContain("PokéNav auto-advance (select_menu_option) · A, A, B");
+ expect(inspector(event)).toContain("pokenav_buttons");
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector('[data-feature="pokenav-call-auto-advance-v1"]');
+ expect(card?.textContent).toContain("ON");expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/pokenav-call-auto-advance-v1.html");
+});
+
+it("marks a PokéNav input with an unknown effect explicitly in history and raw inspection",()=>{
+ const log=new Log();log.add(0,START);
+ const event=log.add(100,{type:"dialogue_auto_advance",turn:1,tool_call_id:"uncertain",tool:"observe",requested:[],sent:[],dropped:[],auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A",pages:[],stop:"error",detail:"observation503 after action accepted",duration_ms:1});
+ expect(eventText(event,view(log))).toContain("no confirmed inputs · A may have executed; outcome unconfirmed");
+ expect(inspector(event)).toContain("pokenav_pending_button");
+});
+
+it("links the compact map grid explainer from its config card without inventing recorded status",()=>{
+ const id="compact-map-grid-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded supervisor briefing explainer from its config card without inventing recorded status",()=>{
+ const id="supervisor-briefing-bound-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded refusal history explainer from its config card without inventing recorded status",()=>{
+ const id="refusal-ledger-bound-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(FEATURE_EXPLAINERS["disproved-beliefs-bound-v1"]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links safe scene capture from its actual config card without inventing recorded status",()=>{
+ const id="scene-journal-safe-capture-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the neutral YES/NO card without guessing a historical activation",()=>{
+ const id="neutral-yes-no-readout-v1";
+ const log=new Log();log.add(0,{...START,harness_features:[]});
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(log),[{id,title:"NEUTRAL YES/NO CONTROLS",description:"Both choices.",group:"observation",switchable:true,needs:"yes-no-answer-readout-v1"}]);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.textContent).toContain("NOT RECORDED");
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});
+
+it("links the instruction junk filter's exact card and preserves recorded status",()=>{
+ const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded ID-card feature's exact card and preserves recorded status",()=>{
+ const id="id-card-bound-v1";expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it('links move matchups to the tracked default-OFF explainer',()=>{
+ const id='move-learn-type-matchup-v1';expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),'utf8');
+ expect(html).toContain('Default OFF');expect(html).toContain('×0.75');expect(html).toContain('731ad5bfd6e6f265508d0efcca0ba42f9dcf5881');
 });

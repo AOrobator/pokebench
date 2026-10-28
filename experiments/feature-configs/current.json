@@ -68,10 +68,18 @@
   "supplies-v1",
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1",
-  "type-gap-team-last-message-v1",
-  "instruction-memory-dedup-v1"
+  "instruction-memory-dedup-v1",
+  "neutral-yes-no-readout-v1",
+  "pokenav-call-auto-advance-v1",
+  "compact-map-grid-v1",
+  "supervisor-briefing-bound-v1",
+  "refusal-ledger-bound-v1",
+  "disproved-beliefs-bound-v1",
+  "id-card-bound-v1",
+  "instruction-memory-yaml-v1"
  ],
  "offInBoth": [
+  "screenshot-button-baseline-v1",
   "semantic-navigation-v1",
   "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
@@ -154,9 +162,14 @@
   "type-gap-team-v1",
   "self-named-speaker-v1",
   "story-briefing-native-milestones-v1",
-  "retire-reached-story-line-v1"
+  "retire-reached-story-line-v1",
+  "type-gap-team-last-message-v1",
+  "instruction-memory-cap-v1",
+  "player-map-visibility-v1",
+  "destination-first-navigation-v1"
  ],
  "features": {
+  "screenshot-button-baseline-v1": false,
   "native-task-goal-retirement-v1": false,
   "active-field-message-buffer-v1": true,
   "active-ui-ownership-v1": true,
@@ -437,10 +450,21 @@
   "gateway-current-turn-v1": true,
   "gateway-tool-schemas-v1": true,
   "gateway-schema-hint-v1": true,
-  "type-gap-team-last-message-v1": false,
+  "type-gap-team-last-message-v1": true,
   "self-named-speaker-v1": true,
   "story-briefing-native-milestones-v1": true,
   "retire-reached-story-line-v1": true,
-  "instruction-memory-dedup-v1": false
+  "instruction-memory-dedup-v1": false,
+  "neutral-yes-no-readout-v1": false,
+  "instruction-memory-cap-v1": true,
+  "pokenav-call-auto-advance-v1": false,
+  "player-map-visibility-v1": true,
+  "compact-map-grid-v1": false,
+  "supervisor-briefing-bound-v1": false,
+  "refusal-ledger-bound-v1": false,
+  "disproved-beliefs-bound-v1": false,
+  "destination-first-navigation-v1": true,
+  "id-card-bound-v1": false,
+  "instruction-memory-yaml-v1": false
  }
 }

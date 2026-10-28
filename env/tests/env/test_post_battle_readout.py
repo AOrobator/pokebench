@@ -125,7 +125,7 @@ def test_registered_server_feature_default_off() -> None:
 def test_off_keeps_the_readout_bytes() -> None:
     golden = json.loads(GOLDEN.read_text())
     assert {
-        name: readout(state, OFF | {"player-elevation-readout-v1"})
+        name: readout(state, OFF | {"player-elevation-readout-v1", "neutral-yes-no-readout-v1"})
         for name, state in STATES.items()
     } == golden
 

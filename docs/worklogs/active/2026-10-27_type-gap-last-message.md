@@ -32,4 +32,13 @@ Operator decision: The operator 2026-10-27, "Build the placement switch", after 
 
 ## Fixed definitions whose hash changes
 
-Adding a bundle switch changes the four `featureRecipe: "current"` definitions. Hashes are recorded after the rebase onto the current main.
+Adding a bundle switch changes the four `featureRecipe: "current"` definitions (re-approval needed). Against main 8de58a861 (after the gateway-tool-schemas and gateway-schema-hint pins):
+
+- `bundle-v-control-2h`: `7827893c5fd38c263e384c859963c5de7df49c8ee8127e34b7152ec2f9d8a9e1` → `b796a57b6685deed590c7046c879b83cad48743e472f85e4b78728f478213dff`
+- `bundle-v-control`: `06abe31b61320bd58d5b1c91e04796fde03de49f4d15c85e68b36b66fcf345d1` → `9328e17c7608045ed5934b71dac2d3db001f366bb7f0aaee064ae5a989dcd50d`
+- `glm53-flash-4h`: `c6c27eaad12ad9f0e559198425a9372e5e38c52e50807994f7af847b4c4fd3f5` → `b1e2ce6851b7e251bdf57ef77799f01800ecfcffc3748396c6f073810f5a96fb`
+- `hyperqwen-control-3h`: `3cf2fb32f1b3f0f553699922fa8228a068f7ae7730c1758d034d0802f77f1455` → `3f7e83ae16bc70bba68bb5c44902d796590884717e59c713e32835dee41be7f7`
+
+## Rebases
+
+- Rebased onto main 87cf6a8c7 (gateway-tool-schemas-v1 and gateway-schema-hint-v1, which also append to every registry list, presets, defaults and current.json). Conflicts in current.json, features.ts, play-preset.ts and next-run.ts, all "both appended": resolved by taking main's files and re-adding this switch after gateway-schema-hint-v1 (registry lists, FeatureSetSchema, the preset spread filter and Exclude type, normalizeFeatures, flagFeatures, DEFAULT_NEXT_RUN), last in `switches` and base false. Targeted tests rerun: agent 85, viewer 451, both `tsc --noEmit` clean. Then onto 8de58a861 (docs only), clean.

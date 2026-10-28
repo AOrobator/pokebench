@@ -102,3 +102,4 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
   the harness-engineer persona's finding that the old words could be false (a sign can show a name). Boundary amended
   in this worklog; not a correctness defect.
 - Synced main 2c8240b8b (end-reason-orthogonal; no conflicts). This switch's own registry test re-pinned by position after scene-followup-prompt-v1 instead of at(-1).
+- Synced main 791db6f3c (PokéNav fix: pokenav-short-list-v1, menu-option-honest-refusal-v1; it re-pinned scene-followup by absolute index, taken as theirs). This switch re-applied after menu-option-honest-refusal-v1 and its own pin follows it. The operator 9:14 PM: no checkpoint run or save seeding; evaluation is decision probes plus ON in both arms going forward. The operator 9:19 PM: wording "A" (the role words in code) as an operator amendment to the round-1 boundary.

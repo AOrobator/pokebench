@@ -34,8 +34,7 @@ function setup(on:boolean){
 
 describe(ID,()=>{
  it("is a default-off agent-side guidance switch registered last, needing the on-screen page data, with OFF copy",()=>{
-  // Pinned after the switch it was appended to, so a later switch never edits this test (feature-switch skill).
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("grass-strides-v1")+1);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(281);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"script-line-presence-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(SERVER_FEATURES).not.toContain(ID);

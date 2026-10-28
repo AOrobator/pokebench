@@ -16,6 +16,10 @@ link boxes wrap or toggle, which does not change either sentence. "B also answer
 only where the handler sends B down the NO branch. Source: pret/pokeemerald
 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881.
 
+neutral-yes-no-readout-v1 replaces that line with a fixed YES, NO control mapping.
+Both paths and the current selection are described without recommending an answer.
+The original switch still owns phase coverage; disabling it suppresses both formats.
+
 No line when the box is not ready, the highlighted option is unknown, the reader reports a
 coverage error, or the phase is not listed. Left out on purpose: easy_chat and mystery_gift
 (their readers do not tie the cursor to the sub-state that draws the box),
@@ -106,7 +110,7 @@ FIELD_PROMPTS: dict[str, str] = {
 YES_NO = ("YES", "NO")
 
 
-def answer_line(state: GameState) -> str | None:
+def answer_line(state: GameState, *, neutral: bool = False) -> str | None:
     ui = state.active_ui
     if (
         ui is not None
@@ -115,7 +119,7 @@ def answer_line(state: GameState) -> str | None:
         and ui.phase in FIELD_PROMPTS
         and ui.selected in YES_NO
     ):
-        return _line(ui.selected, b_answers_no=True)
+        return _line(ui.selected, b_answers_no=True, neutral=neutral)
     battle = state.battle
     if battle is None:
         return None
@@ -129,14 +133,20 @@ def answer_line(state: GameState) -> str | None:
         and prompt.ready
         and prompt.selected in YES_NO
     ):
-        return _line(prompt.selected, b_answers_no=True)
+        return _line(prompt.selected, b_answers_no=True, neutral=neutral)
     # The forfeit box (battle_controller_player.c PlayerHandleYesNoInput): B closes the box
     # without choosing, not through the NO branch, so B is not described.
     for selection in battle.player_inputs or ():
         if selection.phase == "yes_no" and selection.ready and selection.selected in YES_NO:
-            return _line(selection.selected, b_answers_no=False)
+            return _line(selection.selected, b_answers_no=False, neutral=neutral)
     return None
 
 
-def _line(selected: str, *, b_answers_no: bool) -> str:
+def _line(selected: str, *, b_answers_no: bool, neutral: bool = False) -> str:
+    if neutral:
+        # Same grounded handlers as v1; describe both choices in the game's YES/NO order.
+        yes = "A" if selected == "YES" else "UP, A"
+        no = "DOWN, A" if selected == "YES" else "A"
+        cancel = "NO" if b_answers_no else "closes this box without choosing"
+        return f"YES/NO controls: selected {selected}; YES: {yes}; NO: {no}; B: {cancel}."
     return (ANSWER_YES if selected == "NO" else ANSWER_NO) + (B_NO if b_answers_no else "")

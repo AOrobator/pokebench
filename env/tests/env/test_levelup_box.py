@@ -405,7 +405,11 @@ def _production(monkeypatch: pytest.MonkeyPatch, off: str | None) -> FastAPI:
     else:
         monkeypatch.setenv(
             "POKEBENCH_FEATURES_OFF",
-            ",".join(filter(None, (off, "coherent-battle-observation-v1"))),
+            ",".join(
+                filter(
+                    None, (off, "coherent-battle-observation-v1", "scene-journal-safe-capture-v1")
+                )
+            ),
         )
     memory = box_memory(6)
     memory.set(0x030022C4, 0x08038421)

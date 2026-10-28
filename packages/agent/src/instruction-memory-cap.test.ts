@@ -260,8 +260,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
 });
 
 describe("instruction-memory-cap-v1 registry",()=>{
- it("is a default-off guard registered after instruction-memory-dedup-v1, needing nothing, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(293);expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-dedup-v1")).toBe(292);
+ it("is a default-off guard registered after neutral-yes-no-readout-v1, needing nothing, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(295);expect(SWITCHABLE_FEATURES.indexOf("neutral-yes-no-readout-v1")).toBe(294);expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-dedup-v1")).toBe(292);
   expect(featureInfo("instruction-memory-cap-v1").description).toContain(`${String(STORY_CHECKPOINTS.length)} story checkpoints`);
   expect(featureInfo("instruction-memory-cap-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"INSTRUCTION MEMORY CAP"});
   expect(featureInfo("instruction-memory-cap-v1").description).toContain(" Off: ");

@@ -158,3 +158,9 @@ Replays, byte-identical to the reference. Control: a702 T450 10,589, T700 15,981
 - Crossed-growth regression test (coordinator OK 9:58 AM NY). It spies on JSON.stringify through the production `observedInstructions` path at 200×200 and 400×400 (episodes × visits) and allows at most one full visited-list serialization per request. RED on the round-4 code (ba17cc740 observed-instructions.ts swapped in: 615 serializations) and GREEN on this head.
 - current (coordinator): it is left out whole only when the block would pass 16,000 even with no episodes. A 4,001-char current in a small block is kept whole (tested); the 20,000-char case is still left out whole (tested). CAP_CURRENT_CHARS is removed. Text is never cut.
 - The exact-head gate follows on the CPU grant.
+
+## Merge main d361c8af1 (CPU grant relayed 12:01 PM NY)
+
+The merge conflicted only in the registry lists: features.ts, play-preset.ts, next-run.ts and current.json `features`. Each was resolved by keeping main's new entries (scene-journal-safe-capture-v1, neutral-yes-no-readout-v1) and adding the cap after them. The cap moves from index 293 to 295, and its registry test pin moves with it. current.json keeps type-gap-team-last-message-v1 and instruction-memory-cap-v1 in onInBoth, and neutral-yes-no-readout-v1 in switches. Main also removed the fixed-run launch approval, so no `just fixed-run approve` is needed.
+
+Replays after the merge are byte-identical to the reference. Control a702 T450/T700/T1301 is 10,589/15,981/15,965, and 88ea T400/T800 is 15,789/15,999. Bundle dedup is 12,065/15,948/15,977. Legacy form is 15,726/15,768/15,828. Cap tests pass 27/27.

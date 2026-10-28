@@ -399,6 +399,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
 
  "moving-npc-target-v1":"moving-npc-target-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
+ "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",
@@ -599,6 +600,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "same-target-no-progress-v1":"same-target-no-progress-v1.html",
  "story-progress-clock-v1":"story-progress-clock-v1.html",
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
+ "neutral-yes-no-readout-v1":"neutral-yes-no-readout-v1.html",
  "field-move-gates-v1":"field-move-gates-v1.html",
  "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",

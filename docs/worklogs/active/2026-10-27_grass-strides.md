@@ -62,7 +62,11 @@ subprocesses, paths or ROM handling.
 - [x] Explainer `docs/explainers/grass-strides-v1.html`, `FEATURE_EXPLAINERS` entry, README, server.test.ts page list; pages-theme + pages-check clean
 - [x] Multi-model review loop: round 2 LGTM on 7c9f32eda from Claude (subagent), Codex gpt-5.6-sol, and the fallback
 - [x] Arm placement (the operator 2026-10-27, relayed verbatim: "Let's actually have this be on in both arms."): `onInBoth` + base `features: true` in `experiments/feature-configs/current.json`; `packages/viewer/src/grass-strides-recipe.test.ts` asserts control and bundle true (and both dependencies) for all four definitions that use the current recipe. Without the recipe change it fails 4/4. Switch description and explainer status updated.
-- [ ] Landing: two-lane delta review, sync, land-join, ff-only, land-done, viewer-main
+- [x] Landing: round 5 LGTM from Codex and the Claude subagent on e9f0dd064; land-join #1 at 8:08 PM ET; `git merge --ff-only e9f0dd064` into main from 896088908. MERGE: main = e9f0dd064825699d101c2837f9ecbc8d695bfd9a.
+  - Recipe `experiments/feature-configs/current.json` sha256 f6c80529… -> 2219b7d7d7b634cb67b7996739ece617ed5321eaa143363980910ea559c337bb.
+  - Definition hashes (before -> after): bundle-v-control 69e22beb… -> 4d1bf70172d2…; bundle-v-control-2h c524f1c6… -> aac8acac7eb4…; glm53-flash-4h 3df4a91e… -> 1d887bbe9a12…; hyperqwen-control-3h f7ab9554… -> 742f2029b097….
+  - Launch approvals: only hyperqwen-control-3h has one (andrew, 2026-10-27 3:22 PM ET, definition e88187ff…). It was already stale before this landing and still needs re-approval. The other three have none recorded.
+- [ ] `just viewer-main` (slot #1), then the post-landing `just test` on main once the coordinator relays a CPU window
 
 ## Closing the Loop
 

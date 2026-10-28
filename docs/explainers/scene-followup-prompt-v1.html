@@ -107,7 +107,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <section class="card">
 <h2>What it does</h2>
-<p>When a scene plays out on its own, the next request gets one SUPERVISOR message. It quotes the scene's pages and names who was on screen, then asks the model to talk to the nearest of them before following older plans. The next tool result clears it. The message is built from the game's own pages and object list, whole and in order, never truncated. It names nothing the game did not show, and it says nothing about what the scene leads to.</p>
+<p>When a scene plays out on its own, the next request gets one SUPERVISOR message. It quotes the scene's pages and names who was on screen, then asks the model to talk to the nearest of them before following older plans. The note joins each request until the model has answered one that carried it, so other results in the same turn can't drop it, and the model reads it once. The message is built from the game's own pages and object list, whole and in order, never truncated. It names nothing the game did not show, and it says nothing about what the scene leads to.</p>
 <p><b>Off:</b> no message; every request is unchanged. The system prompt is the same in both arms.</p>
 </section>
 
@@ -122,7 +122,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
  <text x="40" y="135">3. The player stood on the same tile on those pages.</text>
  <text x="40" y="165">4. Control returned to the field when the call ended.</text>
  <text x="40" y="195">5. No page has a speaker by name (nobody in the scene addressed the player).</text>
- <text x="40" y="225" fill="#2f7d4f" font-weight="700">→ the request after that call's result gets the note; the next result clears it.</text>
+ <text x="40" y="225" fill="#2f7d4f" font-weight="700">→ the next request gets the note; it's gone once the model has answered it.</text>
 </svg>
 <figcaption>All five are game state from the recorded dialogue pages. Across 494 recorded runs, the rule fires only on the Rustboro theft scene (11 of 11 runs that saw it). It stays silent on 63 other story scenes, where someone had already spoken to the player.</figcaption>
 </figure>

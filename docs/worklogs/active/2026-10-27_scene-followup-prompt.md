@@ -66,3 +66,8 @@ Branch reset onto main 896088908 (the unlanded system-prompt version is kept at 
   - live.ts autoTalkContext wraps outside contextTools and can append after the note in rare loop cases. The play-wiring comment overclaims "final message".
   - a text-only reply resends the note without a new ledger_context; a continuation restore may deliver it once without a ledger record.
   - boundary text said type-gap-registry shifted (it no longer is); a redundant legacy-features entry.
+
+### M2 fix (coordinator: reviewer note 1 is a real delivery bug)
+- [x] RED 6300479d7: same-turn second tool result dropped the note; a text-only reply resent it.
+- [x] GREEN: the note is armed by the scene's own tool result, joins each request until a non-error assistant reply follows a request that carried it, then is cleared for good. A failed model call keeps it. ledger_context is recorded once, at first delivery. 14/14 scene-followup tests; targeted agent tests 70/70; production replay at 9e33 t1385 still ends in the exact probe note.
+- Follow-up kept: live.ts autoTalkContext can append after the note in rare loop cases.

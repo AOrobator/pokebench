@@ -8,11 +8,11 @@ Contract: unseen tiles are unknown; previously visible terrain is remembered wit
 
 Source: separate clean pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, matching US ROM SHA1 f3ae088181bf583e55daf962a92bb46f4f1d07b7. `field_screen_effect.c` sFlashLevelToRadius/SetFlashScanlineEffectWindowBoundaries; `overworld.c` SetFlashLevel; ObjectEvent/Sprite rendered OAM layouts. GraniteCave 1F requires_flash=false, B1F=true. Qwen88ea seq69727/69730: entry5,27, flash7, entire map and Brawly4,3 exposed; seq69759 targets that disclosed tile. Original evidence remains immutable.
 
-- [ ] RED regression and production-path tests.
-- [ ] GREEN switch, memory/projection and both-arm recipe wiring.
-- [ ] Native archive replay paired with frames; exact OFF invariance; performed wiring mutation.
-- [ ] Explainer/card routing and background browser proof.
-- [ ] Full build/lint/coverage/vendor gates; principles and independent review.
+- [x] RED regression and production-path tests.
+- [x] GREEN switch, memory/projection and both-arm recipe wiring.
+- [x] Native archive replay paired with frames; exact OFF invariance; performed wiring mutation.
+- [x] Explainer/card routing and background browser proof.
+- [x] Full build/lint/coverage/vendor gates; principles and independent review.
 
 Stop before a gameplay launch. Landing only under repository review/landing-board gates; disclose any unavailable proof rather than claiming live correction.
 
@@ -71,3 +71,17 @@ Granted12:29 fullsuite on b59f0a23e: agent4781PASS, viewer2217PASS with coverage
 R4 final available roster allLGTM after fixing the wrong-operand mutation receipt using unique empty bytecache percase (all12 actual failures and independentfresh105PASS). Verified standing human Grok waiver from primary Claude coordinator record f7406a93 JSONL4145/4964/6309: Oct21 yes dont wait for grok; Oct22 land without grok, explicitly relayed as blanket cross-task approval. Reduced vendor diversity remains disclosed; no repeated waiver question needed. Deterministic fullgate and landingboard stillrequired.
 
 Synced landed PokéNav auto-advance through606bf6d24 before retry; preserved its schema/readers/defaults and tests, visibility appended at297 after landed IDs. Both current arms remainON. No additional visibility behavior.
+
+### Landing and live proof
+
+Final R5 frozen review: base606bf6d24dc75fa58d298a3bf93bcd650bee89ff, head32edba5db07caadf3c3aecc26fffde1f34a235a9; exact binarydiff9409e6f18c644e3a1414b70be0d52c1f890abfdcb16eb7b7c018589b82447950. Claude CLI, normal independent GPT, distinct Sol and Astra all VERDICT: LGTM with clean pre/post identity. All PB1-PB13 PASS/N/A, zeroFAIL, all9 test-quality checks accepted. Reducedvendor diversity disclosed; verified standing human Grok waiver applies, no Grok approval claimed. R4 wrongoperand receipt was corrected using separate empty bytecache per mutation; all12 intended assertions falsified, restored105PASS. New measurementfact corruption separatelyRED/restoredGREEN. Final focused164PASS. Nonblocking conservative snapshotrewind memoryloss and fixturehelper coupling remain disclosed. No new runtime scope from review.
+
+Fulljusttest on32edba5db PASS4803agent/2224viewer/4659Python/116gateway +3protected card baselines; all90% coveragefloors pass. Synced documentation-only main17abafda5 into92b6b8fb8; diff compared byte-for-byte to reviewedpacket, same9409e6f1...47950. Only incomingPokéNavworklog changed. Local WORKLOG.md integration receipt recorded this sync without changing reviewed feature diff. Required prelanding build/lint/fulltest passed again on92b6b8fb8. Vendor pristine. Generated event schema matches TypeBox output. Native gym/cave replay refreshed against606bf6d24: OFFtext/stateJSON identical, gym504→4knowncells with remoteBrawly removed, unlitGraniteB1F832→5; sourceframes inspected, originalarchives unchanged.
+
+Actual chat 00000000-0000-4000-8000-813dbe13e931 joined board#1 at12:47EDT. Main FF17abafda5→92b6b8fb828f0a63ee8281097e6c2c28bed89bce, reviewed diff unchanged. Canonical justbuild refreshed generatedpackageexports before postlanding justtest. Postlanding fullgate PASS4803agent/2224viewer/4659Python/116gateway +3approvedcards, allcoveragefloors pass; no stale-dist failure on this landing. No gate skipped, softened or ignored. Logs and failure histories retained under runs/reviews/player-map-visibility.
+
+Single coordinated viewer refresh12:54:03EDT under nonblocking shared flock /private/tmp/pokebench-latest-main-prepare.lock and coordinator's serial grant. Clean detached runtime /Users/user/.cache/pokebench/viewer-player-map-visibility-92b6b8fb828f, servedstamp92b6b8fb8 dirtyfalse, sole8790listener61820. All6 protected PID/start/command identities survived exactly. Run inventory558→558, no lost/new/duplicate entries, no older-build problem. No active game/server/runner was restarted, noGPU/inference work or gameplay launch.
+
+Served runtime materializes bundle-v-control, bundle-v-control-2h, glm53-flash-4h and hyperqwen-control-3h with controlON/bundleON for this feature, every phase preset verified. Backgroundbrowser real HarnessConfig→featuresearch→READ EXPLAINER clicks at1280/1440/375 succeed with zero pageerrors; desktopandphone screenshots opened/inspected. Existing9c88 correctly remains NOT RECORDED; no historical setting backfill. Its actual decoded240x160 liveblob frame saysRUNNING and live-stage screenshot opened/inspected. Canonical localexplainer returns200 with exacttrackedbytes. Candidate syntheticON card proof remains explicitly labeled offline; nativearchives plus productionconsumer/mutationtests prove behavior, no gameplaybenefit claim.
+
+COMMIT: landing and live evidence only, permitted postlanding docs/worklogs exception. Worklog remains active; archive requires explicit approval. Existing runs retain original pins/settings. New current-recipe runs use visibility in both arms; no new experiment launched.

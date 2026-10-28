@@ -1,3 +1,4 @@
+import type {CurrentBrowser,CurrentBrowserOptions,CurrentBrowserState} from "./current-browser.js";
 import {isExtensionAction,isTimeExtension,TIME_EXTENSIONS,TURN_EXTENSIONS,type ExtensionAction} from "./budget-extensions.js";
 import { visualSplitView } from "./visual-split-view.js";
 import { metricHistory } from "./metric-history.js";
@@ -35,6 +36,8 @@ export interface FrameStreamLike {
 }
 
 export interface AppDeps {
+  snapshotFirst?:boolean;
+  currentFactory?:(options:CurrentBrowserOptions)=>CurrentBrowser;
   fetchJson(url: string): Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
@@ -206,6 +209,13 @@ export class App {
   clock: ReplayClock | null = null;
   view = new RunView();
   private shown = new RunView();
+  private current:CurrentBrowser|null=null;
+  private currentApplied:CurrentBrowserState["snapshot"]=null;
+  private currentHistory=new RunView();
+  private currentHistoryEvents:readonly RunEvent[]=[];
+  private currentCatalog:RunChoice[]=[];
+  private currentCatalogTask:Promise<void>|null=null;
+  private recording:RunView|null=null;
   private runs: RunChoice[] = [];
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
   private art: LoadedArt | null = null;
@@ -298,6 +308,8 @@ export class App {
   }
 
   // An unended run whose game server no longer answers: not controllable.
+  private get controlLive():boolean{return this.live&&(this.current?.state.selected!==this.runId||(!this.current.state.stale&&this.current.state.snapshot?.control!=null));}
+
   private get unresponsive(): boolean {
     return this.mode === "live" && this.view.end === null && this.runs.find((run) => run.id === this.runId)?.live === false;
   }
@@ -417,7 +429,7 @@ export class App {
   }
 
   async control(action: ControlAction): Promise<void> {
-    if (this.runId === null || !availableActions(this.view, this.live).has(action)) return;
+    if (this.runId === null || !availableActions(this.view, this.controlLive).has(action)) return;
     try {
       await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(this.runId)}/control`, { action });
     } catch (error) {
@@ -430,7 +442,7 @@ export class App {
   private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
 
   private openExtension(): void {
-    if (!availableActions(this.view, this.live).has("extend_30m")) return;
+    if (!availableActions(this.view, this.controlLive).has("extend_30m")) return;
     this.extensionMessage = "";
     this.updateExtension();
     this.extensionDialog().showModal();
@@ -461,7 +473,7 @@ export class App {
     const turnLimit=this.view.effectiveTurnLimit ?? 0;
     this.ui("extend-time-label").hidden=!time;
     this.ui("extend-turn-label").hidden=time;
-    const supported=availableActions(this.view,this.live).has(action);
+    const supported=availableActions(this.view,this.controlLive).has(action);
     this.ui("extend-capability").textContent=supported?"":"This running build does not support this extension. Its current limits are shown below.";
     this.ui("extend-run").textContent = this.runId;
     this.ui("extend-preview").textContent = !time ? `Turn limit: ${turnLimit.toLocaleString("en-US")} → ${(turnLimit+addition).toLocaleString("en-US")} · remaining after extension: ${Math.max(0,turnLimit+addition-this.view.turn).toLocaleString("en-US")}` : `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
@@ -476,9 +488,9 @@ export class App {
   }
 
   private async extendRun(): Promise<void> {
-    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
+    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.controlLive).has("extend_30m")) return;
     const value = this.selectedExtension();
-    if(!availableActions(this.view,this.live).has(value))return;
+    if(!availableActions(this.view,this.controlLive).has(value))return;
     const pending = { run: this.runId, action: value, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
     this.extensionPending = pending;
     this.extensionMessage = "";
@@ -500,7 +512,7 @@ export class App {
   }
 
   pressAbort(): void {
-    if (this.holdStart === null && availableActions(this.view, this.live).has("abort")) this.holdStart = this.deps.now();
+    if (this.holdStart === null && availableActions(this.view, this.controlLive).has("abort")) this.holdStart = this.deps.now();
     this.render();
   }
 
@@ -620,6 +632,12 @@ export class App {
     this.ui("gba").innerHTML = gbaSvg();
     this.wire();
     void this.next.load();
+    if(this.deps.snapshotFirst===true){
+      const create=this.deps.currentFactory??(await import("./current-browser.js")).createCurrentBrowser;
+      this.current=create({fetchJson:url=>this.deps.fetchJson(url),changed:state=>{this.currentChanged(state);}});
+      const wanted=/^#(?:run|replay)=(.+)$/.exec(this.deps.hash)?.[1],pending=this.current.start(wanted===undefined?null:decodeURIComponent(wanted));
+      void this.loadArt();await pending;void this.refreshRuns();this.render();return;
+    }
     this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
     const first = preferredRun(this.runs, this.deps.hash);
     if (first === undefined) {
@@ -630,6 +648,32 @@ export class App {
     this.select(first.id, !this.deps.hash.startsWith("#replay="));
     void this.pollCards();
   }
+
+  private currentChanged(state:Readonly<CurrentBrowserState>|null):void {
+    if(state===null||this.current===null)return;const now=this.deps.now();
+    this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:state.runs.map(s=>({...s.run,elapsedMs:s.run.elapsedMs===null?null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)}))};
+    const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;
+    if(state.selected!==null){
+      if(this.runId!==state.selected)this.resetSelection(state.selected,true);
+      const snapshot=state.snapshot;
+      if(snapshot!==null&&snapshot!==this.currentApplied){
+        if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
+        const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
+        if(first){void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+      }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
+      if(state.history!==this.currentHistoryEvents){
+        const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
+        const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traced=0;this.traceKey=this.sideKey="";}
+        if(state.history.length>0)this.setRecordedThinking(history,state.history);
+      }
+      this.historyLoading=state.historyLoading;this.historyBefore=state.before===null?null:state.history[0]?.seq??null;this.ensureFrameStream(now);
+      if(snapshot?.end!==null&&snapshot!==null){this.select(snapshot.id,false);return;}
+    }
+    this.render();
+  }
+
+  async pollCurrent():Promise<void>{await this.current?.poll();}
+  dispose():void{this.current?.close();this.stream?.close();this.closeFrameStream();}
 
   private loadArt(): Promise<void> {
     if (this.artLoad !== null) return this.artLoad;
@@ -668,6 +712,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
+    if(this.current!==null){await this.loadArt();this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
@@ -712,6 +757,8 @@ export class App {
   // Runs start after the page loads (a batch of measured runs); pick them up
   // without ever switching away from a run that is live or deliberately chosen.
   async refreshRuns(): Promise<void> {
+    if(this.current!==null){if(this.currentCatalogTask!==null)return this.currentCatalogTask;const task=this.deps.fetchJson("/api/runs").then(value=>{this.currentCatalog=runChoices(value);this.currentChanged(this.current?.state??null);}).catch(()=>{}).finally(()=>{this.currentCatalogTask=null;});this.currentCatalogTask=task;return task;}
+
     let runs: RunChoice[];
     try {
       runs = runChoices(await this.deps.fetchJson("/api/runs"));
@@ -1043,7 +1090,7 @@ export class App {
     this.recordedThinkingTrace = trace;
   }
 
-  select(runId: string, automatic = false): void {
+  private resetSelection(runId:string,automatic:boolean):void {
     this.extensionDialog().close();
     this.extensionPending = null;
     this.extensionMessage = "";
@@ -1090,6 +1137,20 @@ export class App {
     this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
+    this.recording=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];
+  }
+
+  select(runId:string,automatic=false):void {
+    if(this.current!==null&&this.runs.find(run=>run.id===runId)?.ended!==true){this.resetSelection(runId,automatic);void this.current.select(runId);void this.pollCards();this.render();return;}
+    const preserve=this.current!==null&&this.runId===runId&&this.view.start!==null;
+    if(this.current!==null)void this.current.select(null);
+    this.selectRecorded(runId,automatic,preserve);
+  }
+
+  private selectRecorded(runId:string,automatic=false,preserve=false):void {
+    const retained=preserve?this.view:null;this.resetSelection(runId,automatic);
+    if(retained!==null)this.view=this.shown=retained;
+    if(this.current!==null)this.recording=new RunView();
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events?head=1`);
     this.stream = stream;
     this.ensureFrameStream(this.deps.now());
@@ -1112,10 +1173,10 @@ export class App {
         this.recordedThinkingRequest += 1;
         const view = new RunView();
         view.operatorTurnLimit=this.view.operatorTurnLimit;
-        const merged = new Map([...this.view.events, ...events].map(event => [event.seq, event]));
+        const merged = new Map([...(this.recording??this.view).events, ...events].map(event => [event.seq, event]));
         for (const event of [...merged.values()].sort((a, b) => a.seq - b.seq)) view.apply(event);
         this.historyBefore = this.historyCursor(view.events);
-        this.view = this.shown = view;
+        this.view = this.shown = view;this.recording=null;
         this.headReady = true;
         this.mode = view.end === null ? "live" : "loading";
         this.setRecordedThinking(view, view.events);
@@ -1144,6 +1205,7 @@ export class App {
       // The fully folded stream is authoritative now. A slower optional head
       // request must not replace or clear it after this handoff.
       this.recordedThinkingRequest += 1;
+      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;}
       this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
@@ -1157,6 +1219,7 @@ export class App {
       if (this.stream !== stream) return;
       this.closeFrameStream();
 
+      if(this.recording!==null){this.view=this.recording;this.shown=this.view;this.recording=null;}
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
@@ -1176,6 +1239,7 @@ export class App {
   }
 
   private async loadOlderHistory(): Promise<void> {
+    if(this.current?.state.selected===this.runId){await this.current.history(true);return;}
     const run = this.runId, before = this.historyBefore;
     if (run === null || before === null || this.historyLoading) return;
     const request = ++this.historyRequest;
@@ -1235,8 +1299,9 @@ export class App {
       this.problem(`event for run ${value.run}`);
       return;
     }
-    const eventCount = this.view.events.length;
-    this.view.apply(value);
+    const intake=this.recording??this.view;
+    const eventCount = intake.events.length;
+    intake.apply(value);
     if (this.mode !== "loading" && this.recordedThinking === this.view && this.view.events.length > eventCount) this.recordedThinkingTrace?.add(value);
   }
 
@@ -1291,8 +1356,10 @@ export class App {
   }
 
   // The attribution without the message itself, which the row body already shows.
+  private traceOwner():RunView{return this.current?.state.selected===this.runId?this.currentHistory:this.shown;}
+
   private newTrace(): TraceBuilder {
-    return new TraceBuilder((event) => this.shown.loopLabel(event).replace(`: ${event.message}`, ""));
+    return new TraceBuilder((event) => this.traceOwner().loopLabel(event).replace(`: ${event.message}`, ""));
   }
 
   private resetTrace(): void {
@@ -1315,11 +1382,13 @@ export class App {
 
   private holdTrace(list: HTMLElement): void {
     this.held.add(list);
+    if(list===this.ui("trace"))this.current?.holdHistory(true);
     this.traceFollowButton(list);
   }
 
   private resumeTrace(list: HTMLElement): void {
     this.held.delete(list);
+    if(list===this.ui("trace")&&this.current?.state.selected===this.runId){this.current.holdHistory(false);void this.current.history();}
     this.tracePending.delete(list);
     this.scrollTo(list, 0);
     this.traceFollowButton(list);
@@ -1394,23 +1463,23 @@ export class App {
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
     this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
-    const owner = row.closest('[data-ui="side-trace"]') === null ? this.shown : this.recordedThinking;
+    const owner = row.closest('[data-ui="side-trace"]') === null ? this.traceOwner() : this.recordedThinking;
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
     this.setHtml("inspector", seqs.map((seq) => inspector(owner?.bySeq(seq))).join(""));
   }
 
   private renderTrace(nowMs: number): void {
-    const events = this.shown.events;
+    const activity=this.traceOwner(),events=activity.events;
     for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
-    const live = this.shown.isThinking ? { turn: this.shown.turn } : null;
+    const live = this.current?.state.selected===this.runId?(this.current.state.snapshot?.phase.kind==="thinking"?{turn:this.view.turn}:null):activity.isThinking?{turn:activity.turn}:null;
     const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}|${String(this.historyBefore)}|${String(this.historyLoading)}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
       this.traceKey = key;
       this.traceUpdated(box, this.trace.version);
       this.renderChips();
-      const startMs = this.shown.startMs;
-      const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
+      const startMs=activity.startMs;
+      const elapsed=startMs===null||(this.current?.state.selected===this.runId&&this.current.state.before!==null)?null:(ms:number):number=>(ms-startMs-activity.control.pausedBefore(ms))/1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0), page: TRACE_TURNS });
       const older = more > 0 ? moreButton(more, TRACE_TURNS) : this.historyBefore === null ? "" : `<button type="button" class="pbtn trace-more" data-trace-more data-history-more${this.historyLoading ? " disabled" : ""}>${this.historyLoading ? "LOADING OLDER TURNS…" : "LOAD OLDER TURNS"}</button>`;
       reconcile(box, groups, (groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
@@ -1468,7 +1537,7 @@ export class App {
     const mode = this.ui("mode");
     mode.textContent = label.text;
     mode.className = `mode ${label.cls}`;
-    this.setHtml("run-controls", controlBar(view, live, this.holdFraction()));
+    this.setHtml("run-controls", controlBar(view, this.controlLive, this.holdFraction()));
     const historyStatus = this.ui("history-status");
     historyStatus.hidden = this.historyBefore === null;
     historyStatus.textContent = this.historyLoading ? "Loading older history…" : "Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
@@ -1481,7 +1550,8 @@ export class App {
         layer.innerHTML = markup;
       }
     }
-    this.setHtml("stats", sideStats(view, nowMs));
+    const current=this.current?.state.selected===this.runId?this.current.state:null;
+    this.setHtml("stats", sideStats(view,nowMs,current?.snapshot===null||current===null?undefined:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
@@ -1525,13 +1595,14 @@ export class App {
     this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_turns:view.effectiveTurnLimit, max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
-    this.setHtml("budgets", budgets(view, nowMs));
-    this.setHtml("counters", counters(view));
-    this.setHtml("metric-history", metricHistory(view));
+    const totalsKnown=current===null||current.snapshot?.complete===true;
+    this.setHtml("budgets",totalsKnown?budgets(view,nowMs):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');
+    this.setHtml("counters",totalsKnown?counters(view):'<p class="nodata">Lifetime totals are still loading.</p>');
+    this.setHtml("metric-history", metricHistory(this.traceOwner()));
     const split = splits(view, this.baseline, nowMs, this.frontier);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
-    this.setHtml("lanes", lanesSvg(view, nowMs));
+    this.setHtml("lanes",lanesSvg(this.traceOwner(),nowMs));
     this.renderTrace(nowMs);
     this.renderBag();
     this.renderScreen(nowMs);
@@ -1598,6 +1669,7 @@ export interface BootWindow {
 
 export async function boot(win: BootWindow): Promise<App> {
   const app = await mountApp(win.document, {
+    snapshotFirst:new URL(win.location.href).searchParams.get("current")==="1",
     fetchJson: async (url) => {
       const response = await win.fetch(url);
       if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
@@ -1637,5 +1709,6 @@ export async function boot(win: BootWindow): Promise<App> {
     void app.next.poll();
   }, RUN_LIST_MS);
   win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
+  if(new URL(win.location.href).searchParams.get("current")==="1")win.setInterval(()=>{void app.pollCurrent();},500);
   return app;
 }

@@ -38,11 +38,11 @@ it("selects an ended catalog run when the recent current index is empty and pres
  expect(app.view.tokens.input).toBe(500);expect(document.querySelector('[data-ui="counters"]')?.textContent).not.toContain("Lifetime totals are still loading");
 });
 it("defers cold frontier grading until the existing splits page is requested",async()=>{
- dom();const f=currentFixture(),urls:string[]=[];
- const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);return defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
+ dom();const f=currentFixture(),urls:string[]=[];let frontierReads=0;
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]});if(url.endsWith("/frontier")){frontierReads++;return Promise.resolve({state:frontierReads===1?"loading":"ready",frontier:null});}return defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
  expect(app.view.tokens.input).toBe(500);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(false);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();
- expect(urls).toContain(`/api/runs/${RUN}/frontier`);expect(urls.some(url=>url.includes("comparisons"))).toBe(true);
+ expect(urls).toContain(`/api/runs/${RUN}/frontier`);expect(urls.some(url=>url.includes("comparisons"))).toBe(true);for(let i=0;i<6;i++)await Promise.resolve();expect(frontierReads).toBe(1);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("loading the frontier run");await app.pollCards();expect(frontierReads).toBe(2);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("no frontier run to compare yet");
 });
 
 it("retains source-guarded display splits without seeding current counters or eligibility",async()=>{

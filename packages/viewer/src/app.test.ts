@@ -1009,7 +1009,7 @@ describe("boot", () => {
     const win = {
       document,
       location: { hash: "", href: "http://127.0.0.1:8790/" },
-      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(url==="/api/current-runs"?current.list:url.endsWith("/current")?current.detail:url==="/api/runs"?RUNS:null)).then((body) => new Response(JSON.stringify(body)))),
+      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(url==="/api/current-runs"?current.list:url.endsWith("/current")?current.detail:url==="/api/runs"?RUNS:null)).then((body) => new Response(JSON.stringify(body),{headers:{date:new Date(BASE_MS+4000).toUTCString()}}))),
       EventSource: class extends FakeStream {
         constructor(url: string) {
           super(url);
@@ -1032,6 +1032,8 @@ describe("boot", () => {
     expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
     expect(streams).toHaveLength(0);
     expect(frames[0]?.url).toBe(`ws://127.0.0.1:8790/api/runs/${current.snapshot.id}/frames`);
+    expect(ui("mode").textContent).toBe("RUNNING");
+    expect(ui("run-controls").querySelector<HTMLButtonElement>('[data-control="pause"]')?.disabled).toBe(false);
     expect(intervals).toHaveLength(4);
     intervals[0]?.();
     expect(app.mode).toBe("live");

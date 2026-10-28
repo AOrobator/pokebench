@@ -17,6 +17,23 @@ Service stderr: `~/.cache/pokebench/<root hash>/current-service.stderr.log`.
 
 `POKEBENCH_VIEWER_WORKTREE` remains an explicit viewer build path override. It must be new or clean at the requested main commit; preparation refuses to retarget an existing mismatched checkout. Leave it unset for automatic version-pinned caching. The canonical environment venv remains shared for existing human-run launch behavior.
 
+## Resolve the running viewer for read-only checks
+
+Use the existing environment Python, without restarting anything:
+
+```python
+from pathlib import Path
+from pokebench_env.current_runtime import serving_viewer_tree
+
+served = serving_viewer_tree(Path("/Users/user/dev/pokebench"))
+print(served)
+print((served / "packages/viewer/dist/build-stamp.json").read_text())
+```
+
+The resolver reads the sole 8790 listener PID and its argv, requires this root's environment/runs paths and the supported built CLI, and refuses missing, ambiguous or foreign listeners. Cached builds can coexist; their existence does not prove they serve 8790. Supply the verified path explicitly through the existing `POKEBENCH_VIEWER_WORKTREE` when running the read-only frontier helper. No implicit temporary-tree default remains. Use that override only for the analysis command, rather than leaving an old pin exported for a future refresh.
+
+The latest-main controller resolves its normal stamp from that listener. It hands its existing shared preparation lock off around `viewer-main`, then reacquires it before its unchanged captured-main/stop/pause/busy and launch guards. This avoids a nested lock acquisition; it does not restart or signal an existing player or game.
+
 ## Rollout checks
 
 1. Record the current 8790 listener's PID, start time, CLI path and served build stamp. Record all live player, game-server, bridge and runner PIDs and start times. Preserve the existing compiled viewer path for rollback.

@@ -1,4 +1,8 @@
-const viewer = process.env.POKEBENCH_VIEWER_WORKTREE ?? "/private/tmp/pokebench-viewer";
+const viewer = process.env.POKEBENCH_VIEWER_WORKTREE;
+if (viewer === undefined || viewer.trim() === "") {
+  console.error("Set POKEBENCH_VIEWER_WORKTREE to the verified tree serving 8790; no default viewer tree is assumed.");
+  process.exit(1);
+}
 let FRONTIER_MILESTONES, frontierReferences, parseWorkbench;
 try {
   ({ FRONTIER_MILESTONES, frontierReferences } = await import(`${viewer}/packages/viewer/dist/frontier.js`));

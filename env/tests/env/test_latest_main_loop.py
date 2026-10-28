@@ -710,7 +710,8 @@ def test_unrelated_reused_pid_does_not_own_a_game_lane(
 
 
 def test_viewer_refresh_hands_off_and_reacquires_the_existing_prepare_lock(
-    rig: tuple[Config, FakeHost, Controller], monkeypatch: pytest.MonkeyPatch,
+    rig: tuple[Config, FakeHost, Controller],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import fcntl
 
@@ -737,9 +738,11 @@ def test_viewer_refresh_hands_off_and_reacquires_the_existing_prepare_lock(
 
 
 def test_normal_viewer_freshness_reads_the_actual_serving_tree(
-    rig: tuple[Config, FakeHost, Controller], monkeypatch: pytest.MonkeyPatch,
+    rig: tuple[Config, FakeHost, Controller],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from dataclasses import replace
+
     from pokebench_env import current_runtime
 
     c, host, _ = rig
@@ -760,3 +763,47 @@ def test_normal_viewer_freshness_reads_the_actual_serving_tree(
     assert calls == [c.repo]
     stamp.write_text(json.dumps({"commit": A, "dirty": True}))
     assert Controller(config, host).viewer_current(A) is False
+
+
+def test_viewer_refresh_failure_reacquires_the_existing_caller_lock(
+    rig: tuple[Config, FakeHost, Controller],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fcntl
+
+    c, host, controller = rig
+    original = host.run
+
+    def run(args: list[str], cwd: Path) -> str:
+        if args == ["just", "viewer-main"]:
+            with c.prepare_lock.open("a") as contender:
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            raise subprocess.CalledProcessError(1, args)
+        return original(args, cwd)
+
+    monkeypatch.setattr(host, "run", run)
+    with c.prepare_lock.open("a") as shared:
+        fcntl.flock(shared, fcntl.LOCK_EX)
+        with pytest.raises(subprocess.CalledProcessError):
+            controller.prepare(A, shared)
+        with c.prepare_lock.open("a") as contender:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    assert host.children == []
+
+
+def test_main_change_during_viewer_lock_handoff_starts_no_trial(
+    rig: tuple[Config, FakeHost, Controller],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, host, controller = rig
+    original = host.run
+
+    def run(args: list[str], cwd: Path) -> str:
+        if args == ["just", "viewer-main"]:
+            host.pin = B
+        return original(args, cwd)
+
+    monkeypatch.setattr(host, "run", run)
+    assert controller.trial(LANE, "bundle") is False
+    assert host.children == []

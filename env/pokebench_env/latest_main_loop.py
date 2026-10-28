@@ -16,8 +16,10 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TextIO
 from urllib.parse import urlsplit
+
+from pokebench_env import current_runtime
 
 
 class Child(Protocol):
@@ -74,7 +76,7 @@ class Config:
     retry_sleep: float = 300
     stop_override: Path | None = None
     pause_override: Path | None = None
-    viewer_stamp: Path = Path("/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json")
+    viewer_stamp: Path | None = None
     # Another definition on the same fresh main whose arms every trial takes (`--feature-recipe`).
     feature_recipe: str | None = None
     # Shared by every controller on this Mac: launcher builds, fixed trees and viewer restarts.
@@ -253,9 +255,18 @@ class Controller:
         return False
 
     def viewer_current(self, pin: str) -> bool:
-        if not self.c.viewer_stamp.exists():
+        stamp = self.c.viewer_stamp
+        if stamp is None:
+            try:
+                tree = current_runtime.serving_viewer_tree(
+                    self.c.repo, read=lambda args: self.h.run(list(args), self.c.repo)
+                )
+                stamp = tree / "packages/viewer/dist/build-stamp.json"
+            except (OSError, RuntimeError, subprocess.CalledProcessError):
+                return False
+        if not stamp.exists():
             return False
-        viewer = json.loads(self.c.viewer_stamp.read_text())
+        viewer = json.loads(stamp.read_text())
         if (
             viewer.get("dirty") is not False
             or re.fullmatch(r"[0-9a-f]{40}", str(viewer.get("commit"))) is None
@@ -267,7 +278,7 @@ class Controller:
         except subprocess.CalledProcessError:
             return False
 
-    def prepare(self, pin: str) -> Path:
+    def prepare(self, pin: str, shared: TextIO | None = None) -> Path:
         tree = self.c.launchers / pin
         if not (tree / ".git").exists():
             self.h.run(
@@ -357,7 +368,13 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
             )
             stamp.write_text(pin + "\n")
         if not self.viewer_current(pin):
-            self.h.run(["just", "viewer-main"], self.c.repo)
+            if shared is not None:
+                fcntl.flock(shared, fcntl.LOCK_UN)
+            try:
+                self.h.run(["just", "viewer-main"], self.c.repo)
+            finally:
+                if shared is not None:
+                    fcntl.flock(shared, fcntl.LOCK_EX)
             if not self.viewer_current(pin):
                 raise ValueError("viewer refresh did not serve the captured main build")
         return tree
@@ -373,7 +390,7 @@ const problem=await host.verifyBuild(commit);if(problem!==null)throw new Error(p
                 raise ValueError(
                     "main changed this lane's port or model pool; restart the controller"
                 )
-            tree = self.prepare(pin)
+            tree = self.prepare(pin, shared)
             if (
                 self.head() != pin
                 or self.observe_stop()
@@ -484,10 +501,11 @@ def main() -> None:
         retry_sleep=float(os.environ.get("RETRY_SLEEP", "300")),
         stop_override=Path(os.environ["STOP_FILE"]) if "STOP_FILE" in os.environ else None,
         pause_override=Path(os.environ["PAUSE_FILE"]) if "PAUSE_FILE" in os.environ else None,
-        viewer_stamp=Path(
-            os.environ.get("POKEBENCH_VIEWER_WORKTREE", "/private/tmp/pokebench-viewer")
-        )
-        / "packages/viewer/dist/build-stamp.json",
+        viewer_stamp=(
+            Path(os.environ["POKEBENCH_VIEWER_WORKTREE"]) / "packages/viewer/dist/build-stamp.json"
+            if os.environ.get("POKEBENCH_VIEWER_WORKTREE")
+            else None
+        ),
         feature_recipe=os.environ.get("FEATURE_RECIPE") or None,
         prepare_lock=Path(
             os.environ.get("PREPARE_LOCK", "/private/tmp/pokebench-latest-main-prepare.lock")

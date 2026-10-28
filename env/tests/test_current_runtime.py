@@ -99,7 +99,7 @@ def test_prepare_builds_once_and_never_retargets_an_existing_pin(tmp_path):
     assert prepare(root, tmp_path / "cache", run=run) == tree
     assert (tree / "env/.venv").is_symlink()
     assert (tree / "env/.venv").readlink() == root / "env/.venv"
-    assert not (tree / ".current-runtime-ready").exists()
+    assert (tree.parent / f".{tree.name}.current-runtime-ready").read_text() == commit + "\n"
     count = len(calls)
     assert prepare(root, tmp_path / "cache", run=run) == tree
     assert all("checkout" not in call and "reset" not in call for call in calls)
@@ -287,7 +287,9 @@ def test_serving_viewer_tree_uses_the_listener_not_an_old_cached_build(tmp_path)
     ]
 
 
-@pytest.mark.parametrize("listeners,command", [("1\n2\n", ""), ("bad", ""), ("1", "unrelated process")])
+@pytest.mark.parametrize(
+    "listeners,command", [("1\n2\n", ""), ("bad", ""), ("1", "unrelated process")]
+)
 def test_serving_viewer_tree_refuses_ambiguous_or_foreign_listeners(tmp_path, listeners, command):
     from pokebench_env.current_runtime import serving_viewer_tree
 

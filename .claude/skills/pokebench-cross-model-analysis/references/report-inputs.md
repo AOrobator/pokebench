@@ -1,6 +1,6 @@
 # Extraction workflow
 
-Resolve the PokéBench repository explicitly (the skill can be installed outside it). Save the running viewer’s workbench response once, without restarting it. The `--frontier-source` must be the source alongside the built viewer used for that snapshot, commonly `/private/tmp/pokebench-viewer/packages/viewer/src/frontier.ts`. Its sibling `dist/frontier.js` supplies grading-support checks. The recovery extractor requires an existing compatible `<repo>/packages/agent/dist/loop-recovery.js`; do not rebuild an active measured checkout merely to analyze it.
+Resolve the PokéBench repository explicitly (the skill can be installed outside it). Save the running viewer’s workbench response once, without restarting it. The `--frontier-source` must be the source alongside the built viewer used for that snapshot, resolved from the actual 8790 listener using `pokebench_env.current_runtime.serving_viewer_tree` (see `docs/current-run-snapshots-operations.md`), never assumed from a temporary directory or current main. Its sibling `dist/frontier.js` supplies grading-support checks. The recovery extractor requires an existing compatible `<repo>/packages/agent/dist/loop-recovery.js`; do not rebuild an active measured checkout merely to analyze it.
 
 Create a manifest before ranking:
 

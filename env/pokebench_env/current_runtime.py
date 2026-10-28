@@ -34,6 +34,23 @@ def _call(run: Runner, args: Sequence[str], cwd: Path | None = None) -> str:
     return run(list(args), cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
 
 
+def serving_viewer_tree(root: Path, *, read: Callable[[Sequence[str]], str] | None = None) -> Path:
+    output = read if read is not None else lambda args: _call(subprocess.run, args)
+    listeners = output(["lsof", "-nP", "-t", "-iTCP:8790", "-sTCP:LISTEN"]).split()
+    if len(listeners) != 1 or not listeners[0].isdigit() or int(listeners[0]) < 1:
+        raise RuntimeError("cannot identify one viewer listener on 8790")
+    command = output(["ps", "-p", listeners[0], "-o", "command="]).strip()
+    root = root.resolve()
+    prefix, suffix = f" --env-file={root / '.env'} ", f" --port 8790 --runs {root / 'runs'}"
+    if command.count(prefix) != 1 or not command.endswith(suffix):
+        raise RuntimeError("viewer listener does not belong to this root")
+    cli = command.split(prefix, 1)[1].removesuffix(suffix)
+    path = Path(cli)
+    if not path.is_absolute() or not cli.endswith("/packages/viewer/dist/cli.js"):
+        raise RuntimeError("viewer listener has no supported built CLI")
+    return path.parents[3]
+
+
 def prepare(
     root: Path, cache: Path, *, target: Path | None = None, run: Runner = subprocess.run
 ) -> Path:

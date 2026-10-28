@@ -20,7 +20,7 @@ All four personas share this base. The coordinator (you) collects it once, befor
 1. **Frontier from validated runs.** Use the viewer's workbench data, not raw `events.jsonl` scans. The workbench re-grades splits and drops invalid ones: the raw log of `2026-10-13T17-07-50_think-fast_805e` still shows `PETALBURG_CITY`, while the workbench stops that run at `PLAYER_BEDROOM`. Run:
 
    ```bash
-   node .claude/skills/pokebench-review/frontier.mjs
+   POKEBENCH_VIEWER_WORKTREE="<verified serving tree>" node .claude/skills/pokebench-review/frontier.mjs
    ```
 
    It reads `http://127.0.0.1:8790/api/workbench`, validates it with the viewer's `parseWorkbench`, and ranks runs by the viewer's `FRONTIER_MILESTONES` (required story checkpoints, not optional catches or trainers). Screenshot-only splits never count, and operator-excluded (`runs/exclusions/`), probe, synthetic and replay runs are dropped; flagged runs (crash, model error, invalid-trial notes) count like any other (the operator 2026-10-27). Each row gives milestone, minutes, model, preset, start, status and run id. It prints:
@@ -30,7 +30,7 @@ All four personas share this base. The coordinator (you) collects it once, befor
    - **In progress** (live or paused): shown so a run passing the frontier right now is not missed, and counted once it finishes. A run that died without `run_end` (unresponsive) is ranked with the finished runs.
    - **Human reference**: what `frontierReferences` picks, or "unavailable".
 
-   The helper reflects the viewer build in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`, kept at `main`). If the subject changes the milestone axis or grading, also read `packages/viewer/src/frontier.ts` on the subject's commit and say where it differs.
+   The helper requires the existing `POKEBENCH_VIEWER_WORKTREE` explicitly. Resolve the actual 8790 listener tree with `pokebench_env.current_runtime.serving_viewer_tree` as shown in `docs/current-run-snapshots-operations.md`, and verify its build stamp. A temporary directory, current main or cached build is not evidence of what 8790 serves. If the subject changes the milestone axis or grading, also read `packages/viewer/src/frontier.ts` on the subject's commit and say where it differs.
 
    If the helper reports the viewer unavailable, stop and tell the operator. Do not run `just viewer-main` during a review: it kills whatever holds port 8790, and the operator may be using it during a launch check.
 2. **Recorded comparison state.** Read the subject’s fixed-run definition under `experiments/fixed/`, its `runs/experiments/<id>/status.json` and trial ledger, plus the relevant `runs/<id>/` recordings or `runs/reports/` results. Read readiness evidence from the feature/evaluation worklog. These are read-only checks; do not build or launch. The previous persona review is the newest top-level `runs/reviews/*.html` (subdirectories hold code-review scratch); compare its frontier to find what is new.

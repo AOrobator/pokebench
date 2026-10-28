@@ -208,3 +208,8 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
   - Targeted tests: 11 agent suites (the three switches, harness-trust, story-destinations, features, play-preset, play-wiring, loop-supervisor, probe-trust-header, decision-probe) pass 193/193. Viewer panels, next-run and server pass 393/393. tsc and eslint are clean.
   - The full `just test` rerun waits for the operator's activation answer.
 - Sync follow-up: type-gap-last-message.test pinned "registered last". The story switches now follow it, so the test pins its index (288) instead. 13/13 pass.
+
+## Activation (the operator 2026-10-28, "Land, on in both arms")
+- experiments/feature-configs/current.json: self-named-speaker-v1, story-briefing-native-milestones-v1 and retire-reached-story-line-v1 are added to onInBoth and set true in the shared features base. The README records the promotion.
+- Dependencies are already on in both arms: dialogue-auto-advance-v1, loop-guard-supervisor-v1, unfinished-activity-v1, harness-trust-v1.
+- Config tests: viewer fixed-definition, feature-config-registry and fixed-cli pass 50/50. The six agent config suites pass.

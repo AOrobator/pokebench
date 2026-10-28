@@ -349,3 +349,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.
 
 - [Current runs before history](current-run-snapshots.html): independent persisted current state, restart recovery, history backfill and rollback.
+- [Bounded ID-card mentions](id-card-bound-v1.html): newest whole mention pages within1,500codepoints, with an always-kept newest page.

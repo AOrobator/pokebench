@@ -2,6 +2,7 @@
 // shown the model in this run (delivered dialogue and battle text) and from the state the result carries.
 // It names no relation, role or goal of its own; the game's words are quoted whole.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
+import {codePoints} from "./instruction-memory-cap.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
@@ -59,7 +60,7 @@ function identity(graphics:number,local:number,s:Pick<GameStateSnapshot,"locatio
 }
 
 export class PeopleIdCards {
- constructor(private readonly named=true,private readonly cuts=false){}
+ constructor(private readonly named=true,private readonly cuts=false,private readonly bound=false,private readonly recall=false){}
  private turn=0;
  private readonly facing=new Map<number,Person|null>();
  private readonly pending=new Map<string,Shown[]>();
@@ -145,7 +146,19 @@ export class PeopleIdCards {
   else if(!(this.cuts&&spokeNow))lines.push("- Has not spoken to you in this run.");
   if(name!==null){
    if(other.length===0)lines.push("- Other pages that name them: none.");
-   else lines.push("- Other pages that name them (each once, in order, whole):",...quote(other));
+   else {
+    const quoted=quote(other);let first=0;
+    if(this.bound){
+     let size=0;first=quoted.length;
+     while(first>0){
+      const cost=codePoints(quoted[first-1]??"")+(first===quoted.length?0:1);
+      if(first<quoted.length&&size+cost>1500)break;
+      size+=cost;first--;
+     }
+    }
+    const omitted=first===0?"":`; ${String(first)} earlier ${first===1?"page is":"pages are"} left out${this.recall?"; get_dialogue finds them":""}`;
+    lines.push(`- Other pages that name them (each once, in order, whole${omitted}):`,...quoted.slice(first));
+   }
   }
   if(battles.length===0)lines.push("- Battles with you: none recorded in this run.");
   else lines.push("- Battles with you (the game's own battle text, in order, whole):",...quote(battles));
@@ -232,7 +245,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withPeopleIdCards(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">&IdCardRecorder):AgentTool[] {
  if(!features["people-id-cards-v1"])return [...tools];
- const model=new PeopleIdCards(features["character-presence-v1"],features["input-cuts-v1"]);recorder.subscribe(event=>{model.observe(event);});
+ const model=new PeopleIdCards(features["character-presence-v1"],features["input-cuts-v1"],features["id-card-bound-v1"],features["dialogue-auto-advance-v1"]);recorder.subscribe(event=>{model.observe(event);});
  const annotate=<T>(tool:string,id:string,result:AgentToolResult<T>):AgentToolResult<T>=>{
   const state=stateOf(result.details);
   if(state===null)return result;

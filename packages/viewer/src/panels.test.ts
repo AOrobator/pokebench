@@ -1920,3 +1920,13 @@ it('links move matchups to the tracked default-OFF explainer',()=>{
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),'utf8');
  expect(html).toContain('Default OFF');expect(html).toContain('×0.75');expect(html).toContain('731ad5bfd6e6f265508d0efcca0ba42f9dcf5881');
 });
+it("links current question focus without guessing historical activation",()=>{
+ const id="current-question-focus-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`article[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.querySelector(".config-badge")?.textContent).toBe(enabled?"ON":"NOT RECORDED");
+ }
+});

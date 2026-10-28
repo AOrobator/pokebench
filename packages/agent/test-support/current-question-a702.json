@@ -1,0 +1,73 @@
+{
+ "source": {
+  "run": "2026-10-27T17-35-16_qwen36-gpu0_a702",
+  "state": 44776,
+  "advance": 44775,
+  "result": 44777,
+  "toolTextSha256": "f8b849b2d1ef21a721e6e818509fea16529260d2be4202d31963c28864182d56",
+  "note": "Reduced real readout and exact page/UI fields; tests combine these with synthetic IN_GAME unrelated fields. Native source state retained in ignored audit artifacts.",
+  "gameSource": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:data/maps/DewfordTown/scripts.inc:DewfordTown_Text_SetSailBackToPetalburg"
+ },
+ "advance": {
+  "v": 1,
+  "run": "2026-10-27T17-35-16_qwen36-gpu0_a702",
+  "seq": 44775,
+  "t": "2026-10-27T20:53:06.953-04:00",
+  "type": "dialogue_auto_advance",
+  "turn": 893,
+  "tool_call_id": "MikKpaeejeeQicFlpeCIK4GIpfOFI9H5",
+  "tool": "navigate_to_target",
+  "requested": [],
+  "sent": [],
+  "dropped": [],
+  "auto_presses": 1,
+  "pages": [
+   {
+    "state_seq": 44768,
+    "map": "DEWFORD TOWN",
+    "map_id": [
+     0,
+     11
+    ],
+    "position": {
+     "x": 11,
+     "y": 9
+    },
+    "speaker": "MR. BRINEY",
+    "speaker_source": "name_prefix",
+    "text": "MR. BRINEY: Have you delivered your\nLETTER?"
+   },
+   {
+    "state_seq": 44774,
+    "map": "DEWFORD TOWN",
+    "map_id": [
+     0,
+     11
+    ],
+    "position": {
+     "x": 11,
+     "y": 9
+    },
+    "speaker": "MR. BRINEY",
+    "speaker_source": "name_prefix",
+    "text": "Or were you meaning to sail back to\nPETALBURG?"
+   }
+  ],
+  "stop": "menu",
+  "detail": "menu field_yes_no is open: options YES, NO; highlighted YES",
+  "duration_ms": 1638
+ },
+ "ui": {
+  "phase": "field_yes_no",
+  "selected": "YES",
+  "ready": true,
+  "controls": "Directions select; A chooses; B cancels",
+  "diagnostic": null,
+  "value": null
+ },
+ "map_id": [
+  0,
+  11
+ ],
+ "readout": "Screen: overworld\nDialog: \"MR. BRINEY: Have you delivered your LETTER? | Or were you meaning to sail back to PETALBURG?\"\nMenu: field_yes_no; selected YES\nInterface: field_yes_no; input ready; selected YES; Directions select; A chooses; B cancels\nMenu state: options: YES | NO; selected index (zero based): 0\nTo answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO."
+}

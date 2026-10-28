@@ -356,3 +356,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Screenshot and button baseline](screenshot-button-baseline-v1.html) — minimal prompt, image-only results and all-off preset.
 
 - [Move matchups and Pokémon bonuses](move-learn-type-matchup-v1.html) — default-OFF, observed foes, learner bonuses and supported current battle ranges.
+- [Current question focus](current-question-focus-v1.html): temporary source-qualified current field question and controls, tested through iterative decision probes.

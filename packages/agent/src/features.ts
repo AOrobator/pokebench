@@ -303,6 +303,7 @@ export const SWITCHABLE_FEATURES = [
   "scene-journal-safe-capture-v1",
   "neutral-yes-no-readout-v1",
   "refusal-ledger-bound-v1",
+  "disproved-beliefs-bound-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -726,6 +727,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("scene-journal-safe-capture-v1", "observation", "SAFE SCENE CAPTURE", "cutscene-journal-v1", "Default off. Samples scene history only at confirmed game idle points. Reports deferred samples separately from actual read failures and never infers events across them. Keeps an eight-snapshot full native RAM/CPU incident window with two pre-samples and two recovery samples where space permits; at most two exported diagnostic windows persist outside the frame hook. Current observations and transcript archives remain separate. Off: the previous scene-journal hook, failure wording and endpoint payload are unchanged; no raw diagnostic buffers are allocated."),
   on("neutral-yes-no-readout-v1", "observation", "NEUTRAL YES/NO CONTROLS", "yes-no-answer-readout-v1", "Default off when omitted; ON in the current bundle by operator approval on 2026-10-28. Replaces the other-option instruction with a fixed YES, NO control mapping and the current selection. Reports B as NO only for handlers where it takes the NO branch; the battle forfeit box says B closes without choosing. Applies to the same ready, known YES/NO boxes as v1. No suggested answer or story objective. Off: the original To answer YES/NO instruction, byte for byte."),
   on("refusal-ledger-bound-v1", "guidance", "BOUNDED REFUSAL HISTORY", "refusal-ledger-v1", "Default off. refusal-ledger-v1's \"Navigation refusal history\" keeps one entry per refused target on the current map, each quoting the whole latest navigation result; water and wall refusals carry their departure alternatives, so one entry runs about 3,000 chars, and Qwen run 9e33 at turn 2417 sent 10 entries in 24,803 chars. An entry's turn list also grew with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older refusal entries on this map are left out.\"; the newest entry always stays and quoted results are never cut. A repeated refusal keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
+  on("disproved-beliefs-bound-v1", "guidance", "BOUNDED CONTRADICTIONS", "disproved-beliefs-v1", "Default off. disproved-beliefs-v1's \"Things the game has contradicted\" keeps every push-back and misplaced-person entry until a story flag changes or the game shows otherwise, each quoting whole pages, and an entry's turn list grows with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older entries are left out.\"; the newest entry always stays and quoted pages are never cut. A repeated entry keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1109,6 +1111,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("scene-journal-safe-capture-v1"),
     ...when("neutral-yes-no-readout-v1"),
     ...when("refusal-ledger-bound-v1"),
+    ...when("disproved-beliefs-bound-v1"),
   ];
 }
 

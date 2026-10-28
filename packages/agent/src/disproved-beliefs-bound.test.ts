@@ -22,11 +22,11 @@ function pushedBack(features:FeatureSet,columns:readonly number[]):DisprovedBeli
   for(const e of SLICE){ids.set(e.seq,++seq);}
   for(const e of SLICE){
    const shift=(p:unknown)=>p!==null&&typeof p==="object"&&"x"in p&&"y"in p?{...p,x:(p as {x:number}).x+dx}:p;
-   const body:Record<string,unknown>={...e,seq:ids.get(e.seq),turn:1000+i,id:"id"in e?`${e.id}-${String(i)}`:undefined,tool_call_id:"tool_call_id"in e?`${e.tool_call_id}-${String(i)}`:undefined};
-   if(body["id"]===undefined)delete body["id"];
-   if(body["tool_call_id"]===undefined)delete body["tool_call_id"];
-   if("state_seq"in e&&e.state_seq!==undefined)body["state_seq"]=ids.get(e.state_seq);
-   if("before_state_seq"in e&&e.before_state_seq!==undefined)body["before_state_seq"]=ids.get(e.before_state_seq);
+   const body:Record<string,unknown>={...e,seq:ids.get(e.seq),turn:1000+i};
+   if("id"in e)body["id"]=`${String(e.id)}-${String(i)}`;
+   if("tool_call_id"in e)body["tool_call_id"]=`${e.tool_call_id}-${String(i)}`;
+   if(e.type==="tool_result"&&e.state_seq!==undefined)body["state_seq"]=ids.get(e.state_seq);
+   if(e.type==="button_press"&&e.before_state_seq!==undefined)body["before_state_seq"]=ids.get(e.before_state_seq);
    if("position"in e)body["position"]=shift(e.position);
    if(e.type==="dialogue_auto_advance")body["pages"]=e.pages.map(p=>({...p,position:shift(p.position),state_seq:p.state_seq===null?null:ids.get(p.state_seq)??null}));
    ledger.observe(checkEvent(body));
@@ -41,7 +41,7 @@ describe("disproved-beliefs-bound-v1",()=>{
  it("the replayed slice makes one push-back entry per column, as recorded",()=>{
   const off=pushedBack(OFF,[0]).text()??"";
   expect(off).toContain("- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 1 time, at turn 1000 (latest: press UP). Each time a script moved you back to (11,2);");
-  expect(lines(pushedBack(OFF,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])?.text())).toHaveLength(21);
+  expect(lines(pushedBack(OFF,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]).text())).toHaveLength(21);
  });
  it("ON keeps whole entries, newest first, within the budget, in their usual order, and counts the rest",()=>{
   const cols=Array.from({length:40},(_,i)=>i);
@@ -66,8 +66,8 @@ describe("disproved-beliefs-bound-v1",()=>{
   const few=[0,1,1,2];
   expect(pushedBack(ON,few).text()).toBe(pushedBack(OFF,few).text());
  });
- it("is registered last, default off, needs disproved-beliefs-v1, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+ it("is registered after refusal-ledger-bound-v1, default off, needs disproved-beliefs-v1, recorded only when on",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(296);
   expect(featureInfo(ID)).toMatchObject({needs:"disproved-beliefs-v1"});
   expect(featureInfo(ID).description).toContain(" Off: every entry and every turn is listed.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);

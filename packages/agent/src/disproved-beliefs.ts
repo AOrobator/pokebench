@@ -75,6 +75,9 @@ export function locatingClaims(text:string,name:string):string[] {
  return claims;
 }
 
+// disproved-beliefs-bound-v1: room for the entry lines, and how many turns of a repeated entry are listed.
+export const BELIEF_LEDGER_CHARS=4000;
+export const BELIEF_TURNS_SHOWN=10;
 export class DisprovedBeliefs {
  private readonly states=new Map<number,State>();
  private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number;last:string|null;presses:number[]}>();
@@ -242,13 +245,26 @@ export class DisprovedBeliefs {
 
  text():string|null {
   if(this.entries.size===0)return null;
+  const bound=this.features["disproved-beliefs-bound-v1"];
   const lines=[...this.entries.values()].sort((a,b)=>a.order-b.order).map(entry=>{
-   const turns=entry.turns.map(String).join(", ");
+   const earlier=bound?Math.max(0,entry.turns.length-BELIEF_TURNS_SHOWN):0;
+   const turns=`${entry.turns.slice(earlier).map(String).join(", ")}${earlier===0?"":` (and ${String(earlier)} earlier turns)`}`;
    if(entry.kind==="push_back")return `- Moving ${entry.direction} from ${at(entry.from)} in ${entry.room}: you tried it ${String(entry.turns.length)} time${entry.turns.length===1?"":"s"}, at turn${entry.turns.length===1?"":"s"} ${turns} (latest: ${entry.action}). Each time a script moved you back to ${at(entry.to)}; the latest time (turn ${String(entry.conversation.turn)}) it showed: ${quotePages(entry.conversation)}`;
    const said=entry.conversation===null?"":` On that map at turn ${String(entry.conversation.turn)} you were shown: ${quotePages(entry.conversation)}`;
    return `- ${entry.name} on ${entry.room}: you wrote at turn ${String(entry.claim.turn)}: "${entry.claim.text}" and called ${entry.claim.action}${entry.turns.length>1?` (you placed ${entry.name} on this map at turns ${turns})`:""}. The readout on that map said at turn ${String(entry.readout.turn)}: "${entry.readout.line}"${said}`;
   });
-  return `Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):\n${lines.join("\n")}`;
+  // disproved-beliefs-bound-v1: whole entries, newest first, within the budget; the newest always stays.
+  let kept=lines.length;
+  if(bound){
+   let used=0;kept=0;
+   for(const line of [...lines].reverse()){
+    const add=line.length+(kept===0?0:1);
+    if(kept>0&&used+add>BELIEF_LEDGER_CHARS)break;
+    used+=add;kept++;
+   }
+  }
+  const left=lines.length-kept;
+  return `Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):\n${left===0?"":`${String(left)} older ${left===1?"entry is":"entries are"} left out.\n`}${lines.slice(left).join("\n")}`;
  }
 }
 

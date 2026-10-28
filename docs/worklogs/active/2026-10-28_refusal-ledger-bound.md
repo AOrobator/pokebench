@@ -35,7 +35,8 @@ An entry's "at turns …" list also grows with every repeat of the same refusal.
 The other half of the same belief-ledger message is "Things the game has contradicted", from `disproved-beliefs.ts`. It is a different class, so it gets its own small switch here, needing disproved-beliefs-v1. Same rule: whole entries, newest first, within 4,000 chars, under `N older entries are left out.`, and each turn list shows its latest 10 `(and N earlier turns)`.
 
 - [x] RED: `disproved-beliefs-bound.test.ts`, 5 tests. It replays sh02's recorded turn-146 push-back (TWIN, LITTLEROOT TOWN), shifted east once per entry. The 2 OFF tests pass; the 2 ON tests and the registry test fail.
-- [ ] GREEN.
+- [x] GREEN: `disproved-beliefs.ts` (BELIEF_LEDGER_CHARS 4000, BELIEF_TURNS_SHOWN 10); registry index 296 (guidance, needs disproved-beliefs-v1), preset, next-run. 5/5; with the refusal-ledger, disproved-beliefs and features tests, 96 passed; tsc and eslint clean.
+- [ ] Explainer section + activation (bundle ON).
 
 ## Lines that grow with run length (running list)
 

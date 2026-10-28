@@ -74,3 +74,6 @@ COMMIT: reject stale fixture attribution when the next page prints another name 
 
 Source-audit GREEN: per-page validation now checks the source page's printed prefix (the existing producer's NAME_PREFIX pattern, fixture audit only) before allowing the preceding name to persist. TATE cannot override an explicit LIZA page. All8 stream tests pass; helper coverage100 lines/functions/statements and90.9 branches; lint clean. The source list and cap behavior are unchanged. Report introduction now leads with the one-character packing sensitivity and keeps the first table reachable on a phone; detailed scope moves into an expandable source note.
 COMMIT: verify explicit printed-name changes in offline fixtures and tighten report layout.
+
+Main sync before gates/review: integrating immutable MERGE_HEAD 2d82836985632e1845744b609b2e7873f38ea503. Preserved every main feature in its existing order, appended this flag at ordinal302 (baseline ordinal297 is historical), and retained all new main defaults and bounds. Conflicts limited to the shared registry/preset/default/index append surfaces. No operator bundle activation was added by this branch. Full gates still await coordinator START.
+COMMIT: sync main before the frozen whole-game review packet.

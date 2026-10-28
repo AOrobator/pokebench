@@ -1644,6 +1644,22 @@ it("serves the safe scene capture explainer byte for byte from the config-card a
  const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
 });
 
+it("serves the bounded refusal history explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="refusal-ledger-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
+it("serves the bounded supervisor briefing explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-briefing-bound-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="supervisor-briefing-bound-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
+});
+
 it("serves the tracked neutral YES/NO explainer byte for byte",async()=>{
  const file="neutral-yes-no-readout-v1.html";
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
@@ -1653,4 +1669,19 @@ it("serves the tracked neutral YES/NO explainer byte for byte",async()=>{
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${file}`);
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked player visibility explainer",async()=>{
+ const file="player-map-visibility-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-visibility-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the compact map grid explainer byte for byte from the config-card allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-compact-grid-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="compact-map-grid-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const response=await get(viewer,`/explainers/${id}.html`);expect(response.status).toBe(200);expect(response.body.equals(tracked)).toBe(true);
 });

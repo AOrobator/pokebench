@@ -131,3 +131,39 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
   glm53-flash-4h 87fe4cb976a9 -> ce63c4f7de17; hyperqwen-control-3h 356847041a6d -> e046349acf0c.
   The only recorded approval (hyperqwen-control-3h, 2026-10-27 3 PM) was already stale; every launch of these needs
   the operator's re-approval.
+
+## M6 ablation probe (exploratory batch 1, directional; not confirmatory)
+
+Study runs/probes/no-story-foreknowledge-20261027 (viewer /probes#no-story-foreknowledge-20261027). GPU1,
+Qwen3.6-35B-A3B Q4_K_M (the a702/057c/d41e model), 1 slot, each run's own sampling; run in four coordinator-granted
+chunks 8:52-10:30 PM NY. Contexts rebuilt by decision-probe replay under each run's recorded switches; arms derived
+per tool result: current copy; narrow = this switch ON with shown names seeded from that run's own delivered dialogue
+up to each result (frozen build of ff8b5f42a); no_advice = no "Not on this map" clause, no rival sentence in the system
+prompt, no heal warnings or heal-first line. 8 contexts x 3 arms x 16 = 384 samples, interleaved. 15 earlier samples
+on the pre-fix wording were set aside (aborted-before-wording-fix.samples.jsonl), not pooled. Scorer:
+runs/probes/no-story-foreknowledge-20261027/scores.json (hallucinated placement = locatingClaims of a story character
+the readout does not place on the map).
+
+| Context | current | narrow | no_advice |
+|---|---|---|---|
+| Truck x3 (a702-t41, 057c-t38, d41e-t39): next action | press A 16/12/12, rest observe/approach | 16/14/12 | 16/12/11 |
+| 057c-t283 Petalburg Woods, hurt, Aqua warning, TEAM AQUA/DEVON unshown: turn back toward heal | 5/16 | 1/16 | 0/16 |
+| same: continue north past the grunt | 9/16 (+1 walked onto his trigger tile, +1 elsewhere) | 15/16 | 16/16 |
+| same: reasoning mentions healing | 12/16 | 13/16 | 0/16 |
+| same: reasoning names TEAM AQUA (unshown) | 12/16 | 0/16 | 0/16 |
+| d41e-t159 Route 103, hurt, rival warning, MAY already shown: leave south (heal) | 4/16 | 2/16 | 0/16 |
+| same: approach MAY | 11/16 | 14/16 | 16/16 |
+| same: reasoning mentions healing | 8/16 | 8/16 | 0/16 |
+| a702-t399 Rustboro gym (null control, all names shown): approach ROXANNE / leave | 12 / 3 | 13 / 2 | 13 / 3 |
+| Route planning (a702-t212, 057c-t252): same destination | 16/16, 15/16 | 16/16, 15/16 | 16/16, 16/16 |
+| Hallucinated placement of a character not on the map (all 128 samples per arm) | 0 | 0 | 0 |
+| Reasoning names a character the game had not shown (all contexts; NORMAN excluded: shown only on a sign, DAD in dialogue) | 15 (TEAM AQUA 12, BRENDAN 1, MOM 1, ROXANNE 1) | 1 (WALLY, from the model itself) | 0 |
+
+Reading: narrow ON removes the unshown names from the model's reasoning (TEAM AQUA 12/16 -> 0/16 at the Woods, BRENDAN
+and MOM in the truck 2 -> 0) and keeps it thinking about healing (12 -> 13/16), but it turns back to heal less often
+(Woods 5 -> 1 of 16; Route 103 4 -> 2 of 16, where the warning text is identical and only the absent list differs, so
+part of these gaps is sampling noise). Removing the advice entirely removes every heal thought and every heal detour
+(0/16 everywhere) and changes nothing else measured: the advice copy carries the healing behaviour; the names add a
+little to the Woods detour. No arm produced a hallucinated placement, so the "Not on this map" list's protective effect
+is not visible at these contexts. 16 per arm per context is directional only; a confirmation would need held-out
+pre-Aqua Woods contexts from other runs and a frozen outcome (heal detour rate), sized by the experiment-design skill.

@@ -95,6 +95,7 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 
 ## Session Log
 
+- 2026-10-28: Round-4 fixes. 28 tests in the three suites; 20 touched suites 336 passed; replay byte-identical.
 - 2026-10-28: Round-2 fixes. Three new suites: 26 passed. 20 touched suites: 334 passed. tsc and eslint are clean. The a702 replay is byte-identical.
 - 2026-10-28: Round-1 fixes. 25 tests across the three suites. The 20 touched-module suites ran explicitly: 333 passed. (The earlier "328 files, 4643 tests" was a zsh unsplit-filter run that executed the whole agent suite; it also passed.) The offline replay output is byte-identical after the fix.
 - 2026-10-28: Registry tests pin absolute positions: SWITCHABLE_FEATURES 281/282/283, playHarnessFeatures 305/306/307 (lesson from grass-strides round 4). 24 tests across the three suites.
@@ -137,6 +138,13 @@ Round 3, frozen head 30309cdf9 (cumulative sha256 1bd53997…eb86; delta 25c63ab
 - Claude (opus subagent): VERDICT: LGTM.
 - Fallback (sonnet subagent): VERDICT: LGTM.
 - Codex gpt-5.6-sol: VERDICT: BLOCKING. storyStep still counted milestones that are both measurement-only and in the extended catalog (e.g. STEVEN_LETTER_RECEIVED), which contradicts the frozen boundary ("not measurement-only"). ACCEPTED as written: no measurement-only milestone counts. A new negative test uses STEVEN_LETTER_RECEIVED and ROXANNE_FIRST_INTERACTION; removing the exclusion turns 4 tests red. Consequence: after ROCK_TOMB_RECEIVED every story milestone is extended (measurement-only), so lines heard after Rustboro never retire under this switch. OPEN QUESTION for the operator: amend the boundary so extended story steps count?
+
+Round 4, frozen head 72f0a62f8 (cumulative sha256 4fede48b…2bc5; delta ff2210ed…c8fe), Codex only (the round-3 Claude and fallback LGTMs covered everything except this fix):
+- Codex gpt-5.6-sol: VERDICT: BLOCKING, two points, both ACCEPTED:
+  1. A milestone with no `origin` counted. storyStep now requires origin "observed".
+  2. The current-visit fallback let "in the place when the line was said" count. Retirement now needs an entry after the line, while the displayed Reached wording keeps its fallback.
+- New test covers: pre-line visit, omitted origin, and the positive case. Each fix, reverted alone, turns that test red.
+- Non-blocking: the fixture validates five dialogues twice.
 
 ## Boy Scout Log
 

@@ -41,6 +41,22 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   expect(header).toContain('Story line heard (DAD, turn 500): "Head for RUSTBORO CITY beyond this town." Reached:');
   expect(header).not.toContain("is done");
  });
+ it("needs an observed milestone, and an entry after the line: being in the place when the line was said is not one",()=>{
+  const rustboro=a702StateAtRustboro();
+  const header=(events:readonly import("./events.js").RunEvent[])=>{
+   const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+   for(const e of events)trust.observe(e);
+   return trust.lines("Location: RUSTBORO CITY",rustboro,"later",A702_PLACES).header;
+  };
+  const step=a702Milestone("ROXANNE_DEFEATED",106,500);
+  if(step.type!=="milestone")throw Error("milestone");
+  const {origin,...unsourced}=step;expect(origin).toBe("observed");
+  // In RUSTBORO CITY before DAD's line, still there, then a story step: not retired.
+  expect(header([a702Arrival(100,500,[0,3],"RUSTBORO CITY"),...a702CallMoved(312,102,500),step])).not.toContain("is done");
+  // Line, entry, then a story step with no recorded origin: not retired.
+  expect(header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),unsourced])).not.toContain("is done");
+  expect(header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),step])).toContain("is done");
+ });
  it("orders by recorded event, not turn: a story step after the arrival in the same turn retires it, one before it does not",()=>{
   const rustboro=a702StateAtRustboro();
   const run=(arrivalSeq:number,stepSeq:number)=>{

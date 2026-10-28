@@ -137,9 +137,9 @@ export function selfName(text:string):string|null {
  const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]??null;
  return name!==null&&!name.endsWith(".")&&/[A-Z]{3}/.test(name.replaceAll(/[^A-Z]/g,""))?name:null;
 }
-// retire-reached-story-line-v1: a story milestone the game recorded, other than a trainer win, a measurement-only step or an optional activity.
+// retire-reached-story-line-v1: a story milestone the game observed during the run, other than a trainer win, a measurement-only step or an optional activity.
 function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
- return event.kind==="story"&&event.origin!=="present_at_start"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
+ return event.kind==="story"&&event.origin==="observed"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 }
 
 export class StoryDestinations {
@@ -309,7 +309,8 @@ export class StoryDestinations {
  private arrival(line:StoryLine,map:MapId,here:MapId,shown?:number):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
   const entered=this.arrivals.find(a=>(shown===undefined?a.turn>=line.turn:a.seq>shown)&&same(a.map,map));
   if(entered!==undefined)return {at:entered,entered:true};
-  const stay=same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
+  // Retirement (shown known) needs an entry after the line; being there when it was said is not one.
+  const stay=shown===undefined&&same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
   return stay===undefined?undefined:{at:stay,entered:false};
  }
  private resolveLine(line:StoryLine,here:MapId,player:string|null,places:readonly Place[],heads:ReadonlySet<string>):Resolved[] {

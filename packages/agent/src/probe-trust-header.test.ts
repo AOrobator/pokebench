@@ -41,8 +41,12 @@ async function production(until:number,features:FeatureSet=FEATURES):Promise<Map
  }}));
  const wrapped=withHarnessTrust(tools,true,{subscribe:fn=>{listeners.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve({places:PLACES})},{...trustOptions(features),supervisor:true});
  const snapshots=statesOf(EVENTS);
+ // The recorder writes a result's own after-state once the wrapped tool has returned: listeners see it after annotation.
+ const afterStates=new Set(EVENTS.flatMap(e=>e.type==="tool_result"&&e.state_seq!==undefined?[e.state_seq]:[]));
+ let deferred:RunEvent[]=[];
  for(const e of EVENTS){
   if(e.seq>until)break;
+  if(afterStates.has(e.seq)||(deferred.length>0&&e.type!=="tool_result")){deferred.push(e);continue;}
   if(e.type==="tool_result"&&!e.is_error&&["observe","press","navigate_to"].includes(e.name)){
    const state=e.state_seq===undefined?undefined:snapshots.get(e.state_seq);
    if(state!==undefined&&state["started"]===true){
@@ -51,7 +55,8 @@ async function production(until:number,features:FeatureSet=FEATURES):Promise<Map
     out.set(e.seq,(r?.content??[]).flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"));
    }
   }
-  for(const fn of listeners)fn(e);
+  for(const d of [...deferred,e])for(const fn of listeners)fn(d);
+  deferred=[];
  }
  return out;
 }
@@ -132,6 +137,28 @@ describe("--trust-header re-derives harness-trust-v1's header from the recorded 
    const alone=new Map<number,string>();
    await rederiveTrustHeaders(recorded,alone,features,features,ports(),new Set([noted]));
    expect(alone.get(noted)).toBe(printed.get(noted));
+  }finally{EVENTS.splice(0,EVENTS.length,...original);}
+ });
+ it("a result whose own after-state is the first on the goal map was annotated before that state was recorded",async()=>{
+  // After MAY's turn-272 "head back to the LAB": a walk through LITTLEROOT TOWN whose own after-state is inside the LAB.
+  const said=EVENTS.find(e=>e.type==="tool_result"&&e.turn===272);
+  const template=EVENTS.find(e=>e.type==="state"&&e.seq===(said?.type==="tool_result"?said.state_seq:-1));
+  if(said?.type!=="tool_result"||template?.type!=="state"||!("started" in template))throw Error("4caa turn 272");
+  const during:RunEvent={...template,seq:910000,turn:600,map_id:[0,9],location:"LITTLEROOT TOWN",position:{x:7,y:17},screen:"overworld",in_battle:false};
+  const inside:RunEvent={...template,seq:910001,turn:600,map_id:[1,4],location:"LITTLEROOT TOWN PROFESSOR BIRCHS LAB",position:{x:6,y:12},screen:"overworld",in_battle:false};
+  const walk:RunEvent={...said,seq:910002,turn:600,id:"arrive",name:"navigate_to",state_seq:inside.seq,text:"Navigation: map changed; inspect destination; 1 bounded movement actions.\nScreen: overworld"};
+  const original=[...EVENTS];
+  // The LAB is never entered before this walk (4caa's earlier LAB states are left out).
+  const lab=(e:RunEvent)=>e.type==="state"&&"started" in e&&e.map_id?.[0]===1&&e.map_id[1]===4;
+  EVENTS.splice(0,EVENTS.length,...EVENTS.filter(e=>e.seq<=said.seq&&!lab(e)),during,inside,walk);
+  try{
+   const printed=await production(walk.seq);
+   console.log(printed.get(walk.seq)?.split('\n\n')[0]);
+   expect(printed.get(walk.seq)).toContain('Story goal: "Well, it\'s time to head back to the LAB."');
+   const recorded=await recordedWithHeaders(walk.seq);
+   const texts=new Map<number,string>();
+   await rederiveTrustHeaders(recorded,texts,FEATURES,FEATURES,ports(),new Set([walk.seq]));
+   expect(texts.get(walk.seq)).toBe(printed.get(walk.seq));
   }finally{EVENTS.splice(0,EVENTS.length,...original);}
  });
  it("refuses an arm that changes a switch behind the header lines it keeps as recorded",async()=>{

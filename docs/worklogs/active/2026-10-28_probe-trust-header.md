@@ -70,7 +70,7 @@ Round 2, frozen head 06ce8ac1b:
 - Codex gpt-5.6-sol: VERDICT: BLOCKING, two points, both ACCEPTED:
   1. displayed-place-names-v1 also shapes the kept exits line, so it is added to the refusal list.
   2. Test setup did repeated whole-stream scans, and the Python feature loop made two ROM reads. Fixed: states are indexed once per replay; the walk-away test replays once and checks the noted result kept alone (still red without the all-results fix); the displayed-names behavior is tested on `places()` directly, with one real `main()` adapter call.
-- Claude (opus): pending at the time of the fixes.
+- Claude (opus): VERDICT: BLOCKING, B3, ACCEPTED. The probe let HarnessTrust see a result's own after-state before deriving its header, but the recorder writes that state after the wrapped tool returns. In a702, 87 headed results are first arrivals on a map, e.g. seq 1111 at T61. Fixed: events from a result's `state_seq` up to the result are observed after its header is derived. The test harness's production replay uses the recorder's order, and a new arrival test (walk whose own after-state is the first in the LAB) goes red without the fix. Rehearsal: OFF re-derived equals recorded at a702 T62, T63, T215, T332, T633, T705 and T717. Hardening noted: `seen` is the joined body, which only matters with input-cuts-v1 plus story-destinations-v1 (off in a702).
 
 ## Boy Scout Log
 

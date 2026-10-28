@@ -274,8 +274,13 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
   const states = new Map<number, StateEvent>();
   const tables = new Map<string, Promise<readonly Place[]>>();
   const annotated = (name: string): boolean => TRUST_TOOLS.has(name) || (options.battleAction === true && name === "battle_action") || (options.semanticTargets === true && (name === "navigate_to_target" || name === "explore_map"));
+  // The recorder writes a result's own after-state (and what it emits with it) once the wrapped tool has returned, so
+  // after the header was printed: those events reach HarnessTrust only after their result's header is derived.
+  const afterStates = new Set(prior.flatMap((e) => (e.type === "tool_result" && e.state_seq !== undefined ? [e.state_seq] : [])));
+  let deferred: RunEvent[] = [];
   for (const e of prior) {
     if (e.type === "state" && "started" in e) states.set(e.seq, e);
+    if (afterStates.has(e.seq) || (deferred.length > 0 && e.type !== "tool_result")) { deferred.push(e); continue; }
     const after = e.type === "tool_result" && e.state_seq !== undefined ? states.get(e.state_seq) : undefined;
     const text = e.type === "tool_result" ? texts.get(e.seq) ?? e.text : null;
     // Every annotated result advances HarnessTrust (its walk-away count), as in the run; only kept ones are rewritten.
@@ -290,6 +295,8 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
       const { header, away } = trust.lines(body, after, e.id, await table, e.name === "press" || walk, body);
       if (kept.has(e.seq)) texts.set(e.seq, `${spliceHeader(text.slice(0, cut).split("\n"), header.split("\n"), away === null ? null : awayText(away)).join("\n")}\n\n${body}`);
     }
+    for (const d of deferred) trust.observe(d);
+    deferred = [];
     trust.observe(e);
   }
 }

@@ -23,7 +23,9 @@ const QUESTION=advance.pages.at(-1)?.text;
 if(QUESTION===undefined)throw new Error("missing last page");
 const UI=`Interface: field_yes_no; input ready; selected YES; ${F.ui.controls}`;
 const ANSWER="To answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO.";
-const BLOCK=`CURRENT QUESTION\n${QUESTION}\n${UI}\n${ANSWER}`;
+// Frozen candidate from the64-call study; deliberately independent of production.
+const DECISION_CHECK="Decision check: Interpret YES and NO against the CURRENT QUESTION separately. Compare those two meanings with your current intention, then choose the corresponding displayed input. Distinguish what the question actually asks from what an earlier page asked. If the game's later consequence is unknown, do not invent it to justify the answer.";
+const BLOCK=`CURRENT QUESTION\n${QUESTION}\n${UI}\n${ANSWER}\n\n${DECISION_CHECK}`;
 const flags=(on:boolean)=>({...featuresOf(["ram-state-v1","dialogue-auto-advance-v1","active-field-message-buffer-v1","field-dialogue-phase-v1"]),[ID]:on});
 const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:advance.run,seq:44776,turn:893,t:advance.t,...body});
 const state=(overrides:Record<string,unknown>={})=>event({...IN_GAME,type:"state",map_id:F.map_id,active_ui:F.ui,...overrides});
@@ -161,4 +163,20 @@ it.each(["estimated","exact"] as const)("delivers the current page through the r
   for(const r of requests.slice(1)){expect(r.messages.filter(m=>m.content===BLOCK)).toEqual([{role:"user",content:BLOCK}]);expect(r.messages.at(-1)).toEqual({role:"user",content:BLOCK});expect(JSON.stringify(r)).toContain("Have you delivered");}
   expect(requests[2]?.messages.filter(m=>m.role==="assistant")).toHaveLength(1);
  }finally{await new Promise<void>((resolve,reject)=>{server.close(e=>{if(e)reject(e);else resolve();});});}
+});
+
+it.each(["YES","NO"] as const)("copies the existing neutral controls for selected %s and the exact tested reminder",async selected=>{
+ const controls=`YES/NO controls: selected ${selected}; YES: ${selected==="YES"?"A":"UP, A"}; NO: ${selected==="YES"?"DOWN, A":"A"}; B: NO.`;
+ const text=F.readout.replace("selected YES;",`selected ${selected};`).replace(ANSWER,controls);
+ const s=setup();s.feed([advance,state({active_ui:{...F.ui,selected}}),result(undefined,text)]);
+ const out=await s.wiring.transformContext(history(undefined,text));
+ expect(out.at(-1)).toMatchObject({role:"user",content:`CURRENT QUESTION\n${QUESTION}\n${UI.replace("selected YES",`selected ${selected}`)}\n${controls}\n\n${DECISION_CHECK}`});
+ expect(s.notes[0]?.text).toBe(out.at(-1)?.content);
+});
+it.each([
+ ["wrong neutral selection",F.readout.replace(ANSWER,"YES/NO controls: selected NO; YES: UP, A; NO: A; B: NO.")],
+ ["two controls owners",F.readout+"\nYES/NO controls: selected YES; YES: A; NO: DOWN, A; B: NO."],
+] as const)("omits a focus cue with %s",async(_name,text)=>{
+ const s=setup();s.feed([advance,state(),result(undefined,text)]);const input=history(undefined,text);
+ expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
 });

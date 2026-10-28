@@ -96,7 +96,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </style>
 </head><body><main>
 <h1>Bounded supervisor briefing (supervisor-briefing-bound-v1)</h1>
-<p>Default off. The switch changes two lines of the loop-guard and stall briefings that used to grow for as long as the stall lasted. Every other line stays the same. Items are kept or left out whole, and no text is cut.</p>
+<p>Default off. The switch changes three lines of the loop-guard and stall briefings that used to grow for as long as the stall lasted. Every other line stays the same. Items are kept or left out whole, and no text is cut.</p>
 
 <div class="card"><h2>Why</h2>
 <p>GPT run 429f's loop-guard note at turn 2566 was 66,297 chars. Two of its lines made up 60,019 of them:</p>
@@ -120,10 +120,11 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <text x="500" y="118" text-anchor="middle">fill direction (the newest page always stays)</text>
 </g>
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#2f7d4f"/></marker></defs>
-</svg><figcaption>The story lead-up dialogue line. Kept pages are shown oldest first, as before. With dialogue-auto-advance-v1 on, the count adds "get_dialogue searches the pages the harness advanced through". The other-map list uses the same fill: whole map entries, newest first, within 2,000 chars, ending "; N earlier maps are left out".</figcaption></figure>
+</svg><figcaption>The story lead-up dialogue line. The two map lists (untried targets on other maps, and exits to maps not entered) use the same fill with whole map entries. Kept pages are shown oldest first, as before. With dialogue-auto-advance-v1 on, the count adds "get_dialogue searches the pages the harness advanced through".</figcaption></figure>
 <table><thead><tr><th>Line</th><th>Budget</th><th>Kept first</th><th>When something is left out</th></tr></thead><tbody>
 <tr><td>Dialogue leading up to the last story step</td><td>4,000 chars (pages joined with " | ")</td><td>Newest page</td><td>"oldest first (N earlier pages are left out[; get_dialogue searches the pages the harness advanced through]): …"</td></tr>
 <tr><td>Not tried yet on other maps</td><td>2,000 chars (maps joined with " | ")</td><td>Most recently walked map</td><td>"…; N earlier maps are left out"</td></tr>
+<tr><td>Exits to maps you have not entered</td><td>2,000 chars (maps joined with " | ")</td><td>Most recently walked map</td><td>"…; N earlier maps are left out"</td></tr>
 </tbody></table>
 <p>OFF is byte-identical to today. ON is also byte-identical when nothing is left out.</p></div>
 
@@ -134,14 +135,14 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><td>Qwen a702, T1300</td><td>23,676</td><td>9,794 → 4,209</td><td>6,186 → 1,214</td><td>13,119</td></tr>
 <tr><td>Qwen 88ea, T1352</td><td>23,348</td><td>13,178 → 4,144</td><td>5,034 → 1,063</td><td>10,343</td></tr>
 </tbody></table>
-<p>Chars. Each line's length includes its label. The rest of each note did not change.</p></div>
+<p>Chars. Each line's length includes its label. The rest of each note did not change, and the exits line was under its budget in all three.</p></div>
 
 <div class="card"><h2>What it does not change</h2>
-<ul><li>"Exits to maps you have not entered since your last story progress" (1,780 chars at 429f) also grows with the maps walked. It is outside this bound and is noted in the worklog.</li>
+<ul><li>The exits line was added at the coordinator's request under the operator's rule that nothing given to the model may grow unbounded. In the three replays it was already under its budget (1,780, 907 and 619 chars), so those notes are unchanged by it.</li>
 <li>The "Recent dialogue" line (three pages), the tried list, the fixed lines and the readout are untouched.</li></ul></div>
 
 <div class="card"><h2>Status</h2>
 <ul><li>Branch <code>claude/supervisor-briefing-bound</code>. Not landed and not active in any arm.</li>
-<li>Focused tests pass: 7 new tests and 155 in the neighbouring supervisor tests.</li>
+<li>Focused tests pass: 9 new tests and 148 in the neighbouring supervisor tests.</li>
 <li>Still to do: the bundle activation commit (held for the operator's OK), the full gate (waiting for a CPU grant), the three-lane review, and measured runs.</li></ul></div>
 </main></body></html>

@@ -37,7 +37,7 @@ The rest of that note is about 6,300 chars. At a702 T1300 the briefing was 23,67
 "Exits to maps you have not entered since your last story progress" (1,780 chars at 429f) also grows with the maps walked. It is now bounded the same way: whole map entries, nearest (most recently walked) first, within 2,000 chars, ending `; N earlier maps are left out`.
 
 - [x] RED: 2 tests in `supervisor-briefing-bound.test.ts`. OFF passes; ON fails (no bound, BRIEFING_EXITS_CHARS absent).
-- [ ] GREEN.
+- [x] GREEN: `mapsWithin()` shared by both map lists, BRIEFING_EXITS_CHARS 2000. 9/9; with neighbours 157 passed; tsc and eslint clean. Replays: the exits line was 1,780 / 907 / 619 chars at 429f / a702 / 88ea, under budget, so those notes are unchanged (12,429 / 13,119 / 10,343 ON). OFF still reproduces all three recorded lines. Registry description and explainer updated.
 
 ## Lines that grow with run length (running list, reported together at the end)
 

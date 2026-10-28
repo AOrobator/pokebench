@@ -126,7 +126,9 @@ describe("supervisor-briefing-bound-v1: exits to maps not entered",()=>{
   expect(kept[0]?.startsWith("ROOM 59 (map 30/59): ")).toBe(true);
   expect((m?.[1]??"").length).toBeLessThanOrEqual(BRIEFING_EXITS_CHARS);
   expect(line(off,EXITS).startsWith(`${EXITS}${m?.[1]??""} | `)).toBe(true);
-  expect(on.replace(l,"")).toBe(off.replace(line(off,EXITS),""));
+  // These warps are also untried, so the other-map list (bounded on its own) differs too; every other line is unchanged.
+  const rest=(t:string)=>t.replace(line(t,EXITS),"").replace(line(t,ELSEWHERE),"");
+  expect(rest(on)).toBe(rest(off));
  });
 });
 

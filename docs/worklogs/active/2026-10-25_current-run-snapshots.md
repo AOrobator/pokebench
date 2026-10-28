@@ -3,7 +3,7 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** implementation — M1 closeout verified; M2 in progress
+**Current Phase:** implementation — M2 landed dormant; post-main test blocked
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots-service`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M2 (implementation; fixture-only service, no live activation)
+## Current Milestone: M2 (landed dormant; post-main existing human-test timeout blocks M3)
 
 ### Completed Milestones
 
@@ -153,7 +153,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Implement dormant service entrypoint/lifecycle with bounded diagnostics and configurable limits.
 - [x] Adversarial deletion; fixture process rehearsal; full gates and coverage.
 - [x] COMMIT: `feat(viewer): add bounded current-run snapshot service` (GREEN; SHA recorded next).
-- [ ] Multi-model review against service ownership/recovery contract and INV-1/2/6/8.
+- [x] Multi-model review against service ownership/recovery contract and INV-1/2/6/8 (Claude/GPT/Astra/Sol round2 LGTM; Grok unavailable, standing human outage waiver; reduced vendor diversity).
 
 **M3 - Fast endpoints, reconnect and indexed history pages (tracked by this worklog):**
 - [ ] Contract freeze: four routes above, indexed card identity metadata, consistent epoch/revision/resync, sparse bounded history and independent read execution. Owner: viewer read API. No default browser migration or historical catalog ingestion.
@@ -384,3 +384,9 @@ M2 correction queue21:02EDT: aborted-runs landed main2c8240b8b; synced that depe
 M2 correction GREEN on012e5e46e (actual merged main dependency d06b9f4db; earlier prose used preceding2c8240b8b): full corrected gates all PASS: build19.39s, lint86.71s, single coverage-instrumented test150.47s, vendor0.13s. Agent4636/viewer2150/Python4446/gateway69/protected-card3 PASS; viewer98.27/91.16/95.12, agent99.18/92.69/97.53, Python97.48/93.60/100, gateway99.29/97.01/100 lines/branches/functions. Native3 actual-process cases pass in full loaded viewer suite after fresh build. Corrected seven-suite66GREEN baseline, then27 distinct assertion-RED/restored mutants: terminal header evidence, terminal fence deletion and same-step health publication each independently falsified. Receipts m2-r2-green-baseline.log/mutations.json/final-gates.json/final-source-hashes.json plus exact mutation patches/failure payloads. All gated hashes still match before this documentation-only update. CPU released immediately; no heavy process remains.
 
 No new production path/owner/config/API/dependency/persistence mechanism in correction delta; F1/F2 only. Current main d06b9f4db remains an ancestor. Round2 frozen review pending; original M2 boundary unchanged, amendment m2-r2-amendment.md. No M3 advance, local-main landing, source service activation, game probe, active-run control or shared viewer refresh. Supersession audit remains valid: main has M1/cards/frontier work and upstream eligibility changes, but no new projector/fast-current endpoint replacing M2–M4.
+
+M2 round2 closeout: frozen76987366a/base d06b9f4db/digestddfd91bbe51fe60e1d46262f76a632ed0d1759d4575b766da8d4c3fbe06dba46; Claude/GPT/Astra/Sol all LGTM, Grok usage unavailable (standing independently verified general human outage waiver, not Grok approval). Synthesis m2-r2-synthesis.md and verdict receipts preserved. Claude nonblocking mutation-wording correction recorded separately: batch-credit mutates reservation, not the distinct refill clamp. All27 enumerated actual assertion failures valid; no extra clamp-deletion proof claimed.
+
+Main executable dependency moved to791db6f3c (PokéNav). Final owned sync21d8e71d0d7982b12f455c72fc63d3c1185f6e6f has EXACT same binary own-delta SHA256ddfd91bb...dba46, independently asserted before/after merge. Fresh synced gates all PASS: build19.76s/lint87.14s/test150.13s/vendor0.12s, receipts m2-sync-final-* and m2-final-sync.json. Joined board with actual session 00000000-0000-4000-8000-5c2156fb325f, waited position3→2→1; canonical main clean. Fast-forwarded main exactly to21d8e71d0. No existing server/app/CLI startup imports this service, no card writer changes, no runtime activation/shared refresh/actual game probes or active-run control.
+
+Canonical postmerge build PASS20.83s (needed fresh compiled native fixture modules). Required just-test FAIL36.92s: unchanged agent live-human.test.ts32 assigned-human/canonical-lease case timed out5000ms (observed5214ms),4642PASS/1FAIL. Viewer/Python/protected-card postmerge stages not reached. Exact test/live.ts M2 diff empty; existing fragile-child-recovery/history records same cold-live-entry timeout, source call graph imports broad gameplay wiring. Root cause not yet experimentally diagnosed, no automatic retry/timeout increase/skip/suppression or unrelated code fix. CPU released immediately and exact existing-fixture blocker routed to coordinator/previous recovery owner to avoid duplication. Receipt m2-postmerge-failure.json plus build/test logs preserved. M2 source landed dormant; post-main closeout NOT complete and M3-M5 NOT started. No activation permission inferred from landing. This evidence-only main commit touches only docs/worklogs; release landing slot after receipt.

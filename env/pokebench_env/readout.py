@@ -189,10 +189,10 @@ SERVER_FEATURES = (
     "caught-nickname-prompt-v2",
     MAUVILLE_PUZZLE,
     "cutscene-journal-v1",
-    "scene-journal-safe-capture-v1",
     "map-observability-v1",
     "type-gap-team-v1",
     "pokenav-short-list-v1",
+    "scene-journal-safe-capture-v1",
 )
 
 

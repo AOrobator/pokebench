@@ -520,7 +520,9 @@ def test_production_run_reads_the_switch_into_the_frame_settle(
 ) -> None:
     from pokebench_env.serve import run
 
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "scene-journal-safe-capture-v1"]))
+    )
     game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
     lock = threading.Lock()
     app = FastAPI()

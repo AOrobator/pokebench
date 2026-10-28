@@ -66,3 +66,4 @@ Roster: Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent
   - DisprovedBeliefs picks the newest by each entry's latest evidence seq. Both kinds append seqs on repeat. Display order is unchanged.
   - "(and 1 earlier turn)" is now singular.
   - Results: 101 passed with the ledger and registry tests; tsc and eslint clean.
+- [x] Codex's round-2 fixture point, taken: the contradiction fixtures now use six entries of long pages to cross 4,000 chars, not 40 short ones. The 20-entry OFF check is now 5 entries. 8/8 pass, and the left-out count is still asserted.

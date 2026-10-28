@@ -3,7 +3,7 @@
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
 **Status:** Authorized implementation; activation and shared viewer refresh explicitly prohibited
-**Current Phase:** verification — M3 GREEN, independent review pending
+**Current Phase:** implementation — M3 closed dormant; M4 contract next
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots-api`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M3 (GREEN; independent review next; no service activation or shared refresh)
+## Current Milestone: M4 (contract/RED next; no service activation or shared refresh)
 
 ### Completed Milestones
 
@@ -166,7 +166,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Implement API adapters, bounded revision delivery and history seeks; legacy route remains available.
 - [x] Adversarial deletion35 actual assertion-RED/restored cases; native API/worker fixture proof; full build/lint/test-with-coverage/vendor PASS.
 - [x] COMMIT: API implementation aa56da6ec; strengthened/corrected gated source48d6079e6 (GREEN; final evidence seal below).
-- [ ] Multi-model review against endpoint contracts and INV-3/4/6/7.
+- [x] Multi-model review against endpoint contracts and INV-3/4/6/7: round2 Claude/GPT/Sol/Astra LGTM; Grok unavailable, general native human outage authority verified and reduced vendor diversity recorded. Source landed60b64a034; canonical build/test PASS, no activation/refresh.
 
 **M4 - Snapshot-first browser with separate history/replay state (tracked by this worklog):**
 - [ ] Contract freeze: off-by-default viewer configuration selects new current-state path; history fills separately; existing card store still supplies saved-card fallback until M5. Owner: browser current view. No artwork, layout/identity redesign, protected baseline edits or timeline additions.
@@ -436,3 +436,7 @@ M3 correction baseline26 tests PASS (prior coordination note said24 in error; lo
 M3 pre-round2 CPU START00:34EDT: final set43 exact mutation targets (41 initially requested plus two same-path queue/warm caller checks). Main43e801343 post-type-gap evidence moved again; synchronize before gates, retain own patch identity. A separate owner shared-viewer refresh is concurrent per coordinator; this task does not issue or authorize that refresh, activate new service or change active runs. Fresh full gates still required; no source-level test skips.
 
 M3 corrected GREEN on8881b16ad (main43e801343 dependency):43 targeted assertion-RED/restored mutations30.29s; fresh build18.69s; lint84.08s; one full coverage just-test144.22s; vendor0.11s PASS. Counts4702agent/2202viewer/4466Python/102gateway+3protectedcards. Coverage lines/branches/functions: agent99.17/92.70/97.47; viewer98.30/91.00/95.07; Python97.49/93.61/100; gateway99.37/97.16/100. CPU released immediately. Round1 production/non-test package diff byte-identical after correction/main sync (m3-r2-production-identity.json); all source/test hashes checked before this evidence-only commit. F1/F2 native/operand proof plus queue/warm twin cases now in m3-r2-mutations.json; no production change/new domain. Round2 independent review pending against same frozen boundary. No third round, main landing, service activation or shared refresh yet.
+
+M3 LANDED DORMANT source60b64a0343b20720b5433956fa2e6bff689a8001 (fast-forward from43e801343) on this chat actual-ID board turn. Round2 canonical packet digest258cbba5a763aecfe346909482041be87eb3e50dd6fabbcce49b2ad6fcc12941; Claude/GPT/Sol/Astra all LGTM after bounded F1/F2 test-only correction and mandatory context completion. Grok out of usage, native original human general waiver records4145/4964/6309 reverified; fallback is reduced vendor diversity, not normal Grok success. Source/non-test package diff unchanged across rounds and latest-main sync.
+
+Canonical post-merge buildPASS18.84s, one full coverage-instrumented just-testPASS139.71s at exactly60b64a034; counts4702agent/2202viewer/4466Python/102gateway+3protectedcards. m3-main-gates.json/logs in canonical and owned evidence folder; all original round/gate failures retained. This evidence-only closeout touches only docs/worklogs under the permitted post-landing exception. Board/CPU release follows immediately. M1/M2/M3 implementation/review/local landing complete; M4 snapshot-first browser and M5 handoff/rollout still required. No actual-root or shadow projector activated, no shared viewer refresh/restart by this task, no active-run inputs/process/config changes. New API remains explicit OFF by default.

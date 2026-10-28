@@ -21,6 +21,7 @@ const payload=(text:string):{episodes:CapEpisode[]}=>JSON.parse(text.slice(text.
 describe.skipIf(!havePret)("deterministic pret-only whole-game instruction stream",()=>{
  it("audits source keys and emits independently valid linear events through the endgame",()=>{
   const entries=loadWholeGameScript(PRET);
+  expect(entries.every(e=>e.page_names!==undefined)).toBe(true);
   const spy=vi.spyOn(events,"checkEvent");
   try{
    const a=buildWholeGameStream(entries,20261028),calls=spy.mock.calls.length;

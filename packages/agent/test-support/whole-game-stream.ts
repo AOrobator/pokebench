@@ -68,8 +68,10 @@ export function loadWholeGameScript(pret:string,script=join(import.meta.dirname,
    if(entry.page_names.length!==pages.length)throw Error(`page attribution count ${entry.id}`);
    let last:string|null=null;
    for(const [i,name] of entry.page_names.entries()){
-    if(name!==null&&!pages[i]?.startsWith(`${name}: `)&&!pages[i]?.startsWith(`${name}:\n`)&&name!==last)throw Error(`page printed name ${entry.id}`);
     if(name===null&&last!==null)throw Error(`lost printed name ${entry.id}`);
+    // The production dialogue producer's NAME_PREFIX, used only to audit this offline fixture.
+    const printed=/^([A-Z][A-Z0-9.'&-]*(?: [A-Z0-9.'&-]+){0,2}):\s/.exec(pages[i]??"")?.[1];
+    if(name!==(printed??last))throw Error(`page printed name ${entry.id}`);
     last=name;
    }
   }

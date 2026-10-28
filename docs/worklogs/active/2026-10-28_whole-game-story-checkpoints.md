@@ -71,3 +71,6 @@ COMMIT: implement pret-only whole-game stream, explicit known limits and report 
 
 Additional source-audit RED: a wrong per-page fixture that persists TATE onto the page explicitly beginning LIZA was accepted because the validator allowed an unchanged previous name. Added a real pret counterexample; reads-each test now fails its expected-rejection assertion. This is fixture-audit correctness only, not a runtime attribution parser or a ranking change. Receipt: /tmp/whole-game-prefix-change-red.log.
 COMMIT: reject stale fixture attribution when the next page prints another name (RED).
+
+Source-audit GREEN: per-page validation now checks the source page's printed prefix (the existing producer's NAME_PREFIX pattern, fixture audit only) before allowing the preceding name to persist. TATE cannot override an explicit LIZA page. All8 stream tests pass; helper coverage100 lines/functions/statements and90.9 branches; lint clean. The source list and cap behavior are unchanged. Report introduction now leads with the one-character packing sensitivity and keeps the first table reachable on a phone; detailed scope moves into an expandable source note.
+COMMIT: verify explicit printed-name changes in offline fixtures and tighten report layout.

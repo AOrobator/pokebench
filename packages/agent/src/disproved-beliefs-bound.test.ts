@@ -4,6 +4,7 @@ import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,pla
 import {BELIEF_LEDGER_CHARS,BELIEF_TURNS_SHOWN,DisprovedBeliefs} from "./disproved-beliefs.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {contextTools} from "./play-wiring.js";
 
 const ID="disproved-beliefs-bound-v1";
 interface Fixture {readonly source:string;readonly events:readonly RunEvent[]}
@@ -15,8 +16,8 @@ const ON:FeatureSet={...RUN,"disproved-beliefs-v1":true,[ID]:true};
 const SLICE=FIXTURE.events.filter(e=>e.turn===146&&e.type!=="turn_start"&&e.type!=="assistant");
 
 // The recorded push-back, replayed once per entry in `columns` (shifted that many tiles east), turn after turn.
-function pushedBack(features:FeatureSet,columns:readonly number[]):DisprovedBeliefs {
- const ledger=new DisprovedBeliefs(features);let seq=0;
+function pushes(columns:readonly number[],text?:string):RunEvent[] {
+ const out:RunEvent[]=[];let seq=0;
  columns.forEach((dx,i)=>{
   const ids=new Map<number,number>();
   for(const e of SLICE){ids.set(e.seq,++seq);}
@@ -28,10 +29,15 @@ function pushedBack(features:FeatureSet,columns:readonly number[]):DisprovedBeli
    if(e.type==="tool_result"&&e.state_seq!==undefined)body["state_seq"]=ids.get(e.state_seq);
    if(e.type==="button_press"&&e.before_state_seq!==undefined)body["before_state_seq"]=ids.get(e.before_state_seq);
    if("position"in e)body["position"]=shift(e.position);
-   if(e.type==="dialogue_auto_advance")body["pages"]=e.pages.map(p=>({...p,position:shift(p.position),state_seq:p.state_seq===null?null:ids.get(p.state_seq)??null}));
-   ledger.observe(checkEvent(body));
+   if(e.type==="dialogue_auto_advance")body["pages"]=e.pages.map(p=>({...p,...(text===undefined?{}:{text}),position:shift(p.position),state_seq:p.state_seq===null?null:ids.get(p.state_seq)??null}));
+   out.push(checkEvent(body));
   }
  });
+ return out;
+}
+function pushedBack(features:FeatureSet,columns:readonly number[],text?:string):DisprovedBeliefs {
+ const ledger=new DisprovedBeliefs(features);
+ for(const e of pushes(columns,text))ledger.observe(e);
  return ledger;
 }
 // Header, then the count line when there is one, then one item per entry (quoted pages keep their own newlines).
@@ -65,6 +71,28 @@ describe("disproved-beliefs-bound-v1",()=>{
  it("ON is byte-identical when nothing is over a bound",()=>{
   const few=[0,1,1,2];
   expect(pushedBack(ON,few).text()).toBe(pushedBack(OFF,few).text());
+ });
+ it("ON keeps an entry repeated last as the newest, even though it was created first",()=>{
+  const cols=[...Array.from({length:40},(_,i)=>i),0];
+  const [,count,...kept]=lines(pushedBack(ON,cols).text());
+  expect(count).toMatch(/older entries are left out\.$/);
+  expect(kept.some(k=>k.startsWith("- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 2 times"))).toBe(true);
+ });
+ it("counts code points, not UTF-16 units: two astral entries that fit by code points both stay",()=>{
+  const text=pushedBack(ON,[0,1],"😀".repeat(500)).text()??"";
+  expect(text).not.toContain("left out");
+  expect(text).toContain("from (11,1)");
+ });
+ it("contextTools delivers the bounded list only when the switch is on",async()=>{
+  const delivered=async(features:FeatureSet)=>{
+   const subs:((e:RunEvent)=>void)[]=[];const bodies:{text:string|null}[]=[];
+   const context=contextTools(features,{subscribe:fn=>{subs.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:body=>{bodies.push(body);}},m=>Promise.resolve(m));
+   for(const e of pushes(Array.from({length:40},(_,i)=>i)))for(const fn of subs)fn(e);
+   await context.transformContext([{role:"user",content:"Play.",timestamp:0}]);
+   return bodies.at(-1)?.text??"";
+  };
+  expect(await delivered(ON)).toMatch(/\n\d+ older entries are left out\.\n/);
+  expect(await delivered(OFF)).not.toContain("left out");
  });
  it("is registered after refusal-ledger-bound-v1, default off, needs disproved-beliefs-v1, recorded only when on",()=>{
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(297);

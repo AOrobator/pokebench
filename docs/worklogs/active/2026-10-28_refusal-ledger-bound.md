@@ -44,3 +44,20 @@ The other half of the same belief-ledger message is "Things the game has contrad
 - Supervisor "Exits to maps you have not entered": bounded in supervisor-briefing-bound-v1 (M2).
 - Refusal ledger entries and the per-entry turn list: this switch.
 - Disproved beliefs ("Things the game has contradicted", the other half of the belief ledger): entries last until a story flag changes, and each push-back or misplaced-person entry's turn list grows with repeats. It never appeared in 9e33, a702, 88ea or 429f. Bounded in M2.
+
+## Review round 1 (head 3a7507a85, base main 90b351b55)
+
+Roster: Codex gpt-5.6-sol, a Claude opus subagent and a sonnet fallback subagent. The CLI's OAuth has expired, Cursor is out of usage, and Codex's default model is refused.
+
+- Claude: LGTM, with a hardening note: disproved-beliefs picks the newest by creation, not by latest repeat.
+- Fallback: LGTM, with the same note plus the wording "1 earlier turns".
+- Codex: BLOCKING:
+  - Recency after a repeat: accepted.
+  - UTF-16 units vs code points: accepted.
+  - No production-path test, and no durable replay artifact: accepted.
+  - Superlinear fixture: rebutted. The O(entries) scan per result is DisprovedBeliefs.result()'s pre-existing production path, not fixture setup. 40 rows is about 1,600 visits, and the assertions need more than 4,000 chars of whole entries, which takes about 40 push-backs.
+
+- [x] RED:
+  - Code points: one test per ledger.
+  - Disproved recency: entry A is created first and repeated last, and must be kept.
+  - `contextTools` tests per switch: they pass against the wiring and go RED when `disprovedBeliefs()` forces either bound off (checked, then restored).

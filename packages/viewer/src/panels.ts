@@ -601,6 +601,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
  "neutral-yes-no-readout-v1":"neutral-yes-no-readout-v1.html",
  "refusal-ledger-bound-v1":"refusal-ledger-bound-v1.html",
+ "disproved-beliefs-bound-v1":"refusal-ledger-bound-v1.html",
  "field-move-gates-v1":"field-move-gates-v1.html",
  "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",

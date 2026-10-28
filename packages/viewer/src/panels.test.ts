@@ -1810,6 +1810,7 @@ it("links unique instruction memory to its tracked explainer",()=>{
 it("links the bounded refusal history explainer from its config card without inventing recorded status",()=>{
  const id="refusal-ledger-bound-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(FEATURE_EXPLAINERS["disproved-beliefs-bound-v1"]).toBe(`${id}.html`);
  for(const enabled of [true,false]){
   const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);

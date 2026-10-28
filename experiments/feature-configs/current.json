@@ -70,7 +70,8 @@
   "scene-followup-prompt-v1",
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
-  "refusal-ledger-bound-v1"
+  "refusal-ledger-bound-v1",
+  "disproved-beliefs-bound-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -445,6 +446,7 @@
   "retire-reached-story-line-v1": true,
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
-  "refusal-ledger-bound-v1": false
+  "refusal-ledger-bound-v1": false,
+  "disproved-beliefs-bound-v1": false
  }
 }

@@ -36,7 +36,7 @@ The other half of the same belief-ledger message is "Things the game has contrad
 
 - [x] RED: `disproved-beliefs-bound.test.ts`, 5 tests. It replays sh02's recorded turn-146 push-back (TWIN, LITTLEROOT TOWN), shifted east once per entry. The 2 OFF tests pass; the 2 ON tests and the registry test fail.
 - [x] GREEN: `disproved-beliefs.ts` (BELIEF_LEDGER_CHARS 4000, BELIEF_TURNS_SHOWN 10); registry index 296 (guidance, needs disproved-beliefs-v1), preset, next-run. 5/5; with the refusal-ledger, disproved-beliefs and features tests, 96 passed; tsc and eslint clean.
-- [ ] Explainer section + activation (bundle ON).
+- [x] Explainer section in `refusal-ledger-bound-v1.html` (same message), with the card link mapped to that page. Activation: in current.json `switches` (bundle ON) and `features` false (control OFF). The fixed-run launch approval was removed on main (979b004e6), so no approve step is needed.
 
 ## Lines that grow with run length (running list)
 

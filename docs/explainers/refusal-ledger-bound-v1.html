@@ -124,8 +124,11 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </tbody></table>
 <p>Chars, header included. 88ea is the live run; its events were only read.</p></div>
 
+<div class="card"><h2>Companion switch: disproved-beliefs-bound-v1</h2>
+<p>The same belief-ledger message has a second part from disproved-beliefs-v1: "Things the game has contradicted". It lists each time a script pushed the player back, and each time the model placed a story character on a map whose readout says they are not there. Each entry quotes whole pages. Entries stay until a story flag changes or the game shows otherwise, and an entry's turn list grows with every repeat.</p>
+<p>disproved-beliefs-bound-v1 (default off, needs disproved-beliefs-v1) applies the same rule to that part. Whole entries, newest first, are kept within 4,000 chars, under "N older entries are left out.". A repeated entry lists its latest 10 turns with "(and N earlier turns)". Quoted pages are never cut. It is its own switch because it is separate code, so each part can be A/B tested on its own. That part never appeared in the four large runs checked (9e33, a702, 88ea, 429f). The tests replay run sh02's recorded turn-146 push-back (TWIN, LITTLEROOT TOWN) 40 times to exercise the bound.</p></div>
 <div class="card"><h2>Status</h2>
 <ul><li>Branch <code>claude/refusal-ledger-bound</code>. Not landed and not active in any arm.</li>
-<li>Focused tests pass: 5 new tests, and 91 together with the refusal-ledger, disproved-beliefs and registry tests.</li>
+<li>Focused tests pass: 10 new tests (5 per switch), and 96 together with the refusal-ledger, disproved-beliefs and registry tests.</li>
 <li>Still to do: the bundle activation commit (held for the operator's OK), the full gate (waiting for a CPU grant), the three-lane review, and measured runs.</li></ul></div>
 </main></body></html>

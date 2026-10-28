@@ -8,7 +8,7 @@ it("registers the default-OFF call driver and native readout",()=>{
  expect(normalizeFeatures(off)[ID]).toBe(false);
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(SERVER_FEATURES).toContain(ID);
- expect(SWITCHABLE_FEATURES[295]).toBe(ID);
+ expect(SWITCHABLE_FEATURES[296]).toBe(ID);
  expect(playHarnessFeatures({...off,[ID]:true},null)).toContain(ID);
 });
 

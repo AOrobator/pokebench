@@ -1807,6 +1807,23 @@ it("links unique instruction memory to its tracked explainer",()=>{
  expect(html).toContain("Unique instruction memory");expect(html).toContain("OFF");expect(html).toContain("ON");
 });
 
+it("shows the exact PokéNav automatic buttons and links its feature explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["pokenav-call-auto-advance-v1"]});
+ const event=log.add(100,{type:"dialogue_auto_advance",turn:2,tool_call_id:"nav",tool:"select_menu_option",requested:[],sent:[],dropped:[],auto_presses:3,pokenav_buttons:["A","A","B"],pages:[{state_seq:1,map:"RUSTBORO CITY",map_id:[0,3],position:null,speaker:"MR. STONE",speaker_source:"name_prefix",text:"MR. STONE: Hello!"}],stop:"menu",detail:"PokéNav closed",duration_ms:50});
+ expect(eventText(event,view(log))).toContain("PokéNav auto-advance (select_menu_option) · A, A, B");
+ expect(inspector(event)).toContain("pokenav_buttons");
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector('[data-feature="pokenav-call-auto-advance-v1"]');
+ expect(card?.textContent).toContain("ON");expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/pokenav-call-auto-advance-v1.html");
+});
+
+it("marks a PokéNav input with an unknown effect explicitly in history and raw inspection",()=>{
+ const log=new Log();log.add(0,START);
+ const event=log.add(100,{type:"dialogue_auto_advance",turn:1,tool_call_id:"uncertain",tool:"observe",requested:[],sent:[],dropped:[],auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A",pages:[],stop:"error",detail:"observation503 after action accepted",duration_ms:1});
+ expect(eventText(event,view(log))).toContain("no confirmed inputs · A may have executed; outcome unconfirmed");
+ expect(inspector(event)).toContain("pokenav_pending_button");
+});
+
 it("links the compact map grid explainer from its config card without inventing recorded status",()=>{
  const id="compact-map-grid-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

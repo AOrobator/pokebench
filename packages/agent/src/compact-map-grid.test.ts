@@ -6,7 +6,7 @@ const ID="compact-map-grid-v1";
 
 describe("compact-map-grid-v1 registry",()=>{
  it("is registered last, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(296);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(297);
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
   expect(featureInfo(ID).description).toContain(" Off: the padded full-token grid.");

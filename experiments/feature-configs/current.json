@@ -70,6 +70,7 @@
   "scene-followup-prompt-v1",
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
+  "pokenav-call-auto-advance-v1",
   "compact-map-grid-v1"
  ],
  "offInBoth": [
@@ -447,6 +448,7 @@
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
   "instruction-memory-cap-v1": true,
+  "pokenav-call-auto-advance-v1": false,
   "compact-map-grid-v1": false
  }
 }

@@ -122,12 +122,12 @@ it.each(["call","call_text"])("advances the actual native state-2 %s and complet
  }
 });
 it("records an uncertain A when the real press tool succeeds remotely but its observation fails",async()=>{
- const state=call(),accepted:unknown[]=[],events:Advance[]=[];
+ const state=native("call_text"),accepted:unknown[]=[],events:Advance[]=[],requests:string[]=[];
  const fetchFn:typeof fetch=(url,init)=>{
-  const path=typeof url==="string"?url:url instanceof URL?url.href:url.url;
+  const path=typeof url==="string"?url:url instanceof URL?url.href:url.url;requests.push(new URL(path).pathname);
   if(path.endsWith('/pokebench/state'))return Promise.resolve(Response.json(state));
   if(path.endsWith('/action')){const body=init?.body;if(typeof body!=="string")throw new Error("fixture expected JSON request");accepted.push(JSON.parse(body) as unknown);return Promise.resolve(Response.json({status:"success"}));}
-  if(path.endsWith('/info'))return Promise.resolve(Response.json({queue_empty:true}));
+  if(path.endsWith('/queue_status'))return Promise.resolve(Response.json({queue_empty:true}));
   return Promise.resolve(new Response('unavailable',{status:503}));
  };
  const clock={now:()=>0,sleep:()=>Promise.resolve()};
@@ -135,7 +135,8 @@ it("records an uncertain A when the real press tool succeeds remotely but its ob
  const observe:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[],details:{state}})};
  const recorder:AutoAdvanceRecorder={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:e=>{events.push(e);return {seq:2,turn:1};}};
  const tools=withPokenavCallAutoAdvance([observe],{...off(),[ID]:true},{state:{read:()=>Promise.resolve(state)},recorder,press,observe,clock});
- await expect(must(tools[0]).execute('uncertain',{})).rejects.toThrow('503');
+ await expect(must(tools[0]).execute('uncertain',{})).rejects.toThrow('GET http://fixture/pokebench/observation returned HTTP 503');
+ expect(requests.slice(requests.indexOf('/action'))).toEqual(['/action','/queue_status','/pokebench/observation']);
  expect(accepted).toHaveLength(1);expect(accepted[0]).toMatchObject({buttons:["A"]});
  expect(events).toHaveLength(1);expect(events[0]).toMatchObject({stop:"error",auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A"});
 });

@@ -1626,3 +1626,10 @@ it("serves the unique instruction memory explainer byte for byte",async()=>{
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });
+
+it("serves the current question focus explainer byte for byte",async()=>{
+ const file="current-question-focus-v1.html",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-question-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,file),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

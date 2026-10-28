@@ -52,6 +52,11 @@ it.each([
  ["battle",{in_battle:true}],
  ["other map",{map_id:[0,9]}],
  ["other run",{run:"different"}],
+ ["not started",{started:false}],
+ ["blackout",{blackout_active:true}],
+ ["missing owner",{active_ui:null}],
+ ["empty controls",{active_ui:{...F.ui,controls:""}}],
+ ["wrong screen",{screen:"battle"}],
 ] as const)("does not focus an unsupported or mismatched state: %s",async(_label,overrides)=>{
  const s=setup();s.feed([advance,state(overrides),result()]);const input=history();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
 });
@@ -88,6 +93,16 @@ it("updates the selection while retaining only the same source-qualified questio
 });
 it("does not guess a new question without a matching delivered page",async()=>{
  const s=setup();s.feed([advance,state(),result()]);const text=F.readout.replace("PETALBURG?","SLATEPORT?");s.feed([state({seq:44778}),result("new",text,{seq:44779,state_seq:44778})]);expect(await s.wiring.transformContext(history("new",text))).toEqual(history("new",text));
+});
+it.each([
+ ["missing question",F.readout.replace(/^Dialog: .*$/m,"Dialog: none")],
+ ["ambiguous screens",F.readout+"\nScreen: overworld"],
+ ["ambiguous interfaces",F.readout+"\n"+UI],
+ ["contradictory selection",F.readout.replace("selected YES;","selected NO;")],
+ ["contradictory answer",F.readout.replace("Pressing A now answers YES.","Pressing A now answers NO.")],
+ ["coverage error",F.readout+"\nSTATE COVERAGE ERROR: unknown owner"],
+] as const)("does not copy an unsupported delivered readout: %s",async(_label,text)=>{
+ const s=setup();s.feed([advance,state(),result(undefined,text)]);const input=history(undefined,text);expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
 });
 it("does not re-record a delivered focus block restored from its ledger receipt",async()=>{
  const s=setup();s.feed([advance,state(),result(),event({type:"ledger_context",seq:44778,text:BLOCK,evidence:[44775,44774,44777,44776]})]);

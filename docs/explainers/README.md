@@ -328,3 +328,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Claude schema re-ask hint](gateway-schema-hint-v1.html): an anyOf/oneOf re-ask lists the forms generated from the tool schema; recorded switch, exact legacy OFF.
 
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
+
+- [Current question focus](current-question-focus-v1.html): temporary source-qualified current field question and controls, tested through iterative decision probes.

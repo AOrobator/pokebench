@@ -17,3 +17,5 @@
 | PB13 | PASS | Tests at the production builder (playSystemPrompt, used by live.ts and decision-probe.ts). Wiring was deleted once and went red. The probe context rebuild shows the flipped context differs only in the system prompt. |
 
 FAIL rows: 0
+
+Archived 2026-10-27 with the scene-followup-prompt-v1 worklog (landed 360c0ee41).

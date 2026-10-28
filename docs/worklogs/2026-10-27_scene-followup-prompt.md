@@ -77,3 +77,13 @@ Branch reset onto main 896088908 (the unlanded system-prompt version is kept at 
 - [x] Gates at 360c0ee41 (CPU window granted 8:29 PM NY): build, lint clean; agent 4636/4636 (96.52/92.68/97.53), viewer 2095/2095 (95.81/91.68/95.32), pytest 4446 + 69 (97.48/93.60/100; 99.29/97.01/100), trainer cards 3/3 with main's art (`just coverage` exits 1 only on the art-less worktree card check).
 - [x] LANDED ff-only: main 360c0ee41 (from b3a2bf941). Post-landing on main: pnpm -r build OK; scene-followup + features tests 44/44; current.json bundle ON / control OFF; `just fixed-run check bundle-v-control-2h` OK; `just viewer-main` -> viewer at 360c0ee41, explainer 200.
 - Comparison: not launched (needs the operator's go).
+
+## Closed (2026-10-27, 8:41 PM NY)
+- The operator: "we can just do probes and leave it on in the bundle". The checkpoint fixed-run pair is cancelled (nothing was created). The switch stays ON in the bundle as landed (360c0ee41), and the decision probes are the evidence (runs/reports/run-analysis/2026-10-27_scene-followup-prompt-research).
+- Follow-ups:
+  - live.ts autoTalkContext wraps outside contextTools and can append after the note in rare loop cases (the play-wiring "final message" comment overclaims).
+  - A run killed after the scene's result and continued: restore sets `sent` while ledger recording is a no-op, so the note can be delivered once without a ledger_context.
+  - Probe library: decisionContext skips ContextBudget.fit, so `just probe-decision` replays oversized contexts.
+  - Probe library: the probe Replay lacks the gymHealWarning recorder hook, so runs with gym-heal-warning-v1 can't be rebuilt.
+  - Probe library: parseRun reads the whole log as one string, so logs over about 536 MB can't be probed (Meteor Falls Astra t1907, d41e museum).
+  - llama.cpp build 10236, hybrid Qwen3.6: a slot wedged for 71 min in a context-checkpoint loop ("progress = 1.15"), made more likely by id_slot pinning.

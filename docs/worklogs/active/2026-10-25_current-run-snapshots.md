@@ -177,14 +177,14 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Implement opt-in browser adapter and independent history/replay state; reuse approved retention rules and source-guarded existing-card fallback.
 - [x]35 performed adversarial cases; owned headless1280/1440/375 pointer/Enter run/frame ownership and failure/recovery, actual replay keyboard rewind, default-OFF; screenshots inspected; protected3PASS; full build/lint/single coverage test/vendor PASS9d73616c1. Synthetic recordings/frames, not live gameplay.
 - [x] COMMIT: `feat(viewer): render current state before loading history` (GREEN seal follows source9d73616c1673d7de398861c3e096def11b8ba342; exact seal SHA in frozen packet).
-- [ ] Multi-model review against startup/backfill contract and all affected invariants.
+- [x] Multi-model review against startup/backfill contract and all affected invariants: final human-authorized R3 Claude/GPT/Sol/Astra LGTM; source9f82e68fa/evidence52a565418 landed; exact receipts below.
 
 **M5 - Card-store handoff and authorized rollout (tracked by this worklog):**
 - [x] Contract freeze: controlled migration from dependency cards-v1, exact one-writer mode, preserved legacy rollback path, operator-authorized staged activation only. Owner: derived snapshot service after handoff. No active-run change or grading migration.
 - [ ] Terminator: native parity, restart/browser proof, performance/resource receipt, explicit rollout decision, queued landing/main gates and authorized activation with process continuity. Accept initial unindexed historical rows as explicitly indexing; never claim instant reconstruction of unseen history.
-- [ ] Split triggers: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
+- [x] Split triggers frozen: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
 - [ ] Tests: read-only import accepts display fields only, rejects foreign/truncated/replaced sources; no imported totals/checkpoints/grade status; old/new mode never write card persistence concurrently; rollback restores prior mode without source mutation.
-- [ ] COMMIT: `test(viewer): specify snapshot card handoff and rollback` (RED; SHA pending).
+- [x] RED commits: f98eec224 normal database,629a40245 heartbeat,fe272f973 reader/writer,91c81d514 lifecycle,20df418e1 upgrade rollback,1acda0ada all-card progress,5bdaa0f4c initial-health visibility; observed failures retained.
 - [ ] Implement reviewed handoff/configuration and rollout runbook. Legacy cache is not rewritten or deleted by migration; its reader is transitional and has a documented retirement follow-up.
 - [ ] Adversarial deletion; offline rollout/rollback rehearsal; full gates, coverage, protected cards and required multi-model review.
 - [ ] COMMIT: `feat(viewer): add controlled snapshot rollout and card handoff` (GREEN; SHA pending).
@@ -562,3 +562,5 @@ M5 immutable runtime self-check: readiness marker moved beside the pinned checko
 M5 pre-gate dependency sync: main advanced toabaadae4c with ID-card-bound source. Incoming12 files do not supersede current snapshot/reader/App/lifecycle paths. Only explainer-index append conflict; retained both entries. Full M5 gates/review will bind this updated base. No main/activation/refresh action by this chat.
 
 M5 card-handoff initial-health parity RED: native public fixture with enabled health owner/failed check produces unresponsive current row; a nonselected active trainer was omitted on a fresh page because legacy known-live membership had never been initialized. Exact owned two-card set assertion fails before repair. Fix is seeding existing retained-card membership from persisted nonterminal rows, not inventing liveness/control authority or changing protected design.
+
+M5 initial unresponsive-card correction GREEN: seed the existing retained-card membership from persisted summaries before the existing list owner removes terminal runs. This preserves a nonselected nonterminal card on its first unavailable health result without labeling it live or enabling controls.136 focused tests PASS1.77s, final touched App17 tests PASS1.68s; source/test route27 prepared falsifications. Production current/card API and normal layout/art unchanged. Committing branch readiness; heavy CPU window still queued, no frozen external review or runtime activation yet.

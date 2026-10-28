@@ -657,6 +657,7 @@ export class App {
 
   private currentChanged(state:Readonly<CurrentBrowserState>|null):void {
     if(state===null||this.current===null)return;const now=this.deps.now();
+    for(const row of state.runs)this.knownLiveCards.add(row.id);
     const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs){
       const saved=this.savedCurrentCard(s.id,s.generation),fallback=!s.complete&&s.run.card==null?saved:null;
       recorded.set(s.id,{...s.run,splits:saved?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});

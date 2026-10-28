@@ -220,3 +220,33 @@ def test_move_matchup_reads_only_rom_chart_at_real_midframe_battle() -> None:
     assert after.type_gap.party == ()
     assert after.type_gap.chart == read_type_chart(rom_read)
     assert after.battle_details is None  # no damage guess from incoherent save-backed facts
+
+
+def test_move_matchup_alone_covers_native_early_learning_page() -> None:
+    import json
+    from pathlib import Path
+
+    from test_training_readout import maps
+
+    from pokebench_env.raw_ram import load_raw_ram
+    from pokebench_env.rerender import read_state, render
+
+    directory = Path(__file__).parent / "fixtures"
+    provenance = json.loads((directory / "move-matchup-learning-9c88.provenance.json").read_text())
+    read = load_raw_ram(
+        directory / "move-matchup-learning-9c88.json.gz",
+        provenance["raw_ram"]["sha256"],
+        rom=_rom(),
+    )
+    off = (frozenset(SERVER_FEATURES) - set(provenance["harness_features"])) | {
+        "move-learn-early-comparison-v1",
+        "move-learn-comparison-v1",
+    }
+    snapshot = read_state(read, maps(), active_ui=True, off=off - {"move-learn-type-matchup-v1"})
+    assert snapshot.move_learning is not None
+    assert snapshot.move_learning.new.facts.name == "DOUBLE KICK"
+    assert "New move: DOUBLE KICK FIGHTING physical pow 30" in render(
+        snapshot, off - {"move-learn-type-matchup-v1"}
+    )
+    before = read_state(read, maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"})
+    assert before.move_learning is None

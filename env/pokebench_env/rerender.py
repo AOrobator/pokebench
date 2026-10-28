@@ -127,7 +127,10 @@ def read_state(
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON, "move-learn-type-matchup-v1"}
         <= off,
         # move-learn-early-comparison-v1 shows move-learn-comparison-v1's block earlier.
-        move_learning_early_enabled=MOVE_EARLY not in off and MOVE_COMPARISON not in off,
+        move_learning_early_enabled=(
+            "move-learn-type-matchup-v1" not in off
+            or (MOVE_EARLY not in off and MOVE_COMPARISON not in off)
+        ),
         berry_readout_enabled="berry-readout-v1" not in off,
         overhead_cover_enabled=SCREEN_CENTER not in off,
         object_elevations_enabled=ELEVATION_MAP not in off,

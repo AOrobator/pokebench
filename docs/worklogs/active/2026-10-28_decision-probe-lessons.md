@@ -18,4 +18,5 @@ Docs only: `.claude/skills/pokebench-decision-probes/SKILL.md`. The operator ask
   - the map_groups path.
 - [x] Review round 2 (e80866aaf): CHANGES REQUESTED, 3 findings, all fixed: system-prompt claim scoped to the scene study, N=1–3 as decision-evidence guidance, window check stated as fit rather than same lane.
 - [x] Review round 3 (9aaf185d2): one finding fixed: `--recorded-trim` guarantees message and image counts, not tokens.
-- [ ] Review round 4, then land through the board.
+- [x] Review round 4 (3127e7f0d): Codex gpt-5.6-sol VERDICT: LGTM. Single lane for a docs-only skill change (coordinator relay).
+- [ ] Land through the board.

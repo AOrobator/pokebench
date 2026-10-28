@@ -141,3 +141,16 @@ The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude 
     4. Repeated fixture reads. Fixed: fixtures are read once (functools.cache).
   - Gateway tests 89 pass, coverage 99.32/97.13/100.
 - Review round 2 (packet 2c2d316f, head b37ac80ef): Claude LGTM, fallback LGTM. Codex verified the fixes and found no production regression, but blocked on test shape: the OFF and override matrices launched the fake-claude process 8 times. Coordinator chose to fix it. Those rows now use an in-memory runner through the Gateway's injectable `runner`, with 0 subprocess launches (receipt runs/reviews/gateway-current-turn-fix/runtime-shape-receipt.txt). The real-adapter tests are kept: bundle ON delivery and assistant-terminal. 89 pass, coverage 99.44/97.54/100. Test-only change.
+- Synced main d641b8dc9 (merge ee0b0f71e; current.json and features.ts conflicts resolved by keeping both no-story-foreknowledge-v1 and gateway-current-turn-v1). Confirmation round on packet dc089359: Claude LGTM, fallback LGTM, Codex gpt-5.6-sol LGTM.
+- Full gates on ee0b0f71e (2026-10-27 10:48–10:52 PM ET, coordinator's CPU window), all passing:
+  - build 0, TS lint 0, env ruff and mypy (134 files) clean, gateway ruff and mypy --strict clean
+  - agent 4665/4665, viewer 2157/2157
+  - pytest 4463 passed (97.48/93.61/100), gateway 89/89 (99.44/97.54/100)
+  - trainer-card guard 0, Playwright trainer cards 3/3 (approved art linked from the main checkout's runs/sprites)
+
+## Landed (current turn, continue-session, override)
+
+- `git merge --ff-only ee0b0f71e`, 2026-10-27 ~10:53 PM ET, slot 1 on the landing board. The packet is byte-identical to the reviewed dc089359. This lands both --continue-session-from and gateway-current-turn-v1 with --current-turn.
+- Post-merge `just test` on main and `just viewer-main` (the switch adds a Harness Config card) are pending a coordinator CPU and viewer window.
+- f60d is untouched. Its swap (f60d-gateway-swap-steps.md, swap_gateway.py with --current-turn on) waits for the operator's explicit OK.
+- Follow-up: the anyOf re-ask text should list each option's required keys. f60d request 1007 failed twice on navigate_to_target target shape.

@@ -87,3 +87,5 @@ CPU RESUME received after bound-branch release1:45PM. Sync main89f396398 into ow
 Coordinatorreported doc-onlymain2d8283698 on89f396398 beforegates started; integrateitsdocumentation now toavoidpostgatepin churn. Noownproductionchange.
 
 Pre-gate setup correction: stagedworklog edit caused the first2d8283698merge attempt toabort; shellcontinuedandmade7feb356b2asdocumentation-onlycommitdespitemisleadingmessage, thenstartedlint. Stoppedonlyownedgatetreebeforeproceeding, retainedincomplete7febreceipt. Withcleanindex, actual2d828merge succeeded; thiscommitnowintegratesthedoc-onlymain. No testpassoractualmergeclaimcreditedtotheabortedattempt. Serialgatesrestartonlyafterverifiedancestry/cleancommit.
+
+Serialgateatf1a31830f:TypeScriptcheckpassed;ESLintreported3unnecessaryhyphenescapes innewv4regexcharacterclasses. Removedonlythoseescapes(hyphenlastinclass, identicalmatching); targeted52PASS. Originallintfailure retained. Fullgaterunner stoppedonfailureanddidnotstartbuild/fulltest; restartonthiscommittedfix.

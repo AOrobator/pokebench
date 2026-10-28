@@ -54,8 +54,8 @@ export function junkSignalsV4(text:string):boolean {
  if(nameSignals.some(pattern=>pattern.test(flat)))return true;
  const low=flat.toLowerCase();if(phraseSignals.some(pattern=>pattern.test(low)))return true;
  if(source.signals.v4_gating.some(term=>low.includes(term)))return true;
- const caps=flat.match(/[A-ZÉ][A-Zé'’.\-]{2,}/g)??[];
- if(caps.some(term=>!["POKéMON","POKé"].includes(term)&&!["POKéMON","POKé"].includes(term.replace(/^[.'’\-]+|[.'’\-]+$/g,""))))return true;
+ const caps=flat.match(/[A-ZÉ][A-Zé'’.-]{2,}/g)??[];
+ if(caps.some(term=>!["POKéMON","POKé"].includes(term)&&!["POKéMON","POKé"].includes(term.replace(/^[.'’-]+|[.'’-]+$/g,""))))return true;
  return flat.includes("{STR_VAR")||/^[A-Z][A-Z .'’]+: /.test(flat);
 }
 export const junkPageKey=(page:CapRow):string=>JSON.stringify([page[0],page[2]]);

@@ -38,12 +38,12 @@ Only already-delivered text is projected. No privileged state, new tool, game wr
 **M3 — Verify and review**
 - [x] CPU START; synced main52a565418, then passed build, lint, full replays, arm checks, full coverage, vendor and protected-card checks serially.
 - [x] Headless feature card → explainer, collapsed/expanded examples and Activity History → exact raw payload pass at1280/1440/375. All12 screenshots inspected; no horizontal overflow or JS errors; no desktop focus changes.
-- [ ] Complete PB1–PB13 self-review, seal the boundary and packet, obtain Claude/Grok-or-approved-fallback/GPT reviews, and write synthesis.
+- [x] PB1–PB13 self-review, frozen boundary/packet and independent reviews completed. Claude, GPT, Sol and Astra return LGTM; Grok quota outage and reduced vendor diversity are recorded below.
 
 **M4 — Land and activation**
-- [ ] Land the reviewed implementation and separate activation commit fast-forward through the board.
-- [ ] Verify default OFF and resolved bundle ON/control OFF. Launch no runs and leave active prompts and frozen recipes untouched.
-- [ ] Obtain a separate post-merge CPU window, pass full tests on built main, refresh the viewer once under its shared lock, preserve active processes, record evidence and release the board.
+- [x] Reviewed implementation and separate activation commit landed fast-forward through board position1 at15:32, source mainabaadae4c.
+- [x] Actual served-runtime modules and current recipe resolve global OFF, bundle ON/control OFF in all3 protocols. No runs launched; active prompts and frozen recipes untouched.
+- [x] Separate coordinator START; post-main build/fulltest pass, one locked clean-runtime viewer refresh, active processes and real-page proof pass. Evidence committed and board released after this record.
 
 ## Closing the Loop
 Use exact model-facing lines and full recorded-card parity, then verify the card and explainer on the merged viewer. Keep implementation, recipe activation and live inference distinct. A shorter card is context-size evidence, not gameplay-benefit evidence.
@@ -63,10 +63,18 @@ Use exact model-facing lines and full recorded-card parity, then verify the card
 The production recall proof needs the ordinary checked-press adapter even when only observe executes; the existing auto-advance factory correctly rejects an incomplete fake tool chain. No production workaround was added.
 
 ## Multi-Model Review Log
-Pending.
+Round1 BASE52a5654187e0697eaf0c658bdeab6b5a22f74443, HEADabaadae4c16ab5a2f6d5c2ea68b7f4c954973e17. Exact canonical binary diff SHA256:6d8a9d7f301c13b73f4e36bd676edfc65afbe7763cd0734ecef7aeef282b11a5. Every selected reviewer and the implementer reproduced the digest and verified clean HEAD/status before and after.
+
+- Claude standaloneCLI ~/.claude-review, plan mode/user settings: VERDICT: LGTM.
+- Independent GPT app lane /root/id_card_bound_gpt_review, fork_turns=none: VERDICT: LGTM.
+- Grok Cursor cursor-grok-4.5-high (discovered model): exit1 ActionRequiredError, exhausted usage. Outage is not approval. Spec(e) expressly permits Grok-or-fallback; standing distinct-model fallback applied, with reduced vendor diversity.
+- Fresh Sol gpt-6.1-sol /root/id_card_bound_fallback_sol, fork_turns=none: VERDICT: LGTM.
+- Fresh Astra gpt-6-astra /root/id_card_bound_fallback_astra, fork_turns=none: VERDICT: LGTM.
+
+No blockers or accepted fixes. Claude’s temp-directory cleanup, import-order style and hypothetical future recall-retention concerns are adjacent follow-ups/speculation; no expansion accepted. Full-card/archive/fingerprint bounds remain non-goals. Review includes the separately approved activation commitb542c74f3. Originals are in the native session; copies and synthesis are in runs/id-card-bound/review.
 
 ## Boy Scout Log
-None. No adjacent refactor.
+No adjacent refactor. A separate follow-up proposal was relayed to the coordinator: the GLM full card remains5,434 characters because unchanged battle history includes repeated MAY encounters (the source example includes turns705,707,710,723,727,730). Rematch/loss history can accumulate despite the spec’s assumption that battle text is game-bounded. This switch intentionally bounds only the approved mention list. The coordinator acknowledged a separate worklog proposal only; no battle-history change was built.
 
 ## Archive Milestone
 Archiving is not authorized.
@@ -86,3 +94,14 @@ Added source-bound offline replay metrics and one complete real GLM OFF/ON card 
 Merged gates PASS on0004a1aac679fdb95f2c5637c3d8b613199f372f, based onmain52a565418. Receipts: runs/id-card-bound/gates-0004a1aac-1793215127422974000. Build20.92s, lint89.01s, replay28.92s, resolved-arm check0.60s, fulltest155.53s, vendor0.10s. Agent4,882; viewer2,284; Python4,869; gateway116; every coverage metric is above90%, and all3 protected trainer-card widths pass. Corrected full replay repeats the same566 distinct cards, zero mismatches, identical emission and the same measured card sizes. Canonical JSONL preserves both successful code-pin batches by appending; do not sum them as distinct cards. CPU RELEASE delivered; story checkpoints is next.
 
 Owned browser proof uses a clearly labelled offline fixture containing an actual bounded GLM card, not gameplay. Card status ON and exact explainer link, normal and expanded source examples, and raw people_id_card payload with the omitted-page clause all pass on1280/1440/375. Browser receipts/shots are under runs/id-card-bound; no focus, game action, GPU request or timeline changes. The approved art tree is linked read-only into the owned scratch root.
+
+## Final landing and live proof
+Landed source abaadae4c16ab5a2f6d5c2ea68b7f4c954973e17 fast-forward on clean main52a565418, with board position1 bound to actual chat 00000000-0000-4000-8000-1ca07025f752. Global defaults OFF; separate approved bundle-only activation included in reviewed history. No live run was relaunched or reconfigured.
+
+Coordinator START at15:34 authorized post-main verification. One verify.py held fcntlLOCK_EX on /private/tmp/pokebench-latest-main-prepare.lock across build21.92s, fulltest151.02s and one viewer-main refresh. All suites/coverage floors and all3 protected-card widths pass on built main. Clean runtime ~/.cache/pokebench-viewer-id-card-bound-abaadae4 serves sourceabaadae4c; actual build stamp is clean. Six protected PIDs34450/60162/60767/96582/98262/98398 survived; none lost. Viewer restart itself confirmed2 live gameplay processes retained.
+
+Read-only actual /api/next-run reports id-card-bound-v1=false. Actual served-runtime fixed-definition modules resolve all3 current protocols with bound=true in bundle, false in control, and people-id-cards=true in both. Real merged viewer card→explainer passes at1280/1440/375 with no JS errors; all3 screenshots opened. The active9c88 header correctly remains NOT RECORDED for the new switch. API showed GPU0 bundle9c88 atT874 and GPU1 baselinee845 atT780; screenshots show9c88T881, proving ongoing progress. There is no older-viewer-build problem; initial API problem only reports archive loading. This task launched neither game and no probes.
+
+Final proof under runs/id-card-bound/post-main. Canonical explainer: http://127.0.0.1:8791/explainers/id-card-bound-v1.html. Source replay JSONL preserves pin-specific batches at the spec’s requested analysis/replays path;566 distinct cards per batch, never summed as separate trials. This is context-size and exact-byte evidence, not gameplay benefit. This single post-landing evidence commit changes only docs/worklogs, under the approved exception. Archive remains unauthorized.
+
+Final evidence timestamp: 2026-10-28T15:43:53.071572-04:00

@@ -51,9 +51,9 @@ export class CurrentProjector{
  }
  private healthOwner(job:Job):void{
   const start=job.current?.state.start??job.stage?.state.start;if(start===null||start===undefined)return;const port=start.isolation.port,at=Date.parse(start.t),owner=this.owners.get(port),ended=(job.current?.state??job.stage?.state)?.end!==null;
-  if(!ended&&(owner===undefined||at>owner.at||(at===owner.at&&job.run>owner.run))){this.owners.set(port,{run:job.run,at});if(owner?.run!==job.run)this.healthAt.delete(port);}
+  if(owner===undefined||at>owner.at||(at===owner.at&&job.run>owner.run)){this.owners.set(port,{run:job.run,at});if(owner?.run!==job.run)this.healthAt.delete(port);}
   const owns=!ended&&this.ids.every(id=>this.scanned.has(id))&&this.owners.get(port)?.run===job.run;if(job.aux.health.owner!==owns){job.dirty=true;job.force=true;}job.aux.health.owner=owns;
-  if(!owns){if(job.aux.health.ok!==null)job.dirty=true;job.aux.health.ok=null;const pending=this.probes.get(port);if(pending?.run===job.run){pending.controller.abort();clearTimeout(pending.timer);this.probes.delete(port);}if(ended&&this.owners.get(port)?.run===job.run)this.owners.delete(port);return;}
+  if(!owns){if(job.aux.health.ok!==null)job.dirty=true;job.aux.health.ok=null;const pending=this.probes.get(port);if(pending?.run===job.run){pending.controller.abort();clearTimeout(pending.timer);this.probes.delete(port);}return;}
   const priorProbe=this.probes.get(port);
   if(priorProbe!==undefined&&(priorProbe.run!==job.run||priorProbe.generation!==job.generation)){priorProbe.controller.abort();clearTimeout(priorProbe.timer);this.probes.delete(port);this.healthAt.delete(port);}
   if(this.options.healthy===undefined||this.probes.has(port)||this.probes.size>=this.limits.hotRuns||(this.healthAt.has(port)&&this.monotonic()-(this.healthAt.get(port)??0)<this.limits.healthMs))return;

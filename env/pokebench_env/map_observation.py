@@ -220,8 +220,8 @@ def labels_at(
     )
 
 
-# Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge and the rest) and always
-# precede a two-character code, so a code can never be mistaken for a glyph or another code.
+# Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge and the rest), so a
+# code can never be mistaken for a glyph; one-letter codes run out before two-letter ones start.
 CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
 
 
@@ -233,7 +233,10 @@ def compact_codes(rendered: list[list[str]]) -> dict[str, str]:
         for token in row:
             if len(token) > 1 and token not in codes:
                 n = len(codes)
-                codes[token] = letters[n] if n < len(letters) else letters[n // len(letters) - 1] + letters[n % len(letters)]
+                if n < len(letters):
+                    codes[token] = letters[n]
+                else:
+                    codes[token] = letters[n // len(letters) - 1] + letters[n % len(letters)]
     return codes
 
 
@@ -299,8 +302,8 @@ def render_observation(
             output.append(f"{glyph}/{annotation}" if annotation else glyph)
         rendered.append(output)
     if compact:
-        # compact-map-grid-v1: each multi-character cell token is shown by a short code from the Codes line,
-        # every column has the same width and column numbers read top to bottom. Nothing is cut or dropped.
+        # compact-map-grid-v1: each multi-character token is shown by its code from the Codes line,
+        # columns share one width and column numbers read top to bottom. Nothing is cut or dropped.
         codes = compact_codes(rendered)
         rendered = [[codes.get(token, token) for token in row] for row in rendered]
         width = max([1, *(len(code) for code in codes.values())])
@@ -308,7 +311,8 @@ def render_observation(
         digits = len(str(ox + observation.width - 1))
         numbers = [str(ox + x).rjust(digits) for x in range(observation.width)]
         lines = [
-            f"Current map (observed elements v1, compact codes); top-left ({ox},{oy}), north is up:",
+            "Current map (observed elements v1, compact codes); "
+            f"top-left ({ox},{oy}), north is up:",
             "Codes: " + ("; ".join(f"{code} = {token}" for token, code in codes.items()) or "none"),
             *(
                 ("     " + " ".join(n[place].rjust(width) for n in numbers)).rstrip()

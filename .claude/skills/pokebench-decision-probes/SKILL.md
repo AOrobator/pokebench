@@ -34,7 +34,7 @@ This process permits planned adaptation between bounded batches; it does not aut
 
 These are priors for choosing candidates, not rules. Each one comes from a small number of studies, mostly on Qwen 3.6. Recheck them when the model, the harness or the decision type changes. Paths are under `<repo>/`.
 
-1. **The text must sit near the decision, and the system prompt never works. Once the text is near, the wording matters most.**
+1. **The text must sit near the decision; in the scene study no system-prompt placement worked. Once the text is near, the wording matters most.**
    - Scene follow-up (9e33 t1385): every system-prompt placement scored 0/16, including the wording that scored 16/16 as the last message.
    - Once the text was near the decision, concrete wording scored 13–16/16 in every channel. The original line scored 0–7/16.
    - Type gap: control 13/64; the block on the result 40/64; the result plus a last-message copy 55/64. On the shipped code: 16/32 vs 29/32.
@@ -65,7 +65,7 @@ These are priors for choosing candidates, not rules. Each one comes from a small
    - Double Kick improved blanket refusals (10 → 4/116) but worsened false claims (23 → 44) and illegal requests (0 → 3) on held-out.
    - Do not promote against held-out regressions. Switches promoted without probe support, or against held-out results (Double Kick, the Dewford readouts, positive supervisor variant A), are open questions, not evidence.
 
-**Effect sizes and N.** Real wins were large, +40 to +90 points on the next action, and nulls were common at 8–16 per arm. What has worked so far: exploration at 8–16 per arm on several distinct contexts, and confirmation at 32 per arm on 4–5 untouched source runs plus forced-misfire negative controls, rerun on the landed code path. These are observed study sizes, not a rule; size each batch from the expected effect, the precision needed and the budget. Never use N=1–3 per arm: the 54-turn input-cuts sweep at N=1 with fidelity false told us nothing.
+**Effect sizes and N.** Real wins were large, +40 to +90 points on the next action, and nulls were common at 8–16 per arm. What has worked so far: exploration at 8–16 per arm on several distinct contexts, and confirmation at 32 per arm on 4–5 untouched source runs plus forced-misfire negative controls, rerun on the landed code path. These are observed study sizes, not a rule; size each batch from the expected effect, the precision needed and the budget. Do not base a decision on N=1–3 per arm: the 54-turn input-cuts sweep at N=1 with fidelity false told us nothing.
 
 **The missing step.** As of 2026-10-28, no fixed-run cohort has confirmed any probe-driven switch. A probe win is a candidate for a cohort, not a measured benchmark gain.
 
@@ -97,7 +97,7 @@ The 2026-10-28 GPU windows lost runs to each of these. Check them with a `--cont
 3. **Rebuild `dist` after a merge.** Tests and the CLI read `@pokebench/agent` from `dist`. After merging new switches, run `pnpm -r build`, or new switch ids show up as "unknown feature".
 4. **Record the probe's exit status.** In a batch script, write `just probe-decision … ; rc=$?` and log `$rc`. `echo "… $(date …) rc $?"` logs the status of `date`, so failed runs showed rc 0.
 5. **Check the context budget and fidelity.** The rebuilt context must match the recorded message, image and token counts. Use `--recorded-trim` when the run trimmed context. Use `--trust-header` when the change is to harness-trust's Story goal line.
-6. **Fit the context to the lane's window.** A context larger than the serving lane's window comes back as a model error, and `sample()` records it as a decision. Every 88ea sample (80,848 tokens against GPU1's 65,536) was an error. Before scoring, grep the samples for "model error", and only probe runs recorded on a lane with the same window.
+6. **Fit the context to the lane's window.** A context larger than the serving lane's window comes back as a model error, and `sample()` records it as a decision. Every 88ea sample (80,848 tokens against GPU1's 65,536) was an error. Before scoring, grep the samples for "model error", and make sure the rebuilt prompt plus the output allowance fits the serving lane's window.
 7. **`--trust-header` keeps the recorded exits line word for word.** An arm that flips a switch which changes the exits line (jit-exit-dialogue-v1) shows nothing new unless that line is re-derived too. The 2026-10-28 jit arms at a702 T681 and T664 were effectively control arms. Confirm the arm's text with `--context-only` or a dry dump of the last result.
 8. **Replay-runner gaps.**
    - Runs with gym-heal-warning-v1 need the Replay recorder's `gymHealWarning` hook. A no-op keeps the text.

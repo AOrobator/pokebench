@@ -16,4 +16,5 @@ Docs only: `.claude/skills/pokebench-decision-probes/SKILL.md`. The operator ask
   - the "0 samples" error;
   - question variants overgeneralized (the report has them at 7–10/16);
   - the map_groups path.
-- [ ] Review round 2, then land through the board.
+- [x] Review round 2 (e80866aaf): CHANGES REQUESTED, 3 findings, all fixed: system-prompt claim scoped to the scene study, N=1–3 as decision-evidence guidance, window check stated as fit rather than same lane.
+- [ ] Review round 3, then land through the board.

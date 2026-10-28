@@ -21,11 +21,11 @@ export function createCurrentBrowser(options:CurrentBrowserOptions):CurrentBrows
  };
  const request=async(url:string,signal?:AbortSignal):Promise<CurrentAnswer>=>{const answer=parseCurrentAnswer(await options.fetchJson(url,signal));if(answer.kind==="unavailable")throw new Error(answer.problem);return answer;};
  const mergeHistory=(h:History,older:boolean):void=>{
-  if(h.events.length>limits.events)throw new Error("This history page is too large to show");let pageBytes=0;const combined=new Map(state.history.map(e=>[e.seq,e]));for(const event of h.events){const size=new TextEncoder().encode(JSON.stringify(event)).byteLength;pageBytes+=size;if(size>limits.bytes)throw new Error("This history entry is too large to show");if(event.run!==state.selected)throw new Error("History does not belong to the selected run");const existing=combined.get(event.seq);if(existing!==undefined&&JSON.stringify(existing)!==JSON.stringify(event))throw new Error("History event changed within its source generation");combined.set(event.seq,event);}
+  if(h.events.length>limits.events)throw new Error("This history page is too large to show");let pageBytes=0;const wasEmpty=state.history.length===0,last=state.history.at(-1)?.seq,first=h.events[0]?.seq;const disconnected=!older&&h.before!==null&&last!==undefined&&first!==undefined&&first>last+1;const combined=new Map((disconnected?[]:state.history).map(e=>[e.seq,e]));for(const event of h.events){const size=new TextEncoder().encode(JSON.stringify(event)).byteLength;pageBytes+=size;if(size>limits.bytes)throw new Error("This history entry is too large to show");if(event.run!==state.selected)throw new Error("History does not belong to the selected run");const existing=combined.get(event.seq);if(existing!==undefined&&JSON.stringify(existing)!==JSON.stringify(event))throw new Error("History event changed within its source generation");combined.set(event.seq,event);}
   if(pageBytes>limits.bytes)throw new Error("This history page is too large to show");
   let events=[...combined.values()].sort((a,b)=>a.seq-b.seq);const bytes=events.reduce((n,e)=>n+new TextEncoder().encode(JSON.stringify(e)).byteLength,0);
-  if(events.length>limits.events||bytes>limits.bytes){state.historyLimited=true;events=h.events.slice();}
-  state.history=events;state.before=state.historyLimited||older||state.before===null?h.before:state.before;
+  const overflow=events.length>limits.events||bytes>limits.bytes;if(disconnected||overflow){state.historyLimited=true;events=h.events.slice();}
+  state.history=events;state.before=older||wasEmpty||disconnected||overflow?h.before:state.before;
  };
  const history=async(older=false):Promise<void>=>{
   if(!alive()||state.selected===null||state.snapshot===null)return;if(historyTask!==null)return historyTask;if(older&&state.before===null)return;

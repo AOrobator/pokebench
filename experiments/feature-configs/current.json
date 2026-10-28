@@ -65,7 +65,6 @@
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
   "cutscene-journal-v1",
-  "type-gap-team-v1",
   "supplies-v1",
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1"
@@ -149,7 +148,8 @@
   "no-story-foreknowledge-v1",
   "gateway-current-turn-v1",
   "gateway-tool-schemas-v1",
-  "gateway-schema-hint-v1"
+  "gateway-schema-hint-v1",
+  "type-gap-team-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -421,7 +421,7 @@
   "goal-review-repair-feedback-v1": false,
   "map-observability-v1": true,
   "context-exact-count-v1": true,
-  "type-gap-team-v1": false,
+  "type-gap-team-v1": true,
   "supplies-v1": false,
   "untalked-in-gym-v1": false,
   "grass-strides-v1": true,

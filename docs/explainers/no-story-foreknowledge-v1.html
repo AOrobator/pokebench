@@ -159,7 +159,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tbody>
 <tr><td>Story characters line<br>(readout and people-ledger copy)</td>
 <td class="off">Story characters here (from this map's own object list): MAY at 10,3. Not on this map: <mark>PROF. BIRCH, BRENDAN, MOM</mark>. Sprite kinds such as …</td>
-<td class="on">Story characters here (from this map's own object list): MAY at 10,3. Not on this map: <mark>MOM</mark>. Sprite kinds such as …<br>(MOM shown; with nothing shown: <code>none the game has named yet</code>)</td></tr>
+<td class="on">Story characters here (from this map's own object list): MAY at 10,3. Not on this map: <mark>MOM</mark>. Sprite kinds such as …<br>(MOM shown; with nothing shown: <code>none named in dialogue yet</code>)</td></tr>
 <tr><td>Story battle warning (v2)</td>
 <td class="off">A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher, and that trainer battle cannot be run from. Your party is not at full HP …</td>
 <td class="on">A story battle is on this map: a trainer. He stops you on the forest path when you reach a researcher, and that trainer battle cannot be run from. Your party is not at full HP …</td></tr>
@@ -221,6 +221,8 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <ul>
 <li>A present character is still named in the "here" list (for example MAY in her room before you meet her): the line exists to say who is on the map.</li>
 <li>Sprite kinds such as <code>sprite ROXANNE</code> stay; they are graphics names.</li>
+<li>Only dialogue and battle pages count as showing a name. A name seen only on a sign (<code>LEADER: NORMAN</code>) stays hidden; NORMAN, whom the game calls DAD, stays hidden all run. A run that starts from a save starts with no names shown.</li>
+<li>The warnings still state story facts, such as the ambush on the forest path, with the name taken out.</li>
 <li><code>story-battle-heal-gate-v1</code>'s refusal text (OFF in both arms), the DAD to NORMAN alias and battle_details labels.</li>
 </ul>
 </div>

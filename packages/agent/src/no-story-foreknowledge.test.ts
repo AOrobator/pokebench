@@ -111,10 +111,10 @@ describe("character presence: the Not on this map list",()=>{
    "Story characters here: MAY at 10,3 (navigate_to_target target 2), PROF. BIRCH (on this map, out of view). Not on this map: MOM, NORMAN.",
   ]);
  });
- it("says none the game has named yet when it has shown none of them",()=>{
+ it("says none named in dialogue yet when it has shown none of them",()=>{
   expect(shownCast("Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.",NONE))
-   .toBe("Story characters here (from this map's own object list): none. Not on this map: none the game has named yet. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.");
-  expect(shownCast("Story characters here: none. Not on this map: PROF. BIRCH, MAY.",NONE)).toBe("Story characters here: none. Not on this map: none the game has named yet.");
+   .toBe("Story characters here (from this map's own object list): none. Not on this map: none named in dialogue yet. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.");
+  expect(shownCast("Story characters here: none. Not on this map: PROF. BIRCH, MAY.",NONE)).toBe("Story characters here: none. Not on this map: none named in dialogue yet.");
  });
  it("leaves every other line, and a line with every name shown, byte for byte",()=>{
   const text=`MAY: Hi!\nStory characters on this map (from its own object list): ROXANNE at 5,2.\n${PYTHON}`;
@@ -161,7 +161,7 @@ describe("disproved-beliefs-v1 still reads the whole absent cast",()=>{
  let seq=0;
  const ev=(body:Record<string,unknown>,turn=1):RunEvent=>checkEvent({v:1,run:"r",t:"2026-10-27T20:00:00.000-04:00",seq:++seq,turn,...body});
  const story={name_confirmed:true,intro_stage:7,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:true,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
- const FILTERED="Story characters here (from this map's own object list): none. Not on this map: none the game has named yet. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.";
+ const FILTERED="Story characters here (from this map's own object list): none. Not on this map: none named in dialogue yet. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.";
  const run=(on:boolean)=>{
   const l=new DisprovedBeliefs({...ALL_ON,[ID]:on});
   l.observe(ev({type:"tool_call",id:"o1",name:"observe",args:{}}));
@@ -213,7 +213,7 @@ describe("registry and factory",()=>{
  ];
  it("the production game tools filter the list only with the switch on",async()=>{
   expect(await play(false)).toContain(LINE);
-  expect(await play(true)).toContain(LINE.replace("PROF. BIRCH, BRENDAN, MOM","none the game has named yet"));
+  expect(await play(true)).toContain(LINE.replace("PROF. BIRCH, BRENDAN, MOM","none named in dialogue yet"));
   expect(await play(true,heardMom)).toContain(LINE.replace("PROF. BIRCH, BRENDAN, MOM","MOM"));
  });
  it("story-character-stall-gate-v1 records the same roster from the recorded ON result (the min branch's B1)",async()=>{

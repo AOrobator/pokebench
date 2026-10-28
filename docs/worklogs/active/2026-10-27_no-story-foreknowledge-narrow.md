@@ -74,3 +74,9 @@ shared packet): eval integrity, ML engineer, data scientist "holds with changes"
   "LEADER: NORMAN" is a readout line) stays hidden for the whole run; checkpoint starts begin with an empty shown set;
   the "here" list and sprite kinds still name characters; ON changes the model's text on most overworld turns, so the
   landing pin is an incumbent change and before/after records are descriptive only.
+- Harness engineer persona (holds with changes), fixed: "none the game has named yet" could be false when a sign shows a
+  name, so the empty list now reads "none named in dialogue yet"; the registry text and explainer declare what ON still
+  names (characters on this map, sprite kinds, warning story facts) and that sign-only names, NORMAN (said as DAD) and
+  checkpoint starts stay hidden. Carried to M6: decision-probe.ts never re-renders tool results, so the probe's ON arm
+  must render the copy itself from seeded shown names (all four personas). Carried to landing: a delivery rehearsal
+  replaying a recorded run through the production wrapper.

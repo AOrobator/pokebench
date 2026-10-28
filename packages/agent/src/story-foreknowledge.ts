@@ -35,7 +35,7 @@ export class ShownStoryNames {
 
 // character-presence-v1's line and the people ledger's copy of it; the "here" list is never touched.
 const CAST_LINE=/^(Story characters here(?: \(from this map's own object list\))?: .*?\. Not on this map: )(.+?)(\.(?: Sprite kinds such as .+)?)$/gm;
-export const NONE_NAMED="none the game has named yet";
+export const NONE_NAMED="none named in dialogue yet";
 export function shownCast(text:string,shows:Shows):string {
  return text.replace(CAST_LINE,(_,head:string,absent:string,tail:string)=>{
   if(absent==="none")return `${head}${absent}${tail}`;

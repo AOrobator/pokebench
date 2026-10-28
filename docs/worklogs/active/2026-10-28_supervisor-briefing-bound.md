@@ -32,4 +32,14 @@ The rest of that note is about 6,300 chars. At a702 T1300 the briefing was 23,67
 - [x] Activation commit (this branch only; not landed): appended to current.json `switches` (bundle ON) and `features` false (control OFF). Recipe sha256 on main f8fbd8ed… → 351059e9… on this branch alone (each bound branch changes it separately; once several land, the final sha is computed on main). Launch definitions with featureRecipe "current" need `just fixed-run approve` again. Config readers: viewer 50 passed, agent 61 passed.
 - [ ] Gates on a CPU grant; three-lane review.
 
-Open: "Exits to maps you have not entered since your last story progress" (1,780 chars at 429f) also grows with maps walked. It is outside the approved bound, so it is noted here and not changed.
+## M2: exits to maps not entered (coordinator 2026-10-28 11:51 AM NY, under the operator's standing rule that nothing given to the model may grow unbounded)
+
+"Exits to maps you have not entered since your last story progress" (1,780 chars at 429f) also grows with the maps walked. It is now bounded the same way: whole map entries, nearest (most recently walked) first, within 2,000 chars, ending `; N earlier maps are left out`.
+
+- [x] RED: 2 tests in `supervisor-briefing-bound.test.ts`. OFF passes; ON fails (no bound, BRIEFING_EXITS_CHARS absent).
+- [ ] GREEN.
+
+## Lines that grow with run length (running list, reported together at the end)
+
+- Supervisor "Exits to maps you have not entered": bounded in M2.
+- Refusal ledger: one entry per refused target on the current map. A single entry's "Latest result" line can be about 3,000 chars, because it carries the whole navigation result with its departure alternatives (9e33 T2417: 10 entries, 24,803 chars). Its attempts turn list also grows with repeats. This is bound 3.

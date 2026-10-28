@@ -3,7 +3,7 @@ import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as REGISTRY_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {BRIEFING_DIALOGUE_CHARS,BRIEFING_ELSEWHERE_CHARS,SupervisorBriefing} from "./loop-supervisor.js";
+import {BRIEFING_DIALOGUE_CHARS,BRIEFING_ELSEWHERE_CHARS,BRIEFING_EXITS_CHARS,SupervisorBriefing} from "./loop-supervisor.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
 const ID="supervisor-briefing-bound-v1";
@@ -98,6 +98,35 @@ describe("supervisor-briefing-bound-v1: untried targets on other maps",()=>{
   expect((m?.[1]??"").length).toBeLessThanOrEqual(BRIEFING_ELSEWHERE_CHARS);
   expect(line(off,ELSEWHERE).startsWith(`${ELSEWHERE}${m?.[1]??""} | `)).toBe(true);
   expect(on.replace(l,"")).toBe(off.replace(line(off,ELSEWHERE),""));
+ });
+});
+
+describe("supervisor-briefing-bound-v1: exits to maps not entered",()=>{
+ const EXITS="- Exits to maps you have not entered since your last story progress: ";
+ // 60 maps walked since the last story step, each with three warps to maps never entered.
+ function exits(features:FeatureSet):SupervisorBriefing {
+  const b=new SupervisorBriefing(features);
+  story(b,1,1,"A");
+  for(let i=0;i<60;i++){
+   const targets=[0,1,2].map(k=>({kind:"warp",x:k,y:i%7,elevation:0,activation:"walk",availability:"available",facing:null,local_id:null,destination:[40+k,i,0],name:null}));
+   shown(b,10+2*i,2+i,null,{location:`ROOM ${String(i).padStart(2,"0")}`,map_id:[30,i]},targets);
+  }
+  return b;
+ }
+ it("OFF lists every map, nearest first",()=>{
+  expect(line(exits(OFF).stallText(STALL,200),EXITS).slice(EXITS.length).split(" | ")).toHaveLength(60);
+ });
+ it("ON keeps whole map entries, nearest first, within the budget, and counts the rest",()=>{
+  const on=exits(ON).stallText(STALL,200),off=exits(OFF).stallText(STALL,200);
+  const l=line(on,EXITS);
+  const m=/^(.*); (\d+) earlier maps are left out$/.exec(l.slice(EXITS.length));
+  expect(m).not.toBeNull();
+  const kept=(m?.[1]??"").split(" | ");
+  expect(kept.length+Number(m?.[2])).toBe(60);
+  expect(kept[0]?.startsWith("ROOM 59 (map 30/59): ")).toBe(true);
+  expect((m?.[1]??"").length).toBeLessThanOrEqual(BRIEFING_EXITS_CHARS);
+  expect(line(off,EXITS).startsWith(`${EXITS}${m?.[1]??""} | `)).toBe(true);
+  expect(on.replace(l,"")).toBe(off.replace(line(off,EXITS),""));
  });
 });
 

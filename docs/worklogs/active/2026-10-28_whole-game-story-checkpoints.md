@@ -40,3 +40,10 @@ Tracked themed explainer and config mapping added; real headless card click/serv
 
 Viewer targeted tests: 368 pass across panels/server, agent build/lint clean. The full source-audit targeted set is now55 tests after optional-native origin/unknown/frontier cases. Explainer themed and zero-network check clean. Baseline helper parity and synthetic follow-on remain in progress; this implementation checkpoint is not a merge/review/activation claim.
 COMMIT: implement conservative whole-game checkpoint treatment and source audit.
+
+## Synthetic follow-on RED
+
+Baseline helper stdout byte parity now confirmed for all six script/run combinations, including the pre-existing 88ea non-dedup expected-form mismatch. Receipt replay-helper-parity.json retains it honestly.
+
+Spec(c) RED committed before builder/data implementation: missing whole-game-stream module makes the new whole-game-instructions.test.ts fail to collect. Intended builder owns only offline fixtures: cached pret reads, fixed source-key list, schema-valid linear events; four real memory modes (cap ON, whole-game OFF/ON, dedup OFF/ON) exercise current instruction, closed episodes, active-region hints and 16,000-point bound at every step. No emulator/model endpoint/game server or runtime attribution parser.
+COMMIT: define offline whole-game instruction-stream validation.

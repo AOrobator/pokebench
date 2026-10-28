@@ -1029,7 +1029,7 @@ describe("boot", () => {
     };
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
-    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
+    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs", expect.objectContaining({signal:expect.any(AbortSignal) as unknown}) as unknown);
     expect(streams).toHaveLength(0);
     expect(frames[0]?.url).toBe(`ws://127.0.0.1:8790/api/runs/${current.snapshot.id}/frames`);
     expect(ui("mode").textContent).toBe("RUNNING");
@@ -1065,7 +1065,7 @@ describe("boot", () => {
     };
     const app=await boot(win);
     expect(document.querySelector('[data-ui="stats"]')?.textContent).toContain("—");
-    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs",expect.objectContaining({signal:expect.any(AbortSignal)}) as unknown);
+    expect(win.fetch).toHaveBeenCalledWith("/api/current-runs",expect.objectContaining({signal:expect.any(AbortSignal) as unknown}) as unknown);
     app.dispose();
   });
 });

@@ -641,7 +641,7 @@ export class App {
     void this.next.load();
     if(this.deps.snapshotFirst===true){
       const create=this.deps.currentFactory??(await import("./current-browser.js")).createCurrentBrowser;
-      this.current=create({now:this.deps.currentNow??this.deps.now,fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
+      this.current=create({now:()=>this.deps.currentNow?.()??this.deps.now(),fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
       const wanted=/^#(?:run|replay)=(.+)$/.exec(this.deps.hash)?.[1],pending=this.current.start(wanted===undefined?null:decodeURIComponent(wanted));
       void this.loadArt();await pending;void this.refreshRuns();this.render();return;
     }

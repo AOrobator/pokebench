@@ -71,3 +71,9 @@ it("keeps a nonselected active trainer visible when its first persisted health c
  expect(other.summary.run.status).toBe("unresponsive");const cards=[...document.querySelectorAll('[data-ui="run-cards"] [data-watch]')].map(node=>node.getAttribute("data-watch"));expect(cards.sort()).toEqual([RUN,other.snapshot.id].sort());
  expect(document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent).toContain("MAY");
 });
+
+it("uses the injected local freshness clock when no server clock callback is available",async()=>{
+ dom();const f=currentFixture();let now=BASE_MS+4000;
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):url.includes("current-updates")?Promise.resolve({kind:"updates",version:1,epoch:"epoch",cursor:"next",reset:false,more:false,changes:[]} satisfies CurrentAnswer):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>now,hash:`#run=${RUN}`});apps.push(app);
+ expect(document.querySelector('[data-ui="mode"]')?.textContent).toBe("RUNNING");now+=11000;await app.pollCurrent();expect(document.querySelector('[data-ui="mode"]')?.textContent).toBe("LAST KNOWN");expect(document.querySelector<HTMLButtonElement>('[data-control="pause"]')?.disabled).toBe(true);expect(app.view.tokens.input).toBe(500);
+});

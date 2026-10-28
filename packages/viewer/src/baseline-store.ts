@@ -109,7 +109,7 @@ export function createCardStore(runsRoot: string): SnapshotStore<LoadedRun> {
 
 export function createCardReader(runsRoot: string): SnapshotReader<LoadedRun> {
   const store = createCardStore(runsRoot);
-  return { get: store.get, latest: store.latest };
+  return { get: (id,fingerprint)=>store.get(id,fingerprint), latest: id=>store.latest(id) };
 }
 
 // Caches of other code that no viewer has opened for a week; the current one always stays.

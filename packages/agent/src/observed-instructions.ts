@@ -6,7 +6,8 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 import {MilestoneMemory,type InstructionEpisode,type MemoryRetention} from "./milestone-memory.js";
 import {canonicalStoryCharacterName} from "./script-line-presence.js";
-import {InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,omittedLine,type CapEpisode} from "./instruction-memory-cap.js";
+import {INSTRUCTION_MEMORY_YAML_CAP_CHARS,instructionMemoryYaml} from "./instruction-memory-yaml.js";
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Result=Extract<RunEvent,{type:"tool_result"}>;
@@ -21,7 +22,8 @@ export class ObservedInstructions {
  private readonly cap:InstructionMemoryCap|null;
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
  // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps; see instruction-memory-cap.ts.
- constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap():null;}
+ // instruction-memory-yaml-v1 (yaml): the selected form as YAML; the cap is then measured on the YAML.
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false,private readonly yaml=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap():null;}
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
  retention():MemoryRetention|null{return this.policy?.select(this.archive())??null;}
@@ -86,9 +88,10 @@ export class ObservedInstructions {
   if(retention!==null){
    const selected=new Set(retention.kept.map(e=>e.result_event));
    const episodes=this.archive().filter(e=>selected.has(e.result_event)).map(e=>this.row(e));
-   const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:kept,current:this.current});
+   const json=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:kept,current:this.current});
+   const render=this.yaml?(kept:readonly CapEpisode[],omitted:number)=>instructionMemoryYaml(omitted,kept,this.current===null?null:{...this.current}):json;
    if(this.cap===null)return render(episodes,0);
-   const capped=this.cap.select(episodes,render);
+   const capped=this.cap.select(episodes,render,this.yaml?INSTRUCTION_MEMORY_YAML_CAP_CHARS:INSTRUCTION_MEMORY_CAP_CHARS);
    return render(capped.kept,capped.omitted);
   }
   const all=this.archive().map(e=>this.row(e));
@@ -116,7 +119,7 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"]);
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"],features["instruction-memory-yaml-v1"]);
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});
  return messages=>{

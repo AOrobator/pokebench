@@ -26,11 +26,11 @@ The built form costs about 5–10% more tokens than JSON for the same episodes. 
 ## Checklist
 
 - [x] RED: `instruction-memory-yaml.test.ts` (scalar rules, exact rendering including every block-scalar fallback, factory ON/OFF, cap measured on YAML, registry).
-- [ ] GREEN: `instruction-memory-yaml.ts` plus wiring in `observed-instructions.ts` and `observedInstructions`.
-- [ ] Registry, presets, defaults; current.json untouched.
-- [ ] Wiring removal check.
-- [ ] Round trip: every recorded selected block in a702 and 88ea through the built renderer parses back with PyYAML to the same episodes, pages, text and current. The capped YAML at a702 T1301 equals the reference implementation byte for byte.
-- [ ] Explainer + FEATURE_EXPLAINERS.
-- [ ] Gates: `just lint`, full `just test`.
+- [x] GREEN: `instruction-memory-yaml.ts`, a constructor flag in `ObservedInstructions`, and wiring in `observedInstructions`. The cap uses `INSTRUCTION_MEMORY_YAML_CAP_CHARS` when YAML is on. 18 focused passed (yaml + cap); viewer panels, server and next-run 396 passed (after `pnpm -r build` in the new worktree).
+- [x] Registry (guidance, `needs: null`, after instruction-memory-cap-v1), presets, defaults; current.json untouched.
+- [x] Wiring removal check: without the flag in `observedInstructions`, 2 failed; restored, 5/5.
+- [x] Round trip: 56 recorded selected blocks (every 40th in a702 and 88ea, `yaml-sample.mjs`). The built YAML equals `yaml_form.to_yaml_compact` byte for byte, and PyYAML reads it back to identical fields and text. Capped YAML (`replay-cap.mjs`, `rule_a2.py` YAML mode): a702 T700 15,915 and T1301 18,991 (27 kept); 88ea T400 17,164 and T800 18,986, byte-identical. The JSON path is unchanged (a702 T1301 still 15,923).
+- [x] Explainer `docs/explainers/instruction-memory-yaml-v1.html` (real a702 excerpt in both forms, token table, quoting rules), README, FEATURE_EXPLAINERS, panels/server tests; pages-check clean; headless 1280/375 with no overflow.
+- [ ] Gates: `just lint`, full `just test`. Waiting for a coordinator heavy-CPU window; focused tsc and eslint are clean.
 - [ ] Review: personas across the Claude CLI, Codex CLI and fallback lanes.
 - [ ] Stop: report. No landing.

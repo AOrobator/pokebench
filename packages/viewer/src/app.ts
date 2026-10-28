@@ -217,7 +217,7 @@ export class App {
   private currentCatalogTask:Promise<void>|null=null;
   private currentRunStamp="";
   private currentRecordedWorkbench:WorkbenchData|null=null;
-  private currentSavedCardOwner:{run:string|null;epoch:string|null;generation:string|null}|null=null;
+  private currentSavedCardOwners=new Map<string,{epoch:string|null;generation:string}>();
   private recording:RunView|null=null;
   private recordingCurrent:CurrentBrowserState["snapshot"]=null;
   private runs: RunChoice[] = [];
@@ -657,7 +657,7 @@ export class App {
 
   private currentChanged(state:Readonly<CurrentBrowserState>|null):void {
     if(state===null||this.current===null)return;const now=this.deps.now();
-    const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs)if(state.selected===s.id||!recorded.has(s.id)||s.run.status!=="ended"){
+    const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs){
       const saved=this.savedCurrentCard(s.id,s.generation),fallback=!s.complete&&s.run.card==null?saved:null;
       recorded.set(s.id,{...s.run,splits:saved?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
     }
@@ -698,12 +698,12 @@ export class App {
   }
 
   private savedCurrentCard(run:string,generation:string):WorkbenchRun|null {
-    const owner=this.currentSavedCardOwner;if(owner?.run!==run||owner.epoch!==this.current?.state.epoch||owner.generation!==generation)return null;
+    const owner=this.currentSavedCardOwners.get(run);if(owner===undefined||owner.epoch!==this.current?.state.epoch||owner.generation!==generation)return null;
     return this.currentRecordedWorkbench?.runs.find(row=>row.id===run&&row.card!=null)??null;
   }
 
   private loadWorkbench(): Promise<void> {
-    const selected = this.runId,epoch=this.current?.state.epoch??null,generation=this.current?.state.snapshot?.generation??null;
+    const selected = this.runId,epoch=this.current?.state.epoch??null,generation=this.current?.state.snapshot?.generation??null,owners=new Map(this.current?.state.runs.map(row=>[row.id,row.generation])??[]);
     if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
     this.workbenchSelection = selected;
     const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
@@ -711,8 +711,8 @@ export class App {
         if (this.runId !== selected || this.workbenchLoad !== load) return;
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
         if(this.current!==null){if(this.current.state.epoch!==epoch||(this.current.state.snapshot?.generation??null)!==generation)return;
-          this.currentSavedCardOwner={run:selected,epoch,generation};
-          this.currentRecordedWorkbench=this.current.state.selected===null?next:{...next,milestones:[],runs:next.runs.filter(run=>run.id===selected).map(run=>{const display={...run,excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
+          this.currentSavedCardOwners=new Map([...owners].map(([run,source])=>[run,{epoch,generation:source}]));
+          this.currentRecordedWorkbench={...next,milestones:[],runs:next.runs.map(run=>{const display={...run,excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))

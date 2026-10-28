@@ -59,5 +59,5 @@ it("keeps nonselected active card progress source-bound across a generation rese
   return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[f.summary,other.summary]}):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...f.summary.run,splits:[split]},{...other.summary.run,splits:[split]}]}):url.includes("current-updates")?Promise.resolve({kind:"updates",version:1,epoch:"epoch",cursor:"next",reset:false,more:false,changes:changed?[{id:other.snapshot.id,removed:false,summary:reset.summary}]:[]} satisfies CurrentAnswer):new Promise(()=>{}));
  },sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);await app.pollCards();
  const card=()=>document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent;
- expect(card()).toContain("1/45");changed=true;await app.pollCurrent();expect(card()).not.toContain("1/45");expect(app.view.tokens.input).toBe(500);
+ expect(card()).toContain("Name ·");expect(card()).toContain("STORY2/");changed=true;await app.pollCurrent();expect(card()).not.toContain("Name ·");expect(card()).toContain("STORY0/");expect(app.view.tokens.input).toBe(500);
 });

@@ -627,6 +627,14 @@ it("serves only allowlisted tracked feature explainers with existing host and me
  expect((await get(viewer,"/explainers/private.html")).status).toBe(404);expect((await get(viewer,"/explainers/ledge-hops-v1.html")).status).toBe(404);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the destination-first navigation explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/destination-first-navigation-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"destination-first-navigation-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/destination-first-navigation-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
 it("serves the deterministic warp navigation explainer byte for byte",async()=>{
  const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"deterministic-warp-navigation-v1.html"),tracked);

@@ -17,7 +17,7 @@ test:
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
     cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
-    uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
+    uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov=preflight --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
     uv run --project env python -m pokebench_gates.coverage_gate env/.claude-gateway-coverage.json --min 90
     just trainer-card-check
 
@@ -28,7 +28,7 @@ lint:
     pnpm -r lint
     cd env && uv run ruff check . && uv run ruff format --check . && uv run mypy
     uv run --project env ruff check scripts/claude-gateway && uv run --project env ruff format --check scripts/claude-gateway
-    uv run --project env mypy --strict scripts/claude-gateway/claude_gateway.py scripts/claude-gateway/replay.py
+    uv run --project env mypy --strict scripts/claude-gateway/claude_gateway.py scripts/claude-gateway/replay.py scripts/claude-gateway/preflight.py
 
 build:
     pnpm -r build
@@ -77,6 +77,13 @@ claude-gateway *args:
 [positional-arguments]
 claude-gateway-replay *args:
     uv run --project env python scripts/claude-gateway/replay.py "$@"
+
+# Delivery preflight before any session-mode gateway run: replays recorded requests with a stub
+# claude (no model calls) and fails unless every prompt carries the tool result, the full tool
+# schemas and the union re-ask hint. Writes preflight-receipt.json for --preflight-receipt.
+[positional-arguments]
+gateway-preflight *args:
+    uv run --project env python scripts/claude-gateway/preflight.py "$@"
 
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'

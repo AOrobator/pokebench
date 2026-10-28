@@ -1354,6 +1354,12 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         help="anyOf/oneOf re-ask lists the schema's forms: auto follows the run's recorded "
         "gateway-schema-hint-v1; on/off overrides it (logged as operator_override)",
     )
+    parser.add_argument(
+        "--preflight-receipt",
+        type=Path,
+        help="a passing gateway-preflight receipt for this gateway build and these overrides "
+        "(required in session mode)",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1378,6 +1384,14 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         tool_schemas=args.tool_schemas,
         schema_hint=args.schema_hint,
     )
+    if config.mode == "session":
+        import preflight  # noqa: PLC0415 (imports this module)
+
+        if args.preflight_receipt is None:
+            parser.error("session mode needs --preflight-receipt (run just gateway-preflight)")
+        problem = preflight.receipt_problem(args.preflight_receipt, config, Path(__file__))
+        if problem is not None:
+            parser.error(problem)
     return config, args.port
 
 

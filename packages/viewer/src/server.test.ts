@@ -1300,7 +1300,7 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
-it.each(["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1"])("serves tracked %s explainer byte for byte",async(id)=>{
+it.each(["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1"])("serves tracked %s explainer byte for byte",async(id)=>{
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  writeFileSync(join(docs,`${id}.html`),tracked);

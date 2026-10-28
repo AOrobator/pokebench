@@ -12804,6 +12804,176 @@
             ]
           },
           "maxItems": 6
+        },
+        "type_gap": {
+          "type": "object",
+          "required": [
+            "party",
+            "type_chart",
+            "diagnostic"
+          ],
+          "properties": {
+            "party": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "slot",
+                  "species_types",
+                  "moves"
+                ],
+                "properties": {
+                  "slot": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  },
+                  "species_types": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 17
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 17
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "moves": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "move_id",
+                        "name",
+                        "move_type",
+                        "power"
+                      ],
+                      "properties": {
+                        "move_id": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 354
+                        },
+                        "name": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "move_type": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 17
+                        },
+                        "power": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "maxItems": 4
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 6
+            },
+            "type_chart": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 17
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 17
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "const": 0
+                          },
+                          {
+                            "type": "number",
+                            "const": 5
+                          },
+                          {
+                            "type": "number",
+                            "const": 10
+                          },
+                          {
+                            "type": "number",
+                            "const": 20
+                          }
+                        ]
+                      }
+                    ],
+                    "minItems": 3
+                  },
+                  {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "number",
+                        "const": 254
+                      },
+                      {
+                        "type": "number",
+                        "const": 254
+                      },
+                      {
+                        "type": "number",
+                        "const": 0
+                      }
+                    ],
+                    "minItems": 3
+                  }
+                ]
+              },
+              "maxItems": 112
+            },
+            "diagnostic": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

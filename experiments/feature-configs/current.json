@@ -64,7 +64,10 @@
   "active-warp-exits-v1",
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
-  "cutscene-journal-v1"
+  "cutscene-journal-v1",
+  "type-gap-team-v1",
+  "supplies-v1",
+  "untalked-in-gym-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -409,6 +412,9 @@
   "instruction-goal-advisory-v1": false,
   "goal-review-repair-feedback-v1": false,
   "map-observability-v1": true,
-  "context-exact-count-v1": true
+  "context-exact-count-v1": true,
+  "type-gap-team-v1": false,
+  "supplies-v1": false,
+  "untalked-in-gym-v1": false
  }
 }

@@ -50,3 +50,4 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 - Readiness: the Story characters line is in every overworld readout from the truck (turn 0); the warnings act at Route 103 (rival), Petalburg Woods and the Rustboro gym, all reached by current runs (a702 at the Rustboro gym). Ready to test.
 - GREEN COMMIT: `feat(observation): no-story-foreknowledge-v1 narrow: name story characters only once the game shows them` (97eed15cb)
 - M3: docs/explainers/no-story-foreknowledge-v1.html (themed, `just pages-check` silent), FEATURE_EXPLAINERS mapping, README line, server.test.ts explainer list; viewer panels+server 340/340. Copied to runs/mockups/no-story-foreknowledge-v1/; 8791 link 200; headless desktop 1280 and phone 390 screenshots, no page overflow.
+- Synced main 896088908 (type-gap-team, supplies, untalked-in-gym): conflicts only at append points; re-applied this switch after untalked-in-gym-v1.

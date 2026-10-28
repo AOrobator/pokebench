@@ -67,6 +67,7 @@ from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.training_readout import next_level_exp
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
+from pokebench_env.type_gap import TypeGap, read_type_gap
 from pokebench_env.ui_state import (
     ActiveUi,
     Menu,
@@ -206,6 +207,8 @@ class GameState:
     party_next_level: tuple[int | None, ...] | None = None
     # pokedex-own-v1: the POKéDEX counts once the POKéDEX is received; text only, None when off.
     pokedex: Pokedex | None = None
+    # type-gap-team-v1: party species and move types and the ROM type chart; None when off.
+    type_gap: TypeGap | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -404,6 +407,7 @@ def read_game_state(
     shop_interface_enabled: bool = False,
     exp_next_enabled: bool = False,
     pokedex_enabled: bool = False,
+    type_gap_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read, blackout_transition=blackout_transition_enabled)
@@ -906,6 +910,9 @@ def read_game_state(
             map_observation=observation,
             interaction_targets=tuple(labeled) if state.interaction_targets is not None else None,
         )
-    return _with_training(
+    state = _with_training(
         read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )
+    if type_gap_enabled and state.started:
+        state = replace(state, type_gap=read_type_gap(read, state.party))
+    return state

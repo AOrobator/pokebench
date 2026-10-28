@@ -255,3 +255,18 @@ def test_off_checks_must_be_exactly_what_the_switches_imply(tmp_path: Path) -> N
     for switches in (None, {}, dict.fromkeys(preflight.SWITCHES, "yes")):
         bad = make_receipt(tmp_path, preset_switches=switches)
         assert "preset_switches" in str(preflight.receipt_problem(bad, config, gateway))
+
+
+@pytest.mark.enforce_preflight
+def test_counts_must_be_integers_within_the_request_count(tmp_path: Path) -> None:
+    config = cg.parse_args(session_args(tmp_path, make_receipt(tmp_path)))[0]
+    gateway = Path(cg.__file__)
+    flags = {c: {"applicable": True, "passed": True} for c in preflight.CHECKS}
+    assert preflight.receipt_problem(make_receipt(tmp_path, requests=True), config, gateway)
+    assert preflight.receipt_problem(
+        make_receipt(tmp_path, requests=1, totals=flags), config, gateway
+    )
+    over = {c: {"applicable": 9, "passed": 9} for c in preflight.CHECKS}
+    assert preflight.receipt_problem(
+        make_receipt(tmp_path, requests=3, totals=over), config, gateway
+    )

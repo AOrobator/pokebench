@@ -221,6 +221,11 @@ def run_preflight(
     }
 
 
+def _count(value: object) -> int | None:
+    """A JSON count: an integer, never a boolean (True == 1 in Python)."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str | None:
     """Why this receipt does not clear this gateway for a session run, or None."""
     try:
@@ -241,7 +246,8 @@ def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str
     if data.get("overrides") != want:
         return f"preflight receipt overrides {data.get('overrides')} differ from {want}"
     requests, failures, totals = data.get("requests"), data.get("failures"), data.get("totals")
-    if not isinstance(requests, int) or requests < 1 or failures != []:
+    count = _count(requests)
+    if count is None or count < 1 or failures != []:
         return "preflight receipt has no requests or lists failures"
     switches = data.get("preset_switches")
     if (
@@ -259,10 +265,13 @@ def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str
         if check in skipped:
             continue
         total = totals.get(check) if isinstance(totals, dict) else None
-        if not isinstance(total, dict) or not (
-            isinstance(total.get("applicable"), int)
-            and total["applicable"] > 0
-            and total.get("passed") == total["applicable"]
+        applicable = _count(total.get("applicable")) if isinstance(total, dict) else None
+        passed = _count(total.get("passed")) if isinstance(total, dict) else None
+        if (
+            count is None
+            or applicable is None
+            or not 0 < applicable <= count
+            or passed != applicable
         ):
             return f"preflight receipt does not show {check} exercised and passed"
     return None

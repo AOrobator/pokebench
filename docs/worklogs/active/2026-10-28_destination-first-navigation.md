@@ -6,8 +6,8 @@ One bounded milestone: align destination selection guidance across the existing 
 
 Production scope: features.ts, play-preset.ts, play-config.ts, play-wiring.ts, navigate-first.ts and a small destination-first.ts policy module; viewer defaults/explainer mapping; current recipe. Readout presentation operates on existing tool-result text and leaves native state and game dialogue unchanged. Preserve raw recording/state and existing viewer event owners.
 
-- [ ] RED: production-factory delivery, prompt conflict removal, OFF invariance and both-arm configuration tests.
-- [ ] GREEN: implementation, operand deletion/restoration receipts, normal gates and local explainer proof.
+- [x] RED: production-factory delivery, prompt conflict removal, OFF invariance and both-arm configuration tests.
+- [x] GREEN: implementation, operand deletion/restoration receipts, normal gates and local explainer proof.
 - [ ] Independent review and review synthesis; landing only after the repository gates, then coordinated viewer proof.
 
 Readiness: navigation is already exercised in current Qwen run 9c88. This is an operator-authorized shared guidance change, not a measured performance improvement. Future measurement should compare valid destination/tool selection, manual walking calls, recovery, native progress and elapsed time at matched navigation decisions. No probe or gameplay launch authorized here.
@@ -27,3 +27,5 @@ R1 review: Claude LGTM (matching exact diff digest; recorded fixture independent
 Normal integrated unit/coverage results: 4,811 agent, 2,231 viewer, 4,659 Python and 116 gateway tests passed; coverage floors pass. Full normal run then failed protected-card setup because this worktree lacked ignored generated font/art. Copied existing canonical runs/sprites into ignored worktree runs/sprites (no ROM copy, no baseline updates, no protected source changes); card gate is rerunning. Two earlier unchanged wall-clock tests failed under concurrent lint load, passed one targeted diagnostic each and then passed the next normal full suite with original timeouts/workers. All failure and passing receipts remain in runs/reviews/destination-first.
 
 Grok cloud reviewer exit 1: ActionRequiredError, out of usage. No Grok approval or standing cloud-lane waiver claimed. Complete available reviews and final deterministic evidence before asking the operator for a replacement lane, per execute-worklog. Candidate remains unlanded; no viewer refresh or active-run changes.
+
+2026-10-28 continuation: The operator answered "yes" to the explicit request for fresh Sol and Astra reviews replacing unavailable Grok and landing if approved. This is the authorization for the reduced-vendor review roster and conditional landing; no new gameplay launch or active-run prompt mutation is authorized. Prior frozen 56c3f62c9 passed all gates (4820 agent,2231 viewer,4659 Python,116 gateway,three card baselines), Claude and independent GPT LGTM. Main advanced to 2d8283698 with compact-grid and ledger bounds. Integrated their existing registry/config entries, appended destination policy after them (index302), and preserved both-arm settings; reseal and requalify before landing.

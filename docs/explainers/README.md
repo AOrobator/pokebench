@@ -336,4 +336,12 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.
 - [Player map visibility](player-map-visibility-v1.html): visible and remembered terrain, darkness, hidden-object filtering and discovered-terrain navigation.
 
+
+
+- [Compact map grid](compact-map-grid-v1.html): lossless short codes for the observed-elements map grid; a702 T1300 grid 12,180 → 3,871 tokens.
+
+- [Bounded supervisor briefing](supervisor-briefing-bound-v1.html): story lead-up dialogue within 4,000 chars and the other-map untried list within 2,000, whole items; 429f T2566 note 66,297 → 12,429 chars.
+
+- [Bounded refusal history](refusal-ledger-bound-v1.html): whole refusal entries within 4,000 chars and the latest 10 turns per entry; 9e33 T2417 24,803 → 3,212 chars.
+
 - [Destination-first navigation](destination-first-navigation-v1.html): one destination policy across prompt, tools and observations; explicitly ON in both current arms.

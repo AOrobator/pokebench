@@ -67,6 +67,28 @@ it.each([
 ] as const)("requires a successful state-bound delivery: %s",async(_label,overrides)=>{
  const s=setup();s.feed([advance,state(),result(undefined,undefined,overrides)]);const input=history();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
 });
+it("requires a native state before any delivered question",async()=>{
+ const s=setup();s.feed([advance,result()]);const input=history();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("rejects an unknown native selection even when the readout echoes that unknown value",async()=>{
+ const text=F.readout.replace("selected YES;","selected null;").replace("Pressing A now answers YES.","Pressing A now answers null.");
+ const s=setup();s.feed([advance,state({active_ui:{...F.ui,selected:null}}),result(undefined,text)]);const input=history(undefined,text);
+ expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it.each([
+ ["advance run",{run:"different"}],
+ ["page map",{pages:advance.pages.map((p,i)=>i===advance.pages.length-1?{...p,map_id:[0,9]}:p)}],
+ ["missing page state",{pages:advance.pages.map((p,i)=>i===advance.pages.length-1?{...p,state_seq:null}:p)}],
+ ["future page state",{pages:advance.pages.map((p,i)=>i===advance.pages.length-1?{...p,state_seq:44778}:p)}],
+ ["wrong advance tool",{tool_call_id:"not-this-result"}],
+] as const)("requires the final page's own source qualification: %s",async(_label,overrides)=>{
+ const s=setup();s.feed([checkEvent({...advance,...overrides}),state(),result()]);const input=history();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("expires the pending note on a new assistant or tool call event",async()=>{
+ for(const e of [event({type:"assistant",seq:44778,text:"Proceed",thinking:"",tool_calls:[],usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null,stop_reason:"stop"}),event({type:"tool_call",seq:44778,id:"next",name:"observe",args:{}})]){
+  const s=setup();s.feed([advance,state(),result(),e]);const input=history();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);
+ }
+});
 it("does not promote a page that was never delivered, a mismatched dialog, or an older result",async()=>{
  const s=setup();s.feed([advance,state()]);expect(await s.wiring.transformContext(history())).toEqual(history());
  const wrong=F.readout.replace("PETALBURG?","SLATEPORT?");s.feed([result(undefined,wrong)]);expect(await s.wiring.transformContext(history(undefined,wrong))).toEqual(history(undefined,wrong));

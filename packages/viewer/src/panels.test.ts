@@ -1486,7 +1486,7 @@ it("links the recorded Gym door label treatment to its tracked explainer",()=>{
 
 describe("tracked explainer links",()=>{
  // One Harness Config render with every listed switch on, indexed once by feature id, serves every row.
- const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1"];
+ const LINKED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1"];
  const log=new Log();log.add(0,{...START,harness_features:LINKED});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  const cards=new Map([...doc.querySelectorAll("[data-feature]")].map(card=>[card.getAttribute("data-feature"),card]));

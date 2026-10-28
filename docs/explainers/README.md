@@ -350,3 +350,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Current runs before history](current-run-snapshots.html): independent persisted current state, restart recovery, history backfill and rollback.
 - [Bounded ID-card mentions](id-card-bound-v1.html): newest whole mention pages within1,500codepoints, with an always-kept newest page.
+
+- [Whole-game story checkpoints](story-checkpoints-whole-game-v1.html): conservative, default-OFF whole-episode retirement through the endgame.

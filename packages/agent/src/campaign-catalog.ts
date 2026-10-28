@@ -930,7 +930,8 @@ export const CAMPAIGN_ADDITIONS:readonly (ProgressDefinition & {readonly anchor:
     "flag": 272,
     "anchor": null,
     "optional": true
-  }
+  },
+  {"name":"RAYQUAZA_ENCOUNTER_RETIRED","label":"Optional Rayquaza encounter retired","flag":448,"anchor":null,"optional":true}
 ];
 
 export function campaignCatalog(base:readonly ProgressDefinition[]):readonly ProgressDefinition[] {

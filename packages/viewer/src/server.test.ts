@@ -1323,7 +1323,7 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
 describe("tracked explainers",()=>{
  // One viewer serves every row straight from the tracked docs/explainers (staticDir is this package's static folder),
  // with an empty temp root for runs and app that is removed after the table.
- const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1"];
+ const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1","instruction-memory-cap-v1","story-checkpoints-whole-game-v1"];
  let root="",viewer:Viewer|null=null;
  const tracked=new Map(SERVED.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  beforeAll(async()=>{

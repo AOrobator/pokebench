@@ -1,3 +1,5 @@
+import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
+
 // The harness feature registry: every feature id a play run can record, what
 // it changes for the model, and whether the operator can switch it off. The
 // descriptions are user-facing copy for the viewer's switchboard; each was
@@ -312,6 +314,7 @@ export const SWITCHABLE_FEATURES = [
   "destination-first-navigation-v1",
   "instruction-memory-junk-filter-v1",
   "id-card-bound-v1",
+  "story-checkpoints-whole-game-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -744,6 +747,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
   on("instruction-memory-junk-filter-v1", "guard", "INSTRUCTION MEMORY JUNK FILTER", "instruction-memory-cap-v1", "Default off. Filters whole historical instruction episodes before the existing cap fills: source-matched service text, berry trees, lead-less signs, represented repeats, faced-trainer lines and approved generic NPC flavor. Current story anchors and useful leads stay; named-place/person/key-item protection reuses the cap owner. Cutter’s House and the Cycling Road camper stay; the Rock Smash exchange retires only when native flag 0x6B is set. Unknown variants with useful signals stay. No text is cut and no answer or route is selected. Off: the existing cap and instruction memory are byte-identical."),
   on("id-card-bound-v1", "observation", "BOUNDED ID-CARD MENTIONS", "people-id-cards-v1", "Default off. An ID card’s other pages that name this person keep the newest contiguous whole pages whose quoted lines fit in 1,500 Unicode code points, shown oldest first. The newest page always stays even if it alone exceeds that budget. The header counts omitted earlier pages and, when dialogue auto-advance provides it, says get_dialogue finds them. All other card lines and the fingerprint from the full list stay unchanged. Off: every other page that names this person is listed, as before."),
+  on("story-checkpoints-whole-game-v1", "guard", "WHOLE-GAME STORY CHECKPOINTS", "instruction-memory-cap-v1", `Default off. Uses ${String(STORY_CHECKPOINTS.length)} story checkpoints through the Hall of Fame and the optional Rayquaza encounter. Retires only whole episodes heard by every required native milestone and wholly within the owning map/speaker scopes. Mixed or reusable rival tutorials remain eligible for memory. This records no new route advice. Off: the cap uses the original 15 checkpoints through the Slateport Devon Goods delivery; memory bytes are unchanged.`),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1139,6 +1143,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("destination-first-navigation-v1"),
     ...when("instruction-memory-junk-filter-v1"),
     ...when("id-card-bound-v1"),
+    ...when("story-checkpoints-whole-game-v1"),
   ];
 }
 

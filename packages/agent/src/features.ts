@@ -300,6 +300,7 @@ export const SWITCHABLE_FEATURES = [
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
   "instruction-memory-dedup-v1",
+  "current-question-focus-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -720,6 +721,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("story-briefing-native-milestones-v1", "guard", "BRIEFING NATIVE MILESTONES", "loop-guard-supervisor-v1", "Default off. The loop and stall briefings skipped every extended story milestone (DEVON GOODS RECOVERED, STEVEN LETTER RECEIVED, POKENAV RECEIVED and the rest of the campaign catalog), so in bundle run a702 the stall briefings at turns 690, 693 and 704 quoted ROXANNE's turn-578 pages as the latest story step and listed nothing past the Route 104 trainers as done. With this switch, a story milestone the game recorded during the run from the extended catalog counts like the base ones for the briefings: \"Story steps the game confirms are done\" adds those steps after the readout's own checklist, and \"Dialogue shown with your latest story step that came with dialogue\" quotes the pages of the latest story step and of up to three earlier story steps that came with dialogue, newest first, each whole and in order. Optional activities are not story steps. Off: the briefings use only the base milestones and the readout's checklist, byte for byte as before."),
   on("retire-reached-story-line-v1", "observation", "RETIRE REACHED STORY LINE", "unfinished-activity-v1", "Default off. Bundle run a702 kept Dad's turn-312 line \"Head for RUSTBORO CITY beyond this town.\" at the top of every result for 90+ turns as \"Story line heard … Reached: RUSTBORO CITY\", after it had entered RUSTBORO CITY (turn 378) and beaten ROXANNE there (turn 578), and the model quoted it as its current goal. With this switch, a story line all of whose places the player has reached retires once the game observes a story milestone, or any step of the extended campaign catalog (a place reached such as DEWFORD TOWN, or an event such as STEVEN LETTER RECEIVED; The operator 2026-10-28), after the player has entered every place it names since the line (a battle won, another measurement-only step or an optional activity does not count; scoring is unchanged). It retires the way stale-story-goal-v1 retires a finished line: the Story goal line says the line is done, naming the place, the arrival turn and the milestone (with stale-story-goal-v2 the line is omitted), and the walk-away supervisor gets no goal from it. Dialogue history is unchanged and no replacement is invented. Needs unfinished-activity-v1, which records the arrivals. Off: a reached line stays in the header as \"Story line heard … Reached: …\"."),
   on("instruction-memory-dedup-v1", "guidance", "UNIQUE INSTRUCTION MEMORY", "delivered-place-evidence-v1", "Default off. Combines the existing instruction and person/place evidence projections into one compact block, with each selected delivered episode shown once by its original result reference. Keeps whole quotes, unknown speakers, source names and display names, dialogue/state references and current delivered progress. Existing milestone-proof retirement stays unchanged; arrival and age never complete a task. Inactive when instruction-goal-ledger-v1 replaces this memory owner. Off: the existing separate projections and all request bytes remain unchanged."),
+  on("current-question-focus-v1", "guidance", "CURRENT QUESTION FOCUS", "dialogue-auto-advance-v1", "Default off. Repeats the final whole delivered field-dialogue page beside the current ready YES/NO selection and existing controls as a temporary last request message. Requires matching current state, result, map and visible dialog; unknown or changed questions are omitted. Uses existing dialogue pages and ledger-context receipts, with no answer selection, new game facts or automatic input. Off: existing context, prompts, tools and execution remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1098,6 +1100,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("story-briefing-native-milestones-v1"),
     ...when("retire-reached-story-line-v1"),
     ...when("instruction-memory-dedup-v1"),
+    ...when("current-question-focus-v1"),
   ];
 }
 

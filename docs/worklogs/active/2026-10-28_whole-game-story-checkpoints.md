@@ -91,3 +91,6 @@ New source-dependent tests now fail when pret is unavailable instead of silently
 
 Coordinator granted FULL START after the junk filter released at14:14; main9415839b9. Commit this evidence/required-source cleanup, sync that immutable main pin, then full gates serially. Reviews/landing still pending. Published constructor seam ruling: wholeGame owns parameter5; later treatments append and explicitly bind every call, including replay scripts; no options refactor here.
 COMMIT: require source audits and record accepted browser proof before full gates.
+
+Full-gate sync: immutable main 9415839b9d1c30646b60f3260c9ffed55be11120; preserved all current registry/default/recipe semantics and appended whole-game at ordinal303. Constructor seam remains wholeGame5. No bundle edits.
+COMMIT: sync latest main before full gates.

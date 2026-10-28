@@ -121,3 +121,6 @@ All18 targeted source/checkpoint/stream tests pass. With unchanged136 entries/se
 
 Report lead states that misses moved again after advice-lifetime repair, adding to the earlier one-character metadata sensitivity. Canonical make_report2 hook source copy matches tracked source SHA; isolated source-equivalent whole-game section refresh applied with4 strict passing JSONs. All historical sections preserved. Both HTML pages themed/check-clean. Full re-gates, current-source browser proof and bounded cumulative fix review remain pending after latest main sync.
 COMMIT: preserve unfinished Aqua Hideout advice and report corrected diagnostic snapshot (GREEN).
+
+Post-review source sync: merge current snapshot-viewer main 52a5654187e0697eaf0c658bdeab6b5a22f74443 cleanly. No own production conflict, constructor seam remains junk5/wholeGame6 and junk1/wholeGame2. This new source requires full re-gates and final browser proof before cumulative fix review. No activation.
+COMMIT: sync snapshot-viewer main for bounded Aqua fix re-gates.

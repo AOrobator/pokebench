@@ -254,3 +254,5 @@ describe("local-only page", () => {
     }
   });
 });
+
+it("keeps legacy zero-state stats when current completeness metadata is absent",()=>{const html=sideStats(new RunView(),BASE_MS);expect(html).toContain("TURN<b>0</b>");expect(html).toContain("FAILURES<b>0</b>of 3");});

@@ -378,6 +378,9 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "gateway-current-turn-v1":"gateway-current-turn-v1.html",
+ "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",
+ "gateway-schema-hint-v1":"gateway-schema-hint-v1.html",
  "mauville-puzzle-readout-v1":"mauville-puzzle-readout-v1.html",
  "map-observability-v1":"map-observability-v1.html",
  "interface-guidance-v1":"interface-guidance-v1.html",
@@ -398,6 +401,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",
+ "type-gap-team-last-message-v1":"type-gap-team-last-message-v1.html",
  "scene-followup-prompt-v1":"scene-followup-prompt-v1.html",
  "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",
  "goal-review-repair-feedback-v1":"goal-review-repair-feedback-v1.html",

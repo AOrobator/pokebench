@@ -14,7 +14,9 @@ import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies }
 import { cutOffReplyNotice } from "./cut-off-reply.js";
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
-import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
+import { contextTools, loopSupervisor, playGameTools, stallBriefing, trustOptions } from "./play-wiring.js";
+import { HarnessTrust, TRUST_HEADER, awayText } from "./harness-trust.js";
+import type { Place } from "./story-destinations.js";
 import { starterDecisionText } from "./starter-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
@@ -35,7 +37,15 @@ export function parseSwitch(arg: string): ProbeSwitch {
 
 export interface RecordedRun { readonly events: readonly RunEvent[]; readonly start: RunStartEvent }
 export function parseRun(text: string): RecordedRun {
-  const events = text.split("\n").filter((line) => line.trim() !== "").map((line) => checkEvent(JSON.parse(line)));
+  return parseRunLines(text.split("\n"));
+}
+// The same parse over lines read one at a time, for event logs larger than one string can hold.
+export function parseRunLines(lines: Iterable<string>): RecordedRun {
+  const events: RunEvent[] = [];
+  for (const line of lines) if (line.trim() !== "") events.push(checkEvent(JSON.parse(line)));
+  return recordedRun(events);
+}
+export function recordedRun(events: RunEvent[]): RecordedRun {
   const start = events.find((e): e is RunStartEvent => e.type === "run_start");
   if (start === undefined) throw new Error("event log has no run_start");
   return { events, start };
@@ -56,6 +66,8 @@ export interface ProbePorts {
   readonly rerender: (refs: readonly RawRef[], features: FeatureSet) => Promise<readonly string[]>;
   /** The field the gateway streamed reasoning in (pi's thinkingSignature); prior reasoning is sent back under it. Events do not record it. */
   readonly thinkingSignature: string;
+  /** The game's map table read from a recorded raw-RAM archive, as GET /pokebench/places serves it; only --trust-header reads it. */
+  readonly places?: (ref: RawRef, features: FeatureSet) => Promise<readonly Place[]>;
 }
 
 export interface DecisionContext {
@@ -64,6 +76,8 @@ export interface DecisionContext {
   readonly messages: readonly Message[];
   readonly tools: readonly Tool[];
   readonly size: ContextSize;
+  /** --recorded-trim: the request measured where the run's recorder measured it (its turn_start context). */
+  readonly recorderSize?: ContextSize;
 }
 
 // The model-facing text of every recorded tool result, re-derived under `features`.
@@ -161,9 +175,9 @@ const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context"
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
-export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
+export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string, innermost: (m: AgentMessage[]) => Promise<AgentMessage[]> = (m) => Promise.resolve(m)): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
-  const context = contextTools(features, recorder, (m) => Promise.resolve(m),cutOff);
+  const context = contextTools(features, recorder, innermost, cutOff);
   const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert, sceneEvents: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
   return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
 }
@@ -237,7 +251,78 @@ export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(t
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */
 export type Derivation = "recorded" | "replayed";
 /** `rerender` re-renders every readout still in the window from raw RAM with today's renderer; the probe sets it in both arms whenever a server switch flips, so the arms differ only by the switch. */
-export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null): Promise<DecisionContext> {
+// --trust-header: harness-trust-v1's header is baked into each recorded result. Re-derive what story switches change in it,
+// the Story goal line and the walk-away note, by replaying the recorded events through HarnessTrust with the arm's
+// switches. The header's other lines (story characters, exits, people) come from parts of the result the recording joined,
+// so they are kept as recorded, and an arm that changes the switches behind them is refused.
+const TRUST_TOOLS = new Set(["observe", "press", "navigate_to"]);
+const KEPT_LINE_SWITCHES: readonly SwitchableFeature[] = ["harness-trust-v2", "semantic-navigation-v2", "character-presence-v1", "exit-reachability-v1", "exit-labels-v3", "untalked-people-header-v1", "displayed-place-names-v1"];
+const GOAL_LINE = /^(Story goal: |Story line heard |Historical named place evidence: )/;
+const AWAY_NOTE = /^SUPERVISOR: /;
+// The recorded header with its goal line and walk-away note replaced: `fresh` is the re-derived header (goal line second).
+function spliceHeader(recorded: readonly string[], fresh: readonly string[], note: string | null): string[] {
+  const goal = fresh.filter((line) => GOAL_LINE.test(line));
+  const rest = recorded.slice(1).filter((line) => !GOAL_LINE.test(line) && !AWAY_NOTE.test(line));
+  return [TRUST_HEADER, ...goal, ...rest, ...(note === null ? [] : [note])];
+}
+export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Map<number, string>, features: FeatureSet, recorded: FeatureSet, ports: ProbePorts, kept: ReadonlySet<number>): Promise<void> {
+  if (!features["harness-trust-v1"] || !recorded["harness-trust-v1"]) throw new Error("--trust-header re-derives harness-trust-v1's header, which both the run and the arm must have on");
+  const changed = KEPT_LINE_SWITCHES.filter((id) => features[id] !== recorded[id]);
+  if (changed.length > 0) throw new Error(`--trust-header keeps the recorded header's other lines, so the arm must leave ${changed.join(", ")} as recorded`);
+  const read = ports.places;
+  if (read === undefined) throw new Error("--trust-header needs the game's map table (the places port)");
+  const options = trustOptions(features);
+  const trust = new HarnessTrust(options);
+  const states = new Map<number, StateEvent>();
+  const tables = new Map<string, Promise<readonly Place[]>>();
+  const annotated = (name: string): boolean => TRUST_TOOLS.has(name) || (options.battleAction === true && name === "battle_action") || (options.semanticTargets === true && (name === "navigate_to_target" || name === "explore_map"));
+  // The recorder writes a result's own after-state (and what it emits with it) once the wrapped tool has returned, so
+  // after the header was printed: those events reach HarnessTrust only after their result's header is derived.
+  const afterStates = new Set(prior.flatMap((e) => (e.type === "tool_result" && e.state_seq !== undefined ? [e.state_seq] : [])));
+  let deferred: RunEvent[] = [];
+  for (const e of prior) {
+    if (e.type === "state" && "started" in e) states.set(e.seq, e);
+    if (afterStates.has(e.seq) || (deferred.length > 0 && e.type !== "tool_result")) { deferred.push(e); continue; }
+    const after = e.type === "tool_result" && e.state_seq !== undefined ? states.get(e.state_seq) : undefined;
+    const text = e.type === "tool_result" ? texts.get(e.seq) ?? e.text : null;
+    // Every annotated result advances HarnessTrust (its walk-away count), as in the run; only kept ones are rewritten.
+    if (e.type === "tool_result" && !e.is_error && annotated(e.name) && after?.started === true && after.raw_ram !== undefined && text !== null && text.startsWith(`${TRUST_HEADER}\n`)) {
+      const cut = text.indexOf("\n\n");
+      if (cut < 0) throw new Error(`tool_result seq ${String(e.seq)} has a trust header with no body`);
+      const body = text.slice(cut + 2);
+      const player = after.name ?? "";
+      let table = tables.get(player);
+      if (table === undefined) { table = read({ path: after.raw_ram.path, sha256: after.raw_ram.sha256 }, features); tables.set(player, table); }
+      const walk = e.name === "navigate_to" || (options.semanticTargets === true && (e.name === "navigate_to_target" || e.name === "explore_map"));
+      const { header, away } = trust.lines(body, after, e.id, await table, e.name === "press" || walk, body);
+      if (kept.has(e.seq)) texts.set(e.seq, `${spliceHeader(text.slice(0, cut).split("\n"), header.split("\n"), away === null ? null : awayText(away)).join("\n")}\n\n${body}`);
+    }
+    for (const d of deferred) trust.observe(d);
+    deferred = [];
+    trust.observe(e);
+  }
+}
+
+// --recorded-trim: the run's context-token-budget-v1 dropped its oldest assistant turns to fit the model's window, and
+// turn_start recorded the request at the innermost context transform, where the live recorder sits. The probe measures
+// at the same place: whole turns are dropped the same way until the request measured there has the recorded message and
+// image counts. A rebuild no cut matches is refused with the delta, so a probe never samples a context the run did not send.
+export async function trimToRecorded(messages: readonly AgentMessage[], warning: string | null, recorded: ContextSize, measure: (kept: AgentMessage[]) => Promise<ContextSize>): Promise<AgentMessage[]> {
+  const [task, ...rest] = messages;
+  if (task === undefined) throw new Error("--recorded-trim: the rebuilt history is empty");
+  const withWarning = (kept: AgentMessage[]): AgentMessage[] => (warning === null ? kept : [...kept, { role: "user", content: warning, timestamp: 0 }]);
+  const starts = [0, ...rest.flatMap((message, i) => (i > 0 && message.role === "assistant" ? [i] : []))];
+  const seen: string[] = [];
+  for (const start of starts) {
+    const kept = [task, ...rest.slice(start)];
+    const size = await measure(withWarning(kept));
+    if (size.messages === recorded.messages && size.images === recorded.images) return kept;
+    seen.push(`${String(size.messages)}/${String(size.images)}`);
+  }
+  throw new Error(`--recorded-trim: no whole-turn cut of the rebuilt request matches the recorded one (${String(recorded.messages)} messages, ${String(recorded.images)} images); cuts measured messages/images ${seen.join(", ")}`);
+}
+
+export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false, recordedTrim = false): Promise<DecisionContext> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
   if (target === undefined) throw new Error(`turn ${String(turn)} has no turn_start in this run`);
@@ -264,6 +349,10 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
   const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender, compositeReadouts);
+  if (trustHeader) {
+    if (derivation === "recorded") throw new Error("--trust-header re-derives the header, so it needs the replayed derivation");
+    await rederiveTrustHeaders(prior, texts, features, recorded, ports, kept);
+  }
   const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff, undefined, {cutOff:cutOffReplyNotice(recorded,start.sampling.max_tokens)});
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start),cutOff);
@@ -280,7 +369,10 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"],features);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
-  const wiring = probeTools(features, replay,cutOff);
+  // --recorded-trim measures each candidate request where the live recorder sat: the innermost context transform.
+  const recorderView: { size: ContextSize | null } = { size: null };
+  const lastMeasured = (): ContextSize | null => recorderView.size;
+  const wiring = probeTools(features, replay, cutOff, (m) => { recorderView.size = contextSize(m.filter(isMessage)); return Promise.resolve(m); });
   for (const e of prior) {
     if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }
@@ -288,10 +380,13 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   }
   replay.upcoming = target.turn;
   const warning = detector.context();
-  const windowed = slideWindow(history, wiring.window);
+  const slid = slideWindow(history, wiring.window);
+  const windowed = recordedTrim ? await trimToRecorded(slid, warning, target.context, async (kept) => { recorderView.size = null; await wiring.transform(kept); const size = lastMeasured(); if (size === null) throw new Error("--recorded-trim: the context transform never reached its innermost step"); return size; }) : slid;
   if (warning !== null) windowed.push({ role: "user", content: warning, timestamp: 0 });
+  recorderView.size = null;
   const messages = (await wiring.transform(windowed)).filter(isMessage);
-  return { turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages) };
+  const recorderSize = recordedTrim ? lastMeasured() : null;
+  return { turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
 }
 // The guard text in context at `turn` (LoopDetector.context over the recorded notices), then the
 // pinned hint and this turn's ledger and navigation memory, in the order the wiring appended them.

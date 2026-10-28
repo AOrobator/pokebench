@@ -4,7 +4,7 @@ import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
@@ -1312,13 +1312,22 @@ it("serves the tracked Gym door label explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
-it.each(["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1"])("serves tracked %s explainer byte for byte",async(id)=>{
- const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
- const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- writeFileSync(join(docs,`${id}.html`),tracked);
- const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
- const reply=await get(viewer,`/explainers/${id}.html`);
- expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+describe("tracked explainers",()=>{
+ // One viewer serves every row straight from the tracked docs/explainers (staticDir is this package's static folder),
+ // with an empty temp root for runs and app that is removed after the table.
+ const SERVED=["caught-dex-input-v1","caught-nickname-prompt-v2","cutscene-journal-v1","instruction-goal-advisory-v1","goal-review-repair-feedback-v1","type-gap-team-v1","supplies-v1","untalked-in-gym-v1","scene-followup-prompt-v1","type-gap-team-last-message-v1"];
+ let root="",viewer:Viewer|null=null;
+ const tracked=new Map(SERVED.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ beforeAll(async()=>{
+  root=mkdtempSync(join(tmpdir(),"pokebench-tracked-explainers-"));
+  viewer=await startViewer({runsRoot:join(root,"runs"),staticDir:fileURLToPath(new URL("../static",import.meta.url)),appDir:join(root,"app"),port:0});
+ });
+ afterAll(async()=>{await viewer?.close();rmSync(root,{recursive:true,force:true});});
+ it.each(SERVED)("serves tracked %s explainer byte for byte",async(id)=>{
+  if(viewer===null)throw new Error("viewer not started");
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked.get(id)??Buffer.alloc(0))).toBe(true);
+ });
 });
 
 it("serves the tracked GLM-run harness bug explainers byte for byte",async()=>{
@@ -1594,4 +1603,19 @@ it("reports unusable BAG summary storage through the real HTTP endpoint without 
   expect(reply.status).toBe(503);
   expect(reply.body.toString()).toContain("Bag history unavailable");
   expect(reply.body.toString()).not.toContain("ITEMS GAINED");
+});
+
+it("serves complete Claude turn delivery's tracked explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-gateway-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="gateway-current-turn-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+});
+
+it("serves both Claude schema corrections' tracked explainers byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-gateway-schema-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const id of ["gateway-tool-schemas-v1","gateway-schema-hint-v1"]){
+  const body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),body);
+  const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+ }
 });

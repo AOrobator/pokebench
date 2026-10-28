@@ -317,7 +317,12 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Gym type gap](type-gap-team-v1.html) — gym types from this run's evidence, the ROM type chart's strong types and what the party lacks.
 - [Supplies](supplies-v1.html) — money, balls, healing items, party size and where this map sells things, on arrival.
 - [Untalked people in gym](untalked-in-gym-v1.html) — people on a gym map not talked to this run, first in the result.
+- [Gym type gap, last message](type-gap-team-last-message-v1.html) — the same gym type block repeated as the request's final message.
 
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
 - [Goal review repair feedback](goal-review-repair-feedback-v1.html) — Show the invalid field and real references.
 - [Scene follow-up](scene-followup-prompt-v1.html): once-only SUPERVISOR note after an unexplained scene.
+
+- [Complete Claude turn delivery](gateway-current-turn-v1.html): keep the current observation, screenshot and trailing harness blocks together; recorded switch, exact legacy OFF.
+- [Claude tool schemas every turn](gateway-tool-schemas-v1.html): the full tool listing in every session system prompt, so schemas survive auto-compaction; recorded switch, exact legacy OFF.
+- [Claude schema re-ask hint](gateway-schema-hint-v1.html): an anyOf/oneOf re-ask lists the forms generated from the tool schema; recorded switch, exact legacy OFF.

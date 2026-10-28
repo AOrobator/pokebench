@@ -3,11 +3,10 @@ import { visualEvidenceSignature } from "./frontier-visual.js";
 import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { FEATURES } from "@pokebench/agent/features";
-import { MILESTONES, REQUIRED_FRONTIER_MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
+import {configuration,resumeCheckpoint} from "./run-config.js";
+import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
-import { configOf } from "./history.js";
 import { createNativeRecordingTailer, readNativeRecording, readStartlessLog, type NativeRecording } from "./frontier-recording.js";
 import { defaultViewerBuild, skewOf, type BuildIdentity, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
@@ -19,7 +18,7 @@ import { parseFinalsLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import { exclusionLabel, readExclusions } from "./run-exclusions.js";
 import type { HealthProbe } from "./next-run.js";
-import { parseWorkbench, type WorkbenchCohort, type WorkbenchConfig, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import { parseWorkbench, type WorkbenchCohort, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import type { RunStore, SnapshotStore } from "./baseline-store.js";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
@@ -37,25 +36,9 @@ function metadata(path: string): { value: unknown; digest: string } {
   const bytes = readFileSync(path, "utf8");
   return { value: JSON.parse(bytes) as unknown, digest: sha256(bytes) };
 }
-function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
-  if (start.start_state.kind !== "save_state") return null;
-  const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
-  return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
-}
 // The checkpoint a run resumed from, read from its run_start alone (null: power-on or an unreadable start).
 export function runResume(root: string, id: string): string | null {
   try { return resumeCheckpoint(startOf(root, id)); } catch { return null; }
-}
-function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
-  const known = configOf(start);
-  return {
-    source: start.harness.commit, dirty: start.harness.dirty, vendor: start.vendor_pin, pi: start.pi_version,
-    preset: start.evaluation?.preset_id ?? null, target: start.evaluation?.target ?? null, thinking: start.sampling.thinking_level,
-    maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null,
-    failureLimit: start.evaluation?.failure_limit ?? null, context: start.model.context_window, vision: start.model.vision,
-    start: start.start_state.kind, resume: resumeCheckpoint(start), tools: start.tools,
-    features: FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
-  };
 }
 // The run_start the workbench trusts: the log is not symlinked and names this run.
 function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start" }> {

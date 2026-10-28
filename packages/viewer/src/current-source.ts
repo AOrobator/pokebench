@@ -45,7 +45,8 @@ export function openCurrentSource(root:string,run:string,options:SourceOptions={
 export function prefixSignature(path:string):string{
  const file=join(dirname(path),"restoration-prefix.jsonl");if(!existsSync(file))return "";const stat=lstatSync(file);if(stat.isSymbolicLink()||!stat.isFile())throw new Error("Invalid restoration prefix source");return `${String(stat.dev)}:${String(stat.ino)}:${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}`;
 }
-export function readCurrentLines(source:CurrentSourceFile,cursor:LineCursor,maxBytes:number,maxRecords:number,lineBytes=CURRENT_LINE_BYTES):{lines:CurrentLine[];bytes:number;atEnd:boolean}{
+export interface CurrentLineSource {readonly stat:{readonly size:number};read:(offset:number,length:number,purpose?:"data"|"anchor")=>Buffer}
+export function readCurrentLines(source:CurrentLineSource,cursor:LineCursor,maxBytes:number,maxRecords:number,lineBytes=CURRENT_LINE_BYTES):{lines:CurrentLine[];bytes:number;atEnd:boolean}{
  if(!coordinate(maxBytes)||!Number.isSafeInteger(maxRecords)||maxRecords<1||!Number.isSafeInteger(lineBytes)||lineBytes<1)throw new Error("Invalid source limits");
  const lines:CurrentLine[]=[];let bytes=0;
  while(lines.length<maxRecords){

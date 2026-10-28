@@ -1,0 +1,91 @@
+# type-gap-team-last-message-v1 (placement switch)
+
+Operator decision: The operator 2026-10-27, "Build the placement switch", after the type-gap probes (runs/probes/type-gap-team-20261027). Held-out probe A, four runs × 16 samples: control 13/64, block on the tool result 40/64, block in both places 55/64 (strict scorer 21, 41, 58). Probe D (untalked) also moved most with the last-message placement.
+
+## Scope
+
+- New switch `type-gap-team-last-message-v1`: bundle arm only, default off, `needs: "type-gap-team-v1"` (dependencyProblems rejects it alone).
+- When ON and the newest tool results (after the last assistant reply) carry the GYM TYPE GAP block, the identical text is appended as a final user message, after scene-followup-prompt-v1's note. The block on the tool result is unchanged. No truncation, no rewording. Same shape as the probes' `production_and_last` variant (sample.mjs: appendToResult(block) then asLastUser(block)).
+- Transient like scene-followup-prompt-v1. Recorded once per tool result as `ledger_context` with that result's seq as evidence.
+- OFF: `typeGapLastMessage` returns the base transform itself; requests, tools and events are unchanged.
+- supplies-v1 and untalked-in-gym-v1 are untouched.
+
+## Checklist (feature-switch skill)
+
+- [x] Registry: SWITCHABLE_FEATURES last, FEATURES entry (observation, needs type-gap-team-v1, Off copy), `...when()` last in playHarnessFeatures. Not a server feature.
+- [x] Presets: FeatureSetSchema optional, excluded from the generic spread and its Exclude type, normalizeFeatures and flagFeatures default false.
+- [x] Defaults: DEFAULT_NEXT_RUN false.
+- [x] current.json: appended to `switches`, base false.
+- [x] Wiring: `contextTools` wraps `sceneFollowupContext` with `typeGapLastMessage` (live and decision probes share it).
+- [x] Tests: packages/agent/src/type-gap-last-message.test.ts (9). ON matches the probe's both-places request message for message; no copy without the block or after a reply; no copy when type-gap-team-v1 is off; OFF returns the base transform and the same bytes; validation. Coverage of the new file: 100% statements, lines and functions, 95% branches.
+- [x] Wiring removal check: with the `typeGapLastMessage` wrap deleted from contextTools, 2 ON tests failed; restored, 9/9 pass.
+- [x] Explainer: docs/explainers/type-gap-team-last-message-v1.html (theme applied, pages-check clean; headless 1280 and 375 screenshots, no horizontal overflow), FEATURE_EXPLAINERS, panels/server link tests, README entry.
+- [ ] Gates (`just test`, `just lint`) under a coordinator CPU window.
+- [ ] Review: Claude, GPT via Codex, Sonnet fallback.
+- [ ] Land ff-only via the board; `just viewer-main`.
+- [ ] Confirmation probe on GPU1 via the lock.
+
+## Targeted runs (no CPU window used)
+
+- agent: type-gap-last-message, type-gap-registry, scene-followup, feature-config-registry, features, play-preset: 85 passed; `tsc --noEmit` clean.
+- viewer: next-run, panels, fixed-definition, fixed-design, feature-config-registry: 301 passed; panels + server: 352 passed.
+
+## Fixed definitions whose hash changes
+
+Adding a bundle switch changes the four `featureRecipe: "current"` definitions (re-approval needed). Against main 8de58a861 (after the gateway-tool-schemas and gateway-schema-hint pins):
+
+- `bundle-v-control-2h`: `7827893c5fd38c263e384c859963c5de7df49c8ee8127e34b7152ec2f9d8a9e1` → `b796a57b6685deed590c7046c879b83cad48743e472f85e4b78728f478213dff`
+- `bundle-v-control`: `06abe31b61320bd58d5b1c91e04796fde03de49f4d15c85e68b36b66fcf345d1` → `9328e17c7608045ed5934b71dac2d3db001f366bb7f0aaee064ae5a989dcd50d`
+- `glm53-flash-4h`: `c6c27eaad12ad9f0e559198425a9372e5e38c52e50807994f7af847b4c4fd3f5` → `b1e2ce6851b7e251bdf57ef77799f01800ecfcffc3748396c6f073810f5a96fb`
+- `hyperqwen-control-3h`: `3cf2fb32f1b3f0f553699922fa8228a068f7ae7730c1758d034d0802f77f1455` → `3f7e83ae16bc70bba68bb5c44902d796590884717e59c713e32835dee41be7f7`
+
+## Rebases
+
+- Rebased onto main 87cf6a8c7 (gateway-tool-schemas-v1 and gateway-schema-hint-v1, which also append to every registry list, presets, defaults and current.json). Conflicts in current.json, features.ts, play-preset.ts and next-run.ts, all "both appended": resolved by taking main's files and re-adding this switch after gateway-schema-hint-v1 (registry lists, FeatureSetSchema, the preset spread filter and Exclude type, normalizeFeatures, flagFeatures, DEFAULT_NEXT_RUN), last in `switches` and base false. Targeted tests rerun: agent 85, viewer 451, both `tsc --noEmit` clean. Then onto 8de58a861 (docs only), clean.
+
+## Gates and reviews
+
+- Gates at 0072418df (CPU window 11:37 PM NY):
+  - `just test` exit 0: agent 4698, viewer 2162, Python 4466 + 102, coverage floors, trainer cards 3/3.
+  - `just lint` exit 0.
+  - The first `just test` in this fresh worktree failed only because env/vendor/continual-harness was not checked out (408 Python FileNotFoundError). Fixed with `git submodule update --init`; `just verify-vendor` OK.
+- Round 1 (base 8de58a861, head 0072418df):
+  - Sonnet fallback: LGTM.
+  - Claude: LGTM once the gate receipts were attached.
+  - GPT: BLOCKING in rounds 1 and 1b on three items.
+    - (1) A continuation restore re-recorded the ledger_context. Fixed, see below.
+    - (2) and (3) Per-row fixture cost in the existing explainer-link `it.each` tests (server.test.ts, panels.test.ts). Kept as they are: this change adds one row to each, following the pattern of every explainer. Batching those shared fixtures is a separate refactor.
+- Known ordering (fallback, non-blocking): in live.ts, autoTalkContext wraps outside contextTools. A retained auto-talk message anchored to the same result follows the copy. This is by design: it is newer game evidence than the block.
+- Fix for (1) (coordinator, 11:49 PM NY): the recorded-copy key is now the result's seq. A replayed `ledger_context` whose text starts with the type-gap header marks its evidence seqs as already recorded. After a restore, the copy is still delivered but not recorded again. The new restore test failed with the fix removed and passes with it (10/10). The new file is at 100% statements, branches, functions and lines; `tsc --noEmit` is clean.
+- Round 2 at 27bcfbd78. Gates (11:53 PM NY): `just test` exit 0 (agent 4699, viewer 2162, Python 4466 + 102, floors, cards 3/3); `just lint` exit 0. Reviews: Claude LGTM, Sonnet LGTM, GPT BLOCKING on the two fixture-cost items only (third pass).
+- Fixture batching (coordinator, 12:01 AM NY, test-only):
+  - panels.test.ts "tracked explainer links": one Harness Config render with all ten switches on, then it.each per card.
+  - server.test.ts "tracked explainers": one staged temp tree and one viewer in beforeAll, removed in afterAll (no temp roots left), then it.each per explainer.
+  - Rows keep their names.
+  - Table time, panels: about 226 ms (10 renders, 18–32 ms each) → under 2 ms per row after one render.
+  - Table time, server: about 55 ms (10 viewer lifecycles) → about 1 ms per row.
+  - File wall time, panels.test.ts: 5.86 s → 5.48 s, 206 tests.
+  - File wall time, server.test.ts: 3.16 s → 2.24 s, 148 tests.
+  - `tsc --noEmit` clean.
+- Round 3 at 587532574. Gates (12:03 AM NY): `just test` exit 0, `just lint` exit 0. Reviews: Claude LGTM, Sonnet LGTM. GPT BLOCKING on a real bug and two more fixture items. Coordinator (12:13 AM NY): fix all three.
+- Replay fix:
+  - The bug: decision probes and continuation restores rebuild a recorded result as the recorder's text parts joined by "\n". The detector only matched a part that starts with the header, so in replay the switch did nothing.
+  - The fix: `typeGapBlockIn` also cuts the block out of joined text. It takes the header line, then the following lines that start with "- " or "  ".
+  - Fixture `packages/agent/test-support/type-gap-replay-cases.json`, built read-only:
+    - All 12 recorded type-gap results of run 2026-10-27T21-20-27_claude-opus-5-5_f60d, the only run so far with the block on. Replaying its events through the shipped TypeGapTeam renders all 12 blocks byte-identical to the recorded text, bounded by "\n" or the end.
+    - The 8 probe-study rendered blocks (d41e t335, held-out and probe B cases), each with its control readout.
+    - 6 followers recorded after other blocks: Scene history, Supplies, Training, Unfinished activity, moves by foe type, and type words.
+  - Equivalence tests: the cut equals the live separate part for all 12 recorded results, two of which have Scene history after the block. It also equals the block for all 8 × 7 rendered cases (no follower plus each of the 6).
+  - A probe-shaped rebuilt result (frames, then one joined text part) gets the copy with the result's seq. These 3 tests and one unit check fail with the old detector and pass with the fix (13/13). Coverage of the new file: 100% lines and functions, 97% branches.
+  - End-to-end on the real run: `decisionContext` on f60d turn 356 ends with the type-gap copy when ON, and with the recorded last message when OFF.
+- Fixture items: panels indexes the cards once (`querySelectorAll`, a Map by data-feature). The server table serves the tracked docs/explainers in place, with no staging writes and one empty temp root that is removed afterwards. Wall time: panels 5.25 s, server 2.07 s. `tsc` and eslint are clean on the touched files.
+- Round 4 at 9bf387744:
+  - Gates (12:20 AM NY): `just test` exit 0 (agent 4702, viewer 2162, Python 4466 + 102, floors, cards 3/3) and `just lint` exit 0.
+  - Reviews: Claude LGTM, Sonnet fallback LGTM, GPT LGTM (with the exact-head gate logs).
+
+## Landing
+
+- LANDED 12:28 AM NY: `git merge --ff-only claude/type-gap-last-message` moved main from 8de58a861 to 9bf38774424f896d891a34317ab8544af867a312, the reviewed head.
+- Post-landing `just test` on main exit 0 (CPU window 12:29 AM NY): agent 4702, viewer 2162, Python 4466 + 102, floors, cards 3/3.
+- Re-approval is needed for the four definitions above (bundle-v-control-2h, bundle-v-control, glm53-flash-4h, hyperqwen-control-3h).
+- The confirmation probe on GPU1 is running: runs/probes/type-gap-team-20261027/confirm-shipped-9bf3/.

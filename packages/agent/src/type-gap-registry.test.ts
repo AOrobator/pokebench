@@ -40,12 +40,15 @@ describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 202
   const list=serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",");
   for(const id of IDS)expect(list).not.toContain(id);
  });
- it("are bundle switches in current.json: OFF in the shared base, in no both-arm list",()=>{
-  for(const id of IDS){
+ it("in current.json: type-gap-team-v1 ON in both arms (the operator 2026-10-27), supplies-v1 and untalked-in-gym-v1 bundle switches",()=>{
+  expect(CURRENT.onInBoth).toContain("type-gap-team-v1");
+  expect(CURRENT.features["type-gap-team-v1"]).toBe(true);
+  expect(CURRENT.switches).not.toContain("type-gap-team-v1");
+  for(const id of ["supplies-v1","untalked-in-gym-v1"] as const){
    expect(CURRENT.switches).toContain(id);
    expect(CURRENT.features[id]).toBe(false);
    expect(CURRENT.onInBoth).not.toContain(id);
-   expect(CURRENT.offInBoth).not.toContain(id);
   }
+  for(const id of IDS)expect(CURRENT.offInBoth).not.toContain(id);
  });
 });

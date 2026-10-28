@@ -1,3 +1,4 @@
+import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
@@ -207,6 +208,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   const jit = features["just-in-time-prompt-v1"] && scene !== "unknown";
   const show = (...scenes: PromptScene[]): boolean => !jit || scenes.some(value => value === scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
+  if(features["pokenav-call-auto-advance-v1"])prompt+=`\n\n${POKENAV_CALL_NOTE}`;
   if (jit && features["contextual-interface-docs-v1"]) prompt = prompt.replace(CONTEXTUAL_CONTROLS, contextualFor(scene));
   if (jit && !show("overworld", "menu")) prompt = prompt.replace(/\n\nDialogue: [^\n]*/, "");
   if (show("overworld") && features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;

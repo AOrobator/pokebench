@@ -333,5 +333,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
 
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
+- [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.
+
 
 - [Bounded supervisor briefing](supervisor-briefing-bound-v1.html): story lead-up dialogue within 4,000 chars and the other-map untried list within 2,000, whole items; 429f T2566 note 66,297 → 12,429 chars.

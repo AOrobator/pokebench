@@ -1,3 +1,4 @@
+import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
@@ -1894,6 +1895,17 @@ it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EX
 
 it("links the instruction junk filter's exact card and preserves recorded status",()=>{
  const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
+it("links the bounded ID-card feature's exact card and preserves recorded status",()=>{
+ const id="id-card-bound-v1";expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  for(const enabled of [true,false]){
   const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);

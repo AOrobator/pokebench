@@ -38,7 +38,7 @@ describe('move-learn-type-matchup-v1',()=>{
   const y=make();y.observe({...state,seq:40000,screen:'overworld',active_ui:null});y.observe({...result,seq:40001,state_seq:40000});expect(y.block()).toBeNull();
  });
  it('registers default OFF and server delivery without changing prior features',()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(MATCHUP_ID)).toBe(304);expect(SERVER_FEATURES).toContain(MATCHUP_ID);
+  expect(SWITCHABLE_FEATURES.indexOf(MATCHUP_ID)).toBe(305);expect(SERVER_FEATURES).toContain(MATCHUP_ID);
   const {[MATCHUP_ID]:omitted,...old}=featuresOf([]);expect(omitted).toBe(false);expect(normalizeFeatures(old)[MATCHUP_ID]).toBe(false);expect(featuresOf([])[MATCHUP_ID]).toBe(false);
   expect(playHarnessFeatures({...ALL_ON,[MATCHUP_ID]:false},null)).not.toContain(MATCHUP_ID);
  });

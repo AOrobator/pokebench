@@ -11,6 +11,7 @@ import pytest
 
 from pokebench_env.live_map import FullMap, MapTile
 from pokebench_env.map_observation import (
+    CODE_LETTERS,
     COLOR_TOKENS,
     DIRECTION_TOKENS,
     KIND_TOKENS,
@@ -224,9 +225,12 @@ def test_codes_never_reuse_a_glyph_or_an_element_legend_key() -> None:
         for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS)
         for v in table.values()
     }
-    tokens = [f"./T:{i}" for i in range(700)]
+    letters = [c for c in CODE_LETTERS if c not in legend and c not in {"#", ".", "g", "W", "N"}]
+    # One past every one- and two-letter code, so the supply must grow to three letters.
+    tokens = [f"./T:{i}" for i in range(len(letters) + len(letters) ** 2 + 1)]
     codes = compact_codes([["#", ".", "g", "W", "N", *tokens]])
     assert len(set(codes.values())) == len(tokens)
+    assert max(len(code) for code in codes.values()) == 3
     for code in codes.values():
         assert code not in legend and code not in {"#", ".", "g", "W", "N"}
         assert code.isalpha()

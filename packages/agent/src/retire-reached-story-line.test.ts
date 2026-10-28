@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {A702_PLACES,a702Arrival,a702Events,a702Milestone,a702State} from "../test-support/a702-dewford.js";
+import {A702_PLACES,a702Arrival,a702CallMoved,a702Events,a702Milestone,a702State} from "../test-support/a702-dewford.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures} from "./features.js";
 import {HarnessTrust,type TrustOptions} from "./harness-trust.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
@@ -44,6 +44,23 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   };
   expect(run(15816,15817)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 378.");
   expect(run(15817,15816)).toContain(DAD);
+ });
+ it("a place entered before the line, earlier in the same turn, is not reached by it; one entered after the line is",()=>{
+  const route104={...route116,map_id:[0,19] as [number,number],location:"ROUTE104"};
+  const header=(events:readonly import("./events.js").RunEvent[],here=route104)=>{
+   const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+   for(const e of events)trust.observe(e);
+   return trust.lines("Location: x",here,"later",A702_PLACES).header;
+  };
+  const step=a702Milestone("ROXANNE_DEFEATED",106,500);
+  // RUSTBORO CITY entered and left, then DAD's line, then a story step: not retired. (Its "Reached" wording comes from
+  // unfinished-activity-v1, which matches arrivals by turn and is unchanged here.)
+  const before=header([a702Arrival(100,500,[0,3],"RUSTBORO CITY"),a702Arrival(101,500,[0,19],"ROUTE104"),...a702CallMoved(312,102,500),step]);
+  expect(before).toContain('(DAD, turn 500): "Head for RUSTBORO CITY beyond this town."');
+  expect(before).not.toContain("is done");
+  // DAD's line, then RUSTBORO CITY entered, then the step: retired.
+  const after=header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),step],{...route104,map_id:[0,3],location:"RUSTBORO CITY"});
+  expect(after).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 500, then roxanne defeated at turn 500.");
  });
  it("with self-named-speaker-v1 too, Stone's turn-630 request is the Story goal at turn 704",()=>{
   expect(lines({...A702,retireReached:true,selfNamed:true},704).header).toContain('Story goal: "Well, on the way, could you stop off in DEWFORD TOWN?" (MR. STONE, turn 630) -> "DEWFORD TOWN" = DEWFORD TOWN (map 0/11).');

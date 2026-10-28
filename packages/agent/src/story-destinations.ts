@@ -284,8 +284,9 @@ export class StoryDestinations {
   const reached=this.activity?this.reached(line,resolved,here):null;
   if(reached!==null&&this.retireReached){
    // Recorded order (event seq), not turns: an arrival and a story step can share a turn.
-   const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here)?.at.seq);
-   const last=Math.max(this.shownAt.get(line)??-Infinity,...arrived.map(a=>a??Infinity));
+   const shown=this.shownAt.get(line);
+   const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here,shown)?.at.seq);
+   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??Infinity));
    const step=this.steps.find(s=>s.seq>last);
    if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
   }
@@ -304,8 +305,9 @@ export class StoryDestinations {
   return out;
  }
  // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
- private arrival(line:StoryLine,map:MapId,here:MapId):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
-  const entered=this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
+ // retire-reached-story-line-v1 passes the line's shown-at event, so "since the line" is by recorded order, not turn.
+ private arrival(line:StoryLine,map:MapId,here:MapId,shown?:number):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
+  const entered=this.arrivals.find(a=>(shown===undefined?a.turn>=line.turn:a.seq>shown)&&same(a.map,map));
   if(entered!==undefined)return {at:entered,entered:true};
   const stay=same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
   return stay===undefined?undefined:{at:stay,entered:false};

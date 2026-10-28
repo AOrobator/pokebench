@@ -36,22 +36,33 @@ export function a702StateAt(map:readonly [number,number],location:string):GameSt
 const DIALOGUE_IDS=new Map<number,string>(RAW.dialogues.map(d=>{const e=checkEvent(d);if(e.type!=="dialogue_auto_advance")throw Error("not dialogue");return [e.turn,e.tool_call_id];}));
 export const callAt=(turn:number):string=>{const id=DIALOGUE_IDS.get(turn);if(id===undefined)throw Error(`no call at turn ${String(turn)}`);return id;};
 
-// Every extracted event to `turn` inclusive, in recorded order. Arrivals are the turn-690 state moved to each recorded arrival.
+// Every extracted event, validated and ordered once. Arrivals are the turn-690 state moved to each recorded arrival.
+const TEMPLATE=stateEvent("690");
+const ALL:readonly RunEvent[]=[
+ ...RAW.arrivals.map(([seq,t,map,location]):RunEvent=>({...TEMPLATE,seq,turn:t,map_id:[map[0],map[1]],location:location??TEMPLATE.location})),
+ ...[...RAW.dialogues,...RAW.results,...RAW.milestones].map(e=>checkEvent(e)),
+].sort((a,b)=>a.seq-b.seq);
+const MILESTONES=new Map(ALL.flatMap(e=>e.type==="milestone"?[[e.name,e] as const]:[]));
+// The recorded events to `turn` inclusive, in recorded order (a prefix of the one ordered list).
 export function a702Events(turn:number):RunEvent[] {
- const template=stateEvent("690");
- const arrivals=RAW.arrivals.map(([seq,t,map,location]):RunEvent=>({...template,seq,turn:t,map_id:[map[0],map[1]],location:location??template.location}));
- const rest=[...RAW.dialogues,...RAW.results,...RAW.milestones].map(e=>checkEvent(e));
- return [...arrivals,...rest].filter(e=>e.turn<=turn).sort((a,b)=>a.seq-b.seq);
+ const end=ALL.findIndex(e=>e.turn>turn);
+ return ALL.slice(0,end<0?ALL.length:end);
 }
 export const A702_RUN=RAW.run;
 // The turn-690 state recorded as an arrival on `map` at `seq`/`turn`.
 export function a702Arrival(seq:number,turn:number,map:readonly [number,number],location:string):RunEvent {
- const template=stateEvent("690");
- return {...template,seq,turn,map_id:[map[0],map[1]],location};
+ return {...TEMPLATE,seq,turn,map_id:[map[0],map[1]],location};
+}
+// A recorded a702 auto-advanced call and its result, moved to `seq` (its pages shown at `seq`) and `turn`.
+export function a702CallMoved(recordedTurn:number,seq:number,turn:number):RunEvent[] {
+ const call=ALL.find(e=>e.type==="dialogue_auto_advance"&&e.turn===recordedTurn);
+ const result=ALL.find(e=>e.type==="tool_result"&&call?.type==="dialogue_auto_advance"&&e.id===call.tool_call_id);
+ if(call?.type!=="dialogue_auto_advance"||result?.type!=="tool_result")throw Error(`no call at turn ${String(recordedTurn)}`);
+ return [{...call,seq,turn,pages:call.pages.map(p=>({...p,state_seq:seq}))},{...result,seq:seq+1,turn}];
 }
 // A recorded a702 milestone moved to `seq`/`turn`.
 export function a702Milestone(name:string,seq:number,turn:number):RunEvent {
- const found=RAW.milestones.map(e=>checkEvent(e)).find(e=>e.type==="milestone"&&e.name===name);
+ const found=MILESTONES.get(name);
  if(found===undefined)throw Error(`no milestone ${name}`);
  return {...found,seq,turn};
 }

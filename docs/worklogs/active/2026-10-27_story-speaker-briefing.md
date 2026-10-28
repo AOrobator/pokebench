@@ -75,7 +75,11 @@ No new inputs, I/O or subprocesses. The new code is a pure function over recorde
 - Exploratory only; no promotion claim.
 
 **Screen B, checkpoint gameplay (needs operator approval of a fixed definition and launch):**
-- Start: `runs/checkpoints/STEVEN_LETTER_RECEIVED/candidates/2026-10-25T10-50-57_gpt-6-astra_429f`, the only post-letter save. SHA-1 0f8ce3d727c1454ed8d9b61ead608131ed293167, captured at 429f seq 17372. It is Astra's party, before May's Rustboro south-exit scene.
+- Start: `runs/checkpoints/RUSTURF_AQUA_GRUNT_DEFEATED/candidates/2026-10-25T10-50-57_gpt-6-astra_429f`. SHA-1 a79eff1569fff7e714b2fb4502637b615d249998, captured at 429f seq 16235 (turn 476): the moment the Rusturf grunt is beaten.
+  - From there the run itself hears the goods handback, Briney's "They call me MR. BRINEY." / "…cottage by the sea near PETALBURG WOODS." and, back at Devon, Stone's whole conversation. So switches 1 and 2 can act.
+  - I rejected the STEVEN_LETTER_RECEIVED save (SHA-1 0f8ce3d7…, seq 17372). It is captured mid-conversation, after "I'm MR. STONE…" and the DEWFORD request, so a run from it never hears them.
+  - Neither save carries Dad's turn-312 line in the run's history, so switch 3 is measured only by Diagnostic A (a702 turns 579–726) or by a boot run.
+  - It is Astra's party, before May's Rustboro south-exit scene.
 - Model: Qwen3.6-35B-A3B on GPU1.
 - Arms: bundle-recipe features with the three switches OFF vs ON, N=8 per arm.
 - Outcomes:
@@ -91,6 +95,7 @@ Targeted vitest suites for the touched files, the offline a702 replay diff, and 
 
 ## Session Log
 
+- 2026-10-28: Round-2 fixes. Three new suites: 26 passed. 20 touched suites: 334 passed. tsc and eslint are clean. The a702 replay is byte-identical.
 - 2026-10-28: Round-1 fixes. 25 tests across the three suites. The 20 touched-module suites ran explicitly: 333 passed. (The earlier "328 files, 4643 tests" was a zsh unsplit-filter run that executed the whole agent suite; it also passed.) The offline replay output is byte-identical after the fix.
 - 2026-10-28: Registry tests pin absolute positions: SWITCHABLE_FEATURES 281/282/283, playHarnessFeatures 305/306/307 (lesson from grass-strides round 4). 24 tests across the three suites.
 - 2026-10-28: Wiring mutations: removing `selfNamed` and `retireReached` from play-wiring each turns its factory test red (1 failed); restored, both pass. Retire suite is now 7 tests (26 across the three).
@@ -120,7 +125,13 @@ Round 1, frozen packet 948095751..cdac5cc61 (diff sha256 5a448a5e…2788):
   - The fixture rebuild cost was noted as non-blocking.
 - Grok (cursor-agent grok-4.7-high): lane down. The first call needed --trust; with it, "You're out of usage". Fallback reviewer (sonnet subagent, read-only): VERDICT: LGTM, with the same regex hardening notes (mid-word backtrack "I'm ABCd" → "AB"; "OK").
 - Accepted hardening (same batch): NAME_WORD is grouped. A full stop belongs to the name only after a title (MR./MRS./MS./DR./PROF./CAPT.). Words must end where their capitals end, and a name needs at least 3 capitals. New cases: "I'm ROXANNE. POKéMON…" → ROXANNE; "I'm ABCd", "I'm OK!", "I'm MR." → none. The grouping bug was caught by the a702 tests, which failed until the group was added.
-- DEFERRED as non-blocking: the done-list casing and length; caching a702Events; the binding is forward-only by design.
+Round 2, frozen packet 948095751..dd6109210 (cumulative sha256 2e5d0278…a26c; delta 17ebecfa…f8f8):
+- Claude lane (opus subagent): VERDICT: LGTM. It notes that a possessive like "I'm MR. BRINEY's pal" now yields no name, and that shownAt could be lost by a future clone path.
+- Fallback (sonnet subagent): VERDICT: LGTM (residual: "I'm SO SORRY" passes the 3-capital rule).
+- Codex gpt-5.6-sol: VERDICT: BLOCKING on two points.
+  1. The arrival lookup still matched by turn, so a place entered and left earlier in the same turn as the line counted as reached by it. ACCEPTED: the retirement path now passes the line's shown-at seq into arrival(), and "since the line" is by recorded seq. The displayed "Reached" wording (unfinished-activity-v1) keeps its turn semantics. A new test covers arrival→other map→line→step (not retired) and line→arrival→step (retired); reverting to turn order turns it red.
+  2. The fixture rebuilt, validated and sorted the whole stream on every a702Events call. ACCEPTED: the events are validated and ordered once and replays take a prefix; the milestone lookup is a map.
+ and length; caching a702Events; the binding is forward-only by design.
 
 ## Boy Scout Log
 

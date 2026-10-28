@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M4 (contract/RED next; no service activation or shared refresh)
+## Current Milestone: M4 (GREEN source, independent review pending; M5 unstarted; activation/refresh held)
 
 ### Completed Milestones
 
@@ -170,13 +170,13 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 
 **M4 - Snapshot-first browser with separate history/replay state (tracked by this worklog):**
 - [x] Contract freeze: off-by-default viewer configuration selects new current-state path; history fills separately; existing card store still supplies saved-card fallback until M5. Owner: browser current view. No artwork, layout/identity redesign, protected baseline edits or timeline additions.
-- [ ] Terminator: fresh page and viewer/service restarts show known cards/current stats before deliberately held history; controls remain correctly bound; recent/older pages cannot rewind current display. Full legacy mode still works.
+- [x] Offline terminator: fresh built pages show current before held history, native viewer/projector close-reopen preserves SQLite ownership/totals, controls remain bound, history cannot rewind current, recorded rewind removes future party/card, and default legacy mode still works. No real-root activation or shared refresh.
 - [ ] Split triggers: changing displayed card identity or appearance, model-visible feature flags, or changing operator budget application semantics.
-- [ ] Tests: snapshot before legacy run list; missing data labels; clock/pause; switch runs; party tabs; history out of order; reconnect; genuine reset; replay has no future leakage; grade path remains independent.
+- [x] Tests: snapshot before legacy run list; missing labels; pause/resume; switch runs; party tabs; late history; transport recovery; genuine reset; replay has no future party/card; grade path remains independent.36focused and native3width+replay/default-OFF receipts.
 - [x] COMMIT: `test(viewer): specify snapshot-first current and history isolation` (RED;8d5e303ca).
-- [ ] Implement opt-in browser adapter and independent history/replay state; reuse approved retention rules.
-- [ ] Adversarial deletion; headless desktop 1280/1440 and phone 375 real-pointer/keyboard proof on copied recordings; happy/failure/recovery; inspect screenshots; `just trainer-card-check`; full gates and coverage.
-- [ ] COMMIT: `feat(viewer): render current state before loading history` (GREEN; SHA pending).
+- [x] Implement opt-in browser adapter and independent history/replay state; reuse approved retention rules and source-guarded existing-card fallback.
+- [x]35 performed adversarial cases; owned headless1280/1440/375 pointer/Enter run/frame ownership and failure/recovery, actual replay keyboard rewind, default-OFF; screenshots inspected; protected3PASS; full build/lint/single coverage test/vendor PASS9d73616c1. Synthetic recordings/frames, not live gameplay.
+- [x] COMMIT: `feat(viewer): render current state before loading history` (GREEN seal follows source9d73616c1673d7de398861c3e096def11b8ba342; exact seal SHA in frozen packet).
 - [ ] Multi-model review against startup/backfill contract and all affected invariants.
 
 **M5 - Card-store handoff and authorized rollout (tracked by this worklog):**
@@ -480,3 +480,11 @@ M4 final resource callers prepared before corrected gates: tiny row2/page1/updat
 M4 strict-lint correction: preserve async cancellation/selection/list generation checks as typed alive/owner predicates, preventing TypeScript closure narrowing from incorrectly treating externally mutable flags as constants across await. No guard/rule removed; cursor read stays nullable through typed helper. Replace two held<void> function parameter sentinels with held<undefined>, negate the known boolean phase flag, remove one unnecessary DOM text optional chain. Scoped eslint on all five changed app/test modules PASS (m4-scoped-lint-final.log), focused34PASS1.07s; full gate still required after this equivalent production refactor. All33 mutation target shapes revalidated, not newly claimed performed. Native fixture proof now includes two distinct fake game ports/recordings and actual pointer/Enter run switches with SHA256 frame ownership; prepared, not yet executed. No real-root or viewer activation/refresh.
 
 M4 reset-owner conformance: actual two-test assertion RED (m4-reset-owners-red.log) exposed reset reusing a held older metadata first-page promise, and uncancelled same-run detail after generation invalidation. Share existing metadata-owner cancellation in stopList for tombstones/forced reset/rebootstrap; abort older detail before a newly owned request. Current/source generation checks remain. Focused36PASS1.08s and scoped two-module eslint PASS (m4-reset-owners-green.log/m4-reset-owner-lint.log). Added two prepared deletion targets (35total). No new owner/API/domain or active-run change. Coordinator START already permits finite full gate run when ready; source now committed before starting.
+
+M4 GREEN final on9d73616c1673d7de398861c3e096def11b8ba342: lint78.56s,36focused1.52s,35 actual assertion-RED/restored mutation cases21.58s, build17.57s, headless two-run1280/1440/375 proof8.88s, one full coverage just-test141.11s, vendor0.15s PASS. Counts4702agent/2238viewer/4466Python/102gateway+3protectedcards. Coverage L/B/F agent99.17/92.70/97.47, viewer98.32/90.70/94.95, Python97.49/93.61/100, gateway99.37/97.16/100. m4-final-gates/source-hashes/mutations and per-case patches/logs bind exact source. CPU released immediately; earlier gate failures/survivor preserved.
+
+Additional same-source native proof: default OFF (no current DB/URL) renders legacy cards/frame and later run/card polls with zero current API/module requests; viewer/projector close-reopen keeps epoch/generation/seq6/input500 on same derived DB without touching fake game ports; actual keyboard scrub500 replaces final ABRA/FUTURE with historical MUDKIP/BRENDAN and recorded frame. M2 native OS SIGKILL evidence remains separate. All primary9 startup/party/outage screenshots plus replay2/defaultOFF1 opened in image reader, focus preserved. Synthetic solid-color frames prove source identity; tiny fixtures omit species IDs so empty sprite slots are expected, not a protected design change.
+
+Actual native RETRY HISTORY click at3widths also PASS after503 activity failure; current readouts remain unchanged, then real distinct-run pointer/Enter/frame-hash and update outage/recovery pass. Initial retry proof timed out because an intentionally repeated same-run selection completed a successful history refresh before clicking its now-removed retry button; captured loaded DOM/no page errors and original timeout retained. Corrected fixture orders manual retry before selection interactions, with no sleep, retry wrapper or timeout increase. A first file-edit command ran in canonical path and found no owned script; corrected workdir immediately, no source/canonical mutation resulted.
+
+Source/test/config hashes independently rechecked after all supplemental native proof and before this worklog-only seal. Main555d35bfb remains an ancestor and is unchanged; disappearing-card store remains exclusively owned by its existing writer. Principles PB1-PB13 self-review has zero FAIL; all9 test-quality dimensions and exact35 mutation enumeration recorded. Independent frozen M4 round1 review next; M5 handoff/performance/runbook still required. No actual-root or shadow service activated, shared viewer refresh/restart, active-run input/config/process action, artwork/identity/baseline change or timeline mark added.

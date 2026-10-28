@@ -110,6 +110,15 @@ DEFERRED hardening:
 
 Synced with main 45ff0b86f. The one conflict, in play-wiring.ts, came from main adding the withShownCast wrapper. Main's trust-options object is byte-identical to trustOptions(), so the call now passes trustOptions(features) inside main's wrapper. Probe suites pass 34/34.
 
+Full gate on the synced merge tip 0d47238f6 (CPU window from the coordinator, 10:55:57 to 10:58:34 PM): `POKEBENCH_CARD_ART=~/dev/pokebench/runs/sprites/trainer-card-v1 just test` exit 0.
+- agent: 331 files, 4685 tests (statements/branches/functions/lines 96.50/92.69/97.46/99.17);
+- viewer: 165 files, 2157 tests (95.24/91.16/95.12/98.27);
+- Python: 4466 passed (gate lines 97.49, branches 93.61, functions 100);
+- claude-gateway: 89 passed (99.32/97.13);
+- trainer cards: 3/3.
+An earlier attempt at 10:54:31 failed before any test assertions: the merge had left the agent build output missing, so 31 suites could not import `@pokebench/agent/milestones` (all 4060 tests that did run passed). Rebuilt and reran.
+Round 5 (sync re-review of 0d47238f6): Claude (opus) LGTM; fallback (sonnet) LGTM; Codex BLOCKING only because this worklog did not yet record the full gate (added above). Also removed the leftover debug console.log in the arrival test (14/14 pass, lint clean). Round 6 is Codex on that delta.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

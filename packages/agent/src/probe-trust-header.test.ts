@@ -153,7 +153,6 @@ describe("--trust-header re-derives harness-trust-v1's header from the recorded 
   EVENTS.splice(0,EVENTS.length,...EVENTS.filter(e=>e.seq<=said.seq&&!lab(e)),during,inside,walk);
   try{
    const printed=await production(walk.seq);
-   console.log(printed.get(walk.seq)?.split('\n\n')[0]);
    expect(printed.get(walk.seq)).toContain('Story goal: "Well, it\'s time to head back to the LAB."');
    const recorded=await recordedWithHeaders(walk.seq);
    const texts=new Map<number,string>();

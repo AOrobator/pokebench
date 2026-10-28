@@ -69,7 +69,8 @@
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1",
   "type-gap-team-last-message-v1",
-  "instruction-memory-dedup-v1"
+  "instruction-memory-dedup-v1",
+  "neutral-yes-no-readout-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -441,6 +442,7 @@
   "self-named-speaker-v1": true,
   "story-briefing-native-milestones-v1": true,
   "retire-reached-story-line-v1": true,
-  "instruction-memory-dedup-v1": false
+  "instruction-memory-dedup-v1": false,
+  "neutral-yes-no-readout-v1": false
  }
 }

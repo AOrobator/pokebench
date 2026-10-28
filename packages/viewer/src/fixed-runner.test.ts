@@ -453,6 +453,8 @@ describe("runFixed", () => {
     expect(outcome).toMatchObject({ valid: false, reason: "no run_start: the run never began (exit unknown); a server, emulator or checkpoint load failure" });
     expect(host.launches.some((l) => l.slot === slot.slot)).toBe(false);
     expect(checks).toBe(3);
+    // An adopted trial backs its lane off exactly like one this runner launched.
+    expect(host.statuses.some((s) => s.lanes.find((l) => l.id === "A")?.state === "paused" && s.lanes.find((l) => l.id === "A")?.reason.startsWith("invalid trial: no run_start") === true)).toBe(true);
   });
 
   it("waits for the gameplay lease of a lane's model pool, saying which pool and who holds it", async () => {

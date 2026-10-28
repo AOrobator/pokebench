@@ -493,7 +493,7 @@ def sight_report(
                 "available": False,
                 "reason": f"the player is on map {group}/{number}, not {map_id[0]}/{map_id[1]}",
             }
-        if visible_ids is not None and visible_tiles is None:
+        if (visible_ids is None) != (visible_tiles is None):
             return {"available": False, "reason": "current visible terrain unavailable"}
         if visible_tiles is None:
             grid = _read_grid(read)
@@ -519,6 +519,11 @@ def sight_report(
             trainers = tuple(
                 replace(t, poses=((t.x, t.y, t.facing),)) for t in trainers if t.loaded
             )
+            if any(t.trainer_type == TRAINER_TYPE_BURIED for t in trainers):
+                return {
+                    "available": False,
+                    "reason": "trainer sight is not verified from this view",
+                }
             # Every ray must be supported by the delivered visible geometry. Do not
             # turn an unknown segment into a claim that no trainer can see it.
             for trainer in trainers:

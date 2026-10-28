@@ -262,6 +262,11 @@ def test_trainer_sight_cannot_name_a_hidden_trainer():
     template(m, 0, 1, 5, 4, script=SCRIPT)
     original = sight_report(m.read, MAP, [(4, 4)])
     assert original["trainers"]
+    assert sight_report(m.read, MAP, [(4, 4)], visible_ids=frozenset())["available"] is False
+    assert (
+        sight_report(m.read, MAP, [(4, 4)], visible_tiles=state().full_map.tiles)["available"]
+        is False
+    )
     hidden = sight_report(
         m.read, MAP, [(4, 4)], visible_ids=frozenset(), visible_tiles=state().full_map.tiles
     )
@@ -431,3 +436,16 @@ def test_visibility_sight_never_uses_a_loaded_trainers_hypothetical_template_ori
     )
     assert safe["available"] is True
     assert safe["sightings"] == []
+
+
+def test_special_all_direction_trainer_sight_is_unavailable_instead_of_claiming_a_clear_route():
+    from test_trainer_sight import MAP, loaded, sight_report, template, world
+
+    m = world()
+    template(m, 0, 3, 4, 4, trainer_type=3, movement=0x3F)
+    loaded(m, 0, 3, 4, 4, trainer_type=3, movement=0x3F)
+    assert sight_report(m.read, MAP, [(4, 2)])["sightings"]
+    safe = sight_report(
+        m.read, MAP, [(4, 2)], visible_ids=frozenset({3}), visible_tiles=state().full_map.tiles
+    )
+    assert safe["available"] is False

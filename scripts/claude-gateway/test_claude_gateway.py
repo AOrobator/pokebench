@@ -1,6 +1,7 @@
 """The gateway against a fake `claude` executable, over real HTTP where it matters."""
 
 import base64
+import functools
 import http.client
 import json
 import os
@@ -800,6 +801,11 @@ def test_continue_session_argument(tmp_path: Path) -> None:
 FIXTURES = Path(__file__).with_name("fixtures")
 
 
+@functools.cache
+def fixture(name: str) -> bytes:
+    return (FIXTURES / name).read_bytes()
+
+
 @pytest.mark.parametrize(
     ("name", "roles"),
     [
@@ -811,7 +817,7 @@ FIXTURES = Path(__file__).with_name("fixtures")
 def test_current_turn_keeps_the_tool_result_and_every_trailing_message(
     name: str, roles: list[str]
 ) -> None:
-    parsed = cg.parse_request((FIXTURES / name).read_bytes())
+    parsed = cg.parse_request(fixture(name))
     turn = parsed.current_turn
     assert [m.role for m in turn] == roles
     assert turn[0].tool_call_id is not None
@@ -839,7 +845,7 @@ def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path)
     gateway = make(
         tmp_path, [{"result": GOOD}], mode="session", run_features={"gateway-current-turn-v1": True}
     )
-    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    raw = fixture("bundle-d06b9f4db-request-601.json")
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
     assert "[tool result of call_600]" in text and "Gym progress (game memory)" in text
@@ -864,7 +870,7 @@ def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(
     tmp_path: Path, features: object
 ) -> None:
     gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features=features)
-    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    raw = fixture("bundle-d06b9f4db-request-601.json")
     request = cg.parse_request(raw)
     assert gateway.answer(raw)[1].reply is not None
     actual = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"]
@@ -885,7 +891,7 @@ def test_non_boolean_recorded_feature_falls_back_to_legacy_input(tmp_path: Path)
         mode="session",
         run_features={"gateway-current-turn-v1": "true"},
     )
-    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    raw = fixture("bundle-d06b9f4db-request-601.json")
     assert gateway.answer(raw)[1].reply is not None
     events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
     invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
@@ -897,8 +903,11 @@ def test_non_boolean_recorded_feature_falls_back_to_legacy_input(tmp_path: Path)
 def test_unreadable_run_start_falls_back_to_legacy_input(tmp_path: Path) -> None:
     gateway = make(tmp_path, [{"result": GOOD}], mode="session")
     (tmp_path / "runs" / "run-a" / "events.jsonl").write_text("{not json")
-    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    raw = fixture("bundle-d06b9f4db-request-601.json")
     assert gateway.answer(raw)[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert invalid and "run_start unreadable" in str(invalid[0]["error"])
     row = next(
         e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
     )
@@ -921,7 +930,7 @@ def test_current_turn_override_modes(
     gateway = make(
         tmp_path, [{"result": GOOD}], mode="session", run_features=features, current_turn=override
     )
-    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    raw = fixture("bundle-d06b9f4db-request-601.json")
     assert gateway.answer(raw)[1].reply is not None
     text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
     assert ("[tool result of call_600]" in text) is delivered
@@ -948,3 +957,14 @@ def test_current_turn_argument(tmp_path: Path) -> None:
     assert cg.parse_args([*base, "--current-turn", "on"])[0].current_turn == "on"
     with pytest.raises(SystemExit):
         cg.parse_args([*base, "--current-turn", "yes"])
+
+
+def test_switch_is_read_only_from_a_run_start_record(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    first = {"type": "state", "evaluation": {"features": {"gateway-current-turn-v1": True}}}
+    (tmp_path / "runs" / "run-a" / "events.jsonl").write_text(json.dumps(first) + "\n")
+    assert gateway.answer(fixture("bundle-d06b9f4db-request-601.json"))[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert len(invalid) == 1 and "not run_start" in str(invalid[0]["error"])
+    assert next(e for e in events if e["event"] == "session_input")["current_turn"] is False

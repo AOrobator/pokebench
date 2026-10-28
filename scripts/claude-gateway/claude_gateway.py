@@ -738,8 +738,10 @@ class RunBinder:
         try:
             with path.open(encoding="utf8") as handle:
                 start = _obj(json.loads(handle.readline()), "run_start")
-        except (OSError, ValueError):
-            return False
+        except (OSError, ValueError) as error:
+            raise GatewayError(f"run_start unreadable: {error}") from error
+        if start.get("type") != "run_start":
+            raise GatewayError(f"the first event is {start.get('type')!r}, not run_start")
         evaluation = _obj(start.get("evaluation") or {}, "evaluation")
         features = _obj(evaluation.get("features") or {}, "features")
         enabled = features.get("gateway-current-turn-v1", False)

@@ -131,3 +131,12 @@ The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude 
 - Fail-safe read (from the fallback review of 6d1f640dc): an unreadable run_start (OS or JSON error) or a non-boolean recorded value now falls back to the legacy input and logs `current_turn_feature_invalid`. Previously it raised inside a request whose SSE stream was already open.
 - Gateway tests 88 pass, coverage 99.32/97.11/100, ruff and mypy --strict clean.
 - Not applied to f60d: the swap waits for the operator's explicit OK.
+- Review of 7b002b525:
+  - Fallback LGTM.
+  - Claude BLOCKING: an unreadable run_start fell back silently, with no `current_turn_feature_invalid`. Fixed: the read error becomes a GatewayError that _first_prompt logs before falling back.
+  - Codex BLOCKING:
+    1. Same as Claude's. Fixed.
+    2. The switch was read from any first event. Fixed: it must be `type: run_start`, else it's invalid and falls back. New negative test.
+    3. Full gates pending. Sequencing: they run in the coordinator's CPU window before landing.
+    4. Repeated fixture reads. Fixed: fixtures are read once (functools.cache).
+  - Gateway tests 89 pass, coverage 99.32/97.13/100.

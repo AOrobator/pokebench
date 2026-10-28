@@ -72,3 +72,11 @@ The fallback lane returned BLOCKING. When the origin is negative (a local view w
 - [x] Round 3: Claude LGTM, fallback LGTM. Codex BLOCKING because the 700-token test never reached three-letter codes (26 usable letters give 702 one- and two-letter codes). The test now derives the alphabet from CODE_LETTERS minus legend and glyphs, uses one more token than 26+26², and asserts the last code has three letters. Explainer updated to match.
 - [x] Merged main 92b6b8fb8 (player-map-visibility-v1 landed): registry-list conflicts only, resolved by appending this branch's switches after main's; index pins +1. Focused agent tests, viewer panels/server/next-run/feature-config/fixed-definition (423) and, for compact, the env compact and wiring tests (273) pass against the merged renderer.
 - [x] Round 4 (Codex delta check): the switch description, explainer caption and this worklog still said codes are one or two letters; all three now say codes grow in length.
+
+## Landed (2026-10-28)
+
+- compact-map-grid-v1: main fast-forwarded to 98ab50598 at 1:16 PM NY after the operator approved ("approved", relayed by the coordinator).
+- supervisor-briefing-bound-v1: 58d19b58c (1:34 PM NY).
+- refusal-ledger-bound-v1 + disproved-beliefs-bound-v1: 89f396398 (1:40 PM NY).
+- Post-landing on main 89f396398: just build clean; just test: agent 4,832, viewer 2,230, env 4,869, claude-gateway 116, trainer cards 3/3; coverage gates >=90. just viewer-main: viewer at 89f396398, live run kept; all three explainers 200.
+- Review: Claude (opus subagent) and fallback (sonnet subagent) LGTM through round 3; Codex gpt-5.6-sol delta check, with its last items fixed (documentation and evidence, no correctness defects).

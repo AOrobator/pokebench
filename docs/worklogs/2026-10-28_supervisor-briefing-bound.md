@@ -66,3 +66,11 @@ Lane availability: the Claude CLI's OAuth has expired, Cursor is out of usage, a
 - [x] Merged main 92b6b8fb8 (player-map-visibility-v1 landed): registry-list conflicts only, resolved by appending this branch's switches after main's; index pins +1. Focused agent tests, viewer panels/server/next-run/feature-config/fixed-definition (423) and, for compact, the env compact and wiring tests (273) pass against the merged renderer.
 - [x] Merged main 98ab50598 (compact-map-grid-v1 landed). Registry-list conflicts were resolved by appending; this switch is now index 299. Compact's tail-position assertions (it was last) now use its pinned index, since this switch follows it. Focused agent tests 69 and viewer tests 439 pass. Gate on 4345ba1bf, before this merge: lint and build clean; agent 4,815, viewer 2,226, env 4,659, gateway 116, trainer cards 3/3.
 - [x] Gate on 1bbfab496: lint failed. The merge resolver had emptied compact-map-grid-v1's link and serve tests in panels.test.ts and server.test.ts. Both files were restored from main and this branch's two blocks re-added; eslint is clean and 372 viewer tests pass. Re-gating.
+
+## Landed (2026-10-28)
+
+- compact-map-grid-v1: main fast-forwarded to 98ab50598 at 1:16 PM NY after the operator approved ("approved", relayed by the coordinator).
+- supervisor-briefing-bound-v1: 58d19b58c (1:34 PM NY).
+- refusal-ledger-bound-v1 + disproved-beliefs-bound-v1: 89f396398 (1:40 PM NY).
+- Post-landing on main 89f396398: just build clean; just test: agent 4,832, viewer 2,230, env 4,869, claude-gateway 116, trainer cards 3/3; coverage gates >=90. just viewer-main: viewer at 89f396398, live run kept; all three explainers 200.
+- Review: Claude (opus subagent) and fallback (sonnet subagent) LGTM through round 3; Codex gpt-5.6-sol delta check, with its last items fixed (documentation and evidence, no correctness defects).

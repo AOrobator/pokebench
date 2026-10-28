@@ -101,3 +101,40 @@ it("resumes the native tutorial exit from mode 2 without making another call",as
  const f=fixture([list(2),nav("pokenav_menu","MATCH CALL",{selected_index:2,pokenav_mode:2,input_callback:"0x081C9589"}),field()]);
  await f.tool.execute("resume",{});expect(f.sent).toEqual(["B","B"]);
 });
+
+import {readFileSync} from "node:fs";
+import {gunzipSync} from "node:zlib";
+import {parseGameState} from "./game-state.js";
+import {pressTool} from "./game-tools.js";
+const nativeFixture=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pokenav-call-native.json.gz",import.meta.url))).toString()) as {cases:Record<string,{state:unknown}>};
+const native=(name:string)=>parseGameState(must(nativeFixture.cases[name]).state);
+it.each(["call","call_text"])("advances the actual native state-2 %s and completes the tutorial exit",async name=>{
+ const at=native(name),after=native("list_after_call"),menu={...after,active_ui:nav("pokenav_menu","MATCH CALL",{pokenav_mode:2,input_callback:"0x081C9589",selected_index:2}).active_ui},free={...after,screen:"overworld",active_ui:null,field_controls_locked:false};
+ expect(at.active_ui?.details?.["pokenav_task_state"]).toBe(2);
+ expect(at.active_ui?.details?.["call_text_state"]).toBe("waiting");
+ const f=fixture([at,after,menu,free],true,true);const result=await f.tool.execute("native",{});
+ expect(f.sent).toEqual(["A","B","B"]);expect(result.details).toMatchObject({state:{screen:"overworld"}});
+ if(name==="call_text"){
+  const message=at.active_ui?.details?.["message"];expect(typeof message).toBe("string");
+  expect(f.events[0]?.pages.map(p=>p.text)).toEqual([message]);
+  expect(result.content.some(p=>p.type==="text"&&typeof message==="string"&&p.text.includes(message))).toBe(true);
+ }
+});
+it("records an uncertain A when the real press tool succeeds remotely but its observation fails",async()=>{
+ const state=call(),accepted:unknown[]=[],events:Advance[]=[];
+ const fetchFn:typeof fetch=async(url,init)=>{
+  const path=String(url);
+  if(path.endsWith('/pokebench/state'))return Response.json(state);
+  if(path.endsWith('/action')){accepted.push(JSON.parse(String(init?.body)) as unknown);return Response.json({status:"success"});}
+  if(path.endsWith('/info'))return Response.json({queue_empty:true});
+  return new Response('unavailable',{status:503});
+ };
+ const clock={now:()=>0,sleep:()=>Promise.resolve()};
+ const press=pressTool('http://fixture',{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,clock);
+ const observe:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[],details:{state}})};
+ const recorder:AutoAdvanceRecorder={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:e=>{events.push(e);return {seq:2,turn:1};}};
+ const tools=withPokenavCallAutoAdvance([observe],{...off(),[ID]:true},{state:{read:()=>Promise.resolve(state)},recorder,press,observe,clock});
+ await expect(must(tools[0]).execute('uncertain',{})).rejects.toThrow('503');
+ expect(accepted).toHaveLength(1);
+ expect(events).toHaveLength(1);expect(events[0]).toMatchObject({stop:"error",auto_presses:0,pokenav_buttons:[],pokenav_pending_button:"A"});
+});

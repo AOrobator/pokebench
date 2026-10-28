@@ -67,7 +67,8 @@
   "cutscene-journal-v1",
   "type-gap-team-v1",
   "supplies-v1",
-  "untalked-in-gym-v1"
+  "untalked-in-gym-v1",
+  "scene-followup-prompt-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -417,6 +418,7 @@
   "type-gap-team-v1": false,
   "supplies-v1": false,
   "untalked-in-gym-v1": false,
-  "grass-strides-v1": true
+  "grass-strides-v1": true,
+  "scene-followup-prompt-v1": false
  }
 }

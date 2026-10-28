@@ -6,7 +6,9 @@
 import type {RunEvent} from "./events.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {PRET_MAP_SECTIONS} from "./pret-map-sections.js";
-import {STORY_CHARACTERS} from "./script-line-presence.js";
+import {progressReached} from "./story-progress.js";
+import {junkRule,junkPageKey,type JunkRule} from "./instruction-memory-junk.js";
+import {STORY_CHARACTERS,canonicalStoryCharacterName} from "./script-line-presence.js";
 import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
@@ -20,8 +22,8 @@ export const omittedLine=(n:number):string=>`${String(n)} other episodes are lef
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
 export interface CapEpisode {readonly result:number;readonly dialogue:readonly number[];readonly turn:number;readonly pages:readonly CapRow[]}
-export type CapStep="anchor"|"done"|"nearby"|"named"|"recency";
-export interface CapDecision {readonly result:number;readonly step:CapStep;readonly fact:string;readonly kept:boolean}
+export type CapStep="anchor"|"done"|"nearby"|"named"|"recency"|"junk";
+export interface CapDecision {readonly result:number;readonly step:CapStep;readonly fact:string;readonly kept:boolean;readonly rule?:JunkRule}
 export interface CapSelection {readonly kept:CapEpisode[];readonly omitted:number;readonly decisions:CapDecision[]}
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
@@ -56,6 +58,7 @@ const word=(w:string,text:string,edge="A-Z0-9")=>new RegExp(`(?<![${edge}])${esc
 const oneLine=(pages:readonly CapRow[])=>pages.map(p=>p[2].replaceAll("\n"," ")).join(" ");
 
 export class InstructionMemoryCap {
+ constructor(private readonly junk=false){}
  private run:string|null=null;
  private state:State|null=null;
  private readout:string|null=null;
@@ -165,7 +168,8 @@ export class InstructionMemoryCap {
   const story=this.story(),near=this.near();
   const met=new Set(episodes.flatMap(e=>e.pages.flatMap(p=>p[0]===null?[]:[p[0]])));
   if(met.has("DAD"))met.add("NORMAN");
-  const rows=episodes.map((e):{e:CapEpisode;step:CapStep;fact:string}=>{
+  type Candidate={e:CapEpisode;step:CapStep;fact:string;rule?:JunkRule;fallback?:{step:CapStep;fact:string}};
+  const rows=episodes.map((e):Candidate=>{
    const anchor=this.anchor(e,story),done=this.done(e);
    if(done!==null)return {e,step:"done",fact:anchor===null?done:`${done}; ${anchor[0]?"anchor":"stale anchor"}: ${anchor[1]}`};
    if(anchor?.[0]===true)return {e,step:"anchor",fact:anchor[1]};
@@ -176,20 +180,50 @@ export class InstructionMemoryCap {
    return names.length>0?{e,step:"named",fact:names.join("; ")+stale}:{e,step:"recency",fact:`names no unvisited place, unmet story person or held key item${stale}`};
   });
   const newest=(a:number,b:number)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)||(rows[b]?.e.result??0)-(rows[a]?.e.result??0);
+  const receipt=(p:CapRow)=>this.pageDone(p)?.[0]==="receipt";
+  const moreRecent=(a:CapEpisode,b:CapEpisode)=>a.turn>b.turn||a.turn===b.turn&&a.result>b.result;
+  const remember=(e:CapEpisode,known:Map<string,CapEpisode>)=>{for(const p of e.pages)if(!receipt(p)){const k=junkPageKey(p),previous=known.get(k);if(previous===undefined||moreRecent(e,previous))known.set(k,e);}};
+  const covered=(e:CapEpisode,known:ReadonlyMap<string,CapEpisode>)=>{const content=e.pages.filter(p=>!receipt(p));return content.length>0&&content.every(p=>{const representative=known.get(junkPageKey(p));return representative!==undefined&&moreRecent(representative,e);});};
+  const chronological=rows.map((_,i)=>i).sort(newest),duplicates:number[]=[];
+  if(this.junk){
+   const hm=this.state!==null&&progressReached("HM_ROCK_SMASH_RECEIVED",this.state)===true;
+   for(const row of rows){
+    if(row.step==="anchor"||row.step==="done")continue;
+    const rule=junkRule(row.e,{player:this.player(),hasLead:this.named(row.e,met).length>0,rockSmashReceived:hm,receipt,
+     facedTrainer:p=>{const hit=p[5]===null?undefined:this.faced.get(p[5]);return p[1]==="faced_sprite"&&hit!==undefined&&hit.trainer.startsWith(`${String(key(p[4]))}#`);},
+     storySprite:p=>p[0]!==null&&(canonicalStoryCharacterName(p[0])!==null||p[0] in LEADER_BADGE)});
+    if(rule!==null){row.step="junk";row.rule=rule;row.fact=`pret junk rule ${rule}: every non-receipt page qualifies`;}
+   }
+   const newer=new Map<string,CapEpisode>();
+   for(const i of chronological){const row=rows[i];if(row===undefined||row.step==="done"||row.step==="junk")continue;
+    if(row.step!=="anchor"&&covered(row.e,newer)){row.fallback={step:row.step,fact:row.fact};row.step="junk";row.rule="R4";row.fact="same exact speaker/text pages also occur in newer episodes surviving the other junk rules";duplicates.push(i);}
+    remember(row.e,newer);
+   }
+  }
   const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort(newest));
   const empty=new Map<number,number>();
   const base=(omitted:number)=>{const digits=omitted===0?0:String(omitted).length;const known=empty.get(digits);if(known!==undefined)return known;const v=codePoints(render([],omitted));empty.set(digits,v);return v;};
   const keep=new Set<number>();
   let sum=0,sep:number|null=null;
-  for(const i of order){
-   const e=rows[i]?.e;if(e===undefined)continue;
+  const consider=(i:number)=>{
+   const e=rows[i]?.e;if(e===undefined)return;
    const d=codePoints(render([e],0))-base(0);
    if(keep.size===1&&sep===null){const first=rows[[...keep][0]??0]?.e;if(first!==undefined)sep=codePoints(render([first,e].sort((a,b)=>episodes.indexOf(a)-episodes.indexOf(b)),0))-base(0)-sum-d;}
    const total=base(rows.length-keep.size-1)+sum+d+(keep.size===0?0:(sep??0)*keep.size);
    if(total<=budget){keep.add(i);sum+=d;}
+  };
+  for(const i of order)consider(i);
+  // A newer copy that missed the cap cannot erase an older fitting copy. This bounded fallback adds only;
+  // it never displaces the incumbent cap's chosen priorities. It reuses the same additive measuring owner.
+  const fallbackOrder:number[]=[];
+  if(this.junk){const represented=new Map<string,CapEpisode>();for(const i of keep){const e=rows[i]?.e;if(e!==undefined)remember(e,represented);}
+   for(const i of duplicates){const row=rows[i];if(row?.fallback===undefined||covered(row.e,represented))continue;
+    row.step=row.fallback.step;row.fact=row.fallback.fact+"; newer duplicate missed the cap, so this whole older copy remains eligible";delete row.rule;delete row.fallback;
+    consider(i);fallbackOrder.push(i);if(keep.has(i))remember(row.e,represented);
+   }
   }
   const kept=()=>rows.filter((_,i)=>keep.has(i)).map(r=>r.e);
-  for(const i of [...order].reverse()){if(codePoints(render(kept(),rows.length-keep.size))<=budget)break;keep.delete(i);}
-  return {kept:rows.filter((_,i)=>keep.has(i)).map(r=>r.e),omitted:rows.length-keep.size,decisions:rows.map((r,i)=>({result:r.e.result,step:r.step,fact:r.fact,kept:keep.has(i)}))};
+  for(const i of [...order,...fallbackOrder].reverse()){if(codePoints(render(kept(),rows.length-keep.size))<=budget)break;keep.delete(i);}
+  return {kept:rows.filter((_,i)=>keep.has(i)).map(r=>r.e),omitted:rows.length-keep.size,decisions:rows.map((r,i)=>({result:r.e.result,step:r.step,fact:r.fact,kept:keep.has(i),...(r.rule===undefined?{}:{rule:r.rule})}))};
  }
 }

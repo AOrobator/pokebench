@@ -23,7 +23,7 @@ function deliver(memory:ObservedInstructions,seq:number,story:string,location="R
 
 describe("YAML cap measures every delivered form",()=>{
  it("keeps current progress and visit history out of place-only YAML",()=>{
-  const memory=new ObservedInstructions(false,false,true,true,true),places=new ObservedInstructions(true,true);
+  const memory=new ObservedInstructions(false,false,true,true,false,true),places=new ObservedInstructions(true,true);
   for(const owner of [memory,places])deliver(owner,10,"progress from an unrelated owner","ROUTE104",false);
   expect(memory.archive()).toEqual([]);
   const text=memory.text(places.placeEpisodes());
@@ -32,14 +32,14 @@ describe("YAML cap measures every delivered form",()=>{
  });
 
  it("leaves oversized current progress out whole and reports it",()=>{
-  const memory=new ObservedInstructions(true,true,true,true,true);
+  const memory=new ObservedInstructions(true,true,true,true,false,true);
   deliver(memory,10,"x".repeat(2200));
   const text=memory.text();
   expect(codePoints(text??"")).toBeLessThanOrEqual(bounds.yaml);
   expect(text).toContain("\ncurrent: null\ncurrent_left_out: true");
  });
  it("retains current progress that fits YAML's budget even when it would exceed JSON's",()=>{
-  const memory=new ObservedInstructions(true,true,true,true,true),story="x".repeat(900);
+  const memory=new ObservedInstructions(true,true,true,true,false,true),story="x".repeat(900);
   deliver(memory,10,story);
   const text=memory.text();
   expect(text).toContain(`story: ${story}`);
@@ -47,7 +47,7 @@ describe("YAML cap measures every delivered form",()=>{
   expect(codePoints(text??"")).toBeLessThanOrEqual(bounds.yaml);
  });
  it.each([true,false])("bounds locations and preserves their omission count with retention=%s",trim=>{
-  const memory=new ObservedInstructions(true,trim,true,true,true);
+  const memory=new ObservedInstructions(true,trim,true,true,false,true);
   for(let i=0;i<4;i++)deliver(memory,10+i*2,"ok",`${"L".repeat(50)}${String(i)}`);
   const text=memory.text(memory.archive());
   expect(codePoints(text??"")).toBeLessThanOrEqual(bounds.yaml);
@@ -55,7 +55,7 @@ describe("YAML cap measures every delivered form",()=>{
   if(!trim)expect(text).toMatch(/\nearlier_locations_left_out: [1-4]$/);
  });
  it("keeps the unchanged legacy form under its existing JSON cap",()=>{
-  const memory=new ObservedInstructions(true,false,true,true,true);
+  const memory=new ObservedInstructions(true,false,true,true,false,true);
   for(let i=0;i<5;i++)deliver(memory,10+i*2,"x".repeat(2200));
   const text=memory.text();
   expect(codePoints(text??"")).toBeLessThanOrEqual(bounds.json);

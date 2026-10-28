@@ -207,3 +207,4 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
   - The three registry tests' pinned indexes move by +4, the number of switches main added.
   - Targeted tests: 11 agent suites (the three switches, harness-trust, story-destinations, features, play-preset, play-wiring, loop-supervisor, probe-trust-header, decision-probe) pass 193/193. Viewer panels, next-run and server pass 393/393. tsc and eslint are clean.
   - The full `just test` rerun waits for the operator's activation answer.
+- Sync follow-up: type-gap-last-message.test pinned "registered last". The story switches now follow it, so the test pins its index (288) instead. 13/13 pass.

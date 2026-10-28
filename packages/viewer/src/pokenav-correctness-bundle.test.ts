@@ -16,6 +16,7 @@ it.each(CURRENT)("current recipe %s turns both PokéNav correctness switches on 
       expect(armFeatures(d, arm)[id], `${name}/${arm}/${id}`).toBe(true);
       for (const phase of d.phases) expect(armPreset(d, phase.id, arm).features[id], `${name}/${phase.id}/${arm}/${id}`).toBe(true);
     }
-    for (const arm of ["control", "bundle"] as const) expect(serverFeatureEnv(armFeatures(d, arm)).POKEBENCH_FEATURES_OFF.split(",")).not.toContain("pokenav-short-list-v1");
+    for (const arm of ["control", "bundle"] as const)
+      for (const phase of d.phases) expect(serverFeatureEnv(armPreset(d, phase.id, arm).features).POKEBENCH_FEATURES_OFF.split(","), `${name}/${phase.id}/${arm}`).not.toContain("pokenav-short-list-v1");
   }
 });

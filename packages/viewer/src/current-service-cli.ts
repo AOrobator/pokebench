@@ -9,7 +9,8 @@ export function currentServiceArgs(args:readonly string[]):{runsRoot:string;data
 export async function runCurrentService(args:readonly string[],signal:AbortSignal,host:ServiceHost={}):Promise<void>{
  const aborted=():boolean=>signal.aborted;if(aborted())return;const options=currentServiceArgs(args),healthy=options.health?async(port:number,abort:AbortSignal):Promise<boolean>=>{const result=await fetch(`http://127.0.0.1:${String(port)}/health`,{signal:AbortSignal.any([abort,AbortSignal.timeout(1000)])});return result.ok;}:undefined;
  const actor=(host.factory??createCurrentProjector)({runsRoot:options.runsRoot,database:options.database,...(healthy===undefined?{}:{healthy})}),report=host.report??(value=>{process.stdout.write(JSON.stringify(value)+"\n");});
- try{report({ready:true,epoch:actor.store.epoch,revision:actor.store.revision()});while(!aborted()){await actor.step();report({ready:true,epoch:actor.store.epoch,revision:actor.store.revision()});try{await (host.wait??(async abort=>{await delay(100,undefined,{signal:abort});}))(signal);}catch(error){if(!aborted())throw error;}}}finally{actor.close();}
+ let reported=-1;const publish=():void=>{const revision=actor.store.revision();if(revision!==reported){report({ready:true,epoch:actor.store.epoch,revision});reported=revision;}};
+ try{publish();while(!aborted()){await actor.step();publish();try{await (host.wait??(async abort=>{await delay(100,undefined,{signal:abort});}))(signal);}catch(error){if(!aborted())throw error;}}}finally{actor.close();}
 }
 if(process.argv[1]!==undefined&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const controller=new AbortController(),stop=():void=>{controller.abort();};process.on("SIGTERM",stop);process.on("SIGINT",stop);

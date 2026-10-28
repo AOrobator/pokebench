@@ -1,6 +1,6 @@
 # PokéNav Match Call correctness: pokenav-short-list-v1 and menu-option-honest-refusal-v1
 
-Status: in progress (single milestone; landing pending review and gates)
+Status: landed on local main 860d36254 (2026-10-27 9:12 PM NY); archive pending operator approval
 Branch: claude/pokenav-fixes-20261027-195751 (worktree /private/tmp/pokebench-pokenav-fix-20261027-195751)
 Evidence: runs/analysis/a702-pokenav-20261027/{findings.md,fix-design.md}
 
@@ -43,8 +43,30 @@ Run a702 (Qwen3.6 bundle, harness 5940bc2fb) spent turns 641–661 on the Match 
 - [x] Round 2 fix: `pokenav-correctness-bundle.test.ts` builds each (phase, arm) preset once and reuses it for both ids and the server check. It drops the duplicate `definitionProblems`, since `parseFixedDefinition` already throws on problems.
 - [x] Review round 3 (Codex gpt-5.6-sol, test-only delta 5dae792c0..9f798d6bd): LGTM. Final roster on the frozen head 9f798d6bd: Claude LGTM (r2, subagent harness), fallback LGTM (r2), Codex LGTM (r3).
 - [x] CPU window granted (coordinator, 8:45 PM NY). main had moved to 55312588c (scene-followup-prompt-v1). Rebased: the new ids are appended after scene-followup-prompt-v1. The absolute pins shift by one (switchable 282/283, harness 306/307; server 93 is unchanged). `scene-followup.test.ts` now pins its own index 281 instead of "last", because a switch now follows it.
-- [ ] Full gates (`just test`, `just lint`) once the heavy-CPU window is granted
-- [ ] Land ff-only via the landing board; evidence commit; `just land-done`
+- [x] Full gates on the synced tip 860d36254 (base main d06b9f4db), in the CPU window granted by the coordinator at 8:45 PM NY:
+  - Agent: 4643 passed. Viewer: 2106 passed. Coverage thresholds met.
+  - Python: 4463 passed; coverage lines 97.48%, branches 93.61%, functions 100%.
+  - claude-gateway: 69 passed; coverage gate ok.
+  - Trainer-card check: 3 passed.
+  - Lint clean: pnpm lint, ruff, ruff format, mypy, gateway mypy --strict.
+  - Worktree setup: the viewer dist had to be built, and the card art comes from POKEBENCH_CARD_ART = the main checkout's `runs/sprites`.
+- [x] Landed through the landing board. Slot taken 9:10 PM; `git merge --ff-only 860d36254`, d06b9f4db → 860d36254. Review roster on the content:
+  - Claude: LGTM (r2, subagent harness after a CLI OAuth failure).
+  - Fallback: LGTM (r2).
+  - Codex gpt-5.6-sol: LGTM (r3).
+  - The later rebases onto scene-followup-prompt-v1 and end-reason-orthogonal were mechanical: list placement and the absolute pins shifted by one. The coordinator's standing rule covers this.
+- [x] Post-landing `just test` on main: pass. The first attempt failed 2 agent tests with "unknown feature pokenav-short-list-v1": the main checkout's dist was stale (built before the landing). After `pnpm -r build`:
+  - Agent: 4643 passed.
+  - Viewer: 2106 passed.
+  - Python: 4463 passed, lines 97.48%, branches 93.61%.
+  - Gateway: 69 passed.
+  - Trainer cards: 3 passed.
+- [x] Fixed-definition hashes changed by this landing, before (d06b9f4db) → after (860d36254):
+  - bundle-v-control: 26f0b8ac3d6f → 6720e1fcdc16
+  - bundle-v-control-2h: 3bdda2b39dc6 → f939f403c8bb
+  - glm53-flash-4h: d0eee9fdac15 → 87fe4cb976a9
+  - hyperqwen-control-3h: 081c6df9f882 → 356847041a6d
+  - The only recorded approval is hyperqwen-control-3h's e88187ff663d (3:22 PM). It was already stale before this landing. Re-approval is the operator's.
 - [ ] Explainer pages (deferred follow-up)
 
 ## Measurement notes (persona review, 2026-10-27)

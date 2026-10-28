@@ -1,6 +1,6 @@
 // The pre-registered tests of a fixed-run experiment: two-sided Fisher exact on reaching the
 // primary milestone, log-rank on time to it (censored at the wall cap), and Mann-Whitney on
-// furthest milestone depth then time; pooled and per lane, over valid trials only.
+// furthest milestone depth then time; pooled and per lane, over every launched trial except explicit operator exclusions.
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
@@ -19,6 +19,9 @@ export interface AnalysisTrial {
   readonly furthest?: string | null;
   readonly furthestDepth: number;
   readonly furthestMs: number | null;
+  // How the trial ended and its recorded run_end wall time (includes operator pauses, so an upper bound).
+  readonly endReason?: string | null;
+  readonly endMs?: number | null;
 }
 
 const logFactorials: number[] = [0];
@@ -134,39 +137,43 @@ export interface GroupResult {
 export interface AnalysisReport {
   readonly trials: readonly AnalysisTrial[];
   readonly groups: readonly GroupResult[];
-  readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
-  // Trials the operator aborted or stopped: results with their progress, not infrastructure failures.
+  // Trials the ledger marked invalid (never began, ran another plan, or a legacy end-reason verdict). Operator rule
+  // (the operator 2026-10-27): they stay in every comparison and are listed for the operator, who alone decides exclusions.
+  readonly flagged: readonly (Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason" | "furthestMs"> & { readonly furthest: string | null })[];
   // Trials the operator excluded with runs/exclusions/<run>.json: out of every comparison, listed with the reason.
   readonly excluded: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
-  readonly stopped: readonly (Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason" | "furthestMs"> & { readonly furthest: string | null })[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
 }
 
 const reachedInCap = (t: AnalysisTrial): boolean => t.primaryReached && t.primaryMs !== null && t.primaryMs <= t.capMs;
+const operatorEnded = (t: AnalysisTrial): boolean => t.endReason === "operator_abort" || t.endReason === "operator_stop";
+// Grading protocol: an operator-ended trial's unreached milestones are censored at its end, never failures, so it
+// enters reach and depth ranking only once it reached the primary milestone; the log-rank test censors it at its end.
+const scored = (t: AnalysisTrial): boolean => !operatorEnded(t) || reachedInCap(t);
+// A trial that never began produced no observation; it is listed, and its replacement fills the slot.
+const observed = (t: AnalysisTrial): boolean => !t.reason.startsWith("no run_start") && !(t.reason.startsWith("launch failed") && t.endReason == null);
 
 function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
   const arm = (a: FixedArm): AnalysisTrial[] => trials.filter((t) => t.arm === a);
-  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.length, reached: ts.filter(reachedInCap).length });
+  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.filter(scored).length, reached: ts.filter(reachedInCap).length });
   const bundle = count(arm("bundle")), control = count(arm("control"));
-  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (reachedInCap(t) && t.primaryMs !== null ? { time: t.primaryMs, event: true } : { time: t.capMs, event: false }));
+  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (reachedInCap(t) && t.primaryMs !== null ? { time: t.primaryMs, event: true } : { time: operatorEnded(t) ? Math.min(t.capMs, t.endMs ?? t.capMs) : t.capMs, event: false }));
   return {
     name, bundle, control,
     fisherP: fisherExact(bundle.reached, bundle.n - bundle.reached, control.reached, control.n - control.reached),
     logRank: logRank(survival(arm("bundle")), survival(arm("control"))),
-    mannWhitney: mannWhitney(arm("bundle").map(depthThenTime), arm("control").map(depthThenTime)),
+    mannWhitney: mannWhitney(arm("bundle").filter(scored).map(depthThenTime), arm("control").filter(scored).map(depthThenTime)),
   };
 }
 
-const operatorStopped = (t: AnalysisTrial): boolean => !t.valid && /^the operator stopped the trial \(operator_(abort|stop)\)$/.test(t.reason);
 export function analyze(all: readonly AnalysisTrial[], lanes: readonly string[], exclusions: ReadonlyMap<string, string> = new Map()): AnalysisReport {
-  const trials = all.filter((t) => !exclusions.has(t.run)), valid = trials.filter((t) => t.valid);
+  const trials = all.filter((t) => !exclusions.has(t.run));
   return {
     trials,
     excluded: all.filter((t) => exclusions.has(t.run)).map(({ slot, lane, arm, run }) => ({ slot, lane, arm, run, reason: exclusions.get(run) ?? "" })),
-    groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
-    invalid: trials.filter((t) => !t.valid && !operatorStopped(t)).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
-    stopped: trials.filter(operatorStopped).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
-    endedEarly: valid.filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
+    groups: [group("pooled", trials.filter(observed)), ...lanes.map((l) => group(l, trials.filter((t) => observed(t) && t.lane === l)))],
+    flagged: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
+    endedEarly: trials.filter((t) => t.valid).filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
   };
 }
 
@@ -177,10 +184,10 @@ const excludedSection = (report: AnalysisReport): string[] => [
   "## Excluded by the operator", "",
   ...(report.excluded.length === 0 ? ["No run was excluded by the operator."] : ["| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|", ...report.excluded.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
 ];
-const stoppedSection = (report: AnalysisReport): string[] => [
-  "## Ended by the operator (included; censored at the stop)", "",
-  "An operator abort or stop is not an exclusion: the trial's progress before the stop is a result, and milestones after it are censored, not failures. A fixed-N runner schedules a replacement for the slot, so its paired tests use the replacement; a receipt without replacements simply leaves the stopped trial out of the paired tests.", "",
-  ...(report.stopped.length === 0 ? ["No trial was ended by the operator."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.stopped.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
+const flaggedSection = (report: AnalysisReport): string[] => [
+  "## Flagged trials (kept in every comparison; only the operator excludes)", "",
+  "How a trial ended never decides whether it counts. These trials never began, ran another configuration, or carry a legacy invalid verdict. Every one that ran is counted above as it is. A trial that never began has no observation, so it adds nothing to the tests and its replacement fills the slot. An operator-ended trial that had not reached the compared milestone is censored at its end: it stays out of the reach and depth comparisons and the log-rank test censors it at its recorded end. Exclude a run only with `just exclude-run <run> <operator> <reason…>`.", "",
+  ...(report.flagged.length === 0 ? ["No flagged trials."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.flagged.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
 ];
 
 type RenderOptions=Pick<FixedDefinition,"primaryOutcome"|"primaryMilestone"|"replacementReserveMs">;
@@ -200,12 +207,10 @@ function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions
     `## Secondary: ${options.primaryMilestone} reach within cap`, "",
     "| Group | Bundle | Control |", "|---|---|---|",
     ...report.groups.map(g=>`| ${g.name} | ${pct(g.bundle)} | ${pct(g.control)} |`), "",
-    "## Trial endings and invalid records", "",
-    "Predeclared budget, loop/stuck and retained terminal model-error/crash endings remain outcomes. Early endings retain progress earned within the cap; they are not automatically invalid.",
-    options.replacementReserveMs===0?"Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.":"Invalid trials remain recorded; any replacement is limited by the definition’s reserve.",
-    "Invalid trials are excluded from the descriptive comparison and must be reported by arm alongside all launched trials.", "",
-    ...(report.invalid.length===0?["No invalid trials."]:["| Slot | Lane | Arm | Run | Reason |","|---|---|---|---|---|",...report.invalid.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
-    ...stoppedSection(report),
+    "## Trial endings", "",
+    "Every launched trial is an outcome whatever ended it (budget, loop/stuck, model error, crash, operator stop or abort). Early endings retain progress earned within the cap.",
+    options.replacementReserveMs===0?"Zero replacement reserve: a trial that never began is recorded and not automatically replaced.":"A trial that never began is recorded; any replacement is limited by the definition’s reserve.", "",
+    ...flaggedSection(report),
     ...excludedSection(report),
   ].join("\n");
 }
@@ -220,7 +225,7 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
       "| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|",
       ...report.endedEarly.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`), "",
     ]),
-    "Valid trials only. Two-sided tests; the pre-registered thresholds are p < 0.05 and p < 0.10.", "",
+    "Every launched trial except the operator's explicit exclusions. Two-sided tests; the pre-registered thresholds are p < 0.05 and p < 0.10.", "",
     "## Fisher exact on reaching the primary milestone", "",
     "| Group | Bundle | Control | p | p < 0.05 | p < 0.10 |", "|---|---|---|---|---|---|",
     ...report.groups.map((g) => `| ${g.name} | ${pct(g.bundle)} | ${pct(g.control)} | ${p4(g.fisherP)} | ${below(g.fisherP, 0.05)} | ${below(g.fisherP, 0.1)} |`), "",
@@ -230,10 +235,7 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
     "## Mann-Whitney on furthest milestone depth, then time to it", "",
     "| Group | U (bundle) | P(bundle ranks above control) | z | p | p < 0.05 | p < 0.10 |", "|---|---|---|---|---|---|---|",
     ...report.groups.map((g) => `| ${g.name} | ${String(g.mannWhitney.u)} | ${g.mannWhitney.superiority.toFixed(3)} | ${g.mannWhitney.z.toFixed(3)} | ${p4(g.mannWhitney.p)} | ${below(g.mannWhitney.p, 0.05)} | ${below(g.mannWhitney.p, 0.1)} |`), "",
-    "## Invalid trials (infrastructure failures, kept in the record and replaced)", "",
-    ...(report.invalid.length === 0 ? ["No invalid trials."] : ["| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|", ...report.invalid.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]),
-    "",
-    ...stoppedSection(report),
+    ...flaggedSection(report),
     ...excludedSection(report),
   ];
   return lines.join("\n");
@@ -288,6 +290,6 @@ export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLe
   return state.slots.filter((s) => s.phase === phase).flatMap((s) => {
     const o = state.outcomes.get(s.slot);
     if (o === undefined) return [];
-    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs }];
+    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs, endReason: o.endReason, endMs: o.wallMs }];
   });
 }

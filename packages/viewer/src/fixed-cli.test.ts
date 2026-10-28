@@ -264,7 +264,7 @@ describe("fixed-run status and analyze", () => {
     expect(text).toContain("P(bundle ranks above control), ties count half");
     expect(text).toContain("Descriptive screen; no confirmatory thresholds or promotion.");
     expect(text).toContain("stuck");expect(text).toContain("model_error");
-    expect(text).toContain("Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.");
+    expect(text).toContain("Zero replacement reserve: a trial that never began is recorded and not automatically replaced.");
     expect(text).not.toContain("p <");expect(text).not.toContain("primary milestone");
     expect(text).not.toContain("only the wall cap");expect(text).not.toContain("kept in the record and replaced");
   });
@@ -336,9 +336,10 @@ describe("fixed-run status and analyze", () => {
     writeFileSync(join(receipt, "trials.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
     expect(await main(["analyze-receipt", receipt, "control", "both", "--cap-ms", "1800000"], deps)).toBe(0);
     const text = out.join("\n");
-    expect(text).toContain("| pooled | 1/2 (50%) | 0/1 (0%) |");
-    expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | no run_start");
-    expect(text).toContain("| 6 | A | bundle | 2026-10-14T18-06-00_think-fast_0006 | RIVAL_MET | 60000 | the operator stopped the trial (operator_abort) |");
+    // Every trial that ran counts, the aborted trial 6 included; the never-started trial 5 has no observation and is listed.
+    expect(text).toContain("| pooled | 2/3 (67%) | 0/1 (0%) |");
+    expect(text).toContain("| 5 | A | control | 2026-10-14T18-09-00_think-fast_gone | not reached | unavailable | no run_start");
+    expect(text).toContain("| 6 | A | bundle | 2026-10-14T18-06-00_think-fast_0006 | ended by the operator (operator_abort); progress before it counts |");
     expect(err.join("\n")).toContain("broken.json");
     expect(await main(["analyze-receipt", receipt, "control"], deps)).toBe(2);
   });

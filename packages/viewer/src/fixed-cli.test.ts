@@ -97,6 +97,15 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
   });
 
+  it("runs a checked definition with no approval file", async () => {
+    const { deps, err, runs, path, runsRoot } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["run", "bundle-v-control"], deps), err.join("\n")).toBe(0);
+    expect(existsSync(join(runsRoot, "experiments", "bundle-v-control", "approval.json"))).toBe(false);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ definitionSha256: parseFixedDefinition(JSON.stringify(definition())).sha256, dryRun: false });
+  });
+
   it("lists a vLLM lane's declared slots, vision and key file path in check", async () => {
     const { deps, out, path } = setup();
     const [a, b] = definition().lanes;

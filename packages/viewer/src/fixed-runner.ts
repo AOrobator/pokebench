@@ -217,7 +217,11 @@ class Runner {
             await this.o.host.sleep(POLL_MS);
             continue;
           }
-          await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
+          const adopted = await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
+          if (laneBackoff(adopted)) {
+            failures += 1;
+            await this.pause(lane, adopted.valid ? `backing off after ${adopted.reason}` : `invalid trial: ${adopted.reason}`, failures, adopted.reason);
+          }
           continue;
         }
         if (this.o.stopRequested()) {
@@ -383,7 +387,7 @@ class Runner {
 
   // The child is recorded before anything that can throw and cleared only once it has exited, so a
   // pause on the way keeps the lane's lease while the adopted trial still plays.
-  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<void> {
+  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<FixedOutcome> {
     if (pid !== null && this.o.host.alive(pid)) {
       this.children.set(lane.id, { slot: slot.slot, run, pid });
       this.writeRunner();
@@ -393,7 +397,7 @@ class Runner {
       this.writeRunner();
     }
     this.children.delete(lane.id);
-    this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
+    return this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
   }
 
   // runner.json names a running trial while any plays (merges into main wait on it); each lane's lease names that lane's.

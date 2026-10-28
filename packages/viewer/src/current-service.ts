@@ -56,7 +56,7 @@ export class CurrentProjector{
   if(!owns){if(job.aux.health.ok!==null)job.dirty=true;job.aux.health.ok=null;const pending=this.probes.get(port);if(pending?.run===job.run){pending.controller.abort();clearTimeout(pending.timer);this.probes.delete(port);}if(ended&&this.owners.get(port)?.run===job.run)this.owners.delete(port);return;}
   const priorProbe=this.probes.get(port);
   if(priorProbe!==undefined&&(priorProbe.run!==job.run||priorProbe.generation!==job.generation)){priorProbe.controller.abort();clearTimeout(priorProbe.timer);this.probes.delete(port);this.healthAt.delete(port);}
-  if(this.options.healthy===undefined||this.probes.has(port)||(this.healthAt.has(port)&&this.monotonic()-(this.healthAt.get(port)??0)<this.limits.healthMs))return;
+  if(this.options.healthy===undefined||this.probes.has(port)||this.probes.size>=this.limits.hotRuns||(this.healthAt.has(port)&&this.monotonic()-(this.healthAt.get(port)??0)<this.limits.healthMs))return;
   const controller=new AbortController();
   const probe={run:job.run,generation:job.generation,controller,timer:setTimeout(()=>{controller.abort();complete(false);},this.limits.healthMs),done:false};probe.timer.unref();
   const complete=(ok:boolean):void=>{if(probe.done)return;probe.done=true;clearTimeout(probe.timer);if(this.probes.get(port)===probe)this.probes.delete(port);if(!this.closed&&this.jobs.get(job.run)===job&&this.owners.get(port)?.run===job.run&&job.generation===probe.generation&&(job.current?.state??job.stage?.state)?.end===null){job.aux.health={enabled:true,owner:true,ok,checkedAt:this.now()};this.healthAt.set(port,this.monotonic());job.dirty=true;}};

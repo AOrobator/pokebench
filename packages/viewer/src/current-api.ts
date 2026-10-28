@@ -5,7 +5,7 @@ import type {CurrentQuery,CurrentAnswer} from "./current-public.js";
 export interface CurrentApi {handle(req:IncomingMessage,res:ServerResponse,parts:readonly string[],now:number):Promise<boolean>}
 export function createCurrentApi(pool:CurrentPool,options:{maxBytes?:number;responseMs?:number}={}):CurrentApi{
  const max=options.maxBytes??8*1024*1024,deadline=options.responseMs??10000;
- if(!Number.isSafeInteger(max)||max<1||max>8*1024*1024||!Number.isSafeInteger(deadline)||deadline<1||deadline>10000)throw new Error("Invalid current HTTP limits");
+ if(!Number.isSafeInteger(max)||max<64||max>8*1024*1024||!Number.isSafeInteger(deadline)||deadline<1||deadline>10000)throw new Error("Invalid current HTTP limits");
  return {handle:async(req,res,parts,now)=>{
   const [head,leaf,id,operation]=parts;
   const list=parts.length===2&&head==="api"&&leaf==="current-runs",updates=parts.length===2&&head==="api"&&leaf==="current-updates",selected=parts.length===4&&head==="api"&&leaf==="runs"&&id!==undefined&&(operation==="current"||operation==="history");

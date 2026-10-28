@@ -34,9 +34,9 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
  if(Object.keys(v).some(k=>!keys.includes(k)&&!(detail&&(k==="display"||k==="end"))))return fail();
  if(v["version"]!==1||typeof v["id"]!=="string"||typeof v["generation"]!=="string"||v["generation"].length>256||!["revision","seq","at","clockAt","updatedAt","observedAt"].every(k=>integer(v[k]))||typeof v["complete"]!=="boolean"||!nullableN(v["endedAt"])||!nullableText(v["warning"])||!nullableText(v["problem"]))return fail();
  const h=v["health"],p=v["phase"],g=v["progress"];
- if(!object(h)||typeof h["enabled"]!=="boolean"||typeof h["owner"]!=="boolean"||(h["ok"]!==null&&typeof h["ok"]!=="boolean")||!nullableN(h["checkedAt"]))return fail();
- if(!object(p)||!["indexing","thinking","tool","idle","paused","ended"].includes(String(p["kind"]))||!integer(p["pending"])||!Array.isArray(p["tools"])||p["pending"]>MAX_OPEN_TOOLS||p["tools"].length>16||p["tools"].length>p["pending"]||!p["tools"].every((t:unknown)=>typeof t==="string"))return fail();
- if(!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])))return fail();
+ if(!only(h,["enabled","owner","ok","checkedAt"])||!object(h)||typeof h["enabled"]!=="boolean"||typeof h["owner"]!=="boolean"||(h["ok"]!==null&&typeof h["ok"]!=="boolean")||!nullableN(h["checkedAt"]))return fail();
+ if(!only(p,["kind","pending","tools"])||!object(p)||!["indexing","thinking","tool","idle","paused","ended"].includes(String(p["kind"]))||!integer(p["pending"])||!Array.isArray(p["tools"])||p["pending"]>MAX_OPEN_TOOLS||p["tools"].length>16||p["tools"].length>p["pending"]||!p["tools"].every((t:unknown)=>typeof t==="string"))return fail();
+ if(!only(g,["validation","recorded"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])))return fail();
  const data=parseWorkbench({version:1,at:0,milestones:[],runs:[v["run"]],problems:[]}),run=data.runs[0];
  if(run===undefined||run.id!==v["id"]||run.splits.length!==0||run.measurement!==undefined||run.excluded!==null)return fail();
  if(v["complete"]?(v["totals"]===null||v["control"]===null):(v["totals"]!==null||v["control"]!==null||run.elapsedMs!==null))return fail();
@@ -49,7 +49,7 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
 }
 export const parseCurrentSummary=(value:unknown):CurrentSummary=>summary(value,false);
 export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
- summary(value,true);if(!object(value)||!only(value["display"],["state","partyState","card","health","frame"]))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
+ summary(value,true);if(!object(value)||value["end"]===undefined||!only(value["display"],["state","partyState","card","health","frame"])||!object(value["display"])||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(value["display"],k)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 

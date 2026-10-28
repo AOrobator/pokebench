@@ -161,3 +161,6 @@ describe("shutdown", () => {
     await vi.waitFor(() => { expect(exits).toEqual([1]); });
   });
 });
+
+it("enables only an explicitly selected current database and refuses ambiguous flags",()=>{expect(parseArgs(["--current-db","/fixture/current.sqlite"],"/fixture").currentDatabase).toBe("/fixture/current.sqlite");expect(parseArgs([],"/fixture")).not.toHaveProperty("currentDatabase");for(const args of [["--current-db"],["--current-db",""],["--current-db","/a","--current-db","/b"]])expect(()=>parseArgs(args,"/fixture")).toThrow(CliError);});
+it("passes the explicit current database to the server without starting a projector",async()=>{const start=vi.fn().mockResolvedValue({url:"http://127.0.0.1:8790/",port:8790,address:"127.0.0.1",close:async()=>{}});await main(["--current-db","/fixture/current.sqlite"],{repoRunsRoot:"/fixture",defaultEndpoint:null,liveJs:"/fixture/live.js",staticDir:"/s",appDir:"/a",start,print:()=>{}});expect(start).toHaveBeenCalledWith(expect.objectContaining({current:{database:"/fixture/current.sqlite"}}));});

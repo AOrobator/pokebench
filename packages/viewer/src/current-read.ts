@@ -37,13 +37,13 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
   const sourceOptions:SourceOptions={read:(bytes,at,purpose)=>{options.read?.({run:q.run,bytes,offset:at,purpose});}};const file=openCurrentSource(options.runsRoot,q.run,sourceOptions);
   try{
    if(!file.compatible(saved.source)||sourceEvidence(file.path)!==saved.source.evidence)return answer("reset",[],null);
-   const upper=saved.source.offset,c=lineCursor(offset),bounded={stat:{size:upper},read:(at:number,length:number,purpose?:"data"|"anchor")=>file.read(at,Math.max(0,Math.min(length,upper-at)),purpose)},events:Extract<CurrentAnswer,{kind:"history"}>["events"]=[];let bytes=0,payload=0,reached=false;
+   const upper=saved.source.offset,c=lineCursor(offset),bounded={stat:{size:upper},read:(at:number,length:number,purpose?:"data"|"anchor")=>file.read(at,Math.max(0,Math.min(length,upper-at)),purpose)},events:Extract<CurrentAnswer,{kind:"history"}>["events"]=[],lengths:number[]=[];let bytes=0,payload=0,reached=false;
    for(let steps=0;steps<64;steps++){
     const batch=readCurrentLines(bounded,c,limits.bytes-bytes,1);bytes+=batch.bytes;const line=batch.lines[0];
     if(line===undefined){if(batch.atEnd){reached=true;break;}return answer("oversized",[],q.before);}
     if(line.event.run!==q.run)throw new Error("Foreign indexed history event");if(line.event.seq>=target){reached=true;break;}
-    if(line.raw.length>limits.replyBytes)return answer("oversized",[],q.before);events.push(line.event);payload+=line.raw.length;
-    while(events.length>limits.events||payload>limits.replyBytes){const removed=events.shift();if(removed!==undefined)payload-=Buffer.byteLength(JSON.stringify(removed))+1;}
+    if(line.raw.length>limits.replyBytes)return answer("oversized",[],q.before);events.push(line.event);lengths.push(line.raw.length);payload+=line.raw.length;
+    while(events.length>limits.events||payload>limits.replyBytes){events.shift();payload-=lengths.shift()??0;}
     if(c.offset>=upper){reached=true;break;}
    }
    if(!file.samePath())return answer("reset",[],null);if(!reached)return answer("indexing",[],q.before);

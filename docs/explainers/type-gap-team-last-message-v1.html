@@ -132,7 +132,8 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>Rules</h2>
 <ul>
-<li>It fires only when a tool result after the last assistant reply carries a text part that begins with the block's header. Parallel results count, and the newest block wins.</li>
+<li>It fires only when a tool result after the last assistant reply carries the block. In live play the block is its own text part. In a decision probe or after a continuation restore, the result is the recorded text, with its parts joined by line breaks. There the block is the header line plus the lines after it that start with "- " or two spaces, the same bytes byte for byte (checked on every recorded occurrence). Parallel results count, and the newest block wins.</li>
+<li>In live play, an auto-talk message the harness sends for the same result comes after the copy, because it is newer game evidence than the block.</li>
 <li>The copy is transient. The next request has a newer reply, so the copy is gone and only the tool result keeps the block.</li>
 <li>The copy is recorded once per tool result as ledger context, with that result's seq as evidence.</li>
 <li>With type-gap-team-v1 off it does nothing, and the registry rejects that combination.</li>

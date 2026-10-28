@@ -157,11 +157,14 @@ class Topology:
         *,
         targets: bool = False,
         labels: Mapping[int, str] | None = None,
+        visible_only: bool = False,
     ) -> str:
         """notes: a note per connection, by its index in self.connections."""
         lines = [f"Current map bounds: X=0..{self.width - 1}, Y=0..{self.height - 1}"]
         lines.append(
-            "Map connections (game-defined; terrain and story conditions may block passage):"
+            "Visible map connections (terrain and story conditions may block passage):"
+            if visible_only
+            else "Map connections (game-defined; terrain and story conditions may block passage):"
         )
         lines.extend(
             c.line(
@@ -173,7 +176,11 @@ class Topology:
             for i, c in enumerate(self.connections)
         )
         if not self.connections:
-            lines.append("- none defined; inspect doors/warps instead")
+            lines.append(
+                "- none currently visible"
+                if visible_only
+                else "- none defined; inspect doors/warps instead"
+            )
         return "\n".join(lines)
 
 

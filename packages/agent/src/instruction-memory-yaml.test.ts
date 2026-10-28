@@ -10,6 +10,21 @@ const COLS=["speaker","speaker_source","text","map","map_id","state_event"];
 const ep=(result:number,turn:number,pages:CapEpisode["pages"]):CapEpisode=>({result,dialogue:[result-2,result-1],turn,pages});
 
 describe("instruction-memory-yaml-v1 rendering",()=>{
+ it("escapes Unicode controls and line separators even inside JSON-compatible scalars",()=>{
+  for(const code of [0x7f,0x85,0x9f,0x2028,0x2029,0xfeff]){
+   const value=`a${String.fromCodePoint(code)}b`,escaped=`"a\\u${code.toString(16).padStart(4,"0")}b"`;
+   expect(yamlScalar(value)).toBe(escaped);
+   const rendered=instructionMemoryYaml(0,[ep(10,3,[[null,null,value,null,null,null]])],COLS,{});
+   expect(rendered).toContain(`text: ${escaped}`);
+  }
+ });
+ it("keeps whole-field omission markers and empty lists in the delivered YAML",()=>{
+  const rest={current:null,current_left_out:true as const,observed_locations:[],earlier_locations_left_out:3};
+  const rendered=instructionMemoryYaml(4,[],COLS,rest);
+  expect(rendered).toContain("\nepisodes: []\n");
+  expect(rendered).toContain("\ncurrent_left_out: true\n");
+  expect(rendered).toContain("\nobserved_locations: []\nearlier_locations_left_out: 3");
+ });
  it("writes plain scalars only where YAML cannot read them as anything else",()=>{
   expect(["ROUTE104","faced_sprite","MR. BRINEY","PROF. BIRCH'S HOUSE 2F","AAAAAA's HOUSE 2F","POKéMON CENTER"].map(yamlScalar)).toEqual(["ROUTE104","faced_sprite","MR. BRINEY","PROF. BIRCH'S HOUSE 2F","AAAAAA's HOUSE 2F","POKéMON CENTER"]);
   expect(["0x1A","104","Yes","off","~","NULL","ends with dot.","trailing ","a: b","#tag","-dash",'Sign text "Hi"',"",":"].map(yamlScalar)).toEqual(['"0x1A"','"104"','"Yes"','"off"','"~"','"NULL"','"ends with dot."','"trailing "','"a: b"','"#tag"','"-dash"','"Sign text \\"Hi\\""','""','":"']);
@@ -105,7 +120,7 @@ describe("instruction-memory-yaml-v1 with instruction-memory-dedup-v1 and the ca
 
 describe("instruction-memory-yaml-v1 registry",()=>{
  it("is a default-off guidance switch registered after instruction-memory-cap-v1, needing nothing, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-yaml-v1")).toBe(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")+1);
+  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-yaml-v1")).toBe(298);
   expect(featureInfo("instruction-memory-yaml-v1")).toMatchObject({group:"guidance",needs:null,switchable:true,title:"INSTRUCTION MEMORY YAML"});
   expect(featureInfo("instruction-memory-yaml-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["instruction-memory-yaml-v1"]).toBe(false);

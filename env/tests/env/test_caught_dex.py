@@ -143,7 +143,9 @@ def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPat
             pass
 
     for off in ("caught-dex-input-v1", ""):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "scene-journal-safe-capture-v1"]))
+        )
         app = FastAPI()
         serve.run(
             [],

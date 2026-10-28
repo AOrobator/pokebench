@@ -1,7 +1,8 @@
-// instruction-memory-cap-v1: rule A′ over the episodes milestone-instruction-memory-v1 keeps. Whole episodes only, never cut.
-// Order: story anchor, proven done (pret templates, story checkpoints, receipts, trainer flags), nearby maps, named target, recency. Steps 1 and 3
-// always stay; 4 and 5 fill the room left under the cap. The reference implementation is
-// runs/analysis/bounded-input-20261028/rule_a2.py, which a702's T700 and T1301 must match byte for byte.
+// instruction-memory-cap-v1: rule A′ over the episodes either memory form keeps. Whole episodes only, never cut.
+// Proven-done episodes are never kept (pret templates, story checkpoints, receipts, trainer flags). The rest are added
+// in priority order (story anchor, nearby maps, named target, recency; newest first) while the block fits: a hard cap.
+// The reference implementation is runs/analysis/bounded-input-20261028/rule_a2.py, which recorded runs must match
+// byte for byte.
 import type {RunEvent} from "./events.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {PRET_MAP_SECTIONS} from "./pret-map-sections.js";
@@ -9,11 +10,13 @@ import {STORY_CHARACTERS} from "./script-line-presence.js";
 import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
+export const CAPPED_SELECTION="Finished episodes, and less relevant ones over the size cap, are left out.";
 // The cap counts characters as code points, as Python len() does in the reference implementation.
 export const codePoints=(s:string):number=>Array.from(s).length;
-// Only when episodes are left out, the selected-form header says so instead of claiming every episode stays.
-export const CAPPED_SELECTION="Over the size cap, finished and less relevant episodes are left out.";
-export const omittedLine=(n:number):string=>`${String(n)} earlier episodes are left out and remain in the run recording.`;
+// observed_locations grows with every map entered; under the cap only the newest whole entries that fit in
+// CAP_LOCATION_CHARS (as JSON) are sent, with a count of the rest.
+export const CAP_LOCATION_CHARS=2000;
+export const omittedLine=(n:number):string=>`${String(n)} other episodes are left out and remain in the run recording.`;
 // instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
 export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
 export interface CapEpisode {readonly result:number;readonly dialogue:readonly number[];readonly turn:number;readonly pages:readonly CapRow[]}
@@ -59,7 +62,7 @@ export class InstructionMemoryCap {
  private readonly milestones=new Map<string,number>();
  private readonly visited=new Set<string>();
  private readonly defeated=new Map<string,boolean>();
- private readonly faced=new Map<number,string>();
+ private readonly faced=new Map<number,{readonly trainer:string;readonly beaten:boolean}>();
  observe(event:RunEvent):void {
   this.run??=event.run;
   if(event.run!==this.run)return;
@@ -74,7 +77,7 @@ export class InstructionMemoryCap {
   if(event.position===null||step===undefined)return;
   const x=event.position.x+step[0],y=event.position.y+step[1];
   const hit=trainers.find(t=>t.x===x&&t.y===y);
-  if(hit!==undefined)this.faced.set(event.seq,`${String(map)}#${String(hit.trainer_id)}`);
+  if(hit!==undefined)this.faced.set(event.seq,{trainer:`${String(map)}#${String(hit.trainer_id)}`,beaten:hit.defeated});
  }
  // A story-destinations block marks a finished line with a "Done: …" line under it, before the next blank line.
  private story():StoryLine|null {
@@ -122,7 +125,9 @@ export class InstructionMemoryCap {
   const player=escape(this.player());
   for(const [pattern,completion] of RECEIPTS)if(new RegExp(`^${pattern.replaceAll("{P}",player)}$`).test(p[2]))return ["receipt",completion];
   const faced=p[5]===null?undefined:this.faced.get(p[5]);
-  if(p[1]==="faced_sprite"&&faced!==undefined&&faced.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced)===true)return [`trainer ${faced.split("#")[1]??""} defeated`,true];
+  // Only lines heard while the trainer was unbeaten (the challenge) retire; post-battle advice stays. Gym leaders
+  // also explain their badge and TM rewards; their lines close only through the badge checkpoints.
+  if(p[1]==="faced_sprite"&&faced!==undefined&&!faced.beaten&&!(p[0]!==null&&p[0] in LEADER_BADGE)&&faced.trainer.startsWith(`${String(key(p[4]))}#`)&&this.defeated.get(faced.trainer)===true)return [`trainer ${faced.trainer.split("#")[1]??""} defeated`,true];
   return null;
  }
  private done(e:CapEpisode):string|null {
@@ -161,17 +166,17 @@ export class InstructionMemoryCap {
   const met=new Set(episodes.flatMap(e=>e.pages.flatMap(p=>p[0]===null?[]:[p[0]])));
   if(met.has("DAD"))met.add("NORMAN");
   const rows=episodes.map((e):{e:CapEpisode;step:CapStep;fact:string}=>{
-   const anchor=this.anchor(e,story);
+   const anchor=this.anchor(e,story),done=this.done(e);
+   if(done!==null)return {e,step:"done",fact:anchor===null?done:`${done}; ${anchor[0]?"anchor":"stale anchor"}: ${anchor[1]}`};
    if(anchor?.[0]===true)return {e,step:"anchor",fact:anchor[1]};
-   const done=this.done(e);
-   if(done!==null)return {e,step:"done",fact:anchor===null?done:`${done}; stale anchor: ${anchor[1]}`};
    const at=e.pages.find(p=>near.has(key(p[4])??""));
    if(at!==undefined)return {e,step:"nearby",fact:`heard on ${String(at[3])} (${String(key(at[4]))}): ${near.get(key(at[4])??"")??""}`};
    const names=this.named(e,met);
    const stale=anchor===null?"":`; stale anchor: ${anchor[1]}`;
    return names.length>0?{e,step:"named",fact:names.join("; ")+stale}:{e,step:"recency",fact:`names no unvisited place, unmet story person or held key item${stale}`};
   });
-  const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort((a,b)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)));
+  const newest=(a:number,b:number)=>(rows[b]?.e.turn??0)-(rows[a]?.e.turn??0)||(rows[b]?.e.result??0)-(rows[a]?.e.result??0);
+  const order=(["anchor","nearby","named","recency"] as const).flatMap(group=>rows.flatMap((r,i)=>r.step===group?[i]:[]).sort(newest));
   const empty=new Map<number,number>();
   const base=(omitted:number)=>{const digits=omitted===0?0:String(omitted).length;const known=empty.get(digits);if(known!==undefined)return known;const v=codePoints(render([],omitted));empty.set(digits,v);return v;};
   const keep=new Set<number>();

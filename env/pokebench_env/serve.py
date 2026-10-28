@@ -57,6 +57,7 @@ from pokebench_env.raw_ram import (
     RawRamArchive,
     RawRamSnapshot,
     Reservation,
+    copy_raw_snapshot,
     shutdown_persistence_worker,
 )
 from pokebench_env.readout import features_off_from_env
@@ -299,6 +300,7 @@ def run(
     checkpoint: Callable[[], bytes | None] | None = None,
     raw_archive: RawRamArchive | None = None,
     raw_capture: Callable[[], dict[str, object]] | None = None,
+    scene_raw_capture: Callable[[int], RawRamSnapshot] | None = None,
     raw_snapshot: RawSnapshotFn | None = None,
     raw_rom: bytes | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
@@ -344,7 +346,19 @@ def run(
                 raise ValueError("scene screenshot unavailable")
             return image
 
-        install_scene_journal(observation[0], frames, observation[2], scene_screenshot)
+        safe_scene = "scene-journal-safe-capture-v1" not in features_off_from_env(os.environ)
+        if safe_scene:
+            install_scene_journal(
+                observation[0],
+                frames,
+                observation[2],
+                scene_screenshot,
+                safe_capture=True,
+                raw_capture=scene_raw_capture,
+                diagnostics_dir=Path.cwd().parent / "scene-diagnostics",
+            )
+        else:
+            install_scene_journal(observation[0], frames, observation[2], scene_screenshot)
     settle = None
     battle_wait = None
     learn_wait = None
@@ -517,6 +531,9 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         ),
         checkpoint=checkpoint if token else None,
         raw_archive=archive,
+        scene_raw_capture=lambda frame: copy_raw_snapshot(
+            read_memory, int(app.env.core.frame_counter), archive.rom_sha1, frame
+        ),
         raw_snapshot=raw_snapshot,
         raw_rom=rom,
         travel=(

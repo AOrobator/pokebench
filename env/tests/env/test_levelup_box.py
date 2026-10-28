@@ -34,7 +34,13 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/levelup-box-54a7.json").
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
 RECORDED_OFF = (
-    frozenset({"coherent-battle-observation-v1", "player-elevation-readout-v1"})
+    frozenset(
+        {
+            "coherent-battle-observation-v1",
+            "player-elevation-readout-v1",
+            "player-map-visibility-v1",
+        }
+    )
     | frozenset(FIXTURE["recorded_off"])
     | {
         SWITCH,
@@ -405,7 +411,11 @@ def _production(monkeypatch: pytest.MonkeyPatch, off: str | None) -> FastAPI:
     else:
         monkeypatch.setenv(
             "POKEBENCH_FEATURES_OFF",
-            ",".join(filter(None, (off, "coherent-battle-observation-v1"))),
+            ",".join(
+                filter(
+                    None, (off, "coherent-battle-observation-v1", "scene-journal-safe-capture-v1")
+                )
+            ),
         )
     memory = box_memory(6)
     memory.set(0x030022C4, 0x08038421)

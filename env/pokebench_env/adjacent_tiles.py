@@ -114,6 +114,7 @@ def next_tiles(
     position: tuple[int, int],
     *,
     coordinates: bool,
+    unseen_unknown: bool = False,
     ledges: bool,
     edge_walls: bool,
     counters: bool,
@@ -147,7 +148,11 @@ def next_tiles(
         tile = tiles.get((x, y))
         shut = warp_press != direction
         if tile is None:
-            name = _outside(glyph, compass, topology, shut)
+            name = (
+                "unseen (?)"
+                if unseen_unknown and inside
+                else _outside(glyph, compass, topology, shut)
+            )
         else:
             name = _tile(
                 glyph,

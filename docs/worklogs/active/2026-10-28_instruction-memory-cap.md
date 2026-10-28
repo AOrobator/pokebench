@@ -44,13 +44,14 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 
 - `type-gap-last-message.test.ts` pinned its switch as `SWITCHABLE_FEATURES.at(-1)`, against the feature-switch rule to assert absolute position. Changed to "registered after gateway-schema-hint-v1".
 - `semantic-navigation-v2.test.ts` and `gym-evidence.test.ts` build all-on fixtures with milestone-instruction-memory-v1 OFF, so `needs: "milestone-instruction-memory-v1"` raised a dependency problem. Rather than edit other switches' fixtures, the cap now has `needs: null` and also bounds the unselected memory form (milestone-instruction-memory-v1 OFF) with the same whole-episode rule. That closes the other unbounded path as well.
-- [x] RED: legacy-form cap test and registry test.
+- [x] RED: legacy-form cap test and registry test (518587451).
+- [x] GREEN: `needs: null`. `ObservedInstructions.text()` caps both forms through one `row()` mapping, and the older form's left-out line follows its first line. 98 passed across cap, checkpoints, type-gap, semantic-navigation-v2, gym-evidence, observed-instructions (+wire) and features. The replay is still byte-identical on all four turns.
 
 ## Milestone M1: switch + rule A′
 
 - [x] RED: `instruction-memory-cap.test.ts` (each step, budget fill, omission line, stale anchor, OFF and no-drop identity) and a factory test through `observedInstructions`. Fails: the module and switch do not exist yet.
 - [x] GREEN: `instruction-memory-cap.ts` plus wiring in `observed-instructions.ts`; `pret-map-sections.ts` (189 names from pret). instruction-memory-cap 10/10 (481741962 went in with a timestamp flake in the factory test: it compared whole messages, including `Date.now()`. The next commit compares records and contents instead; 6/6 reruns pass); agent focused suites 85 passed; viewer panels, server and next-run 394 passed.
-- [x] Registry: SWITCHABLE_FEATURES last, FEATURES entry (guard/correctness category, `needs: "milestone-instruction-memory-v1"`, Off copy), `...when()` last. Presets: FeatureSetSchema optional, normalizeFeatures, flagFeatures and DEFAULT_NEXT_RUN false. current.json untouched.
+- [x] Registry: SWITCHABLE_FEATURES last, FEATURES entry (guard category, `needs: null` after the first full-suite run, Off copy), `...when()` last. Presets: FeatureSetSchema optional, normalizeFeatures, flagFeatures and DEFAULT_NEXT_RUN false. current.json untouched.
 - [x] Wiring removal check: with the switch argument removed from `observedInstructions`, the factory test failed (1 failed, 9 passed); restored, 10/10.
 - [x] Replay (`runs/analysis/bounded-input-20261028/replay-cap.mjs`): switch off equals the recorded block, switch on equals `rule_a2.py`'s AFTER byte for byte. a702 T700 15,956 and T1301 15,965 chars; 88ea T400 15,774 and T800 15,962.
 - [x] Explainer `docs/explainers/instruction-memory-cap-v1.html` (themed, pages-check clean, headless 1280 and 375 with no overflow), README, FEATURE_EXPLAINERS, panels/server link tests.

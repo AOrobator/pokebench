@@ -96,7 +96,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </style>
 </head><body><main>
 <h1>Instruction memory cap</h1>
-<p><code>instruction-memory-cap-v1</code> stops the OBSERVED INSTRUCTION MEMORY block from growing without limit. The block stays at or under 16,000 characters, about 6,100 Qwen3.6 tokens. The switch keeps or leaves out whole dialogue episodes, chosen by what game memory says about them, and never cuts an episode's text. Default off. It needs <code>milestone-instruction-memory-v1</code>.</p>
+<p><code>instruction-memory-cap-v1</code> stops the OBSERVED INSTRUCTION MEMORY block from growing without limit. The block stays at or under 16,000 characters, about 6,100 Qwen3.6 tokens. The switch keeps or leaves out whole dialogue episodes, chosen by what game memory says about them, and never cuts an episode's text. Default off. It works on either memory form: the episodes <code>milestone-instruction-memory-v1</code> keeps when that switch is on (the selected JSON block shown below), or every delivered episode in the older YAML-like block when it is off. In the older block the left-out line comes right after its first line.</p>
 
 <div class="kpis">
 <div class="kpi"><strong>53,962 → 15,923 chars</strong><br><span>a702 turn 1301: 21,124 → 6,088 tokens</span></div>

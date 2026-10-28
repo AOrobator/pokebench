@@ -20,8 +20,8 @@ export class ObservedInstructions {
  private readonly policy:MilestoneMemory|null;
  private readonly cap:InstructionMemoryCap|null;
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
- // instruction-memory-cap-v1 (cap): rule A′ over the episodes the milestone policy keeps; see instruction-memory-cap.ts.
- constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false){this.policy=trim?new MilestoneMemory():null;this.cap=trim&&cap?new InstructionMemoryCap():null;}
+ // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps; see instruction-memory-cap.ts.
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap():null;}
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
  retention():MemoryRetention|null{return this.policy?.select(this.archive())??null;}
@@ -85,20 +85,28 @@ export class ObservedInstructions {
   const retention=this.retention();
   if(retention!==null){
    const selected=new Set(retention.kept.map(e=>e.result_event));
-   const episodes:CapEpisode[]=this.archive().filter(e=>selected.has(e.result_event)).map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq] as const)}));
+   const episodes=this.archive().filter(e=>selected.has(e.result_event)).map(e=>this.row(e));
    const render=(kept:readonly CapEpisode[],omitted:number)=>`OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n${omitted===0?"":`${omittedLine(omitted)}\n`}`+quote({columns:["speaker","speaker_source","text","map","map_id","state_event"],episodes:kept,current:this.current});
    if(this.cap===null)return render(episodes,0);
    const capped=this.cap.select(episodes,render);
    return render(capped.kept,capped.omitted);
   }
+  const all=this.archive().map(e=>this.row(e));
+  if(this.cap===null)return this.legacy(all,0);
+  const capped=this.cap.select(all,(kept,omitted)=>this.legacy(kept,omitted));
+  return this.legacy(capped.kept,capped.omitted);
+ }
+ private row(e:Episode):CapEpisode {return {result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq] as const)};}
+ private legacy(episodes:readonly CapEpisode[],omitted:number):string {
   const out=[
    "OBSERVED INSTRUCTION MEMORY — historical game dialogue, not an active-goal list.",
+   ...(omitted===0?[]:[omittedLine(omitted)]),
    this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.",
    "observed_instruction_episodes:",
   ];
-  for(const e of this.episodes.values()){
-   out.push(`  - dialogue_events: ${quote(e.dialogue_events)}`,`    delivered_result: ${String(e.result_event)}`,`    turn: ${String(e.turn)}`,"    pages:");
-   for(const p of e.pages)out.push(`      - speaker: ${quote(p.speaker)}`,`        speaker_source: ${quote(p.speaker_source)}`,`        text: ${quote(p.text)}`,`        map: ${quote(this.mapName(p))}`,`        map_id: ${quote(p.map_id)}`,`        state_event: ${quote(p.state_seq)}`);
+  for(const e of episodes){
+   out.push(`  - dialogue_events: ${quote(e.dialogue)}`,`    delivered_result: ${String(e.result)}`,`    turn: ${String(e.turn)}`,"    pages:");
+   for(const [speaker,source,text,map,mapId,stateEvent] of e.pages)out.push(`      - speaker: ${quote(speaker)}`,`        speaker_source: ${quote(source)}`,`        text: ${quote(text)}`,`        map: ${quote(map)}`,`        map_id: ${quote(mapId)}`,`        state_event: ${quote(stateEvent)}`);
   }
   out.push("observed_progress:",`  current: ${quote(this.current)}`,`  observed_locations: ${quote([...this.visits.values()])}`);
   return out.join("\n");

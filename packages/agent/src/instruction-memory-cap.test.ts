@@ -177,7 +177,7 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   const lines=onText.split("\n");
   expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ earlier episodes are left out and remain in the run recording\.$/);
   expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3));
-  const turns=[...onText.matchAll(/^    turn: (\d+)$/gm)].map(m=>Number(m[1]));
+  const turns=[...onText.matchAll(/^ {4}turn: (\d+)$/gm)].map(m=>Number(m[1]));
   expect(turns.length+Number(/^(\d+) earlier/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
   for(const t of turns)expect(onText).toContain(`MOM: episode ${String(t-2)} ${"y".repeat(400)}`);
   expect(onText).toContain("observed_progress:");

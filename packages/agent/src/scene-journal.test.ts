@@ -86,3 +86,65 @@ it("records delivered scene text and images durably with current frame first",as
  const last=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).findLast(e=>e.type==="decision_input");
  expect(last?.type==="decision_input"?last.frames.map(f=>f.path):[]).toEqual(last?.type==="decision_input"?[`frames/${String(last.seq).padStart(6,"0")}_0.png`,`frames/${String(last.seq).padStart(6,"0")}_1.png`]:["missing decision"]);
 });
+
+it("production safe-capture switch distinguishes deferred scene samples from archive failure and keeps OFF bytes",async()=>{
+ const id="scene-journal-safe-capture-v1";
+ const coverage={frames:30,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:0,diagnostic_revision:8,persisted_revision:8,diagnostic_error:null};
+ const payload={...reply(),coverage};
+ const watcher=new StateWatcher("http://scene.test",()=>Promise.resolve(new Response(JSON.stringify(payload))));
+ const on=playGameTools([base],{...OFF,[ID]:true,[id]:true},watcher,rec)[0];if(!on)throw Error("missing");
+ const result=await on.execute("safe",{});expect(text(result)).toContain("6 deferred");expect(text(result)).toContain("not a transcript/archive failure");expect(text(result)).not.toContain("CAPTURE GAP");expect(result.content[0]).toEqual({type:"text",text:"final observation"});
+ const off=playGameTools([base],{...OFF,[ID]:true},watcher,rec)[0];if(!off)throw Error("missing");expect(text(await off.execute("off",{}))).toBe("final observation");
+ expect(OFF[id]).toBe(false);expect(featureInfo(id)).toMatchObject({needs:ID});expect(playHarnessFeatures({...OFF,[ID]:true,[id]:true},null)).toContain(id);
+ expect(serverFeatureEnv({...OFF,[ID]:true,[id]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(id);
+});
+
+it("safe mode reports true scene failures/retention honestly, rejects inconsistent or backward coverage, and never loses the original result",async()=>{
+ const coverage={frames:31,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:0,diagnostic_revision:8,persisted_revision:8,diagnostic_error:"disk"};
+ const payload={...reply([{id:3,frame:31,text:"visible"}],3),first_id:3,errors:1,last_error:"bad pointer",coverage};
+ const read=vi.fn().mockResolvedValueOnce(payload).mockResolvedValueOnce({...reply([],3),coverage:{...coverage,frames:30,diagnostic_error:null}}).mockResolvedValueOnce({...payload,coverage:{...coverage,frames:32,safe_frames:26,deferred_frames:5}}).mockResolvedValueOnce({...payload,coverage:{...coverage,frames:32,safe_frames:23,deferred_frames:8}}).mockResolvedValueOnce(reply());
+ const tool=withSceneJournal([base],true,{sceneEvents:read},true)[0];if(!tool)throw Error("missing");
+ const first=text(await tool.execute("first",{}));expect(first).toContain("SCENE HISTORY READ ERROR: 1 frame reads failed");expect(first).toContain("SCENE HISTORY RETENTION GAP");expect(first).toContain("diagnostic buffer could not be saved");expect(first).not.toContain("CAPTURE GAP");
+ expect(text(await tool.execute("backward",{}))).toContain("scene coverage cursor moved backward");
+ expect(text(await tool.execute("deferred-backward",{}))).toContain("scene coverage cursor moved backward");
+ expect(text(await tool.execute("safe-backward",{}))).toContain("scene coverage cursor moved backward");
+ expect(text(await tool.execute("missing",{}))).toContain("safe scene coverage missing");
+ for(const c of [{...coverage,safe_frames:30},{...coverage,persisted_revision:9}])expect(()=>parseSceneJournal({...payload,coverage:c})).toThrow(/coverage/);
+ expect(read).toHaveBeenCalledTimes(5);
+});
+
+
+it("safe coverage reaches the next pinned-pi decision and exact durable replay record",async()=>{
+ const {mkdtempSync,readFileSync,cpSync,rmSync}=await import("node:fs");const {tmpdir}=await import("node:os");const {join}=await import("node:path");
+ const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");const {RunRecorder}=await import("./recorder.js");const {parseEvent}=await import("./events.js");
+ const {Governor,piLoop,play}=await import("./harness.js");const {createAssistantMessageEventStream}=await import("@mariozechner/pi-ai");const {assistant,toolCall,userText}=await import("../test-support/pi.js");
+ const root=mkdtempSync(join(tmpdir(),"scene-pi-"));
+ try{
+  const log=RunLog.create(root,"offline-safe-scene");
+  const coverage={frames:30,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:1,diagnostic_revision:8,persisted_revision:8,diagnostic_error:null};
+  const state={read:()=>Promise.resolve(IN_GAME),sceneEvents:()=>Promise.resolve({...reply([{id:1,frame:30,text:"Recovered coherent sample; intermediate actions unknown"}]),coverage})};
+  const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:state});
+  // Valid 240x160 PNG for browser replay; synthetic fixture pixels, no game execution.
+  const {deflateSync}=await import("node:zlib");
+  const {crc32}=await import("node:zlib");
+  const chunk=(kind:string,bytes:Buffer)=>{const name=Buffer.from(kind),length=Buffer.alloc(4),crc=Buffer.alloc(4);length.writeUInt32BE(bytes.length);crc.writeUInt32BE(crc32(Buffer.concat([name,bytes])));return Buffer.concat([length,name,bytes,crc]);};
+  const header=Buffer.alloc(13);header.writeUInt32BE(240);header.writeUInt32BE(160,4);header[8]=8;header[9]=2;
+  const image=Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),chunk("IHDR",header),chunk("IDAT",deflateSync(Buffer.alloc(160*(240*3+1),0))),chunk("IEND",Buffer.alloc(0))]).toString("base64");
+  const action=vi.fn(()=>Promise.resolve({content:[{type:"text" as const,text:"Synthetic current observation"},{type:"image" as const,data:image,mimeType:"image/png"}],details:{state:IN_GAME}}));
+  const tools=playGameTools([{...base,execute:action}],{...OFF,[ID]:true,"scene-journal-safe-capture-v1":true},state,recorder);
+  await recorder.start({...RUN_START_META,harness_features:[ID,"scene-journal-safe-capture-v1"],tools:["observe"],system_prompt:"Offline recording fixture; no inference or game endpoint."},false);
+  const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+  const model:import("@mariozechner/pi-ai").Model<"openai-completions">={id:"offline-scene-fixture",name:"offline-scene-fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:65536,maxTokens:100};
+  let decisions=0,delivered="";
+  const streamFn:import("@mariozechner/pi-agent-core").StreamFn=(_model,context)=>{
+   decisions++;if(decisions===2){delivered=context.messages.filter(m=>m.role==="toolResult").flatMap(m=>m.content.filter(p=>p.type==="text").map(p=>p.text)).join("\n");expect(delivered).toContain("24 coherent frames, 6 deferred samples");expect(delivered).toContain("not a transcript/archive failure");expect(delivered).toContain("Synthetic current observation");}
+   const message=decisions===1?assistant({toolCalls:[toolCall("scene","observe",{})],stopReason:"toolUse"}):assistant({text:"fixture complete"});const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
+  };
+  const loop=piLoop({systemPrompt:"Offline scene fixture",tools,base:{model,convertToLlm:messages=>messages as import("@mariozechner/pi-ai").Message[]},governor,transformContext:recorder.transformContext,emit:recorder.emit,streamFn,signal:new AbortController().signal});
+  expect(await play(userText("Fixture"),governor,loop)).toBe("budget");recorder.end("budget");
+  const rows=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent),record=rows.find(e=>e.type==="tool_result");
+  expect(record?.type==="tool_result"?record.text:null).toBe(delivered);expect(action).toHaveBeenCalledTimes(1);expect(decisions).toBe(2);
+  expect(record?.type==="tool_result"?record.frames.length:0).toBe(1);
+  const output=process.env.POKEBENCH_SCENE_TEST_EXPORT;if(output!==undefined)cpSync(log.runDir,join(output,log.runId),{recursive:true,errorOnExist:true,force:false});
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

@@ -57,3 +57,13 @@ Adding a bundle switch changes the four `featureRecipe: "current"` definitions (
     - (2) and (3) Per-row fixture cost in the existing explainer-link `it.each` tests (server.test.ts, panels.test.ts). Kept as they are: this change adds one row to each, following the pattern of every explainer. Batching those shared fixtures is a separate refactor.
 - Known ordering (fallback, non-blocking): in live.ts, autoTalkContext wraps outside contextTools. A retained auto-talk message anchored to the same result follows the copy. This is by design: it is newer game evidence than the block.
 - Fix for (1) (coordinator, 11:49 PM NY): the recorded-copy key is now the result's seq. A replayed `ledger_context` whose text starts with the type-gap header marks its evidence seqs as already recorded. After a restore, the copy is still delivered but not recorded again. The new restore test failed with the fix removed and passes with it (10/10). The new file is at 100% statements, branches, functions and lines; `tsc --noEmit` is clean.
+- Round 2 at 27bcfbd78. Gates (11:53 PM NY): `just test` exit 0 (agent 4699, viewer 2162, Python 4466 + 102, floors, cards 3/3); `just lint` exit 0. Reviews: Claude LGTM, Sonnet LGTM, GPT BLOCKING on the two fixture-cost items only (third pass).
+- Fixture batching (coordinator, 12:01 AM NY, test-only):
+  - panels.test.ts "tracked explainer links": one Harness Config render with all ten switches on, then it.each per card.
+  - server.test.ts "tracked explainers": one staged temp tree and one viewer in beforeAll, removed in afterAll (no temp roots left), then it.each per explainer.
+  - Rows keep their names.
+  - Table time, panels: about 226 ms (10 renders, 18–32 ms each) → under 2 ms per row after one render.
+  - Table time, server: about 55 ms (10 viewer lifecycles) → about 1 ms per row.
+  - File wall time, panels.test.ts: 5.86 s → 5.48 s, 206 tests.
+  - File wall time, server.test.ts: 3.16 s → 2.24 s, 148 tests.
+  - `tsc --noEmit` clean.

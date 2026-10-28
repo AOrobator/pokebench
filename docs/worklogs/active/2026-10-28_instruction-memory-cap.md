@@ -40,6 +40,12 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 - [x] RED: checkpoint behaviour tests in `instruction-memory-cap.test.ts` (closes after the flag, not before; only episodes heard by then; any out-of-scope page keeps it; multi-milestone checkpoints need all).
 - [x] GREEN: `checkpointDone` (template, then checkpoint, then receipts and trainers). 13/13 plus 2/2. `rule_a2.py` reads the same table with its own logic. The replay is byte-identical again: a702 T700 12,976, T1301 15,923 (6,088 tokens); 88ea T400 13,307, T800 15,873. At a702 T1301 the checkpoints retire the POKéNAV tutorial (T634, T635, T663 by pokenav-match-call), the Devon goods theft and recovery (T580, T582, T614, T618, T620, T621 by devon-goods-recovery), WALLY's tutorial (T311, T312), the woods scene (T362) and DAD's stale BRAWLY line (T871 by dad-sends-to-dewford). MR. STONE's errand (T630) and MR. BRINEY's LETTER lines stay. 21 episodes closed by checkpoint; 31 of 112 kept.
 
+## Full-suite finding (first `just test`): 3 failures, all from registering this switch
+
+- `type-gap-last-message.test.ts` pinned its switch as `SWITCHABLE_FEATURES.at(-1)`, against the feature-switch rule to assert absolute position. Changed to "registered after gateway-schema-hint-v1".
+- `semantic-navigation-v2.test.ts` and `gym-evidence.test.ts` build all-on fixtures with milestone-instruction-memory-v1 OFF, so `needs: "milestone-instruction-memory-v1"` raised a dependency problem. Rather than edit other switches' fixtures, the cap now has `needs: null` and also bounds the unselected memory form (milestone-instruction-memory-v1 OFF) with the same whole-episode rule. That closes the other unbounded path as well.
+- [x] RED: legacy-form cap test and registry test.
+
 ## Milestone M1: switch + rule A′
 
 - [x] RED: `instruction-memory-cap.test.ts` (each step, budget fill, omission line, stale anchor, OFF and no-drop identity) and a factory test through `observedInstructions`. Fails: the module and switch do not exist yet.

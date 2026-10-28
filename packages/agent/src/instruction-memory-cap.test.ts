@@ -3,7 +3,8 @@ import type {RunEvent} from "./events.js";
 import {INSTRUCTION_MEMORY_CAP_CHARS,InstructionMemoryCap,codePoints,omittedLine,type CapEpisode,type CapRow} from "./instruction-memory-cap.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {observedInstructions} from "./observed-instructions.js";
-import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,ALL_ON,type FeatureSet} from "./features.js";
+import {flagFeatures} from "./play-preset.js";
 
 type Trainer={local_id:number;x:number;y:number;trainer_id:number;defeated:boolean;sprite_kind:string};
 interface StateOpts {seq:number;map?:[number,number];location?:string;position?:{x:number;y:number};facing?:string|null;badges?:string[];trainers?:Trainer[];connections?:[number,number][];keyItems?:string[];run?:string}
@@ -145,8 +146,8 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
  const stream=(n:number):RunEvent[]=>[state({seq:1,map:[0,19]}),...Array.from({length:n},(_,i)=>{const seq=10+i*2;return [
   ev({seq,turn:i+2,type:"dialogue_auto_advance",tool_call_id:`t${String(i)}`,tool:"press",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"FAR",map_id:[9,9],position:null,speaker:"MOM",speaker_source:"name_prefix",text:`MOM: episode ${String(i)} ${"y".repeat(400)}`}],stop:"field_control",detail:"",duration_ms:1}),
   ev({seq:seq+1,turn:i+2,type:"tool_result",id:`t${String(i)}`,name:"press",is_error:false,text:"Location: ROUTE104",state_seq:null})];}).flat()];
- const recorded=(n:number,on:boolean)=>{
-  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":true,"instruction-memory-cap-v1":on} as FeatureSet;
+ const recorded=(n:number,on:boolean,trim=true)=>{
+  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":true,"observed-field-dialogue-v1":true,"milestone-instruction-memory-v1":trim,"instruction-memory-cap-v1":on} as FeatureSet;
   const subs:((e:RunEvent)=>void)[]=[],records:string[]=[];
   const transform=observedInstructions(features,{subscribe:fn=>{subs.push(fn);},recordLedgerContext:body=>{records.push(body.text);}},m=>Promise.resolve(m));
   for(const e of stream(n))for(const fn of subs)fn(e);
@@ -166,5 +167,30 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
   for(const e of kept)expect(onText).toContain(`MOM: episode ${String(e.turn-2)} ${"y".repeat(400)}`);
   expect(onText.split("\n")[0]).toBe(offText.split("\n")[0]);
   expect(on.messages).toEqual([expect.objectContaining({role:"user",content:onText})]);
+ });
+ it("caps the unselected memory form too, keeping whole episodes, when milestone-instruction-memory-v1 is off",async()=>{
+  const [smallOff,smallOn]=await Promise.all([recorded(3,false,false),recorded(3,true,false)]);
+  expect(smallOn.records).toEqual(smallOff.records);
+  const [off,on]=await Promise.all([recorded(60,false,false),recorded(60,true,false)]);
+  const offText=off.records[0]??"",onText=on.records[0]??"";
+  expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(codePoints(onText)).toBeLessThanOrEqual(INSTRUCTION_MEMORY_CAP_CHARS);
+  const lines=onText.split("\n");
+  expect(lines[0]).toBe(offText.split("\n")[0]);expect(lines[1]).toMatch(/^\d+ earlier episodes are left out and remain in the run recording\.$/);
+  expect([lines[0],...lines.slice(2,4)]).toEqual(offText.split("\n").slice(0,3));
+  const turns=[...onText.matchAll(/^    turn: (\d+)$/gm)].map(m=>Number(m[1]));
+  expect(turns.length+Number(/^(\d+) earlier/m.exec(onText)?.[1])).toBe(60);expect(turns.at(-1)).toBe(61);
+  for(const t of turns)expect(onText).toContain(`MOM: episode ${String(t-2)} ${"y".repeat(400)}`);
+  expect(onText).toContain("observed_progress:");
+ });
+});
+
+describe("instruction-memory-cap-v1 registry",()=>{
+ it("is a default-off guard registered after type-gap-team-last-message-v1, needing nothing, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-cap-v1")).toBe(SWITCHABLE_FEATURES.indexOf("type-gap-team-last-message-v1")+1);
+  expect(featureInfo("instruction-memory-cap-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"INSTRUCTION MEMORY CAP"});
+  expect(featureInfo("instruction-memory-cap-v1").description).toContain(" Off: ");
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["instruction-memory-cap-v1"]).toBe(false);
+  expect(playHarnessFeatures({...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"instruction-memory-cap-v1":true} as FeatureSet,null)).toContain("instruction-memory-cap-v1");
+  expect(dependencyProblems({...ALL_ON,"milestone-instruction-memory-v1":false})).not.toContain("instruction-memory-cap-v1 needs milestone-instruction-memory-v1");
  });
 });

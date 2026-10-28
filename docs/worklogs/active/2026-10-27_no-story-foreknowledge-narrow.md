@@ -51,3 +51,4 @@ story-battle-heal-gate-v1 refusal (OFF in both arms), the DAD->NORMAN alias and 
 - GREEN COMMIT: `feat(observation): no-story-foreknowledge-v1 narrow: name story characters only once the game shows them` (97eed15cb)
 - M3: docs/explainers/no-story-foreknowledge-v1.html (themed, `just pages-check` silent), FEATURE_EXPLAINERS mapping, README line, server.test.ts explainer list; viewer panels+server 340/340. Copied to runs/mockups/no-story-foreknowledge-v1/; 8791 link 200; headless desktop 1280 and phone 390 screenshots, no page overflow.
 - Synced main 896088908 (type-gap-team, supplies, untalked-in-gym): conflicts only at append points; re-applied this switch after untalked-in-gym-v1.
+- Merged tip: main's type-gap-registry.test.ts pinned its three switches as the last three (slice(-3)); re-pinned them by position after context-exact-count-v1 (feature-switch skill: registry tests pin absolute positions, so a new switch edits no other switch's test).

@@ -262,7 +262,7 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
     turns: end?.type === "run_end" && typeof end["turns"] === "number" ? end["turns"] : null,
   };
   const config = configProblems(start, expect);
-  if (config.length > 0) return { valid: false, reason: `run_start does not match the plan: ${config.join("; ")}`, endReason: null, ...metrics };
+  if (config.length > 0) return { valid: false, reason: `run_start does not match the plan: ${config.join("; ")}`, endReason: end?.type === "run_end" ? String(end["reason"]) : null, ...metrics };
   if (end?.type !== "run_end") return { valid: true, reason: `${DIED} (exit ${exitText(exit)})`, endReason: null, ...metrics };
   const reason = String(end["reason"]);
   const verdict = (valid: boolean, why: string): FixedOutcome => ({ valid, reason: why, endReason: reason, ...metrics });

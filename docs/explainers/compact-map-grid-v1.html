@@ -170,7 +170,7 @@ Codes: E = ./Wa:puddle; F = g/Eg:g; J = ~/Wa:p/Lv:1; K = ./Br:reflection_below; 
 <figcaption>Only the highlighted box changes behavior. The switch needs map-observability-v1, because without it there is no observed-elements grid to recode.</figcaption></figure></div>
 
 <div class="card"><h2>Status</h2>
-<ul><li>Branch <code>claude/compact-map-grid</code>. Not landed and not active in any arm.</li>
+<ul><li>Branch <code>claude/compact-map-grid</code>. Not landed on main, so not in any run yet.</li>
 <li>Focused tests pass: 210 compact Python tests and the TS registry tests. Review round 1 found the negative-origin header bug, now fixed.</li>
-<li>Still to do: the activation commit (bundle ON, held for the operator's OK), the full gate (waiting for a CPU grant), and the three-lane review. No measured runs yet.</li></ul></div>
+<li>Activation is committed on the branch: <code>experiments/feature-configs/current.json</code> lists the switch in the bundle arm's <code>switches</code> (ON) and sets it false in the shared base (control OFF), per the operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.</li><li>Review and gates: three-lane review in progress; full gate on the frozen head under the relayed CPU grant. No measured runs yet.</li></ul></div>
 </main></body></html>

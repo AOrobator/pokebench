@@ -281,4 +281,4 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
 }
 const DIED = "no run_end: the play process died mid-run", GATEWAY = "model/gateway error: ", CRASH = "emulator or game server crash";
 // Operations only: after a trial that never began or whose infrastructure failed, the runner pauses the lane with backoff.
-export const laneBackoff = (o: FixedOutcome): boolean => !o.valid || o.reason.startsWith(DIED) || o.reason.startsWith(GATEWAY) || o.reason === CRASH;
+export const laneBackoff = (o: FixedOutcome): boolean => !o.valid || o.reason.startsWith(DIED) || o.reason.startsWith(GATEWAY) || o.reason.startsWith(CRASH);

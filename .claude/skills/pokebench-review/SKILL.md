@@ -23,11 +23,11 @@ All four personas share this base. The coordinator (you) collects it once, befor
    node .claude/skills/pokebench-review/frontier.mjs
    ```
 
-   It reads `http://127.0.0.1:8790/api/workbench`, validates it with the viewer's `parseWorkbench`, and ranks runs by the viewer's `FRONTIER_MILESTONES` (required story checkpoints, not optional catches or trainers). Screenshot-only splits never count, and excluded, invalid, probe, synthetic and replay runs are dropped. Each row gives milestone, minutes, model, preset, start, status and run id. It prints:
+   It reads `http://127.0.0.1:8790/api/workbench`, validates it with the viewer's `parseWorkbench`, and ranks runs by the viewer's `FRONTIER_MILESTONES` (required story checkpoints, not optional catches or trainers). Screenshot-only splits never count, and operator-excluded (`runs/exclusions/`), probe, synthetic and replay runs are dropped; flagged runs (crash, model error, invalid-trial notes) count like any other (the operator 2026-10-27). Each row gives milestone, minutes, model, preset, start, status and run id. It prints:
    - **Best valid new-game run**: exactly what the viewer's `frontierReferences` picks, from boot or the shared fast-text `MAIN_MENU` save. Say which: a `MAIN_MENU` start is not a fresh boot. `frontierReferences` ranks the two kinds together by minutes, but never say a run was faster than another across boot and `MAIN_MENU`, nor against the human boot reference.
-   - **Boot frontier**: the top ended power-on boot runs, in active minutes since New game. Only these count for readiness and records.
+   - **Boot frontier**: the top finished power-on boot runs (ended, or died without `run_end`), in active minutes since New game. Only these count for readiness and records.
    - **Checkpoint frontier**: ended runs resumed at `CLOCK_SET`, the only checkpoint series the viewer plots. Ranking starts after the resume point, as on the viewer chart. Times are minutes since the save loaded, so never compare them with boot or `MAIN_MENU` times or call a checkpoint run faster.
-   - **In progress** (live or paused) and **stalled** (unresponsive): shown so a run passing the frontier right now is not missed, but never counted.
+   - **In progress** (live or paused): shown so a run passing the frontier right now is not missed, and counted once it finishes. A run that died without `run_end` (unresponsive) is ranked with the finished runs.
    - **Human reference**: what `frontierReferences` picks, or "unavailable".
 
    The helper reflects the viewer build in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`, kept at `main`). If the subject changes the milestone axis or grading, also read `packages/viewer/src/frontier.ts` on the subject's commit and say where it differs.

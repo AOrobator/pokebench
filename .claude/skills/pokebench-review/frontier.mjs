@@ -41,8 +41,9 @@ const list = (label, runs, n) => {
 
 const refs = frontierReferences(wb.runs);
 console.log(`## best valid new-game run: boot or the fast-text MAIN_MENU save (viewer frontierReferences)\n${refs.best === null ? "unavailable" : line(refs.best, top(refs.best))}`);
-list("boot frontier: ended power-on boot runs only, active minutes since New game", wb.runs.filter(r => agent(r) && r.status === "ended" && r.config.start === "boot"), 5);
-list("checkpoint frontier: ended runs resumed at CLOCK_SET, minutes since the save loaded (never compare with boot times)", wb.runs.filter(r => agent(r) && r.status === "ended" && resumed(r)), 5);
+// How a run ended never removes it (the operator 2026-10-27): a run that died without run_end (unresponsive) still counts.
+const finished = r => r.status === "ended" || r.status === "unresponsive";
+list("boot frontier: finished power-on boot runs (ended, or died without run_end), active minutes since New game", wb.runs.filter(r => agent(r) && finished(r) && r.config.start === "boot"), 5);
+list("checkpoint frontier: finished runs resumed at CLOCK_SET, minutes since the save loaded (never compare with boot times)", wb.runs.filter(r => agent(r) && finished(r) && resumed(r)), 5);
 list("in progress, not counted: live or paused (save_state rows: minutes since the save loaded)", wb.runs.filter(r => agent(r) && shown(r) && (r.status === "live" || r.status === "paused")), 5);
-list("stalled, not counted: unresponsive (save_state rows: minutes since the save loaded)", wb.runs.filter(r => agent(r) && shown(r) && r.status === "unresponsive"), 5);
 console.log(`## human reference (viewer frontierReferences)\n${refs.human === null ? "unavailable" : line(refs.human, top(refs.human))}`);

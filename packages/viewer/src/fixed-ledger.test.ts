@@ -229,7 +229,7 @@ describe("classifyTrial", () => {
       expect(stopped).toMatchObject({ valid: true, reason: `ended by the operator (${reason}); progress before it counts`, endReason: reason, primaryReached: true });
       expect(laneBackoff(stopped)).toBe(false);
     }
-    for (const o of [died, gateway, crash]) expect(laneBackoff(o)).toBe(true);
+    for (const o of [died, gateway, crash, { ...crash, reason: `${crash.reason}; launcher reported: lost` }]) expect(laneBackoff(o)).toBe(true);
     expect(laneBackoff(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "budget" }); }))).toBe(false);
   });
 

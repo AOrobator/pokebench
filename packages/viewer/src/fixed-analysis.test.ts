@@ -104,7 +104,7 @@ describe("operator-stopped trials", () => {
     const aborted: AnalysisTrial = { ...trial(16, "A", "bundle", null, false), reason: "the operator stopped the trial (operator_abort)", endReason: "operator_abort", endMs: 1_000, furthest: "PETALBURG_GYM_ENTERED", furthestMs: 42_953_705 };
     const report = analyze([trial(2, "A", "control", null), aborted], ["A"]);
     expect(report.groups[0]).toMatchObject({ bundle: { n: 0 }, control: { n: 1 } });
-    expect(report.groups[0]?.mannWhitney.u).toBe(analyze([trial(2, "A", "control", null), aborted], ["A"]).groups[0]?.mannWhitney.u);
+    expect(report.groups[0]?.mannWhitney).toEqual(mannWhitney([], [depthThenTime(trial(2, "A", "control", null))]));
     expect(report.flagged.map(t => t.run)).toEqual(["r16"]);
     for (const text of [renderAnalysis(report, "x"), renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })]) {
       expect(text).toContain("| 16 | A | bundle | r16 | PETALBURG_GYM_ENTERED | 42953705 | the operator stopped the trial (operator_abort) |");

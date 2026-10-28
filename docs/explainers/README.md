@@ -328,3 +328,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Claude schema re-ask hint](gateway-schema-hint-v1.html): an anyOf/oneOf re-ask lists the forms generated from the tool schema; recorded switch, exact legacy OFF.
 
 - [Unique instruction memory](instruction-memory-dedup-v1.html): consolidates overlapping delivered instruction and place episodes without another task authority.
+
+- [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.

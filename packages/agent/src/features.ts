@@ -300,6 +300,7 @@ export const SWITCHABLE_FEATURES = [
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
   "instruction-memory-dedup-v1",
+  "pokenav-call-auto-advance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -720,6 +721,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("story-briefing-native-milestones-v1", "guard", "BRIEFING NATIVE MILESTONES", "loop-guard-supervisor-v1", "Default off. The loop and stall briefings skipped every extended story milestone (DEVON GOODS RECOVERED, STEVEN LETTER RECEIVED, POKENAV RECEIVED and the rest of the campaign catalog), so in bundle run a702 the stall briefings at turns 690, 693 and 704 quoted ROXANNE's turn-578 pages as the latest story step and listed nothing past the Route 104 trainers as done. With this switch, a story milestone the game recorded during the run from the extended catalog counts like the base ones for the briefings: \"Story steps the game confirms are done\" adds those steps after the readout's own checklist, and \"Dialogue shown with your latest story step that came with dialogue\" quotes the pages of the latest story step and of up to three earlier story steps that came with dialogue, newest first, each whole and in order. Optional activities are not story steps. Off: the briefings use only the base milestones and the readout's checklist, byte for byte as before."),
   on("retire-reached-story-line-v1", "observation", "RETIRE REACHED STORY LINE", "unfinished-activity-v1", "Default off. Bundle run a702 kept Dad's turn-312 line \"Head for RUSTBORO CITY beyond this town.\" at the top of every result for 90+ turns as \"Story line heard … Reached: RUSTBORO CITY\", after it had entered RUSTBORO CITY (turn 378) and beaten ROXANNE there (turn 578), and the model quoted it as its current goal. With this switch, a story line all of whose places the player has reached retires once the game observes a story milestone, or any step of the extended campaign catalog (a place reached such as DEWFORD TOWN, or an event such as STEVEN LETTER RECEIVED; The operator 2026-10-28), after the player has entered every place it names since the line (a battle won, another measurement-only step or an optional activity does not count; scoring is unchanged). It retires the way stale-story-goal-v1 retires a finished line: the Story goal line says the line is done, naming the place, the arrival turn and the milestone (with stale-story-goal-v2 the line is omitted), and the walk-away supervisor gets no goal from it. Dialogue history is unchanged and no replacement is invented. Needs unfinished-activity-v1, which records the arrivals. Off: a reached line stays in the header as \"Story line heard … Reached: …\"."),
   on("instruction-memory-dedup-v1", "guidance", "UNIQUE INSTRUCTION MEMORY", "delivered-place-evidence-v1", "Default off. Combines the existing instruction and person/place evidence projections into one compact block, with each selected delivered episode shown once by its original result reference. Keeps whole quotes, unknown speakers, source names and display names, dialogue/state references and current delivered progress. Existing milestone-proof retirement stays unchanged; arrival and age never complete a task. Inactive when instruction-goal-ledger-v1 replaces this memory owner. Off: the existing separate projections and all request bytes remain unchanged."),
+  on("pokenav-call-auto-advance-v1", "guidance", "POKéNAV CALL AUTO-ADVANCE", "pokenav-short-list-v1", "Default off; explicitly enabled in the current bundle. Advances verified Match Call text with ordinary A presses and preserves the call text. In the native forced tutorial, opens POKéNAV and MATCH CALL, calls the sole registered contact, and exits after the required call. Stops on unknown ownership, changed map/contact, unexpected menu, 50 presses or 90 seconds. Ordinary contact selection stays with the model. Off: no automatic PokéNav inputs or call-printer readout; existing results and prompts are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -812,6 +814,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "map-observability-v1",
   "type-gap-team-v1",
   "pokenav-short-list-v1",
+  "pokenav-call-auto-advance-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1098,6 +1101,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("story-briefing-native-milestones-v1"),
     ...when("retire-reached-story-line-v1"),
     ...when("instruction-memory-dedup-v1"),
+    ...when("pokenav-call-auto-advance-v1"),
   ];
 }
 
@@ -1108,5 +1112,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["pokenav-call-auto-advance-v1","cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

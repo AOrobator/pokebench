@@ -61,3 +61,13 @@ it("keeps nonselected active card progress source-bound across a generation rese
  const card=()=>document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent;
  expect(card()).toContain("Name ·");expect(card()).toContain("STORY2/");changed=true;await app.pollCurrent();expect(card()).not.toContain("Name ·");expect(card()).toContain("STORY0/");expect(app.view.tokens.input).toBe(500);
 });
+
+it("keeps a nonselected active trainer visible when its first persisted health check is unavailable",async()=>{
+ dom();const f=currentFixture(),other=currentFixture({run:RUN+"-unresponsive",healthy:false});
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{
+  if(url==="/sprites/manifest.json")return Promise.resolve({version:1,tiers:["green","bronze","copper","silver","gold"],trainers:["may"],icons:[280,412],egg:412});if(url.startsWith("/sprites/"))return Promise.reject(new Error("Optional fixture art"));
+  return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[f.summary,other.summary]}):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]}):new Promise(()=>{}));
+ },sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);await app.pollCards();
+ expect(other.summary.run.status).toBe("unresponsive");const cards=[...document.querySelectorAll('[data-ui="run-cards"] [data-watch]')].map(node=>node.getAttribute("data-watch"));expect(cards.sort()).toEqual([RUN,other.snapshot.id].sort());
+ expect(document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent).toContain("MAY");
+});

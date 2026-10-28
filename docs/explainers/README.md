@@ -318,6 +318,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Supplies](supplies-v1.html) — money, balls, healing items, party size and where this map sells things, on arrival.
 - [Untalked people in gym](untalked-in-gym-v1.html) — people on a gym map not talked to this run, first in the result.
 - [Gym type gap, last message](type-gap-team-last-message-v1.html) — the same gym type block repeated as the request's final message.
+- [Instruction memory cap](instruction-memory-cap-v1.html) — the OBSERVED INSTRUCTION MEMORY block held at 16,000 characters, whole episodes chosen by game memory.
 
 - [Advisory instruction goals](instruction-goal-advisory-v1.html) — Keep memory. Let gameplay continue.
 - [Goal review repair feedback](goal-review-repair-feedback-v1.html) — Show the invalid field and real references.

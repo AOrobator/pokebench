@@ -156,6 +156,7 @@
   "story-briefing-native-milestones-v1",
   "retire-reached-story-line-v1",
   "type-gap-team-last-message-v1",
+  "instruction-memory-cap-v1",
   "player-map-visibility-v1"
  ],
  "features": {
@@ -445,6 +446,7 @@
   "retire-reached-story-line-v1": true,
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
+  "instruction-memory-cap-v1": true,
   "player-map-visibility-v1": true
  }
 }

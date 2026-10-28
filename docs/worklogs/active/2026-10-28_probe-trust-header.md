@@ -84,6 +84,19 @@ Round 3, frozen head f26a155e2 (cumulative sha256 170103b9…170e9d; delta 275db
   - the test harness shares its deferral rule with the code under test, where a recorder-driven test would pin it.
 - Open before landing: full `just test` (CPU window).
 
+## M2 — --recorded-trim (coordinator brief 2026-10-28 02:14Z)
+
+The plan A GPU window (10:12:02 to 10:14:21 PM) produced no samples: llama.cpp rejected every request (78–105k tokens against a 65,536-token context). The probe rebuilt the history with today's message window and never applied the run's context-token-budget-v1. At T633 it rebuilt 27 messages and 19 images, where a702 had sent 8 and 13. No earlier note or doc covers this (searched for probe-replay-context-budget: none).
+
+- `--recorded-trim` (opt-in) uses the run's turn_start context, which the live recorder measures at the innermost context transform, after the window, budget and loop warning. The probe gives its transform chain a measuring innermost step in the same place. It then drops whole turns from the oldest, as ContextBudget does, until the request measured there has the recorded message and image counts. When no cut matches, it fails hard with every cut's measured counts. The report adds the recorder-position size and judges fidelity on it.
+- a702 rehearsal (context-only), measured at the recorder position against what was recorded:
+  - T633: 8 msgs / 13 imgs / ~27231 tokens vs 8 / 13 / ~27226;
+  - T694: 6 / 7 / ~26670 vs 6 / 7 / ~26669;
+  - T705: 11 / 7 / ~36263 vs 11 / 7 / ~36260;
+  - T726: 7 / 6 / ~23811 vs 7 / 6 / ~23809.
+  Each final request carries the outer transforms' one extra message, which a702's model also received. With the switches ON, the context differs only in the re-derived header messages.
+- Tests: probe-recorded-trim.test.ts has 6 tests: cut, no-trim, refusal with delta, flag, report, and decisionContext integration. Removing the measuring innermost step turns the integration test red. Probe suites: 11 files, 143 passed. tsc and eslint clean.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

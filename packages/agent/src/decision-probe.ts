@@ -76,6 +76,8 @@ export interface DecisionContext {
   readonly messages: readonly Message[];
   readonly tools: readonly Tool[];
   readonly size: ContextSize;
+  /** --recorded-trim: the request measured where the run's recorder measured it (its turn_start context). */
+  readonly recorderSize?: ContextSize;
 }
 
 // The model-facing text of every recorded tool result, re-derived under `features`.
@@ -173,9 +175,9 @@ const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context"
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
-export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
+export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string, innermost: (m: AgentMessage[]) => Promise<AgentMessage[]> = (m) => Promise.resolve(m)): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
-  const context = contextTools(features, recorder, (m) => Promise.resolve(m),cutOff);
+  const context = contextTools(features, recorder, innermost, cutOff);
   const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert, sceneEvents: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
   return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
 }
@@ -301,7 +303,26 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
   }
 }
 
-export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false): Promise<DecisionContext> {
+// --recorded-trim: the run's context-token-budget-v1 dropped its oldest assistant turns to fit the model's window, and
+// turn_start recorded the request at the innermost context transform, where the live recorder sits. The probe measures
+// at the same place: whole turns are dropped the same way until the request measured there has the recorded message and
+// image counts. A rebuild no cut matches is refused with the delta, so a probe never samples a context the run did not send.
+export async function trimToRecorded(messages: readonly AgentMessage[], warning: string | null, recorded: ContextSize, measure: (kept: AgentMessage[]) => Promise<ContextSize>): Promise<AgentMessage[]> {
+  const [task, ...rest] = messages;
+  if (task === undefined) throw new Error("--recorded-trim: the rebuilt history is empty");
+  const withWarning = (kept: AgentMessage[]): AgentMessage[] => (warning === null ? kept : [...kept, { role: "user", content: warning, timestamp: 0 }]);
+  const starts = [0, ...rest.flatMap((message, i) => (i > 0 && message.role === "assistant" ? [i] : []))];
+  const seen: string[] = [];
+  for (const start of starts) {
+    const kept = [task, ...rest.slice(start)];
+    const size = await measure(withWarning(kept));
+    if (size.messages === recorded.messages && size.images === recorded.images) return kept;
+    seen.push(`${String(size.messages)}/${String(size.images)}`);
+  }
+  throw new Error(`--recorded-trim: no whole-turn cut of the rebuilt request matches the recorded one (${String(recorded.messages)} messages, ${String(recorded.images)} images); cuts measured messages/images ${seen.join(", ")}`);
+}
+
+export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false, recordedTrim = false): Promise<DecisionContext> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
   if (target === undefined) throw new Error(`turn ${String(turn)} has no turn_start in this run`);
@@ -348,7 +369,10 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"],features);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
-  const wiring = probeTools(features, replay,cutOff);
+  // --recorded-trim measures each candidate request where the live recorder sat: the innermost context transform.
+  const recorderView: { size: ContextSize | null } = { size: null };
+  const lastMeasured = (): ContextSize | null => recorderView.size;
+  const wiring = probeTools(features, replay, cutOff, (m) => { recorderView.size = contextSize(m.filter(isMessage)); return Promise.resolve(m); });
   for (const e of prior) {
     if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }
@@ -356,10 +380,13 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   }
   replay.upcoming = target.turn;
   const warning = detector.context();
-  const windowed = slideWindow(history, wiring.window);
+  const slid = slideWindow(history, wiring.window);
+  const windowed = recordedTrim ? await trimToRecorded(slid, warning, target.context, async (kept) => { recorderView.size = null; await wiring.transform(kept); const size = lastMeasured(); if (size === null) throw new Error("--recorded-trim: the context transform never reached its innermost step"); return size; }) : slid;
   if (warning !== null) windowed.push({ role: "user", content: warning, timestamp: 0 });
+  recorderView.size = null;
   const messages = (await wiring.transform(windowed)).filter(isMessage);
-  return { turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages) };
+  const recorderSize = recordedTrim ? lastMeasured() : null;
+  return { turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
 }
 // The guard text in context at `turn` (LoopDetector.context over the recorded notices), then the
 // pinned hint and this turn's ledger and navigation memory, in the order the wiring appended them.

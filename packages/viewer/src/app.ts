@@ -21,7 +21,7 @@ import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
 import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type GlyphSheet } from "./game-font.js";
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
-import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
+import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
@@ -217,6 +217,7 @@ export class App {
   private currentCatalogTask:Promise<void>|null=null;
   private currentRunStamp="";
   private currentRecordedWorkbench:WorkbenchData|null=null;
+  private currentSavedCardOwner:{run:string|null;epoch:string|null;generation:string|null}|null=null;
   private recording:RunView|null=null;
   private runs: RunChoice[] = [];
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
@@ -655,7 +656,10 @@ export class App {
 
   private currentChanged(state:Readonly<CurrentBrowserState>|null):void {
     if(state===null||this.current===null)return;const now=this.deps.now();
-    const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs)if(state.selected===s.id||!recorded.has(s.id)||s.run.status!=="ended")recorded.set(s.id,{...s.run,elapsedMs:s.run.elapsedMs===null?null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+    const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs)if(state.selected===s.id||!recorded.has(s.id)||s.run.status!=="ended"){
+      const saved=this.savedCurrentCard(s.id,s.generation),fallback=!s.complete&&s.run.card==null?saved:null;
+      recorded.set(s.id,{...s.run,...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+    }
     this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:[...recorded.values()]};
     const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;
     if(state.selected!==null){
@@ -665,7 +669,7 @@ export class App {
       if(snapshot!==null&&snapshot!==this.currentApplied){
         if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
-        if(first){void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+        if(first){if(!snapshot.complete)void this.loadWorkbench();void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
         const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
@@ -693,15 +697,22 @@ export class App {
     return this.artLoad;
   }
 
+  private savedCurrentCard(run:string,generation:string):WorkbenchRun|null {
+    const owner=this.currentSavedCardOwner;if(owner?.run!==run||owner.epoch!==this.current?.state.epoch||owner.generation!==generation)return null;
+    return this.currentRecordedWorkbench?.runs.find(row=>row.id===run&&row.card!=null)??null;
+  }
+
   private loadWorkbench(): Promise<void> {
-    const selected = this.runId;
+    const selected = this.runId,epoch=this.current?.state.epoch??null,generation=this.current?.state.snapshot?.generation??null;
     if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
     this.workbenchSelection = selected;
     const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
       .then((value) => {
         if (this.runId !== selected || this.workbenchLoad !== load) return;
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
-        if(this.current!==null){this.currentRecordedWorkbench=next;this.currentChanged(this.current.state);return;}
+        if(this.current!==null){if(this.current.state.epoch!==epoch||(this.current.state.snapshot?.generation??null)!==generation)return;
+          this.currentSavedCardOwner={run:selected,epoch,generation};
+          this.currentRecordedWorkbench=this.current.state.selected===null?next:{...next,milestones:[],runs:next.runs.filter(run=>run.id===selected).map(run=>{const display={...run,splits:[],excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))
@@ -719,7 +730,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    if(this.current!==null){await Promise.all([this.loadArt(),...(this.current.state.selected===null&&this.runId!==null?[this.loadWorkbench()]:[])]);this.render();return;}
+    if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null&&(this.current.state.selected===null||this.current.state.snapshot?.complete!==true)?[this.loadWorkbench()]:[])]);this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
@@ -1648,7 +1659,8 @@ export class App {
     const sheetBody = this.ui("run-sheet-body");
     const sheetCards = sheetBody.querySelector(".rs-cards");
     if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
-    const cardStatus = this.artProblem ? "Trainer card artwork unavailable. Retrying…" : this.cardsProblem ? (cards.length > 0 ? "Trainer card updates unavailable. Retrying…" : "Trainer cards unavailable. Retrying…") : cards.length === 0 && this.runId !== null ? "Loading trainer cards…" : "";
+    const savedCard=this.current?.state.snapshot;const showingSaved=savedCard!==null&&savedCard!==undefined&&!savedCard.complete&&savedCard.run.card==null&&this.savedCurrentCard(savedCard.id,savedCard.generation)!==null;
+    const cardStatus = showingSaved?"Showing last-known trainer card while current data loads.":this.artProblem ? "Trainer card artwork unavailable. Retrying…" : this.cardsProblem ? (cards.length > 0 ? "Trainer card updates unavailable. Retrying…" : "Trainer cards unavailable. Retrying…") : cards.length === 0 && this.runId !== null ? "Loading trainer cards…" : "";
     for (const status of [this.doc.querySelector<HTMLElement>('[data-ui="card-status"]'), sheetBody.querySelector<HTMLElement>("[data-card-loading]")]) {
       if (status === null) continue;
       status.textContent = cardStatus;

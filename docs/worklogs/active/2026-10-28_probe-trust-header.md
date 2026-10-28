@@ -72,6 +72,18 @@ Round 2, frozen head 06ce8ac1b:
   2. Test setup did repeated whole-stream scans, and the Python feature loop made two ROM reads. Fixed: states are indexed once per replay; the walk-away test replays once and checks the noted result kept alone (still red without the all-results fix); the displayed-names behavior is tested on `places()` directly, with one real `main()` adapter call.
 - Claude (opus): VERDICT: BLOCKING, B3, ACCEPTED. The probe let HarnessTrust see a result's own after-state before deriving its header, but the recorder writes that state after the wrapped tool returns. In a702, 87 headed results are first arrivals on a map, e.g. seq 1111 at T61. Fixed: events from a result's `state_seq` up to the result are observed after its header is derived. The test harness's production replay uses the recorder's order, and a new arrival test (walk whose own after-state is the first in the LAB) goes red without the fix. Rehearsal: OFF re-derived equals recorded at a702 T62, T63, T215, T332, T633, T705 and T717. Hardening noted: `seen` is the joined body, which only matters with input-cuts-v1 plus story-destinations-v1 (off in a702).
 
+Round 3, frozen head f26a155e2 (cumulative sha256 170103b9…170e9d; delta 275db3ab…5e4e5):
+- Codex gpt-5.6-sol: VERDICT: LGTM.
+- Claude (opus): VERDICT: LGTM. It checked against recorder.ts that a result's after-state and its milestones are one synchronous unit after the tool returns, and that this layout predates harness-trust-v1. Removing the deferral alone turns 2 tests red.
+- Fallback (sonnet): VERDICT: LGTM.
+- All three lanes are LGTM on f26a155e2 (Grok out of Cursor usage; Claude+GPT+fallback roster).
+- DEFERRED as non-blocking:
+  - a leftover debug `console.log` in the arrival test;
+  - no explicit omit-empty-goal ↔ recorded-no-goal test;
+  - no direct tests for the shared or missing state_seq branches;
+  - the test harness shares its deferral rule with the code under test, where a recorder-driven test would pin it.
+- Open before landing: full `just test` (CPU window).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

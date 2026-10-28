@@ -220,3 +220,7 @@ The operator, 2026-10-28 ~7:51 AM ET ("sure", relayed): build the delivery prefl
   - overrides on: PASS (299/299, 300/300, 299/299, 254/254)
   - --allow-off: PASS with off_checks recorded
 - 114 tests pass, coverage 99.03/95.88/100.
+- Review round 2 (packet 53953e61, head 08592b7a6): Claude LGTM, fallback LGTM, Codex BLOCKING on two points.
+  1. Fixed: `off_checks` were trusted as written. The receipt now needs typed `preset_switches` (all three switches, booleans), and `off_checks` must equal exactly what those switches and the overrides imply, empty unless `allow_off`. no_echo can never be skipped. There's an adversarial test.
+  2. Rebutted, with one small concession: "per-row production persistence". The preflight deliberately drives the real `Gateway.answer` (request, screenshot, call and session writes, recorded-feature reads), because that path is what it proves; a pure prompt-builder seam would skip the code that failed in f60d. Per-row cost is linear and bounded (300 requests in about 5 s). Test receipt construction is now cached once per test module.
+- Live receipts re-run on the new build: overrides-on PASS, allow-off PASS, auto FAIL. 115 tests pass, coverage 99.03/95.93/100.

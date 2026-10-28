@@ -1,6 +1,8 @@
 """The delivery preflight on reduced real requests, and the gateway's refusal without a receipt."""
 
+import functools
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -88,8 +90,15 @@ def test_preset_without_features_reads_all_off(tmp_path: Path) -> None:
     assert preflight.preset_features(path) == dict.fromkeys(preflight.SWITCHES, False)
 
 
+@functools.cache
+def _generated() -> str:
+    with tempfile.TemporaryDirectory() as name:
+        made = preflight.run_preflight(BUNDLE, preset(Path(name), True), AUTO, lambda s: None)
+    return json.dumps(made)
+
+
 def make_receipt(tmp_path: Path, **change: object) -> Path:
-    receipt = preflight.run_preflight(BUNDLE, preset(tmp_path, True), AUTO, lambda s: None)
+    receipt = json.loads(_generated())
     receipt.update(change)
     path = tmp_path / "receipt.json"
     path.write_text(json.dumps(receipt))
@@ -232,3 +241,17 @@ def test_one_bench_for_the_whole_preflight(tmp_path: Path, monkeypatch: pytest.M
     monkeypatch.setattr(preflight.Bench, "__init__", counting)
     preflight.run_preflight(BUNDLE + AACFF, preset(tmp_path, True), AUTO, lambda s: None)
     assert len(made) == 1
+
+
+@pytest.mark.enforce_preflight
+def test_off_checks_must_be_exactly_what_the_switches_imply(tmp_path: Path) -> None:
+    config = cg.parse_args(session_args(tmp_path, make_receipt(tmp_path)))[0]
+    gateway = Path(cg.__file__)
+    every = ["tool_result", "schemas", "no_echo", "hint"]
+    forged = make_receipt(tmp_path, allow_off=True, off_checks=every, totals={})
+    assert "off_checks" in str(preflight.receipt_problem(forged, config, gateway))
+    unswitched = make_receipt(tmp_path, allow_off=True, off_checks=["schemas"])
+    assert "off_checks" in str(preflight.receipt_problem(unswitched, config, gateway))
+    for switches in (None, {}, dict.fromkeys(preflight.SWITCHES, "yes")):
+        bad = make_receipt(tmp_path, preset_switches=switches)
+        assert "preset_switches" in str(preflight.receipt_problem(bad, config, gateway))

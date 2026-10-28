@@ -22,7 +22,7 @@ import hashlib
 import json
 import sys
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -83,7 +83,7 @@ CHECK_SWITCH = {
 }
 
 
-def switches_off(features: dict[str, bool], overrides: dict[str, str]) -> list[str]:
+def switches_off(features: Mapping[str, bool], overrides: Mapping[str, str]) -> list[str]:
     """The checks whose switch this launch would run OFF (override, else the preset)."""
     off = []
     for check, (option, switch) in CHECK_SWITCH.items():
@@ -243,8 +243,18 @@ def receipt_problem(receipt: Path, config: cg.Config, gateway_path: Path) -> str
     requests, failures, totals = data.get("requests"), data.get("failures"), data.get("totals")
     if not isinstance(requests, int) or requests < 1 or failures != []:
         return "preflight receipt has no requests or lists failures"
-    off = data.get("off_checks")
-    skipped = off if isinstance(off, list) and data.get("allow_off") is True else []
+    switches = data.get("preset_switches")
+    if (
+        not isinstance(switches, dict)
+        or set(switches) != set(SWITCHES)
+        or not all(isinstance(v, bool) for v in switches.values())
+    ):
+        return "preflight receipt has no valid preset_switches"
+    implied = switches_off({str(k): v for k, v in switches.items()}, want)
+    allow = data.get("allow_off")
+    skipped = implied if allow is True else []
+    if data.get("off_checks") != skipped:
+        return f"preflight receipt off_checks {data.get('off_checks')} differ from {skipped}"
     for check in CHECKS:
         if check in skipped:
             continue

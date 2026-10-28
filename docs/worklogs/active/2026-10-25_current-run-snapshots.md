@@ -180,7 +180,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [ ] Multi-model review against startup/backfill contract and all affected invariants.
 
 **M5 - Card-store handoff and authorized rollout (tracked by this worklog):**
-- [ ] Contract freeze: controlled migration from dependency cards-v1, exact one-writer mode, preserved legacy rollback path, operator-authorized staged activation only. Owner: derived snapshot service after handoff. No active-run change or grading migration.
+- [x] Contract freeze: controlled migration from dependency cards-v1, exact one-writer mode, preserved legacy rollback path, operator-authorized staged activation only. Owner: derived snapshot service after handoff. No active-run change or grading migration.
 - [ ] Terminator: native parity, restart/browser proof, performance/resource receipt, explicit rollout decision, queued landing/main gates and authorized activation with process continuity. Accept initial unindexed historical rows as explicitly indexing; never claim instant reconstruction of unseen history.
 - [ ] Split triggers: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
 - [ ] Tests: read-only import accepts display fields only, rejects foreign/truncated/replaced sources; no imported totals/checkpoints/grade status; old/new mode never write card persistence concurrently; rollback restores prior mode without source mutation.
@@ -188,7 +188,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [ ] Implement reviewed handoff/configuration and rollout runbook. Legacy cache is not rewritten or deleted by migration; its reader is transitional and has a documented retirement follow-up.
 - [ ] Adversarial deletion; offline rollout/rollback rehearsal; full gates, coverage, protected cards and required multi-model review.
 - [ ] COMMIT: `feat(viewer): add controlled snapshot rollout and card handoff` (GREEN; SHA pending).
-- [ ] STOP: obtain explicit activation authorization; follow rollout below. Approval to implement alone does not clear this stop.
+- [x] Activation authorization received directly: service/viewer activation allowed after readiness; final behavior normal/default with no public or bundle switch. Fresh run/owner checks still required.
 
 ## Closing the Loop
 
@@ -538,3 +538,5 @@ M4 R3 closeout: base6cffebd98/head9f82e68fa/digestbbcd7468...9c113; Claude/GPT/S
 Joined board with actual chat 00000000-0000-4000-8000-5c2156fb325f at14:52EDT, #1. Canonical clean main FF-only6cffebd98 ->9f82e68fa31717ff604b157d95331c1c1d6e9187, exactly reviewed source. Required canonical build21.28s and one full coverage just-test152.51s PASS; start/end HEAD same9f82e68fa, receipt m4-main-gates.json/logs. Counts4874agent/2282viewer/4869Python/116gateway/3protectedcards; all coverage floors. CPU released immediately; this is the single allowed docs/worklogs-only evidence commit, then land-done promptly.
 
 M4 source is landed but staging remains inactive/default OFF; final normal/default/no-switch startup, exact card writer handoff, lifecycle/performance/runbook and actual service/viewer activation are M5. Direct human activation/refresh and B1 scope approvals remain valid; no new permission needed. No shared viewer refresh or actual-root service/game/GPU action by this chat. Preserve current GPU0 run and freshly recheck processes/owner/nonblocking prepare lock before eventual authorized rollout. M4 live-surface integration proof deferred to coherent final M5 activation; no whole-plan/live claim.
+
+M5 begins on isolated codex/current-run-snapshots-rollout from52a565418. Immutable task-specific boundary m5-boundary.md maps default wiring, explicit readonly legacy-card handoff, fresh/empty/historical/replay behavior, bounded current-first startup and existing grading availability, new service-only launchd lifecycle/pinned cache preparation/lock, original native performance/resource/runbook and final authorized activation to approved M5/user requests. No game/agent process supervision changes, new public endpoint/dependency/harness switch/grade authority, protected design or timeline addition. Starting RED with normal CLI DB-path consumer contract; no M5 runtime activation.

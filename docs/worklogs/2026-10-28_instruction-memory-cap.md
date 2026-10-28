@@ -177,3 +177,10 @@ Full gate on 9bf64f942, under the CPU grant relayed 12:01 PM NY, with POKEBENCH_
   - trainer-card-check: 3 passed
 
 Review: Claude and the fallback reviewer gave LGTM. Codex's last points are answered by the regression test (ccee19a57) and this exact-head gate.
+
+## Landed
+
+- Main moved fast-forward d361c8af1 → 780154405 through the land board (number 1 at 12:2x PM NY, after the land-keeper moved the stale type-gap slot).
+- Post-landing on main: `just build` clean. `just test`: agent 4,778, viewer 2,214, env 4,601, claude-gateway 116, trainer cards 3/3, all coverage gates ≥90.
+- `just viewer-main`: the viewer is at 780154405 and the live run 88ea kept running. `/explainers/instruction-memory-cap-v1.html` returns 200.
+- Archived on landing at the coordinator's instruction (2026-10-28).

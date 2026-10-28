@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M4 (GREEN source, independent review pending; M5 unstarted; activation/refresh held)
+## Current Milestone: M4 (round2 corrected gates/review pending; M5 unstarted; activation/refresh authorized after readiness)
 
 ### Completed Milestones
 
@@ -500,3 +500,5 @@ M4 F1 correction: disconnected non-older head replaces prior interval and adopts
 M4 R2 cursor evidence checkpoint: focused current-browser/App42 tests PASS1.46s (m4-r2-cursor-operands.log). Added independent overlapping head overflow cursor assertion; prepared44 unique exact-one-target mutations, not yet executed. No further production change beyond committed disconnected-head correction. Native reset fixture now uses parser-validated numeric frame path; prior failed proof remains retained. Awaiting explicit short CPU START behind urgent live-run protection.
 
 Operator authorization amendment (direct human, 2026-10-28): “u can activate and refresh the viewer, nothing is running”. This supersedes the earlier activation/shared-refresh hold after implementation/gates/review/landing. Human also specifies normal overall behavior with no bundle/feature switch. Final M5 will own default wiring, service lifecycle and card writer handoff; M4 frozen opt-in staging boundary is unchanged. Verify run inactivity again immediately before actual process changes and coordinate the single 8790 refresh. Activation/live proof remains pending.
+
+M4 native R2 prototype PASS on fresh c8 production build: already-open genuine source generation plus rebuilt-store epoch5.61s; actual trace hold/resume/new opaque cursor recovery2.33s. CPU released immediately09:22EDT. Old held history/detail replies cannot restore prior party/current frame ownership; real history5,6 reachable after head7,8, current input7500/turn2 unchanged. Receipts m4-r2-prototype.json and native reset/held JSON;3 screenshots opened. First generation screenshot caught prior green raster despite new purple blob hash, so final proof now also waits native SVG presented-frame event and compositor frames before capture; this is required visual proof refinement, not a new source fix or claimed prior purple-pixel observation. Full final gates will rerun both native scripts after new build.

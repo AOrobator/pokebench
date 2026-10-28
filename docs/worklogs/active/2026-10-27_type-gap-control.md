@@ -12,12 +12,12 @@ Evidence (runs/probes/type-gap-team-20261027, GPU1 b10236, d41e/9e33 settings): 
 
 ## Fixed definitions whose hash changes (re-approval needed)
 
-They use `featureRecipe: "current"`; every other definition under experiments/fixed/ keeps its hash. Hashes are against main d641b8dc9 (after the no-story-foreknowledge-v1 pin, which also moved these four).
+They use `featureRecipe: "current"`; every other definition under experiments/fixed/ keeps its hash. Hashes are against main 713bfa541 (after the gateway-current-turn-v1 pin, which also moved these four).
 
-- `bundle-v-control-2h`: `e0376bed8603637eae6e51d5ac77a52866a59b73fa1b47b8d7206dcee93445c5` → `d29d147be10dbd8b4df30c73ed8ee618c28cab0dce5f4a3d1c03519d17b1f00e`
-- `bundle-v-control`: `33ae2aafebd1c3ecca18e9753f811c7309ada0ee3919708394ecd01717e5f55b` → `f4fbefb43df4bed4f0200cd8cf3c6d7d8eea82d41c24101ef0b631597b112493`
-- `glm53-flash-4h`: `ce63c4f7de17d2c4bfce6f7a3efc8af254313dca26e92443c259d615b9af9893` → `4edb8f0cd88bc616c1e49aede00dade92b8cf74c7c829d5d5a52df231531b56a`
-- `hyperqwen-control-3h`: `e046349acf0c63685acabd2ff742bdd5dec82a85399b5a6f953a5a32f07b5937` → `6cca17fbce273b26b1d9ead3fb34f03bcb0c8660070fdf8bb82c4cba871a24de`
+- `bundle-v-control-2h`: `3df4acd1f983662420ae88e7e17b6e2b7fad8a4082ce030ebedd52d9669769dd` → `816f792a222d4c619ecb8160d7588c4344b2a1e2f716ef99289cca217d2890ff`
+- `bundle-v-control`: `54f42006ed068cc82fdaafe71bff7720b22ad63663f198defb0bcd9b83caaebc` → `76826447f1b5b41bc0ccc80a0079d2781a0857c70cd3ec302960e99cd10ac5bf`
+- `glm53-flash-4h`: `b1cd99e026d6dcf009a3a8d36a48e6c5cf1d65136db0d831d7e34ed2250fb7fe` → `ab9cd7e3367a93237399b364d0a2d0913be3c23db49c372a374c96e36d4b68b9`
+- `hyperqwen-control-3h`: `d9122bfb45a9c4590c97b16b5521e6e6de815b70395b68ca68df64662b0704cd` → `f11454f7ec25f717aee4ec770f866903d4d23185f8ef85591f3a8c1f48f25d0e`
 
 Live run a702 runs from its pinned checkout and is not touched.
 
@@ -30,3 +30,5 @@ At 248ce5d53 (CPU window 9:29 PM NY): `just test` exit 0 (agent 4643, viewer 210
 - Round 1 (base fd621a45d): Claude LGTM, fallback LGTM, GPT BLOCKING on process only (probe evidence path; exact-head gates). Fixed with an evidence index (absolute paths, SHA-256) and exact-head gates.
 - Round 2 (base bb32b94c4, head 4d2509af9, packet 86daa633…, byte-identical change): Claude LGTM, fallback LGTM, GPT LGTM after the exact-head gate receipts (`just test` exit 0, `just lint` exit 0 at 4d2509af9).
 - At the land turn main had moved to d641b8dc9 (no-story-foreknowledge-v1 pin, which also edits current.json); slot released. Rebased: one conflict at the end of `onInBoth`, resolved keeping main's no-story-foreknowledge-v1 and adding type-gap-team-v1 after it. The change is still only type-gap-team-v1 moving to onInBoth (base true); needs new gates and a review round at the new head.
+- Round 4 (base d641b8dc9, head 2c709683c): Claude LGTM, fallback LGTM, GPT LGTM (round4b, with exact-head gates: `just test` exit 0, agent 4663, viewer 2154, Python 4463 + 69, trainer cards 3/3; `just lint` exit 0).
+- Main then moved to 713bfa541 (gateway-current-turn-v1 pin, which also appends to `onInBoth` and `features` in current.json). Rebased: the same one-line conflict at the end of `onInBoth`, resolved keeping gateway-current-turn-v1 and adding type-gap-team-v1 after it. Change unchanged in substance; needs gates and a review round at the new head.

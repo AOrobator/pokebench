@@ -12,15 +12,21 @@ Evidence (runs/probes/type-gap-team-20261027, GPU1 b10236, d41e/9e33 settings): 
 
 ## Fixed definitions whose hash changes (re-approval needed)
 
-They use `featureRecipe: "current"`; every other definition under experiments/fixed/ keeps its hash.
+They use `featureRecipe: "current"`; every other definition under experiments/fixed/ keeps its hash. Hashes are against main d641b8dc9 (after the no-story-foreknowledge-v1 pin, which also moved these four).
 
-- `bundle-v-control-2h`: `f939f403c8bb80ef6ccf9ddc348c8d1167cbc475d6d0c298f6164e07db498906` → `c4f745ef2338d680bcccb39161f4ae5fdf2af3c4e20cdf1def49354ffbe020bf`
-- `bundle-v-control`: `6720e1fcdc16c1e4e5e67d8caad7fbb2b22c20128d126d7a623fea07aa36bf2b` → `3bd02b9afe7816fd24d886c032fba715362b987409293e702a584db9cc9c43a4`
-- `glm53-flash-4h`: `87fe4cb976a9c93898cf20a63114a6eb9c6774c16b01d7645a07c7bc75a5131e` → `663dad47a588faabbe90066a1736bef57407445f2a570655c531df960d1ad9c4`
-- `hyperqwen-control-3h`: `356847041a6d5ca3ccb4438270d29244dbee4c6d1727e140afb9585d7b266901` → `92b2231dd56320ed00cb45c2f87f8f5ed9d37edc4c3a7dc81fe941651921bd8d`
+- `bundle-v-control-2h`: `e0376bed8603637eae6e51d5ac77a52866a59b73fa1b47b8d7206dcee93445c5` → `d29d147be10dbd8b4df30c73ed8ee618c28cab0dce5f4a3d1c03519d17b1f00e`
+- `bundle-v-control`: `33ae2aafebd1c3ecca18e9753f811c7309ada0ee3919708394ecd01717e5f55b` → `f4fbefb43df4bed4f0200cd8cf3c6d7d8eea82d41c24101ef0b631597b112493`
+- `glm53-flash-4h`: `ce63c4f7de17d2c4bfce6f7a3efc8af254313dca26e92443c259d615b9af9893` → `4edb8f0cd88bc616c1e49aede00dade92b8cf74c7c829d5d5a52df231531b56a`
+- `hyperqwen-control-3h`: `e046349acf0c63685acabd2ff742bdd5dec82a85399b5a6f953a5a32f07b5937` → `6cca17fbce273b26b1d9ead3fb34f03bcb0c8660070fdf8bb82c4cba871a24de`
 
 Live run a702 runs from its pinned checkout and is not touched.
 
 ## Gates
 
 At 248ce5d53 (CPU window 9:29 PM NY): `just test` exit 0 (agent 4643, viewer 2106, Python 4463 + 69, coverage floors, trainer cards 3/3 after `just trainer-card-art` built this fresh worktree's gitignored card art); `just lint` exit 0; schema fresh. Rebased cleanly onto main fd621a45d (branch diff unchanged: current.json, README, registry test, this worklog). Main's post-merge blocker, the live-human.test.ts 5 s timeout, passes alone on this tip (7/7); it is load timing, not this change.
+
+## Reviews and rebases
+
+- Round 1 (base fd621a45d): Claude LGTM, fallback LGTM, GPT BLOCKING on process only (probe evidence path; exact-head gates). Fixed with an evidence index (absolute paths, SHA-256) and exact-head gates.
+- Round 2 (base bb32b94c4, head 4d2509af9, packet 86daa633…, byte-identical change): Claude LGTM, fallback LGTM, GPT LGTM after the exact-head gate receipts (`just test` exit 0, `just lint` exit 0 at 4d2509af9).
+- At the land turn main had moved to d641b8dc9 (no-story-foreknowledge-v1 pin, which also edits current.json); slot released. Rebased: one conflict at the end of `onInBoth`, resolved keeping main's no-story-foreknowledge-v1 and adding type-gap-team-v1 after it. The change is still only type-gap-team-v1 moving to onInBoth (base true); needs new gates and a review round at the new head.

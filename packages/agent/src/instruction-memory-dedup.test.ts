@@ -27,14 +27,15 @@ function setup(on:boolean,allField=true,trim=true){
  const wiring=contextTools(flags(on,allField,trim),{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:r=>{records.push(r);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},messages=>Promise.resolve(messages));
  return {wiring,records,feed:(events:RunEvent[])=>{for(const e of events)for(const fn of listeners)fn(e);}};
 }
-interface Payload{columns:string[];episodes:{result:number;pages:unknown[][]}[]}
+interface Payload{observed_locations?:{location:string;result_event:number}[];columns:string[];episodes:{result:number;pages:unknown[][]}[]}
 const payload=(text:string):Payload=>JSON.parse(text.slice(text.indexOf("\n")+1)) as Payload;
 
-it.each([false,true])("renders every selected whole episode once and retains spatial metadata, allField=%s",async allField=>{
- const s=setup(true,allField);s.feed(fixture);const out=await s.wiring.transformContext([]);const text=s.records[0]?.text??"";
+it.each([[false,false],[false,true],[true,false],[true,true]])("renders every selected whole episode once and retains spatial metadata, allField=%s trim=%s",async(allField,trim)=>{
+ const s=setup(true,allField,trim);s.feed(fixture);const out=await s.wiring.transformContext([]);const text=s.records[0]?.text??"";
  const p=payload(text);expect(p.episodes.map(e=>e.result)).toEqual([4,6]);expect(p.episodes[0]?.pages.map(p=>p[2])).toEqual([quote,"Come back after both errands."]);
  const named=p.episodes[0]?.pages[0];expect(named?.[p.columns.indexOf("source_map_name")]).toBe("SOURCE MAP");expect(named?.[p.columns.indexOf("source_map_display")]).toBe("Source Town");
  expect(p.episodes[1]?.pages[0]?.slice(0,3)).toEqual([null,null,"Our daughter is upstairs, I think."]);
+ expect(p.observed_locations).toEqual(trim?undefined:[{result_event:4,state_event:2,location:"Source Town"}]);
  expect(text).not.toContain("DELIVERED PERSON AND PLACE EVIDENCE");expect(out.at(-1)?.content).toBe(text);expect(s.wiring.tools).toEqual([]);expect(s.records[0]?.evidence.toSorted((a,b)=>a-b)).toEqual([2,3,4,5,6]);
 });
 it.each([false,true])("OFF preserves exact incumbent projection, trim=%s",async trim=>{

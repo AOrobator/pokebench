@@ -87,7 +87,7 @@ export class ObservedInstructions {
    const episodes=new Map(this.archive().filter(e=>selected.has(e.result_event)).map(e=>[e.result_event,e]));
    for(const episode of places??[])episodes.set(episode.result_event,episode);
    const spatial=new Set(places?.map(e=>e.result_event));
-   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:[...episodes.values()].map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(places===undefined?[]:spatial.has(e.result_event)?[p.map,p.map_display??null]:[null,null])])})),current:this.current};
+   const payload={columns:["speaker","speaker_source","text","map","map_id","state_event",...(places===undefined?[]:["source_map_name","source_map_display"])],episodes:[...episodes.values()].map(e=>({result:e.result_event,dialogue:e.dialogue_events,turn:e.turn,pages:e.pages.map(p=>[p.speaker,p.speaker_source,p.text,this.mapName(p),p.map_id,p.state_seq,...(places===undefined?[]:spatial.has(e.result_event)?[p.map,p.map_display??null]:[null,null])])})),current:this.current,...(places!==undefined&&retention===null?{observed_locations:[...this.visits.values()]}:{})};
    return "OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.\n"+quote(payload);
   }
   const out=[

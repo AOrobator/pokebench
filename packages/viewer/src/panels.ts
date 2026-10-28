@@ -398,6 +398,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",
+ "scene-followup-prompt-v1":"scene-followup-prompt-v1.html",
  "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",
  "goal-review-repair-feedback-v1":"goal-review-repair-feedback-v1.html",
  "roxanne-campaign-reminder-v1":"roxanne-campaign-reminder-v1.html",

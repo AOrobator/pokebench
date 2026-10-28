@@ -55,11 +55,11 @@ export function onScreen(s:Pick<GameStateSnapshot,"position"|"map_id"|"location"
   .map(o=>({local_id:o.local_id,graphics_id:o.graphics_id,sprite_kind:o.sprite_kind,x:o.x,y:o.y,character:named?storyCharacter(o.graphics_id,s.location):null}));
 }
 
-function item(o:OnScreenObject):string {
+export function onScreenItem(o:OnScreenObject):string {
  const sprite=o.sprite_kind??`graphics ${String(o.graphics_id)}`;
  return `${o.character===null?sprite:`${o.character} (sprite ${sprite})`} at ${String(o.x)},${String(o.y)}`;
 }
 export function presenceTag(on:readonly OnScreenObject[]|null):string {
  if(on===null)return "(no speaker shown by the game; who is on screen was not read)";
- return `(no speaker shown by the game; on screen: ${on.length===0?"nothing but you":on.map(item).join("; ")})`;
+ return `(no speaker shown by the game; on screen: ${on.length===0?"nothing but you":on.map(onScreenItem).join("; ")})`;
 }

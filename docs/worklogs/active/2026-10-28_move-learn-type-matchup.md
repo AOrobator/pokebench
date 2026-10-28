@@ -34,11 +34,37 @@ No credentials in artifacts; normal endpoint-file transport and exclusive lease.
 - [x] Coordinator acknowledgments of exact endpoint/window; graceful authorized bundle stop only if necessary; preserve checkpoint and event logs.
 - [x] Fake runner rehearsal; exact source/build/payload hashes; arm balance and grader rubric.
 - [x] Register canonical probe manifest/status/provenance before sampling; normal exclusive lease.
-- [ ] Complete fixed batch then inspect actions/reasoning; report errors and regressions, not only learning rate.
-- [ ] Browser click-through verifies current study, cases and terminal totals. Preserve failed/incomplete draws.
+- [x] Complete fixed batch then inspect actions/reasoning; report errors and regressions, not only learning rate.
+- [x] Browser click-through verifies current study, cases and terminal totals. Preserve failed/incomplete draws.
 ### M3 — evidence and review handoff
 - [ ] Update worklog with implementation/gates/review/probe results and uncertainty.
 - [ ] Report to user and Claude; no main merge or activation before probe evidence and required reviews.
+
+## Decision-probe results (development only)
+Frozen production build bea0b794e; Qwen3.6-35B-A3B-UD-Q4_K_M, medium/4096, temperature1,65536context. No game actions. Original48 completed3m04.560s;42 responses with exposed thinking/all legal first calls and6 preserved context-overflow errors. Blinded48scores locked SHA2566c858a530acc3218db910af5fcd3e29e38033a7486c163f3aeb41edc8cef613b before arm reveal.
+
+| Decision | OFF (3 draws) | ON (3 draws) | Interpretation |
+|---|---|---|---|
+|9c88/668 DOUBLE KICK|learn3; forgetGROWL2/SCRATCH1|learn3; FOCUS ENERGY2/SCRATCH1|Replacement choice changes; no learning-intention gain|
+|88ea/648 DOUBLE KICK|learn2,pressA1; GROWL1/FOCUS ENERGY1|learn2,pressA1; SCRATCH2|Same direct-learning count; different replacement|
+|a702/518 DOUBLE KICK|learn3; GROWL3|learn3; GROWL2/SCRATCH1|Same learning intention|
+|9c88/697 GEODUDE9HP|EMBER3|EMBER3|Existing11–14HP range supports KO in both|
+|88ea/672 NOSEPASS5HP|DOUBLE KICK3|DOUBLE KICK3|Same attack|
+|a702/605 GEODUDE24HP|DOUBLE KICK2/EMBER1|DOUBLE KICK3|Directional move-choice change; native DK30–36HP per hit vsEMBER23–28HP|
+|9c88/661 PECK, original48|overflow3|overflow3|70796/72886requesttokens exceeded65536; retained, not excluded|
+|88ea/1384 SAND-ATTACK|decline3|decline2,pressB1|No damaging-Ground hallucination; B is intermediate decline input|
+
+All three DOUBLE KICK cases:8direct replacement calls+1intermediatepress per9draws in each arm. Original refusal was not reproduced as a decline by these baseline draws. Relevant explicit false-fact responses4/21OFF vs3/21ON, too small/correlated to establish a reliability improvement. One ON response double-counts the displayed type×STAB product as STAB3 then type2→6; another gives a wrong multiplier for Marill; another says Fighting is super-effective against Fighting. Two9c88battle responses emit duplicate toolcalls, one per arm; first call is scored, no calls executed. No native acquisition or story-progress outcome is measured.
+
+The original PECK input estimate was inadequate. Follow-up is a distinct frozen6-call development batch using unchanged original context bytes and **exact existing production** contextBudget→payloadCounter(llamacpp)→playLoopBase/onPayload. Initial offline fallback-fit preparation was superseded before any calls, because the source actually uses context-exact-count-v1. No new text clipping or trimming code was added. Fresh per-draw production counting dropped16whole historical turns in botharms; final OFFwire history equals ONwire history minus the one feature block, and all3wire payloads within eacharm are identical. Source, task/current observations and retained message text stay intact. Count receipts49939OFF/52029ON under61440prompt limit; exact final wire bodies archived.
+
+Follow-up6/6completed35.337s,6valid first calls/nonempty exposed-thinking responses/no errors. Blinded scores locked SHA2568e5cc29a2a72fa50c93225acfa974523c3d9a2b6b1f241ee48de0577020e6fa3 before reveal. PECK:OFFdecline3;ONlearn1(forgetGROWL)/decline2. Both choices can be defensible. Relevant false-fact responses1/3perarm; ON's erroneous PECK STAB claim remains visible. This demonstrates behavioral sensitivity, not improved decision quality or transfer. No further inference scheduled.
+
+- [48-call viewer](http://127.0.0.1:8790/probes#move-learn-matchup-20261028/9c88-t668): terminal48/48, exact8cases/1GPUlane/problems[], visible selector/frame verified twice.
+- [6-call PECK viewer](http://127.0.0.1:8790/probes#move-learn-matchup-peck-fit-20261028/9c88-t661): visible5→6/6, correct031778_0frame/no browsererrors. Screenshots inspected.
+- Immutable source contexts, manifests, rubrics, raw provider replies/thinking, pre-reveal scores, reveals, native proofs, clearance and results.json live under canonical runs/move-learn-matchup-20261028 and runs/move-learn-matchup-peck-fit-20261028. Fake lanes stay outside registry. Original6errors remain in original48 denominator.
+
+Conclusion: production delivery and arithmetic are tested, and sampled behavior changes. No significant/general learning or gameplay benefit is established; no promotion/activation/landing. Final full combination test/lint still queued at this log entry; Grok lane remains unavailable. GPU1 leases released after eachbatch; GPU0/9c88 untouched.
 
 ## Closing the Loop
 Prove production annotations on the real recorded pre668 state and counterpart screens; pin serialized OFF/ON payloads. Probe calls never execute actions. Validate model decisions independently from intended/native acquisition. Verify local explainer at1280/1440/375 and probe viewer using background browser. No viewer restart for study registration.

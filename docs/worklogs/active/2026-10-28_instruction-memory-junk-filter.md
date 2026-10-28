@@ -83,3 +83,5 @@ Synchronized latestmain1f340093e91319a8f72e391b12fd097103684af0 into ownedbranch
 Authorization correction received from Claude through the Codex coordinator (thread 00000000-0000-4000-8000-f5efe0494f81): “You do not need a fresh the operator OK to land. The operator approved the keep/drop flavor list at12:22PM, and a default-OFF switch lands under the standing agent-merge rule: gates pass, Claude + GPT + distinct fallback LGTM under the Grok waiver, board, ff-only.” This supersedes the handoff's earlier fresh-OK checkpoint only for default-OFF landing. Turning it ON remains a separate the operator decision. No waiver is inferred for failing gates or blocking review findings. CPUheavy still paused awaitingRESUME.
 
 CPU RESUME received after bound-branch release1:45PM. Sync main89f396398 into ownedbranch before serialgates/replays; preservefourlandedbounds andappendourfeature withoutreorderingexistingids. Fullgate+replay stage beginsafterintegration. NoGPU/inference.
+
+Coordinatorreported doc-onlymain2d8283698 on89f396398 beforegates started; integrateitsdocumentation now toavoidpostgatepin churn. Noownproductionchange.

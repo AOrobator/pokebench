@@ -78,6 +78,7 @@ def env_with(off: list[str]) -> dict[str, str]:
     # those switches off.
     off = [
         *off,
+        "move-learn-type-matchup-v1",
         "warp-arrival-settle-v1",
         "semantic-navigation-v2",
         "exit-labels-v2",
@@ -186,6 +187,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "exp_next_enabled": False,
         "pokedex_enabled": False,
         "type_gap_enabled": False,
+        "move_matchup_enabled": False,
         "map_wide_triggers_enabled": False,
         "respawn_links": None,
         "fmt_named_interactions": False,

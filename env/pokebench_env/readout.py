@@ -146,6 +146,7 @@ SERVER_FEATURES = (
     "status-names-v1",
     "surf-gated-exits-v2",
     "battle-effective-damage-v1",
+    "move-learn-type-matchup-v1",
     "safe-navigation-strides-v1",
     "evolution-decision-v1",
     "original-speed-pacing-v1",
@@ -217,7 +218,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "surf-gated-exits-v2,battle-effective-damage-v1,move-learn-type-matchup-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,caught-nickname-prompt-v2,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
@@ -309,7 +310,7 @@ def _move_learning_lines(state: GameState, off: frozenset[str]) -> list[str]:
     question = question_line(learning) if MOVE_QUESTION not in off else None
     if question is not None:
         lines.append(question)
-    if MOVE_COMPARISON not in off:
+    if not {MOVE_COMPARISON, "move-learn-type-matchup-v1"} <= off:
         lines.extend(comparison_lines(learning))
     return lines
 
@@ -375,9 +376,13 @@ def format_readout(
         group, number, _internal_name = state.dynamic_warp
         if (place := places.get((group, number))) is not None:
             dynamic = f"{place} (dynamic warp; map {group}/{number})"
-    expanded = "expanded-menu-battle-information-v1" not in off
+    expanded = not {"expanded-menu-battle-information-v1", "move-learn-type-matchup-v1"} <= off
     # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
-    details = state.battle_details if expanded and "battle-details-v2" not in off else None
+    details = (
+        state.battle_details
+        if expanded and not {"battle-details-v2", "move-learn-type-matchup-v1"} <= off
+        else None
+    )
     ui = state.active_ui
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
 
@@ -512,7 +517,12 @@ def format_readout(
                     ),
                     message_waiting=waiting,
                     levelup_box=levelup,
-                    effective_damage="battle-effective-damage-v1" not in off,
+                    effective_damage=not {
+                        "battle-effective-damage-v1",
+                        "move-learn-type-matchup-v1",
+                    }
+                    <= off,
+                    fixed_two_hits="move-learn-type-matchup-v1" not in off,
                     ended=POST_BATTLE not in off
                     and battle.phase == "finishing"
                     and state.screen in POST_BATTLE_SCREENS,

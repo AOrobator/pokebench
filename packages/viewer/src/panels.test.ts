@@ -1902,3 +1902,9 @@ it("links the instruction junk filter's exact card and preserves recorded status
   expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
  }
 });
+
+it('links move matchups to the tracked default-OFF explainer',()=>{
+ const id='move-learn-type-matchup-v1';expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),'utf8');
+ expect(html).toContain('Default OFF');expect(html).toContain('×0.75');expect(html).toContain('731ad5bfd6e6f265508d0efcca0ba42f9dcf5881');
+});

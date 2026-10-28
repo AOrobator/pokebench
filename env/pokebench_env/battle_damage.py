@@ -5,7 +5,7 @@ whose final power, type, hit count, or multiplier is not a pure function of the
 currently decoded battlers and field state.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Protocol
 
@@ -587,7 +587,9 @@ def _damage(
     return rolls, effectiveness, notes, immunity
 
 
-def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[str]:
+def effective_damage_lines(
+    battle: BattleState, details: DetailsFacts, *, fixed_two_hits: bool = False
+) -> list[str]:
     context = details.damage
     if context is None or battle.battlers is None:
         return []
@@ -624,7 +626,8 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
             if move.move_id != 165 and move.pp == 0:
                 lines.append(prefix + " · unavailable (0 PP)")
                 continue
-            reason = _unsupported(move, actor)
+            two_hits = fixed_two_hits and move.effect == 44
+            reason = _unsupported(replace(move, effect=0) if two_hits else move, actor)
             if reason is not None:
                 lines.append(prefix + f" · not deterministically computed ({reason})")
                 continue
@@ -641,6 +644,17 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
                     lines.append(
                         f"   -> {_label(target, actor)}: not deterministically computed "
                         "(target is behind a substitute; substitute HP is not decoded)"
+                    )
+                    continue
+                if two_hits and (
+                    target.ability == 16
+                    or target.held_item != 0
+                    or actor.held_item != 0
+                    or target.ability in (27, 9, 49, 38, 56, 24)
+                ):
+                    lines.append(
+                        f"   -> {_label(target, actor)}: not deterministically computed "
+                        "(effects between hits are not computed)"
                     )
                     continue
                 try:
@@ -666,6 +680,14 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
                     else "no STAB"
                 )
                 suffix = "" if not notes else " · current modifiers: " + ", ".join(notes)
+                if two_hits:
+                    lines.append(
+                        f"   -> {_label(target, actor)}: {low}-{high} HP per hit; "
+                        f"2 hits total {low * 2}-{high * 2} HP before target fainting "
+                        f"(both land, non-critical, unchanged conditions) · "
+                        f"type ×{_fmt_effect(effectiveness)} · {stab}{suffix}"
+                    )
+                    continue
                 lines.append(
                     f"   -> {_label(target, actor)}: {low}-{high} HP "
                     f"({low_pct}-{high_pct}% of current {target.hp} HP) · "

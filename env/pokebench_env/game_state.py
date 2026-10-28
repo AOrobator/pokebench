@@ -412,6 +412,7 @@ def read_game_state(
     exp_next_enabled: bool = False,
     pokedex_enabled: bool = False,
     type_gap_enabled: bool = False,
+    move_matchup_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read, blackout_transition=blackout_transition_enabled)
@@ -562,6 +563,9 @@ def read_game_state(
             active_ui_read=truth_read,
             menu_window_drawn=window_drawn,
             mid_frame=mid_frame_enabled and readable and torn,
+            type_gap=read_type_gap(read, None)
+            if move_matchup_enabled and field_initialized and not pregame
+            else None,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)

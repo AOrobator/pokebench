@@ -27,7 +27,7 @@ from pokebench_env.type_gap import (
 )
 
 ON: frozenset[str] = frozenset()
-OFF = frozenset({SWITCH})
+OFF = frozenset({SWITCH, "move-learn-type-matchup-v1"})
 GYM = "training-1331-gym-field"
 
 
@@ -186,3 +186,37 @@ def test_json_shape() -> None:
     assert party[0]["moves"][0] == {"move_id": 10, "name": "SCRATCH", "move_type": 0, "power": 40}
     unread = TypeGap((type_gap.PartyTypes(0, None, ()),), ()).json()
     assert unread["party"] == [{"slot": 0, "species_types": None, "moves": []}]
+
+
+def test_move_matchup_alone_reads_rom_types_without_gym_guidance() -> None:
+    off = frozenset(SERVER_FEATURES) - {"move-learn-type-matchup-v1"}
+    snapshot = state(GYM, off)
+    assert snapshot.type_gap is not None
+    assert snapshot.type_gap.diagnostic is None
+    assert snapshot.type_gap.party[0].species_types == (10, 10)
+    assert state(GYM, frozenset(SERVER_FEATURES)).type_gap is None
+
+
+def test_move_matchup_reads_only_rom_chart_at_real_midframe_battle() -> None:
+    import json
+    from pathlib import Path
+
+    from test_training_readout import maps
+
+    from pokebench_env.raw_ram import load_raw_ram
+    from pokebench_env.rerender import read_state
+
+    directory = Path(__file__).parent / "fixtures"
+    provenance = json.loads((directory / "move-matchup-battle-9c88.provenance.json").read_text())
+    read = load_raw_ram(
+        directory / "move-matchup-battle-9c88.json.gz", provenance["raw_ram"]["sha256"], rom=_rom()
+    )
+    off = frozenset(SERVER_FEATURES) - set(provenance["harness_features"])
+    before = read_state(read, maps(), active_ui=True, off=off | {"move-learn-type-matchup-v1"})
+    after = read_state(read, maps(), active_ui=True, off=off - {"move-learn-type-matchup-v1"})
+    assert before.party is None and after.party is None
+    assert before.type_gap is None
+    assert after.type_gap is not None and after.type_gap.diagnostic is None
+    assert after.type_gap.party == ()
+    assert after.type_gap.chart == read_type_chart(rom_read)
+    assert after.battle_details is None  # no damage guess from incoherent save-backed facts

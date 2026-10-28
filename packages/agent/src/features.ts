@@ -311,6 +311,7 @@ export const SWITCHABLE_FEATURES = [
   "disproved-beliefs-bound-v1",
   "destination-first-navigation-v1",
   "instruction-memory-junk-filter-v1",
+  "move-learn-type-matchup-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -742,6 +743,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("disproved-beliefs-bound-v1", "guidance", "BOUNDED CONTRADICTIONS", "disproved-beliefs-v1", "Default off. disproved-beliefs-v1's \"Things the game has contradicted\" keeps every push-back and misplaced-person entry until a story flag changes or the game shows otherwise, each quoting whole pages, and an entry's turn list grows with every repeat. On: whole entries, newest first, are kept while their lines fit in 4,000 chars, shown in the usual order under \"N older entries are left out.\"; the newest entry always stays and quoted pages are never cut. A repeated entry keeps its full count and lists its latest 10 turns with \"(and N earlier turns)\". Off: every entry and every turn is listed."),
   on("destination-first-navigation-v1", "guidance", "DESTINATION-FIRST NAVIGATION", "bounded-navigation-v1", "Chooses destinations with navigation tools, including nearby targets. Aligns system and tool wording, puts connection targets before manual activation details, and gives immediate field-walking feedback. Enabled in both current arms by operator request. Off: preserves previous prompts, descriptions and results exactly."),
   on("instruction-memory-junk-filter-v1", "guard", "INSTRUCTION MEMORY JUNK FILTER", "instruction-memory-cap-v1", "Default off. Filters whole historical instruction episodes before the existing cap fills: source-matched service text, berry trees, lead-less signs, represented repeats, faced-trainer lines and approved generic NPC flavor. Current story anchors and useful leads stay; named-place/person/key-item protection reuses the cap owner. Cutter’s House and the Cycling Road camper stay; the Rock Smash exchange retires only when native flag 0x6B is set. Unknown variants with useful signals stay. No text is cut and no answer or route is selected. Off: the existing cap and instruction memory are byte-identical."),
+  on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", null, "Default off. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -839,6 +841,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "pokenav-call-auto-advance-v1",
   "player-map-visibility-v1",
   "compact-map-grid-v1",
+  "move-learn-type-matchup-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1136,6 +1139,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("disproved-beliefs-bound-v1"),
     ...when("destination-first-navigation-v1"),
     ...when("instruction-memory-junk-filter-v1"),
+    ...when("move-learn-type-matchup-v1"),
   ];
 }
 

@@ -347,3 +347,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Destination-first navigation](destination-first-navigation-v1.html): one destination policy across prompt, tools and observations; explicitly ON in both current arms.
 
 - [Instruction memory junk filter](instruction-memory-junk-filter-v1.html) — default-OFF whole-episode filtering before the existing cap.
+
+- [Move matchups and Pokémon bonuses](move-learn-type-matchup-v1.html) — default-OFF, observed foes, learner bonuses and supported current battle ranges.

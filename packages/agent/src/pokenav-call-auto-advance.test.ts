@@ -109,7 +109,7 @@ import {pressTool} from "./game-tools.js";
 const nativeFixture=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pokenav-call-native.json.gz",import.meta.url))).toString()) as {cases:Record<string,{state:unknown}>};
 const native=(name:string)=>parseGameState(must(nativeFixture.cases[name]).state);
 it.each(["call","call_text"])("advances the actual native state-2 %s and completes the tutorial exit",async name=>{
- const at=native(name),after=native("list_after_call"),menu={...after,active_ui:nav("pokenav_menu","MATCH CALL",{pokenav_mode:2,input_callback:"0x081C9589",selected_index:2}).active_ui},free={...after,screen:"overworld",active_ui:null,field_controls_locked:false};
+ const at=native(name),after=native("list_after_call"),menu={...after,active_ui:nav("pokenav_menu","MATCH CALL",{pokenav_mode:2,input_callback:"0x081C9589",selected_index:2}).active_ui??null},free={...after,screen:"overworld",active_ui:null,field_controls_locked:false};
  expect(at.active_ui?.details?.["pokenav_task_state"]).toBe(2);
  expect(at.active_ui?.details?.["call_text_state"]).toBe("waiting");
  const f=fixture([at,after,menu,free],true,true);const result=await f.tool.execute("native",{});
@@ -122,12 +122,12 @@ it.each(["call","call_text"])("advances the actual native state-2 %s and complet
 });
 it("records an uncertain A when the real press tool succeeds remotely but its observation fails",async()=>{
  const state=call(),accepted:unknown[]=[],events:Advance[]=[];
- const fetchFn:typeof fetch=async(url,init)=>{
-  const path=String(url);
-  if(path.endsWith('/pokebench/state'))return Response.json(state);
-  if(path.endsWith('/action')){accepted.push(JSON.parse(String(init?.body)) as unknown);return Response.json({status:"success"});}
-  if(path.endsWith('/info'))return Response.json({queue_empty:true});
-  return new Response('unavailable',{status:503});
+ const fetchFn:typeof fetch=(url,init)=>{
+  const path=typeof url==="string"?url:url instanceof URL?url.href:url.url;
+  if(path.endsWith('/pokebench/state'))return Promise.resolve(Response.json(state));
+  if(path.endsWith('/action')){const body=init?.body;if(typeof body!=="string")throw new Error("fixture expected JSON request");accepted.push(JSON.parse(body) as unknown);return Promise.resolve(Response.json({status:"success"}));}
+  if(path.endsWith('/info'))return Promise.resolve(Response.json({queue_empty:true}));
+  return Promise.resolve(new Response('unavailable',{status:503}));
  };
  const clock={now:()=>0,sleep:()=>Promise.resolve()};
  const press=pressTool('http://fixture',{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,clock);

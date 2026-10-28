@@ -6472,6 +6472,18 @@
           },
           "maxItems": 50
         },
+        "pokenav_pending_button": {
+          "enum": [
+            "A",
+            "B",
+            "START",
+            "SELECT",
+            "UP",
+            "DOWN",
+            "LEFT",
+            "RIGHT"
+          ]
+        },
         "pages": {
           "type": "array",
           "items": {

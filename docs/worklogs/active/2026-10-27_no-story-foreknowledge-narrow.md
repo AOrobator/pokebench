@@ -80,3 +80,8 @@ shared packet): eval integrity, ML engineer, data scientist "holds with changes"
   checkpoint starts stay hidden. Carried to M6: decision-probe.ts never re-renders tool results, so the probe's ON arm
   must render the copy itself from seeded shown names (all four personas). Carried to landing: a delivery rehearsal
   replaying a recorded run through the production wrapper.
+- Delivery rehearsal (CPU-only, recorded data): runs/reviews/2026-10-27-nsf-narrow/rehearse.mjs replays every tool_result
+  and dialogue event of a702, 057c and Opus 36b5 through the built ShownStoryNames + shownCast on 09ce3228c. 2076 results,
+  2752 cast lines; results changed 574/818, 674/954, 185/304; storyCharacters roster mismatches 0; unshown names left in
+  any absent list 0; absentCast vs Python's list mismatches 0. First shown (a702): MOM t51, PROF. BIRCH t59, MAY t74,
+  WALLY t311, ROXANNE t312, TEAM AQUA/DEVON t360, STEVEN t630; BRENDAN and NORMAN never.

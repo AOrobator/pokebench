@@ -78,8 +78,9 @@ it.each(["estimated","exact"] as const)("preserves complete unique memory in the
 });
 
 it("does not add unselected progress or visit history when only the place projection existed",async()=>{
- const s=setup(true,false,false);
- s.feed([dialogue("unknown",[page("Our daughter is upstairs, I think.",null)]),result("unknown"),{...result("unrelated"),seq:8,text:"Location: UNRELATED ROOM"}]);
+ const s=setup(true,false,false),unrelated=result("unrelated");
+ if(unrelated.type!=="tool_result")throw Error("fixture result type");
+ s.feed([dialogue("unknown",[page("Our daughter is upstairs, I think.",null)]),result("unknown"),{...unrelated,seq:8,text:"Location: UNRELATED ROOM"}]);
  await s.wiring.transformContext([]);
  const text=s.records[0]?.text??"";
  expect(payload(text).episodes.map(e=>e.result)).toEqual([6]);

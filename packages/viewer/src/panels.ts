@@ -413,6 +413,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "instruction-memory-junk-filter-v1":"instruction-memory-junk-filter-v1.html",
  "id-card-bound-v1":"id-card-bound-v1.html",
  "story-checkpoints-whole-game-v1":"story-checkpoints-whole-game-v1.html",
+ "instruction-memory-yaml-v1":"instruction-memory-yaml-v1.html",
  "scene-followup-prompt-v1":"scene-followup-prompt-v1.html",
  "instruction-goal-advisory-v1":"instruction-goal-advisory-v1.html",
  "goal-review-repair-feedback-v1":"goal-review-repair-feedback-v1.html",

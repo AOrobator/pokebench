@@ -315,6 +315,7 @@ export const SWITCHABLE_FEATURES = [
   "instruction-memory-junk-filter-v1",
   "id-card-bound-v1",
   "story-checkpoints-whole-game-v1",
+  "instruction-memory-yaml-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -748,6 +749,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("instruction-memory-junk-filter-v1", "guard", "INSTRUCTION MEMORY JUNK FILTER", "instruction-memory-cap-v1", "Default off. Filters whole historical instruction episodes before the existing cap fills: source-matched service text, berry trees, lead-less signs, represented repeats, faced-trainer lines and approved generic NPC flavor. Current story anchors and useful leads stay; named-place/person/key-item protection reuses the cap owner. Cutter’s House and the Cycling Road camper stay; the Rock Smash exchange retires only when native flag 0x6B is set. Unknown variants with useful signals stay. No text is cut and no answer or route is selected. Off: the existing cap and instruction memory are byte-identical."),
   on("id-card-bound-v1", "observation", "BOUNDED ID-CARD MENTIONS", "people-id-cards-v1", "Default off. An ID card’s other pages that name this person keep the newest contiguous whole pages whose quoted lines fit in 1,500 Unicode code points, shown oldest first. The newest page always stays even if it alone exceeds that budget. The header counts omitted earlier pages and, when dialogue auto-advance provides it, says get_dialogue finds them. All other card lines and the fingerprint from the full list stay unchanged. Off: every other page that names this person is listed, as before."),
   on("story-checkpoints-whole-game-v1", "guard", "WHOLE-GAME STORY CHECKPOINTS", "instruction-memory-cap-v1", `Default off. Uses ${String(STORY_CHECKPOINTS.length)} story checkpoints through the Hall of Fame and the optional Rayquaza encounter. Retires only whole episodes heard by every required native milestone and wholly within the owning map/speaker scopes. Mixed or reusable rival tutorials remain eligible for memory. This records no new route advice. Off: the cap uses the original 15 checkpoints through the Slateport Devon Goods delivery; memory bytes are unchanged.`),
+  on("instruction-memory-yaml-v1", "guidance", "INSTRUCTION MEMORY YAML", null, "Default off; enabled only in the current bundle by operator approval on 2026-10-28. Formats the selected OBSERVED INSTRUCTION MEMORY payload as YAML, preserving whole dialogue text, provenance and current progress. Page speaker and map fields carry over only within an episode, as the header explains. Text uses literal blocks or escaped quoted scalars when whitespace or control characters require them. With instruction-memory-cap-v1, the existing selection policy measures the actual YAML against 19,000 code points; the episode count can differ from JSON. Whole-field omission markers and bounded location history remain visible. The legacy form keeps its existing format and 16,000 cap. Off: the selected block remains the current JSON payload, byte for byte."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1144,6 +1146,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("instruction-memory-junk-filter-v1"),
     ...when("id-card-bound-v1"),
     ...when("story-checkpoints-whole-game-v1"),
+    ...when("instruction-memory-yaml-v1"),
   ];
 }
 

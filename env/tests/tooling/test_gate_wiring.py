@@ -93,7 +93,10 @@ def test_typescript_coverage_script_and_thresholds_are_the_floor() -> None:
         path.parent for path in (REPO_ROOT / "packages").glob("*/package.json")
     ):
         scripts = json.loads((package_dir / "package.json").read_text())["scripts"]
-        assert scripts["coverage"] == "vitest run --coverage", package_dir
+        expected = "vitest run --coverage"
+        if package_dir.name == "viewer":
+            expected = "NODE_OPTIONS=--max-old-space-size=8192 vitest run --coverage"
+        assert scripts["coverage"] == expected, package_dir
         evaluated = subprocess.run(
             [
                 "node",

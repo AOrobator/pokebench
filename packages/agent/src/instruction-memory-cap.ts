@@ -13,6 +13,7 @@ import {LEGACY_STORY_CHECKPOINTS,STORY_CHECKPOINTS} from "./story-checkpoints.js
 
 
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
+export const CAPPED_SELECTION="Finished episodes, and less relevant ones over the size cap, are left out.";
 // The cap counts characters as code points, as Python len() does in the reference implementation.
 export const codePoints=(s:string):number=>Array.from(s).length;
 // observed_locations grows with every map entered; under the cap only the newest whole entries that fit in

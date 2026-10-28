@@ -36,8 +36,8 @@ Only already-delivered text is projected. No privileged state, new tool, game wr
 - [x] Prepare a separate approved activation commit: `b542c74f3` adds the switch to current.switches and sets current.features[id] to false. Review and land this commit together with the implementation; resolved arm verification remains pending build.
 
 **M3 — Verify and review**
-- [ ] Obtain CPU START; sync main, then build, lint, three full recorded-card replays, resolved arm checks, full coverage, vendor and protected-card checks, serially.
-- [ ] Verify the feature card, explainer and exact recorded payload in headless desktop and phone contexts; inspect screenshots without taking focus.
+- [x] CPU START; synced main52a565418, then passed build, lint, full replays, arm checks, full coverage, vendor and protected-card checks serially.
+- [x] Headless feature card → explainer, collapsed/expanded examples and Activity History → exact raw payload pass at1280/1440/375. All12 screenshots inspected; no horizontal overflow or JS errors; no desktop focus changes.
 - [ ] Complete PB1–PB13 self-review, seal the boundary and packet, obtain Claude/Grok-or-approved-fallback/GPT reviews, and write synthesis.
 
 **M4 — Land and activation**
@@ -82,3 +82,7 @@ Corrected complete replay: GLM247 + a702165 +88ea154 =566 cards; zero OFF mismat
 Main advanced to9f82e68fa with snapshots while the full suite was running. Stopped only the owned gate/test process tree and released CPU for its priority post-merge check. Partial test log plus explicit aborted receipt retained; no full-suite pass claimed. Synced the new main offline; its viewer changes do not modify PeopleIdCards or our production patch. Await a new START for merged build/lint/replay/fulltest/vendor/card gates before review. No GPU or active gameplay process touched.
 
 Added source-bound offline replay metrics and one complete real GLM OFF/ON card example to the explainer, labelled as full-card measurements rather than the list budget. Source example includes its turn/result sequence; no game quote was invented. Merged-main gates and browser proof still pending.
+
+Merged gates PASS on0004a1aac679fdb95f2c5637c3d8b613199f372f, based onmain52a565418. Receipts: runs/id-card-bound/gates-0004a1aac-1793215127422974000. Build20.92s, lint89.01s, replay28.92s, resolved-arm check0.60s, fulltest155.53s, vendor0.10s. Agent4,882; viewer2,284; Python4,869; gateway116; every coverage metric is above90%, and all3 protected trainer-card widths pass. Corrected full replay repeats the same566 distinct cards, zero mismatches, identical emission and the same measured card sizes. Canonical JSONL preserves both successful code-pin batches by appending; do not sum them as distinct cards. CPU RELEASE delivered; story checkpoints is next.
+
+Owned browser proof uses a clearly labelled offline fixture containing an actual bounded GLM card, not gameplay. Card status ON and exact explainer link, normal and expanded source examples, and raw people_id_card payload with the omitted-page clause all pass on1280/1440/375. Browser receipts/shots are under runs/id-card-bound; no focus, game action, GPU request or timeline changes. The approved art tree is linked read-only into the owned scratch root.

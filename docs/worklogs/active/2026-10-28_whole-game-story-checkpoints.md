@@ -17,3 +17,11 @@ Scope terminator: source-grounded table/readers and end-to-end cap/replay proof,
 
 Historical memory used only as caution: missing recorded milestones are not proof of missing native progress; each predicate needs writer/reset/lifetime and present_at_start provenance. Current source/spec are authoritative.
 COMMIT: establish bounded whole-game checkpoint worklog.
+
+## Targeted RED and follow-on scope
+
+Coordinator relay received light CPU clearance (targeted builds/tests/offline replays). Accepted spec(c) as follow-on: deterministic pret-only whole-game event builder and report, no gameplay/GPU/activation. Full gates still require a separate slot.
+
+Committed RED test packages/agent/src/whole-game-checkpoints.test.ts: four tests fail against incumbent for missing late closures/registry/ON retirement/factory delivery. Fixed test timestamp instability before recording RED; compares exact delivered content, not wall-clock metadata. Evidence: /tmp/whole-game-red.log. No production edits yet. Cached source audit and native reader linkage remain to extend after candidate inventory.
+
+COMMIT: test whole-game checkpoint treatment before implementation.

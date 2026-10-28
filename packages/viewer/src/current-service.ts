@@ -119,7 +119,7 @@ export class CurrentProjector{
    }else progress=true;
   }
   if(job.current!==null&&(job.current.source.size!==source.stat.size||job.current.source.mtime!==source.stat.mtimeMs)){job.current={...job.current,source:{...job.current.source,size:source.stat.size,mtime:source.stat.mtimeMs}};job.dirty=true;}
-  if(!source.samePath())throw new Error("Source replaced during batch");this.flush(job);return progress;
+  if(!source.samePath())throw new Error("Source replaced during batch");if(job.current!==null&&job.current.state.end!==null)this.healthOwner(job);this.flush(job);return progress;
  }
  private flush(job:Job):void{
   if(!job.dirty||(!job.force&&this.monotonic()-job.lastCommit<this.limits.commitMs))return;

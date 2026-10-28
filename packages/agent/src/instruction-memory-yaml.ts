@@ -13,10 +13,10 @@ type Scalar=string|number|boolean|null|readonly number[];
 const PLAIN=/^[A-Za-zéÉ][A-Za-z0-9éÉ_ .,'()/&-]*$/;
 const RESERVED=new Set(["y","n","yes","no","true","false","on","off","null","~"]);
 const CARRIED=["speaker","speaker_source","map","map_id"];
-// Control, C1, line/paragraph separator and BOM characters: YAML 1.1 readers treat some as breaks or reject them.
-const unsafe=(text:string)=>Array.from(text).some(c=>{const n=c.codePointAt(0)??0;return (n<0x20&&n!==0x0a)||(n>=0x7f&&n<=0x9f)||n===0x2028||n===0x2029||n===0xfeff;});
+// Control, C1, line/paragraph separator, BOM, lone surrogates and noncharacters: YAML 1.1 readers treat some as breaks or reject them.
+const unsafe=(text:string)=>Array.from(text).some(c=>{const n=c.codePointAt(0)??0;return (n<0x20&&n!==0x0a)||(n>=0x7f&&n<=0x9f)||n===0x2028||n===0x2029||n===0xfeff||(n>=0xd800&&n<=0xdfff)||n===0xfffe||n===0xffff;});
 
-const quoted=(value:string)=>JSON.stringify(value).replace(/[\u007f-\u009f\u2028\u2029\ufeff]/g,c=>`\\u${(c.codePointAt(0)??0).toString(16).padStart(4,"0")}`);
+const quoted=(value:string)=>JSON.stringify(value).replace(/[\u007f-\u009f\u2028\u2029\ufeff\ufffe\uffff]/g,c=>`\\u${(c.codePointAt(0)??0).toString(16).padStart(4,"0")}`);
 
 export function yamlScalar(v:Scalar):string {
  if(v===null)return "null";

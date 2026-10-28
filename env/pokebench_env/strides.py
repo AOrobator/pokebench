@@ -1,4 +1,4 @@
-"""Frame-owned execution of an explicit, bounded, plain-floor corridor."""
+"""Frame-owned execution of an explicit, bounded, plain-floor (optionally tall-grass) corridor."""
 
 import struct
 from collections import OrderedDict
@@ -18,6 +18,8 @@ from pokebench_env.world_context import read_world_context, rom_pointer
 PREFIX = "@POKEBENCH_STRIDE:"
 MAX_FRAMES = 224
 MAX_TILES = 8
+# MB_TALL_GRASS: grass the game lets the player run through (long grass is a different behavior).
+TALL_GRASS = 0x02
 DELTAS = {(0, -1): "UP", (0, 1): "DOWN", (-1, 0): "LEFT", (1, 0): "RIGHT"}
 
 
@@ -38,6 +40,8 @@ class StrideRequest(BaseModel):
     path: list[Point] = Field(min_length=1, max_length=MAX_TILES)
     elevation: int = Field(ge=1, le=14)
     automatic_running: bool
+    # grass-strides-v1: the corridor may include tall grass; absent means plain floor only.
+    tall_grass: bool = False
 
     @model_validator(mode="after")
     def corridor(self) -> "StrideRequest":
@@ -73,7 +77,7 @@ class Stride:
 
     def receipt(self) -> dict[str, object]:
         return {
-            **self.request.model_dump(),
+            **self.request.model_dump(exclude=None if self.request.tall_grass else {"tall_grass"}),
             "completed": self.completed,
             "frames": self.frames,
             "reason": self.reason,
@@ -104,9 +108,15 @@ def _safe_next(
     if local is None:
         return False
     points = {(t.x, t.y): t for t in local.tiles}
+    floor = (0, TALL_GRASS) if s.request.tall_grass else (0,)
     for p in (position, target):
         t = points.get(p)
-        if t is None or t.collision != 0 or t.behavior != 0 or t.elevation != s.request.elevation:
+        if (
+            t is None
+            or t.collision != 0
+            or t.behavior not in floor
+            or t.elevation != s.request.elevation
+        ):
             return False
     if any((x, y) == target for _, x, y in local.objects):
         return False

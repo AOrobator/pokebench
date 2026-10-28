@@ -878,7 +878,73 @@ def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(
     assert "[tool result of call_600]" not in str(actual)
 
 
-def test_current_turn_rejects_non_boolean_recorded_feature(tmp_path: Path) -> None:
-    gateway = make(tmp_path, [], mode="session", run_features={"gateway-current-turn-v1": "true"})
-    with pytest.raises(cg.GatewayError, match="must be a boolean"):
-        gateway._first_prompt(1, cg.parse_request(request(1)))
+def test_non_boolean_recorded_feature_falls_back_to_legacy_input(tmp_path: Path) -> None:
+    gateway = make(
+        tmp_path,
+        [{"result": GOOD}],
+        mode="session",
+        run_features={"gateway-current-turn-v1": "true"},
+    )
+    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    assert gateway.answer(raw)[1].reply is not None
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    invalid = [e for e in events if e["event"] == "current_turn_feature_invalid"]
+    assert invalid and "must be a boolean" in str(invalid[0]["error"])
+    row = next(e for e in events if e["event"] == "session_input")
+    assert row["current_turn"] is False
+
+
+def test_unreadable_run_start_falls_back_to_legacy_input(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    (tmp_path / "runs" / "run-a" / "events.jsonl").write_text("{not json")
+    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    assert gateway.answer(raw)[1].reply is not None
+    row = next(
+        e for e in jsonl(tmp_path / "bridge" / "gateway.jsonl") if e["event"] == "session_input"
+    )
+    assert row["current_turn"] is False
+
+
+@pytest.mark.parametrize(
+    ("override", "features", "delivered", "source"),
+    [
+        ("auto", {"gateway-current-turn-v1": True}, True, "run_features"),
+        ("auto", None, False, "run_features"),
+        ("on", None, True, "operator_override"),
+        ("on", {"gateway-current-turn-v1": False}, True, "operator_override"),
+        ("off", {"gateway-current-turn-v1": True}, False, "operator_override"),
+    ],
+)
+def test_current_turn_override_modes(
+    tmp_path: Path, override: str, features: object, delivered: bool, source: str
+) -> None:
+    gateway = make(
+        tmp_path, [{"result": GOOD}], mode="session", run_features=features, current_turn=override
+    )
+    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    assert gateway.answer(raw)[1].reply is not None
+    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    assert ("[tool result of call_600]" in text) is delivered
+    events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
+    assert events[0]["event"] == "gateway_start" and events[0]["current_turn"] == override
+    row = next(e for e in events if e["event"] == "session_input")
+    assert (row["current_turn"], row["source"]) == (delivered, source)
+
+
+def test_current_turn_argument(tmp_path: Path) -> None:
+    base = [
+        "--mode",
+        "session",
+        "--model",
+        "m",
+        "--bridge",
+        str(tmp_path),
+        "--port",
+        "1",
+        "--run-id",
+        "r",
+    ]
+    assert cg.parse_args(base)[0].current_turn == "auto"
+    assert cg.parse_args([*base, "--current-turn", "on"])[0].current_turn == "on"
+    with pytest.raises(SystemExit):
+        cg.parse_args([*base, "--current-turn", "yes"])

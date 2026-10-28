@@ -122,3 +122,12 @@ GREEN targeted: all78 gateway tests pass; ruff and strict mypy pass. Agent regis
 Extended recorded-prefix check: replayed every archived f60d request577–606 through the production prompt factory in both modes (60cases, no inference). All30ON prompts contain the complete current tool text; all30OFF prompts omit it and preserve screenshot ordering/count. Source hashes, rendered output hashes and counts saved in replay-receipt.json. This measures delivery only, not gameplay benefit. Synced latest main through6caa63b35; exact main may move again before full gates/review. No registry reorder or unrelated source repair.
 Registry regression pins the new switch's absolute285 slot after no-story-foreknowledge-v1 and asserts it is gateway-only (absent from server feature transport). Existing registry membership/order stays intact. Full gates pending the shared CPU queue, no parallel full-suite load started.
 Final scoped regressions also check the gateway session_input receipt (appliedON,3messages, request/run binding), normalize the current recipe into both arm presets, and keep older Harness Config cards NOT RECORDED rather than inferring today'sON default. No change to old run files or native sessions.
+
+## Claude takeover (2026-10-27 ~10:25 PM ET): operator override and fail-safe read
+
+The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude resumed from 6d1f640dc, clean and synced with main bb32b94c4.
+- `--current-turn auto|on|off` (default auto) is per the coordinator's instruction. auto follows the bound run's recorded gateway-current-turn-v1. on/off is an operator override for this gateway only. It's logged in gateway_start, and every session_input carries `source` (run_features or operator_override).
+- The control.jsonl schema accepts only run actions (pause/resume/stop/cancel_stop/abort/extend), so the gateway can't write a note into the run's own record. An override used on a live run is recorded in that run's probe provenance.json plus gateway.jsonl.
+- Fail-safe read (from the fallback review of 6d1f640dc): an unreadable run_start (OS or JSON error) or a non-boolean recorded value now falls back to the legacy input and logs `current_turn_feature_invalid`. Previously it raised inside a request whose SSE stream was already open.
+- Gateway tests 88 pass, coverage 99.32/97.11/100, ruff and mypy --strict clean.
+- Not applied to f60d: the swap waits for the operator's explicit OK.

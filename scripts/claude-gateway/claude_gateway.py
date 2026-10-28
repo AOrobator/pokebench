@@ -199,6 +199,9 @@ class Config:
     autocompact: int | None = None
     # A stopped run whose Claude session a continuation run may adopt (memory carries over).
     continue_from: str | None = None
+    # Session mode's current-turn delivery: "auto" follows the bound run's recorded
+    # gateway-current-turn-v1; "on"/"off" is an operator override for this gateway only.
+    current_turn: Literal["auto", "on", "off"] = "auto"
 
     @property
     def advertised(self) -> str:
@@ -732,8 +735,11 @@ class RunBinder:
         path = self.runs_root / run / "events.jsonl"
         if not path.exists():
             return False
-        with path.open(encoding="utf8") as handle:
-            start = _obj(json.loads(handle.readline()), "run_start")
+        try:
+            with path.open(encoding="utf8") as handle:
+                start = _obj(json.loads(handle.readline()), "run_start")
+        except (OSError, ValueError):
+            return False
         evaluation = _obj(start.get("evaluation") or {}, "evaluation")
         features = _obj(evaluation.get("features") or {}, "features")
         enabled = features.get("gateway-current-turn-v1", False)
@@ -839,6 +845,7 @@ class Gateway:
             effort=self.config.effort,
             autocompact=self.config.autocompact,
             continue_from=self.config.continue_from,
+            current_turn=self.config.current_turn,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -901,7 +908,17 @@ class Gateway:
         return screens
 
     def _first_prompt(self, seq: int, request: ChatRequest) -> Prompt:
-        enabled = self.config.mode == "session" and self.binder.current_turn_enabled()
+        override = self.config.current_turn
+        source = "run_features" if override == "auto" else "operator_override"
+        try:
+            recorded = override == "auto" and self.binder.current_turn_enabled()
+        except GatewayError as error:
+            # Fail safe to the legacy input rather than killing a request whose stream is open.
+            self.event("current_turn_feature_invalid", request=seq, error=str(error))
+            recorded = False
+        enabled = self.config.mode == "session" and (
+            recorded if override == "auto" else override == "on"
+        )
         messages = request.current_turn if enabled else request.dialogue[-2:]
         screens = self._save_screens(seq, messages)
         if self.config.mode == "stateless":
@@ -910,6 +927,7 @@ class Gateway:
             "session_input",
             request=seq,
             current_turn=enabled,
+            source=source,
             messages=len(messages),
             run_id=self.binder.run_id,
         )
@@ -1214,6 +1232,13 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         metavar="RUN_ID",
         help="a stopped run whose session (in this --bridge) the newly bound run continues",
     )
+    parser.add_argument(
+        "--current-turn",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="session input: auto follows the run's recorded gateway-current-turn-v1; "
+        "on/off overrides it for this gateway (logged as operator_override)",
+    )
     args = parser.parse_args(argv)
     if args.run_id is None and args.game_port is None:
         parser.error("give --run-id or --game-port so pauses reach the right run")
@@ -1234,6 +1259,7 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         keepalive=args.keepalive,
         autocompact=args.autocompact,
         continue_from=args.continue_session_from,
+        current_turn=args.current_turn,
     )
     return config, args.port
 

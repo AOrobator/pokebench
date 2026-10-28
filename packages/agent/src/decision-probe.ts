@@ -43,6 +43,9 @@ export function parseRun(text: string): RecordedRun {
 export function parseRunLines(lines: Iterable<string>): RecordedRun {
   const events: RunEvent[] = [];
   for (const line of lines) if (line.trim() !== "") events.push(checkEvent(JSON.parse(line)));
+  return recordedRun(events);
+}
+export function recordedRun(events: RunEvent[]): RecordedRun {
   const start = events.find((e): e is RunStartEvent => e.type === "run_start");
   if (start === undefined) throw new Error("event log has no run_start");
   return { events, start };
@@ -246,11 +249,24 @@ export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(t
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */
 export type Derivation = "recorded" | "replayed";
 /** `rerender` re-renders every readout still in the window from raw RAM with today's renderer; the probe sets it in both arms whenever a server switch flips, so the arms differ only by the switch. */
-// --trust-header: harness-trust-v1's header is baked into each recorded result. Re-derive it with the arm's switches by
-// replaying the recorded events through HarnessTrust, which observes each event before the result after it is annotated.
+// --trust-header: harness-trust-v1's header is baked into each recorded result. Re-derive what story switches change in it,
+// the Story goal line and the walk-away note, by replaying the recorded events through HarnessTrust with the arm's
+// switches. The header's other lines (story characters, exits, people) come from parts of the result the recording joined,
+// so they are kept as recorded, and an arm that changes the switches behind them is refused.
 const TRUST_TOOLS = new Set(["observe", "press", "navigate_to"]);
+const KEPT_LINE_SWITCHES: readonly SwitchableFeature[] = ["harness-trust-v2", "semantic-navigation-v2", "character-presence-v1", "exit-reachability-v1", "exit-labels-v3", "untalked-people-header-v1"];
+const GOAL_LINE = /^(Story goal: |Story line heard |Historical named place evidence: )/;
+const AWAY_NOTE = /^SUPERVISOR: /;
+// The recorded header with its goal line and walk-away note replaced: `fresh` is the re-derived header (goal line second).
+function spliceHeader(recorded: readonly string[], fresh: readonly string[], note: string | null): string[] {
+  const goal = fresh.filter((line) => GOAL_LINE.test(line));
+  const rest = recorded.slice(1).filter((line) => !GOAL_LINE.test(line) && !AWAY_NOTE.test(line));
+  return [TRUST_HEADER, ...goal, ...rest, ...(note === null ? [] : [note])];
+}
 export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Map<number, string>, features: FeatureSet, recorded: FeatureSet, ports: ProbePorts, kept: ReadonlySet<number>): Promise<void> {
   if (!features["harness-trust-v1"] || !recorded["harness-trust-v1"]) throw new Error("--trust-header re-derives harness-trust-v1's header, which both the run and the arm must have on");
+  const changed = KEPT_LINE_SWITCHES.filter((id) => features[id] !== recorded[id]);
+  if (changed.length > 0) throw new Error(`--trust-header keeps the recorded header's other lines, so the arm must leave ${changed.join(", ")} as recorded`);
   const read = ports.places;
   if (read === undefined) throw new Error("--trust-header needs the game's map table (the places port)");
   const options = trustOptions(features);
@@ -262,7 +278,8 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
     if (e.type === "state" && "started" in e) states.set(e.seq, e);
     const after = e.type === "tool_result" && e.state_seq !== undefined ? states.get(e.state_seq) : undefined;
     const text = e.type === "tool_result" ? texts.get(e.seq) ?? e.text : null;
-    if (e.type === "tool_result" && kept.has(e.seq) && !e.is_error && annotated(e.name) && after?.started === true && after.raw_ram !== undefined && text !== null && text.startsWith(`${TRUST_HEADER}\n`)) {
+    // Every annotated result advances HarnessTrust (its walk-away count), as in the run; only kept ones are rewritten.
+    if (e.type === "tool_result" && !e.is_error && annotated(e.name) && after?.started === true && after.raw_ram !== undefined && text !== null && text.startsWith(`${TRUST_HEADER}\n`)) {
       const cut = text.indexOf("\n\n");
       if (cut < 0) throw new Error(`tool_result seq ${String(e.seq)} has a trust header with no body`);
       const body = text.slice(cut + 2);
@@ -270,13 +287,8 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
       let table = tables.get(player);
       if (table === undefined) { table = read({ path: after.raw_ram.path, sha256: after.raw_ram.sha256 }, features); tables.set(player, table); }
       const walk = e.name === "navigate_to" || (options.semanticTargets === true && (e.name === "navigate_to_target" || e.name === "explore_map"));
-      // The production wrapper reads characters from the result's first text part; for a walk that part ends before the
-      // readout (recorded results join their parts, so the readout's Screen line marks the boundary).
-      const screen = walk ? body.search(READOUT) : -1;
-      const readout = screen > 0 ? body.slice(0, screen - 1) : body;
-      const { header, away } = trust.lines(readout, after, e.id, await table, e.name === "press" || walk, body);
-      const note = away === null ? null : awayText(away);
-      texts.set(e.seq, `${header}\n${note === null ? "" : `${note}\n`}\n${body}`);
+      const { header, away } = trust.lines(body, after, e.id, await table, e.name === "press" || walk, body);
+      if (kept.has(e.seq)) texts.set(e.seq, `${spliceHeader(text.slice(0, cut).split("\n"), header.split("\n"), away === null ? null : awayText(away)).join("\n")}\n\n${body}`);
     }
     trust.observe(e);
   }

@@ -6,7 +6,7 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {TRUST_HEADER,withHarnessTrust} from "./harness-trust.js";
 import {rederiveTrustHeaders,type ProbePorts,type RawRef} from "./decision-probe.js";
-import {filePorts,parseArgs,probeModels,readRun} from "./probe-decision-cli.js";
+import {filePorts,gatewaySampler,parseArgs,probeLane,readRun,readRunLines} from "./probe-decision-cli.js";
 import {trustOptions} from "./play-wiring.js";
 import type {PlacesBody} from "./story-destinations.js";
 
@@ -23,32 +23,77 @@ const requested:RawRef[]=[];
 const ports=(places=true):ProbePorts=>({frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",...(places?{places:(ref:RawRef)=>{requested.push(ref);return Promise.resolve(PLACES);}}:{})});
 const STALE=`${TRUST_HEADER}\nStory goal: "something else" (MOM, turn 1) -> "LAB" = nowhere.`;
 
-// The header the production wrapper puts on this result, given the same recorded events before it.
-async function production():Promise<string> {
+const envelope=new Set(["v","run","seq","t","type","turn"]);
+const snapshot=(seq:number|undefined)=>{const event=EVENTS.find(e=>e.seq===seq);return event===undefined?undefined:Object.fromEntries(Object.entries(event).filter(([key])=>!envelope.has(key)));};
+const WALKS=new Set(["navigate_to"]);
+// What the production wrapper prints on every annotated result, fed the same recorded events in order: each result is
+// annotated before its tool_result event is recorded. navigate_to returns its Navigation text and the readout as separate
+// parts; the recorder joins them with a newline.
+async function production(until:number,features:FeatureSet=FEATURES):Promise<Map<number,string>> {
  const listeners:((e:RunEvent)=>void)[]=[];
- const event=EVENTS.find(e=>e.seq===result?.state_seq);
- if(event===undefined)throw Error("no state");
- const envelope=new Set(["v","run","seq","t","type","turn"]);
- const state=Object.fromEntries(Object.entries(event).filter(([key])=>!envelope.has(key)));
- // navigate_to returns its Navigation text and the readout as separate parts; the recorder joins them with a newline.
- const text=result?.text ?? "",screen=text.search(/^Screen: /m);
- const tool:AgentTool={name:result?.name ?? "",label:"t",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:text.slice(0,screen-1)},{type:"text",text:text.slice(screen)}],details:{state}})};
- const [wrapped]=withHarnessTrust([tool],true,{subscribe:fn=>{listeners.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve({places:PLACES})},{...trustOptions(FEATURES),supervisor:true});
- for(const e of EVENTS){if(e.seq>=(result?.seq ?? 0))break;for(const fn of listeners)fn(e);}
- const out=await wrapped?.execute(result?.id ?? "",{});
- return (out?.content??[]).flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
+ const out=new Map<number,string>();
+ let current:{text:string;state:unknown;walk:boolean}={text:"",state:undefined,walk:false};
+ const tools=["observe","press","navigate_to"].map((name):AgentTool=>({name,label:name,description:"d",parameters:Type.Object({}),execute:()=>{
+  const screen=current.text.search(/^Screen: /m);
+  const parts=current.walk&&screen>0?[current.text.slice(0,screen-1),current.text.slice(screen)]:[current.text];
+  return Promise.resolve({content:parts.map(text=>({type:"text" as const,text})),details:{state:current.state}});
+ }}));
+ const wrapped=withHarnessTrust(tools,true,{subscribe:fn=>{listeners.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve({places:PLACES})},{...trustOptions(features),supervisor:true});
+ for(const e of EVENTS){
+  if(e.seq>until)break;
+  if(e.type==="tool_result"&&!e.is_error&&["observe","press","navigate_to"].includes(e.name)){
+   const state=snapshot(e.state_seq);
+   if(state!==undefined&&state["started"]===true){
+    current={text:e.text,state,walk:WALKS.has(e.name)};
+    const r=await wrapped.find(t=>t.name===e.name)?.execute(e.id,{});
+    out.set(e.seq,(r?.content??[]).flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"));
+   }
+  }
+  for(const fn of listeners)fn(e);
+ }
+ return out;
+}
+// The recorded stream as a run with harness-trust-v1 on would have stored it: each annotated result carries a header.
+async function recordedWithHeaders(until:number,features:FeatureSet=FEATURES):Promise<RunEvent[]> {
+ const printed=await production(until,features);
+ return EVENTS.filter(e=>e.seq<=until).map(e=>e.type==="tool_result"&&printed.has(e.seq)?{...e,text:printed.get(e.seq) ?? e.text}:e);
 }
 
 describe("--trust-header re-derives harness-trust-v1's header from the recorded stream",()=>{
- it("replaces a recorded header with exactly what the production wrapper prints, body untouched",async()=>{
-  const prior=EVENTS.filter(e=>e.seq<=result.seq).map(e=>e.seq===result.seq?{...result,text:`${STALE}\n\n${result.text}`}:e);
+ it("replaces a recorded goal line with exactly what the production wrapper prints, the other lines and the body untouched",async()=>{
+  const expected=(await production(result.seq)).get(result.seq) ?? "";
+  expect(result.name).toBe("navigate_to");
+  expect(expected.startsWith(`${TRUST_HEADER}\nStory goal: `)).toBe(true);
+  // The same result as recorded under other story switches: a different goal line, everything else as printed.
+  const stale=expected.replace(/^Story goal: .*$/m,'Story goal: "something else" (MOM, turn 1) -> "LAB" = nowhere.');
+  expect(stale).not.toBe(expected);
+  const prior=EVENTS.filter(e=>e.seq<=result.seq).map(e=>e.seq===result.seq?{...result,text:stale}:e);
   const texts=new Map<number,string>();
   await rederiveTrustHeaders(prior,texts,FEATURES,FEATURES,ports(),new Set([result.seq]));
-  const expected=await production();
-  expect(result.name).toBe("navigate_to");
-  expect(expected.startsWith(`${TRUST_HEADER}\n`)).toBe(true);
   expect(texts.get(result.seq)).toBe(expected);
-  expect(requested).toEqual([{path:RAM.path,sha256:RAM.sha256}]);
+  expect(requested).toContainEqual({path:RAM.path,sha256:RAM.sha256});
+ });
+ it("keeps the recorded characters, exits and people lines, which come from parts the recording joined",async()=>{
+  const expected=(await production(result.seq)).get(result.seq) ?? "";
+  const cut=expected.indexOf("\n\n");
+  const recorded=`${expected.slice(0,cut)}\nA line only the recorded header had.${expected.slice(cut)}`;
+  const prior=EVENTS.filter(e=>e.seq<=result.seq).map(e=>e.seq===result.seq?{...result,text:recorded}:e);
+  const texts=new Map<number,string>();
+  await rederiveTrustHeaders(prior,texts,FEATURES,FEATURES,ports(),new Set([result.seq]));
+  expect(texts.get(result.seq)).toBe(recorded);
+ });
+ it("replays every annotated result, so a result kept alone gets the header it got after the ones collapsed out of the window",async()=>{
+  const last=[...EVENTS].reverse().find(e=>e.type==="tool_result"&&["press","navigate_to","observe"].includes(e.name));
+  if(last===undefined)throw Error("no result");
+  const printed=await production(last.seq);
+  const recorded=await recordedWithHeaders(last.seq);
+  const all=new Map<number,string>();
+  await rederiveTrustHeaders(recorded,all,FEATURES,FEATURES,ports(),new Set(printed.keys()));
+  expect(all).toEqual(printed);
+  const alone=new Map<number,string>();
+  await rederiveTrustHeaders(recorded,alone,FEATURES,FEATURES,ports(),new Set([last.seq]));
+  expect([...alone.entries()]).toEqual([[last.seq,printed.get(last.seq)]]);
+  expect(printed.size).toBe(3);
  });
  it("leaves results outside the kept window, and results with no recorded header, as they are",async()=>{
   const prior=EVENTS.filter(e=>e.seq<=result.seq).map(e=>e.seq===result.seq?{...result,text:`${STALE}\n\n${result.text}`}:e);
@@ -57,6 +102,38 @@ describe("--trust-header re-derives harness-trust-v1's header from the recorded 
   expect(texts.size).toBe(0);
   await rederiveTrustHeaders(EVENTS.filter(e=>e.seq<=result.seq),texts,FEATURES,FEATURES,ports(),new Set([result.seq]));
   expect(texts.size).toBe(0);
+ });
+ it("a walk-away note on a kept result counts the moves collapsed out of the window, as the run did",async()=>{
+  // After MAY's turn-272 "head back to the LAB", three presses in LITTLEROOT TOWN each end farther from the lab door at (7,16).
+  const said=EVENTS.find(e=>e.type==="tool_result"&&e.turn===272);
+  const template=EVENTS.find(e=>e.type==="state"&&e.seq===(said?.type==="tool_result"?said.state_seq:-1));
+  if(said?.type!=="tool_result"||template?.type!=="state"||!("started" in template))throw Error("4caa turn 272");
+  const moves:RunEvent[]=[13,10,7,4].flatMap((y,i)=>{
+   const seq=900000+i*2,turn=500+i;
+   const state:RunEvent={...template,seq,turn,map_id:[0,9],location:"LITTLEROOT TOWN",position:{x:7,y},screen:"overworld",in_battle:false,field_controls_locked:false};
+   const res:RunEvent={...said,seq:seq+1,turn,id:`walk${String(i)}`,name:"press",state_seq:seq,text:"pressed UP"};
+   return [state,res];
+  });
+  const stream=[...EVENTS.filter(e=>e.seq<=said.seq),...moves];
+  const original=[...EVENTS];
+  EVENTS.splice(0,EVENTS.length,...stream);
+  try{
+   const last=moves.at(-1);if(last===undefined)throw Error("moves");
+   // reachable-story-guidance-v1 counts only ways the readout's foot flood reaches; these synthetic states carry none.
+   const features={...FEATURES,"reachable-story-guidance-v1":false};
+   const printed=await production(last.seq,features);
+   expect([...printed.values()].join("\n")).toContain("SUPERVISOR: Your last two moves took you farther from");
+   const recorded=await recordedWithHeaders(last.seq,features);
+   for(const seq of printed.keys()){
+    const alone=new Map<number,string>();
+    await rederiveTrustHeaders(recorded,alone,features,features,ports(),new Set([seq]));
+    expect(alone.get(seq)).toBe(printed.get(seq));
+   }
+  }finally{EVENTS.splice(0,EVENTS.length,...original);}
+ });
+ it("refuses an arm that changes a switch behind the header lines it keeps as recorded",async()=>{
+  for(const id of ["harness-trust-v2","semantic-navigation-v2","character-presence-v1","exit-reachability-v1","exit-labels-v3","untalked-people-header-v1"] as const)
+   await expect(rederiveTrustHeaders([],new Map(),{...FEATURES,[id]:!FEATURES[id]},FEATURES,ports(),new Set())).rejects.toThrow(`leave ${id} as recorded`);
  });
  it("refuses without harness-trust-v1 in both the run and the arm, without the map table, and on a header with no body",async()=>{
   const off={...FEATURES,"harness-trust-v1":false};
@@ -73,16 +150,30 @@ describe("probe CLI: --trust-header, local lanes and streamed event logs",()=>{
   expect(parseArgs(["a702","704"])).not.toHaveProperty("trustHeader");
   expect(parseArgs(["a702","704","--trust-header"]).trustHeader).toBe(true);
  });
- it("samples the endpoint file's lane when one is configured, else the gateway",async()=>{
+ it("samples the endpoint file's lane with its key when one is configured, else the gateway",async()=>{
   const {mkdtempSync,writeFileSync}=await import("node:fs");const {join}=await import("node:path");const {tmpdir}=await import("node:os");
   const file=join(mkdtempSync(join(tmpdir(),"probe-endpoint-")),"endpoint.json");
-  writeFileSync(file,JSON.stringify({base_url:"http://127.0.0.1:8091/v1",api_key:"unused"}));
+  writeFileSync(file,JSON.stringify({base_url:"http://127.0.0.1:8091/v1",api_key:"lane-key"}));
   const calls:string[]=[];
   const local=(e:{readonly baseUrl:string})=>{calls.push(`local ${e.baseUrl}`);return Promise.resolve([]);};
   const gateway=(c:{readonly gatewayUrl:string})=>{calls.push(`gateway ${c.gatewayUrl}`);return Promise.resolve([]);};
-  await probeModels({endpointFile:file,gatewayUrl:"http://g",visionModels:[]},local,gateway);
-  await probeModels({endpointFile:null,gatewayUrl:"http://g",visionModels:[]},local,gateway);
+  expect((await probeLane({endpointFile:file,gatewayUrl:"http://g",visionModels:[]},local,gateway)).apiKey).toBe("lane-key");
+  expect((await probeLane({endpointFile:null,gatewayUrl:"http://g",visionModels:[]},local,gateway)).apiKey).toBeUndefined();
   expect(calls).toEqual(["local http://127.0.0.1:8091/v1","gateway http://g"]);
+  const keys:string[]=[];
+  const complete=((_m:unknown,_c:unknown,o:{apiKey?:string})=>{keys.push(o.apiKey ?? "");return Promise.resolve({} as never);}) as unknown as Parameters<typeof gatewaySampler>[0];
+  const model={id:"m",provider:"pokebench-gateway",contextWindow:1000,maxTokens:100,input:["text"]} as unknown as Parameters<typeof gatewaySampler>[1];
+  const context={turn:1,systemPrompt:"s",messages:[],tools:[],size:{messages:0,images:0,est_tokens:0}};
+  await gatewaySampler(complete,model,"off",100,"lane-key")(context);
+  await gatewaySampler(complete,model,"off",100)(context);
+  // Without an endpoint key the sampler keeps the gateway key it always sent.
+  expect(keys).toEqual(["lane-key","local-stack"]);
+ });
+ it("parses each line as it is read: a malformed first line fails before the next is pulled",async()=>{
+  let pulled=0;
+  async function* lines():AsyncGenerator<string>{pulled++;yield "{not json";pulled++;yield await Promise.reject(new Error("pulled a second line"));}
+  await expect(readRunLines(lines())).rejects.toThrow(SyntaxError);
+  expect(pulled).toBe(1);
  });
  it("reads the map table through rerender.py with the arm's server switches, and refuses a body without one",async()=>{
   const calls:{args:readonly string[];env:NodeJS.ProcessEnv;input:string}[]=[];

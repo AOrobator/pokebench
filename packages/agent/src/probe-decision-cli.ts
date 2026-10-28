@@ -5,11 +5,12 @@
 import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { checkEvent, type RunEvent } from "./events.js";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
 import { loadConfig } from "./config.js";
-import { contextDiff, decisionContext, serverSwitch, distribution, parseRunLines, parseSwitch, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
+import { contextDiff, decisionContext, serverSwitch, distribution, parseSwitch, recordedRun, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
 import { serverFeatureEnv, type FeatureSet } from "./features.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
@@ -88,16 +89,22 @@ export function filePorts(runDir: string, envDir: string, thinkingSignature: str
   };
 }
 
-// Events one line at a time: an event log can be larger than the longest string Node can hold.
+// Events parsed as each line is read: an event log can be larger than the longest string Node can hold.
+export async function readRunLines(lines: AsyncIterable<string>): Promise<RecordedRun> {
+  const events: RunEvent[] = [];
+  for await (const line of lines) if (line.trim() !== "") events.push(checkEvent(JSON.parse(line)));
+  return recordedRun(events);
+}
 export async function readRun(path: string): Promise<RecordedRun> {
-  const lines: string[] = [];
-  for await (const line of createInterface({ input: createReadStream(path, "utf8"), crlfDelay: Infinity })) lines.push(line);
-  return parseRunLines(lines);
+  return readRunLines(createInterface({ input: createReadStream(path, "utf8"), crlfDelay: Infinity }));
 }
 
-// The lane a probe samples: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
-export async function probeModels(config: { readonly endpointFile: string | null; readonly gatewayUrl: string; readonly visionModels: readonly string[] }, local = discoverLocal, gateway = discoverModels): Promise<GatewayModel[]> {
-  return config.endpointFile === null ? gateway({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }) : local(readEndpoint(config.endpointFile));
+// The lane a probe samples, with its key: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
+export interface ProbeLane { readonly models: GatewayModel[]; readonly apiKey: string | undefined }
+export async function probeLane(config: { readonly endpointFile: string | null; readonly gatewayUrl: string; readonly visionModels: readonly string[] }, local = discoverLocal, gateway = discoverModels): Promise<ProbeLane> {
+  if (config.endpointFile === null) return { models: await gateway({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }), apiKey: undefined };
+  const endpoint = readEndpoint(config.endpointFile);
+  return { models: await local(endpoint), apiKey: endpoint.apiKey };
 }
 
 export interface Arm { readonly label: string; readonly features: FeatureSet; readonly context: DecisionContext; readonly decisions: readonly Decision[] }
@@ -139,8 +146,8 @@ export function thinkingLevel(recorded: string): ThinkingLevel | "off" {
   return level;
 }
 
-export function gatewaySampler(complete: typeof completeSimple, model: GatewayModel, thinking: ThinkingLevel | "off", maxTokens: number): Sampler {
-  const config = gatewayLoopConfig(model, thinking);
+export function gatewaySampler(complete: typeof completeSimple, model: GatewayModel, thinking: ThinkingLevel | "off", maxTokens: number, apiKey?: string): Sampler {
+  const config = apiKey === undefined ? gatewayLoopConfig(model, thinking) : gatewayLoopConfig(model, thinking, apiKey);
   return async (context): Promise<AssistantMessage> => complete(model, { systemPrompt: context.systemPrompt, messages: [...context.messages], tools: [...context.tools] }, { maxTokens, ...(config.reasoning === undefined ? {} : { reasoning: config.reasoning }), apiKey: (await config.getApiKey?.(model.provider)) ?? "" });
 }
 
@@ -155,8 +162,9 @@ async function main(argv: readonly string[]): Promise<number> {
   let sampler: Sampler | null = null;
   if (!args.contextOnly) {
     const config = loadConfig(process.env);
-    const model = selectModel(await probeModels(config), args.model ?? run.start.model.id);
-    sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens);
+    const lane = await probeLane(config);
+    const model = selectModel(lane.models, args.model ?? run.start.model.id);
+    sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens, lane.apiKey);
   }
   const report = await probe(run, args, filePorts(runDir, join(REPO, "env"), THINKING_FIELD), sampler);
   for (const line of reportLines(report)) console.log(line);

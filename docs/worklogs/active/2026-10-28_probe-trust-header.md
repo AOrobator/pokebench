@@ -52,6 +52,19 @@ Targeted vitest and pytest, tsc, eslint and ruff/mypy on the touched files, then
 
 ## Multi-Model Review Log
 
+Round 1, frozen d06b9f4db..b40e669d2 (sha256 87c27b9a…3b7d):
+- Codex gpt-5.6-sol: BLOCKING, five points.
+  1. The local lane's key was dropped at sampling. ACCEPTED: `probeLane` returns the endpoint key and `gatewaySampler` passes it; without a key it keeps sending the gateway key it always sent.
+  2. HarnessTrust advanced only on kept results. ACCEPTED: every annotated result now advances it and only kept ones are rewritten. A synthetic walk-away test (three presses farther from MAY's LAB door) goes red without the fix.
+  3. An arm annotating other tools couldn't add or remove headers. ACCEPTED as a refusal (now part of the kept-lines refusal below).
+  4. The reader buffered every line before parsing. ACCEPTED: `readRunLines` parses as it reads; a test shows a malformed first line fails before a second line is pulled.
+  5. Full `just test` is pending. OPEN: needs a CPU window.
+- Fallback (sonnet subagent): BLOCKING, the same walk-away point as Codex 2. Hardening notes on the key and memory overlap with Codex 1 and 4.
+- Claude (opus subagent): BLOCKING.
+  - B1 is the same walk-away point.
+  - B2: other wrappers prepend parts on press and observe (requested-movement heads, gym progress, citations, semantic navigation and more), so the first-part rule can't be reconstructed from joined text. a702 T214/T331/T332 would gain a characters line production never printed. ACCEPTED by narrowing the scope: `--trust-header` re-derives only the Story goal line and the walk-away note, which are what story switches change, and keeps the other recorded header lines verbatim. It refuses an arm that flips harness-trust-v2, semantic-navigation-v2, character-presence-v1, exit-reachability-v1, exit-labels-v3 or untalked-people-header-v1. Tests cover a stale goal line replaced to equal production, a recorded-only line kept, and the refusals; restoring the old whole-header replacement turns 3 tests red.
+  - Rehearsal: OFF re-derived equals recorded at a702 T215, T332, T333, T633, T664, T705 and T717.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

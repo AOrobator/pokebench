@@ -37,6 +37,7 @@ export interface FrameStreamLike {
 
 export interface AppDeps {
   snapshotFirst?:boolean;
+  currentNow?:()=>number;
   currentFactory?:(options:CurrentBrowserOptions)=>CurrentBrowser;
   fetchJson(url:string,signal?:AbortSignal):Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
@@ -640,7 +641,7 @@ export class App {
     void this.next.load();
     if(this.deps.snapshotFirst===true){
       const create=this.deps.currentFactory??(await import("./current-browser.js")).createCurrentBrowser;
-      this.current=create({now:this.deps.now,fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
+      this.current=create({now:this.deps.currentNow??this.deps.now,fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
       const wanted=/^#(?:run|replay)=(.+)$/.exec(this.deps.hash)?.[1],pending=this.current.start(wanted===undefined?null:decodeURIComponent(wanted));
       void this.loadArt();await pending;void this.refreshRuns();this.render();return;
     }
@@ -1707,11 +1708,14 @@ export interface BootWindow {
 }
 
 export async function boot(win: BootWindow): Promise<App> {
+  let clockOffset=0,clockServerAt=-Infinity;
+  const currentNow=():number=>Date.now()+clockOffset;
   const app = await mountApp(win.document, {
     snapshotFirst:true,
     fetchJson: async (url,signal) => {
       const response=signal===undefined?await win.fetch(url):await win.fetch(url,{signal});
       if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
+      if(url.startsWith("/api/current-")||/^\/api\/runs\/[^/]+\/current$/.test(url)){const serverAt=Date.parse(response.headers.get("date")??"");if(serverAt>clockServerAt){clockServerAt=serverAt;clockOffset=serverAt-Date.now();}}
       return (await response.json()) as unknown;
     },
     sendJson: async (method, url, body) => {
@@ -1732,7 +1736,8 @@ export async function boot(win: BootWindow): Promise<App> {
       image.onload = () => { finish(ready); }; image.onerror = () => { finish(failed); }; image.src = url;
     },
     revokeFrameUrl: (url) => { win.URL.revokeObjectURL(url); },
-    now: () => Date.now(),
+    now:()=>Date.now(),
+    currentNow,
     hash: win.location.hash,
     loadGlyphSheet: browserGlyphSheet(win.document),
     drawGlyphs,

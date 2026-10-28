@@ -1002,14 +1002,14 @@ describe("boot", () => {
   });
   it("wires the page to fetch, EventSource and a render interval", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
-    const current=currentFixture();
+    const current=currentFixture();let clockDate=BASE_MS+4000;
     const intervals: ((...args: unknown[]) => void)[] = [];
     const streams: FakeStream[] = [];
     const frames: FakeFrameStream[] = [];
     const win = {
       document,
       location: { hash: "", href: "http://127.0.0.1:8790/" },
-      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(url==="/api/current-runs"?current.list:url.endsWith("/current")?current.detail:url==="/api/runs"?RUNS:null)).then((body) => new Response(JSON.stringify(body),{headers:{date:new Date(BASE_MS+4000).toUTCString()}}))),
+      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(url.includes("/api/current-updates")?{kind:"updates",version:1,epoch:"epoch",cursor:"next",reset:false,more:false,changes:[]}:url==="/api/current-runs"?current.list:url.endsWith("/current")?current.detail:url==="/api/runs"?RUNS:null)).then((body) => new Response(JSON.stringify(body),{headers:{date:new Date(clockDate).toUTCString()}}))),
       EventSource: class extends FakeStream {
         constructor(url: string) {
           super(url);
@@ -1044,6 +1044,9 @@ describe("boot", () => {
       expect(win.fetch.mock.calls.filter(([url]) => url === "/api/runs")).toHaveLength(2);
       expect(win.fetch.mock.calls.filter(([url]) => url === "/api/next-run")).toHaveLength(2);
     });
+    clockDate=BASE_MS+24000;await app.pollCurrent();expect(ui("mode").textContent).toBe("LAST KNOWN");
+    clockDate=BASE_MS+4000;await app.pollCurrent();expect(ui("mode").textContent).toBe("LAST KNOWN");
+    expect(ui("run-controls").querySelector<HTMLButtonElement>('[data-control="pause"]')?.disabled).toBe(true);
     app.dispose();
   });
 

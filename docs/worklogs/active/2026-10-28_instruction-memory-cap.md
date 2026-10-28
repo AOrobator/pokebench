@@ -30,6 +30,16 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 
 **OFF:** byte-identical to today. **ON with nothing left out:** also byte-identical (no extra line).
 
+## Story checkpoints (the operator 8:19 AM NY: "we can have deterministic game checkpoints that can mark things as done")
+
+`story-checkpoints.ts` holds 16 checkpoints, from the move-in through the DEVON GOODS delivery in Slateport. Each lists the milestones it closes after (existing readers in milestones.ts or story-progress.ts, backed by a pret flag or var), and its scope as pret map + speakers: an OBJ_EVENT_GFX_ sprite on that map, a "NAME:" prefix from the scene's scripts, or null narration. An episode counts as proven done when every listed milestone has been recorded, the episode was heard at or before the latest of them (by turn), and every page is in that checkpoint's scope. No a702 text is used.
+
+**Coverage ends at DEVON_GOODS_DELIVERED (Slateport museum).** No checkpoint yet for the Route 110 rival, Mauville or anything later, or for incidental chatter, which falls to nearby, named or recency.
+
+- [x] `story-checkpoints.test.ts`: milestones exist in the harness readers; against pret 731ad5bfd (POKEEMERALD_DIR or ~/dev/pokeemerald, skipped when absent), each map id matches map_groups.json, each speaker is a sprite in that map.json or a `NAME:` prefix in the scene's scripts, each flag number matches flags.h and each FLAG_/VAR_ name exists. 2/2.
+- [x] RED: checkpoint behaviour tests in `instruction-memory-cap.test.ts` (closes after the flag, not before; only episodes heard by then; any out-of-scope page keeps it; multi-milestone checkpoints need all).
+- [ ] GREEN, prototype updated to match, a702 T1301 replay showing the POKéNAV tutorial and Devon goods episodes retire, report updated.
+
 ## Milestone M1: switch + rule A′
 
 - [x] RED: `instruction-memory-cap.test.ts` (each step, budget fill, omission line, stale anchor, OFF and no-drop identity) and a factory test through `observedInstructions`. Fails: the module and switch do not exist yet.

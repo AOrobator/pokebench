@@ -13,7 +13,7 @@ const state=(o:StateOpts):RunEvent=>ev({run:o.run??"r",seq:o.seq,type:"state",st
  heal_before_trainers:{trainers:(o.trainers??[]).map(t=>({graphics_id:1,loaded:true,...t})),move_power:[],last_heal:null,home:null,mom_heals:false},
  resources:{bag:(o.keyItems??[]).map((name,slot)=>({slot,item_id:259+slot,quantity:1,pocket:"key_items",name})),pc_items:null,storage:null}});
 const result=(seq:number,text:string,name="observe",is_error=false,run="r"):RunEvent=>ev({run,seq,type:"tool_result",id:`c${String(seq)}`,name,is_error,text,state_seq:null});
-const milestone=(seq:number,name:string):RunEvent=>ev({seq,type:"milestone",name,server_timestamp:0});
+const milestone=(seq:number,name:string,turn=1):RunEvent=>ev({seq,turn,type:"milestone",name,server_timestamp:0});
 const page=(text:string,o:{speaker?:string|null;source?:string|null;map?:string;id?:[number,number]|null;seq?:number|null}={}):CapRow=>[o.speaker===undefined?"MAN":o.speaker,o.source===undefined?"faced_sprite":o.source,text,o.map??"ROUTE104",o.id===undefined?[0,19]:o.id,o.seq===undefined?null:o.seq];
 const ep=(result:number,turn:number,pages:CapRow[]):CapEpisode=>({result,dialogue:[result-1],turn,pages});
 const render=(kept:readonly CapEpisode[],omitted:number)=>`HEADER${omitted===0?"":`\n${omittedLine(omitted)}`}\n${JSON.stringify({episodes:kept})}`;
@@ -80,6 +80,21 @@ describe("instruction-memory-cap-v1 rule A′",()=>{
    const pos={down:{x:5,y:3},left:{x:6,y:4},right:{x:4,y:4}}[facing as "down"|"left"|"right"];
    expect(step(cap([state({seq:5,map:[0,18],trainers:[t],position:pos,facing}),state({seq:7,map:[0,18],trainers:[{...t,defeated:true}]}),state({seq:8,map:[0,19]})]),line)?.step).toBe("done");
   }
+ });
+ it("closes a story scene by its checkpoint once the game flag is set, only for episodes heard by then and wholly in scope",()=>{
+  const tutorial=ep(10,5,[page("I've been developing an added feature.",{speaker:"SCIENTIST_1",map:"RUSTBORO CITY",id:[0,3]}),page("Please select the POKéNAV.",{speaker:"SCIENTIST_1",map:"RUSTBORO CITY",id:[0,3]})]);
+  const at=(events:RunEvent[],e:CapEpisode=tutorial)=>step(cap([state({seq:1,map:far}),...events]),e);
+  expect(at([])?.step).not.toBe("done");
+  const done=at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",7)]);
+  expect(done).toMatchObject({step:"done",kept:false});expect(done?.fact).toBe("checkpoint pokenav-match-call: MATCH_CALL_TUTORIAL_COMPLETE (turn 7)");
+  expect(at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",4)])?.step).not.toBe("done");
+  expect(at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",5)])?.step).toBe("done");
+  expect(at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",7)],{...tutorial,pages:[...tutorial.pages,page("Hi.",{speaker:"BOY_1",map:"RUSTBORO CITY",id:[0,3]})]})?.step).not.toBe("done");
+  expect(at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",7)],{...tutorial,pages:[page("Hi.",{speaker:"SCIENTIST_1",map:"BIRCH LAB",id:[1,4]})]})?.step).not.toBe("done");
+  expect(at([milestone(2,"MATCH_CALL_TUTORIAL_COMPLETE",7)],{...tutorial,pages:[page("Hi.",{speaker:"SCIENTIST_1",map:"RUSTBORO CITY",id:null})]})?.step).not.toBe("done");
+  const errand=ep(11,6,[page("Oh! How did it go?",{speaker:"MAN_2",map:"RUSTBORO CITY",id:[0,3]}),page("Please deliver this LETTER.",{speaker:"MR. STONE",source:"name_prefix",map:"DEVON CORP 3F",id:[11,2]}),page("AAAA received the GREAT BALL.",{speaker:null,source:null,map:"DEVON CORP 3F",id:[11,2]})]);
+  expect(at([milestone(2,"STEVEN_LETTER_DELIVERED",20)],errand)?.step).not.toBe("done");
+  expect(at([milestone(2,"STEVEN_LETTER_DELIVERED",20),milestone(3,"DEVON_GOODS_DELIVERED",30),milestone(4,"STEVEN_LETTER_DELIVERED",40)],errand)?.fact).toBe("checkpoint devon-president-errands: STEVEN_LETTER_DELIVERED, DEVON_GOODS_DELIVERED (turn 30)");
  });
  it("keeps episodes heard on the current map, a connected map or a map a listed warp leads to",()=>{
   const c=cap([state({seq:1,map:[0,19],connections:[[0,3]]}),result(2,"Location: ROUTE104\nExits you can walk to from where you stand: (5,18) -> ROUTE 104 (map 17/1)\nWarps: (3,3) -> PETALBURG WOODS (map 24/11)\nUnavailable from here: warp (1,1) → ROUTE 104 (map 17/0)\nScreen: overworld (map 5/5)")]);

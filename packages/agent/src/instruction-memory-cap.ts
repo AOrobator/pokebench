@@ -12,7 +12,8 @@ export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
 // The cap counts characters as code points, as Python len() does in the reference implementation.
 export const codePoints=(s:string):number=>Array.from(s).length;
 export const omittedLine=(n:number):string=>`${String(n)} earlier episodes are left out and remain in the run recording.`;
-export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null];
+// instruction-memory-dedup-v1 appends two source-map columns (strings or nulls); the cap reads only the first six.
+export type CapRow=readonly [speaker:string|null,source:string|null,text:string,map:string|null,mapId:readonly number[]|null,stateEvent:number|null,...extra:(string|null)[]];
 export interface CapEpisode {readonly result:number;readonly dialogue:readonly number[];readonly turn:number;readonly pages:readonly CapRow[]}
 export type CapStep="anchor"|"done"|"nearby"|"named"|"recency";
 export interface CapDecision {readonly result:number;readonly step:CapStep;readonly fact:string;readonly kept:boolean}

@@ -378,6 +378,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",
  "gateway-schema-hint-v1":"gateway-schema-hint-v1.html",
@@ -571,6 +572,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "context-exact-count-v1":"context-exact-count-v1.html",
  "grass-strides-v1":"grass-strides-v1.html",
  "no-story-foreknowledge-v1":"no-story-foreknowledge-v1.html",
+ "self-named-speaker-v1":"dewford-readout-fixes.html",
+ "story-briefing-native-milestones-v1":"dewford-readout-fixes.html",
+ "retire-reached-story-line-v1":"dewford-readout-fixes.html",
  "briefing-repeat-count-v1":"briefing-repeat-count-v1.html",
  "navigate-already-here-v1":"navigate-already-here-v1.html",
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",

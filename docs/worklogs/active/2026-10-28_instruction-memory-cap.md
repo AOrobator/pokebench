@@ -58,3 +58,9 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 - [ ] Gates: `just lint`, full `just test` (coordinator granted the CPU window in the 2026-10-28 brief).
 - [ ] Review: personas (harness engineer, data scientist, ML engineer, evaluation integrity) across the Claude CLI, Codex CLI and fallback lanes.
 - [ ] Stop: report to the coordinator. No landing.
+
+## Main sync (ca754cfff: instruction-memory-dedup-v1 and three story readout switches)
+
+- Merged, not rebased. The registry, presets and next-run take main's entries and re-append instruction-memory-cap-v1 after instruction-memory-dedup-v1. The type-gap index test takes main's pinned index.
+- `observed-instructions.ts`: the cap runs after dedup's merge (dedup first, then selection under the budget). Rows carry dedup's two source-map columns when dedup is on (`CapRow` gains a rest element; the cap reads only the first six), and the payload keeps dedup's keys (`current` only with base episodes, `observed_locations` when dedup has no retention). With the cap off, the render is main's string.
+- Focused: 137 agent and 247 viewer tests after the registry test moved its anchor to instruction-memory-dedup-v1.

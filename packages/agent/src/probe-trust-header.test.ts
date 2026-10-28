@@ -30,12 +30,13 @@ async function production():Promise<string> {
  if(event===undefined)throw Error("no state");
  const envelope=new Set(["v","run","seq","t","type","turn"]);
  const state=Object.fromEntries(Object.entries(event).filter(([key])=>!envelope.has(key)));
- const tool:AgentTool={name:result?.name ?? "",label:"t",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:result?.text ?? ""}],details:{state}})};
+ // navigate_to returns its Navigation text and the readout as separate parts; the recorder joins them with a newline.
+ const text=result?.text ?? "",screen=text.search(/^Screen: /m);
+ const tool:AgentTool={name:result?.name ?? "",label:"t",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:text.slice(0,screen-1)},{type:"text",text:text.slice(screen)}],details:{state}})};
  const [wrapped]=withHarnessTrust([tool],true,{subscribe:fn=>{listeners.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve({places:PLACES})},{...trustOptions(FEATURES),supervisor:true});
  for(const e of EVENTS){if(e.seq>=(result?.seq ?? 0))break;for(const fn of listeners)fn(e);}
  const out=await wrapped?.execute(result?.id ?? "",{});
- const part=out?.content[0];
- return part?.type==="text"?part.text:"";
+ return (out?.content??[]).flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
 }
 
 describe("--trust-header re-derives harness-trust-v1's header from the recorded stream",()=>{
@@ -44,6 +45,7 @@ describe("--trust-header re-derives harness-trust-v1's header from the recorded 
   const texts=new Map<number,string>();
   await rederiveTrustHeaders(prior,texts,FEATURES,FEATURES,ports(),new Set([result.seq]));
   const expected=await production();
+  expect(result.name).toBe("navigate_to");
   expect(expected.startsWith(`${TRUST_HEADER}\n`)).toBe(true);
   expect(texts.get(result.seq)).toBe(expected);
   expect(requested).toEqual([{path:RAM.path,sha256:RAM.sha256}]);

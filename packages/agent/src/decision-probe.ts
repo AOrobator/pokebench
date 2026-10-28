@@ -270,7 +270,11 @@ export async function rederiveTrustHeaders(prior: readonly RunEvent[], texts: Ma
       let table = tables.get(player);
       if (table === undefined) { table = read({ path: after.raw_ram.path, sha256: after.raw_ram.sha256 }, features); tables.set(player, table); }
       const walk = e.name === "navigate_to" || (options.semanticTargets === true && (e.name === "navigate_to_target" || e.name === "explore_map"));
-      const { header, away } = trust.lines(body, after, e.id, await table, e.name === "press" || walk, body);
+      // The production wrapper reads characters from the result's first text part; for a walk that part ends before the
+      // readout (recorded results join their parts, so the readout's Screen line marks the boundary).
+      const screen = walk ? body.search(READOUT) : -1;
+      const readout = screen > 0 ? body.slice(0, screen - 1) : body;
+      const { header, away } = trust.lines(readout, after, e.id, await table, e.name === "press" || walk, body);
       const note = away === null ? null : awayText(away);
       texts.set(e.seq, `${header}\n${note === null ? "" : `${note}\n`}\n${body}`);
     }

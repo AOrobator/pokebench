@@ -36,7 +36,7 @@ pokebench-decision-probes, feature-worklog, close-the-loop.
 - [x] GREEN
 - [x] Targeted gates
 - [ ] Review lanes
-- [ ] Context-only rehearsal on a702 with the switch branch merged in a scratch worktree (no GPU)
+- [x] Context-only rehearsal on a702 with the switch branch merged in a scratch worktree (no GPU)
 
 ## Closing the Loop
 
@@ -44,6 +44,7 @@ Targeted vitest and pytest, tsc, eslint and ruff/mypy on the touched files, then
 
 ## Session Log
 
+- 2026-10-28: Context-only rehearsal (no GPU) on a scratch merge of this branch with claude/story-speaker-briefing, against a read-only prefix copy of a702 (events to turn 730, frames and raw RAM symlinked). The first pass showed the switches-OFF re-derived headers differing from the recorded ones at T633 (4 messages), because the probe passed the whole joined body as the readout. The production wrapper reads characters from the first text part, which for a walk ends before the readout's Screen line. FIXED. With the switches OFF, the re-derived headers now equal the recorded ones at T633, T664, T705 and T717. With all three ON, the header changes to Stone's Story goal from T664 on. The equivalence test now gives the production wrapper navigate_to's two parts; dropping the boundary turns it red.
 - 2026-10-28: GREEN. probe suites: 10 files, 131 tests passed; test_rerender.py 12 passed (2 skip without ROM), rerender.py 100% lines and branches; tsc, eslint, ruff and mypy clean.
 - 2026-10-28: RED: without the implementation, probe-trust-header.test.ts fails 8 of 8 and test_rerender.py fails 2 (the places tests); the rest pass.
 

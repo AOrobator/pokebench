@@ -225,3 +225,19 @@ The operator, 2026-10-28 ~7:51 AM ET ("sure", relayed): build the delivery prefl
   2. Rebutted, with one small concession: "per-row production persistence". The preflight deliberately drives the real `Gateway.answer` (request, screenshot, call and session writes, recorded-feature reads), because that path is what it proves; a pure prompt-builder seam would skip the code that failed in f60d. Per-row cost is linear and bounded (300 requests in about 5 s). Test receipt construction is now cached once per test module.
 - Live receipts re-run on the new build: overrides-on PASS, allow-off PASS, auto FAIL. 115 tests pass, coverage 99.03/95.93/100.
 - Review round 3 (packet 4fcaa95f, head fa66d47be): Claude LGTM, fallback LGTM. Codex accepted the round-2 rebuttal (the real Gateway.answer path stays) but blocked on something new and real: JSON booleans passed as counts (`True == 1`). Fixed: `requests`, `applicable` and `passed` must be integers, never booleans, with 0 < applicable ≤ requests. Adversarial test added. 116 tests pass, coverage 99.12/96.22/100. Live receipts re-run: PASS, PASS, FAIL as before.
+- Review round 4 (packet 696bdc4f, head 5bf646568): Claude, fallback and Codex gpt-5.6-sol all LGTM.
+- Full gates on 5bf646568 (2026-10-28 8:11–8:15 AM ET; the coordinator said no CPU grant was needed), all passing:
+  - build, TS lint, env ruff and mypy, gateway ruff and mypy --strict (3 files)
+  - agent 4702, viewer 2202
+  - pytest 4466 (97.49/93.61/100), gateway 116 (99.12/96.22/100)
+  - trainer cards 3/3
+
+## Landed (M8)
+
+- `git merge --ff-only 5bf646568`, 2026-10-28 ~8:15 AM ET, slot 1. The packet is byte-identical to the reviewed one.
+- Post-landing `just test` on main 5bf646568 (8:15–8:18 AM ET, clean tree): exit 0. Agent 4702, viewer 2202, pytest 4466, gateway 116.
+- Every session-mode `claude-gateway` launch now needs `just gateway-preflight` first. A probe that copies the gateway must copy preflight.py beside it.
+- Follow-ups:
+  - bind the receipt to the bound run's recorded switches when an override is auto
+  - make the hint check compare the exact expected forms
+- No model calls in M8. The next real Claude run waits for the operator's weekly reset (Mon 11 PM ET) and his explicit OK.

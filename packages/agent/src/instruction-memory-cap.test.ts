@@ -139,7 +139,7 @@ describe("instruction-memory-cap-v1 through observedInstructions",()=>{
  };
  it("changes nothing while the block fits, and caps it with whole episodes once it does not",async()=>{
   const [smallOff,smallOn]=await Promise.all([recorded(3,false),recorded(3,true)]);
-  expect(smallOn).toEqual(smallOff);
+  expect(smallOn.records).toEqual(smallOff.records);expect(smallOn.messages.map(m=>m.role==='user'?m.content:null)).toEqual(smallOff.messages.map(m=>m.role==='user'?m.content:null));
   const [off,on]=await Promise.all([recorded(60,false),recorded(60,true)]);
   const offText=off.records[0]??"",onText=on.records[0]??"";
   expect(codePoints(offText)).toBeGreaterThan(INSTRUCTION_MEMORY_CAP_CHARS);expect(offText).not.toContain("earlier episodes are left out");

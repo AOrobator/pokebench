@@ -33,7 +33,7 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 ## Milestone M1: switch + rule A′
 
 - [x] RED: `instruction-memory-cap.test.ts` (each step, budget fill, omission line, stale anchor, OFF and no-drop identity) and a factory test through `observedInstructions`. Fails: the module and switch do not exist yet.
-- [x] GREEN: `instruction-memory-cap.ts` plus wiring in `observed-instructions.ts`; `pret-map-sections.ts` (189 names from pret). instruction-memory-cap 10/10; agent focused suites 85 passed; viewer panels, server and next-run 394 passed.
+- [x] GREEN: `instruction-memory-cap.ts` plus wiring in `observed-instructions.ts`; `pret-map-sections.ts` (189 names from pret). instruction-memory-cap 10/10 (481741962 went in with a timestamp flake in the factory test: it compared whole messages, including `Date.now()`. The next commit compares records and contents instead; 6/6 reruns pass); agent focused suites 85 passed; viewer panels, server and next-run 394 passed.
 - [x] Registry: SWITCHABLE_FEATURES last, FEATURES entry (guard/correctness category, `needs: "milestone-instruction-memory-v1"`, Off copy), `...when()` last. Presets: FeatureSetSchema optional, normalizeFeatures, flagFeatures and DEFAULT_NEXT_RUN false. current.json untouched.
 - [x] Wiring removal check: with the switch argument removed from `observedInstructions`, the factory test failed (1 failed, 9 passed); restored, 10/10.
 - [x] Replay (`runs/analysis/bounded-input-20261028/replay-cap.mjs`): switch off equals the recorded block, switch on equals `rule_a2.py`'s AFTER byte for byte. a702 T700 15,956 and T1301 15,965 chars; 88ea T400 15,774 and T800 15,962.

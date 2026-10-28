@@ -1,3 +1,4 @@
+import {parseWorkbench} from "./workbench-data.js";
 import {expect,it} from "vitest";
 import {Log,START,RUN,assistant,state} from "../test-support/events.js";
 import {emptyCurrent,foldCurrent} from "./current-state.js";
@@ -16,3 +17,5 @@ it("validates every public envelope while rejecting missing detail, private extr
  for(const q of [{kind:"list",now:1},{kind:"current",now:1,run:"name.with.dots"},{kind:"updates",now:1,after:null},{kind:"history",now:1,run:RUN,before:null}])expect(parseCurrentQuery(q)).toEqual(q);
  for(const q of [{kind:"list",now:-1},{kind:"current",now:1,run:"../escape"},{kind:"updates",now:1,after:"x".repeat(513)},{kind:"history",now:1,run:RUN,before:null,private:true}])expect(()=>parseCurrentQuery(q)).toThrow();
 });
+
+it("rejects otherwise valid nested grading splits, measurement and operator exclusion independently",()=>{const {current,aux}=fixture(),base=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,7,aux).detail) as unknown);const runs=[{...base.run,splits:[{name:"first_battle_win",elapsedMs:10,segmentMs:10,seq:2,turn:1,inputTokens:500,outputTokens:100}]},{...base.run,measurement:{controller:"agent",features:[],logSha256:"0".repeat(64),logBytes:1,pausedMs:0,rawSplits:[]}},{...base.run,excluded:"operator fixture"}];for(const run of runs){expect(()=>parseWorkbench({version:1,at:0,milestones:[],runs:[run],problems:[]})).not.toThrow();expect(()=>parseCurrentSnapshot({...base,run})).toThrow("Invalid current display response");}});

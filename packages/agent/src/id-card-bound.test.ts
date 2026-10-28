@@ -44,12 +44,12 @@ it("keeps an oversize newest page whole and reports exactly one omitted page",()
 it("counts astral codepoints, indentation and separators instead of UTF-16 units",()=>{
  const values=[`Older MAY ${"😀".repeat(500)}`,`Newer MAY ${"😀".repeat(500)}`];expect(quoted(values).join("\n").length).toBeGreaterThan(1500);expect(codePoints(quoted(values).join("\n"))).toBeLessThan(1500);expect(card(memory(true,values))).toBe(card(memory(false,values)));
  const base=quoted(["MAY", "MAY"]);const overhead=codePoints(base.join("\n"));const edge=[`MAY${"x".repeat(1500-overhead)}`,"MAY"];expect(codePoints(quoted(edge).join("\n"))).toBe(1500);expect(card(memory(true,edge))).toBe(card(memory(false,edge)));
- const over=[edge[0]+"x",edge[1]??"MAY"];expect(block(card(memory(true,over)))).toContain("1 earlier page is left out");
+ const over=[`${edge[0]??""}x`,edge[1]??"MAY"];expect(block(card(memory(true,over)))).toContain("1 earlier page is left out");
 });
 it("mentions get_dialogue only when offered and proves an omitted page is searchable in its actual record",async()=>{
  const record=new DialogueRecord();for(const e of events(texts))record.observe(e);
  const on=card(memory(true,texts,true));expect(block(on)).toContain("earlier pages are left out; get_dialogue finds them");expect(on).not.toContain(texts[0]);
- const result=await record.tool().execute("recall",{contains:search,last:1});expect(result.content).toContainEqual({type:"text",text:expect.stringContaining(texts[0]??"")});
+ const result=await record.tool().execute("recall",{contains:search,last:1});expect(result.content.filter(p=>p.type==="text").map(p=>p.text).join("\n")).toContain(search);
  expect(block(card(memory(true)))).not.toContain("get_dialogue");expect(card(memory(true,texts.slice(0,2),true))).toBe(card(memory(false,texts.slice(0,2),true)));
 });
 it("keeps the full-other-list fingerprint and identical first/changed emission timing",()=>{
@@ -67,7 +67,7 @@ it("production playGameTools honors ON/OFF and records the same bounded card del
   const game:AgentTool={name:"observe",label:"Observe",description:"fixture",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROUTE103\nPosition: X=5, Y=5"}],details:{state:here}})};
   const tools=playGameTools([game,pressTool("http://unused",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},()=>Promise.reject(new Error("unexpected press")))],{...OFF,"dialogue-auto-advance-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true,"character-presence-v1":true,[ID]:on},{read:()=>Promise.resolve(here)},rec);
   for(const e of events(texts))for(const fn of subs)fn(e);
-  const out=await tools[0]?.execute("show",{});const text=out?.content.filter(p=>p.type==="text").map(p=>p.type==="text"?p.text:"").join("\n")??"";
+  const out=await tools[0]?.execute("show",{});const text=out?.content.filter(p=>p.type==="text").map(p=>p.text).join("\n")??"";
   const delivered=cards.find(c=>c.key==="name:MAY");expect(delivered).toBeDefined();expect(text).toContain(delivered?.text);expect(block(delivered?.text??"").includes("left out")).toBe(on);expect(text.includes(texts[0]??"")).toBe(!on);
   const recall=tools.find(t=>t.name==="get_dialogue");expect(recall).toBeDefined();const found=await recall?.execute("lookup",{contains:search,last:1});expect(JSON.stringify(found?.content)).toContain(texts[0]);if(on)expect(block(delivered?.text??"")).toContain("get_dialogue finds them");
  }

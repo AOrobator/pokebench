@@ -72,3 +72,5 @@ None. No adjacent refactor.
 Archiving is not authorized.
 
 CPU START received after story checkpoints released at14:46; main remains6cffebd98 and sync is current. First gate on5e1bc6869: build PASS21.62s, lint stopped on an exact-optional-property test type (`contains` from a possibly undefined array element). Added an explicit non-empty fixture guard and reused that known string; no production change. Failure log preserved in gates-5e1bc6869-1793213205747868000. Full replay/test/vendor had not started.
+
+Gate1d310b91a: build and TypeScript passed; ESLint found three test-only issues (possibly undefined array operand, matcher object typed any by the test library, and redundant post-filter type check). Corrected those directly without lint exceptions or production changes. Original logs preserved; targeted lint and unit checks precede the next full gate.

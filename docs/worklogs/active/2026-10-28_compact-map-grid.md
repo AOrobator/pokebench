@@ -63,4 +63,7 @@ The fallback lane returned BLOCKING. When the origin is negative (a local view w
 - [x] GREEN: digits is now the longest column number, and the test parser accepts "-" in header lines. 269 env tests pass with the wiring tests; ruff and mypy are clean.
 - The Claude lane (opus subagent) also returned BLOCKING on the same header bug, plus a strongly recommended hardening: codes could reuse an element legend key (`I` is ice in the legend), which risks a misreading. Accepted.
 - [x] RED: `test_codes_never_reuse_a_glyph_or_an_element_legend_key`, with 700 tokens so it also proves the code supply is unbounded. It fails because codes include legend keys.
-- [ ] GREEN: reserve every KIND/STATE/DIRECTION/COLOR token value and generate codes of growing length.
+- [x] GREEN: `compact_codes` reserves every KIND/STATE/DIRECTION/COLOR token value as well as glyphs, and generates codes of growing length (itertools), so the supply never runs out.
+- Codex (gpt-5.6-sol) returned BLOCKING on the same header bug, plus two process points: the gate must run on the final head, and the explainer must match the tree.
+- [x] The test parser reads signed row labels, and `test_compact_round_trip_on_signed_origins` covers (-6,-6), (-12,3) and (5,-7). 210 compact tests pass.
+- a702 T1300 re-measured with the new codes: grid 7,283 chars / 3,871 tokens and readout 23,534 / 9,292, the same as before. 80×80: 161,825 → 28,243.

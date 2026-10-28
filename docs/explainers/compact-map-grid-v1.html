@@ -121,10 +121,10 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <text x="410" y="158" font-size="12" fill="var(--muted)">cells padded to the longest code (1 or 2 letters)</text>
 </svg><figcaption>Illustrative cells. Each distinct multi-character token gets one code, listed once. Single-character glyphs (#, ., ~, g, W and the others) stay as they are.</figcaption></figure>
 <ul>
-<li>Codes are letters that are never single-character glyphs: <code>ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz</code>, minus any glyph that appears on this map. There are 47 one-letter codes, then two-letter codes.</li>
+<li>Codes are made of letters that are never a single-character glyph on this map and never an element legend key (<code>S</code>, <code>I</code>, <code>Wa</code>, <code>Eg</code> and the rest), so a code can't be mistaken for either. One-letter codes are used first, then two-letter, then longer; the supply never runs out.</li>
 <li>Codes are given in reading order: row by row, left to right.</li>
 <li>A <code>Codes: A = token; …</code> line follows the title. It reads <code>Codes: none</code> when no token needs a code.</li>
-<li>Column numbers are stacked digit lines, read top to bottom. Column 34 is the <code>3</code> above the <code>4</code>.</li>
+<li>Column numbers are stacked digit lines, read top to bottom. Column 34 is the <code>3</code> above the <code>4</code>. A view that starts west of column 0 gets a top line of minus signs, so column -6 is the <code>-</code> above the <code>6</code>.</li>
 <li>Unchanged: gate edges (<code>|</code>, <code>-</code>), junctions (<code>*</code>), the "Base glyph" legend, and every line before and after the grid.</li>
 </ul></div>
 
@@ -140,15 +140,15 @@ main hr{border:0;border-top:4px double #9fb2c8}
    5           #           #           #           #           #                  #           .      g/Eg:g           #           #                   
    6           #           #      g/Eg:g           .      g/Eg:g             g/Eg:g      g/Eg:g           .      g/Eg:g      g/Eg:g                   </pre>
 <h3>ON</h3><pre>Current map (observed elements v1, compact codes); top-left (0,0), north is up:
-Codes: A = ./Wa:puddle; B = g/Eg:g; C = ~/Wa:p/Lv:1; D = ./Br:reflection_below; E = W/Wp:d
+Codes: E = ./Wa:puddle; F = g/Eg:g; J = ~/Wa:p/Lv:1; K = ./Br:reflection_below; M = W/Wp:d
                          1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3
      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
    0 # # # # # # # # # # . . . . . . . . . . . . . . . . . . . . . . . . # # # # # #
    1 # # # # # # # # # # # # . . . . . . . . . . . . . . . . . . . . . . # # # # # #
-   2 # # # # # # # # # # # # . . . . . . . . . . . . . . . . A A . . # # # # # # # #
-   3 # # # # # # # # # # # # # # . . . . . . . . . . . . . . A A A . # # # # # # # #
-   4 # # # # # # B B # # # # # # . . . . . . . . . . . . . . . A A . # # # # # # # #
-   5 # # # # # # . B # # # # # # . . . . A A . . . # . . . . . . . . # # # # # # # #</pre>
+   2 # # # # # # # # # # # # . . . . . . . . . . . . . . . . E E . . # # # # # # # #
+   3 # # # # # # # # # # # # # # . . . . . . . . . . . . . . E E E . # # # # # # # #
+   4 # # # # # # F F # # # # # # . . . . . . . . . . . . . . . E E . # # # # # # # #
+   5 # # # # # # . F # # # # # # . . . . E E . . . # . . . . . . . . # # # # # # # #</pre>
 <table><thead><tr><th>Qwen3.6 tokens (/tokenize)</th><th>OFF</th><th>ON</th></tr></thead><tbody>
 <tr><td>Map grid</td><td>46,558 chars, 12,180 tokens</td><td>7,283 chars, 3,871 tokens</td></tr>
 <tr><td>Whole observe result</td><td>62,809 chars, 17,601 tokens</td><td>23,534 chars, 9,292 tokens</td></tr>
@@ -156,7 +156,7 @@ Codes: A = ./Wa:puddle; B = g/Eg:g; C = ~/Wa:p/Lv:1; D = ./Br:reflection_below; 
 <p>At turn 1300 that saves 8,309 tokens per observe result. a702's failing request was 1,140 tokens over the window.</p></div>
 
 <div class="card"><h2>Lossless proof</h2>
-<p><code>env/tests/env/test_compact_map_grid.py</code> builds a random map with water, levels, encounter tiles, bridges, switches, arrows and rotating gates. It does this at each of the 197 distinct layout sizes in pret 731ad5bfd <code>data/layouts/layouts.json</code>, which include 80×80 and 40×140. It then reads both forms back into the same cells, gate edges, junctions and trailing text. On maps of 400 tiles or more, the ON form must be under 60% of the OFF length. At 80×80 it goes from 161,825 to 28,222 chars.</p>
+<p><code>env/tests/env/test_compact_map_grid.py</code> builds a random map with water, levels, encounter tiles, bridges, switches, arrows and rotating gates. It does this at each of the 197 distinct layout sizes in pret 731ad5bfd <code>data/layouts/layouts.json</code>, which include 80×80 and 40×140. It then reads both forms back into the same cells, gate edges, junctions and trailing text. On maps of 400 tiles or more, the ON form must be under 60% of the OFF length. At 80×80 it goes from 161,825 to 28,243 chars. A second test covers views whose origin is negative (local windows near a map's west or north edge), and a third checks that codes never repeat a glyph or a legend key, even with 700 distinct tokens.</p>
 <p>A wiring test renders a full server readout with the switch off and on. The text before the grid and from "Base glyph" on is byte-identical, and the grid decodes to the same tiles.</p></div>
 
 <div class="card"><h2>Wiring</h2>
@@ -171,6 +171,6 @@ Codes: A = ./Wa:puddle; B = g/Eg:g; C = ~/Wa:p/Lv:1; D = ./Br:reflection_below; 
 
 <div class="card"><h2>Status</h2>
 <ul><li>Branch <code>claude/compact-map-grid</code>. Not landed and not active in any arm.</li>
-<li>Focused tests pass: 201 Python tests and the TS registry tests.</li>
+<li>Focused tests pass: 210 compact Python tests and the TS registry tests. Review round 1 found the negative-origin header bug, now fixed.</li>
 <li>Still to do: the activation commit (bundle ON, held for the operator's OK), the full gate (waiting for a CPU grant), and the three-lane review. No measured runs yet.</li></ul></div>
 </main></body></html>

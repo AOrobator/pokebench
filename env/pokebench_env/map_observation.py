@@ -1,5 +1,6 @@
 """One observation-only presentation of current map elements and edge geometry."""
 
+import itertools
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
@@ -221,22 +222,30 @@ def labels_at(
 
 
 # Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge and the rest), so a
-# code can never be mistaken for a glyph; one-letter codes run out before two-letter ones start.
+# code can never be mistaken for a glyph; shorter codes run out before longer ones start.
 CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
 
 
 def compact_codes(rendered: list[list[str]]) -> dict[str, str]:
     glyphs = {token for row in rendered for token in row if len(token) == 1}
-    letters = [c for c in CODE_LETTERS if c not in glyphs]
+    # A code is never an element legend key either, so "I" cannot mean anything but ice there.
+    legend = {
+        v
+        for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS)
+        for v in table.values()
+    }
+    letters = [c for c in CODE_LETTERS if c not in glyphs and c not in legend]
+    names = (
+        "".join(p)
+        for size in itertools.count(1)
+        for p in itertools.product(letters, repeat=size)
+        if "".join(p) not in legend
+    )
     codes: dict[str, str] = {}
     for row in rendered:
         for token in row:
             if len(token) > 1 and token not in codes:
-                n = len(codes)
-                if n < len(letters):
-                    codes[token] = letters[n]
-                else:
-                    codes[token] = letters[n // len(letters) - 1] + letters[n % len(letters)]
+                codes[token] = next(names)
     return codes
 
 

@@ -106,7 +106,7 @@ def parse(text: str) -> dict[str, object]:
     body = lines[i:]
     end = next(k for k, line in enumerate(body) if line.startswith("Base glyph"))
     for line in body[:end]:
-        if line[:4].strip().isdigit():
+        if line[:4].strip().lstrip("-").isdigit():
             y += 1
             padded = line.ljust(ends[-1] + 2)
             row = []
@@ -230,3 +230,13 @@ def test_codes_never_reuse_a_glyph_or_an_element_legend_key() -> None:
     for code in codes.values():
         assert code not in legend and code not in {"#", ".", "g", "W", "N"}
         assert code.isalpha()
+
+
+@pytest.mark.parametrize("ox,oy", [(-6, -6), (-12, 3), (5, -7)])
+def test_compact_round_trip_on_signed_origins(ox: int, oy: int) -> None:
+    shown, elements = synthetic(15, 15, ox * 100 + oy)
+    observation = dataclasses.replace(build_observation(shown, (0, 0), elements), origin=(ox, oy))
+    verbose = render_observation(shown, observation)
+    compact = render_observation(shown, observation, compact=True)
+    assert parse(compact) == parse(verbose)
+    assert len(parse(compact)["cells"]) == 15  # type: ignore[arg-type]

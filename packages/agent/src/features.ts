@@ -295,6 +295,7 @@ export const SWITCHABLE_FEATURES = [
   "gateway-current-turn-v1",
   "gateway-tool-schemas-v1",
   "gateway-schema-hint-v1",
+  "type-gap-team-last-message-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -710,6 +711,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("gateway-current-turn-v1", "observation", "COMPLETE CLAUDE TURN DELIVERY", null, "Correctness fix, on in both current arms; omitted historical presets stay off. A compatible Claude session gateway reads this run’s recorded switch and forwards every message after the latest assistant reply, keeping the tool result, screenshots and trailing memory or supervisor blocks together. Saves screenshot handles from that same span and records session_input evidence. Does not affect other model gateways or choose actions. Off: forwards and saves only the last two non-system messages, preserving the legacy prompt and screenshot indices."),
   on("gateway-tool-schemas-v1", "observation", "CLAUDE TOOL SCHEMAS EVERY TURN", null, "Correctness fix for the Claude session gateway, on in both current arms; omitted historical presets stay off. Session mode puts the full harness tool listing (names, descriptions and JSON parameter schemas) in the system prompt of every call, which Claude Code re-sends each call and never compacts, so the schemas survive auto-compaction. The per-turn message names the tools and points to the system prompt. Records tool_schemas in session_input. Does not affect other model gateways. Off: the listing is sent only in a session's first turn or when the tool set changes, and later turns say only that the tools are unchanged."),
   on("gateway-schema-hint-v1", "guidance", "CLAUDE SCHEMA RE-ASK HINT", null, "Correctness fix for the Claude session gateway, on in both current arms; omitted historical presets stay off. When a reply's arguments fail an anyOf or oneOf in the tool's schema, the one re-ask also lists each allowed option, generated from that schema: its const discriminator values and required keys (for example {kind: \"warp\", x, y}). Records schema_hint on the call. Does not affect other model gateways. Off: the re-ask carries only the validation error, such as \"arguments.target matches 0 of the anyOf options\"."),
+  on("type-gap-team-last-message-v1", "observation", "GYM TYPE GAP LAST MESSAGE", "type-gap-team-v1", "Bundle arm only, default off (the operator 2026-10-27, \"Build the placement switch\" after the type-gap decision probes: held-out 40/64 with the block only on the tool result, 55/64 with it in both places). Needs type-gap-team-v1. Whenever the GYM TYPE GAP block is appended to a tool result and that result is still the newest message of the request, the identical block text, byte for byte and never shortened, is also sent as a user message after everything else in the request, so it is the last thing the model reads before deciding; the block stays on the tool result as before. The copy is recorded once per tool result as ledger context with the result's seq as evidence, and it is not kept in history: the next request, which has a newer reply, no longer carries it. Off: the block is only on the tool result, as type-gap-team-v1 ships it."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1083,6 +1085,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("gateway-current-turn-v1"),
     ...when("gateway-tool-schemas-v1"),
     ...when("gateway-schema-hint-v1"),
+    ...when("type-gap-team-last-message-v1"),
   ];
 }
 

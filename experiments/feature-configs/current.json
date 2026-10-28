@@ -67,7 +67,8 @@
   "cutscene-journal-v1",
   "supplies-v1",
   "untalked-in-gym-v1",
-  "scene-followup-prompt-v1"
+  "scene-followup-prompt-v1",
+  "type-gap-team-last-message-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -431,6 +432,7 @@
   "no-story-foreknowledge-v1": true,
   "gateway-current-turn-v1": true,
   "gateway-tool-schemas-v1": true,
-  "gateway-schema-hint-v1": true
+  "gateway-schema-hint-v1": true,
+  "type-gap-team-last-message-v1": false
  }
 }

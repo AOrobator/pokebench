@@ -93,3 +93,16 @@ The operator, 2026-10-27 ~6:30 PM ET (relayed): leave the live runs 36b5 and 76c
 The operator, 2026-10-27 ~9:09 PM ET, via Codex (relayed by the coordinator): continue the stopped Opus run 3642 from its latest checkpoint on the current bundle, keeping the original run and labeling the continuation. To keep Opus's compacted memory, the continuation's gateway reuses 3642's bridge folder, because Claude Code finds a session by its cwd's project folder. The new option lets the newly bound run adopt a stored session only when that session's run_id equals the named parent run. It's logged once as `session_continued`. Any other mismatch still resets the session. The option is recorded in gateway_start.
 - [x] Option, tests (72 pass; 99.29/97.03/100), ruff and mypy --strict clean
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+
+## M6 — session mode sends the whole current turn, not a fixed last two messages
+
+Found by Codex's read-only audit and confirmed 2026-10-27 ~9:35 PM ET. Session mode sent `dialogue[-2:]`, copying Astra's next.py. On the current bundle (d06b9f4db) the harness appends an "OBSERVED INSTRUCTION MEMORY" user message after the screenshot message, so the tool result fell out on every turn: continuation f60d, requests 577–606, 30/30. Claude's native transcript contains the call_600 tool text 0 times. On aacff2371 it fell out only when an extra user message (a battle update or a SUPERVISOR stall message) followed the screenshot: 3642 17/574, 36b5 8/303, 76cd 8/287, 318a 1/104. Astra itself, through next.py: 174/2740 (6.4%).
+
+Fix: `ChatRequest.current_turn` is every message after the model's latest assistant reply (the tool result plus all trailing harness blocks), falling back to the last message. session_prompt and _save_screens use it.
+
+- Tests: built from real reduced requests (fixtures/: bundle request 601, aacff 145 with a battle update, aacff 400).
+- Replay receipt: runs/launch-receipts/opus-3642-continuation-20261027/current-turn-fix/, before and after for requests 601 and 577.
+- Expected cost: payloads grow when the tool result is large; request 577's observe result is about 58K chars.
+- 77 tests pass, coverage 99.41/97.46/100.
+- [ ] Review: Claude, Codex gpt-5.6-sol, fallback
+- [ ] Hold for the operator: landing and any gateway restart for f60d

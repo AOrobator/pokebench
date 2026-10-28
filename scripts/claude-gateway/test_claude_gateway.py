@@ -790,3 +790,46 @@ def test_continue_session_argument(tmp_path: Path) -> None:
     ]
     assert cg.parse_args([*base, "--continue-session-from", "r0"])[0].continue_from == "r0"
     assert cg.parse_args(base)[0].continue_from is None
+
+
+FIXTURES = Path(__file__).with_name("fixtures")
+
+
+@pytest.mark.parametrize(
+    ("name", "roles"),
+    [
+        ("bundle-d06b9f4db-request-601.json", ["tool", "user", "user"]),
+        ("aacff2371-request-145-battle-update.json", ["tool", "user", "user"]),
+        ("aacff2371-request-400.json", ["tool", "user"]),
+    ],
+)
+def test_current_turn_keeps_the_tool_result_and_every_trailing_message(
+    name: str, roles: list[str]
+) -> None:
+    parsed = cg.parse_request((FIXTURES / name).read_bytes())
+    turn = parsed.current_turn
+    assert [m.role for m in turn] == roles
+    assert turn[0].tool_call_id is not None
+
+
+def test_current_turn_falls_back_to_the_last_message() -> None:
+    body = {
+        "messages": [{"role": "user", "content": "go"}, {"role": "assistant", "content": "ok"}],
+        "tools": [OBSERVE],
+    }
+    assert [m.role for m in cg.parse_request(json.dumps(body).encode()).current_turn] == [
+        "assistant"
+    ]
+
+
+def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path) -> None:
+    gateway = make(tmp_path, [{"result": GOOD}], mode="session")
+    raw = (FIXTURES / "bundle-d06b9f4db-request-601.json").read_bytes()
+    assert gateway.answer(raw)[1].reply is not None
+    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    assert "[tool result of call_600]" in text and "Gym progress (game memory)" in text
+    assert "OBSERVED INSTRUCTION MEMORY" in text
+    assert "MAY's pre-battle line is showing" not in text
+    screens = sorted(p.name for p in (tmp_path / "bridge" / "screens").iterdir())
+    assert screens and all(n.startswith("turn-1-1-") for n in screens)
+    assert text.count("(screenshot saved at") == len(screens)

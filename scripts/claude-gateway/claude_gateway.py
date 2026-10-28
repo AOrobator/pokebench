@@ -10,8 +10,8 @@ Modes:
   stateless  every turn is one fresh call carrying the whole harness window and
              its images; no tools, no session on disk, an empty working dir.
   session    one persistent Claude Code session per run, continued with
-             --resume. Each turn sends only the last two harness messages and the
-             paths of that turn's screenshots; Read, confined to the bridge's
+             --resume. Each turn sends only the harness messages since the model's
+             last reply and the paths of that turn's screenshots; Read, confined to the bridge's
              screens folder, is its only tool.
 
 A usage limit or any other provider failure never reaches the harness as an
@@ -123,6 +123,14 @@ class ChatRequest:
     @property
     def dialogue(self) -> tuple[Message, ...]:
         return tuple(m for m in self.messages if m.role != "system")
+
+    @property
+    def current_turn(self) -> tuple[Message, ...]:
+        """Everything after the model's latest reply: its tool result and every message the
+        harness added since (screenshots, battle updates, supervisor and memory blocks)."""
+        dialogue = self.dialogue
+        last = max((i for i, m in enumerate(dialogue) if m.role == "assistant"), default=-1)
+        return dialogue[last + 1 :] or dialogue[-1:]
 
 
 @dataclass(frozen=True)
@@ -520,7 +528,7 @@ def _screenshot_note(paths: Sequence[Path]) -> Callable[[int], str]:
 def session_prompt(
     request: ChatRequest, screens: Sequence[Sequence[Path]], first: bool, tools_changed: bool
 ) -> Prompt:
-    """The last two harness messages; screenshots appear as file paths to Read."""
+    """This turn's harness messages; screenshots appear as file paths to Read."""
     system = f"{request.system}\n\n{REPLY_CONTRACT}\n\n{SESSION_CONTRACT}"
     blocks: list[JsonObject] = []
     if first or tools_changed:
@@ -528,7 +536,7 @@ def session_prompt(
     else:
         names = ", ".join(t.name for t in request.tools)
         blocks.append({"type": "text", "text": f"Harness tools unchanged: {names}."})
-    for message, paths in zip(request.dialogue[-2:], screens, strict=True):
+    for message, paths in zip(request.current_turn, screens, strict=True):
         blocks.extend(_render(message, _screenshot_note(paths)))
     blocks.append({"type": "text", "text": "Reply now with the one JSON object."})
     return Prompt(system, _merge_text(blocks))
@@ -859,7 +867,7 @@ class Gateway:
 
     def _save_screens(self, seq: int, request: ChatRequest) -> list[list[Path]]:
         screens: list[list[Path]] = []
-        for index, message in enumerate(request.dialogue[-2:]):
+        for index, message in enumerate(request.current_turn):
             paths: list[Path] = []
             for part in message.parts:
                 if part.image is None:

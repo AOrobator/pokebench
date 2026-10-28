@@ -124,3 +124,6 @@ COMMIT: preserve unfinished Aqua Hideout advice and report corrected diagnostic 
 
 Post-review source sync: merge current snapshot-viewer main 52a5654187e0697eaf0c658bdeab6b5a22f74443 cleanly. No own production conflict, constructor seam remains junk5/wholeGame6 and junk1/wholeGame2. This new source requires full re-gates and final browser proof before cumulative fix review. No activation.
 COMMIT: sync snapshot-viewer main for bounded Aqua fix re-gates.
+
+Latest main sync abaadae4c16ab5a2f6d5c2ea68b7f4c954973e17: five shared append conflicts resolved from exact main versions, re-appending only the own default-OFF registry/default/explainer additions. Own feature ordinal305; constructor/cap/fixture sources untouched. Per-file byte proof: stripping only our additions makes all five resolved surfaces identical to main (aqua-fix/main-append-surface-parity.json). Coordinator notified; whether prior full gates plus focused combination proof/postmerge full test count awaits ruling. No activation.
+COMMIT: preserve landed ID-card append surfaces while integrating whole-game feature.

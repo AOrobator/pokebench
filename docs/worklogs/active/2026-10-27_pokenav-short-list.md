@@ -41,7 +41,8 @@ Run a702 (Qwen3.6 bundle, harness 5940bc2fb) spent turns 641–661 on the Match 
   - Codex: BLOCKING on one point only, the viewer test's setup cost (repeated preset builds and a duplicate validation).
   - Per the cap rule, I asked the operator after two rounds. The coordinator relayed option 1: fix the test cost, then a Codex-only round 3 on that delta.
 - [x] Round 2 fix: `pokenav-correctness-bundle.test.ts` builds each (phase, arm) preset once and reuses it for both ids and the server check. It drops the duplicate `definitionProblems`, since `parseFixedDefinition` already throws on problems.
-- [ ] Review round 3 (Codex, test-only delta)
+- [x] Review round 3 (Codex gpt-5.6-sol, test-only delta 5dae792c0..9f798d6bd): LGTM. Final roster on the frozen head 9f798d6bd: Claude LGTM (r2, subagent harness), fallback LGTM (r2), Codex LGTM (r3).
+- [x] CPU window granted (coordinator, 8:45 PM NY). main had moved to 55312588c (scene-followup-prompt-v1). Rebased: the new ids are appended after scene-followup-prompt-v1. The absolute pins shift by one (switchable 282/283, harness 306/307; server 93 is unchanged). `scene-followup.test.ts` now pins its own index 281 instead of "last", because a switch now follows it.
 - [ ] Full gates (`just test`, `just lint`) once the heavy-CPU window is granted
 - [ ] Land ff-only via the landing board; evidence commit; `just land-done`
 - [ ] Explainer pages (deferred follow-up)

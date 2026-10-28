@@ -174,3 +174,19 @@ Coordinator, 2026-10-27 ~10:57 PM ET (relaying the operator's go for the anyOf f
 - [ ] Review: Claude, Codex gpt-5.6-sol, fallback
 - [ ] Full gates (coordinator CPU window), land ff-only
 - f60d untouched; any swap waits for the operator.
+- M7 reviews:
+  - Round 1 on 666232ba1 (packet 8c5d0018): Claude, fallback and Codex gpt-5.6-sol all LGTM. Hardening noted, not fixed: an anyOf under array items gets no hint, because the paths differ (`x[0]` vs `x[]`); no current tool schema has one.
+  - Synced 713bfa541 (docs) as 93e618dda, packet identical. Full gates on 93e618dda passed (11:13–11:17 PM ET).
+  - Coordinator held landing for type-gap. Re-synced f4b2257ea (merge 9aaa975b1, current.json conflict resolved keeping gateway-tool-schemas-v1, gateway-schema-hint-v1 and type-gap-team-v1). Confirmation on packet 06812efe: Claude, fallback and Codex LGTM. Synced ac955e47e (docs), giving 87cf6a8c7 with the packet identical.
+- Full gates on 87cf6a8c7 (11:28–11:32 PM ET), all passing:
+  - build, TS lint, env ruff and mypy, gateway ruff and mypy --strict
+  - agent 4689, viewer 2160
+  - pytest 4466 (97.49/93.61/100), gateway 102 (99.37/97.16/100)
+  - trainer cards 3/3
+
+## Landed (M7)
+
+- `git merge --ff-only 87cf6a8c7`, 2026-10-27 ~11:32 PM ET, slot 1. Main is exactly the reviewed and gated tree.
+- Post-landing `just test` on main 87cf6a8c7 (11:32–11:35 PM ET, clean tree): exit 0. Agent 4689, viewer 2160, pytest 4466, gateway 102, trainer cards passed.
+- `just viewer-main` is still needed: the two switches add Harness Config cards.
+- f60d is untouched. It has had 3 counted reply failures (requests 1007, 1041, 1156), all navigate_to_target target shape after schema loss. Its staged swap would pass `--current-turn on --tool-schemas on --schema-hint on` and needs the operator's OK.

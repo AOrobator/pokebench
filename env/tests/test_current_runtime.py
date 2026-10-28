@@ -262,3 +262,34 @@ def test_real_git_preparation_keeps_the_old_build_when_main_advances(tmp_path, m
     with pytest.raises(RuntimeError, match="clean and at its named commit"):
         prepare(root, cache, target=first)
     assert first_viewer.read_text().strip() == first_pin
+
+
+def test_serving_viewer_tree_uses_the_listener_not_an_old_cached_build(tmp_path):
+    from pokebench_env.current_runtime import serving_viewer_tree
+
+    root = tmp_path / "repo with spaces"
+    tree = tmp_path / "pinned runtime with spaces"
+    calls = []
+
+    def read(args):
+        calls.append(list(args))
+        if args[0] == "lsof":
+            return "4321\n"
+        return (
+            f"node --env-file={root / '.env'} "
+            f"{tree / 'packages/viewer/dist/cli.js'} --port 8790 --runs {root / 'runs'}\n"
+        )
+
+    assert serving_viewer_tree(root, read=read) == tree
+    assert calls == [
+        ["lsof", "-nP", "-t", "-iTCP:8790", "-sTCP:LISTEN"],
+        ["ps", "-p", "4321", "-o", "command="],
+    ]
+
+
+@pytest.mark.parametrize("listeners,command", [("1\n2\n", ""), ("bad", ""), ("1", "unrelated process")])
+def test_serving_viewer_tree_refuses_ambiguous_or_foreign_listeners(tmp_path, listeners, command):
+    from pokebench_env.current_runtime import serving_viewer_tree
+
+    with pytest.raises(RuntimeError, match="viewer listener"):
+        serving_viewer_tree(tmp_path, read=lambda args: listeners if args[0] == "lsof" else command)

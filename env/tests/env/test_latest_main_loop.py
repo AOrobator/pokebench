@@ -707,3 +707,56 @@ def test_unrelated_reused_pid_does_not_own_a_game_lane(
     h.runner_identity = "unrelated application"
     assert controller.trial(LANE, "bundle")
     assert len(h.children) == 1
+
+
+def test_viewer_refresh_hands_off_and_reacquires_the_existing_prepare_lock(
+    rig: tuple[Config, FakeHost, Controller], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fcntl
+
+    c, host, controller = rig
+    original = host.run
+    observed = []
+
+    def run(args: list[str], cwd: Path) -> str:
+        if args in (["just", "viewer-main"], ["just", "runs-disk"]):
+            with c.prepare_lock.open("a") as contender:
+                if args == ["just", "viewer-main"]:
+                    fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    observed.append("refresh owns lock")
+                else:
+                    with pytest.raises(BlockingIOError):
+                        fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    observed.append("launch guard owns lock")
+        return original(args, cwd)
+
+    monkeypatch.setattr(host, "run", run)
+    assert controller.trial(LANE, "bundle")
+    assert observed == ["refresh owns lock", "launch guard owns lock"]
+    assert len(host.children) == 1
+
+
+def test_normal_viewer_freshness_reads_the_actual_serving_tree(
+    rig: tuple[Config, FakeHost, Controller], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from dataclasses import replace
+    from pokebench_env import current_runtime
+
+    c, host, _ = rig
+    actual = c.repo / "actual served pin"
+    stamp = actual / "packages/viewer/dist/build-stamp.json"
+    stamp.parent.mkdir(parents=True)
+    stamp.write_text(json.dumps({"commit": A, "dirty": False}))
+    calls = []
+
+    def serving(root, *, read):
+        calls.append(root)
+        assert read(["owned-probe"]) == ""
+        return actual
+
+    monkeypatch.setattr(current_runtime, "serving_viewer_tree", serving, raising=False)
+    config = replace(c, viewer_stamp=None)
+    assert Controller(config, host).viewer_current(A) is True
+    assert calls == [c.repo]
+    stamp.write_text(json.dumps({"commit": A, "dirty": True}))
+    assert Controller(config, host).viewer_current(A) is False

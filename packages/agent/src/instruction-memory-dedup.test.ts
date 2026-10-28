@@ -50,7 +50,7 @@ it("does not admit pending, failed or cross-run dialogue and is inert without it
  expect(w.tools.length).toBeGreaterThan(0);expect((await w.transformContext([])).some(m=>JSON.stringify(m).includes(quote))).toBe(false);
 });
 it("registers a default-OFF treatment independently of the bundle recipe",()=>{
- expect(SWITCHABLE_FEATURES[289]).toBe(ID);expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})[ID]).toBe(false);
+ expect(SWITCHABLE_FEATURES[292]).toBe(ID);expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})[ID]).toBe(false);
  expect(playHarnessFeatures(flags(false),null)).not.toContain(ID);expect(playHarnessFeatures(flags(true),null)).toContain(ID);
  const source=readFileSync(new URL("../../viewer/src/next-run.ts",import.meta.url),"utf8");expect(source).toContain('"instruction-memory-dedup-v1": false');
 });

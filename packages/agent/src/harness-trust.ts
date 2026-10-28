@@ -241,7 +241,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -249,7 +249,7 @@ export class HarnessTrust {
  private readonly walk:WalkAway;
  // untalked-people-header-v1: who on this map has not been talked to since the latest story milestone.
  private readonly people:PeopleLedger|null;
- constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true,options.buildings===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true,options.nativeTasks===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
+ constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true,options.buildings===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true,options.nativeTasks===true,options.selfNamed===true,options.retireReached===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
  observe(event:RunEvent):void {this.story.observe(event);this.people?.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;

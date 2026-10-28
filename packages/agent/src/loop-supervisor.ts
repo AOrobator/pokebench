@@ -51,6 +51,8 @@ interface Tried {readonly key:string;readonly room:string;readonly label:string;
 interface Instruction {readonly name:string;readonly turn:number;readonly pages:readonly {readonly speaker:string|null;readonly text:string}[]}
 
 const MAX_TRIED=8;
+// story-briefing-native-milestones-v1: the latest story step with dialogue and up to three before it.
+const STORY_DIALOGUES=4;
 // Only these tools return the game readout; any other text could only quote it.
 const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
@@ -107,6 +109,9 @@ export class SupervisorBriefing {
  // and maps the player has been on since the latest counted milestone.
  private pendingStory:{readonly name:string;readonly turn:number;readonly evidence:number}|null=null;
  private instruction:Instruction|null=null;
+ // story-briefing-native-milestones-v1: earlier story steps with dialogue, oldest first, and the extended story steps recorded.
+ private readonly instructions:Instruction[]=[];
+ private readonly extendedDone:string[]=[];
  private readonly path=new Map<string,State>();
  private readonly entered=new Set<string>();
  // stall-briefing-v1: the owned interface the latest result showed, and the presses made in it.
@@ -133,6 +138,12 @@ export class SupervisorBriefing {
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
     if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();}
+    if(this.features["story-briefing-native-milestones-v1"]&&event.origin==="observed"&&event.kind==="story"&&!OPTIONAL_PROGRESS_NAMES.has(event.name)){
+     this.pendingStory={name:event.name,turn:event.turn,evidence:Math.max(...(event.evidence??[event.seq]))};
+     this.stories.push({seq:event.seq,turn:event.turn,name:event.name});
+     const label=event.name.replaceAll("_"," ").toLowerCase();
+     if(!this.extendedDone.includes(label))this.extendedDone.push(label);
+    }
     return;
    }
   this.gate?.observe(event);
@@ -232,7 +243,9 @@ export class SupervisorBriefing {
   const pages=auto!==undefined
    ?auto.pages.filter(p=>(p.state_seq??auto.seq)<=story.evidence).map(p=>({speaker:speakerLabel(p),text:p.text}))
    :this.dialogue.entries().filter(e=>e.turn===story.turn&&e.seq<=story.evidence).map(e=>({speaker:null,text:e.text}));
-  if(pages.length>0)this.instruction={name:story.name,turn:story.turn,pages};
+  if(pages.length===0)return;
+  this.instruction={name:story.name,turn:story.turn,pages};
+  if(this.features["story-briefing-native-milestones-v1"]){this.instructions.push(this.instruction);if(this.instructions.length>STORY_DIALOGUES)this.instructions.shift();}
  }
  // The readout's own Story line, so the briefing never disagrees with it. A reload gap keeps the last known line.
  private readStory(text:string):void {
@@ -413,6 +426,7 @@ export class SupervisorBriefing {
  }
  private done():string {
   if(!this.features["story-state-v1"])return "not available (story flags are off)";
+  if(this.features["story-briefing-native-milestones-v1"]&&this.extendedDone.length>0)return `${this.story===null?"":`${this.story}; `}${this.extendedDone.join("; ")}`;
   return this.story??"not recorded";
  }
  private where():string {
@@ -491,7 +505,9 @@ export class SupervisorBriefing {
   if(!this.features["active-field-message-buffer-v1"])return ": not available (dialogue text is off)";
   const story=this.instruction;
   if(story===null)return ": none recorded";
-  return ` (${story.name.replaceAll("_"," ").toLowerCase()} at turn ${String(story.turn)}), whole, in order: ${story.pages.map(p=>`${p.speaker===null?"":`${p.speaker}: `}"${p.text.replace(/\s+/g," ")}"`).join(" | ")}`;
+  const whole=(s:Instruction)=>`(${s.name.replaceAll("_"," ").toLowerCase()} at turn ${String(s.turn)}), whole, in order: ${s.pages.map(p=>`${p.speaker===null?"":`${p.speaker}: `}"${p.text.replace(/\s+/g," ")}"`).join(" | ")}`;
+  const earlier=this.features["story-briefing-native-milestones-v1"]?this.instructions.slice(0,-1).reverse():[];
+  return ` ${whole(story)}${earlier.length===0?"":`. Earlier story steps that came with dialogue, newest first: ${earlier.map(whole).join(" || ")}`}`;
  }
  // Warps listed on the maps walked since the last progress whose destination map has not been entered since.
  private unentered():string {

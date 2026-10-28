@@ -1156,6 +1156,17 @@ it("serves the caught nickname and fail-open explainers byte for byte, mapped fr
  }
 });
 
+it("serves the Dewford readout fixes explainer byte for byte, mapped from all three of its switch cards",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const file="dewford-readout-fixes.html",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)));
+ writeFileSync(join(docs,file),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ for(const id of ["self-named-speaker-v1","story-briefing-native-milestones-v1","retire-reached-story-line-v1"])expect(FEATURE_EXPLAINERS[id]).toBe(file);
+ const reply=await get(viewer,`/explainers/${file}`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);expect(reply.body.toString()).toContain("<title>Dewford readout fixes</title>");
+});
+
 it("serves the field move gates explainer byte for byte, mapped from its card",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const id="field-move-gates-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));

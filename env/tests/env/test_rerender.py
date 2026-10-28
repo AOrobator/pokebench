@@ -172,6 +172,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "interface_guidance_enabled": False,
         "bag_pocket_truth_enabled": False,
         "pokenav_short_list_enabled": False,
+        "pokenav_call_advance_enabled": False,
         "field_moves_enabled": False,
         "move_learning_enabled": False,
         "move_learning_early_enabled": False,

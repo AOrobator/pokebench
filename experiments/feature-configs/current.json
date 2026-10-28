@@ -69,7 +69,8 @@
   "untalked-in-gym-v1",
   "scene-followup-prompt-v1",
   "instruction-memory-dedup-v1",
-  "neutral-yes-no-readout-v1"
+  "neutral-yes-no-readout-v1",
+  "pokenav-call-auto-advance-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -447,6 +448,7 @@
   "instruction-memory-dedup-v1": false,
   "neutral-yes-no-readout-v1": false,
   "instruction-memory-cap-v1": true,
+  "pokenav-call-auto-advance-v1": false,
   "player-map-visibility-v1": true
  }
 }

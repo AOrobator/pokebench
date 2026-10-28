@@ -12,7 +12,7 @@ const ID="player-map-visibility-v1";
 
 it("registers a reversible default-off server and prompt feature",()=>{
  const off={...ALL_ON,[ID]:false},on={...off,[ID]:true};
- expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(296);
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(297);
  expect(featureInfo(ID).description).toContain("Off:");
  expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);
  expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

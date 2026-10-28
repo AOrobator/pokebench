@@ -431,12 +431,14 @@ const DialoguePageSchema = Type.Object({
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
-  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe", "navigate_to_target", "explore_map"] as const),
+  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe", "navigate_to_target", "explore_map", "select_menu_option"] as const),
   requested: Type.Array(ButtonSchema),
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),
   auto_presses: NonNegativeInt,
   battle_auto_presses: Type.Optional(NonNegativeInt),
+  pokenav_buttons: Type.Optional(Type.Array(ButtonSchema, {maxItems:50})),
+  pokenav_pending_button: Type.Optional(ButtonSchema),
   pages: Type.Array(DialoguePageSchema),
   stop: Type.Enum(DIALOGUE_AUTO_ADVANCE_STOPS),
   detail: Type.String(),

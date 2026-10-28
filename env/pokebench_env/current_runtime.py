@@ -5,6 +5,7 @@ import fcntl
 import hashlib
 import os
 import plistlib
+import re
 import shutil
 import subprocess
 from collections.abc import Callable, Iterator, Sequence
@@ -37,18 +38,20 @@ def _call(run: Runner, args: Sequence[str], cwd: Path | None = None) -> str:
 def serving_viewer_tree(root: Path, *, read: Callable[[Sequence[str]], str] | None = None) -> Path:
     output = read if read is not None else lambda args: _call(subprocess.run, args)
     listeners = output(["lsof", "-nP", "-t", "-iTCP:8790", "-sTCP:LISTEN"]).split()
-    if len(listeners) != 1 or not listeners[0].isdigit() or int(listeners[0]) < 1:
+    if len(listeners) != 1 or re.fullmatch(r"[1-9][0-9]*", listeners[0]) is None:
         raise RuntimeError("cannot identify one viewer listener on 8790")
     command = output(["ps", "-p", listeners[0], "-o", "command="]).strip()
     root = root.resolve()
-    prefix, suffix = f" --env-file={root / '.env'} ", f" --port 8790 --runs {root / 'runs'}"
-    if command.count(prefix) != 1 or not command.endswith(suffix):
-        raise RuntimeError("viewer listener does not belong to this root")
-    cli = command.split(prefix, 1)[1].removesuffix(suffix)
-    path = Path(cli)
-    if not path.is_absolute() or not cli.endswith("/packages/viewer/dist/cli.js"):
-        raise RuntimeError("viewer listener has no supported built CLI")
-    return path.parents[3]
+    pattern = (
+        r".+ --env-file="
+        + re.escape(str(root / ".env"))
+        + r" (?P<cli>/.+/packages/viewer/dist/cli[.]js) --port 8790 --runs "
+        + re.escape(str(root / "runs"))
+    )
+    match = re.fullmatch(pattern, command)
+    if match is None:
+        raise RuntimeError("viewer listener does not belong to this root's built CLI")
+    return Path(match["cli"]).parents[3]
 
 
 def prepare(

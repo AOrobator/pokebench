@@ -287,11 +287,26 @@ def test_serving_viewer_tree_uses_the_listener_not_an_old_cached_build(tmp_path)
     ]
 
 
-@pytest.mark.parametrize(
-    "listeners,command", [("1\n2\n", ""), ("bad", ""), ("1", "unrelated process")]
-)
-def test_serving_viewer_tree_refuses_ambiguous_or_foreign_listeners(tmp_path, listeners, command):
+@pytest.mark.parametrize("listeners", ["1\n2\n", "bad", "0"])
+def test_serving_viewer_tree_refuses_ambiguous_or_invalid_pids(tmp_path, listeners):
     from pokebench_env.current_runtime import serving_viewer_tree
 
-    with pytest.raises(RuntimeError, match="viewer listener"):
+    command = (
+        f"node --env-file={tmp_path / '.env'} "
+        f"{tmp_path / 'pin/packages/viewer/dist/cli.js'} --port 8790 --runs {tmp_path / 'runs'}"
+    )
+    with pytest.raises(RuntimeError, match="one viewer listener"):
         serving_viewer_tree(tmp_path, read=lambda args: listeners if args[0] == "lsof" else command)
+
+
+@pytest.mark.parametrize("foreign", ["environment", "port", "runs", "CLI"])
+def test_serving_viewer_tree_refuses_foreign_commands(tmp_path, foreign):
+    from pokebench_env.current_runtime import serving_viewer_tree
+
+    env = tmp_path / ("foreign.env" if foreign == "environment" else ".env")
+    cli = tmp_path / ("pin/foreign.js" if foreign == "CLI" else "pin/packages/viewer/dist/cli.js")
+    port = 8000 if foreign == "port" else 8790
+    runs = tmp_path / ("foreign-runs" if foreign == "runs" else "runs")
+    command = f"node --env-file={env} {cli} --port {port} --runs {runs}"
+    with pytest.raises(RuntimeError, match="this root's built CLI"):
+        serving_viewer_tree(tmp_path, read=lambda args: "4321" if args[0] == "lsof" else command)

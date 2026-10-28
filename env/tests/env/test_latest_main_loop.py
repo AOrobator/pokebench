@@ -732,7 +732,11 @@ def test_viewer_refresh_hands_off_and_reacquires_the_existing_prepare_lock(
         return original(args, cwd)
 
     monkeypatch.setattr(host, "run", run)
-    assert controller.trial(LANE, "bundle")
+    try:
+        refreshed = controller.trial(LANE, "bundle")
+    except BlockingIOError as error:
+        pytest.fail(f"viewer refresh retained parent preparation lock: {error}")
+    assert refreshed
     assert observed == ["refresh owns lock", "launch guard owns lock"]
     assert len(host.children) == 1
 

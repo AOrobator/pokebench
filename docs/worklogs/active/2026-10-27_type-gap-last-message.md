@@ -42,3 +42,18 @@ Adding a bundle switch changes the four `featureRecipe: "current"` definitions (
 ## Rebases
 
 - Rebased onto main 87cf6a8c7 (gateway-tool-schemas-v1 and gateway-schema-hint-v1, which also append to every registry list, presets, defaults and current.json). Conflicts in current.json, features.ts, play-preset.ts and next-run.ts, all "both appended": resolved by taking main's files and re-adding this switch after gateway-schema-hint-v1 (registry lists, FeatureSetSchema, the preset spread filter and Exclude type, normalizeFeatures, flagFeatures, DEFAULT_NEXT_RUN), last in `switches` and base false. Targeted tests rerun: agent 85, viewer 451, both `tsc --noEmit` clean. Then onto 8de58a861 (docs only), clean.
+
+## Gates and reviews
+
+- Gates at 0072418df (CPU window 11:37 PM NY):
+  - `just test` exit 0: agent 4698, viewer 2162, Python 4466 + 102, coverage floors, trainer cards 3/3.
+  - `just lint` exit 0.
+  - The first `just test` in this fresh worktree failed only because env/vendor/continual-harness was not checked out (408 Python FileNotFoundError). Fixed with `git submodule update --init`; `just verify-vendor` OK.
+- Round 1 (base 8de58a861, head 0072418df):
+  - Sonnet fallback: LGTM.
+  - Claude: LGTM once the gate receipts were attached.
+  - GPT: BLOCKING in rounds 1 and 1b on three items.
+    - (1) A continuation restore re-recorded the ledger_context. Fixed, see below.
+    - (2) and (3) Per-row fixture cost in the existing explainer-link `it.each` tests (server.test.ts, panels.test.ts). Kept as they are: this change adds one row to each, following the pattern of every explainer. Batching those shared fixtures is a separate refactor.
+- Known ordering (fallback, non-blocking): in live.ts, autoTalkContext wraps outside contextTools. A retained auto-talk message anchored to the same result follows the copy. This is by design: it is newer game evidence than the block.
+- Fix for (1) (coordinator, 11:49 PM NY): the recorded-copy key is now the result's seq. A replayed `ledger_context` whose text starts with the type-gap header marks its evidence seqs as already recorded. After a restore, the copy is still delivered but not recorded again. The new restore test failed with the fix removed and passes with it (10/10). The new file is at 100% statements, branches, functions and lines; `tsc --noEmit` is clean.

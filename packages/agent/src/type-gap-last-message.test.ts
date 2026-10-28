@@ -28,7 +28,8 @@ function setup(features:FeatureSet){
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{listeners.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:(n:{text:string;evidence:number[]})=>{notes.push(n);},recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>undefined};
  const wired=contextTools(features,recorder,m=>Promise.resolve(m));
  const emit=(id:string,seq:number)=>{for(const f of listeners)f(checkEvent({v:1,run:"r",seq,turn:1,t:"2026-10-27T23:00:00.000-04:00",type:"tool_result",id,name:"press",text:"result",is_error:false,duration_ms:0,frames:[]}));};
- return {wired,notes,emit};
+ const replayLedger=(text:string,evidence:number[],seq:number)=>{for(const f of listeners)f(checkEvent({v:1,run:"r",seq,turn:2,t:"2026-10-27T23:00:00.000-04:00",type:"ledger_context",text,evidence}));};
+ return {wired,notes,emit,replayLedger};
 }
 // The probes' production_and_last variant (sample.mjs): appendToResult(block) then asLastUser(block).
 const probeBothPlaces=(messages:AgentMessage[],block:string):AgentMessage[]=>[...messages.map((m,i)=>i===messages.length-1&&m.role==="toolResult"?{...m,content:[...m.content,{type:"text" as const,text:block}]}:m),{role:"user",content:block,timestamp:0}];
@@ -71,6 +72,19 @@ describe(ID,()=>{
   expect(notes).toEqual([{text:BLOCK,evidence:[41]}]);
   await wired.transformContext(history([BLOCK]));
   expect(notes).toHaveLength(1);
+ });
+
+ it("ON: after a continuation restore replays the recorded copy, the copy is delivered again but not recorded again",async()=>{
+  const {wired,notes,emit,replayLedger}=setup({...base,"type-gap-team-v1":true,[ID]:true});
+  emit("c1",41);
+  replayLedger(BLOCK,[41],42);
+  replayLedger("Instruction ledger: unrelated",[41],43);
+  const sent=await wired.transformContext(history([BLOCK]));
+  expect(sent.at(-1)).toMatchObject({role:"user",content:BLOCK});
+  expect(notes).toEqual([]);
+  emit("c2",50);
+  await wired.transformContext([...history([BLOCK]),call("c2"),result("c2",[BLOCK])]);
+  expect(notes).toEqual([{text:BLOCK,evidence:[50]}]);
  });
 
  it("ON: nothing is added when the newest result has no block, or the block is on a result an assistant reply already followed",async()=>{

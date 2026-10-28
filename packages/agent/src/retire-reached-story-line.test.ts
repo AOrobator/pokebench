@@ -28,7 +28,7 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
  });
  it("ON without stale-story-goal-v2: the Story goal line says it is done, naming the arrival and the step",()=>{
   const {header}=lines({supervisor:false,activity:true,retireReached:true},704);
-  expect(header).toContain('Story goal: none. DAD\'s line from turn 312 ("Head for RUSTBORO CITY beyond this town.") is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 578. It is not where to go.');
+  expect(header).toContain('Story goal: none. DAD\'s line from turn 312 ("Head for RUSTBORO CITY beyond this town.") is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then rustboro gym complete at turn 578. It is not where to go.');
  });
  it("trainer wins and measurement-only steps after the arrival do not retire it",()=>{
   // Turns 379-454: three Rustboro Gym trainers, ROXANNE_FIRST_INTERACTION and Petalburg Woods trainers; no story step yet.
@@ -48,7 +48,7 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
    for(const e of events)trust.observe(e);
    return trust.lines("Location: RUSTBORO CITY",rustboro,"later",A702_PLACES).header;
   };
-  const step=a702Milestone("ROXANNE_DEFEATED",106,500);
+  const step=a702Milestone("RUSTBORO_GYM_COMPLETE",106,500);
   if(step.type!=="milestone")throw Error("milestone");
   const {origin,...unsourced}=step;expect(origin).toBe("observed");
   // In RUSTBORO CITY before DAD's line, still there, then a story step: not retired.
@@ -57,15 +57,22 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   expect(header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),unsourced])).not.toContain("is done");
   expect(header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),step])).toContain("is done");
  });
+ it("no battle won counts: a trainer's, the rival's or a leader's",()=>{
+  for(const name of ["ROUTE_116_TRAINER_JOSE_DEFEATED","RIVAL_BATTLE_WON","ROXANNE_DEFEATED"]){
+   const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
+   for(const e of [...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),a702Milestone(name,103,500)])trust.observe(e);
+   expect(trust.lines("Location: RUSTBORO CITY",a702StateAtRustboro(),"later",A702_PLACES).header,name).not.toContain("is done");
+  }
+ });
  it("orders by recorded event, not turn: a story step after the arrival in the same turn retires it, one before it does not",()=>{
   const rustboro=a702StateAtRustboro();
   const run=(arrivalSeq:number,stepSeq:number)=>{
    const trust=new HarnessTrust({supervisor:false,activity:true,retireReached:true});
-   const events=[...a702Events(377),a702Arrival(arrivalSeq,378,[0,3],"RUSTBORO CITY"),a702Milestone("ROXANNE_DEFEATED",stepSeq,378)].sort((a,b)=>a.seq-b.seq);
+   const events=[...a702Events(377),a702Arrival(arrivalSeq,378,[0,3],"RUSTBORO CITY"),a702Milestone("RUSTBORO_GYM_COMPLETE",stepSeq,378)].sort((a,b)=>a.seq-b.seq);
    for(const e of events)trust.observe(e);
    return trust.lines("Location: RUSTBORO CITY",rustboro,"later",A702_PLACES).header;
   };
-  expect(run(15816,15817)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 378.");
+  expect(run(15816,15817)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then rustboro gym complete at turn 378.");
   expect(run(15817,15816)).toContain(DAD);
  });
  it("a place entered before the line, earlier in the same turn, is not reached by it; one entered after the line is",()=>{
@@ -75,7 +82,7 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
    for(const e of events)trust.observe(e);
    return trust.lines("Location: x",here,"later",A702_PLACES).header;
   };
-  const step=a702Milestone("ROXANNE_DEFEATED",106,500);
+  const step=a702Milestone("RUSTBORO_GYM_COMPLETE",106,500);
   // RUSTBORO CITY entered and left, then DAD's line, then a story step: not retired. (Its "Reached" wording comes from
   // unfinished-activity-v1, which matches arrivals by turn and is unchanged here.)
   const before=header([a702Arrival(100,500,[0,3],"RUSTBORO CITY"),a702Arrival(101,500,[0,19],"ROUTE104"),...a702CallMoved(312,102,500),step]);
@@ -83,7 +90,7 @@ describe("retire-reached-story-line-v1 on a702's Dad line (RUSTBORO CITY entered
   expect(before).not.toContain("is done");
   // DAD's line, then RUSTBORO CITY entered, then the step: retired.
   const after=header([...a702CallMoved(312,100,500),a702Arrival(102,500,[0,3],"RUSTBORO CITY"),step],{...route104,map_id:[0,3],location:"RUSTBORO CITY"});
-  expect(after).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 500, then roxanne defeated at turn 500.");
+  expect(after).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 500, then rustboro gym complete at turn 500.");
  });
  it("with self-named-speaker-v1 too, Stone's turn-630 request is the Story goal at turn 704",()=>{
   expect(lines({...A702,retireReached:true,selfNamed:true},704).header).toContain('Story goal: "Well, on the way, could you stop off in DEWFORD TOWN?" (MR. STONE, turn 630) -> "DEWFORD TOWN" = DEWFORD TOWN (map 0/11).');
@@ -104,7 +111,7 @@ describe("retire-reached-story-line-v1 production factory",()=>{
    return JSON.stringify((await tools.find(t=>t.name==="observe")?.execute("later",{}))?.content);
   };
   expect(await run(false)).toContain("Story line heard (DAD, turn 312)");
-  expect(await run(true)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then roxanne defeated at turn 578.");
+  expect(await run(true)).toContain("is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then rustboro gym complete at turn 578.");
  });
 });
 

@@ -137,9 +137,11 @@ export function selfName(text:string):string|null {
  const name=SELF_NAMED.exec(text.replace(/\s+/g," "))?.[1]??null;
  return name!==null&&!name.endsWith(".")&&/[A-Z]{3}/.test(name.replaceAll(/[^A-Z]/g,""))?name:null;
 }
-// retire-reached-story-line-v1: a story milestone the game observed during the run, other than a trainer win, a measurement-only step or an optional activity.
+// retire-reached-story-line-v1: a story milestone the game observed during the run, other than a battle won (a trainer's,
+// the rival's or a leader's), a measurement-only step or an optional activity.
+const BATTLE_WIN=/_TRAINER_|_DEFEATED$|_WON$/;
 function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
- return event.kind==="story"&&event.origin==="observed"&&!event.name.includes("_TRAINER_")&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
+ return event.kind==="story"&&event.origin==="observed"&&!BATTLE_WIN.test(event.name)&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 }
 
 export class StoryDestinations {

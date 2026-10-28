@@ -146,6 +146,9 @@ Round 4, frozen head 72f0a62f8 (cumulative sha256 4fede48b…2bc5; delta ff2210e
 - New test covers: pre-line visit, omitted origin, and the positive case. Each fix, reverted alone, turns that test red.
 - Non-blocking: the fixture validates five dialogues twice.
 
+Round 5, frozen head e1f895f4d (cumulative 69e7d697…1282; delta e78603c7…0be0a2), Codex only:
+- Codex gpt-5.6-sol: VERDICT: BLOCKING. A trainer win outside the `_TRAINER_` name pattern (RIVAL_BATTLE_WON) counted. ACCEPTED: every battle won is excluded (`_TRAINER_`, `…_DEFEATED`, `…_WON`), so ROXANNE_DEFEATED no longer counts either. a702's Dad line now retires on RUSTBORO_GYM_COMPLETE, in the same turn (578). A new test covers JOSE, the rival and ROXANNE, and reverting the pattern turns it red. The feature copy and the explainer now say "battle won".
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

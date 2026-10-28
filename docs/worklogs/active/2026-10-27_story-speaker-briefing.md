@@ -215,3 +215,19 @@ Round 7, sync re-review, head 8def8644e (branch diff on main ae0e36582, sha256 6
 - Config tests: viewer fixed-definition, feature-config-registry and fixed-cli pass 50/50. The six agent config suites pass.
 - Activation review: Codex LGTM on 26618e9a4..966e2ba21 (packet f41331ee…ed85).
 - Second sync with main 88947e66a (gateway preflight landing): merged cleanly with no conflicts.
+
+## Landing (2026-10-28)
+- Final full gate at 1ce50e775, synced with main 88947e66a, with card art pointed at the main checkout: `just test` rc=0.
+  - agent: 336 files, 4733 tests. Lines 99.18%, branches 92.71%, functions 97.47%.
+  - viewer: 171 files, 2203 tests. Lines 98.3%, branches 91%, functions 95.07%.
+  - env: 4466 passed. Lines 97.49%, branches 93.61%, functions 100%.
+  - gateway: 116 passed. Lines 99.12%, branches 96.22%, functions 100%.
+  - trainer-card-check: 3/3.
+- Landed fast-forward: main 88947e66a -> 1ce50e775. Local only, no push.
+- Feature config: current.json sha256 68b127db… -> 4f9d33da…. Definition sha256 for the featureRecipe=current experiments:
+  - bundle-v-control: 9328e17c… -> c5ac5e61…
+  - bundle-v-control-2h: b796a57b… -> a94532e9…
+  - glm53-flash-4h: b1e2ce68… -> fcd4574f…
+  - hyperqwen-control-3h: 3f7e83ae… -> 16428bc2…
+- Approvals invalidated: none that were still valid. The only approval.json among them is hyperqwen-control-3h's (e88187ff…, from 2026-10-27 at 72257830d), which was already stale before this change. The other three have no approval on file.
+- Live runs and their pins are untouched.

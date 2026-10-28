@@ -70,7 +70,7 @@ export function junkRule(episode:CapEpisode,context:JunkContext):Exclude<JunkRul
  if(pages.some(p=>sign.has(p[2])))return null;
  if(content.length>0&&pages.every(p=>receipt(p)||service.has(p[2],context.player))||pages.every(p=>upstairs.some(map=>onMap(p,map))))return "R1";
  if(pages.every(p=>receipt(p)||p[0]?.startsWith("BERRY_TREE")===true||berry.has(p[2]))&&pages.some(p=>p[0]?.startsWith("BERRY_TREE")===true||berry.has(p[2])))return "R2";
- if(!context.hasLead&&pages.every(p=>p[1]==="faced_target"))return "R3";
+ if(!context.hasLead&&content.length>0&&pages.every(p=>receipt(p)||p[1]==="faced_target"))return "R3";
  if(content.length>0&&pages.every(p=>receipt(p)||context.facedTrainer(p)))return "R5";
  if(context.hasLead||content.length===0||!pages.every(p=>receipt(p)||p[1]==="faced_sprite"&&p[0]!==null&&!p[0].startsWith("RIVAL_")&&!context.storySprite(p)))return null;
  if(content.every(p=>flavor.has(p[2])))return "R6";

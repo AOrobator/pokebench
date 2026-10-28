@@ -50,6 +50,8 @@ it("R2 drops only whole berry-tree exchanges, allowing receipts but retaining mi
 });
 it("R3 drops lead-less signs but reuses named unvisited-place protection",()=>{
  expect(selected([ep(10,[noLeadSign()])]).decisions[0]).toMatchObject({step:"junk",rule:"R3",kept:false});
+ const receipt=page("ANNA found one POTION!",{speaker:null,source:null});
+ expect(selected([ep(10,[noLeadSign(),receipt])]).decisions[0]).toMatchObject({step:"junk",rule:"R3",kept:false});
  expect(selected([ep(10,[page("SLATEPORT CITY",{speaker:null,source:"faced_target"})])]).kept.map(e=>e.result)).toEqual([10]);
 });
 it("keeps the pret RustboroCity_Text_CuttersHouse sign even with no new named place",()=>{

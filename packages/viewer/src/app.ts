@@ -38,7 +38,7 @@ export interface FrameStreamLike {
 export interface AppDeps {
   snapshotFirst?:boolean;
   currentFactory?:(options:CurrentBrowserOptions)=>CurrentBrowser;
-  fetchJson(url: string): Promise<unknown>;
+  fetchJson(url:string,signal?:AbortSignal):Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
   openFrameStream?(url: string): FrameStreamLike;
@@ -215,6 +215,8 @@ export class App {
   private currentHistoryEvents:readonly RunEvent[]=[];
   private currentCatalog:RunChoice[]=[];
   private currentCatalogTask:Promise<void>|null=null;
+  private currentRunStamp="";
+  private currentRecordedWorkbench:WorkbenchData|null=null;
   private recording:RunView|null=null;
   private runs: RunChoice[] = [];
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
@@ -457,8 +459,10 @@ export class App {
   private updateExtension(): void {
     const pending = this.extensionPending;
     if (pending !== null && pending.run === this.runId) {
-      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
-      if (ack?.type === "operator_control") {
+      const ack = (this.current?.state.selected===this.runId?this.currentHistory:this.view).events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
+      const snapshot=this.current?.state.selected===this.runId?this.current.state.snapshot:null;
+      if(pending.request!==null&&snapshot?.control?.lastExtensionRequest===pending.request&&snapshot.seq>pending.afterSeq){this.extensionPending=null;this.extensionMessage="Extension applied.";}
+      else if (ack?.type === "operator_control") {
         this.extensionPending = null;
         this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
       } else if (this.view.end !== null) {
@@ -491,7 +495,7 @@ export class App {
     if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.controlLive).has("extend_30m")) return;
     const value = this.selectedExtension();
     if(!availableActions(this.view,this.controlLive).has(value))return;
-    const pending = { run: this.runId, action: value, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    const pending = { run: this.runId, action: value, afterSeq: this.current?.state.selected===this.runId?this.current.state.snapshot?.seq??-1:this.view.events.at(-1)?.seq??-1, request: null as number | null };
     this.extensionPending = pending;
     this.extensionMessage = "";
     this.updateExtension();
@@ -634,7 +638,7 @@ export class App {
     void this.next.load();
     if(this.deps.snapshotFirst===true){
       const create=this.deps.currentFactory??(await import("./current-browser.js")).createCurrentBrowser;
-      this.current=create({fetchJson:url=>this.deps.fetchJson(url),changed:state=>{this.currentChanged(state);}});
+      this.current=create({fetchJson:(url,signal)=>this.deps.fetchJson(url,signal),changed:state=>{this.currentChanged(state);}});
       const wanted=/^#(?:run|replay)=(.+)$/.exec(this.deps.hash)?.[1],pending=this.current.start(wanted===undefined?null:decodeURIComponent(wanted));
       void this.loadArt();await pending;void this.refreshRuns();this.render();return;
     }
@@ -651,11 +655,13 @@ export class App {
 
   private currentChanged(state:Readonly<CurrentBrowserState>|null):void {
     if(state===null||this.current===null)return;const now=this.deps.now();
-    this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:state.runs.map(s=>({...s.run,elapsedMs:s.run.elapsedMs===null?null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)}))};
+    const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs)if(state.selected===s.id||!recorded.has(s.id)||s.run.status!=="ended")recorded.set(s.id,{...s.run,elapsedMs:s.run.elapsedMs===null?null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+    this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:[...recorded.values()]};
     const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;
     if(state.selected!==null){
       if(this.runId!==state.selected)this.resetSelection(state.selected,true);
       const snapshot=state.snapshot;
+      if(snapshot===null&&this.currentCatalog.find(run=>run.id===state.selected)?.ended===true){this.select(state.selected,this.following);return;}
       if(snapshot!==null&&snapshot!==this.currentApplied){
         if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
@@ -667,7 +673,7 @@ export class App {
         if(state.history.length>0)this.setRecordedThinking(history,state.history);
       }
       this.historyLoading=state.historyLoading;this.historyBefore=state.before===null?null:state.history[0]?.seq??null;this.ensureFrameStream(now);
-      if(snapshot?.end!==null&&snapshot!==null){this.select(snapshot.id,false);return;}
+      if(snapshot?.end!==null&&snapshot!==null){this.select(snapshot.id,this.following);return;}
     }
     this.render();
   }
@@ -695,6 +701,7 @@ export class App {
       .then((value) => {
         if (this.runId !== selected || this.workbenchLoad !== load) return;
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
+        if(this.current!==null){this.currentRecordedWorkbench=next;this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))
@@ -712,7 +719,7 @@ export class App {
   // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
   // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    if(this.current!==null){await this.loadArt();this.render();return;}
+    if(this.current!==null){await Promise.all([this.loadArt(),...(this.current.state.selected===null&&this.runId!==null?[this.loadWorkbench()]:[])]);this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
   }
@@ -728,7 +735,10 @@ export class App {
     const now = this.deps.now();
     const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
     const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
-    if (recordedReplay !== undefined) return [cardInputFor(recordedReplay, workbench.at, now, "replay", workbench.runs, art.art)];
+    if(recordedReplay!==undefined){
+      if(this.current!==null&&this.mode==="replay"){const shown=this.shown,seq=shown.events.at(-1)?.seq??-1,card=shown.cardState;const at=this.clock?.positionMs??now;return [cardInputFor({...recordedReplay,turn:shown.turn,elapsedMs:Math.max(0,runSeconds(shown,at)*1000),splits:recordedReplay.splits.filter(split=>split.seq<=seq),card:card===null?null:{name:card.name,location:card.location,party:shown.partyMembers.flatMap(m=>m.level===null?[]:[{speciesId:m.species_id??null,level:m.level,egg:m.is_egg===true}])}},at,at,"replay",workbench.runs,art.art)];}
+      return [cardInputFor(recordedReplay,workbench.at,now,"replay",workbench.runs,art.art)];
+    }
     // An explicitly opened replay is separate from the default live-run row.
     const live = this.runs.filter(run => run.ended === false && run.problem === null
       && (isLive(run) || this.knownLiveCards.has(run.id) || run.id === this.runId));
@@ -750,6 +760,7 @@ export class App {
     this.knownLiveCards = new Set(runs.filter(run => isLive(run) || (run.ended === false && this.knownLiveCards.has(run.id))).map(run => run.id));
     this.runs = runs;
     const picker = this.picker("run");
+    if(this.current!==null){const stamp=JSON.stringify(runs.map(run=>[run.id,run.ended,run.live,run.problem]));if(stamp===this.currentRunStamp)return;this.currentRunStamp=stamp;}
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
   }
@@ -1094,7 +1105,7 @@ export class App {
     this.extensionDialog().close();
     this.extensionPending = null;
     this.extensionMessage = "";
-    this.stream?.close();
+    this.stream?.close();this.stream=null;
     this.historyRequest += 1;
     this.historyLoading = false;
     this.historyBefore = null;
@@ -1239,7 +1250,7 @@ export class App {
   }
 
   private async loadOlderHistory(): Promise<void> {
-    if(this.current?.state.selected===this.runId){await this.current.history(true);return;}
+    if(this.current?.state.selected===this.runId){this.holdTrace(this.ui("trace"));await this.current.history(true);return;}
     const run = this.runId, before = this.historyBefore;
     if (run === null || before === null || this.historyLoading) return;
     const request = ++this.historyRequest;
@@ -1533,14 +1544,15 @@ export class App {
     const view = visualSplitView(this.shown, visualRun, nowMs);
     const live = this.live;
     if (live) this.wasLive = true;
-    const label = this.unresponsive ? { cls: "ended", text: "NOT RESPONDING" } : live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
+    const currentStatus=this.current?.state.selected===this.runId?this.current.state:null;
+    const label=currentStatus?.stale===true?{cls:"loading",text:"LAST KNOWN"}:currentStatus?.snapshot?.control===null?{cls:"loading",text:"UPDATING"}:this.unresponsive ? { cls: "ended", text: "NOT RESPONDING" } : live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
     const mode = this.ui("mode");
     mode.textContent = label.text;
     mode.className = `mode ${label.cls}`;
     this.setHtml("run-controls", controlBar(view, this.controlLive, this.holdFraction()));
     const historyStatus = this.ui("history-status");
-    historyStatus.hidden = this.historyBefore === null;
-    historyStatus.textContent = this.historyLoading ? "Loading older history…" : "Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    historyStatus.hidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale:this.historyBefore===null;
+    historyStatus.textContent=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.historyLoading?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
     if (layer !== null) {
@@ -1551,7 +1563,7 @@ export class App {
       }
     }
     const current=this.current?.state.selected===this.runId?this.current.state:null;
-    this.setHtml("stats", sideStats(view,nowMs,current?.snapshot===null||current===null?undefined:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null}));
+    this.setHtml("stats", sideStats(view,nowMs,current?.snapshot===null||current===null?undefined:{complete:current.snapshot.complete,contextKnown:current.snapshot.context.estimated!==null||current.snapshot.context.measured!==null,timeKnown:current.snapshot.run.elapsedMs!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
@@ -1561,11 +1573,13 @@ export class App {
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);
-    const dialog = thinkingView === null
+    let dialog = thinkingView === null
       ? { head: "LOADING RECORDED THINKING…", body: '<span class="nodata">waiting for the selected run snapshot</span>' }
       : thinkingDialog(thinkingView, nowMs);
+    const liveSnapshot=current?.snapshot??null;
+    if(liveSnapshot!==null){const phase=liveSnapshot.phase;if(thinkingView?.turn!==liveSnapshot.run.turn||(phase.kind==="thinking"&&thinkingView.isThinking!==true))dialog={head:"CURRENT TURN",body:'<span class="nodata">Recorded thinking for this turn is loading.</span>'};if(phase.kind==="thinking")dialog.head="MODEL IS THINKING…";else if(phase.kind==="tool")dialog.head=`RUNNING ${phase.tools.join(", ")||"TOOL"}`;else if(phase.kind==="paused")dialog.head="PAUSED";else if(phase.kind==="indexing")dialog.head="CURRENT DATA LOADING";}
     this.ui("think-head").textContent = dialog.head;
-    this.ui("think-title").textContent = thinkingView === null || thinkingView.start === null ? "NO RUN" : `${thinkingView.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(thinkingView.turn)}`;
+    this.ui("think-title").textContent=liveSnapshot!==null?`CURRENT · TURN ${String(liveSnapshot.run.turn)}`:thinkingView===null||thinkingView.start===null?"NO RUN":`${thinkingView.end===null?"RIGHT NOW":"FINAL"} · TURN ${String(thinkingView.turn)}`;
     const ident = runIdentity(view);
     this.setHtml("ident", ident);
     this.ui("ident").hidden = ident === "";
@@ -1620,7 +1634,7 @@ export class App {
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
     const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
-    const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+    const time=current!==null&&current.snapshot?.run.elapsedMs===null?(current.snapshot.warning===null?"Time loading":"Time unavailable"):clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
@@ -1644,7 +1658,7 @@ export class App {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
     } else {
-      this.ui("clock").textContent = view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+      this.ui("clock").textContent=current!==null&&current.snapshot?.run.elapsedMs===null?`T${String(view.turn)} · ${current.snapshot.warning===null?"time loading":"time unavailable"}`:view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     }
   }
 }
@@ -1670,8 +1684,8 @@ export interface BootWindow {
 export async function boot(win: BootWindow): Promise<App> {
   const app = await mountApp(win.document, {
     snapshotFirst:new URL(win.location.href).searchParams.get("current")==="1",
-    fetchJson: async (url) => {
-      const response = await win.fetch(url);
+    fetchJson: async (url,signal) => {
+      const response=signal===undefined?await win.fetch(url):await win.fetch(url,{signal});
       if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
       return (await response.json()) as unknown;
     },

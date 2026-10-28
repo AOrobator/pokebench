@@ -1172,3 +1172,23 @@ it("continues an uncoached baseline without injecting prompts or ending at the o
   expect(await play(TASK, g, loop)).toBe("budget");
   expect(calls).toBe(8);
 });
+
+it("resamples an error after an uncoached text reply without pi assistant-last continuation", async () => {
+  const g = new Governor({ limits: { maxTurns: Number.MAX_SAFE_INTEGER, maxWallMs: 1800000, failureLimit: Number.MAX_SAFE_INTEGER, replyFailuresEndRun: false }, retry: () => undefined, abort: () => undefined, now: () => 0, uncoachedBaseline: true });
+  let starts = 0;
+  const thought = reply([]), error = reply([], "error", "FAKE HTTP400");
+  const loop: Loop = {
+    start: (prompts, history) => {
+      starts++;
+      expect(prompts).toEqual(starts === 1 ? [TASK] : []);
+      if (starts === 1) return Promise.resolve([TASK, thought]);
+      expect(history).toEqual([TASK, thought]);
+      if (starts === 2) return Promise.resolve([error]);
+      g.abort("operator_abort");
+      return Promise.resolve([reply(), toolResult()]);
+    },
+    resume: () => Promise.reject(new Error("Cannot continue from message role: assistant")),
+  };
+  expect(await play(TASK, g, loop)).toBe("operator_abort");
+  expect(starts).toBe(3);
+});

@@ -380,7 +380,7 @@ async function finishPlay(initial:AgentMessage[],governor:Governor,loop:Loop):Pr
     }
     messages = messages.slice(0, -1);
     if (governor.modelError(last)) continue;
-    const more = await untilStopped(governor, () => loop.resume([...messages]));
+    const more = await untilStopped(governor, () => governor.uncoachedBaseline && messages.at(-1)?.role === "assistant" ? loop.start([], [...messages]) : loop.resume([...messages]));
     if (typeof more === "string") return more;
     messages = [...messages, ...more];
   }

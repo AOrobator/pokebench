@@ -1,11 +1,12 @@
 // instruction-memory-cap-v1: rule A′ over the episodes milestone-instruction-memory-v1 keeps. Whole episodes only, never cut.
-// Order: story anchor, proven done (game flags and pret strings), nearby maps, named target, recency. Steps 1 and 3
+// Order: story anchor, proven done (pret templates, story checkpoints, receipts, trainer flags), nearby maps, named target, recency. Steps 1 and 3
 // always stay; 4 and 5 fill the room left under the cap. The reference implementation is
 // runs/analysis/bounded-input-20261028/rule_a2.py, which a702's T700 and T1301 must match byte for byte.
 import type {RunEvent} from "./events.js";
 import {RETIREMENT_RULES} from "./milestone-memory-rules.js";
 import {PRET_MAP_SECTIONS} from "./pret-map-sections.js";
 import {STORY_CHARACTERS} from "./script-line-presence.js";
+import {STORY_CHECKPOINTS} from "./story-checkpoints.js";
 
 export const INSTRUCTION_MEMORY_CAP_CHARS=16000;
 // The cap counts characters as code points, as Python len() does in the reference implementation.
@@ -52,14 +53,14 @@ export class InstructionMemoryCap {
  private run:string|null=null;
  private state:State|null=null;
  private readout:string|null=null;
- private readonly milestones=new Set<string>();
+ private readonly milestones=new Map<string,number>();
  private readonly visited=new Set<string>();
  private readonly defeated=new Map<string,boolean>();
  private readonly faced=new Map<number,string>();
  observe(event:RunEvent):void {
   this.run??=event.run;
   if(event.run!==this.run)return;
-  if(event.type==="milestone"){this.milestones.add(event.name);return;}
+  if(event.type==="milestone"){if(!this.milestones.has(event.name))this.milestones.set(event.name,event.turn);return;}
   if(event.type==="tool_result"){if(!event.is_error&&OBSERVATION_TOOLS.has(event.name))this.readout=event.text;return;}
   if(event.type!=="state"||!("started" in event))return;
   this.state=event;
@@ -97,6 +98,17 @@ export class InstructionMemoryCap {
   }
   return null;
  }
+ // A story checkpoint closes an episode heard by the time its milestones were all recorded, every page in its scope.
+ private checkpointDone(e:CapEpisode):string|null {
+  for(const c of STORY_CHECKPOINTS){
+   const turns=c.closes_after.map(n=>this.milestones.get(n));
+   if(turns.some(t=>t===undefined))continue;
+   const by=turns.reduce<number>((a,t)=>Math.max(a,t??0),0);
+   if(e.turn>by||e.pages.length===0)continue;
+   if(e.pages.every(p=>c.scope.some(s=>key(s.map_id)===key(p[4])&&s.speakers.includes(p[0]))))return `checkpoint ${c.id}: ${c.closes_after.join(", ")} (turn ${String(by)})`;
+  }
+  return null;
+ }
  private pageDone(p:CapRow):readonly [string,boolean]|null {
   const player=escape(this.player());
   for(const [pattern,completion] of RECEIPTS)if(new RegExp(`^${pattern.replaceAll("{P}",player)}$`).test(p[2]))return ["receipt",completion];
@@ -105,7 +117,7 @@ export class InstructionMemoryCap {
   return null;
  }
  private done(e:CapEpisode):string|null {
-  const template=this.templateDone(e);if(template!==null)return template;
+  const template=this.templateDone(e)??this.checkpointDone(e);if(template!==null)return template;
   const marks=e.pages.map(p=>this.pageDone(p));
   if(marks.length===0||marks.some(m=>m===null)||!marks.some(m=>m?.[1]===true))return null;
   return `every page finished: ${[...new Set(marks.map(m=>m?.[0]??""))].sort().join("; ")}`;

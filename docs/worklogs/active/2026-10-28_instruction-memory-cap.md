@@ -24,7 +24,7 @@ Applied to the episodes `milestone-instruction-memory-v1` keeps, in this order:
 
 Steps 4 and 5 fill the room left while the whole rendered block stays at or under 16,000 chars. Steps 1 and 3 are always kept. When anything is left out, one line follows the header: `N earlier episodes are left out and remain in the run recording.`
 
-**Budget.** The request must fit in 61,440 tokens (65,536 minus a 4,096 reply). Measured with the Qwen3.6 /tokenize, JSON runs at 2.55–2.62 chars per token, so 16,000 chars is about 6,100 tokens. At a702 T1301 the capped block is 15,965 chars and 6,101 tokens, down from 21,124. That would have brought the failing request to about 51,650 tokens. Below about 13,000 chars, T700's anchor and nearby episodes alone would not fit.
+**Budget.** The request must fit in 61,440 tokens (65,536 minus a 4,096 reply). Measured with the Qwen3.6 /tokenize, JSON runs at 2.55–2.62 chars per token, so 16,000 chars is about 6,100 tokens. At a702 T1301 the capped block is 15,923 chars and 6,088 tokens, down from 21,124. That would have brought the failing request to about 51,640 tokens. Below about 13,000 chars, T700's anchor and nearby episodes alone would not fit.
 
 `just lint` clean (the worktree venv links the main checkout's mGBA binding for mypy).
 
@@ -38,7 +38,7 @@ Steps 4 and 5 fill the room left while the whole rendered block stays at or unde
 
 - [x] `story-checkpoints.test.ts`: milestones exist in the harness readers; against pret 731ad5bfd (POKEEMERALD_DIR or ~/dev/pokeemerald, skipped when absent), each map id matches map_groups.json, each speaker is a sprite in that map.json or a `NAME:` prefix in the scene's scripts, each flag number matches flags.h and each FLAG_/VAR_ name exists. 2/2.
 - [x] RED: checkpoint behaviour tests in `instruction-memory-cap.test.ts` (closes after the flag, not before; only episodes heard by then; any out-of-scope page keeps it; multi-milestone checkpoints need all).
-- [ ] GREEN, prototype updated to match, a702 T1301 replay showing the POKéNAV tutorial and Devon goods episodes retire, report updated.
+- [x] GREEN: `checkpointDone` (template, then checkpoint, then receipts and trainers). 13/13 plus 2/2. `rule_a2.py` reads the same table with its own logic. The replay is byte-identical again: a702 T700 12,976, T1301 15,923 (6,088 tokens); 88ea T400 13,307, T800 15,873. At a702 T1301 the checkpoints retire the POKéNAV tutorial (T634, T635, T663 by pokenav-match-call), the Devon goods theft and recovery (T580, T582, T614, T618, T620, T621 by devon-goods-recovery), WALLY's tutorial (T311, T312), the woods scene (T362) and DAD's stale BRAWLY line (T871 by dad-sends-to-dewford). MR. STONE's errand (T630) and MR. BRINEY's LETTER lines stay. 21 episodes closed by checkpoint; 31 of 112 kept.
 
 ## Milestone M1: switch + rule A′
 

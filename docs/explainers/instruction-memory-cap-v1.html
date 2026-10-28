@@ -99,9 +99,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <p><code>instruction-memory-cap-v1</code> stops the OBSERVED INSTRUCTION MEMORY block from growing without limit. The block stays at or under 16,000 characters, about 6,100 Qwen3.6 tokens. The switch keeps or leaves out whole dialogue episodes, chosen by what game memory says about them, and never cuts an episode's text. Default off. It needs <code>milestone-instruction-memory-v1</code>.</p>
 
 <div class="kpis">
-<div class="kpi"><strong>53,962 → 15,965 chars</strong><br><span>a702 turn 1301: 21,124 → 6,101 tokens</span></div>
-<div class="kpi"><strong>24 of 112 episodes</strong><br><span>kept at a702 turn 1301; 88 left out, all still in the recording</span></div>
-<div class="kpi"><strong>66,676 → ~51,650 tokens</strong><br><span>a702's failing request, against a 61,440 limit</span></div>
+<div class="kpi"><strong>53,962 → 15,923 chars</strong><br><span>a702 turn 1301: 21,124 → 6,088 tokens</span></div>
+<div class="kpi"><strong>31 of 112 episodes</strong><br><span>kept at a702 turn 1301; 81 left out, all still in the recording</span></div>
+<div class="kpi"><strong>66,676 → ~51,640 tokens</strong><br><span>a702's failing request, against a 61,440 limit</span></div>
 </div>
 
 <h2>Why it was needed</h2>
@@ -120,7 +120,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <figure class="card"><div class="fig"><svg viewBox="0 0 640 300" role="img" aria-label="Five steps that decide each episode">
 <g font-size="12">
 <rect x="10" y="10" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="30" font-weight="700" fill="var(--keep)">1 Story anchor → always kept</text><text x="22" y="47" fill="var(--ink)">source of the readout's story line, if not stale</text>
-<rect x="10" y="66" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--drop)"/><text x="22" y="86" font-weight="700" fill="var(--drop)">2 Proven done → left out</text><text x="22" y="103" fill="var(--ink)">pret template + milestones, receipts, trainer flags</text>
+<rect x="10" y="66" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--drop)"/><text x="22" y="86" font-weight="700" fill="var(--drop)">2 Proven done → left out</text><text x="22" y="103" fill="var(--ink)">pret templates, story checkpoints, receipts, trainer flags</text>
 <rect x="10" y="122" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--keep)"/><text x="22" y="142" font-weight="700" fill="var(--keep)">3 Nearby → always kept</text><text x="22" y="159" fill="var(--ink)">current map, connected map, listed warp's map</text>
 <rect x="10" y="178" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--cap)"/><text x="22" y="198" font-weight="700" fill="var(--cap)">4 Named target → fills first</text><text x="22" y="215" fill="var(--ink)">unvisited place, unmet person, held key item</text>
 <rect x="10" y="234" width="300" height="46" rx="8" fill="#ffffff" stroke="var(--cap)"/><text x="22" y="254" font-weight="700" fill="var(--cap)">5 Recency → fills the rest</text><text x="22" y="271" fill="var(--ink)">newest first, while the block fits 16,000 chars</text>
@@ -136,18 +136,19 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>What decided each episode</h2>
 <table><thead><tr><th>Turn</th><th>Before</th><th>After</th><th>Anchor</th><th>Done (left out)</th><th>Nearby</th><th>Named kept</th><th>Recency kept</th></tr></thead><tbody>
-<tr><td>a702 T700</td><td>28,857</td><td>15,956</td><td>1</td><td>14</td><td>10</td><td>1 of 1</td><td>5 of 20</td></tr>
-<tr><td>a702 T1301</td><td>53,962</td><td>15,965</td><td>0 (stale)</td><td>21</td><td>18</td><td>5 of 7</td><td>1 of 66</td></tr>
-<tr><td>88ea T400</td><td>19,718</td><td>15,774</td><td>1</td><td>8</td><td>2</td><td>1 of 1</td><td>17 of 22</td></tr>
-<tr><td>88ea T800</td><td>25,182</td><td>15,962</td><td>1</td><td>16</td><td>5</td><td>2 of 2</td><td>16 of 25</td></tr>
+<tr><td>a702 T700</td><td>28,857</td><td>12,976</td><td>1</td><td>30 (18 by checkpoint)</td><td>1</td><td>0 of 0</td><td>14 of 14</td></tr>
+<tr><td>a702 T1301</td><td>53,962</td><td>15,923</td><td>0 (stale)</td><td>39 (21 by checkpoint)</td><td>12</td><td>5 of 5</td><td>14 of 56</td></tr>
+<tr><td>88ea T400</td><td>19,718</td><td>13,307</td><td>1</td><td>13 (5 by checkpoint)</td><td>2</td><td>0 of 0</td><td>18 of 18</td></tr>
+<tr><td>88ea T800</td><td>25,182</td><td>15,873</td><td>1</td><td>21 (7 by checkpoint)</td><td>5</td><td>1 of 1</td><td>20 of 21</td></tr>
 </tbody></table>
-<p>Recorded runs, replayed. The built code's output equals the separate reference implementation (<code>runs/analysis/bounded-input-20261028/rule_a2.py</code>) byte for byte on all four turns. With the switch off it equals the block each run actually recorded. At a702 T1301 the readout's story line was DAD's T871 "a GYM LEADER named BRAWLY", and KNUCKLE was already set, so that line no longer counts as the anchor.</p>
+<p>Recorded runs, replayed. The built code's output equals the separate reference implementation (<code>runs/analysis/bounded-input-20261028/rule_a2.py</code>) byte for byte on all four turns. With the switch off it equals the block each run actually recorded. At a702 T1301 the readout's story line was DAD's T871 "a GYM LEADER named BRAWLY". KNUCKLE was already set, so that line no longer counts as the anchor, and the dad-sends-to-dewford checkpoint closes it. The checkpoints also retire the Rustboro POKéNAV tutorial (T634, T635, T663), the Devon goods theft and recovery (T580–T621), WALLY's catching tutorial and the woods TEAM AQUA scene. MR. STONE's errands (T630) stay, because the LETTER and the DEVON GOODS have not been delivered.</p>
 
 <h2>Game facts it reads</h2>
 <table><thead><tr><th>Fact</th><th>Where it comes from</th><th>Used for</th></tr></thead><tbody>
 <tr><td>Story line</td><td>the latest observation result's <code>Story line heard (…)</code>, <code>Story goal: "…" (…)</code> or <code>Latest story line naming a place (…)</code> line. A finished goal prints <code>Story goal: none.</code> and names no line.</td><td>step 1</td></tr>
 <tr><td>Badge flags</td><td>state <code>badges</code> (FLAG_BADGE01–08_GET); pret gym scripts pair ROXANNE STONE, BRAWLY KNUCKLE, WATTSON DYNAMO, FLANNERY HEAT, NORMAN BALANCE, WINONA FEATHER, TATE/LIZA MIND, JUAN RAIN</td><td>stale anchor</td></tr>
 <tr><td>Milestones</td><td>recorded <code>milestone</code> events</td><td>the 25 templates in <code>milestone-memory-rules.ts</code></td></tr>
+<tr><td>Story checkpoints</td><td><code>story-checkpoints.ts</code>: 16 scenes from the move-in to the DEVON GOODS delivery. Each one closes after milestones read from a pret flag or var (for example <code>VAR_RUSTBORO_CITY_STATE</code> for the POKéNAV tutorial, <code>FLAG_RECOVERED_DEVON_GOODS</code>, <code>FLAG_DELIVERED_STEVEN_LETTER</code>, <code>FLAG_BADGE02_GET</code>). Its scope is pret maps plus each scene's speakers. It closes only episodes heard by then whose every page is in scope.</td><td>step 2</td></tr>
 <tr><td>Trainer flags</td><td>state <code>heal_before_trainers.trainers</code> (trainer id, tile, defeated). The page's own recorded state gives the tile the player faced.</td><td>step 2</td></tr>
 <tr><td>Receipt strings</td><td>pret <code>obtain_item.inc</code>, gym <code>Text_Received*Badge</code>, <code>Registered … in the POKéNAV.</code>, <code>berry_tree.inc</code></td><td>step 2</td></tr>
 <tr><td>Map links</td><td>state <code>topology.connections</code>; the readout's Exits, Warps and Unavailable lines</td><td>step 3</td></tr>
@@ -156,18 +157,18 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>What the model receives</h2>
 <pre>OBSERVED INSTRUCTION MEMORY — selected historical dialogue, not an active-goal list. Exact whole episodes; pages follow the columns below. Current observations override old text. Unknown, mixed, future and reusable dialogue stays. Full archive remains in the run recording.
-88 earlier episodes are left out and remain in the run recording.
+81 earlier episodes are left out and remain in the run recording.
 {"columns":["speaker","speaker_source","text","map","map_id","state_event"],"episodes":[{"result":11388,"dialogue":[11385],"turn":309,"pages":[["GENTLEMAN","faced_sprite","Let's say you have six POKéMON.\nIf you catch another one…","PETALBURG CITY",[0,0],11373], …]}, …],"current":{…}}</pre>
 <p>Recorded example, a702 T1301 (episodes shortened here with …; the model gets them whole). The second line is the only addition, and it appears only when something is left out.</p>
 
 <h2>Known limits</h2>
 <ul>
-<li>A finished story scene with no pret template stays when it happened next door. For example, at a702 T1301 the Rustboro POKéNAV tutorial is still kept. The fix is more pret-audited templates.</li>
+<li>Story checkpoints end at the DEVON GOODS delivery in Slateport. Later scenes (the Route 110 rival, Mauville onward) are not closed yet and fall to nearby, named or recency.</li><li>A checkpoint closes every in-scope page of its speakers on its maps up to that turn, including an incidental line from the same sprite on the same map.</li>
 <li>A key item still in the bag ranks any episode that names it, including the finished Rusturf Tunnel scene (DEVON GOODS).</li>
 <li>Stale-anchor detection covers gym leaders only. Other finished goals still anchor.</li>
 <li>The cap bounds this block only. The latest tool result (whole-map grid, up to about 70K chars) and the supervisor note (up to 24K) are separate, and each needs its own operator decision.</li>
 </ul>
 
 <h2>Status</h2>
-<p>Branch <code>claude/bounded-model-input</code>. Default off; <code>experiments/feature-configs/current.json</code> unchanged. Tests: <code>instruction-memory-cap.test.ts</code>. Not landed and not measured in runs.</p>
+<p>Branch <code>claude/bounded-model-input</code>. Default off; <code>experiments/feature-configs/current.json</code> unchanged. Tests: <code>instruction-memory-cap.test.ts</code>, <code>story-checkpoints.test.ts</code> (audited against pret). Not landed and not measured in runs.</p>
 </main></body></html>

@@ -119,3 +119,14 @@ All three lanes `VERDICT: BLOCKING`. Round-1 items confirmed fixed by all: d548 
 - LANDED: `git merge --ff-only` from landing-board slot 1; main = f6efe433b, exactly the reviewed head.
 - Next: pin ON in both arms of experiments/feature-configs/current.json (the operator approved) as its own small reviewed change;
   `just viewer-main` after it lands; remaining probe chunk (d41e held-out).
+
+### Pin ON in both arms (branch claude/no-story-foreknowledge-pin from main bb32b94c4)
+
+- The operator 2026-10-27 9:14 PM: keep it ON in both arms going forward. `no-story-foreknowledge-v1` appended to `onInBoth` and
+  base `features: true` in experiments/feature-configs/current.json; recipe test
+  packages/viewer/src/no-story-foreknowledge-recipe.test.ts (4 definitions, both arms); registry text and explainer say so.
+- Fixed-definition hashes, main bb32b94c4 -> this branch (feature recipe fc306b3d5a69 -> b9fbab5eb3df):
+  bundle-v-control 6720e1fcdc16 -> 33ae2aafebd1; bundle-v-control-2h f939f403c8bb -> e0376bed8603;
+  glm53-flash-4h 87fe4cb976a9 -> ce63c4f7de17; hyperqwen-control-3h 356847041a6d -> e046349acf0c.
+  The only recorded approval (hyperqwen-control-3h, 2026-10-27 3 PM) was already stale; every launch of these needs
+  the operator's re-approval.

@@ -145,7 +145,8 @@
   "context-exact-count-v1",
   "grass-strides-v1",
   "pokenav-short-list-v1",
-  "menu-option-honest-refusal-v1"
+  "menu-option-honest-refusal-v1",
+  "no-story-foreknowledge-v1"
  ],
  "features": {
   "native-task-goal-retirement-v1": false,
@@ -423,6 +424,7 @@
   "grass-strides-v1": true,
   "scene-followup-prompt-v1": false,
   "pokenav-short-list-v1": true,
-  "menu-option-honest-refusal-v1": true
+  "menu-option-honest-refusal-v1": true,
+  "no-story-foreknowledge-v1": true
  }
 }

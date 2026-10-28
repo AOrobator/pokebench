@@ -110,10 +110,11 @@ describe(ID,()=>{
   expect(s.notes).toHaveLength(1);
  });
 
- it("a reply before any delivery does not discard a note that is still due",async()=>{
+ it("replayed history does not re-arm an old scene: any successful reply after it means the model had its turn",async()=>{
   const s=setup(true),theft=ev("theft-9e33");
-  s.emit(theft);s.emit(s.result(theft));s.emit(s.reply(theft,theft.seq+4,"toolUse"));
-  expect((await s.wired.transformContext(messages)).at(-1)).toMatchObject({content:NOTE});
+  s.emit(theft);s.emit(s.result(theft));s.emit(s.reply(theft,theft.seq+4,"stop"));s.emit(s.result(theft,theft.seq+6,"later-call"));
+  expect(await s.wired.transformContext(messages)).toEqual(messages);
+  expect(s.notes).toHaveLength(0);
  });
 
  it("stays quiet for a non-scene dialogue and for a result of another call",async()=>{

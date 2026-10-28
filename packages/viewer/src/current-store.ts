@@ -57,7 +57,7 @@ export function openCurrentStore(path:string,options:CurrentStoreOptions={}){
   if(Buffer.byteLength(p.summary)>65536||Buffer.byteLength(p.detail)>8*1024*1024||!coord(p.started)||(p.ended!==null&&!coord(p.ended)))throw new Error("Invalid current publication");
   db.prepare("INSERT OR REPLACE INTO public_current VALUES(?,?,?,?,?,?,?)").run(state.run,source.generation,rev,p.started,p.ended,p.summary,p.detail);
  };
- const rowOf=(row:Record<string,unknown>|undefined):PublicationRow|null=>row===undefined?null:{run:String(row["run"]),generation:String(row["generation"]),revision:Number(row["revision"]),started:Number(row["started"]),ended:row["ended"]===null?null:Number(row["ended"]),summary:String(row["summary"]),...(row["detail"]===undefined?{}:{detail:String(row["detail"])})};
+ const rowOf=(row:Record<string,unknown>|undefined):PublicationRow|null=>row===undefined?null:{run:String(row["run"]),generation:String(row["generation"]),revision:Number(row["revision"]),started:Number(row["started"]),ended:row["ended"]===null?null:Number(row["ended"]),summary:String(row["summary"]),...(typeof row["detail"]!=="string"?{}:{detail:row["detail"]})};
  const publicRow=(run:string,detail:boolean):PublicationRow|null=>rowOf(db.prepare(`SELECT p.run,p.generation,p.revision,p.started,p.ended,p.summary${detail?",p.detail":""} FROM public_current p JOIN current c ON c.run=p.run AND c.revision=p.revision WHERE p.run=?`).get(run));
  const discovery=():string|null=>{const r=db.prepare("SELECT value FROM discovery WHERE id=1").get();return r===undefined?null:String(r["value"]);};
  const change=(run:string,removed:boolean,retain=1024):number=>{

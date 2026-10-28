@@ -1824,6 +1824,18 @@ it("marks a PokéNav input with an unknown effect explicitly in history and raw 
  expect(inspector(event)).toContain("pokenav_pending_button");
 });
 
+it("links the compact map grid explainer from its config card without inventing recorded status",()=>{
+ const id="compact-map-grid-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ for(const enabled of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain(enabled?"ON":"NOT RECORDED");
+ }
+});
+
 it("links safe scene capture from its actual config card without inventing recorded status",()=>{
  const id="scene-journal-safe-capture-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -1845,6 +1857,7 @@ it("links the neutral YES/NO card without guessing a historical activation",()=>
  expect(card.textContent).toContain("NOT RECORDED");
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});
 
 it("links the instruction junk filter's exact card and preserves recorded status",()=>{
  const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

@@ -195,6 +195,8 @@ SERVER_FEATURES = (
     "scene-journal-safe-capture-v1",
     "neutral-yes-no-readout-v1",
     "pokenav-call-auto-advance-v1",
+    "player-map-visibility-v1",
+    "compact-map-grid-v1",
 )
 
 
@@ -225,7 +227,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v1,compact-map-grid-v1",
     )
     if raw == "":
         return frozenset()
@@ -573,6 +575,13 @@ def format_readout(
         return "\n".join(
             [*lines, "Save-backed world state unavailable: save data is not initialized or valid."]
         )
+    if state.map_visibility is not None:
+        lines.append(
+            "Map visibility: ? unseen; other terrain was previously seen. "
+            "Hidden terrain is not refreshed."
+        )
+        if state.map_visibility.diagnostic is not None:
+            lines.append(state.map_visibility.diagnostic)
     x, y = state.position
     named_status = STATUS_NAMES not in off
     poison_readout = POISON not in off
@@ -693,7 +702,10 @@ def format_readout(
         and not state.in_battle
     )
     puzzle_map = None
-    if state.local_map is not None and "live-map-v1" not in off:
+    if (
+        state.local_map is not None
+        or (state.map_visibility is not None and state.nearby is not None)
+    ) and "live-map-v1" not in off:
         configured_whole = "full-map-navigation-v1" not in off
         whole = state.full_map is not None and configured_whole
         shown = state.full_map if whole else state.nearby
@@ -731,6 +743,7 @@ def format_readout(
             next_tiles(
                 shown,
                 state.position,
+                unseen_unknown=state.map_visibility is not None,
                 coordinates="live-player-position-v1" not in off,
                 ledges=ledges,
                 edge_walls=edge_walls,
@@ -749,6 +762,7 @@ def format_readout(
         )
         lines.append(
             shown.text(
+                visible_only=state.map_visibility is not None,
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance=warp_guidance,
                 ledges=ledges,
@@ -765,6 +779,7 @@ def format_readout(
                     edge_walls=edge_walls,
                     counters=counters,
                     terrain=FIELD_MOVES not in off,
+                    compact="compact-map-grid-v1" not in off,
                 )
                 if observation is not None
                 else None,
@@ -772,7 +787,7 @@ def format_readout(
                 rules_in_prompt=rules and whole == configured_whole,
             )
             if shown is not None
-            else state.local_map
+            else state.local_map or ""
         )
         if puzzle_note:
             lines.append(puzzle_note)
@@ -993,6 +1008,7 @@ def format_readout(
             if state.topology is None
             else state.topology.text(
                 notes or None,
+                visible_only=state.map_visibility is not None,
                 targets=SEMANTIC_V2 not in off,
                 labels=None
                 if sections is None
@@ -1121,6 +1137,7 @@ def state_json(state: GameState) -> dict[str, object]:
     if state.map_observation is not None:
         full = {**full, "map_observation": state.map_observation.json()}
     return {
+        **({} if state.map_visibility is None else {"map_visibility": state.map_visibility.json()}),
         **full,
         **(
             {}

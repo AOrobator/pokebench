@@ -380,6 +380,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
   "pokenav-call-auto-advance-v1":"pokenav-call-auto-advance-v1.html",
  "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
+ "player-map-visibility-v1":"player-map-visibility-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",
  "gateway-schema-hint-v1":"gateway-schema-hint-v1.html",
@@ -401,6 +402,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "moving-npc-target-v1":"moving-npc-target-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
  "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
+ "compact-map-grid-v1":"compact-map-grid-v1.html",
  "type-gap-team-v1":"type-gap-team-v1.html",
  "supplies-v1":"supplies-v1.html",
  "untalked-in-gym-v1":"untalked-in-gym-v1.html",

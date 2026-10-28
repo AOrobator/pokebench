@@ -11332,6 +11332,61 @@
           },
           "additionalProperties": false
         },
+        "map_visibility": {
+          "type": "object",
+          "required": [
+            "known",
+            "visible",
+            "diagnostic"
+          ],
+          "properties": {
+            "known": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "maxItems": 10240
+            },
+            "visible": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "maxItems": 10240
+            },
+            "diagnostic": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
         "navigation_grid": {
           "anyOf": [
             {

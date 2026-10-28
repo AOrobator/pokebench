@@ -140,3 +140,4 @@ The Codex chat ended with "Selected model is at capacity" (10:18 PM ET). Claude 
     3. Full gates pending. Sequencing: they run in the coordinator's CPU window before landing.
     4. Repeated fixture reads. Fixed: fixtures are read once (functools.cache).
   - Gateway tests 89 pass, coverage 99.32/97.13/100.
+- Review round 2 (packet 2c2d316f, head b37ac80ef): Claude LGTM, fallback LGTM. Codex verified the fixes and found no production regression, but blocked on test shape: the OFF and override matrices launched the fake-claude process 8 times. Coordinator chose to fix it. Those rows now use an in-memory runner through the Gateway's injectable `runner`, with 0 subprocess launches (receipt runs/reviews/gateway-current-turn-fix/runtime-shape-receipt.txt). The real-adapter tests are kept: bundle ON delivery and assistant-terminal. 89 pass, coverage 99.44/97.54/100. Test-only change.

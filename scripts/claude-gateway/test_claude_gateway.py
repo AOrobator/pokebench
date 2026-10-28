@@ -84,13 +84,28 @@ def make(
     }
     run_features = extra.pop("run_features", None)
     sleep = extra.pop("sleep_fn", time.sleep)
+    runner = extra.pop("runner", cg.run_claude)
     fields.update(extra)
     (tmp_path / "runs" / "run-a").mkdir(parents=True, exist_ok=True)
     if run_features is not None:
         (tmp_path / "runs" / "run-a" / "events.jsonl").write_text(
             json.dumps({"type": "run_start", "evaluation": {"features": run_features}}) + "\n"
         )
-    return cg.Gateway(cg.Config(**fields), sleep=sleep)  # type: ignore[arg-type]
+    return cg.Gateway(cg.Config(**fields), runner=runner, sleep=sleep)  # type: ignore[arg-type]
+
+
+class MemoryRunner:
+    """An in-memory claude: records each call's spec and answers GOOD, with no process."""
+
+    def __init__(self) -> None:
+        self.specs: list[cg.CallSpec] = []
+
+    def __call__(self, config: cg.Config, spec: cg.CallSpec) -> cg.CallResult:
+        self.specs.append(spec)
+        return cg.CallResult(GOOD, spec.session_id or "memory-session", cg.Usage(), (), 0)
+
+    def content(self) -> list[object]:
+        return list(self.specs[-1].prompt.content)
 
 
 def fake_calls(tmp_path: Path) -> list[dict[str, object]]:
@@ -869,11 +884,12 @@ def test_bundle_request_delivers_its_tool_result_in_session_mode(tmp_path: Path)
 def test_current_turn_off_is_exact_legacy_prompt_and_screen_index(
     tmp_path: Path, features: object
 ) -> None:
-    gateway = make(tmp_path, [{"result": GOOD}], mode="session", run_features=features)
+    runner = MemoryRunner()
+    gateway = make(tmp_path, [], mode="session", run_features=features, runner=runner)
     raw = fixture("bundle-d06b9f4db-request-601.json")
     request = cg.parse_request(raw)
     assert gateway.answer(raw)[1].reply is not None
-    actual = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"]
+    actual = runner.content()
     paths = sorted((tmp_path / "bridge" / "screens").iterdir())
     assert paths and all(p.name.startswith("turn-1-0-") for p in paths)
     blocks = [{"type": "text", "text": cg._tool_listing(request.tools)}]
@@ -927,12 +943,15 @@ def test_unreadable_run_start_falls_back_to_legacy_input(tmp_path: Path) -> None
 def test_current_turn_override_modes(
     tmp_path: Path, override: str, features: object, delivered: bool, source: str
 ) -> None:
+    runner = MemoryRunner()
     gateway = make(
-        tmp_path, [{"result": GOOD}], mode="session", run_features=features, current_turn=override
+        tmp_path, [], mode="session", run_features=features, current_turn=override, runner=runner
     )
     raw = fixture("bundle-d06b9f4db-request-601.json")
     assert gateway.answer(raw)[1].reply is not None
-    text = json.loads(str(fake_calls(tmp_path)[-1]["stdin"]))["message"]["content"][0]["text"]
+    first = runner.content()[0]
+    assert isinstance(first, dict)
+    text = str(first["text"])
     assert ("[tool result of call_600]" in text) is delivered
     events = jsonl(tmp_path / "bridge" / "gateway.jsonl")
     assert events[0]["event"] == "gateway_start" and events[0]["current_turn"] == override

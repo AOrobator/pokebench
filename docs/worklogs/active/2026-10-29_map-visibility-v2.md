@@ -15,10 +15,10 @@ Changes limited to visibility projection, its existing consumers, switch plumbin
 
 Initial diagnosis run2026-10-29T06-25-35_qwen36-gpu0_1ad5 at pin927b6b0c: 62 wall refusals for16,8, no new milestone after129 by350; whole-map visibility is a candidate contributor, not proven cause. Original evidence retained.
 
-- [ ] Recipe RED/GREEN and review/landing
-- [ ] Cleared replacement run and viewer proof
-- [ ] V2 RED/GREEN, factory mutation and native replay
-- [ ] V2 full gates/review/landing and explainer delivery
+- [x] Recipe RED/GREEN and review/landing
+- [x] Cleared replacement run and viewer proof
+- [x] V2 RED/GREEN, factory mutation and native replay
+- [x] V2 full gates/review/landing and explainer delivery
 
 Coordination: sent current launcherredacted-id explicit replacement ownership request, Claude relay delivered reservation proposal; awaiting acknowledged window. No stop/launch or heavy CPU job yet.
 
@@ -74,3 +74,7 @@ Independent fixturedelta confirmation: normalGPT visibility_v2_gpt_review termin
 
 Prelanding gate completion at aec3330dd: unchanged934runtime/TS/lint receipts retained (5057agent/2338viewer), coordinator explicitly approved finishing invalidatedPythonfixturecoverage and remainingtail. FullPython4931PASS with90%floors, gateway116PASS/floors,3protectedcardbaselinesPASS1280/1440/375, pristinevendorPASS. Tailreceipt asserts934→aec onlyPython tests/worklog. No hidden rerun or weakenedgate; failedoriginal23caseslog retained. Candidate V2syntheticONfixture actualcard→READ EXPLAINER browserclickPASS1440/375 withnativeLittlerootprojection, screenshots inspected/zeroerrors; scratchfixture outsidecanonicalcatalog, no model/gameprocess. RuntimeR2all3LGTM + independenttestdeltaLGTM retained, reducedvendor diversity under previouslyquotedhumanGrokwaiver. Synthesis/logs/nativeproof/promptOFF/browserproof in ignored runs/reviews/player-map-visibility-v2, copied canonical beforelanding. CPU RELEASE; readyforboard, finalcombinedmainjusttest stillrequired beforeoneclearedviewerrefresh. Replacement82e1 frozenede/V2absent remainsunchanged.
 COMMIT: record V2 final gates, review synthesis and owned browser proof (evidenceonly).
+
+
+Completion: V2 landed FF d1b5eb62d2c5231d22c12adcea6a1b71229a0cb3 at#1board. Full combined main justtest PASS5057agent/2338viewer/4931Python/116gateway plus3protectedcardbaselines andall90%coveragefloors. One authorized V2viewer refresh completed 2026-10-29T08:23:31.407121-04:00; actual8790listener resolved to cleanpersistentcache d1b5eb62d buildstamp. No second refresh afterstartupcacheloading. Initial liveproof fetched while partialcatalogwasloading; corrected to wait for the two named live rows, no applicationchange. Both82e1 andMacGLM31a7 actualcardclicks openRUNNING/240x160LIVEframes; exactgamepixels inspected. V2card→explainer links work1440/375 onreal8790; screenshots inspected, zeropageerrors/zeroPOSTs. All9protectedrunner/player/game/modelPIDs preserved. Currentrecipe explicit V1OFF/V2OFF inbothroles. Active82e1 retainsoriginalcleanedePin/V1false/V2absent; no restart/hotpatch/activationforV2. Old1ad5/f292 startupfailurerecords retained. ExistingdisabledConfigbadgeNOTRECORDEDlimitation disclosed; rawflagsprovenOFF. Local8791canonicalexplainer200/pagescheckPASS. Evidence: canonical runs/reviews/player-map-visibility-v2 and runs/launch-receipts/qwen36-24h-visibility-off-20261029. No gameplaybenefitclaim. CPU RELEASE/land-done closeswork; V2activationrequiresnewoperatorrequest.
+COMMIT: record final main gates, served explainer and live-run preservation (evidenceonly).

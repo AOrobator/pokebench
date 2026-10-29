@@ -17,3 +17,13 @@ it("disables V1 visibility in both generated current arms while preserving froze
   expect(presetFeatures(parsePlayPreset(armPreset(def,phase.id,arm)))[ID]).toBe(false);
  }
 });
+
+it("freezes the authorized replacement as one 24-hour bundle trial on GPU0 with V1 off",()=>{
+ const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/qwen36-24h-visibility-off.json",import.meta.url))).definition;
+ expect(definitionProblems(def)).toEqual([]);
+ expect(def.plan).toEqual([{slot:1,phase:"cook",block:1,lane:"B",arm:"bundle"}]);
+ expect(def.lanes.map(lane=>[lane.gpu,lane.modelUrl,lane.gamePort])).toEqual([["GPU0","http://127.0.0.1:8098",8076]]);
+ expect(def.phases[0]?.maxWallMs).toBe(86_400_000);
+ expect(def.phases[0]?.start).toEqual({kind:"save_state",path:"runs/launch-receipts/fast-text/MAIN_MENU.state",sha1:"b3a6cc1c19836600a15febf41b8f8b19661ce5d4"});
+ expect(presetFeatures(parsePlayPreset(armPreset(def,"cook","bundle")))[ID]).toBe(false);
+});

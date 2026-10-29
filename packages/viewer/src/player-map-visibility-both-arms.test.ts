@@ -36,6 +36,7 @@ it("pins the GLM replacement to one Mac bundle trial with V2 on and the existing
  expect(definitionProblems(def)).toEqual([]);
  expect(def.plan).toEqual([{slot:1,phase:"cook",block:1,lane:"A",arm:"bundle"}]);
  expect(def.lanes.map(l=>[l.gpu,l.modelUrl,l.gamePort])).toEqual([["MAC","http://127.0.0.1:8099",8077]]);
+ expect(def.serving).toMatchObject({contextTokens:131072,slots:2});
  expect(def.phases[0]?.maxWallMs).toBe(86_400_000);
  expect(def.phases[0]?.start).toEqual({kind:"save_state",path:"runs/launch-receipts/fast-text/MAIN_MENU.state",sha1:"b3a6cc1c19836600a15febf41b8f8b19661ce5d4"});
  const p=parsePlayPreset(armPreset(def,"cook","bundle"));

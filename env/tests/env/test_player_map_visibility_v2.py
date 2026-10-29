@@ -170,3 +170,26 @@ def test_standalone_python_defaults_leave_v2_off_without_ts_normalization(monkey
     import json
 
     assert "map_visibility" not in json.loads(body)["state"]
+
+
+@pytest.mark.parametrize("light_level", [0, 7])
+def test_connected_map_player_spawn_identity_does_not_hide_current_terrain(light_level):
+    # pret731ad5bf UpdateObjectEventCoordsForCameraUpdate shifts player coordinates
+    # across a connection, but ObjectEvent.mapNum/mapGroup retain the spawn map.
+    memory = field(light_level)
+    memory.put(0x02037350 + 9, bytes([9, 0]))
+    current = state()
+    result = MapMemory().project(memory.read, current, whole_lit=True)
+    assert result.map_visibility.diagnostic is None
+    assert (10, 10) in result.map_visibility.visible
+    assert len(result.full_map.tiles) == 625 if light_level == 0 else len(result.full_map.tiles) < 625
+
+
+def test_connected_map_visibility_still_requires_coherent_stationary_player():
+    import struct
+
+    memory = field(0)
+    memory.put(0x02037350 + 9, bytes([9, 0]))
+    memory.put(0x02037350 + 0x10, struct.pack("<h", 18))
+    result = MapMemory().project(memory.read, state(), whole_lit=True)
+    assert not result.map_visibility.visible

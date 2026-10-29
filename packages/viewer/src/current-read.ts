@@ -31,7 +31,8 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
   if(saved===null||typeof window.auxiliary!=="string")return answer("indexing");
   if(decoded!==null&&(decoded["epoch"]!==window.epoch||decoded["generation"]!==saved.source.generation))return answer("reset",[],null);
   const target=decoded===null?saved.state.seq+1:before;if(target>saved.state.seq+1)throw new CurrentReadError(400,"History cursor is ahead of the committed source");if(target===0)return answer("ready",[],null);
-  const index=window.entry;if(index===null)return answer("indexing");const seq=Number(index["seq"]),offset=Number(index["offset"]),end=Number(index["end"]),aux=parseProjectorAux(window.auxiliary);
+  const aux=parseProjectorAux(window.auxiliary),start=Math.max(0,target-limits.events),prior=window.entry===null?null:Number(window.entry["seq"]);
+  const index=window.entry===null||(n(prior)&&start-prior>16&&!(prior===0&&start<aux.namespace))?window.following:window.entry;if(index===null)return answer("indexing");const seq=Number(index["seq"]),offset=Number(index["offset"]),end=Number(index["end"]);
   if(![seq,offset,end].every(n)||end<=offset||end>saved.source.offset||seq>=target)throw new Error("Invalid history index");
   if(Math.max(0,target-limits.events)-seq>16&&!(seq===0&&Math.max(0,target-limits.events)<aux.namespace))return answer("indexing");
   const sourceOptions:SourceOptions={read:(bytes,at,purpose)=>{options.read?.({run:q.run,bytes,offset:at,purpose});}};const file=openCurrentSource(options.runsRoot,q.run,sourceOptions);

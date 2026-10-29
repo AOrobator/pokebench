@@ -95,3 +95,13 @@ Added actual assistant-plus-follow-up history and decision replay consumed/new-v
 Successful assistant tool calls consume the notice; text-only/error replies retain it through the actual message history. Decision replay now preserves only this feature's recognized historical ledger receipt when ON, restoring consumed-visit state while a new town visit rearms normally. No new runtime owner, schema or behavior domain. Corrected the context-order comment.
 
 Focused helper/replay tests: 30 PASS (including pinned-pi HTTP text-only retry with the exact note delivered on both requests, one durable receipt, and suppression after native Center entry). Changed-file ESLint and agent tsc PASS; unique logs under review-r1/fix-*.log. These replace the overbroad R1 retry/replay claims. Heavy affected-agent gates requested after cheap checks; all prior failures retained.
+
+## Round 2 — operator scope checkpoint
+
+GREEN5f86496f1: build PASS, agent357files/5023tests PASS, coverage99.16%lines/92.44%branches/97.47%functions, full lint PASS. CPU RELEASE delivered. Producer ON/OFF fixture regenerated separately; unchanged viewer/Python/gateway/card proof retained by impact.
+
+Frozen R2 base2308380fd → head5f86496f1, diffSHA25610a80942780fdb9de81f096a3c9609b8a8b2e5ba68f938f54b09150d98929b34. Claude+normalGPT LGTM; freshSol+Astra BLOCKING. Native records verify the operator's blanket Grok outage authorization (2026-10-21/22 project messages), so no fresh Grok permission needed; reduced vendor diversity explicit. All other gates remain binding.
+
+Parent independently reproduced real-recorder timing defect: actual note turn2, durable receipt turn3; recorded reconstruction omits2 and incorrectly includes3 after consumption. Repeated retry case also loses later retained notes. Real recorder seam absent from earlier tests. Astra additionally requires performed operand-level mutation evidence for native-foot, matching-state and delivered-text guards. Exact repro scripts/output and full synthesis retained under runs/town-center-harness-20261028/review-r2. PB7/PB11 PASS claims invalidated for this seam.
+
+**STOP before third review round:** execute-worklog round cap requires operator choice after round2 blockers. Recommend fix only these two replay/delivery bugs, add actual recorder regression and missing mutation evidence, then bounded review. Source unchanged after frozen5f86496f1; this is evidence-only commit. Main advancedaaa9d0ea6; integration plan recorded but no merge attempted. No gameplay restart or viewer refresh. Branch implementation and both-arm configuration remain unlanded.

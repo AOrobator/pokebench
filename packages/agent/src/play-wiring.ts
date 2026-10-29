@@ -1,3 +1,5 @@
+import {townCenterContext} from "./town-center-checkpoint.js";
+import type {PlaceSource} from "./story-destinations.js";
 import {moveMatchupContext} from "./move-matchup.js";
 import {withDestinationFirst} from "./destination-first.js";
 import {withPokenavCallAutoAdvance} from "./pokenav-call-auto-advance.js";
@@ -71,7 +73,7 @@ type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform,cutOffNotice?:string):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock;instructionGoals?:GoalTools}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform,cutOffNotice?:string,places:PlaceSource={}):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock;instructionGoals?:GoalTools}{
  const tools:AgentTool[]=[];
  const memoryRecorder:WiringRecorder={subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
 
@@ -96,7 +98,8 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
  // scene-followup-prompt-v1 wraps next to last, so its note ends the request unless
  // type-gap-team-last-message-v1 repeats the type-gap block after it.
- const transformContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform))));
+ const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform))));
+ const transformContext=townCenterContext(features,memoryRecorder,priorContext,places);
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

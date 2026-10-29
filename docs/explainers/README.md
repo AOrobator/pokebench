@@ -358,3 +358,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Move matchups and Pokémon bonuses](move-learn-type-matchup-v1.html) — default-OFF, observed foes, learner bonuses and supported current battle ranges.
 - [Current question focus](current-question-focus-v1.html): temporary source-qualified current field question and controls, tested through iterative decision probes.
+- [Town Center checkpoint](town-center-checkpoint-v1.html): the first eligible town decision gets the probed Center-entry reminder; native checkpoint completion suppresses it.

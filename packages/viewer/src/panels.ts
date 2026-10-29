@@ -378,6 +378,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "town-center-checkpoint-v1":"town-center-checkpoint-v1.html",
   "move-learn-type-matchup-v1":"move-learn-type-matchup-v1.html",
  "screenshot-button-baseline-v1":"screenshot-button-baseline-v1.html",
   "pokenav-call-auto-advance-v1":"pokenav-call-auto-advance-v1.html",

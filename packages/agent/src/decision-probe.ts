@@ -5,6 +5,7 @@
 // wiring; press results through pressResult; readouts through the server's renderer (env rerender.py).
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, Message, TextContent, ThinkingContent, Tool, ToolCall, ToolResultMessage } from "@mariozechner/pi-ai";
+import type {PlaceSource} from "./story-destinations.js";
 import { checkEvent, type Button, type EventBody, type LoopBreakerBody, type RunEvent } from "./events.js";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featuresOf, type FeatureSet, type SwitchableFeature } from "./features.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -66,7 +67,7 @@ export interface ProbePorts {
   readonly rerender: (refs: readonly RawRef[], features: FeatureSet) => Promise<readonly string[]>;
   /** The field the gateway streamed reasoning in (pi's thinkingSignature); prior reasoning is sent back under it. Events do not record it. */
   readonly thinkingSignature: string;
-  /** The game's map table read from a recorded raw-RAM archive, as GET /pokebench/places serves it; only --trust-header reads it. */
+  /** The game's map table read from a recorded raw-RAM archive, as GET /pokebench/places serves it; used by --trust-header and checkpoint guidance. */
   readonly places?: (ref: RawRef, features: FeatureSet) => Promise<readonly Place[]>;
 }
 
@@ -175,9 +176,9 @@ const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context"
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
-export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string, innermost: (m: AgentMessage[]) => Promise<AgentMessage[]> = (m) => Promise.resolve(m)): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
+export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:string, innermost: (m: AgentMessage[]) => Promise<AgentMessage[]> = (m) => Promise.resolve(m), places:PlaceSource={}): { tools: AgentTool[]; transform: (m: AgentMessage[]) => Promise<AgentMessage[]>; window: ReturnType<typeof contextTools>["window"] } {
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
-  const context = contextTools(features, recorder, innermost, cutOff);
+  const context = contextTools(features, recorder, innermost, cutOff,places);
   const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert, sceneEvents: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
   return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
 }
@@ -372,7 +373,8 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // --recorded-trim measures each candidate request where the live recorder sat: the innermost context transform.
   const recorderView: { size: ContextSize | null } = { size: null };
   const lastMeasured = (): ContextSize | null => recorderView.size;
-  const wiring = probeTools(features, replay, cutOff, (m) => { recorderView.size = contextSize(m.filter(isMessage)); return Promise.resolve(m); });
+  const source:PlaceSource={places:async()=>{const state=prior.findLast((e):e is Extract<RunEvent,{type:"state";started:boolean}>=>e.type==="state"&&"started" in e&&e.raw_ram!==undefined);if(state?.raw_ram===undefined||ports.places===undefined)return null;return {places:await ports.places(state.raw_ram,features)};}};
+  const wiring = probeTools(features, replay, cutOff, (m) => { recorderView.size = contextSize(m.filter(isMessage)); return Promise.resolve(m); },source);
   for (const e of prior) {
     if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }

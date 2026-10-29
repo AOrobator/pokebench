@@ -167,7 +167,8 @@
   "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1",
   "player-map-visibility-v1",
-  "destination-first-navigation-v1"
+  "destination-first-navigation-v1",
+  "town-center-checkpoint-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -466,6 +467,7 @@
   "disproved-beliefs-bound-v1": false,
   "destination-first-navigation-v1": true,
   "id-card-bound-v1": false,
-  "instruction-memory-yaml-v1": false
+  "instruction-memory-yaml-v1": false,
+  "town-center-checkpoint-v1": true
  }
 }

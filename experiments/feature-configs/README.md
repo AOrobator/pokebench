@@ -25,3 +25,5 @@ Control promotion (the operator 2026-10-28, "yes type gap on in both arms", from
 Player visibility (the operator 2026-10-28, “ok build the switch on in both arms”): player-map-visibility-v1 is onInBoth in current. Registered default OFF preserves frozen presets and recorded runs. No running controller or historical metadata is changed.
 
 Navigation guidance (the operator 2026-10-28, "okay lets make this change, on in both arms"): destination-first-navigation-v1 is registered default OFF and explicitly onInBoth. It aligns system/tool/result wording; movement execution, existing live pins and historical definitions are unchanged. This activation is operator-directed, without a measured benefit claim.
+
+Town Center checkpoint (the operator 2026-10-28, “wire the winner into the harness, on in both arms”): town-center-checkpoint-v1 is registered default OFF and explicitly onInBoth in current. Both future arms use the matched-encoding short final-user reminder when the native checkpoint differs and the local Center entrance is already listed. Existing runs and frozen historical presets are unchanged.

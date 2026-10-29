@@ -319,6 +319,7 @@ export const SWITCHABLE_FEATURES = [
   "screenshot-button-baseline-v1",
   "move-learn-type-matchup-v1",
   "current-question-focus-v1",
+  "town-center-checkpoint-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -756,6 +757,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("screenshot-button-baseline-v1", "guidance", "SCREENSHOT AND BUTTON BASELINE", null, "Default off. Requires every other behavior switch off. Uses the operator-approved short screenshot/button prompt and removes text from successful observe/press results while retaining private state for scoring. Pair with the baseline preset, which disables every other behavior switch. Ordinary conversation history, exposed reasoning recording, button schema and timing are retained. Off: preserves the previous prompt and tool-result bytes."),
   on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", "battle-effective-damage-v1", "Default off. Needs the existing effective-damage readout and its battle-information dependencies. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
   on("current-question-focus-v1", "guidance", "CURRENT QUESTION FOCUS", "dialogue-auto-advance-v1", "Default off; enabled only in the current bundle by operator approval. Repeats the final whole delivered field-dialogue page beside the current ready YES/NO selection and existing controls as a temporary last request message, then asks the model to compare both answer meanings with its intention without inventing later consequences. Requires matching current state, result, map and visible dialog; unknown or changed questions are omitted. Uses existing dialogue pages and ledger-context receipts, with no answer selection, new game facts or automatic input. Off: existing context, prompts, tools and execution remain unchanged."),
+  on("town-center-checkpoint-v1", "guidance", "TOWN CENTER CHECKPOINT", "heal-before-trainers-v1", "Default off; enabled in both future current-recipe arms by operator approval. The first eligible free-field decision of a town visit gets the probed short instruction as a final plain-string user message: enter the listed local POKéMON CENTER now, even with a healthy party, because entry sets the blackout return point; heal with the nurse if needed, then resume the objective. Requires native lastHealLocation to differ from this town and an already-listed reachable Center entrance from the game map table. Dialogue, menus, battles, locked controls and unavailable facts defer delivery. Native checkpoint completion suppresses the note; a successful action consumes this visit notice, while failed/text-only replies retain it. Delivery is recorded with state/result references in Activity History and raw events, without a timeline mark. No tools or movement are changed. Off: model context, tools and results retain their previous bytes; no checkpoint note is recorded."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1162,6 +1164,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("screenshot-button-baseline-v1"),
     ...when("move-learn-type-matchup-v1"),
     ...when("current-question-focus-v1"),
+    ...when("town-center-checkpoint-v1"),
   ];
 }
 

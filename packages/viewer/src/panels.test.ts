@@ -1930,3 +1930,11 @@ it("links current question focus without guessing historical activation",()=>{
   expect(card?.querySelector(".config-badge")?.textContent).toBe(enabled?"ON":"NOT RECORDED");
  }
 });
+
+it("exposes town Center delivery evidence, raw text and its exact Harness Config explainer",()=>{
+ const id="town-center-checkpoint-v1",text="Enter OLDALE TOWN’s Pokémon Center now, using the listed entrance warp at (6,16) on map [0, 10]. Entry sets your blackout return point here even when your party is healthy. Heal with the nurse if needed, then resume your current objective.";
+ const log=bare(),event=log.add(100,{type:"ledger_context",turn:1,text,evidence:[10,11]});
+ expect(eventText(event,view(log))).toContain("2 references");expect(eventText(event,view(log))).toContain("Enter OLDALE TOWN");expect(inspector(event)).toContain("blackout return point");
+ const config=new Log();config.add(0,{...START,harness_features:[id]});const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(config));
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});

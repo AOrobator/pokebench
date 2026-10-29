@@ -753,13 +753,14 @@ export class App {
       return [cardInputFor(recordedReplay,workbench.at,now,"replay",workbench.runs,art.art)];
     }
     // An explicitly opened replay is separate from the default live-run row.
-    const live = this.runs.filter(run => run.ended === false && run.problem === null
-      && (isLive(run) || this.knownLiveCards.has(run.id) || run.id === this.runId));
+    const live = this.runs.filter(run => isLive(run) && run.problem === null);
     const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
-      if (recorded === undefined || !["live", "paused", "unresponsive"].includes(recorded.status)) return [];
-      const status: CardInput["status"] = !isLive(run) || recorded.status === "unresponsive" ? "replay"
-        : run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      if (recorded === undefined || !["live", "paused"].includes(recorded.status)) return [];
+      const probe = this.current?.state.runs.find(row => row.id === run.id)?.header.harness_features.includes("probe")
+        ?? recorded.excluded === "Excluded probe session";
+      if (probe && run.id !== this.runId) return [];
+      const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);
       // Applied controls arrive on the selected stream before the next card snapshot.
       // A snapshot may also be ahead of that stream, so never reduce its cap.

@@ -13,3 +13,5 @@ Invariants: incomplete aggregate/time stays null; complete elapsed excludes paus
 Skills: viewer-e2e, close-the-loop, execute-worklog, talk-to-claude (CPU/restart/landing coordination).
 
 Status: discovery complete; implementation pending. No landing or activation yet.
+
+RED commit bab7ba07b initially hit missing compiled dependency, not behavioral RED. Reused agent dist from immutable served d1b5eb62 after verifying zero agent source delta; no heavy build. Actual RED /tmp/qwen-clock-red2.log: 2 expected assertion failures (projection null vs4ms; missing approximate header),27pass. Corrected fixture expected hms format before behavioral RED. CPU prerequisite grant arrived after withdrawal; release sent.

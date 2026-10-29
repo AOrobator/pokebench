@@ -1930,3 +1930,16 @@ it("links current question focus without guessing historical activation",()=>{
   expect(card?.querySelector(".config-badge")?.textContent).toBe(enabled?"ON":"NOT RECORDED");
  }
 });
+
+it("links both gym campaign cards with faithful recorded activation",()=>{
+ for(const id of ["eight-badge-mission-v1","discovered-gym-checklist-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  for(const enabled of [true,false]){
+   const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+   const card=doc.querySelector(`article[data-feature="${id}"]`);
+   expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+   expect(card?.querySelector(".config-badge")?.textContent).toBe(enabled?"ON":"NOT RECORDED");
+  }
+ }
+});

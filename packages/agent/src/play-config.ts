@@ -158,6 +158,7 @@ export const CITED_DESTINATION_SECTION = "navigate_to's because: quote, word for
 export const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
 // open-goal-prompt-v1: the goal names no town, gym or leader; the game's own people say where to go.
 export const OPEN_GOAL_SENTENCE = "Your goal is to play the game and make as much story progress as you can; the people in the game will tell you what to do next.";
+export const EIGHT_BADGE_GOAL = "Progress through Pokémon Emerald and collect all eight Gym Badges. Complete story tasks needed to advance. Discovered gyms remain unfinished until you earn their badges; you may return later when necessary.";
 export const OPEN_PLAY_GOAL = "Play the game and make as much story progress as you can; the people in the game will tell you what to do next.";
 const OBSERVE_LINE = "- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).";
 const OBSERVE_SCREEN_ONLY = "- observe: shows the current screen.";
@@ -185,10 +186,12 @@ export function targetGoal(target: string): string {
 
 export function playGoal(target: string | null, features: FeatureSet): string {
   if (target !== null) return targetGoal(target);
+  if(features["eight-badge-mission-v1"])return EIGHT_BADGE_GOAL;
   return features["open-goal-prompt-v1"] ? OPEN_PLAY_GOAL : PLAY_GOAL;
 }
 
 export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet):string {
+  if(target===null&&features["eight-badge-mission-v1"])return `${start.kind==="boot"?"The game has just booted.":"The game has resumed from a recorded checkpoint."} ${EIGHT_BADGE_GOAL}`;
   if(start.kind==="save_state"&&features["save-state-task-truth-v1"]){
     return target===null?RESUME_TASK:`The game has resumed from a recorded checkpoint. ${playGoal(target,features)}`;
   }
@@ -224,6 +227,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if(show("overworld")&&features["deterministic-exploration-v1"])prompt += "\n\n- explore_map: when you have no evidence-backed destination, ask the harness to choose and try one reachable, not-yet-attempted listed interaction or walking connection. Each call tries only one target and returns at the first interruption; inspect the result before calling it again.";
   if (features["dialogue-safe-batches-v1"]) prompt += "\n\nInterface input safety: interaction/menu inputs or locked/unknown-interface batches submit only the first input, then return a fresh observation. Repeated A can dismiss a message and reopen the object you face. Identical text is not evidence of a mandatory cutscene or new story progress. Inspect one input before choosing the next approach.";
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target, features)}`);
+  else if(features["eight-badge-mission-v1"])prompt=prompt.replace(GOAL_SENTENCE,`Your mission is: ${EIGHT_BADGE_GOAL}`);
   else if (features["open-goal-prompt-v1"]) prompt = prompt.replace(GOAL_SENTENCE, OPEN_GOAL_SENTENCE);
   if (!features["ram-state-v1"]) prompt = prompt.replace(OBSERVE_LINE, OBSERVE_SCREEN_ONLY).replace(PRESS_LINE, PRESS_SCREEN_ONLY);
   if (!show("overworld") || !features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");

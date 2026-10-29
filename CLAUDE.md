@@ -19,7 +19,7 @@ A benchmark harness that measures how far local vision-language models get in Po
 
 Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/worklogs/active/<date>_<slug>.md`.
 
-Before saying any change is done, fixed, merged, live, launched or ready to pick, prove it at the surface the operator will use with `.claude/skills/close-the-loop/SKILL.md`: tests for code, real-browser clicks and opened desktop and phone screenshots for viewer pages and mockups, a fake-data rehearsal for runners, schedules and launches, and a live check after every merge.
+Before saying any change is done, fixed, merged, live, launched or ready to pick, prove it at the surface the operator will use with `.claude/skills/close-the-loop/SKILL.md`: tests for code, real-browser clicks and opened desktop and phone screenshots for viewer pages and mockups, a fake-data rehearsal for runners, schedules and launches, and the applicable post-merge check (live proof for served-viewer/runtime or run-build-compatibility changes).
 
 When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
 
@@ -84,7 +84,7 @@ Claude threads and Codex sessions both land on local `main`, so the landing boar
 
 An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
 
-- Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
+- Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen feature packet plus any required integration-delta review, per `execute-worklog`.
 - Review records an immutable base/head/diff. Land fast-forward only (`git merge --ff-only`); if `main` advances, apply the evidence-reuse and upstream-impact rules in `execute-worklog` rather than automatically restarting review.
 - Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) are never used in PokeBench reviews (operator decision 2026-10-16: they are the models under benchmark, and noisy as reviewers) and never count toward merge approval.
 - A missing or blocked cloud lane means no self-merge; ask the operator.
@@ -99,7 +99,7 @@ The rule never covers pushing, pull requests, approving or launching experiments
 - Do not hold `main` still for review. Preserve frozen review identity; classify upstream changes before deciding what to rerun. Unchanged feature changes and unaffected contracts retain their reviews and expensive evidence. A new main SHA alone is not a reason to restart readiness.
 - Pass cheap checks for the changed scope before requesting a full-gate CPU window. Inspect recipe prerequisites; a command that implicitly builds belongs in the CPU request too. CPU START/RELEASE is coordinated through `just tell-claude`; focused single-file checks do not reserve the full-gate window.
 - Plan source implementation, landing and activation as separate stages. The final rollout stage introduces no feature code; a discovered bug returns to a bounded source correction. Report committed, reviewed, landed and live separately.
-- Documentation/skill prose-only changes use documentation validation and independent review, without application build/lint/coverage, emulator/browser proof or viewer refresh. Executable scripts, build/configuration changes, generated runtime inputs and behavior changes do not qualify.
+- Documentation/skill prose-only changes use documentation validation and independent review, without application build/lint/coverage, emulator/browser proof or viewer refresh. Executable scripts, build/configuration changes, generated runtime inputs and runtime/program behavior changes do not qualify.
 
 ## Retired experiment queue
 

@@ -1,6 +1,6 @@
 ---
 name: close-the-loop
-description: Prove a PokeBench change works where the operator will use it before calling it done — tests for code, real-browser screenshots and clicks for viewer pages and mockups, fake-data rehearsals for runners, schedules and launches, and a live check after every merge. Use before any "done", "fixed", "merged", "launched" or "ready to pick" message; not a substitute for the multi-model review.
+description: Prove a PokeBench change works where the operator will use it before calling it done — tests for code, real-browser screenshots and clicks for viewer pages and mockups, fake-data rehearsals for runners, schedules and launches, and the applicable post-merge check (live proof for served-viewer/runtime or run-build-compatibility changes). Use before any "done", "fixed", "merged", "launched" or "ready to pick" message; not a substitute for the multi-model review.
 ---
 
 # Close the loop

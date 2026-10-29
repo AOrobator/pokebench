@@ -52,7 +52,10 @@ export function recordedRun(events: RunEvent[]): RecordedRun {
   if (start === undefined) throw new Error("event log has no run_start");
   return { events, start };
 }
-export const recordedFeatures = (run: RecordedRun): FeatureSet => featuresOf(run.start.harness_features);
+export function recordedFeatures(run: RecordedRun): FeatureSet {
+  if(run.start.harness_features.includes("player-map-visibility-v1"))throw new Error("Cannot reconstruct retired player-map-visibility-v1; use recorded frames and tool results for historical replay.");
+  return featuresOf(run.start.harness_features);
+}
 export function withSwitches(features: FeatureSet, flips: readonly ProbeSwitch[]): FeatureSet {
   const next = { ...features };
   for (const flip of flips) next[flip.id] = flip.on;

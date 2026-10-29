@@ -38,7 +38,6 @@ RECORDED_OFF = (
         {
             "coherent-battle-observation-v1",
             "player-elevation-readout-v1",
-            "player-map-visibility-v1",
             "player-map-visibility-v2",
         }
     )

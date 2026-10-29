@@ -7,6 +7,8 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { eventMs, hms, num } from "./format.js";
 
 // drought-battle-heal-hold-v1: the message prefix of a held drought briefing (packages/agent/src/stall-briefing.ts).
+export const RETIRED_VISIBILITY = {id:"player-map-visibility-v1",label:"PLAYER MAP VISIBILITY V1 (RETIRED)",description:"Historical screen-limited visibility, removed after a connected-map identity bug. Recorded settings and replay remain available; this behavior cannot be enabled or reconstructed by the current harness."} as const;
+
 const HELD_DROUGHT = "Not sent (drought-battle-heal-hold-v1): ";
 const FACTUAL_DROUGHT = "Not sent (drought-progress-facts-v1): ";
 const SUPPRESSED_DROUGHT = "Not sent (milestone-drought-suppression-v1): ";

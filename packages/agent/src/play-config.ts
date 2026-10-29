@@ -285,7 +285,6 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   if(features["player-map-visibility-v2"])prompt += "\n\nMap visibility: Fully lit maps show the whole current map, including terrain, static exits and connections beyond the camera. In dark maps, ? is unseen terrain; previously seen terrain is remembered without refreshing hidden tiles. People require current screen and illumination evidence. Navigation uses known terrain. Unknown visibility remains unavailable. Trainer-sight checks require currently revealed terrain and currently visible trainers.";
-  else if(features["player-map-visibility-v1"])prompt += "\n\nMap visibility: ? is unseen terrain. The map remembers terrain you have seen, but hidden tiles are not updated. People and interaction targets are listed only while visible. navigate_to and navigate_to_target use discovered terrain; to reveal more, choose a visible reachable tile near the edge of the known area, or use a single direction press and inspect the new screen. Illumination limits apply in dark places too. Trainer-sight checks use only currently visible terrain and trainers at their current observed positions; checks requiring unseen terrain are reported unavailable.";
   return features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
 }
 

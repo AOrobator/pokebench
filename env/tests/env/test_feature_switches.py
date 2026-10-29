@@ -190,7 +190,7 @@ def test_other_switches_preserve_measurement_json_with_visibility_off(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     payloads = []
-    for off in ("player-map-visibility-v1,player-map-visibility-v2", ",".join(SERVER_FEATURES)):
+    for off in ("player-map-visibility-v2", ",".join(SERVER_FEATURES)):
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
         app = FastAPI()
         install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
@@ -355,7 +355,7 @@ def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
 ) -> None:
     monkeypatch.setenv(
         "POKEBENCH_FEATURES_OFF",
-        "map-observability-v1,player-map-visibility-v1,player-map-visibility-v2",
+        "map-observability-v1,player-map-visibility-v2",
     )
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
@@ -369,7 +369,7 @@ def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
     assert json.loads(state_body)["map_grid"]["height"] == 5
     monkeypatch.setenv(
         "POKEBENCH_FEATURES_OFF",
-        "full-map-navigation-v1,window-escape-route-v1,map-observability-v1,player-map-visibility-v1,player-map-visibility-v2",
+        "full-map-navigation-v1,window-escape-route-v1,map-observability-v1,player-map-visibility-v2",
     )
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
@@ -381,7 +381,7 @@ def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
     # window-escape-route-v1 alone: the state carries map_grid, the readout keeps the local map.
     monkeypatch.setenv(
         "POKEBENCH_FEATURES_OFF",
-        "full-map-navigation-v1,map-observability-v1,player-map-visibility-v1,player-map-visibility-v2",
+        "full-map-navigation-v1,map-observability-v1,player-map-visibility-v2",
     )
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)

@@ -153,7 +153,7 @@ def read_state(
     return (
         state
         if not visibility_enabled(off) or visibility is None
-        else visibility.project(read, state, whole_lit=V2_SWITCH not in off)
+        else visibility.project(read, state)
     )
 
 

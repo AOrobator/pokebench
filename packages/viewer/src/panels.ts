@@ -7,7 +7,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, hms, num, signedDelta } from "./format.js";
 import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ROUTE103_RIVAL_SPLITS } from "./frontier.js";
-import { ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
+import { RETIRED_VISIBILITY, ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';
 
@@ -386,7 +386,6 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
   "pokenav-call-auto-advance-v1":"pokenav-call-auto-advance-v1.html",
   "destination-first-navigation-v1":"destination-first-navigation-v1.html",
  "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
- "player-map-visibility-v1":"player-map-visibility-v1.html",
   "player-map-visibility-v2": "player-map-visibility-v2.html",
  "current-question-focus-v1":"current-question-focus-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
@@ -678,8 +677,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {
  const start=view.start;if(start===null)return '<p class="nodata">No run configuration recorded.</p>';
  const missing="not recorded",evaluation=start.evaluation;
- const explicit:Readonly<Record<string,boolean>>=evaluation===undefined?{}:{"deterministic-loop-guard-v1":evaluation.flags.loopGuard,"active-ui-ownership-v1":evaluation.flags.activeUi,"contextual-interface-docs-v1":evaluation.flags.interfaceDocs,"objective-tracking-v1":evaluation.flags.objectives};
+ const explicit:Readonly<Record<string,boolean>>=evaluation===undefined?{}:{"deterministic-loop-guard-v1":evaluation.flags.loopGuard,"active-ui-ownership-v1":evaluation.flags.activeUi,"contextual-interface-docs-v1":evaluation.flags.interfaceDocs,"objective-tracking-v1":evaluation.flags.objectives,...(evaluation.features?.[RETIRED_VISIBILITY.id]===undefined?{}:{[RETIRED_VISIBILITY.id]:evaluation.features[RETIRED_VISIBILITY.id]})};
  const fallback:Readonly<Record<string,readonly[string,string,string]>>={
+  [RETIRED_VISIBILITY.id]:[RETIRED_VISIBILITY.label,RETIRED_VISIBILITY.description,"observation"],
   "deterministic-loop-guard-v1":["LOOP GUARD","Warns on repeated planning, observations, actions, cycles and rejections; unresolved windows brief without ending the run.","guard"],
   "active-ui-ownership-v1":["ACTIVE UI OWNERSHIP","Reports the interface that owns input, its selection and readiness.","guidance"],
   "contextual-interface-docs-v1":["INTERFACE DOCS","Supplies screen-specific control documentation.","guidance"],

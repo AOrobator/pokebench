@@ -23,12 +23,11 @@ from pokebench_env.places import Links, Place
 if TYPE_CHECKING:
     from pokebench_env.game_state import GameState
 
-SWITCH = "player-map-visibility-v1"
 V2_SWITCH = "player-map-visibility-v2"
 
 
 def visibility_enabled(off: frozenset[str]) -> bool:
-    return SWITCH not in off or V2_SWITCH not in off
+    return V2_SWITCH not in off
 
 
 RADII = (200, 72, 64, 56, 48, 40, 32, 24, 0)
@@ -138,17 +137,15 @@ class MapMemory:
         self.frame: int | None = None
         self.maps: dict[tuple[int, ...], Discovered] = {}
 
-    def project(
-        self, read: ReadMemory, state: "GameState", *, whole_lit: bool = False
-    ) -> "GameState":
+    def project(self, read: ReadMemory, state: "GameState") -> "GameState":
         with self.lock:
             frame = int.from_bytes(read(GMAIN + 0x20, 4), "little")
             if self.frame is not None and frame < self.frame:
                 self.maps.clear()
             self.frame = frame
-            return self._project(read, state, whole_lit=whole_lit)
+            return self._project(read, state)
 
-    def _project(self, read: ReadMemory, state: "GameState", *, whole_lit: bool) -> "GameState":
+    def _project(self, read: ReadMemory, state: "GameState") -> "GameState":
         if state.map_id is None or state.position is None:
             return state
         layout = read_layout_context(read, state.map_id)
@@ -180,13 +177,14 @@ class MapMemory:
         player = players[0] if len(players) == 1 else None
         rect = None if player is None else sprite_rect(read, player)
         rendered = screen_visible(read)
+        # ObjectEvent map IDs identify its spawn map; connected-map camera updates
+        # shift coordinates without updating them (pret731ad5bf event_object_movement.c).
         stable = (
             rendered
             and state.screen == "overworld"
             and not state.in_battle
             and state.field_controls_locked is False
             and player is not None
-            and (player[10], player[9]) == state.map_id
             and tuple(v - MAP_OFFSET for v in struct.unpack_from("<hh", player, 0x10))
             == state.position
             and player[0x10:0x14] == player[0x14:0x18]
@@ -203,7 +201,7 @@ class MapMemory:
             ox, oy = shown.origin
             for tile in shown.tiles:
                 dx, dy = tile.x - state.position[0], tile.y - state.position[1]
-                if (whole_lit and layout is not None and layout.flash_level == 0) or lit_rect(
+                if (layout is not None and layout.flash_level == 0) or lit_rect(
                     rows, (center[0] + dx * 16 - 4, center[1] + dy * 16 - 4, 8, 8)
                 ):
                     point = (tile.x, tile.y)

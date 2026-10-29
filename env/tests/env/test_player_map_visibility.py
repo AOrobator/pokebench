@@ -65,7 +65,7 @@ def test_darkness_hides_remote_tiles_in_text_and_both_navigation_grids():
 
 def test_remembered_terrain_is_not_refreshed_when_hidden_and_maps_do_not_share_memory():
     memory = MapMemory()
-    first = memory.project(field(0).read, state())
+    first = memory.project(field(1).read, state())
     assert first.full_map.rows[10][14] == "."
     changed = replace(
         state(),
@@ -81,7 +81,7 @@ def test_remembered_terrain_is_not_refreshed_when_hidden_and_maps_do_not_share_m
     tile = next(t for t in hidden.full_map.tiles if (t.x, t.y) == (14, 10))
     assert tile.collision == 0
     other = memory.project(field(7).read, replace(changed, map_id=(24, 47)))
-    assert all(c == "?" for row in other.full_map.rows for c in row)
+    assert (14, 10) not in other.map_visibility.known
 
 
 @pytest.mark.parametrize("level", range(1, 8))
@@ -89,7 +89,7 @@ def test_game_flash_levels_expand_visibility_without_revealing_whole_map(level):
     narrow = MapMemory().project(field(level).read, state())
     wide = MapMemory().project(field(level - 1).read, state())
     assert len(narrow.full_map.tiles) <= len(wide.full_map.tiles)
-    assert len(wide.full_map.tiles) < 25 * 25
+    assert len(wide.full_map.tiles) == 625 if level == 1 else len(wide.full_map.tiles) < 625
 
 
 def test_unverified_layout_or_hidden_player_never_defaults_to_full_visibility():
@@ -139,7 +139,7 @@ def test_production_read_state_factory_switch_and_off_identity(monkeypatch):
         field().read,
         MapNames({}),
         active_ui=True,
-        off=frozenset({"player-map-visibility-v1", "player-map-visibility-v2"}),
+        off=frozenset({"player-map-visibility-v2"}),
     )
     assert off is current
     memory = MapMemory()
@@ -147,14 +147,14 @@ def test_production_read_state_factory_switch_and_off_identity(monkeypatch):
         field().read,
         MapNames({}),
         active_ui=True,
-        off=frozenset({"player-map-visibility-v2"}),
+        off=frozenset(),
         visibility=memory,
     )
     assert on.full_map.rows[3][4] == "?"
     assert (10, 10) in on.map_visibility.visible
     assert (11, 10) in on.map_visibility.visible
     assert "unseen" in rerender.render(on, frozenset())
-    assert "unseen" not in rerender.render(off, frozenset({"player-map-visibility-v1"}))
+    assert "unseen" not in rerender.render(off, frozenset({"player-map-visibility-v2"}))
 
 
 @pytest.mark.parametrize("flags", [0x20, 0x40, 0x60])
@@ -337,9 +337,7 @@ def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_gr
     for enabled in (False, True):
         monkeypatch.setenv(
             "POKEBENCH_FEATURES_OFF",
-            "player-map-visibility-v2"
-            if enabled
-            else "player-map-visibility-v1,player-map-visibility-v2",
+            "" if enabled else "player-map-visibility-v2",
         )
         app = FastAPI()
         install_observation(app, Shot, field().read, MapNames({}))
@@ -354,11 +352,7 @@ def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_gr
             ref,
             lambda path, sha: field().read,
             MapNames({}),
-            {
-                "POKEBENCH_FEATURES_OFF": "player-map-visibility-v2"
-                if enabled
-                else "player-map-visibility-v1,player-map-visibility-v2"
-            },
+            {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v2"},
         )
         assert replay == [found]
         assert found["name"] == "CAVE"
@@ -501,11 +495,7 @@ def test_archive_factory_delivers_visibility_and_retains_hidden_terrain(
         refs,
         lambda path, sha: next(readers),
         MapNames({}),
-        {
-            "POKEBENCH_FEATURES_OFF": "player-map-visibility-v2"
-            if enabled
-            else "player-map-visibility-v1,player-map-visibility-v2"
-        },
+        {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v2"},
     )
     assert len(outputs) == 2
     assert ("Map visibility:" in outputs[1]) is enabled, outputs[1]
@@ -531,9 +521,7 @@ def test_installed_scene_history_filters_hidden_actors_in_both_capture_modes(
     m.put(0x05000000, b"\xff\x7f")
     monkeypatch.setenv(
         "POKEBENCH_FEATURES_OFF",
-        "player-map-visibility-v2"
-        if enabled
-        else "player-map-visibility-v1,player-map-visibility-v2",
+        "" if enabled else "player-map-visibility-v2",
     )
     monkeypatch.setattr(module, "main_loop_idle", lambda read: True)
     monkeypatch.setattr(module, "illumination", lambda read, map_id: module.VIEWPORT)
@@ -583,7 +571,7 @@ def test_installed_visibility_preserves_game_owned_measurement_facts(monkeypatch
     from pokebench_env.observation import install_observation
 
     states = []
-    for off in ("player-map-visibility-v1,player-map-visibility-v2", "player-map-visibility-v2"):
+    for off in ("player-map-visibility-v2", ""):
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
         app = FastAPI()
         install_observation(app, lambda: _Shot(), map_memory().read, MAPS)

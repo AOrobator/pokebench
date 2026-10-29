@@ -10,7 +10,7 @@ One documentation milestone. No executable runner, statistical implementation, a
 - [x] Companion skill owns research, trace-grounded candidate lineage, bounded adaptation and durable resume records using existing authorized tools.
 - [x] Global reporting skill handles personal report requirements; project files contain no personal delivery configuration.
 - [x] Discovery metadata and repository-relative links validated.
-- [ ] Documentation checks and independent behavioral review completed.
+- [x] Documentation checks and independent behavioral review completed; required external Grok lane unavailable, so full landing gate remains incomplete.
 - [ ] Branch commit, applicable independent landing reviews and coordinated local landing.
 
 ## Validation boundary
@@ -23,3 +23,14 @@ Read CLAUDE.md, skill-creator, execute-worklog and talk-to-claude. Keep frozen r
 - Research and primary-source examples are in canonical ignored report artifacts from this chat; only maintained, qualified lessons enter instructions.
 
 - Validation: three skill quick validators PASS; Markdown reference checks, UI prompt/description checks, both discovery symlinks and personal-delivery boundary checks PASS. Existing executable publisher files untouched. Independent review pending.
+
+## Frozen review evidence
+- Source commit: `b93f910e3a0fce75406f0782513cd6c314daf007`; base `f442c91ffa38e90bf4d091dd94b9c502a74e08a8`; binary diff SHA-256 `ddab3167273d6745dd9c8fccac51a11fcabc3c504ebb5f6c446e42074e488dfa`. Packet, full Claude result, failure receipts and global-file snapshots are in `/tmp/probe-skills-review/`; this worklog preserves the decision if temporary artifacts expire.
+- Claude CLI dedicated read-only review: exit 0, terminal `VERDICT: LGTM`, frozen source and global hashes verified before and after. No blockers. Non-blocking observation: the existing independent-reference planner caps its search at 400 per arm, so the illustrative 768-per-arm row needs a separate fixed-N calculation; it is not a universal minimum or a promise that the planner finds it.
+- Three fresh no-history read-only native GPT reviewers: `/root/probe_stats_review`, `/root/probe_resume_review`, `/root/probe_scope_review`. Each independently verified the exact frozen head, diff hash, clean source and all global snapshot hashes before/after; each ended `VERDICT: LGTM`. None edited source or performed application/inference work. These satisfy normal GPT-family review and supplementary independent scenario coverage, not a Grok-family substitute.
+- Statistics forward tests: a 192-per-arm confirmation at 30 seconds/call needs 3.2 aggregate GPU hours before development/overhead, so flag before launching; two related source families do not establish transfer power. Pilot ties do not establish no effect. A significant primary p-value cannot waive missing regression controls.
+- Resume forward test: 47 spent minutes plus 20 protected confirmation minutes exceeds the cap; preserve uncertain requests and failed grading, reconcile occupancy, never duplicate samples or silently shrink confirmation. Design-only and single-comparison requests do not authorize an optimization campaign.
+- Scope forward tests: project discovery links and global Claude discovery resolve; personal delivery settings stay global. Four request-routing scenarios passed.
+- Grok via discovered `cursor-grok-4.5-high`: exit 1, empty reviewer stdout; stderr: `ActionRequiredError: Increase limits for faster responses You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue.` This is unavailable, not approval. No credentials or account limits changed.
+- Repository-specific execute-worklog rule says an unavailable cloud lane prevents self-merge and requires the operator. This more specific landing rule is retained despite the generic review skill's availability fallback. Asked the operator for a concrete Grok waiver after completing the reviewed skills. No landing slot joined, no main merge, no activation. Awaiting his decision.
+- Final frozen source/global integrity recheck PASS. Validation remains prose-only; no build, application tests, GPU calls, gameplay, refresh or scheduler installation.

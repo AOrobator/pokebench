@@ -2,8 +2,8 @@
 
 **Started:** 2026-10-25 (America/New_York)
 **Archive Name:** `docs/worklogs/2026-10-25_current-run-snapshots.md`
-**Status:** M1–M4 landed; M5 normal default startup and authorized activation in progress
-**Current Phase:** implementation — M5 rollout
+**Status:** M1–M5 landed; managed service active; one shared viewer refresh and live proof complete
+**Current Phase:** closeout — operational evidence complete; cold-bootstrap frame-tail qualification retained
 **Phase Started:** 2026-10-25
 **Branch:** `codex/current-run-snapshots-rollout`
 **Worktree (active milestone):** `/Users/user/.codex/worktrees/current-run-snapshots/pokebench`
@@ -20,7 +20,7 @@
 
 **Goal:** Persist bounded current display state and restart cursors; serve current cards/stats independently of historical reduction; stream current updates without history scans; backfill activity/replay separately. Preserve provenance, last-known-party semantics, active-run isolation, and honest completeness.
 
-**Non-goals:** No model prompts/tools/gameplay changes, emulator inputs, game-server changes, recording rewrites, run restarts, new trials, benchmark grading policy changes, trainer-card redesign, timeline additions, arbitrary transcript search, full historical database ingestion, multi-host service, or database on a network filesystem. Runtime activation and shared viewer refresh remain prohibited by the implementation authorization.
+**Non-goals:** No model prompts/tools/gameplay changes, emulator inputs, game-server changes, recording rewrites, run restarts, new trials, benchmark grading policy changes, trainer-card redesign, timeline additions, arbitrary transcript search, full historical database ingestion, multi-host service, or database on a network filesystem. Runtime activation and one shared viewer refresh were subsequently explicitly authorized and completed; earlier holds are historical.
 
 ## Phase model
 
@@ -122,7 +122,7 @@ Keep current display state separate from historical/replay reducers. Older histo
 - Double service ownership: OS-held lock and explicit startup failure; never kill a process merely because a stale PID file names it.
 - Preserve existing read/control access separation; no new write/control API. Snapshot process cannot claim inference leases, launch runs or mutate GPU endpoints.
 
-## Current Milestone: M5 (M4 reviewed/landed with canonical gates PASS; default integration and authorized activation pending)
+## Current Milestone: M5 complete (landed, activated and verified; resource scope qualified below)
 
 ### Completed Milestones
 
@@ -181,7 +181,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 
 **M5 - Card-store handoff and authorized rollout (tracked by this worklog):**
 - [x] Contract freeze: controlled migration from dependency cards-v1, exact one-writer mode, preserved legacy rollback path, operator-authorized staged activation only. Owner: derived snapshot service after handoff. No active-run change or grading migration.
-- [ ] Terminator: native parity, restart/browser proof, performance/resource receipt, explicit rollout decision, queued landing/main gates and authorized activation with process continuity. Accept initial unindexed historical rows as explicitly indexing; never claim instant reconstruction of unseen history.
+- [x] Terminator: native parity, restart/browser proof, scoped performance/resource receipt, explicit rollout decision, queued landing/main gates and authorized activation with process continuity. Accept initial unindexed historical rows as explicitly indexing; never claim instant reconstruction of unseen history.
 - [x] Split triggers frozen: replacing source recordings, changing game/agent process supervision, deleting the legacy rollback capability, or widening performance claims beyond tested scope.
 - [x] Tests: read-only import accepts display fields only, rejects foreign/truncated/replaced sources; no imported totals/checkpoints/grade status; old/new mode never write card persistence concurrently; rollback restores prior mode without source mutation.
 - [x] RED commits: f98eec224 normal database,629a40245 heartbeat,fe272f973 reader/writer,91c81d514 lifecycle,20df418e1 upgrade rollback,1acda0ada all-card progress,5bdaa0f4c initial-health visibility; observed failures retained.
@@ -211,7 +211,7 @@ For each behavior milestone: RED -> GREEN commits; record counts/build/coverage;
 - [x] Restart reads only post-cursor source bytes for compatible checkpoints; initial reconstruction is separately resumable and bounded.
 - [x] Legacy/card-persistence/party-retention regressions and protected trainer-card checks pass unchanged.
 - [x] Full TS/Python gates and 90% minimum coverage dimensions pass; no widened exclusions, skipped tests or timeout inflation.
-- [ ] Independent reviews, exact pin/diff, source parity and browser receipts preserved outside ephemeral worktrees under canonical `runs/reviews/current-run-snapshots/`; screenshots under `runs/mockups/current-run-snapshots/`. Artifacts needing expensive regeneration get explicit preserved paths.
+- [x] Independent reviews, exact pin/diff, source parity and browser receipts preserved outside ephemeral worktrees under canonical `runs/reviews/current-run-snapshots/`; screenshots under `runs/mockups/current-run-snapshots/`. Artifacts needing expensive regeneration get explicit preserved paths.
 - [ ] Implementation, landing, activation and live proof each have separate status/receipts; operator confirms outcome before archive.
 
 ## Dependencies
@@ -640,3 +640,14 @@ Landing sync: main54bd9236f current-question-focus source/decision-probe lessons
 M5 SOURCE LANDED65164293c8448ebeeec55c835a787186509ed45a via verified board1/FF-only. Direct user “Land current code; waive this test gap” fulfilled without applying proposal or startingR3. NormalGPT/Sol R2LGTM; Claude/AstraBLOCK on that explicitly waived evidence gap retained honestly; Grokusage-out/standinghumanwaiver retained. No claim allreviewersLGTM.
 
 Canonical postmerge justtest PASS175.195s (auto build prerequisite,onecoverage pass):5007agent/2318viewer/4913Python/116gateway/3protectedcards, all90floors. L/B/Fagent99.15/92.43/97.46,viewer98.32/90.80/94.92,Python97.50/93.60/99.90,gateway99.12/96.22/100. Auto CPU RELEASE sent. Evidence-only commit touches only this worklog; canonicalrootWORKLOGpointerbelongsanotherchat and content preserved. Land-done follows; operationalshadow/service/ONEviewerrefresh stillpending coordinatorSTART. No gameplay/runner/GPU changes.
+
+
+M5 OPERATIONAL CLOSEOUT (2026-10-28): source65164293 and post-main evidence19d5c387 landed. Installed root-specific launchd service [local service label] using just current-main; PID52854 started19:54:15NY, KeepAlive/RunAtLoad and immutable clean19d5 runtime. Same SQLite epoch 00000000-0000-4000-8000-8ce0a64e1c3d and selected generation 00000000-0000-4000-8000-02fad8032c4b survived owned-shadow-to-managed handoff; initial reconstruction caught up, complete=true. Real launchd crash/restart/cursor recovery remains separately source-bound scratch proof; real active service was not killed for redundant verification.
+
+Exactly ONE just viewer-main refresh completed19:56:56NY in1.663s, listener54476 started19:56:55 from clean immutable19d5, projector52854 unchanged. Seven protected runner/player/game identities including start times unchanged; no game inputs/control writes/signals by this work. Catalog559→559,0missing/duplicateIDs; actual current fast-index11nonterminal rows distinct from full catalog/legacy330card listing. Experiments audit exit0. Recipe unexpectedly included a20s owned build prerequisite during light verification; completed and reported to coordinator; served immutable pin unaffected.
+
+Actual headless8790 live proof: selected Qwen2026-10-28T12-26-58_qwen36-gpu0_9c88; meaningful persisted current147/177/167ms across375/1440/1280 widths while actual recent-history request held; no eager legacy head/events. Release backfills real history; pointer+Enter watch, correct run/framePNG provenance/presented-frame counters, two current polls,0pageerrors/0nonGET pass. All6 final current/backfilled screenshots opened and hashbound, copied canonical runs/mockups/current-run-snapshots/live. Real root had one truly live run; earlier fixture two-run switch/reset proof remains separately source-bound. Proof-helper first blob-revocation fetch race preserved under m5-live-attempt1; corrected proof-only receipt captures WebSocket PNG at arrival; no production correction/retry.
+
+Actual fast current endpoint200reads p9511.412ms/max164.973ms, complete native totals/current status. Quiet baseline201samples/600.086s versus shadow201samples/600s: runs20.65→20.43ms p95; screen7.84→17.47ms during cold reconstruction. Shadow2.55GB source bytes, sampled264MiBRSS/26.12% one-coreCPU; callback-scoped current reads0history reads, not blanket filesystem proof. Activity/PNG size and possible shared CPU overlap confound cold-tail causality. Post-refresh fully reconstructed screen100samples p505.3766ms, p957.2933ms, within baseline; this short warm sample is not a sustained causal non-regression guarantee. No unsupported claim all cold-bootstrap frame-tail/resource gates passed. Measured qualification remains explicit; no additional code/performance loop.
+
+Artifacts preserved canonical runs/reviews/current-run-snapshots/: m5-live-browser.json, m5-live-current-api.json, m5-process-and-membership-proof.json, m5-live-experiments-audit.log, m5-shadow-actual.json, m5-shadow-service-metrics-summary.json (where present), m5-warm-screen.json, m5-final-operational-receipt.json and original review/mutation/waiver/native/post-main receipts. Source recordings/cache retained; canonical WORKLOG.md pointer content preserved. COMPLETE/RELEASE sent Claude and Codex coordinator; no heavy window held. No new source, tests, third review or proposed startup-default test applied after direct human waiver. Worklog remains active pending any human archival decision.

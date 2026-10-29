@@ -1931,6 +1931,18 @@ it("links current question focus without guessing historical activation",()=>{
  }
 });
 
+it("links both gym campaign cards with faithful recorded activation",()=>{
+ for(const id of ["eight-badge-mission-v1","discovered-gym-checklist-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  for(const enabled of [true,false]){
+   const log=new Log();log.add(0,{...START,harness_features:enabled?["probe",id]:["probe"]});
+   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+   const card=doc.querySelector(`article[data-feature="${id}"]`);
+   expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+   expect(card?.querySelector(".config-badge")?.textContent).toBe(enabled?"ON":"NOT RECORDED");
+  }
+ }
+});
 it("exposes town Center delivery evidence, raw text and its exact Harness Config explainer",()=>{
  const id="town-center-checkpoint-v1",text="Enter OLDALE TOWN’s Pokémon Center now, using the listed entrance warp at (6,16) on map [0, 10]. Entry sets your blackout return point here even when your party is healthy. Heal with the nurse if needed, then resume your current objective.";
  const log=bare(),event=log.add(100,{type:"ledger_context",turn:1,text,evidence:[10,11]});

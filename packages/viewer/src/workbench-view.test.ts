@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { clockText, backToViewer, currentRunLinks, plateNotes, plateWhere, furthestMilestone, plateFacts, runDetails, viewerUrl } from "./workbench-view.js";
+import { liveOrPaused, clockText, backToViewer, currentRunLinks, plateNotes, plateWhere, furthestMilestone, plateFacts, runDetails, viewerUrl } from "./workbench-view.js";
 import { run } from "../test-support/workbench.js";
 const parse = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 describe("workbench visual contract", () => {
@@ -72,4 +72,13 @@ it("validates the hardware-only run lane response", async () => {
   const { parseRunLanes } = await import("./workbench-view.js");
   expect([...parseRunLanes([{ run: "r", lane: "A", gpu: "GPU1" }])]).toEqual([["r", { lane: "A", gpu: "GPU1", arm: null }]]);
   for (const bad of [null, {}, [null], [{}], [{run: 1, lane: "A", gpu: "GPU1"}], [{run: "r", lane: 1, gpu: "GPU1"}], [{run: "r", lane: "A", gpu: 1}]]) expect(() => parseRunLanes(bad)).toThrow();
+});
+
+
+it("offers only viewable live games on the comparison page, excluding probes without hiding excluded benchmark runs", () => {
+  const live = run({ id: "live", status: "live" });
+  const paused = run({ id: "paused", status: "paused", excluded: "Operator excluded result" });
+  const sessions = [live, paused, run({ id: "probe", status: "live", excluded: "Excluded probe session" }), run({ id: "paused-probe", status: "paused", excluded: "Excluded probe session" }), run({ id: "operator-excluded-probe", status: "live", excluded: "Operator exclusion: rehearsal", measurement: { controller: "agent", features: ["probe"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] } }), run({ id: "unresponsive", status: "unresponsive" }), run({ id: "ended", status: "ended" })];
+  expect(liveOrPaused(sessions).map(row => row.id)).toEqual(["live", "paused"]);
+  expect(currentRunLinks(sessions, "unavailable").join("")).not.toContain('data-watch="probe"');
 });

@@ -1,0 +1,15 @@
+{
+  "run": "2026-10-24T19-37-24_glm53-mac_6bbd",
+  "source_commit": "aacff23719689857d161901e51004af1c4718f1b",
+  "seqs": [
+    66303,
+    66304,
+    79930,
+    79931,
+    80773,
+    80774,
+    138270,
+    138271
+  ],
+  "description": "Unmodified recorded native states and model-delivered results; historical visibility OFF. For checklist replay only, not visibility qualification."
+}

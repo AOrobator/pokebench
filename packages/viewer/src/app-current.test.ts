@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import {cardWorkbench} from "./workbench-store.js";
 import {join} from "node:path";
 import {readFileSync} from "node:fs";
 import {afterEach,expect,it} from "vitest";
@@ -62,14 +63,16 @@ it("keeps nonselected active card progress source-bound across a generation rese
  expect(card()).toContain("Name ·");expect(card()).toContain("STORY2/");changed=true;await app.pollCurrent();expect(card()).not.toContain("Name ·");expect(card()).toContain("STORY0/");expect(app.view.tokens.input).toBe(500);
 });
 
-it("keeps a nonselected active trainer visible when its first persisted health check is unavailable",async()=>{
- dom();const f=currentFixture(),other=currentFixture({run:RUN+"-unresponsive",healthy:false});
+it.each(["unresponsive", "probe", "unindexed-probe"])("hides an unrelated %s session while watching live gameplay",async(kind)=>{
+ dom();const f=currentFixture(),other=currentFixture({run:RUN+"-other",healthy:kind!=="unresponsive",...(kind!=="unresponsive"?{start:{harness_features:["probe"]}}:{})});
  const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{
   if(url==="/sprites/manifest.json")return Promise.resolve({version:1,tiers:["green","bronze","copper","silver","gold"],trainers:["may"],icons:[280,412],egg:412});if(url.startsWith("/sprites/"))return Promise.reject(new Error("Optional fixture art"));
-  return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[f.summary,other.summary]}):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]}):new Promise(()=>{}));
- },sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);await app.pollCards();
- expect(other.summary.run.status).toBe("unresponsive");const cards=[...document.querySelectorAll('[data-ui="run-cards"] [data-watch]')].map(node=>node.getAttribute("data-watch"));expect(cards.sort()).toEqual([RUN,other.snapshot.id].sort());
- expect(document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)?.textContent).toContain("MAY");
+  if(kind==="unindexed-probe"&&url==="/api/runs")return Promise.resolve([f,other].map(item=>({id:item.snapshot.id,model:"fixture",started:null,ended:false,reason:null,problem:null,live:true})));
+  return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:kind==="unindexed-probe"?[f.summary]:[f.summary,other.summary]}):url.endsWith("/current")?Promise.resolve(f.detail):url.startsWith("/api/cards")?Promise.resolve(cardWorkbench({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[f.summary.run,{...other.summary.run,excluded:"Operator exclusion: rehearsal",measurement:{controller:"agent",features:["probe"],logSha256:"a".repeat(64),pausedMs:0,rawSplits:[]}}]},RUN)):new Promise(()=>{}));
+ },sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);if(kind==="unindexed-probe")await app.refreshRuns();await app.pollCards();
+ expect(other.summary.run.status).toBe(kind!=="unresponsive"?"live":"unresponsive");const cards=[...document.querySelectorAll('[data-ui="run-cards"] [data-watch]')].map(node=>node.getAttribute("data-watch"));expect(cards).toEqual([RUN]);
+ expect(document.querySelector(`[data-ui="run-cards"] [data-watch="${other.snapshot.id}"]`)).toBeNull();
+ expect(document.querySelector(`[data-ui="run-sheet-body"] [data-watch="${other.snapshot.id}"]`)).toBeNull();
 });
 
 it("uses the injected local freshness clock when no server clock callback is available",async()=>{

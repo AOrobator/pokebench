@@ -74,8 +74,8 @@ Tracked explainer: `docs/explainers/town-center-checkpoint-v1.html`, themed and 
 - [x] Both future arms configured; explainer and preview click-through.
 - [x] Complete remaining deterministic gates and release CPU.
 - [x] Principles self-review and approved cloud/fallback review roster on frozen R3 packet; reduced diversity recorded.
-- [ ] Landing board, fast-forward merge, required combined post-merge tests and coordinated viewer refresh. No active gameplay restart.
-- [ ] Final source/config/served receipt. Do not claim gameplay benefit.
+- [x] Landing board, fast-forward merge, required combined post-merge tests and coordinated viewer refresh. No active gameplay restart.
+- [x] Final source/config/served receipt. No gameplay benefit claim.
 - [ ] Ask the operator before archiving this worklog.
 
 No main hold is requested. If main advances, audit changed contracts and retain or rerun proof by impact under the current landing policy.
@@ -131,3 +131,13 @@ Regenerated production contextTools fixture from909source: ONexactreceipt/OFFnon
 Main advancedaaa9d0ea6→e1cb45005 with viewer-history preservation changes. Shared event schema, feature catalog/config, agentcontext/replay and rendererinterfaces unchanged; inspect exactfeaturediff and retain proofs byimpact. Upstream history fixes do not alter checkpoint payload/eligibility or feature/explainer bindings. Post-main combinedtestand livebrowser will exercise integrated retrieval. No main hold.
 
 Integrated maine1cb45005 without conflicts. review-r3/upstream-impact.json verifies all source/config/test/HTML feature diff bytes match frozenR3 exactly (worklog evidence excluded). No feature or shared schema/interface change. Retain independent verdicts and expensive prelanding evidence at909source. Await preceding board owner post-main test/refresh completion; no reservation held, no active run touched.
+
+## Landed and served — 2026-10-29
+
+Verified#1 board; fast-forward main fromd87941bcc→815fa9830c6076822b369d8c297f09aef9084c41. Integration includes evidence-onlyupstream; source/config/test/HTML diff remains reviewedR3 bytes. Exclusive canonical combined just test PASS:5049agent/2335viewer/4913Python/116gateway;allcoveragefloors;3unchangedprotectedcardbaselines. Receipt post-main-test.json pins main815.
+
+Approved ONE viewer-main at00:32:46–00:33:23EDT Oct29 under built-in preparelock/defaultclean ~/.cache, refresh exit0,served815fa9830. Independently resolved sole8790listener52077 immutableCLI tree and cleanbuildstamp815. All six protectedrunner/player/launcher/gameserver/model/otherGPU process start/argv identities unchanged before/afterrefreshandbrowserproof. No projector/model/gameprocess restart; no newcohort/inference.
+
+Live backgroundbrowser proof PASS on31a7: exactselectednativeframe; featurecardNOTRECORDED correctly preservesoldrunmetadata; realReadExplainerclickopenscanonicalpagebytes;1280/1440/375screenshotsopenedandinspected,nooverflow;servedmain/app/stylehashesmatchlistenercache;workbenchhasnostaleviewercompatibility;zeroPOSTs/pageerrors. Actualservingbuild materializes four current fixeddefinitions, botharms/allphases checkpointON. This config appliesfuturegenerations;active31a7rununchanged. Initialproofscript readframebeforeasyncselectionloaded; failedreceipt preserved, correctedproofwaitsfortheexactselectedrunframe(noappsourcechange).
+
+Both8790and8791canonicalexplainerURLsHTTP200. Evidence in canonical runs/town-center-harness-20261028/review-r3. Sourcecommitted/reviewed/landed;viewer/configsurfacesverified. ActualnewgameplayCenterentry/blackoutbenefit not measured, no claim. NoarchivewithoutAndrewapproval.

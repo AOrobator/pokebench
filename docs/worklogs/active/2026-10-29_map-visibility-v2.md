@@ -36,3 +36,7 @@ Rollback gates: full lint PASS. Full justtest executed agent5049/viewer2335/Pyth
 
 Final reviewed packet base927b6b0c50a0e5b5221e6daae4c1a662ee7c213e/head dd6b1cebcbc271b3b1a1f24294bc39fc5dacaeb0/diffSHA256e23aaa1435f68464469739dfa8bfd0e6b2131a6cc65e925cf9074dba0bd7ad18: ClaudeCLI exit0/one successful result/empty stderr, normal independentGPT rollback_gpt_review, distinctAstra fallback rollback_fallback_astra all terminal VERDICT: LGTM. Grok unavailable, notLGTM; reducedvendor diversity under humanwaiver provenance above. Nonblocking staleV1catalog/explainer wording deferred to V2documentation stage. Frozen packet and logs /tmp/map-visibility-rollback-review; copied durable canonical ignored receipt before activation.
 COMMIT: record rollback gates and final review approval (evidence-only).
+
+Rollback landed FF de4c84763d0c51428e8c92e74133a9295f7b10cd at #1 board; main unchanged since reviewed base, source delta exact reviewed. Coordinator granted postmainCPU and sole8790refresh ownership, fresh24hGPU0window; required combinedmainjusttest now running, old1ad5 untouched pendingPASS. V2 branch starts independent source stage; neither this source nor builds touch canonical main/runningtrial pins.
+
+V2 RED:14focused projection tests fail on missing whole_lit capability, /tmp/map-visibility-v2-red.log. Cases: wholelit625cells beyondcamera, exactV1darkness levels1..7, rememberedhidden terrain, invalid/menu/locked/noillumination no disclosure, hiddenactor withheld. COMMIT: V2projectionRED.

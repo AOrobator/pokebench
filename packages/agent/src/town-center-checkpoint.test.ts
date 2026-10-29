@@ -1,3 +1,10 @@
+import {mkdtempSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import type {AssistantMessage} from "@mariozechner/pi-ai";
+import {RunRecorder} from "./recorder.js";
+import {RunLog} from "./run-log.js";
+import {FrameStore} from "./frames.js";
 import {RUN_START_META} from "../test-support/events.js";
 import {recordedRun,recordedFeatures,decisionContext} from "./decision-probe.js";
 import {createServer} from "node:http";
@@ -115,4 +122,24 @@ it("decision replay preserves consumed visit receipts and rearms only after a ne
  expect(recorded.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);expect(replayed.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);
  observe(3,"leave",{...f.state,map_id:[0,16],location:"ROUTE 101"});turn(4);observe(4,"return");turn(5);
  const returned=await decisionContext(recordedRun(events),5,features,ports,"replayed");expect(returned.messages.at(-1)?.content).toBe(NOTE);
+});
+
+it.each(["successful-action","retries"] as const)("real recorder preserves live/recorded/replayed delivery for %s",async mode=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-town-recorder-"));
+ try{
+  const log=RunLog.create(root,"town-recorder"),rec=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(f.state)},now:()=>0});
+  await rec.start({...RUN_START_META,harness_features:playHarnessFeatures(flags(true),null)},false);
+  const wired=contextTools(flags(true),rec,rec.transformContext,undefined,{places:()=>Promise.resolve(places)}),history:AgentMessage[]=[{role:"user",content:"Play",timestamp:0}],live:boolean[]=[];
+  const request=async()=>{const out=await wired.transformContext(history);live.push(out.some(m=>m.role==="user"&&m.content===NOTE));};
+  const assistant=(content:AssistantMessage["content"],stopReason:AssistantMessage["stopReason"]):AssistantMessage=>({role:"assistant",api:"openai-completions",provider:"fixture",model:"fixture",content,stopReason,timestamp:0,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}});
+  const action=async(id:string)=>{const a=assistant([{type:"toolCall",id,name:"observe",arguments:{}}],"toolUse");await rec.emit({type:"message_end",message:a});history.push(a);await rec.emit({type:"tool_execution_start",toolCallId:id,toolName:"observe",args:{}});await rec.emit({type:"tool_execution_end",toolCallId:id,toolName:"observe",isError:false,result:{content:[{type:"text",text:f.resultText}],details:{state:{...f.state,raw_ram:f.rawRam}}}});history.push({role:"toolResult",toolCallId:id,toolName:"observe",content:[{type:"text",text:f.resultText}],isError:false,timestamp:0});};
+  await request();await action("arrival");await request();
+  if(mode==="retries")for(const stop of ["stop","error","stop"] as const){const a=assistant([{type:"text",text:"Continue"}],stop);await rec.emit({type:"message_end",message:a});history.push(a,{role:"user",content:"Use a tool to continue.",timestamp:0});await request();}
+  await action("consumed");await request();
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(s=>checkEvent(JSON.parse(s))),run=recordedRun(events),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",places:()=>Promise.resolve(places.places)};
+  const actual:{recorded:boolean[];replayed:boolean[]}={recorded:[],replayed:[]};
+  for(let turn=1;turn<=live.length;turn++)for(const derivation of ["recorded","replayed"] as const){const c=await decisionContext(run,turn,recordedFeatures(run),ports,derivation);actual[derivation].push(c.messages.some(m=>m.role==="user"&&m.content===NOTE));}
+  expect(live).toEqual(mode==="retries"?[false,true,true,true,true,false]:[false,true,false]);expect(actual).toEqual({recorded:live,replayed:live});
+  expect(events.filter(e=>e.type==="ledger_context").map(e=>e.turn)).toEqual([2]);
+ }finally{rmSync(root,{recursive:true,force:true});}
 });

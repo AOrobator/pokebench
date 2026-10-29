@@ -105,3 +105,7 @@ Frozen R2 base2308380fd → head5f86496f1, diffSHA25610a80942780fdb9de81f096a3c9
 Parent independently reproduced real-recorder timing defect: actual note turn2, durable receipt turn3; recorded reconstruction omits2 and incorrectly includes3 after consumption. Repeated retry case also loses later retained notes. Real recorder seam absent from earlier tests. Astra additionally requires performed operand-level mutation evidence for native-foot, matching-state and delivered-text guards. Exact repro scripts/output and full synthesis retained under runs/town-center-harness-20261028/review-r2. PB7/PB11 PASS claims invalidated for this seam.
 
 **STOP before third review round:** execute-worklog round cap requires operator choice after round2 blockers. Recommend fix only these two replay/delivery bugs, add actual recorder regression and missing mutation evidence, then bounded review. Source unchanged after frozen5f86496f1; this is evidence-only commit. Main advancedaaa9d0ea6; integration plan recorded but no merge attempted. No gameplay restart or viewer refresh. Branch implementation and both-arm configuration remain unlanded.
+
+## Authorized bounded R2 correction
+
+The operator answered yes to fixing only the two recording/replay bugs, completing guard checks and re-review. Added actual RunRecorder/RunLog regression for delivery, three text-only/error retries, consumption and both recorded/replayed contexts; one receipt per visit remains required. This supersedes the round2 STOP solely for that bounded correction and integration.

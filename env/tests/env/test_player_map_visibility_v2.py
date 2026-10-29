@@ -62,3 +62,19 @@ def test_v2_whole_lit_map_exposes_static_exit_but_not_hidden_actor():
     current = replace(base, world_context=WorldContext((LiveObject(9, (24, 46), 1, "PERSON", 0, 0),), (), None))
     result = MapMemory().project(field(0).read, current, whole_lit=True)
     assert result.world_context.objects == ()
+
+
+def test_v2_production_factory_independent_switch_and_v1_off_identity(monkeypatch):
+    from pokebench_env import rerender
+    from pokebench_env.game_state import MapNames
+
+    current = state()
+    monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: current)
+    def read(off):
+        return rerender.read_state(field(0).read, MapNames({}), active_ui=True,
+                                   off=frozenset(off), visibility=MapMemory())
+    assert read({"player-map-visibility-v1", "player-map-visibility-v2"}) is current
+    v1 = read({"player-map-visibility-v2"})
+    assert len(v1.full_map.tiles) < 625
+    assert len(read({"player-map-visibility-v1"}).full_map.tiles) == 625
+    assert state_json(read(set())) == state_json(read({"player-map-visibility-v1"}))

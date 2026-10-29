@@ -45,3 +45,5 @@ Postmain de4c84763 fulljusttest FAILED at citation-evidence.test.ts: filename wh
 Correction frozen base de4c84763d0c51428e8c92e74133a9295f7b10cd/head d4ea8e90bef04002ae0646d486ec4bc8a9b9ebfa/diffSHA256fbe11031e691ba77467552ea150195a7befbeff3d3ec8d5c38d37f3285f375a4: ClaudeCLI exit0/one result/empty stderr terminalLGTM, normalGPT rollback_gpt_review and Astra fallback rollback_fallback_astra terminalLGTM. ChangedfileESLint+affectedagenttsc+sixcasesPASS. HumanGrokwaiver and reduceddiversity unchanged. Coordinator precleared prioritylanding and freshpostmainCPU, sameconditionalactivation plan, no permission inferred from failure. COMMIT: record correction approval (evidenceonly).
 
 Integration: merged reviewed restart-gate correction242f7e276 into V2 branch, retaining both worklog evidence strands; no V2 source on canonical main.
+
+V2 factory/registry RED: additional production-factory test distinguishes V2 independent enable from V1 mode and bothOFF identity; before wiring it fails while14projectioncases pass. Registry/prompt test fails before registration. Logs /tmp/map-visibility-v2-factory-red.log and registry-red.log. COMMIT: V2productionwiringRED.

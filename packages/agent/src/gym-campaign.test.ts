@@ -40,15 +40,15 @@ it("factory persists a discovered gym across travel and compaction; only a deliv
  const away="Screen: overworld\nLocation: SLATEPORT CITY\nBadges: STONE";s.feed(s.state(3,["STONE"],[0,1]),s.result(4,away));out=await s.wiring.transformContext(s.history(4,away));expect(stringValue(out.at(-1)?.content)).toContain("DEWFORD TOWN GYM — unfinished");
  // A private poll, an assistant claim and a failed result cannot earn a badge.
  s.feed(s.state(5,["STONE","KNUCKLE"]));expect(stringValue((await s.wiring.transformContext(s.history(4,away))).at(-1)?.content)).toContain("unfinished");
- s.feed(s.result(6,away,{is_error:true}));expect(await s.wiring.transformContext(s.history(6,away))).toEqual(s.history(6,away));
+ s.feed(s.result(6,away,{is_error:true}));expect(stringValue((await s.wiring.transformContext(s.history(6,away))).at(-1)?.content)).toContain("DEWFORD TOWN GYM — unfinished");
  s.feed(s.state(7,["STONE","KNUCKLE"],[0,11]),s.result(8,"Screen: overworld\nLocation: DEWFORD TOWN\nBadges: STONE, KNUCKLE"));out=await s.wiring.transformContext(s.history(8,"Screen: overworld\nLocation: DEWFORD TOWN\nBadges: STONE, KNUCKLE"));expect(stringValue(out.at(-1)?.content)).toContain("2/8");expect(stringValue(out.at(-1)?.content)).not.toContain("DEWFORD TOWN GYM — unfinished");
 });
 it("does not discover hidden templates, historical summaries, model claims, wrong state refs or failed observations",async()=>{
  for(const [body,extra] of [["Historical place dialogue: DEWFORD TOWN GYM",{}],["Story goal: DEWFORD TOWN GYM",{}],["Offscreen template: DEWFORD TOWN GYM",{}],[text,{is_error:true}],[text,{state_seq:99}]] as const){const s=setup();s.feed(s.state(1),s.result(2,body,extra));const out=await s.wiring.transformContext(s.history(2,body));expect(JSON.stringify(out)).not.toContain("discovered at result");}
 });
-it("rejects cross-run evidence and stale or missing delivery in the request",async()=>{
+it("rejects cross-run evidence while retaining previously delivered discoveries after pruning",async()=>{
  const s=setup();s.feed(s.state(1,[],[0,11],"other"),s.result(2));expect(await s.wiring.transformContext(s.history(2))).toEqual(s.history(2));
- const b=setup();b.feed(b.state(1),b.result(2));expect(await b.wiring.transformContext(b.history(2,"compacted"))).toEqual(b.history(2,"compacted"));expect(await b.wiring.transformContext(b.history(99))).toEqual(b.history(99));
+ const b=setup();b.feed(b.state(1),b.result(2));expect(stringValue((await b.wiring.transformContext(b.history(2,"compacted"))).at(-1)?.content)).toContain("DEWFORD TOWN GYM — unfinished");expect(stringValue((await b.wiring.transformContext(b.history(99))).at(-1)?.content)).toContain("DEWFORD TOWN GYM — unfinished");
 });
 it("a deferred Petalburg gym persists without ordering a battle or blocking an exit",async()=>{
  const s=setup(),p='Screen: overworld\nLocation: PETALBURG CITY\nSign text "PETALBURG CITY POKéMON GYM | LEADER: NORMAN"';s.feed(s.state(1,[],[0,0]),s.result(2,p));const out=await s.wiring.transformContext(s.history(2,p));expect(stringValue(out.at(-1)?.content)).toContain("PETALBURG CITY GYM — unfinished");expect(stringValue(out.at(-1)?.content)).toContain("may defer");expect(s.wiring.tools).toEqual([]);

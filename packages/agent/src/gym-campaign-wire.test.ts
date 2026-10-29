@@ -42,7 +42,7 @@ it("delivers the persistent checklist through real pi HTTP after older history i
    expect(await play({role:"user",content:"Play",timestamp:0},governor,loop)).toBe("budget");
    expect(requests).toHaveLength(2);expect(wiring.tools).toEqual([]);
    expect(JSON.stringify(requests[1]).includes("DEWFORD TOWN GYM — unfinished; discovered at result 66304")).toBe(enabled);
-   expect(notes.length).toBe(enabled?1:0);
+   expect(notes.length).toBe(enabled?2:0);
   }
  }finally{await new Promise<void>((resolve,reject)=>{server.close(error=>{if(error)reject(error);else resolve();});});}
 });

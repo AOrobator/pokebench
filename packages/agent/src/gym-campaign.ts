@@ -17,7 +17,7 @@ const GYMS=[
 const normalized=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").replace(/’/g,"'").replace(/\s+/g," ").toUpperCase();
 function namesGym(text:string,town:string):boolean {
  const s=normalized(text),place=town.replace(/ (?:CITY|TOWN)$/,"");
- return new RegExp(`\\b(?:${town}|${place})(?:'S)?(?: POKEMON)? GYM\\b|\\b(?:POKEMON )?GYM IN ${town}\\b|\\b${town} IS A GYM\\b`).test(s);
+ return new RegExp(`\\b(?:${town}|${place})(?:'S)?(?: POKEMON)? GYM\\b|\\b(?:POKEMON )?GYM IN (?:${town}|${place})\\b|\\b${town} IS A GYM\\b`).test(s);
 }
 function observedLines(text:string):string {
  // Only current observation fields, never historical summaries, model goals or templates.
@@ -37,7 +37,6 @@ export function discoveredGymChecklist(features:FeatureSet,recorder:Pick<RunReco
   if(event.type==="dialogue_auto_advance"){pending.set(event.tool_call_id,[...(pending.get(event.tool_call_id)??[]),event]);if(pending.size>64)pending.delete(pending.keys().next().value??"");return;}
   if(event.type!=="tool_result")return;
   const pages=pending.get(event.id)??[];pending.delete(event.id);
-  current=null;
   if(event.is_error||latest===null||event.state_seq!==latest.seq||!latest.started)return;
   current=event;
   if(latest.screen==="overworld"||latest.in_battle){
@@ -46,16 +45,13 @@ export function discoveredGymChecklist(features:FeatureSet,recorder:Pick<RunReco
   }
   const stateSeq=latest.seq;
   const dialogue=pages.flatMap(e=>e.pages).filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined&&p.state_seq!==null&&p.state_seq<=stateSeq&&normalized(event.text).includes(normalized(p.text))).map(p=>p.text).join("\n");
-  const observed=observedLines(event.text);
+  const nativeDialog=latest.screen==="overworld"&&!latest.in_battle?[...event.text.matchAll(/^Dialog: "(.*)"$/gm)].map(match=>match[1]??"").join("\n"):"";
+  const observed=`${observedLines(event.text)}\n${nativeDialog}`;
   for(const [town] of GYMS)if(!found.has(town)&&(namesGym(observed,town)||namesGym(dialogue,town)))found.set(town,event.seq);
  },true);
  return async messages=>{
   const out=await base(messages);
-  let last:AgentMessage|undefined;
-  for(const m of [...messages].reverse()){if(m.role==="assistant")break;if(m.role==="toolResult"){last=m;break;}}
-  if(current===null||last?.role!=="toolResult"||last.isError||last.toolCallId!==current.id||last.toolName!==current.name)return out;
-  const delivered=last.content.filter(p=>p.type==="text").map(p=>p.text).join("\n");
-  if(!delivered.includes(current.text))return out;
+  if(current===null)return out;
   const unfinished=GYMS.filter(([town,badge])=>found.has(town)&&!earned.has(badge));
   const text=[
    "DISCOVERED GYM CHECKLIST — harness-owned obligations, not a chosen route.",

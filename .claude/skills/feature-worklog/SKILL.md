@@ -40,6 +40,18 @@ The worklog body exists and the operator has approved it before any implementati
 - Boy Scout Log
 - Archive Milestone (user-gated)
 
+## Size milestones before implementation
+
+Give each source milestone one operator-visible outcome, the smallest existing production path set, named consumers, non-goals, a terminator and split triggers. Inventory entrypoints, launchers and lifecycle callers before review; integration glue is implementation, not rollout paperwork. Split when delivery adds another runtime owner, persistence/concurrency mechanism or independently reviewable capability. Do not bundle remaining work into an open-ended final milestone.
+
+Keep three explicit stages in the plan; they need not be three separate source milestones:
+
+1. **Source readiness:** implement the bounded outcome; cheap checks, applicable full gates, required smoke and independent review. Freeze source and list exactly what remains before landing.
+2. **Landing:** upstream-impact note and evidence reuse per `execute-worklog`, serialized FF merge and one applicable post-main check. No new capabilities or extra polish.
+3. **Activation/closeout:** only already-authorized install/refresh, process continuity, operator-surface proof and evidence. No feature code. If proof exposes a defect, stop the affected activation and return to a named bounded source correction; preserve valid prior receipts instead of reopening every milestone.
+
+Record stage status separately. “Ready to land” means source checks/review are complete; do not use “landing” while still implementing. Define performance samples and operational checks before review so late suggestions cannot expand closeout. Record a residual qualification honestly rather than claiming an unproven acceptance check passed. Keep the existing two-round review cap and explicit operator checkpoints.
+
 ## Milestone shape
 
 ```markdown
@@ -47,10 +59,13 @@ The worklog body exists and the operator has approved it before any implementati
 - [ ] Write tests (specific cases)
 - [ ] COMMIT: `test(scope): ...` (RED)
 - [ ] Implement
-- [ ] Gates: `just test` (record TS + Python counts; it also enforces coverage ≥90 both stacks), `just lint`, `just build`
+- [ ] Cheap checks: changed-file lint, affected-package types, focused caller/behavior tests (or documentation validation for prose-only)
+- [ ] Applicable gates per `execute-worklog`: CPU START after cheap GREEN, full executable gates once; record counts/coverage ≥90 and RELEASE
+- [ ] Freeze outcome/path set, named consumers, non-goals, terminator and split triggers
 - [ ] COMMIT: `feat(scope): ...` (GREEN)
 - [ ] Smoke / visual evidence when the milestone touches the emulator, gateway or viewer
-- [ ] Multi-model review loop until clean
+- [ ] Independent review; accepted fixes in one batch, two-round cap per `execute-worklog`
+- [ ] Separate landing and authorized activation checklists; retain unaffected receipts if main advances
 ```
 
 ## Rules

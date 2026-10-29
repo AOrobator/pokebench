@@ -22,7 +22,8 @@ All browser and screenshot proof follows [viewer-e2e's desktop-focus boundary](.
 | Fixed-run runner or scheduler | A rehearsal on fake data (below) that shows trials chaining and the schedule finishing inside its window | Reading the code; a `--dry-run` that launches nothing |
 | A real fixed-run launch | `.claude/skills/fixed-run-launch/SKILL.md`: status, ledger, run cards and recorded run identities agree, and `just experiments-audit` prints nothing | The runner process starting |
 | Harness behavior (what the model sees or does) | `.claude/skills/agent-observability/SKILL.md`: the recorded event, model delivery, Activity History, the raw-event inspector and replay. The TIMELINE is closed to additions; check it only for marks that already exist | A unit test of the helper |
-| Merge to main | The live viewer at the merged build shows the change on real data (below) | "Merged" |
+| Merge to main | Applicable post-main checks per `execute-worklog`; for changes affecting the served viewer/runtime or run-build compatibility, authorized live proof below | "Merged" without the applicable checks |
+| Prose-only workflow/skill change | Documentation validators/reference checks, independent review, and the landed rule communicated to affected chats; no application build/suite or viewer refresh | A draft rule left only on an unlanded branch |
 
 ## Viewer and page proof
 
@@ -43,7 +44,7 @@ Anything that launches, chains or schedules runs is proven on a fake-data rehear
 
 ## After a merge: prove it live
 
-1. Restart the viewer with `just viewer-main` after every merge, as CLAUDE.md says. Restarting keeps live runs running (`viewer-restart.sh` checks this). The real dangers are two restarts at once and a restart in the middle of someone's launch check. So ask whoever owns 8790 restarts first, and restart only once: a viewer busy with its first scan delays SIGTERM, and a second restart collides with it.
+1. For changes affecting the served viewer/runtime or run-build compatibility, coordinate an authorized `just viewer-main` refresh after the applicable post-main checks pass. Prose-only documentation/skill/evidence merges need no viewer refresh or browser proof. Source landing is not activation authorization; if activation is held, report landed but not live and retain that checkpoint. Restarting keeps live runs running (`viewer-restart.sh` checks this). The real dangers are two restarts at once and a restart in the middle of someone's launch check. So ask whoever owns 8790 restarts first, and restart only once: a viewer busy with its first scan delays SIGTERM, and a second restart collides with it.
 2. Confirm the restart: `just viewer-main` prints `viewer at <sha>` naming the merged commit, and the actual 8790 listener's compiled CLI tree has `packages/viewer/dist/build-stamp.json` naming it too. Resolve the listener's tree with `pokebench_env.current_runtime.serving_viewer_tree` as shown in `docs/current-run-snapshots-operations.md`; never infer it from a temporary directory, current main, or an existing cached build. A worktree's own `dist/build-stamp.json` proves nothing about 8790. Confirm also that one viewer is listening on 8790, and that every gameplay process that was alive before is still alive.
 3. On the real page, show the change working: the same click or check as before, now on live data. Confirm that live runs still show and that `/api/workbench` lists no "viewer build … is older than this run's build" problem.
 4. Report the merge SHA, the restart time in New York time, and what you saw.

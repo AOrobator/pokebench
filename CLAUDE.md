@@ -71,7 +71,7 @@ just verify-vendor  # submodule at pin, clean tree
 just serve          # isolated game server (runs/serve_<time>/) on 127.0.0.1:8000; watch at /stream
 just smoke          # boots the real game server on the real ROM and exercises it
 just exclude-run <run> <operator> <reason…>  # the only way a run leaves results; aborted runs count by default
-just viewer-main    # restart the 8790 viewer at main; after every merge, and before any fixed-run launch check from a newer pin
+just viewer-main    # authorized 8790 refresh for served-runtime/compatibility changes; before a fixed-run launch check from a newer pin
 ```
 
 ## Git
@@ -85,12 +85,21 @@ Claude threads and Codex sessions both land on local `main`, so the landing boar
 An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
 
 - Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
-- The branch is synced with `main` before review and lands fast-forward only (`git merge --ff-only`), so `main` becomes exactly the reviewed tree.
+- Review records an immutable base/head/diff. Land fast-forward only (`git merge --ff-only`); if `main` advances, apply the evidence-reuse and upstream-impact rules in `execute-worklog` rather than automatically restarting review.
 - Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) are never used in PokeBench reviews (operator decision 2026-10-16: they are the models under benchmark, and noisy as reviewers) and never count toward merge approval.
 - A missing or blocked cloud lane means no self-merge; ask the operator.
 - Report each merge SHA in the thread.
 
 The rule never covers pushing, pull requests, approving or launching experiments, or merges the operator has said to hold.
+
+## Bounded landing workflow (operator request 2026-10-28)
+
+`.claude/skills/execute-worklog/SKILL.md` owns gate selection and moving-main evidence reuse; `feature-worklog` owns milestone sizing. These local rules override conflicting inherited workflow instructions.
+
+- Do not hold `main` still for review. Preserve frozen review identity; classify upstream changes before deciding what to rerun. Unchanged feature changes and unaffected contracts retain their reviews and expensive evidence. A new main SHA alone is not a reason to restart readiness.
+- Pass cheap checks for the changed scope before requesting a full-gate CPU window. Inspect recipe prerequisites; a command that implicitly builds belongs in the CPU request too. CPU START/RELEASE is coordinated through `just tell-claude`; focused single-file checks do not reserve the full-gate window.
+- Plan source implementation, landing and activation as separate stages. The final rollout stage introduces no feature code; a discovered bug returns to a bounded source correction. Report committed, reviewed, landed and live separately.
+- Documentation/skill prose-only changes use documentation validation and independent review, without application build/lint/coverage, emulator/browser proof or viewer refresh. Executable scripts, build/configuration changes, generated runtime inputs and behavior changes do not qualify.
 
 ## Retired experiment queue
 

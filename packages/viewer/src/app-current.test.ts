@@ -92,8 +92,8 @@ it("shows approximate clocks for a complete snapshot with a timestamp warning an
  let now=BASE_MS+4000;
  const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>now,hash:`#run=${RUN}`});apps.push(app);
  const text=(name:string)=>document.querySelector(`[data-ui="${name}"]`)?.textContent;
- expect(text("run-head")).toContain("≈ 0:00:04");expect(text("clock")).toContain("≈ 0:00:04");expect(text("stats")).toContain("≈ 0:00:04");
+ expect(text("run-head")).toContain("~0:00:04");expect(text("clock")).toContain("~0:00:04");expect(text("stats")).toContain("~0:00:04");
  expect(text("stats")).toContain("approx.");
- now+=2000;app.tick(2000);expect(text("clock")).toContain("≈ 0:00:06");expect(text("run-head")).not.toContain("unavailable");
+ now+=2000;app.tick(2000);expect(text("clock")).toContain("~0:00:06");expect(text("run-head")).not.toContain("unavailable");
  expect(f.snapshot.warning).toBe(warning);expect(app.view.milestones).toEqual([]);
 });

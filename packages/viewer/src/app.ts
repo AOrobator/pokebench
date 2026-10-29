@@ -1664,7 +1664,7 @@ export class App {
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
     const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
-    const approximate=currentSnapshot?.warning!=null?"≈ ":"";
+    const approximate=currentSnapshot?.warning!=null?"~":"";
     const time=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?(currentSnapshot.warning===null?"Time loading":"Time unavailable"):clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${approximate}${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));

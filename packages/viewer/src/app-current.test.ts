@@ -86,14 +86,14 @@ it("keeps the timeline status and loaded events stable during background history
  const app=await mountApp(document,{snapshotFirst:true,currentFactory:options=>{captured.client=createCurrentBrowser(options);return captured.client;},fetchJson:url=>defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):url.endsWith("/history")?(refresh?pending:Promise.resolve(answer)):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);const current=captured.client;if(current===undefined)throw new Error("missing current client");await current.history();const status=document.querySelector<HTMLElement>('[data-ui="history-status"]');if(status===null)throw new Error("missing history status");const text=status.textContent,node=status.firstChild,events=current.state.history;refresh=true;const task=current.history();expect(current.state.historyLoading).toBe(true);expect(status.textContent).toBe(text);expect(status.hidden).toBe(false);app.tick(100);expect(status.firstChild).toBe(node);expect(current.state.history).toBe(events);release(answer);await task;expect(status.textContent).toBe(text);
 });
 
-it("shows approximate clocks for a complete snapshot with a timestamp warning and keeps them ticking",async()=>{
+it("shows normal clocks for a complete snapshot with a timestamp warning and keeps them ticking",async()=>{
  dom();const f=currentFixture();const warning="Recorded time moved backwards; current display is not timing validation";
  f.snapshot.warning=warning;f.snapshot.run.clockWarning=warning;f.summary.warning=warning;f.summary.run.clockWarning=warning;
  let now=BASE_MS+4000;
  const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>now,hash:`#run=${RUN}`});apps.push(app);
  const text=(name:string)=>document.querySelector(`[data-ui="${name}"]`)?.textContent;
- expect(text("run-head")).toContain("~0:00:04");expect(text("clock")).toContain("~0:00:04");expect(text("stats")).toContain("~0:00:04");
- expect(text("stats")).toContain("approx.");
- now+=2000;app.tick(2000);expect(text("clock")).toContain("~0:00:06");expect(text("run-head")).not.toContain("unavailable");
+ expect(text("run-head")).toContain("0:00:04");expect(text("clock")).toContain("0:00:04");expect(text("stats")).toContain("0:00:04");
+ for(const name of ["run-head","clock","stats"]){expect(text(name)).not.toContain("~");expect(text(name)).not.toContain("approx.");}
+ now+=2000;app.tick(2000);expect(text("clock")).toContain("0:00:06");expect(text("run-head")).not.toContain("unavailable");
  expect(f.snapshot.warning).toBe(warning);expect(app.view.milestones).toEqual([]);
 });

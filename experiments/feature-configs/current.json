@@ -79,7 +79,8 @@
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
   "eight-badge-mission-v1",
-  "discovered-gym-checklist-v1"
+  "discovered-gym-checklist-v1",
+  "player-map-visibility-v2"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -103,8 +104,7 @@
   "pokedex-own-v1",
   "navigation-recovery-v1",
   "map-cycle-recovery-v1",
-  "player-map-visibility-v1",
-  "player-map-visibility-v2"
+  "player-map-visibility-v1"
  ],
  "onInBoth": [
   "gym-door-label-v1",

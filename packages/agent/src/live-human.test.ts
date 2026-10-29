@@ -1,9 +1,9 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import type {RunPlan} from './run.js';
-const context=vi.hoisted(()=>({completion:Promise.resolve(),off:vi.fn(),plans:[] as RunPlan[],leases:[] as {root:string;run:string}[],paths:[] as {repo:string;common:string}[],release:vi.fn(),git:vi.fn(),write:vi.fn(),errors:vi.fn()}));
+import type {RunPlan,RunHost} from './run.js';
+const context=vi.hoisted(()=>({completion:Promise.resolve(),hosts:[] as RunHost[],spawn:vi.fn<(file:string,args:readonly string[],options:{env:NodeJS.ProcessEnv})=>never>(),off:vi.fn(),plans:[] as RunPlan[],leases:[] as {root:string;run:string}[],paths:[] as {repo:string;common:string}[],release:vi.fn(),git:vi.fn(),write:vi.fn(),errors:vi.fn()}));
 vi.mock('node:child_process',()=>({execFileSync:(file:string,args:string[])=>{
  context.git(file,args);if(file!=='git'||args.join(' ')!=='rev-parse --git-common-dir')throw Error('unexpected process command');return '/test-owned/canonical/.git\n';
-},spawn:()=>{throw Error('test forbids launching a service');}}));
+},spawn:context.spawn}));
 vi.mock('node:fs',async(importOriginal)=>{
  const actual=await importOriginal<typeof import('node:fs')>();return {...actual,
  readFileSync:(path:unknown)=>{if(path==='/test-owned/fixture.rom')return Buffer.from('test ROM');throw Error('test forbids file reads');},
@@ -17,14 +17,14 @@ vi.mock('./human.js',async(importOriginal)=>{
 vi.mock('./run.js',async(importOriginal)=>{
  const actual=await importOriginal<typeof import('./run.js')>();return {...actual,
  humanLeasePath:(repo:string,common:string)=>{context.paths.push({repo,common});return actual.humanLeasePath(repo,common);},
- withRun:(plan:RunPlan)=>{context.plans.push(plan);return context.completion;},
+ withRun:(plan:RunPlan,host:RunHost)=>{context.plans.push(plan);context.hosts.push(host);return context.completion;},
  };
 });
 let fakeProcess:NodeJS.Process;
 let pending:Promise<typeof import("./live.js")>|undefined;
 async function completed():Promise<void>{ pending=import("./live.js"); await (await pending).entryCompleted; }
 beforeEach(()=>{
- vi.resetModules();pending=undefined;context.completion=Promise.resolve();context.plans=[];context.leases=[];context.paths=[];context.release.mockClear();context.off.mockClear();context.git.mockClear();context.write.mockClear();context.errors.mockClear();
+ vi.resetModules();pending=undefined;context.completion=Promise.resolve();context.plans=[];context.hosts=[];context.spawn.mockReset().mockImplementation(()=>{throw Error("test forbids launching a service");});context.leases=[];context.paths=[];context.release.mockClear();context.off.mockClear();context.git.mockClear();context.write.mockClear();context.errors.mockClear();
  const env:NodeJS.ProcessEnv={...process.env,POKEBENCH_ROM:'/test-owned/fixture.rom',POKEBENCH_RUNS_ROOT:'/test-owned/runs',POKEBENCH_HUMAN_PORT:'8140'};delete env['POKEBENCH_HUMAN_RUN_ID'];
  fakeProcess=Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),'human'],env,on:vi.fn(),off:context.off,exitCode:undefined});vi.stubGlobal('process',fakeProcess);vi.spyOn(console,'error').mockImplementation(context.errors);vi.spyOn(console,'log').mockImplementation(()=>{});
 });
@@ -57,4 +57,13 @@ it('owns the entrypoint until run completion and signal/lease cleanup',async()=>
  expect(context.release).toHaveBeenCalledOnce();
  expect(context.off).toHaveBeenCalledWith('SIGINT',expect.any(Function));
  expect(context.off).toHaveBeenCalledWith('SIGTERM',expect.any(Function));
+});
+
+it('keeps default-off visibility V2 disabled in the real human launcher environment',async()=>{
+ fakeProcess.env['POKEBENCH_HUMAN_RUN_ID']='assigned-human-run';
+ await completed();
+ const host=context.hosts[0];if(host===undefined)throw Error('missing production human host');
+ await expect(host.launchServer('/test-owned/run','assigned-human-run',8140)).rejects.toThrow('test forbids launching a service');
+ const env=context.spawn.mock.calls[0]?.[2].env;
+ expect(env?.['POKEBENCH_FEATURES_OFF']?.split(',')).toContain('player-map-visibility-v2');
 });

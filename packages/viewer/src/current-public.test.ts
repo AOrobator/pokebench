@@ -19,3 +19,14 @@ it("validates every public envelope while rejecting missing detail, private extr
 });
 
 it("rejects otherwise valid nested grading splits, measurement and operator exclusion independently",()=>{const {current,aux}=fixture(),base=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,7,aux).detail) as unknown);const runs=[{...base.run,splits:[{name:"first_battle_win",elapsedMs:10,segmentMs:10,seq:2,turn:1,inputTokens:500,outputTokens:100}]},{...base.run,measurement:{controller:"agent",features:[],logSha256:"0".repeat(64),logBytes:1,pausedMs:0,rawSplits:[]}},{...base.run,excluded:"operator fixture"}];for(const run of runs){expect(()=>parseWorkbench({version:1,at:0,milestones:[],runs:[run],problems:[]})).not.toThrow();expect(()=>parseCurrentSnapshot({...base,run})).toThrow("Invalid current display response");}});
+
+it("retains approximate display elapsed after backwards recorded time without granting grading authority",()=>{
+ const {current,aux}=fixture();current.warning="Recorded time moved backwards; current display is not timing validation";
+ const projected=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,8,aux).detail) as unknown);
+ const exact=parseCurrentSnapshot(JSON.parse(publishCurrent({...current,warning:null},source,8,aux).detail) as unknown);
+ expect(exact.run.elapsedMs).not.toBeNull();expect(projected.run.elapsedMs).toBe(exact.run.elapsedMs);
+ expect(projected.warning).toBe(current.warning);expect(projected.run.clockWarning).toBe(current.warning);
+ expect(projected.run.splits).toEqual([]);expect(projected.run.measurement).toBeUndefined();
+ const incomplete=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,8,{...aux,complete:false}).detail) as unknown);
+ expect(incomplete.run.elapsedMs).toBeNull();expect(incomplete.control).toBeNull();
+});

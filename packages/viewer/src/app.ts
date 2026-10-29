@@ -1593,7 +1593,7 @@ export class App {
     }
     const current=this.current?.state.selected===this.runId?this.current.state:null;
     const currentSnapshot=current?.snapshot??this.recordingCurrent;
-    this.setHtml("stats", sideStats(view,nowMs,current===null&&currentSnapshot===null?undefined:currentSnapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:currentSnapshot.complete,contextKnown:currentSnapshot.context.estimated!==null||currentSnapshot.context.measured!==null,timeKnown:currentSnapshot.run.elapsedMs!==null}));
+    this.setHtml("stats", sideStats(view,nowMs,current===null&&currentSnapshot===null?undefined:currentSnapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:currentSnapshot.complete,contextKnown:currentSnapshot.context.estimated!==null||currentSnapshot.context.measured!==null,timeKnown:currentSnapshot.run.elapsedMs!==null,timeApproximate:currentSnapshot.warning!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
@@ -1664,7 +1664,8 @@ export class App {
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
     const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
-    const time=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?(currentSnapshot.warning===null?"Time loading":"Time unavailable"):clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+    const approximate=currentSnapshot?.warning!=null?"≈ ":"";
+    const time=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?(currentSnapshot.warning===null?"Time loading":"Time unavailable"):clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${approximate}${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
@@ -1689,7 +1690,7 @@ export class App {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
     } else {
-      this.ui("clock").textContent=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?`T${String(view.turn)} · ${currentSnapshot.warning===null?"time loading":"time unavailable"}`:view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+      this.ui("clock").textContent=currentSnapshot!==null&&currentSnapshot.run.elapsedMs===null?`T${String(view.turn)} · ${currentSnapshot.warning===null?"time loading":"time unavailable"}`:view.startMs === null ? "" : `T${String(view.turn)} · ${approximate}${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     }
   }
 }

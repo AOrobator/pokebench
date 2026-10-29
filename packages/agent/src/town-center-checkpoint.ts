@@ -34,6 +34,10 @@ export function townCenterText(f:TownCenterFacts):string {
  return `Enter ${f.town}’s Pokémon Center now, using the listed entrance warp at (${String(f.x)},${String(f.y)}) on map [${String(f.map[0])}, ${String(f.map[1])}]. Entry sets your blackout return point here even when your party is healthy. Heal with the nurse if needed, then resume your current objective.`;
 }
 
+export function isTownCenterText(text:string):boolean {
+ return text.startsWith("Enter ")&&text.includes("’s Pokémon Center now, using the listed entrance warp at (")&&text.endsWith("Heal with the nurse if needed, then resume your current objective.");
+}
+
 export function townCenterContext(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,base:Transform,source:PlaceSource):Transform {
  if(!features["town-center-checkpoint-v1"]||!features["heal-before-trainers-v1"]||!features["exit-reachability-v1"])return base;
  const table=placesOnce(source);
@@ -46,13 +50,13 @@ export function townCenterContext(features:FeatureSet,recorder:Pick<RunRecorder,
   }
   if(e.type==="assistant"&&e.stop_reason!=="error"&&e.stop_reason!=="aborted"&&e.tool_calls.length>0){result=null;recorded=null;}
   if(e.type==="tool_result"){result=latest!==null&&e.run===latest.run&&e.state_seq===latest.seq&&!e.is_error?e:null;recorded=null;}
-  if(e.type==="ledger_context"&&result!==null&&e.evidence.includes(result.seq)&&e.text.startsWith("Enter ")&&e.text.includes("’s Pokémon Center now, using the listed entrance warp at (")){recorded=e.text;sent=true;}
+  if(e.type==="ledger_context"&&result!==null&&e.evidence.includes(result.seq)&&isTownCenterText(e.text)){recorded=e.text;sent=true;}
  },false,true,true);
  return async messages=>{
   const out=await base(messages),state=latest,current=result;
   if(state===null||current===null||sent&&recorded===null)return out;
   let delivered:AgentMessage|undefined;
-  for(const m of [...messages].reverse()){if(m.role==="assistant")break;if(m.role==="toolResult"){delivered=m;break;}}
+  for(const m of [...messages].reverse()){if(m.role==="assistant"&&m.stopReason!=="error"&&m.stopReason!=="aborted"&&m.content.some(p=>p.type==="toolCall"))break;if(m.role==="toolResult"){delivered=m;break;}}
   if(delivered?.role!=="toolResult"||delivered.isError||delivered.toolCallId!==current.id||delivered.toolName!==current.name)return out;
   const text=delivered.content.filter(p=>p.type==="text").map(p=>p.text).join("\n");
   if(text!==current.text)return out;

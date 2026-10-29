@@ -89,3 +89,9 @@ Frozen base2308380fd → head0aed50595, binary diff SHA256 e132662f1ae8f0957f6c1
 Both discovered Grok4.5 and Grok4.7 Cursor attempts failed before review with the account usage limit; stdout empty, failures retained. This is not a verdict. After fixing R1, use the standing two-fresh-model fallback plus available Claude/GPT reviewers. PokeBench requires operator permission to land without the normal Grok cloud lane; do not self-merge merely because fallback reviews pass.
 
 Added actual assistant-plus-follow-up history and decision replay consumed/new-visit regressions; both run RED on the reviewed source. No additional domain or unrelated capability. Full prior packet and R1 synthesis remain immutable under evidence/review-r1.
+
+## R1 fixes — GREEN
+
+Successful assistant tool calls consume the notice; text-only/error replies retain it through the actual message history. Decision replay now preserves only this feature's recognized historical ledger receipt when ON, restoring consumed-visit state while a new town visit rearms normally. No new runtime owner, schema or behavior domain. Corrected the context-order comment.
+
+Focused helper/replay tests: 30 PASS (including pinned-pi HTTP text-only retry with the exact note delivered on both requests, one durable receipt, and suppression after native Center entry). Changed-file ESLint and agent tsc PASS; unique logs under review-r1/fix-*.log. These replace the overbroad R1 retry/replay claims. Heavy affected-agent gates requested after cheap checks; all prior failures retained.

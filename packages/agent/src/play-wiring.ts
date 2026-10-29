@@ -96,8 +96,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
  const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
- // scene-followup-prompt-v1 wraps next to last, so its note ends the request unless
- // type-gap-team-last-message-v1 repeats the type-gap block after it.
+ // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.
  const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,instructionGoals?.transform??history.transform))));
  const transformContext=townCenterContext(features,memoryRecorder,priorContext,places);
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};

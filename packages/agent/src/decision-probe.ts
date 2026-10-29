@@ -1,3 +1,4 @@
+import {isTownCenterText} from "./town-center-checkpoint.js";
 // Decision-point probes (M6 of the harness-fixes worklog): rebuild the exact context a recorded turn
 // was decided from, re-derive it under a different switch set, and sample the next tool call.
 // Everything model-facing is rebuilt by the harness's own code fed with the recorded event stream:
@@ -376,7 +377,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const source:PlaceSource={places:async()=>{const state=prior.findLast((e):e is Extract<RunEvent,{type:"state";started:boolean}>=>e.type==="state"&&"started" in e&&e.raw_ram!==undefined);if(state?.raw_ram===undefined||ports.places===undefined)return null;return {places:await ports.places(state.raw_ram,features)};}};
   const wiring = probeTools(features, replay, cutOff, (m) => { recorderView.size = contextSize(m.filter(isMessage)); return Promise.resolve(m); },source);
   for (const e of prior) {
-    if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)) continue;
+    if (DERIVED.includes(e.type)&&!(features["instruction-goal-ledger-v1"]&&e.type==="ledger_context"&&e.instruction_goals!==undefined)&&!(features["town-center-checkpoint-v1"]&&e.type==="ledger_context"&&isTownCenterText(e.text))) continue;
     if (e.type === "turn_start") { replay.upcoming = e.turn; detector.context(); await wiring.transform([]); }
     replay.dispatch(e);
   }

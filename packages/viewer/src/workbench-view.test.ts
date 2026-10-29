@@ -78,7 +78,7 @@ it("validates the hardware-only run lane response", async () => {
 it("offers only viewable live games on the comparison page, excluding probes without hiding excluded benchmark runs", () => {
   const live = run({ id: "live", status: "live" });
   const paused = run({ id: "paused", status: "paused", excluded: "Operator excluded result" });
-  const sessions = [live, paused, run({ id: "probe", status: "live", excluded: "Excluded probe session" }), run({ id: "paused-probe", status: "paused", excluded: "Excluded probe session" }), run({ id: "unresponsive", status: "unresponsive" }), run({ id: "ended", status: "ended" })];
+  const sessions = [live, paused, run({ id: "probe", status: "live", excluded: "Excluded probe session" }), run({ id: "paused-probe", status: "paused", excluded: "Excluded probe session" }), run({ id: "operator-excluded-probe", status: "live", excluded: "Operator exclusion: rehearsal", measurement: { controller: "agent", features: ["probe"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] } }), run({ id: "unresponsive", status: "unresponsive" }), run({ id: "ended", status: "ended" })];
   expect(liveOrPaused(sessions).map(row => row.id)).toEqual(["live", "paused"]);
   expect(currentRunLinks(sessions, "unavailable").join("")).not.toContain('data-watch="probe"');
 });

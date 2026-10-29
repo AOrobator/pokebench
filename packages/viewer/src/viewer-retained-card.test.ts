@@ -6,7 +6,7 @@ import { mountApp, type AppDeps } from "./app.js";
 import { parseWorkbench, type WorkbenchRun } from "./workbench-data.js";
 import { BASE_MS, must } from "../test-support/events.js";
 
-it("keeps the selected recorded trainer card during health gaps and recovers live presentation", async () => {
+it("retains missing card projections but hides unreachable sessions and recovers live presentation", async () => {
   const page = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
   document.body.innerHTML = page.slice(page.indexOf("<body>") + 6, page.indexOf("</body>"));
   const id = "retained-card", other = "other-card", historical = "historical-offline";
@@ -51,25 +51,18 @@ it("keeps the selected recorded trainer card during health gaps and recovers liv
   expect(parseWorkbench(Reflect.get(app, "workbench") as unknown).runs.map(run => run.id)).toEqual([id, other, historical]);
   selected.status = "unresponsive"; must(snapshot.runs[1]).status = "unresponsive";
   await app.pollCards();
-  for (const host of hosts()) {
-    expect([...host.querySelectorAll("[data-watch]")].map(e => (e as HTMLElement).dataset.watch)).toEqual([id, other]);
-    expect(host.querySelector(`[data-watch="${other}"]`)?.getAttribute("aria-pressed")).toBe("false");
-    const card = mine(host);
-    expect(card.getAttribute("aria-pressed")).toBe("true");
-    expect(card.textContent).toContain("MAY");
-    expect(card.querySelector('img[src="/sprites/icons/280.png"]')).not.toBeNull();
-    expect(card.querySelector('[data-gt="REPLAY"]')).not.toBeNull();
-    expect(card.querySelector(".tc-dot")).toBeNull();
-  }
+  for (const host of hosts()) expect(host.querySelectorAll("[data-watch]")).toHaveLength(0);
   selected.status = "live"; must(choices[0]).live = false; must(choices[1]).live = false;
   await app.refreshRuns(); await app.pollCards();
-  for (const host of hosts()) {
-    expect([...host.querySelectorAll("[data-watch]")].map(e => (e as HTMLElement).dataset.watch)).toEqual([id, other]);
-    expect(mine(host).querySelector('[data-gt="REPLAY"]')).not.toBeNull();
-  }
+  for (const host of hosts()) expect(host.querySelectorAll("[data-watch]")).toHaveLength(0);
   selected.status = "live"; must(choices[0]).live = true;
   await app.refreshRuns(); await app.pollCards();
-  for (const host of hosts()) expect(mine(host).querySelector('[data-gt="WATCHING"]')).not.toBeNull();
+  for (const host of hosts()) {
+    expect(mine(host).querySelector('[data-gt="WATCHING"]')).not.toBeNull();
+    expect(mine(host).getAttribute("aria-pressed")).toBe("true");
+    expect(mine(host).textContent).toContain("MAY");
+    expect(mine(host).querySelector('img[src="/sprites/icons/280.png"]')).not.toBeNull();
+  }
   must(choices[1]).ended = true; must(snapshot.runs[1]).status = "ended";
   await app.refreshRuns(); await app.pollCards();
   for (const host of hosts()) expect([...host.querySelectorAll("[data-watch]")].map(e => (e as HTMLElement).dataset.watch)).toEqual([id]);

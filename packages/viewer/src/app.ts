@@ -22,7 +22,7 @@ import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type Gly
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
-import { plateFacts } from "./workbench-view.js";
+import { isProbeRun, plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -714,7 +714,7 @@ export class App {
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
         if(this.current!==null){if(this.current.state.epoch!==epoch||(this.current.state.snapshot?.generation??null)!==generation)return;
           this.currentSavedCardOwners=new Map([...owners].map(([run,source])=>[run,{epoch,generation:source}]));
-          this.currentRecordedWorkbench={...next,milestones:[],runs:next.runs.map(run=>{const display={...run,excluded:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
+          this.currentRecordedWorkbench={...next,milestones:[],runs:next.runs.map(run=>{const display={...run,excluded:isProbeRun(run)?"Excluded probe session":null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))
@@ -758,7 +758,7 @@ export class App {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || !["live", "paused"].includes(recorded.status)) return [];
       const probe = this.current?.state.runs.find(row => row.id === run.id)?.header.harness_features.includes("probe")
-        ?? recorded.excluded === "Excluded probe session";
+        ?? isProbeRun(recorded);
       if (probe && run.id !== this.runId) return [];
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);

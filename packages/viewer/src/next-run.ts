@@ -385,3 +385,5 @@ export class HumanRestarts {
 Object.assign(DEFAULT_NEXT_RUN.features, {"move-learn-type-matchup-v1":false,"player-map-visibility-v1":false});
 
 Object.assign(DEFAULT_NEXT_RUN.features, {"move-learn-type-matchup-v1":false,"instruction-memory-yaml-v1":false});
+
+Object.assign(DEFAULT_NEXT_RUN.features, {"player-map-visibility-v2":false});

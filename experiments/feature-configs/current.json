@@ -103,7 +103,8 @@
   "pokedex-own-v1",
   "navigation-recovery-v1",
   "map-cycle-recovery-v1",
-  "player-map-visibility-v1"
+  "player-map-visibility-v1",
+  "player-map-visibility-v2"
  ],
  "onInBoth": [
   "gym-door-label-v1",
@@ -472,6 +473,7 @@
   "instruction-memory-yaml-v1": false,
   "eight-badge-mission-v1": false,
   "discovered-gym-checklist-v1": false,
-  "town-center-checkpoint-v1": true
+  "town-center-checkpoint-v1": true,
+  "player-map-visibility-v2": false
  }
 }

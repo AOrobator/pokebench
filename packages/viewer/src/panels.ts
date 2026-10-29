@@ -387,6 +387,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
   "destination-first-navigation-v1":"destination-first-navigation-v1.html",
  "instruction-memory-dedup-v1":"instruction-memory-dedup-v1.html",
  "player-map-visibility-v1":"player-map-visibility-v1.html",
+  "player-map-visibility-v2": "player-map-visibility-v2.html",
  "current-question-focus-v1":"current-question-focus-v1.html",
  "gateway-current-turn-v1":"gateway-current-turn-v1.html",
  "gateway-tool-schemas-v1":"gateway-tool-schemas-v1.html",

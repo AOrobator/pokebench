@@ -328,7 +328,12 @@ def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_gr
     place = Place((24, 46), "CAVE", "CAVE", Links(((4, 3, (24, 47)),), (("NORTH", (24, 48)),)))
     monkeypatch.setattr(PlaceDirectory, "places", lambda self, **kw: [place])
     for enabled in (False, True):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if enabled else "player-map-visibility-v1")
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF",
+            "player-map-visibility-v2"
+            if enabled
+            else "player-map-visibility-v1,player-map-visibility-v2",
+        )
         app = FastAPI()
         install_observation(app, Shot, field().read, MapNames({}))
         status, _, body = get(app, "/pokebench/places")
@@ -342,7 +347,11 @@ def test_installed_catalog_keeps_place_names_without_leaking_the_global_route_gr
             ref,
             lambda path, sha: field().read,
             MapNames({}),
-            {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v1"},
+            {
+                "POKEBENCH_FEATURES_OFF": "player-map-visibility-v2"
+                if enabled
+                else "player-map-visibility-v1,player-map-visibility-v2"
+            },
         )
         assert replay == [found]
         assert found["name"] == "CAVE"
@@ -485,7 +494,11 @@ def test_archive_factory_delivers_visibility_and_retains_hidden_terrain(
         refs,
         lambda path, sha: next(readers),
         MapNames({}),
-        {"POKEBENCH_FEATURES_OFF": "" if enabled else "player-map-visibility-v1"},
+        {
+            "POKEBENCH_FEATURES_OFF": "player-map-visibility-v2"
+            if enabled
+            else "player-map-visibility-v1,player-map-visibility-v2"
+        },
     )
     assert len(outputs) == 2
     assert ("Map visibility:" in outputs[1]) is enabled, outputs[1]
@@ -509,7 +522,12 @@ def test_installed_scene_history_filters_hidden_actors_in_both_capture_modes(
 
     m = scene_field()
     m.put(0x05000000, b"\xff\x7f")
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if enabled else "player-map-visibility-v1")
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        "player-map-visibility-v2"
+        if enabled
+        else "player-map-visibility-v1,player-map-visibility-v2",
+    )
     monkeypatch.setattr(module, "main_loop_idle", lambda read: True)
     monkeypatch.setattr(module, "illumination", lambda read, map_id: module.VIEWPORT)
 
@@ -558,7 +576,7 @@ def test_installed_visibility_preserves_game_owned_measurement_facts(monkeypatch
     from pokebench_env.observation import install_observation
 
     states = []
-    for off in ("player-map-visibility-v1", ""):
+    for off in ("player-map-visibility-v1,player-map-visibility-v2", "player-map-visibility-v2"):
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
         app = FastAPI()
         install_observation(app, lambda: _Shot(), map_memory().read, MAPS)

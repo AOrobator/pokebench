@@ -1950,3 +1950,5 @@ it("exposes town Center delivery evidence, raw text and its exact Harness Config
  const config=new Log();config.add(0,{...START,harness_features:[id]});const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(config));
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);expect(doc.querySelector(`a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
 });
+
+it("links player map visibility V2 to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v2"]).toBe("player-map-visibility-v2.html");});

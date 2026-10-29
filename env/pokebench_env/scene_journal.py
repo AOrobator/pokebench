@@ -20,13 +20,13 @@ from pokebench_env.game_state import FIELD_CONTROLS_LOCK, SAVE_BLOCK_PTRS
 from pokebench_env.live_map import MAP_OFFSET, OBJECT_EVENTS
 from pokebench_env.naming import SPRITES
 from pokebench_env.native_text import decode_native_text, native_text_payload
-from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
 from pokebench_env.player_map_visibility import (
     VIEWPORT,
     illumination,
     lit_rect,
     screen_visible,
     sprite_rect,
+    visibility_enabled,
 )
 from pokebench_env.raw_ram import RawRamSnapshot, persist_diagnostic_window
 from pokebench_env.readout import features_off_from_env
@@ -414,7 +414,7 @@ def install_scene_journal(
     journal = SceneJournal(
         safe_capture=safe_capture,
         raw_capture=raw_capture,
-        player_visibility=VISIBILITY not in features_off_from_env(os.environ),
+        player_visibility=visibility_enabled(features_off_from_env(os.environ)),
     )
     step = emulator.run_frame_with_buttons
 

@@ -19,8 +19,7 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.learn_move_wait import LEARN_BOUND_FRAMES, LearnWait, battle_learner
 from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
-from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
-from pokebench_env.player_map_visibility import MapMemory, place_names_only
+from pokebench_env.player_map_visibility import MapMemory, place_names_only, visibility_enabled
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
@@ -289,7 +288,7 @@ def install_observation(
     def places() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
             entries = directory.places(displayed=displayed)
-            if VISIBILITY not in off:
+            if visibility_enabled(off):
                 entries = place_names_only(entries)
             return {"places": [place.json() for place in entries]}
 
@@ -300,7 +299,7 @@ def install_observation(
         with memory_lock if memory_lock is not None else nullcontext():
             visible_ids = None
             visible_tiles = None
-            if VISIBILITY not in off:
+            if visibility_enabled(off):
                 current = decode(read_memory)
                 visible_ids = frozenset(
                     o.local_id

@@ -36,8 +36,12 @@ from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.places import PlaceDirectory
-from pokebench_env.player_map_visibility import SWITCH as VISIBILITY
-from pokebench_env.player_map_visibility import MapMemory, place_names_only
+from pokebench_env.player_map_visibility import (
+    V2_SWITCH,
+    MapMemory,
+    place_names_only,
+    visibility_enabled,
+)
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
@@ -73,7 +77,8 @@ def read_state(
         active_ui_enabled=active_ui,
         message_phase_enabled="field-dialogue-phase-v1" not in off,
         # window-escape-route-v1 sends map_grid for navigate_to; the readout keeps its local map.
-        full_map_enabled=not {"full-map-navigation-v1", "window-escape-route-v1"} <= off,
+        full_map_enabled=V2_SWITCH not in off
+        or not {"full-map-navigation-v1", "window-escape-route-v1"} <= off,
         story_characters_enabled="character-presence-v1" not in off,
         # battle-triage-guidance-v1 acts on battle-details-v2's RUN verdict, so either reads it.
         battle_details_enabled=not {
@@ -145,7 +150,11 @@ def read_state(
     )
     # Optional session memory belongs to the observation/replay delivery factory.
     # Raw callers retain the unprojected native facts for offline diagnostics.
-    return state if VISIBILITY in off or visibility is None else visibility.project(read, state)
+    return (
+        state
+        if not visibility_enabled(off) or visibility is None
+        else visibility.project(read, state, whole_lit=V2_SWITCH not in off)
+    )
 
 
 def render(
@@ -239,7 +248,7 @@ def places(
     displayed = "displayed-place-names-v1" not in features_off_from_env(env)
     directory = PlaceDirectory(load(run_dir / ref.path, ref.sha256), maps)
     entries = directory.places(displayed=displayed)
-    if VISIBILITY not in features_off_from_env(env):
+    if visibility_enabled(features_off_from_env(env)):
         entries = place_names_only(entries)
     return [place.json() for place in entries]
 

@@ -24,6 +24,13 @@ if TYPE_CHECKING:
     from pokebench_env.game_state import GameState
 
 SWITCH = "player-map-visibility-v1"
+V2_SWITCH = "player-map-visibility-v2"
+
+
+def visibility_enabled(off: frozenset[str]) -> bool:
+    return SWITCH not in off or V2_SWITCH not in off
+
+
 RADII = (200, 72, 64, 56, 48, 40, 32, 24, 0)
 SIZES = (
     ((8, 8), (16, 16), (32, 32), (64, 64)),
@@ -131,15 +138,17 @@ class MapMemory:
         self.frame: int | None = None
         self.maps: dict[tuple[int, ...], Discovered] = {}
 
-    def project(self, read: ReadMemory, state: "GameState") -> "GameState":
+    def project(
+        self, read: ReadMemory, state: "GameState", *, whole_lit: bool = False
+    ) -> "GameState":
         with self.lock:
             frame = int.from_bytes(read(GMAIN + 0x20, 4), "little")
             if self.frame is not None and frame < self.frame:
                 self.maps.clear()
             self.frame = frame
-            return self._project(read, state)
+            return self._project(read, state, whole_lit=whole_lit)
 
-    def _project(self, read: ReadMemory, state: "GameState") -> "GameState":
+    def _project(self, read: ReadMemory, state: "GameState", *, whole_lit: bool) -> "GameState":
         if state.map_id is None or state.position is None:
             return state
         layout = read_layout_context(read, state.map_id)
@@ -194,7 +203,9 @@ class MapMemory:
             ox, oy = shown.origin
             for tile in shown.tiles:
                 dx, dy = tile.x - state.position[0], tile.y - state.position[1]
-                if lit_rect(rows, (center[0] + dx * 16 - 4, center[1] + dy * 16 - 4, 8, 8)):
+                if (whole_lit and layout is not None and layout.flash_level == 0) or lit_rect(
+                    rows, (center[0] + dx * 16 - 4, center[1] + dy * 16 - 4, 8, 8)
+                ):
                     point = (tile.x, tile.y)
                     visible.add(point)
                     memory.tiles[point] = tile

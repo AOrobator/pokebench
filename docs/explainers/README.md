@@ -363,3 +363,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [discovered-gym-checklist-v1](discovered-gym-checklist-v1.html): independently switchable gym campaign guidance.
 - [Town Center checkpoint](town-center-checkpoint-v1.html): the first eligible town decision gets the probed Center-entry reminder; native checkpoint completion suppresses it.
+
+- [Player map visibility V2](player-map-visibility-v2.html): whole fully lit current maps; native illumination and terrain memory in darkness. Registered default OFF.

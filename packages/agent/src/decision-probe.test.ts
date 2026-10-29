@@ -5,7 +5,7 @@ import { expect, it } from "vitest";
 import type { AssistantMessage, completeSimple } from "@mariozechner/pi-ai";
 import { checkEvent, type RunEvent } from "./events.js";
 import {} from "./features.js";
-import { Replay, probeTools, contextDiff, decisionOf, distribution, parseRun, parseSwitch, recordedAction, recordedNotes, withSwitches, type DecisionContext, type RecordedRun } from "./decision-probe.js";
+import { Replay, recordedFeatures, probeTools, contextDiff, decisionOf, distribution, parseRun, parseSwitch, recordedAction, recordedNotes, withSwitches, type DecisionContext, type RecordedRun } from "./decision-probe.js";
 import { MAX_SAMPLES, filePorts, gatewaySampler, parseArgs, reportLines, resolveRun, thinkingLevel, type ProbeReport } from "./probe-decision-cli.js";
 import { assistant, toolCall } from "../test-support/pi.js";
 import { GATEWAY_PROVIDER, type GatewayModel } from "./gateway.js";
@@ -142,4 +142,11 @@ it("reports a mismatch, a flip that changes nothing, and arms without samples", 
     "flipped context differs in: nothing (the switch does not change this decision's context)",
   ]);
   expect(reportLines({ ...report, diff: { systemPrompt: true, tools: true, messages: [4] } })[2]).toBe("flipped context differs in: system prompt; tools; 1 messages (indexes 4)");
+});
+
+it("loads historical V1 events but refuses reconstructing the retired behavior by name",()=>{
+ const start=ev({type:"run_start",...RUN_START_META,harness_features:["player-map-visibility-v1"]},0);
+ if(start.type!=="run_start")throw new Error("missing start");
+ expect(()=>recordedFeatures({start,events:[start]})).toThrow(/retired player-map-visibility-v1/);
+ expect(()=>parseSwitch("player-map-visibility-v1=on")).toThrow(/known switch id/);
 });

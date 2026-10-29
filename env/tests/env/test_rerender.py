@@ -23,7 +23,6 @@ ROM_START = 0x08000000
 # Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1,
 # adjacent-tiles-v1 and battle-message-waiting-v1, so its recorded harness features leave them off.
 RECORDED_OFF = [
-    "player-map-visibility-v1",
     "player-map-visibility-v2",
     "type-gap-team-v1",
     "map-observability-v1",
@@ -261,9 +260,7 @@ def test_parse_request_keeps_order():
 
 
 def test_main_reads_the_archive_with_the_operator_rom(monkeypatch, tmp_path):
-    monkeypatch.setattr(
-        rerender.MapMemory, "project", lambda self, read, state, *, whole_lit=False: state
-    )
+    monkeypatch.setattr(rerender.MapMemory, "project", lambda self, read, state: state)
     rom = tmp_path / "rom.gba"
     rom.write_bytes(b"ROM")
     calls: list[tuple[Path, str, bytes]] = []
@@ -338,11 +335,7 @@ def test_places_honors_displayed_place_names(monkeypatch, tmp_path):
             ref,
             load,
             MapNames({}),
-            {
-                "POKEBENCH_FEATURES_OFF": ",".join(
-                    filter(None, (off, "player-map-visibility-v1", "player-map-visibility-v2"))
-                )
-            },
+            {"POKEBENCH_FEATURES_OFF": ",".join(filter(None, (off, "player-map-visibility-v2")))},
         )
         assert out == [{"name": "DEWFORD TOWN"}]
     assert seen == [True, False]
@@ -372,7 +365,7 @@ def test_main_adds_the_map_table_read_from_the_named_archive(monkeypatch, tmp_pa
     out = io.StringIO()
     assert (
         rerender.main(
-            {"POKEBENCH_FEATURES_OFF": "player-map-visibility-v1,player-map-visibility-v2"},
+            {"POKEBENCH_FEATURES_OFF": "player-map-visibility-v2"},
             io.StringIO(request),
             out,
         )

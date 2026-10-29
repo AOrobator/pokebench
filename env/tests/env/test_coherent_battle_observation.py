@@ -317,7 +317,6 @@ def test_native_geodude_fixture_through_model_observation_keeps_guard_and_pairin
             "berry-readout-v1",
             "battle-move-learn-input-v1",
             "static-npc-template-approach-v1",
-            "player-map-visibility-v1",
             "player-map-visibility-v2",
         }
     )

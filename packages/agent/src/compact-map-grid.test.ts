@@ -6,7 +6,7 @@ const ID="compact-map-grid-v1";
 
 describe("compact-map-grid-v1 registry",()=>{
  it("is registered at its pinned index, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(298);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(297);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null)).toContain(ID);
   expect(featureInfo(ID).description).toContain(" Off: the padded full-token grid.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
@@ -17,7 +17,7 @@ describe("compact-map-grid-v1 registry",()=>{
  });
 
  it("is a server feature that is turned off on the game server unless on",()=>{
-  expect(SERVER_FEATURES[98]).toBe(ID);
+  expect(SERVER_FEATURES[97]).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });

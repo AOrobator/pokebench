@@ -1053,3 +1053,24 @@ it("rehearses the current GLM protocol with shared features, serial chaining and
   expect(experimentsAudit(runsRoot,index)).toEqual([]);
  }finally{rmSync(runsRoot,{recursive:true,force:true});}
 });
+
+it("rehearses the authorized single GLM V2 replacement and retains its durable outcome",async()=>{
+ const {parsePlayPreset,presetFeatures}=await import("@pokebench/agent/play-preset");
+ const root=fileURLToPath(new URL("../../../",import.meta.url));
+ const loaded=readFixedDefinition(root,"glm53-24h-visibility-v2"),def=loaded.definition;
+ const {runsRoot,dir}=setup(def);
+ const host=new Fake(runsRoot,{serving:()=>({...RECEIPT,...def.serving,vision:true,fingerprint:"f".repeat(64)})},def.id);
+ try{
+  expect(await runFixed({def,definitionSha256:loaded.sha256,runsRoot,host,stopRequested:()=>false,pid:77,dryRun:false})).toBe("finished");
+  expect(host.launches).toHaveLength(1);expect(host.maxRunning).toBe(1);
+  const rows=readLedger(join(dir,"trials.jsonl"));expect(outcomes(rows).map(o=>o.valid)).toEqual([true]);
+  expect(launchesOf(rows).map(l=>l.arm)).toEqual(["bundle"]);
+  const launch=host.launches[0];if(launch===undefined)throw new Error("missing launch");
+  const p=parsePlayPreset(JSON.parse(readFileSync(launch.presetPath,"utf8")));
+  expect(p.limits.maxWallMs).toBe(86_400_000);expect(p.sampling.maxTokens).toBe(8192);
+  expect(presetFeatures(p)["player-map-visibility-v2"]).toBe(true);
+  expect(presetFeatures(p)).not.toHaveProperty("player-map-visibility-v1");
+  expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:1,invalid:0,total:1});
+  expect(experimentsAudit(runsRoot,await cohortIndex(runsRoot,join(root,"experiments")))).toEqual([]);
+ }finally{rmSync(runsRoot,{recursive:true,force:true});}
+});

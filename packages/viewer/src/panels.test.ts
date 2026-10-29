@@ -1891,7 +1891,6 @@ it("links the neutral YES/NO card without guessing a historical activation",()=>
  expect(card.textContent).toContain("NOT RECORDED");
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
-it("links player map visibility to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v1"]).toBe("player-map-visibility-v1.html");});
 
 it("links the instruction junk filter's exact card and preserves recorded status",()=>{
  const id="instruction-memory-junk-filter-v1";expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -1952,3 +1951,15 @@ it("exposes town Center delivery evidence, raw text and its exact Harness Config
 });
 
 it("links player map visibility V2 to its tracked explainer",()=>{expect(FEATURE_EXPLAINERS["player-map-visibility-v2"]).toBe("player-map-visibility-v2.html");});
+
+it("keeps retired visibility V1 recorded ON and OFF cards without enabling the switch",()=>{
+ const id="player-map-visibility-v1",evaluation={preset_id:"historical",target:null,failure_limit:3,flags:{loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false}};
+ for(const on of [true,false]){
+  const log=new Log();log.add(0,{...START,harness_features:on?[id]:[],evaluation:{...evaluation,features:{[id]:on}}});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.textContent).toContain("RETIRED");
+  expect(card?.querySelector(".config-badge")?.textContent).toBe(on?"ON":"OFF");
+  expect(card?.querySelector("a")).toBeNull();
+ }
+});

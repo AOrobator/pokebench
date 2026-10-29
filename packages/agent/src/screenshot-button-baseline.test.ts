@@ -12,7 +12,7 @@ const plain = () => featuresOf([]);
 const enabled = () => ({ ...plain(), "screenshot-button-baseline-v1": true });
 
 it("selects exactly the operator-approved prompt and keeps OFF bytes", () => {
-  expect(SWITCHABLE_FEATURES[307]).toBe("screenshot-button-baseline-v1");
+  expect(SWITCHABLE_FEATURES[306]).toBe("screenshot-button-baseline-v1");
   const before = playSystemPrompt(plain(), null);
   expect(playSystemPrompt(enabled(), null)).toBe(prompt);
   expect(playSystemPrompt({ ...enabled(), "screenshot-button-baseline-v1": false }, null)).toBe(before);

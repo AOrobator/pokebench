@@ -421,9 +421,7 @@ def test_the_observation_endpoint_learns_from_every_read_and_renders_with_its_me
     from tests.env.test_game_state import NAMING
     from tests.env.test_view import get
 
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF", "player-map-visibility-v1,player-map-visibility-v2"
-    )
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "player-map-visibility-v2")
     monkeypatch.setattr(observation_module, "LinkCache", lambda: LinkCache(LINKS))
     m = at(RUSTBORO, (15, 59), (1, 1, 4, 2))
     m.put(0x030022C0, struct.pack("<II", *NAMING))

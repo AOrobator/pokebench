@@ -310,7 +310,6 @@
     "neutral-yes-no-readout-v1": false,
     "instruction-memory-cap-v1": false,
     "pokenav-call-auto-advance-v1": false,
-    "player-map-visibility-v1": false,
     "compact-map-grid-v1": false,
     "supervisor-briefing-bound-v1": false,
     "refusal-ledger-bound-v1": false,

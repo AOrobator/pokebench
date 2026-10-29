@@ -79,7 +79,8 @@
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
   "eight-badge-mission-v1",
-  "discovered-gym-checklist-v1"
+  "discovered-gym-checklist-v1",
+  "player-map-visibility-v2"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -102,9 +103,7 @@
   "milestone-drought-suppression-v1",
   "pokedex-own-v1",
   "navigation-recovery-v1",
-  "map-cycle-recovery-v1",
-  "player-map-visibility-v1",
-  "player-map-visibility-v2"
+  "map-cycle-recovery-v1"
  ],
  "onInBoth": [
   "gym-door-label-v1",
@@ -463,7 +462,6 @@
   "neutral-yes-no-readout-v1": false,
   "instruction-memory-cap-v1": true,
   "pokenav-call-auto-advance-v1": false,
-  "player-map-visibility-v1": false,
   "compact-map-grid-v1": false,
   "supervisor-briefing-bound-v1": false,
   "refusal-ledger-bound-v1": false,

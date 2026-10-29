@@ -1,3 +1,4 @@
+import {RETIRED_VISIBILITY} from "./model.js";
 // Pure recorded-header interpretation shared by history and current projection.
 import {FEATURES,MEASUREMENT_FEATURES,featuresOf,playHarnessFeatures,type FeatureSet} from "@pokebench/agent/features";
 import {REQUIRED_FRONTIER_MILESTONES} from "@pokebench/agent/milestones";
@@ -15,6 +16,9 @@ export interface RunConfig {
   readonly features: FeatureSet;
 }
 type Start = Extract<RunEvent, { type: "run_start" }>;
+
+
+
 
 // A run whose recorded features are not exactly a registry play set (probes,
 // smoke runs, older harness revisions) has no comparable configuration.
@@ -46,6 +50,7 @@ export function configuration(start: Extract<RunEvent, { type: "run_start" }>): 
     maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null,
     failureLimit: start.evaluation?.failure_limit ?? null, context: start.model.context_window, vision: start.model.vision,
     start: start.start_state.kind, resume: resumeCheckpoint(start), tools: start.tools,
-    features: FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
+    features: [...FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
+      ...(start.harness_features.includes(RETIRED_VISIBILITY.id)||start.evaluation?.features?.[RETIRED_VISIBILITY.id]!==undefined?[{id:RETIRED_VISIBILITY.id,label:RETIRED_VISIBILITY.label,on:start.evaluation?.features?.[RETIRED_VISIBILITY.id]??true}]:[])],
   };
 }

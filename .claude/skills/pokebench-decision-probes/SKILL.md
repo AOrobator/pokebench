@@ -1,11 +1,11 @@
 ---
 name: pokebench-decision-probes
-description: Design iterative PokeBench prompt probes, then launch, register, and verify each batch in the live viewer. Use for probe-decision calls, historical-context ablations, prompt tuning, held-out confirmation, and probe visibility repairs; not gameplay cohorts or passive run analysis.
+description: Design, power-size, grade and publish valid PokeBench decision probes. Use for frozen switch comparisons, historical-context ablations, prompt studies and probe visibility repairs; pair with pokebench-probe-autoresearch for research-driven prompt optimization, not gameplay-cohort launches.
 ---
 
 # PokeBench decision probes
 
-A sampling process or a report link is not launch proof. Every decision-probe study must appear in the canonical viewer's `/api/probes` list, `/api/probes/<id>` detail, and `/probes#<id>/<case>` page. Apply this to custom runners and single-turn probes as well as cohorts. Read the repository's `CLAUDE.md` and experiment-design skill for experiment policy; this skill adds registration and visibility requirements, not launch authorization.
+A sampling process or a report link is not launch proof. Every decision-probe study must appear in the canonical viewer's `/api/probes` list, `/api/probes/<id>` detail, and `/probes#<id>/<case>` page. Apply this to custom runners and single-turn probes as well as cohorts. Read the repository's `CLAUDE.md` and experiment-design skill for general experiment policy. This skill owns probe validity, sizing, grading and publication; it is not launch authorization. For research/tuning requests, also use [probe-autoresearch](../pokebench-probe-autoresearch/SKILL.md), which owns candidate discovery, revision and durable resumption. A request for a single frozen comparison need not become an optimization search.
 
 ## Plan and preserve evidence
 
@@ -20,15 +20,23 @@ Before scheduling or starting inference, apply [pokebench-run-coordination](../p
 
 Operator standing instruction, October 22, 2026: never begin prompt development with large frozen arms. Start with small directional comparisons and trace inspection; reserve large fixed comparisons for promising candidates. More GPU-time permission does not waive the pilot. If an operator later explicitly overrides this standing instruction, explain the tradeoff before using that override; a request to try variants or increase repetitions alone is not a reason to skip exploration.
 
-Before launching, state the decision the next batch should inform, the total authorized GPU budget, the cost estimate from comparable calls, and the allocation across exploration, revision and confirmation. Reserve compute and untouched cases for confirmation before spending on exploration. Choose small initial batches that cover distinct cases and failure modes, rather than mainly repeating one context. There is no universal N or mandatory budget percentage: explain the tradeoff, including call latency, token use and uncertainty. Extra GPU-time authorization is not a reason to skip the exploratory stages.
+Operator instruction, October 29, 2026: **power-size confirmation and cap the entire research question at one aggregate GPU hour**, unless the operator explicitly changes that cap. Do not routinely ask for GPU hours. Include all calibration, exploratory/revision/final calls, failures, GPU grading and time holding the study's GPU lease. Two physical GPUs held for 30 minutes consume the hour. State cases × arms × draws per arm per case, total draws per arm, conservative cost and the protected confirmation reserve. Flag a design that cannot meet its evidence standard within the cap **after design and before inference**; never silently shrink N, relax evidence or exceed the cap.
+
+### Development counts and final sizing
+
+- **8 per arm per case:** broad development comparisons across distinct failures and adverse controls. Inspect complete finished batches before revising. Nonsignificance is not evidence of no effect.
+- **16 per arm per case:** refine or replicate promising development candidates against a freshly sampled parent/incumbent. A new mechanism can return to 8 with a stated reason.
+- **Confirmation:** choose one fixed N from baseline, smallest useful effect, source-family variation and the actual acceptance rule. It is not an automatic 32/64/128/256 ladder, and draws per case are not total draws per arm.
+
+Read [power sizing](references/power-sizing.md) before designing confirmation or spending its reserve. Probe-research defaults are **90% target power and two-sided alpha .01 for the final comparison family per question**, with family-aware analysis and declared regression limits. Independent-draw Fisher sizing is a reference, not transfer power for repeated historical contexts. These are probe-specific defaults; general gameplay-cohort defaults remain with experiment-design. A valid result can be supported improvement, rejection or inconclusive evidence. A report must not promise a winner.
 
 1. **Explore.** Compare the incumbent and a few meaningfully different prompt hypotheses on the same development contexts with modest, balanced repetitions. Include contrast cases where the tempting intervention is inappropriate. Freeze each batch and its directional scoring. Record what each candidate changes and what observation would support revising, dropping or advancing it. Complete that batch before inspecting outcomes; report directional evidence rather than a confirmed winner.
 2. **Diagnose and revise.** Inspect full successful and failed responses, including reasoning, delivered observations and the first proposed tool call. Separate mistaken facts, self-imposed constraints, repeated tactics, uncertain decisions and blocked actions. Use those findings to make a focused revision; record the trace evidence, exact wording change and proposed mechanism. Compare the revision with its parent or incumbent on development data before committing most of the budget. Reuse of inspected cases is development evidence, even when the new draws have fresh random seeds. Prefer a bounded number of informative revisions; stop when the next batch is unlikely to change the decision or the exploration budget is spent.
-3. **Confirm.** Advance only a small number of promising candidates. Freeze wording, eligibility, rubric, primary outcome, comparison, sample size and analysis before opening untouched confirmation outcomes. Test on held-out source-run families, including neutral and adverse contrast cases; keep related histories together to prevent leakage. Size this fixed comparison for the effect and precision that matter within the remaining budget. Report repeated-draw reliability separately from transfer across contexts. If confirmation cases are inspected to revise wording, they become development cases and a further confirmation claim needs a fresh reserve.
+3. **Confirm.** Advance one finalist by default. Freeze wording, placement, eligibility, persistence, rubric, primary outcome, comparison, sample size, regression limits and analysis before opening untouched confirmation outcomes. If multiple final candidates or final looks are designed, preserve the question's combined error budget. Test on held-out source-run families, including neutral and adverse contrast cases; keep related histories together to prevent leakage. Size this fixed comparison for the effect and precision that matter within the remaining budget. Report repeated-draw reliability separately from transfer across contexts. If confirmation cases are inspected to revise wording, they become development cases and a further confirmation claim needs a fresh reserve.
 
 Keep a compact experiment ledger: stage, prompt versions and lineage, cases/families exposed, frozen N, predicted and actual GPU cost, findings and the next decision. Report the whole search history rather than only the best candidate. Exploratory selection does not justify confirmatory significance claims; account for shared controls, family clustering and multiple comparisons in the frozen confirmation analysis. Trace explanations generate hypotheses, not proof that a particular sentence caused the gain.
 
-This process permits planned adaptation between bounded batches; it does not authorize extra runs, favorable early stopping of a fixed batch, or new gameplay checkpoints. Coordinate each new compute window. If a large batch is already authorized and running, preserve it unless the operator changes that instruction; apply this process to the next design.
+This process permits planned adaptation between bounded batches inside an authorized search contract; it does not authorize unplanned extra runs, favorable early stopping of a fixed batch, or new gameplay checkpoints. Coordinate each new compute window. If a large batch is already authorized and running, preserve it unless the operator changes that instruction; apply this process to the next design.
 
 ## What has moved the model so far (evidence to 2026-10-28)
 
@@ -37,19 +45,19 @@ These are priors for choosing candidates, not rules. Each one comes from a small
 1. **The text must sit near the decision; in the scene study no system-prompt placement worked. Once the text is near, the wording matters most.**
    - Scene follow-up (9e33 t1385): every system-prompt placement scored 0/16, including the wording that scored 16/16 as the last message.
    - Once the text was near the decision, concrete wording scored 13–16/16 in every channel. The original line scored 0–7/16.
-   - Type gap: control 13/64; the block on the result 40/64; the result plus a last-message copy 55/64. On the shipped code: 16/32 vs 29/32.
+   - Type gap: control 13/64; the block on the result 40/64; the result plus a last-message copy 55/64. These score stated catch/find plans, not native captures. The shipped-path replication was 16/32 vs 29/32 on the same exposed four cases, not another fresh transfer confirmation.
    - Text appended inside a long tool result is fragile: pooled held-out 0.35, against 0.44 as a SUPERVISOR message.
    - Sources: `runs/reports/run-analysis/2026-10-27_scene-followup-prompt-research/`, `runs/reports/run-analysis/2026-10-28_type-gap-probes/`.
 2. **Facts steer when they fill a gap the model cannot fill and come with the controls to act. They lose to strong priors.**
    - Type gap is the success case: type chart, wild Pokémon met, balls and controls moved the plan from 13/64 to 40/64.
-   - a702 Dewford is the failure case. Every-story-goal and jit-exit-dialogue put Briney's correct line in the header and beside the correct exit. Dewford in the reasoning went 9/24 → 23/24 at T681, but westward or southward moves went 8/48 → 0/48 at T681 and T664. Meteor Falls was in the reasoning in 8/8 samples of every arm.
+   - a702 Dewford warns against treating an ineffective implementation as a failed idea. Some header/JIT arms preserved the recorded exits line despite a switch flip and were effectively controls (see setup item 7). Their outcomes do not estimate the intended exit-line treatment. Audit the actual rendered contrast before interpreting earlier reports.
    - A readout that changes the stated goal is not a result. Score the action.
    - Facts can also steer wrongly: a "Ways off" line drove 4/8 walk-aways at f28d T451.
 3. **In the scenes tested, an imperative tied to what was just observed worked best. Beliefs, explanations, plan corrections and abstract strategy did little; questions moved some samples but less than the imperative.**
    - Scene note "walk to the nearest person who took part… press A": DEV 90/96 vs off 2/96; fresh held-out 141/160 vs 5/160.
    - Heal-first (97a0 t157): fact plus rule plus game quote plus exit moved walking to MAY from 13/16 to 4/16.
    - Abstract prompts failed: Roxanne used 10 mechanisms and scored at best 1/3. In the scene study the belief wordings scored 0–3/16 and the question forms 7–10/16, against 15/16 for the concrete imperative and 0/16 off.
-   - Never name the failed call. The positive supervisor's naming of it made T3259 repeat it: 9 → 21–27/32.
+   - Quoting a failed call can reinforce it: the positive supervisor's naming of it made T3259 repeat it, 9 → 21–27/32. Treat that as a tested failure mode, not a universal ban on evidentiary action summaries.
 4. **Name what the game showed.** In the scene note, quoting the participants by name (C_said_who) beat the generic note: fresh held-out 111/160 → 141/160. It also cut the forced-misfire cost from 25/32 to 2/32. Quotes alone were worse than the generic note: C_said 71% vs 82%. The names do the work.
 5. **Removing stale or misleading text often beats adding text, but not always.**
    - Double Kick: with the model's own "skip new moves" thinking removed, the baseline was already 8/8.
@@ -65,9 +73,9 @@ These are priors for choosing candidates, not rules. Each one comes from a small
    - Double Kick improved blanket refusals (10 → 4/116) but worsened false claims (23 → 44) and illegal requests (0 → 3) on held-out.
    - Do not promote against held-out regressions. Switches promoted without probe support, or against held-out results (Double Kick, the Dewford readouts, positive supervisor variant A), are open questions, not evidence.
 
-**Effect sizes and N.** Real wins were large, +40 to +90 points on the next action, and nulls were common at 8–16 per arm. What has worked so far: exploration at 8–16 per arm on several distinct contexts, and confirmation at 32 per arm on 4–5 untouched source runs plus forced-misfire negative controls, rerun on the landed code path. These are observed study sizes, not a rule; size each batch from the expected effect, the precision needed and the budget. Do not base a decision on N=1–3 per arm: the 54-turn input-cuts sweep at N=1 with fidelity false told us nothing.
+**Effects are endpoint-specific, not a universal prior.** Selected large results include scene-participant approach 5/160 → 141/160 (+85 points), native Double Kick acquisition 4/32 → 30/32 (+81 points) in one known context with a custom executor, and type-gap catch/find plans 13/64 → 55/64 (+66 points). Refinements were smaller: named scene note 111/160 → 141/160 (+19 points), final type-gap copy 40/64 → 55/64 (+23 points). Nulls and regressions also occurred; the move-matchup revision improved factual accuracy 38/64 → 51/64 while supported decisions stayed 51/64 in both arms. These selected, clustered studies neither estimate a typical future lift nor prove gameplay benefit. Historical 32-per-case studies are precedents, not a confirmation rule; use the power-sizing contract above. N=1–3 screens with invalid fidelity cannot support a decision.
 
-**The missing step.** As of 2026-10-28, no fixed-run cohort has confirmed any probe-driven switch. A probe win is a candidate for a cohort, not a measured benchmark gain.
+**The missing step.** The historical audit through 2026-10-28 did not establish a fixed-run confirmation of a probe-driven switch; check current cohort evidence before repeating that historical status as current. A probe win is a candidate for a cohort, not a measured benchmark gain.
 
 ## Choose decision points and outcomes
 
@@ -78,15 +86,23 @@ These are priors for choosing candidates, not rules. Each one comes from a small
 - **Freeze a held-out split before looking.** Include a negative control: contexts where the intervention should not fire or should not change the action.
 - **Test the note at the decision it must change, not where the trigger first fires.** heard-line-route-note (2026-10-28):
   - The model ignored Briney's note 0/8 right after a step out of Rustboro onto Route 116 (a702 T665).
-  - The same content, delivered at the Rustboro exit choice itself, moved held-out SOUTH exits from 2/96 to 30/96 (strict scoring, p ≈ 2e-8).
+  - The same content, delivered at the Rustboro exit choice itself, moved strict SOUTH-exit counts from 2/96 to 30/96. The reported pooled p ≈ 2e-8 is descriptive: the audit found reused source families and scoring revisions, so this is not an untouched-family confirmatory claim.
   - Compute where a trigger fires in recorded runs, offline, before any GPU. Then check that it is armed at the real choice point; a persistent trigger may be needed.
 - **Check the channel before a wording sweep.** Send a harmless instruction ("reply with only the word PINEAPPLE") in each candidate placement, 4 samples each. In a702's request shape:
   - final user message: 4/4
   - a message right after the last tool result, ahead of the trailing memory block: 2/4
   - last line of the tool result: 1/4
   - merged into the trailing memory block: 0/4
-  - A placement that cannot pass this check cannot carry a note.
+  - This is a small salience diagnostic, not a guarantee of task compliance or a definitive failure from four draws; preserve the actual delivery proof separately.
 - **Score blind and strictly.** Score per arm under random codes before opening the key. Count only actions valid in the current state: an exit issued with another map's id is not a move. Report lenient counts separately.
+
+## Qualify the actual intervention before sampling
+
+- Freeze each candidate as text/template, placement, deterministic eligibility and persistence/consumption. Check the real choice point and negative controls; a large lexical diff at an irrelevant turn is not a useful experiment.
+- Bind system prompt, messages/roles/parts, images, tool definitions, sampling (including penalties and reasoning limits), model/quant/template, runtime pins and scorer to the measured request. Preserve the actual final provider request or hashes where capture permits. Matching counts, approximate tokens, or two reconstructions using the same transform do not prove exact delivery.
+- Classify the baseline as recorded-exact, validated reconstruction, or approximate diagnostic. Historical missing wire bodies must be disclosed; resolve unexplained differences before sampling and limit the claim to what the reconstruction supports. Do not disable unrelated historical switches or strip context simply to make replay pass.
+- Exercise the production transform order, multipart text and stateful trackers over the full relevant prefix, including history later dropped from the model window. Verify the changed text and tools in every arm, prompt-plus-output fit, and final note ordering after all wrappers. An unsupported switch flip fails closed rather than silently becoming control.
+- Qualify the scorer against the pinned production validator/tool path and task endpoint. A copied phrase, changed call, good explanation or gate-conditional synthetic example is not automatically task recovery. Version and preserve grading corrections; evaluate transfer with genuine contrast cases and inspect full responses only on development data or after the final lock.
 
 ## Setup checklist for `just probe-decision` in a worktree
 
@@ -96,14 +112,14 @@ The 2026-10-28 GPU windows lost runs to each of these. Check them with a `--cont
 2. **The vendored submodule must be checked out.** Run `git submodule update --init env/vendor/continual-harness` in the worktree. Without it, map tables such as `env/vendor/continual-harness/pokemon_env/porymap/data/maps/map_groups.json` are missing.
 3. **Rebuild `dist` after a merge.** Tests and the CLI read `@pokebench/agent` from `dist`. After merging new switches, run `pnpm -r build`, or new switch ids show up as "unknown feature".
 4. **Record the probe's exit status.** In a batch script, write `just probe-decision … ; rc=$?` and log `$rc`. `echo "… $(date …) rc $?"` logs the status of `date`, so failed runs showed rc 0.
-5. **Check the context budget and fidelity.** The rebuilt context must match the recorded message and image counts, which is what `--recorded-trim` guarantees; check the token fit separately (item 6). Use `--recorded-trim` when the run trimmed context. Use `--trust-header` when the change is to harness-trust's Story goal line.
+5. **Check the context budget and fidelity.** `--recorded-trim` matches the recorded message and image counts at the recorder boundary, not the exact provider request. Also validate content/ordering, tools, images and derivation scope above, and token fit separately (item 6). Use `--recorded-trim` when the run trimmed context. Use `--trust-header` when the change is to harness-trust's Story goal line.
 6. **Fit the context to the lane's window.** A context larger than the serving lane's window comes back as a model error, and `sample()` records it as a decision. Every 88ea sample (80,848 tokens against GPU1's 65,536) was an error. Before scoring, grep the samples for "model error", and make sure the rebuilt prompt plus the output allowance fits the serving lane's window.
 7. **`--trust-header` keeps the recorded exits line word for word.** An arm that flips a switch which changes the exits line (jit-exit-dialogue-v1) shows nothing new unless that line is re-derived too. The 2026-10-28 jit arms at a702 T681 and T664 were effectively control arms. Confirm the arm's text with `--context-only` or a dry dump of the last result.
 8. **Replay-runner gaps.**
    - Runs with gym-heal-warning-v1 need the Replay recorder's `gymHealWarning` hook. A no-op keeps the text.
    - Events files over about 2 GB need `node --max-old-space-size=12288`.
    - Another model's run (Astra 429f) may not host the arm's switch set ("switch set is inconsistent").
-9. **Size the batch to the lock.** Comparable calls took 1.3–3.3 minutes per arm of 8 at ~20–35k tokens. Put a deadline check in the batch script, and order turns by information value so the least useful turn is cut first.
+9. **Size the batch to the lock.** Comparable calls took 1.3–3.3 minutes per arm of 8 at ~20–35k tokens. Reserve the complete frozen batch and teardown before starting. Order exploratory batches by information value between batches; a deadline-truncated batch remains incomplete, with all partial calls retained, rather than an analyzed favorable subset.
 
 ## Ground the correction in the traces
 
@@ -160,3 +176,7 @@ Use the repository's viewer-e2e skill for a broken control or polling behavior. 
 The viewer's automatic “departs from recorded call” color is a proxy, not successful recovery. Its generic Fisher display does not replace a preregistered paired/clustered analysis. Repeated draws from one historical context are not independent gameplay runs. Preserve model groups; never pool Mac Qwen 3.8 and GPU Qwen 3.6. During operational visibility checks for a blinded batch, hide outcome bars and response details. Give graders the response reasoning and state evidence needed for scoring while withholding treatment labels and aggregate outcomes until scores are locked; visibility verification must not become interim outcome analysis. Deliberate trace inspection belongs after a completed exploratory batch and must not contaminate untouched confirmation.
 
 Report the exact viewer link, verified progress, resource-wait state, and any missing proof. A publication failure leaves launch incomplete even when sampling continues; repair the display without losing or rerunning recorded calls.
+
+## Operator report
+
+Report the research question, executive answer, measured endpoint, per-family effect/uncertainty, regression checks, total resource use and whether the evidence is supported, rejected, inconclusive or invalid. Follow active operator report preferences through a global reporting skill when available; personal presentation/delivery configuration does not belong in project skills. Keep detailed raw evidence linked separately from the operator summary.

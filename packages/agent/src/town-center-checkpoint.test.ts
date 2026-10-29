@@ -9,11 +9,11 @@ import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
-import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {featuresOf,featureInfo,playHarnessFeatures,SERVER_FEATURES} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
-import type {PlacesBody} from "./story-destinations.js";
+import type {PlacesBody,PlaceSource} from "./story-destinations.js";
 import {townCenterFacts,townCenterText} from "./town-center-checkpoint.js";
 
 const ID="town-center-checkpoint-v1";
@@ -24,9 +24,9 @@ const f=fixture(),NOTE="Enter OLDALE TOWN’s Pokémon Center now, using the lis
 const heal=f.state.heal_before_trainers;if(heal===undefined)throw Error("native heal fixture");
 const flags=(on:boolean)=>({...featuresOf(["ram-state-v1","heal-before-trainers-v1"]),[ID]:on});
 const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:f.sourceRun,seq:100,turn:10,t:"2026-10-28T00:00:00.000-04:00",...body});
-function setup(on=true){
+function setup(on=true,source:PlaceSource={places:()=>Promise.resolve(places)}){
  const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
- const wiring=contextTools(flags(on),{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>{}},m=>Promise.resolve(m),undefined,{places:()=>Promise.resolve(places)});
+ const wiring=contextTools(flags(on),{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>{}},m=>Promise.resolve(m),undefined,source);
  const feed=(...events:RunEvent[])=>{for(const e of events)for(const listener of listeners)listener(e);};
  const input=(id="result",text=f.resultText):AgentMessage[]=>[{role:"toolResult",toolCallId:id,toolName:"observe",content:[{type:"text",text}],isError:false,timestamp:0}];
  const arrive=(s=f.state,text=f.resultText,id="result",seq=100)=>{feed(event({...s,type:"state",seq}),event({type:"tool_result",seq:seq+1,id,name:"observe",text,state_seq:seq,is_error:false,frames:[],duration_ms:0}));return input(id,text);};
@@ -67,8 +67,9 @@ it("does not invent a Center on routes, from a missing warp, or behind a native 
  expect(townCenterFacts({...f.state,exit_reach:{warps:[{x:6,y:16,reach:"none"}],connections:[],foot:{width:1,height:1,rows:["0"]}}},places.places,f.resultText)).toBeNull();
 });
 it.each([false,true])("real pinned pi HTTP delivery respects ON=%s, retains plain-string wording after trimming, and stops after native entry",async on=>{
- const requests:{messages:{role:string;content:unknown}[]}[]=[];
+ const requests:{messages:{role:string;content:unknown}[]}[]=[];let placeReads=0;
  const server=createServer((req,res)=>{
+  if(req.url==="/pokebench/places"){placeReads++;res.end(JSON.stringify(places));return;}
   if(req.url==="/v1/models"){res.end(JSON.stringify({data:[{id:"checkpoint-fixture",context_window:65536,max_tokens:4096}]}));return;}
   let body="";req.setEncoding("utf8");req.on("data",(c:string)=>{body+=c;});req.on("end",()=>{
    requests.push(JSON.parse(body) as typeof requests[number]);const center=requests.length===2;
@@ -79,13 +80,13 @@ it.each([false,true])("real pinned pi HTTP delivery respects ON=%s, retains plai
  });await new Promise<void>(resolve=>{server.listen(0,"127.0.0.1",resolve);});
  try{
   const {port}=server.address()as AddressInfo,model=selectModel(await discoverModels({gatewayUrl:`http://127.0.0.1:${String(port)}/v1`,visionModels:["checkpoint-fixture"]}),"checkpoint-fixture");
-  const s=setup(on),controller=new AbortController();let observations=0,trims=0;
+  const s=setup(on,new StateWatcher(`http://127.0.0.1:${String(port)}`)),controller=new AbortController();let observations=0,trims=0;
   const governor=new Governor({limits:{maxTurns:3,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{controller.abort();},now:()=>0});
   const execute=(id:string)=>{const after=observations++>0;const state=after?{...f.state,heal_before_trainers:{...heal,last_heal:[0,10] as [number,number]}}:f.state;s.arrive(state,f.resultText,id,100+observations*10);return Promise.resolve({content:[{type:"text"as const,text:f.resultText}],details:undefined});};
   const tools=[{name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute},{name:"navigate_to_target",label:"Navigate",description:"Navigate",parameters:Type.Object({map_id:Type.Array(Type.Integer()),target:Type.Object({kind:Type.Literal("warp"),x:Type.Integer(),y:Type.Integer()})}),execute}];
   const loop=piLoop({systemPrompt:"Play",tools,base:playLoopBase(model,"off",undefined,1,flags(on)),governor,signal:controller.signal,transformContext:s.wiring.transformContext,emit:e=>{if(e.type==="message_end"&&e.message.role==="assistant")s.reply(e.message.stopReason);},budget:new ContextBudget(1),onBudgetTrim:()=>{trims++;}});
   expect(await play({role:"user",content:"Play",timestamp:0},governor,loop)).toBe("budget");expect(requests).toHaveLength(3);expect(trims).toBeGreaterThan(0);
   expect(requests[0]?.messages.some(m=>m.content===NOTE)).toBe(false);expect(requests[1]?.messages.at(-1)?.content===NOTE).toBe(on);expect(requests[2]?.messages.some(m=>m.content===NOTE)).toBe(false);
-  if(on)expect(requests[1]?.messages.at(-1)).toEqual({role:"user",content:NOTE});expect(s.notes).toHaveLength(on?1:0);
+  if(on)expect(requests[1]?.messages.at(-1)).toEqual({role:"user",content:NOTE});expect(s.notes).toHaveLength(on?1:0);expect(placeReads).toBe(on?1:0);
  }finally{await new Promise<void>((resolve,reject)=>{server.close(e=>{if(e)reject(e);else resolve();});});}
 });

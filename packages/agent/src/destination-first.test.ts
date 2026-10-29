@@ -58,7 +58,7 @@ it("production factory delivers immediate guidance, target-first readouts and de
  expect(r.details).toBe(result.details);
 });
 it("registers default OFF, records ON and enables both current arms explicitly",()=>{
- expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(302);
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(301);
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1"});
  const omitted=Object.fromEntries(Object.entries(OLD).filter(([id])=>id!==ID)) as Parameters<typeof normalizeFeatures>[0];
  expect(normalizeFeatures(omitted)[ID]).toBe(false);

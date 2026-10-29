@@ -19,3 +19,6 @@ Focused Python63PASS, agent18PASS, server/generated-arm focused checks pass. Pro
 
 Coordination relay grants operational ownership and one replacement24h window from launch; original launcher archived. Server47723 remains untouched. CPU dependency/focused window released; full-gate request pending. Preserve all failure receipts; no old run stopped.
 COMMIT: remove active visibility V1 and repair V2 connected-map identity.
+
+First full executable gate: lintPASS, buildPASS, vendorPASS; test failed11/5063 agent cases, all exact numeric positions after deleting V1 index297 (and server V1 index97), not behavior failures. Viewer/Python/gateway/card tail not reached. Preserve /tmp/visibility-full-test.log. Bounded test-only correction shifts only affected explicit switch/server indices down1, retaining all order assertions and other checks; no source implementation or test meaning changed. Focused corrected10files GREEN. Reviews of frozen248 runtime can be retained; independent test-delta review required before landing. CPU RELEASE sent on failure. Candidate browser first attempt raced hash navigation and saw prior syntheticOFF card; isolate a fresh background page for historical replay, no product code change.
+COMMIT: align pinned registry indices after authorized V1 deletion.

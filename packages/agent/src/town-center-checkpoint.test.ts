@@ -128,7 +128,7 @@ it.each(["successful-action","retries"] as const)("real recorder preserves live/
  const root=mkdtempSync(join(tmpdir(),"pokebench-town-recorder-"));
  try{
   const log=RunLog.create(root,"town-recorder"),rec=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(f.state)},now:()=>0});
-  await rec.start({...RUN_START_META,harness_features:playHarnessFeatures(flags(true),null)},false);
+  await rec.start({...RUN_START_META,harness_features:["ram-state-v1","heal-before-trainers-v1","exit-reachability-v1",ID]},false);
   const wired=contextTools(flags(true),rec,rec.transformContext,undefined,{places:()=>Promise.resolve(places)}),history:AgentMessage[]=[{role:"user",content:"Play",timestamp:0}],live:boolean[]=[];
   const request=async()=>{const out=await wired.transformContext(history);live.push(out.some(m=>m.role==="user"&&m.content===NOTE));};
   const assistant=(content:AssistantMessage["content"],stopReason:AssistantMessage["stopReason"]):AssistantMessage=>({role:"assistant",api:"openai-completions",provider:"fixture",model:"fixture",content,stopReason,timestamp:0,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}});

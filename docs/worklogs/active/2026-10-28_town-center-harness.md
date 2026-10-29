@@ -109,3 +109,5 @@ Parent independently reproduced real-recorder timing defect: actual note turn2, 
 ## Authorized bounded R2 correction
 
 The operator answered yes to fixing only the two recording/replay bugs, completing guard checks and re-review. Added actual RunRecorder/RunLog regression for delivery, three text-only/error retries, consumption and both recorded/replayed contexts; one receipt per visit remains required. This supersedes the round2 STOP solely for that bounded correction and integration.
+
+RED fixture correction: initial actual-recorder test accidentally declared baseline battle-choices reader via playHarnessFeatures and failed setup. Preserved that receipt; narrowed metadata to the four features actually exercised, matching independent reproducer. Both cases now fail on the intended live-versus-recorded mismatch (real-recorder-red-native.log); no assertion weakened.

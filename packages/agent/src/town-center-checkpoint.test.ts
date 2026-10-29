@@ -1,3 +1,5 @@
+import {RUN_START_META} from "../test-support/events.js";
+import {recordedRun,recordedFeatures,decisionContext} from "./decision-probe.js";
 import {createServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {Type} from "typebox";
@@ -18,7 +20,7 @@ import type {PlacesBody,PlaceSource} from "./story-destinations.js";
 import {townCenterFacts,townCenterText} from "./town-center-checkpoint.js";
 
 const ID="town-center-checkpoint-v1";
-const fixtures=JSON.parse(readFileSync(new URL("../test-support/town-center-states.json",import.meta.url),"utf8")) as Record<string,{sourceRun:string;sourceStateSeq:number;state:GameStateSnapshot;resultText:string}>;
+const fixtures=JSON.parse(readFileSync(new URL("../test-support/town-center-states.json",import.meta.url),"utf8")) as Record<string,{sourceRun:string;sourceStateSeq:number;rawRam:NonNullable<GameStateSnapshot["raw_ram"]>;state:GameStateSnapshot;resultText:string}>;
 const places=JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as PlacesBody;
 const fixture=(id="healthy-a")=>{const f=fixtures[id];if(f===undefined)throw Error(id);return {...f,state:parseGameState(f.state)};};
 const f=fixture(),NOTE="Enter OLDALE TOWN’s Pokémon Center now, using the listed entrance warp at (6,16) on map [0, 10]. Entry sets your blackout return point here even when your party is healthy. Heal with the nurse if needed, then resume your current objective.";
@@ -91,4 +93,25 @@ it.each([{on:false,mode:"estimated"},{on:true,mode:"estimated"},{on:true,mode:"e
   expect(requests[0]?.messages.some(m=>m.content===NOTE)).toBe(false);expect(requests[1]?.messages.at(-1)?.content===NOTE).toBe(on);expect(requests[2]?.messages.some(m=>m.content===NOTE)).toBe(false);
   if(on)expect(requests[1]?.messages.at(-1)).toEqual({role:"user",content:NOTE});expect(s.notes).toHaveLength(on?1:0);expect(placeReads).toBe(on?1:0);
  }finally{await new Promise<void>((resolve,reject)=>{server.close(e=>{if(e)reject(e);else resolve();});});}
+});
+it("retains the note across the actual text-only assistant and governor follow-up history",async()=>{
+ const s=setup(),input=s.arrive();await s.wiring.transformContext(input);s.reply("stop",false);
+ const textOnly:AgentMessage={role:"assistant",api:"openai-completions",provider:"fixture",model:"fixture",content:[{type:"text",text:"I should enter the Center."}],usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},stopReason:"stop",timestamp:0};
+ const retry:AgentMessage[]=[...input,textOnly,{role:"user",content:"Use a tool to continue.",timestamp:0}];
+ expect((await s.wiring.transformContext(retry)).at(-1)?.content).toBe(NOTE);expect(s.notes).toHaveLength(1);
+});
+it("decision replay preserves consumed visit receipts and rearms only after a new visit",async()=>{
+ let seq=0;const events:RunEvent[]=[];const add=(body:Record<string,unknown>)=>{const e=event({seq:seq++,turn:1,...body});events.push(e);return e;};
+ add({type:"run_start",turn:0,...RUN_START_META,harness_features:playHarnessFeatures(flags(true),null)});
+ const turn=(n:number)=>add({type:"turn_start",turn:n,context:{messages:1,images:0,est_tokens:1}});
+ const observe=(n:number,id:string,state:GameStateSnapshot=f.state)=>{
+  add({type:"assistant",turn:n,thinking:"",text:"",tool_calls:[{id,name:"observe",args:{}}],usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null,stop_reason:"toolUse"});add({type:"tool_call",turn:n,id,name:"observe",args:{}});
+  const s=add({...state,type:"state",turn:n,raw_ram:f.rawRam});const r=add({type:"tool_result",turn:n,id,name:"observe",text:f.resultText,state_seq:s.seq,is_error:false,duration_ms:0,frames:[]});return {s,r};
+ };
+ turn(1);const first=observe(1,"first");add({type:"ledger_context",turn:2,text:NOTE,evidence:[first.s.seq,first.r.seq]});turn(2);observe(2,"consumed");turn(3);
+ const run=recordedRun(events),features=recordedFeatures(run),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",places:()=>Promise.resolve(places.places)};
+ const recorded=await decisionContext(run,3,features,ports,"recorded"),replayed=await decisionContext(run,3,features,ports,"replayed");
+ expect(recorded.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);expect(replayed.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);
+ observe(3,"leave",{...f.state,map_id:[0,16],location:"ROUTE 101"});turn(4);observe(4,"return");turn(5);
+ const returned=await decisionContext(recordedRun(events),5,features,ports,"replayed");expect(returned.messages.at(-1)?.content).toBe(NOTE);
 });

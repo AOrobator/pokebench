@@ -81,3 +81,11 @@ Tracked explainer: `docs/explainers/town-center-checkpoint-v1.html`, themed and 
 No main hold is requested. If main advances, audit changed contracts and retain or rerun proof by impact under the current landing policy.
 
 Final gate receipts are complete. CPU RELEASE sent; no heavy job remains. One additional test-only case exercises the existing ExactContext provider path (enabled in current) alongside estimated fitting: checkpoint file now 13/13 PASS, changed-file lint and agent type check PASS. Application source is unchanged from `702270f28`; retained global agent coverage had 5,019 tests before this additional case. Full combined post-merge testing will include it. No new clipping behavior was introduced.
+
+## Independent review round 1
+
+Frozen base2308380fd → head0aed50595, binary diff SHA256 e132662f1ae8f0957f6c16899739300311daa30012b3aca913b774f0406dd102; candidate remained clean and unchanged. Claude CLI: VERDICT LGTM. Fresh GPT-family Codex review: VERDICT BLOCKING with two reproduced bugs: actual text-only reply history hides the still-current result from the reminder scan; decision replay drops historical checkpoint ledger receipts, losing consumed-visit state. Both are accepted fixes in the original context/replay scope. R1 PB7/PB11 assertions were too broad for those histories; regressions and revised evidence are required.
+
+Both discovered Grok4.5 and Grok4.7 Cursor attempts failed before review with the account usage limit; stdout empty, failures retained. This is not a verdict. After fixing R1, use the standing two-fresh-model fallback plus available Claude/GPT reviewers. PokeBench requires operator permission to land without the normal Grok cloud lane; do not self-merge merely because fallback reviews pass.
+
+Added actual assistant-plus-follow-up history and decision replay consumed/new-visit regressions; both run RED on the reviewed source. No additional domain or unrelated capability. Full prior packet and R1 synthesis remain immutable under evidence/review-r1.

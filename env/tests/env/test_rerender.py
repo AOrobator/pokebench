@@ -261,7 +261,9 @@ def test_parse_request_keeps_order():
 
 
 def test_main_reads_the_archive_with_the_operator_rom(monkeypatch, tmp_path):
-    monkeypatch.setattr(rerender.MapMemory, "project", lambda self, read, state, *, whole_lit=False: state)
+    monkeypatch.setattr(
+        rerender.MapMemory, "project", lambda self, read, state, *, whole_lit=False: state
+    )
     rom = tmp_path / "rom.gba"
     rom.write_bytes(b"ROM")
     calls: list[tuple[Path, str, bytes]] = []

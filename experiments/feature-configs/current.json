@@ -77,7 +77,9 @@
   "disproved-beliefs-bound-v1",
   "id-card-bound-v1",
   "instruction-memory-yaml-v1",
-  "current-question-focus-v1"
+  "current-question-focus-v1",
+  "eight-badge-mission-v1",
+  "discovered-gym-checklist-v1"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -466,6 +468,8 @@
   "disproved-beliefs-bound-v1": false,
   "destination-first-navigation-v1": true,
   "id-card-bound-v1": false,
-  "instruction-memory-yaml-v1": false
+  "instruction-memory-yaml-v1": false,
+  "eight-badge-mission-v1": false,
+  "discovered-gym-checklist-v1": false
  }
 }

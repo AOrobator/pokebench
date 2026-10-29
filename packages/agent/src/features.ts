@@ -319,6 +319,8 @@ export const SWITCHABLE_FEATURES = [
   "screenshot-button-baseline-v1",
   "move-learn-type-matchup-v1",
   "current-question-focus-v1",
+  "eight-badge-mission-v1",
+  "discovered-gym-checklist-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -756,6 +758,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("screenshot-button-baseline-v1", "guidance", "SCREENSHOT AND BUTTON BASELINE", null, "Default off. Requires every other behavior switch off. Uses the operator-approved short screenshot/button prompt and removes text from successful observe/press results while retaining private state for scoring. Pair with the baseline preset, which disables every other behavior switch. Ordinary conversation history, exposed reasoning recording, button schema and timing are retained. Off: preserves the previous prompt and tool-result bytes."),
   on("move-learn-type-matchup-v1", "observation", "MOVE MATCHUPS AND BONUSES", "battle-effective-damage-v1", "Default off. Needs the existing effective-damage readout and its battle-information dependencies. At move-learning pages and ready battle choices, shows ROM type-chart multipliers against delivered foe type profiles, learner STAB, actual Attack/Sp. Atk and known ability conditions. Current battle damage reuses Emerald arithmetic with fixed two-hit support. Historical profiles never imply current enemy stats or abilities. Bounded to 12 displayed and 64 retained profiles. No advice or automatic choices. Off: existing observations, prompts and tools are unchanged."),
   on("current-question-focus-v1", "guidance", "CURRENT QUESTION FOCUS", "dialogue-auto-advance-v1", "Default off; enabled only in the current bundle by operator approval. Repeats the final whole delivered field-dialogue page beside the current ready YES/NO selection and existing controls as a temporary last request message, then asks the model to compare both answer meanings with its intention without inventing later consequences. Requires matching current state, result, map and visible dialog; unknown or changed questions are omitted. Uses existing dialogue pages and ledger-context receipts, with no answer selection, new game facts or automatic input. Off: existing context, prompts, tools and execution remain unchanged."),
+  on("eight-badge-mission-v1", "guidance", "EIGHT BADGE MISSION", null, "Default off; current bundle ON and control OFF by operator approval. Untargeted play explicitly pursues story progress and all eight Gym Badges, including the initial task and every prompt scene. Explicit milestone targets retain precedence. No Rayquaza goal or route is supplied. Off: the previous mission sentence and initial task are unchanged."),
+  on("discovered-gym-checklist-v1", "guidance", "DISCOVERED GYM CHECKLIST", null, "Default off; current bundle ON and control OFF by operator approval. A bounded checklist remembers gyms named in successful delivered current location, sign, entrance or dialogue evidence. Only delivered native badge state completes them. Leaving, errands, loss and model claims never remove an obligation. Reminds the model before decisions without choosing a route, forcing a battle or blocking travel. Hidden templates do not discover gyms. Off: no checklist, extra context or checklist receipts; existing behavior is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1162,6 +1166,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("screenshot-button-baseline-v1"),
     ...when("move-learn-type-matchup-v1"),
     ...when("current-question-focus-v1"),
+    ...when("eight-badge-mission-v1"),
+    ...when("discovered-gym-checklist-v1"),
   ];
 }
 
@@ -1172,5 +1178,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["pokenav-call-auto-advance-v1","cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["eight-badge-mission-v1","discovered-gym-checklist-v1","pokenav-call-auto-advance-v1","cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

@@ -100,3 +100,13 @@ it("enables neutral YES/NO controls only in the current bundle",()=>{
   expect(d.switches,name).toContain("neutral-yes-no-readout-v1");
  }
 });
+
+it("enables both gym campaign treatments in bundle only for every maintained recipe",()=>{
+ for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
+  const d=readFixedDefinition(root,name).definition;
+  for(const id of ["eight-badge-mission-v1","discovered-gym-checklist-v1"]){
+   expect(d.switches).toContain(id);expect(d.onInBoth).not.toContain(id);
+   expect(armFeatureBits(d,"bundle")[id]).toBe(true);expect(armFeatureBits(d,"control")[id]).toBe(false);
+  }
+ }
+});

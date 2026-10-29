@@ -14,10 +14,10 @@ const GYMS=[
  ["LAVARIDGE TOWN","HEAT"],["PETALBURG CITY","BALANCE"],["FORTREE CITY","FEATHER"],
  ["MOSSDEEP CITY","MIND"],["SOOTOPOLIS CITY","RAIN"],
 ] as const;
-const normalized=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").replace(/\s+/g," ").toUpperCase();
+const normalized=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").replace(/’/g,"'").replace(/\s+/g," ").toUpperCase();
 function namesGym(text:string,town:string):boolean {
  const s=normalized(text),place=town.replace(/ (?:CITY|TOWN)$/,"");
- return new RegExp(`\\b${town}(?: POKEMON)? GYM\\b|\\b(?:POKEMON )?GYM IN ${town}\\b|\\b${town} IS A GYM\\b|\\b${place}'S(?: POKEMON)? GYM\\b`).test(s);
+ return new RegExp(`\\b(?:${town}|${place})(?:'S)?(?: POKEMON)? GYM\\b|\\b(?:POKEMON )?GYM IN ${town}\\b|\\b${town} IS A GYM\\b`).test(s);
 }
 function observedLines(text:string):string {
  // Only current observation fields, never historical summaries, model goals or templates.

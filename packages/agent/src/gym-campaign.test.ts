@@ -99,3 +99,13 @@ it("replays exact GLM delivery and native state without trusting its discarded b
   expect(note).toContain(e.seq===138271?"2/8":"1/8");
  }
 });
+
+it.each([
+ ["Are you off to FORTREE GYM next?","FORTREE CITY"],
+ ["See? This is PETALBURG CITY's GYM.","PETALBURG CITY"],
+ ["See? This is PETALBURG CITY’s GYM.","PETALBURG CITY"],
+])("recognizes source-owned gym dialogue forms: %s",async(line,town)=>{
+ const s=setup(),body=`Screen: overworld\nLocation: ROUTE 119\nDialogue shown during this call:\n${line}`;
+ s.feed(s.state(1),checkEvent({v:1,run:"r",seq:2,turn:1,t:"2026-10-28T00:00:00.000-04:00",type:"dialogue_auto_advance",tool_call_id:"c4",tool:"observe",requested:[],sent:[],dropped:[],auto_presses:1,stop:"field_free",detail:"pret Route119_Text_ScottWayToGoBeSeeingYou / PetalburgCity_Text_ThisIsPetalburgGym",duration_ms:1,pages:[{state_seq:1,map:"ROUTE119",map_id:[0,34],position:null,speaker:null,speaker_source:null,text:line}]}),s.state(3),s.result(4,body));
+ expect(stringValue((await s.wiring.transformContext(s.history(4,body))).at(-1)?.content)).toContain(`${town} GYM — unfinished`);
+});

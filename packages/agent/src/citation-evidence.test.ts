@@ -90,11 +90,11 @@ it("requires a structured quote, allows optional rationale and rejects malformed
 });
 it("is on in both arms of current recipes; defaults and historical fixed definitions remain OFF",()=>{
  const dir=new URL("../../../experiments/fixed/",import.meta.url);
- const current=new Set(["bundle-v-control.json","bundle-v-control-2h.json","glm53-flash-4h.json","hyperqwen-control-3h.json"]);
  for(const name of readdirSync(dir).filter(n=>n.endsWith(".json"))){
+  const current=(JSON.parse(readFileSync(new URL(name,dir),"utf8")) as {featureRecipe?:string}).featureRecipe==="current";
   const d=JSON.parse(recipeText(new URL(name,dir),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth?:string[]};
-  expect(d.base.features[ID]??false,name).toBe(current.has(name));
+  expect(d.base.features[ID]??false,name).toBe(current);
   expect(d.switches,name).not.toContain(ID);
-  expect((d.onInBoth??[]).includes(ID),name).toBe(current.has(name));
+  expect((d.onInBoth??[]).includes(ID),name).toBe(current);
  }
 });

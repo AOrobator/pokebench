@@ -47,3 +47,6 @@ Dual-slot profile COMPLETE:16paired blocks +4baseline +3warmups +2initial nearca
 
 Fixeddefinition RED confirmed: focused viewer3tests1fails expected131072/2 vs actual262144/1; log /tmp/glm-dual-config-red.log. This tests actualperrequest servingcontract; totalKV262144 unchanged.
 COMMIT: pin replacement GLM dual-slot serving contract RED.
+
+GREEN fixeddefinition serving now131072/2, focused3PASS (includes existing fakeone-runrehearsal). The independent configrow contract matches live /props and /slots, metadata correctperrequest. Coordinator acceptedprofileand cleared one namedowner gameplaymax1+probemax1 with noleasebypass, no>32kuncachedprefillduringgameplay, slowdowndisclosed. Replacement launchclearedafter normalgates/review/landing; fullCPUqueue#2behindQwenplainclock. Noadditional inference authorizedbythisconfigedit.
+COMMIT: align replacement serving expectation with profiled two-slot server.

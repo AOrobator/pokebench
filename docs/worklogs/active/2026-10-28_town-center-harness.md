@@ -73,7 +73,7 @@ Tracked explainer: `docs/explainers/town-center-checkpoint-v1.html`, themed and 
 - [x] RED/GREEN, exact wording/encoding, native eligibility, suppression and OFF/factory checks.
 - [x] Both future arms configured; explainer and preview click-through.
 - [x] Complete remaining deterministic gates and release CPU.
-- [ ] Principles self-review and three independent cloud reviews on one frozen packet.
+- [x] Principles self-review and approved cloud/fallback review roster on frozen R3 packet; reduced diversity recorded.
 - [ ] Landing board, fast-forward merge, required combined post-merge tests and coordinated viewer refresh. No active gameplay restart.
 - [ ] Final source/config/served receipt. Do not claim gameplay benefit.
 - [ ] Ask the operator before archiving this worklog.
@@ -119,3 +119,13 @@ Performed native-foot, state_seq and exact-delivered-text operand deletions each
 Integration with mainaaa9d0ea6: resolved additive feature/preset/default/explainer/test mappings; retained upstream gym checklist inside existing scene/type-gap/question chain, checkpoint wrapper outermost. No schema, dependency or build/tooling change. Shared prompt/registry/current recipe contracts require affected focused integration checks and cumulative review. Prior source proof retained only for unchanged inputs/contracts.
 
 Integrated source checks:89focused agent tests PASS plus19checkpoint tests including actual checklist-before-checkpoint composition. Both package typechecks and changed agent lint PASS after resolving optional preset Exclude union conflict; initial duplicate-required field type/lint errors retained. Native/stale operand mutation evidence covers all three named guards. Heavy affected-gate START requested, viewer consumers require compiled registry rebuild.
+
+## R3 review and gates complete
+
+Frozen909b9652f/baseaaa9d0ea6/diffSHA2561be67655507d991d393bfb555a5b608d0e3f26f79508ab967fdb748712dff213: Claude, normalGPT, freshSol and Astra all VERDICT LGTM. R2actualrecorderbugs resolved; no newblocker/scopeexpansion. Full synthesis/principles and verdicts retained under review-r3. Human blanket Grokoutageauthorizationverified; no fabricated Grokreview.
+
+Build PASS; agent5049tests PASS, lines99.16/branches92.45/functions97.48; focusedviewer397tests PASS; full lint/vendor PASS. CPU RELEASE delivered. Earlier unaffectedPython4913/gateway116/viewerfull2325/card3sizes retained under impact policy. Combined post-mainjusttest still required. Quiet cheapcheck commands now have explicit command/session/exitstatus receipts.
+
+Regenerated production contextTools fixture from909source: ONexactreceipt/OFFnone. Background actualbrowser clicks/configbadges/explainerpopup/Activity/raw/nativeframe and servedmodulehashes PASS. Screenshots1280/1440/375 plus expanded/collapsedraw and featurecards opened and inspected. No overflow/networkresources/pageerrors; oldfixtureartgap explicitly remains fixture-only. Ownedpreview stopped. Pages-check PASS.
+
+Main advancedaaa9d0ea6→e1cb45005 with viewer-history preservation changes. Shared event schema, feature catalog/config, agentcontext/replay and rendererinterfaces unchanged; inspect exactfeaturediff and retain proofs byimpact. Upstream history fixes do not alter checkpoint payload/eligibility or feature/explainer bindings. Post-main combinedtestand livebrowser will exercise integrated retrieval. No main hold.

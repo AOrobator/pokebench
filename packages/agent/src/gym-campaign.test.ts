@@ -4,7 +4,7 @@ import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {featuresOf,featureInfo,playHarnessFeatures} from "./features.js";
+import {featuresOf,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {normalizeFeatures} from "./play-preset.js";
 import {playGoal,playSystemPrompt,initialPlayTask,stableJitPrompts} from "./play-config.js";
 import {contextTools} from "./play-wiring.js";
@@ -12,9 +12,9 @@ const mission="eight-badge-mission-v1",checklist="discovered-gym-checklist-v1";
 const flags=(on=true)=>({...featuresOf([]),[checklist]:on});
 const stringValue=(v:unknown):string=>typeof v==="string"?v:"";
 const text='Screen: overworld\nLocation: DEWFORD TOWN (map 0/11)\nBadges: STONE\nSign text "DEWFORD TOWN POKéMON GYM | LEADER: BRAWLY | “A big wave in fighting!”" at (11,16), elevation 0; A';
-function setup(on=true){
+function setup(on=true,extra:Partial<FeatureSet>={}){
  const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
- const wiring=contextTools(flags(on),{subscribe:f=>{listeners.push(f);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
+ const wiring=contextTools({...flags(on),...extra},{subscribe:f=>{listeners.push(f);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
  const feed=(...es:RunEvent[])=>{for(const e of es)for(const f of listeners)f(e);};
  const state=(seq:number,badges:string[]=[],map:[number,number]=[0,11],run="r")=>checkEvent({v:1,run,seq,turn:1,t:"2026-10-28T00:00:00.000-04:00",...IN_GAME,type:"state",map_id:map,badges});
  const result=(seq:number,body=text,extra:Record<string,unknown>={})=>checkEvent({v:1,run:"r",seq,turn:1,t:"2026-10-28T00:00:00.000-04:00",type:"tool_result",state_seq:seq-1,id:`c${String(seq)}`,name:"observe",text:body,is_error:false,duration_ms:1,frames:[],...extra});
@@ -108,4 +108,38 @@ it.each([
  const s=setup(),body=`Screen: overworld\nLocation: ROUTE 119\nDialogue shown during this call:\n${line}`;
  s.feed(s.state(1),checkEvent({v:1,run:"r",seq:2,turn:1,t:"2026-10-28T00:00:00.000-04:00",type:"dialogue_auto_advance",tool_call_id:"c4",tool:"observe",requested:[],sent:[],dropped:[],auto_presses:1,stop:"field_free",detail:"pret Route119_Text_ScottWayToGoBeSeeingYou / PetalburgCity_Text_ThisIsPetalburgGym",duration_ms:1,pages:[{state_seq:1,map:"ROUTE119",map_id:[0,34],position:null,speaker:null,speaker_source:null,text:line}]}),s.state(3),s.result(4,body));
  expect(stringValue((await s.wiring.transformContext(s.history(4,body))).at(-1)?.content)).toContain(`${town} GYM — unfinished`);
+});
+
+it("keeps obligations after stateless memory results and failed calls even with old history absent",async()=>{
+ const s=setup();s.feed(s.state(1,["STONE"]),s.result(2));await s.wiring.transformContext(s.history(2));
+ for(const [name,is_error] of [["get_dialogue",false],["get_instruction_goals",false],["navigate_to",true]] as const){
+  s.feed(s.result(3,"Memory tool response",{name,state_seq:undefined,is_error}));
+  const out=await s.wiring.transformContext([{role:"toolResult",toolCallId:"c3",toolName:name,content:[{type:"text",text:"Memory tool response"}],isError:is_error,timestamp:0}]);
+  expect(stringValue(out.at(-1)?.content)).toContain("DEWFORD TOWN GYM — unfinished; discovered at result 2");
+ }
+});
+it("discovers a source-owned gym in the native Dialog readout with auto-advance OFF",async()=>{
+ const s=setup(),body='Screen: overworld\nDialog: "See? This is PETALBURG CITY\'s GYM."\nLocation: PETALBURG CITY';
+ s.feed(s.state(1,[],[0,0]),s.result(2,body));expect(stringValue((await s.wiring.transformContext(s.history(2,body))).at(-1)?.content)).toContain("PETALBURG CITY GYM — unfinished");
+});
+it("recognizes the game's reversed short gym name in delivered dialogue",async()=>{
+ const s=setup(),body='Screen: overworld\nDialog: "BADGE from the GYM in FORTREE."\nLocation: SOOTOPOLIS CITY';
+ s.feed(s.state(1,[],[0,7]),s.result(2,body));expect(stringValue((await s.wiring.transformContext(s.history(2,body))).at(-1)?.content)).toContain("FORTREE CITY GYM — unfinished");
+});
+it("preserves existing type-gap last-message priority with checklist ON",async()=>{
+ const fixture=JSON.parse(readFileSync(new URL("../test-support/type-gap-replay-cases.json",import.meta.url),"utf8")) as {recorded:{block:string}[]};
+ const block=fixture.recorded[0]?.block;if(block===undefined)throw Error("fixture");
+ const s=setup(true,{"type-gap-team-v1":true,"type-gap-team-last-message-v1":true}),body=`${text}\n${block}`;
+ s.feed(s.state(1),s.result(2,body));const out=await s.wiring.transformContext(s.history(2,body));
+ expect(stringValue(out.at(-1)?.content)).toBe(block);expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(true);
+});
+it("preserves existing scene-followup priority with checklist ON",async()=>{
+ const fixture=JSON.parse(readFileSync(new URL("../test-support/scene-followup-events.json",import.meta.url),"utf8")) as Record<string,{event:RunEvent}>;
+ const raw=fixture["theft-9e33"]?.event;if(raw?.type!=="dialogue_auto_advance")throw Error("fixture");
+ const s=setup(true,{"scene-followup-prompt-v1":true});
+ s.feed(s.state(200000),checkEvent({...raw,run:"r",tool_call_id:"c200001"}),s.result(200001));const out=await s.wiring.transformContext(s.history(200001));
+ expect(stringValue(out.at(-1)?.content)).toContain("SUPERVISOR: You just watched a scene");expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(true);
+});
+it("pins appended campaign switch identity without changing existing positions",()=>{
+ expect(SWITCHABLE_FEATURES.indexOf(mission)).toBe(310);expect(SWITCHABLE_FEATURES.indexOf(checklist)).toBe(311);
 });

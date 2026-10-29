@@ -753,7 +753,8 @@ export class App {
       return [cardInputFor(recordedReplay,workbench.at,now,"replay",workbench.runs,art.art)];
     }
     // An explicitly opened replay is separate from the default live-run row.
-    const live = this.runs.filter(run => isLive(run) && run.problem === null);
+    const live = this.runs.filter(run => isLive(run) && run.problem === null
+      && (this.current === null || run.id === this.runId || this.current.state.runs.some(row => row.id === run.id)));
     const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || !["live", "paused"].includes(recorded.status)) return [];

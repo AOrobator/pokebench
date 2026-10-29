@@ -11,7 +11,7 @@ One documentation milestone. No executable runner, statistical implementation, a
 - [x] Global reporting skill handles personal report requirements; project files contain no personal delivery configuration.
 - [x] Discovery metadata and repository-relative links validated.
 - [x] Documentation checks and independent behavioral review completed; required external Grok lane unavailable, so full landing gate remains incomplete.
-- [ ] Branch commit, applicable independent landing reviews and coordinated local landing.
+- [x] Branch commit, applicable independent landing reviews under verified standing waiver, and coordinated local landing.
 
 ## Validation boundary
 Prose and discovery metadata only: diff whitespace checks, skill validator, local reference/link checks, realistic GPU-free forward tests, independent review. No application build/lint/coverage or service refresh. Existing publisher scripts remain byte-identical. A prose skill describes an agent-led process, not an implemented unattended scheduler/controller.
@@ -43,3 +43,9 @@ Read CLAUDE.md, skill-creator, execute-worklog and talk-to-claude. Keep frozen r
 
 - Distinct fallback `/root/probe_astra_fallback` (`gpt-6-astra`, `fork_turns=none`) completed independently: `VERDICT: LGTM`, no blockers. Verified frozen packet digest, all seven live feature paths and all three global hashes before/after, and independently inspected standing waiver provenance and exact Grok outage receipt. Recomputed power/harm examples. Non-blocking note: illustrative 90.4% value truncates rather than conventionally rounds 90.4544%; no sizing or acceptance decision changes. Normal Claude + GPT and distinct Astra fallback satisfy the verified waiver roster with reduced vendor diversity explicitly retained. No additional application gates required.
 - Prelanding repeated checks PASS: all three skill validators, relative Markdown references, discovery symlinks, no personal delivery configuration in the changed project skills, clean whitespace. Canonical main clean at `66cfdda0fabbf3bf1bd4f58f5ffb27e81b0afd53`. Ready for coordinated prose-only landing.
+
+## Landing complete
+- Joined board with actual Codex session `00000000-0000-4000-8000-78f23de8cb95`; entry printed number 1 / LANDING. Canonical main was clean and still at reviewed integration parent `66cfdda0fabbf3bf1bd4f58f5ffb27e81b0afd53`.
+- Fast-forwarded local main to `e251a6ff3243b4ac28724270625ab525dcaed25e`. No source changes during landing. Global skill is installed and shared through the global Claude discovery link; project skill discovery resolves from canonical main.
+- Post-main documentation checks PASS: all three validators, relative references, project/global discovery, global frozen hashes, changed-project-skill personal configuration boundary and whitespace. Initial ad-hoc boundary helper incorrectly tried to decode an unrelated pre-existing binary under the canonical skill directory; corrected it to inspect changed Markdown/YAML sources, then all checks passed. No application checks or services were run, and no experiment, activation or scheduler was launched.
+- This final evidence commit changes only this worklog and will be fast-forwarded while retaining the board slot, then the slot released. Keep the worklog active; no archive authorization.

@@ -255,7 +255,8 @@ def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.Monke
     payloads = {}
     for off in ("", SWITCH):
         monkeypatch.setenv(
-            "POKEBENCH_FEATURES_OFF", ",".join(filter(None, (off, "player-map-visibility-v1")))
+            "POKEBENCH_FEATURES_OFF",
+            ",".join(filter(None, (off, "player-map-visibility-v1", "player-map-visibility-v2"))),
         )
         app = FastAPI()
         install_observation(app, _Shot, memory.read, MAPS)

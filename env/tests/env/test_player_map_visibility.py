@@ -136,12 +136,19 @@ def test_production_read_state_factory_switch_and_off_identity(monkeypatch):
     current = state()
     monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: current)
     off = rerender.read_state(
-        field().read, MapNames({}), active_ui=True, off=frozenset({"player-map-visibility-v1"})
+        field().read,
+        MapNames({}),
+        active_ui=True,
+        off=frozenset({"player-map-visibility-v1", "player-map-visibility-v2"}),
     )
     assert off is current
     memory = MapMemory()
     on = rerender.read_state(
-        field().read, MapNames({}), active_ui=True, off=frozenset(), visibility=memory
+        field().read,
+        MapNames({}),
+        active_ui=True,
+        off=frozenset({"player-map-visibility-v2"}),
+        visibility=memory,
     )
     assert on.full_map.rows[3][4] == "?"
     assert (10, 10) in on.map_visibility.visible

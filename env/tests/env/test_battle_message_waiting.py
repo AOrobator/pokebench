@@ -339,7 +339,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader("00004700", operator_rom())
     payloads = {}
     for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
-        off |= {"player-map-visibility-v1"}
+        off |= {"player-map-visibility-v1", "player-map-visibility-v2"}
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()

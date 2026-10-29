@@ -134,6 +134,7 @@ def all_off(frame: dict[str, Any]) -> frozenset[str]:
     return (
         frozenset(frame["recorded_off"])
         | NEW
+        | {"player-map-visibility-v2"}
         | {"active-warp-exits-v1", "available-exits-presentation-v1"}
         | LATER
         | TRAINING

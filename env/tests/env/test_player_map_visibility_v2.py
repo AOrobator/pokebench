@@ -148,3 +148,25 @@ def test_v2_requests_full_native_geometry_even_without_other_full_map_features(m
             field(0).read, MapNames({}), active_ui=True, off=off, visibility=MapMemory()
         )
     assert seen == [False, True]
+
+
+def test_standalone_python_defaults_leave_v2_off_without_ts_normalization(monkeypatch):
+    from fastapi import FastAPI
+    from test_feature_switches import _Shot
+    from test_view import get
+
+    from pokebench_env import rerender
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.observation import install_observation
+    from pokebench_env.readout import features_off_from_env
+
+    monkeypatch.delenv("POKEBENCH_FEATURES_OFF", raising=False)
+    assert "player-map-visibility-v2" in features_off_from_env({})
+    monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: state())
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), field(0).read, MapNames({}))
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200, body
+    import json
+
+    assert "map_visibility" not in json.loads(body)["state"]

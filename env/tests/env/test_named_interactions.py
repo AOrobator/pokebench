@@ -123,6 +123,7 @@ def test_observation_endpoint_delivers_names_only_when_explicitly_enabled(monkey
                         "active-warp-exits-v1",
                         "available-exits-presentation-v1",
                         "player-map-visibility-v1",
+                        "player-map-visibility-v2",
                     ],
                 )
             ),

@@ -102,7 +102,8 @@
   "milestone-drought-suppression-v1",
   "pokedex-own-v1",
   "navigation-recovery-v1",
-  "map-cycle-recovery-v1"
+  "map-cycle-recovery-v1",
+  "player-map-visibility-v1"
  ],
  "onInBoth": [
   "gym-door-label-v1",
@@ -168,7 +169,6 @@
   "retire-reached-story-line-v1",
   "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1",
-  "player-map-visibility-v1",
   "destination-first-navigation-v1",
   "town-center-checkpoint-v1"
  ],
@@ -462,7 +462,7 @@
   "neutral-yes-no-readout-v1": false,
   "instruction-memory-cap-v1": true,
   "pokenav-call-auto-advance-v1": false,
-  "player-map-visibility-v1": true,
+  "player-map-visibility-v1": false,
   "compact-map-grid-v1": false,
   "supervisor-briefing-bound-v1": false,
   "refusal-ledger-bound-v1": false,

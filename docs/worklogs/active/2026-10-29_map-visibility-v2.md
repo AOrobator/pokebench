@@ -23,3 +23,5 @@ Initial diagnosis run2026-10-29T06-25-35_qwen36-gpu0_1ad5 at pin927b6b0c: 62 wal
 Coordination: sent current launcherredacted-id explicit replacement ownership request, Claude relay delivered reservation proposal; awaiting acknowledged window. No stop/launch or heavy CPU job yet.
 
 Recipe RED: initial focused attempt failed on absent agent build (setup failure, not RED). After explicitly granted CPU START and prerequisite pnpm agent build, updated both-arm regression fails because current onInBoth still contains V1; /tmp/map-visibility-rollback-red.log retains assertion. COMMIT: test operator-directed V1 rollback RED.
+
+Recipe GREEN: moved V1 from onInBoth to offInBoth and set shared features false. Focused generated-arm/registry tests2PASS; changed-file ESLint and viewer tsc PASS. Historical control donor and definitions unchanged. Ownerredacted-id handed operational ownership; Claude coordinator granted fresh24h GPU0window from replacement launch, GPU1/18020/MacGLM preserved. Full lint/test/vendor running under grantedCPUwindow. COMMIT: recipe rollback GREEN.

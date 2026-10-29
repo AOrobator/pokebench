@@ -22,7 +22,7 @@ Story readout promotion (the operator 2026-10-28, "Land, on in both arms", from 
 
 Control promotion (the operator 2026-10-28, "yes type gap on in both arms", from the type-gap decision probes: held-out plans to catch a type strong against ROCK 13/64 control, 40/64 with the block on the tool result, 55/64 with it also as the last message): type-gap-team-last-message-v1 is onInBoth beside type-gap-team-v1, which it needs. The switch remains registered default off; archived and frozen definitions keep their recorded settings.
 
-Player visibility (the operator 2026-10-28, “ok build the switch on in both arms”): player-map-visibility-v1 is onInBoth in current. Registered default OFF preserves frozen presets and recorded runs. No running controller or historical metadata is changed.
+Player visibility (the operator 2026-10-28, “ok build the switch on in both arms”): player-map-visibility-v1 was initially onInBoth. The operator directed it OFF in both arms on 2026-10-29; it is now offInBoth and false in the shared base. Registered default OFF preserves frozen presets and recorded runs. Existing controllers keep their frozen recipe; the separately authorized replacement Qwen run starts from the newly landed recipe. V2 is separate and is not part of that replacement treatment.
 
 Navigation guidance (the operator 2026-10-28, "okay lets make this change, on in both arms"): destination-first-navigation-v1 is registered default OFF and explicitly onInBoth. It aligns system/tool/result wording; movement execution, existing live pins and historical definitions are unchanged. This activation is operator-directed, without a measured benefit claim.
 

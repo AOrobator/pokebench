@@ -27,7 +27,7 @@ export function townCenterFacts(s:GameStateSnapshot,places:readonly Place[],text
  const door=town.warps.find(w=>onMap(w.to,center.map_id));
  if(door===undefined||!text.includes(`navigate_to_target target {"kind":"warp","x":${String(door.x)},"y":${String(door.y)}}`))return null;
  const reach=s.exit_reach?.warps.find(w=>w.x===door.x&&w.y===door.y);
- if(reach!==undefined&&reach.reach!=="foot")return null;
+ if(reach?.reach!=="foot")return null;
  return {town:town.display,map:[s.map_id[0],s.map_id[1]],x:door.x,y:door.y};
 }
 export function townCenterText(f:TownCenterFacts):string {
@@ -35,7 +35,7 @@ export function townCenterText(f:TownCenterFacts):string {
 }
 
 export function townCenterContext(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,base:Transform,source:PlaceSource):Transform {
- if(!features["town-center-checkpoint-v1"]||!features["heal-before-trainers-v1"])return base;
+ if(!features["town-center-checkpoint-v1"]||!features["heal-before-trainers-v1"]||!features["exit-reachability-v1"])return base;
  const table=placesOnce(source);
  let latest:State|null=null,result:Result|null=null,visit:string|null=null,sent=false,recorded:string|null=null;
  recorder.subscribe(e=>{

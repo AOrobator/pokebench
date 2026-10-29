@@ -785,6 +785,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
   ...(features["screenshot-button-baseline-v1"] && !screenshotButtonBaseline(features) ? ["screenshot-button-baseline-v1 requires every other behavior switch OFF"] : []),
   ...(features["instruction-goal-ledger-v1"]&&features["objective-tracking-v1"]?["instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"]:[]),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
+  ...(features["town-center-checkpoint-v1"] && !features["exit-reachability-v1"] ? ["town-center-checkpoint-v1 needs exit-reachability-v1"] : []),
   ...(features["grass-strides-v1"] && !features["automatic-running-v1"] ? ["grass-strides-v1 needs automatic-running-v1"] : []),
   ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : []),
   ...(features["deterministic-exploration-v1"] && !semanticNavigation(features) ? ["deterministic-exploration-v1 needs semantic-navigation-v1 or semantic-navigation-v2"] : [])];

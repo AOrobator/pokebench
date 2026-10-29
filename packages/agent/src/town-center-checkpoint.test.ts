@@ -10,7 +10,7 @@ import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {featuresOf,featureInfo,playHarnessFeatures,SERVER_FEATURES} from "./features.js";
+import {featuresOf,dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
 import type {PlacesBody,PlaceSource} from "./story-destinations.js";
@@ -22,7 +22,7 @@ const places=JSON.parse(readFileSync(new URL("../test-support/story-destinations
 const fixture=(id="healthy-a")=>{const f=fixtures[id];if(f===undefined)throw Error(id);return {...f,state:parseGameState(f.state)};};
 const f=fixture(),NOTE="Enter OLDALE TOWN’s Pokémon Center now, using the listed entrance warp at (6,16) on map [0, 10]. Entry sets your blackout return point here even when your party is healthy. Heal with the nurse if needed, then resume your current objective.";
 const heal=f.state.heal_before_trainers;if(heal===undefined)throw Error("native heal fixture");
-const flags=(on:boolean)=>({...featuresOf(["ram-state-v1","heal-before-trainers-v1"]),[ID]:on});
+const flags=(on:boolean)=>({...featuresOf(["ram-state-v1","heal-before-trainers-v1","exit-reachability-v1"]),[ID]:on});
 const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:f.sourceRun,seq:100,turn:10,t:"2026-10-28T00:00:00.000-04:00",...body});
 function setup(on=true,source:PlaceSource={places:()=>Promise.resolve(places)}){
  const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
@@ -35,7 +35,7 @@ function setup(on=true,source:PlaceSource={places:()=>Promise.resolve(places)}){
 }
 it("registers a default-OFF agent-side switch with explicit OFF copy",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"heal-before-trainers-v1",switchable:true});expect(featureInfo(ID).description).toContain(" Off: ");expect(SERVER_FEATURES).not.toContain(ID);
- expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);const {[ID]:omittedSwitch,...omitted}=flags(false);expect(omittedSwitch).toBe(false);expect(normalizeFeatures(omitted)[ID]).toBe(false);expect(playHarnessFeatures(flags(true),null)).toContain(ID);
+ expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);const {[ID]:omittedSwitch,...omitted}=flags(false);expect(omittedSwitch).toBe(false);expect(normalizeFeatures(omitted)[ID]).toBe(false);expect(playHarnessFeatures(flags(true),null)).toContain(ID);expect(dependencyProblems({...flags(true),"exit-reachability-v1":false})).toContain("town-center-checkpoint-v1 needs exit-reachability-v1");
 });
 it("reproduces exact probed wording from each real native checkpoint context",()=>{
  for(const name of ["healthy-a","healthy-b","rustboro-missing"]){const r=fixture(name);const facts=townCenterFacts(r.state,places.places,r.resultText);expect(facts).not.toBeNull();if(facts===null)throw Error("facts");expect(townCenterText(facts)).toBe(name==="rustboro-missing"?NOTE.replaceAll("OLDALE TOWN","RUSTBORO CITY").replace("(6,16)","(16,38)").replace("[0, 10]","[0, 3]"):NOTE);}
@@ -50,8 +50,8 @@ it("defers through locked arrival; a successful action consumes the visit, but l
 });
 it("failed or text-only replies keep the transient note; native checkpoint update suppresses it",async()=>{const s=setup(),input=s.arrive();await s.wiring.transformContext(input);s.reply("error");expect((await s.wiring.transformContext(input)).at(-1)?.content).toBe(NOTE);s.reply("stop",false);expect((await s.wiring.transformContext(input)).at(-1)?.content).toBe(NOTE);const current=s.arrive({...f.state,heal_before_trainers:{...heal,last_heal:[0,10]}});expect(await s.wiring.transformContext(current)).toBe(current);expect(s.notes).toHaveLength(1);});
 it("requires coherent native facts, free field, player party and a visible reachable local Center",()=>{
- const withoutHeal={...f.state};delete withoutHeal.heal_before_trainers;
- const variants:GameStateSnapshot[]=[{...f.state,started:false},{...f.state,in_battle:true},{...f.state,screen:"battle"},{...f.state,field_controls_locked:null},{...f.state,party_owner:"tutorial"},{...f.state,map_id:null},{...f.state,blackout_active:true},withoutHeal,{...f.state,heal_before_trainers:{...heal,last_heal:null}},{...f.state,active_ui:{phase:"field_yes_no",selected:"YES",ready:true,controls:"A",diagnostic:null}}];
+ const withoutHeal={...f.state};delete withoutHeal.heal_before_trainers;const withoutReach={...f.state};delete withoutReach.exit_reach;
+ const variants:GameStateSnapshot[]=[withoutReach,{...f.state,started:false},{...f.state,in_battle:true},{...f.state,screen:"battle"},{...f.state,field_controls_locked:null},{...f.state,party_owner:"tutorial"},{...f.state,map_id:null},{...f.state,blackout_active:true},withoutHeal,{...f.state,heal_before_trainers:{...heal,last_heal:null}},{...f.state,active_ui:{phase:"field_yes_no",selected:"YES",ready:true,controls:"A",diagnostic:null}}];
  for(const state of variants)expect(townCenterFacts(state,places.places,f.resultText)).toBeNull();
  for(const text of ["",f.resultText+"\nScreen: battle",f.resultText+"\nSTATE COVERAGE ERROR: unknown owner",f.resultText.replace("Menu: none open","Menu: start_menu"),f.resultText.replace("Field-message text: none (no message box is open).","Field-message text: hello"),f.resultText.replaceAll('"kind":"warp","x":6,"y":16','"kind":"warp","x":99,"y":99')])expect(townCenterFacts(f.state,places.places,text)).toBeNull();
  expect(townCenterFacts(f.state,[],f.resultText)).toBeNull();

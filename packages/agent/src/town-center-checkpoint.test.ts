@@ -34,9 +34,9 @@ const f=fixture(),NOTE="Enter OLDALE TOWN’s Pokémon Center now, using the lis
 const heal=f.state.heal_before_trainers;if(heal===undefined)throw Error("native heal fixture");
 const flags=(on:boolean)=>({...featuresOf(["ram-state-v1","heal-before-trainers-v1","exit-reachability-v1"]),[ID]:on});
 const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:f.sourceRun,seq:100,turn:10,t:"2026-10-28T00:00:00.000-04:00",...body});
-function setup(on=true,source:PlaceSource={places:()=>Promise.resolve(places)}){
+function setup(on=true,source:PlaceSource={places:()=>Promise.resolve(places)},campaign=false){
  const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
- const wiring=contextTools(flags(on),{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>{}},m=>Promise.resolve(m),undefined,source);
+ const wiring=contextTools({...flags(on),"discovered-gym-checklist-v1":campaign},{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>{}},m=>Promise.resolve(m),undefined,source);
  const feed=(...events:RunEvent[])=>{for(const e of events)for(const listener of listeners)listener(e);};
  const input=(id="result",text=f.resultText):AgentMessage[]=>[{role:"toolResult",toolCallId:id,toolName:"observe",content:[{type:"text",text}],isError:false,timestamp:0}];
  const arrive=(s=f.state,text=f.resultText,id="result",seq=100)=>{feed(event({...s,type:"state",seq}),event({type:"tool_result",seq:seq+1,id,name:"observe",text,state_seq:seq,is_error:false,frames:[],duration_ms:0}));return input(id,text);};
@@ -142,4 +142,9 @@ it.each(["successful-action","retries"] as const)("real recorder preserves live/
   expect(live).toEqual(mode==="retries"?[false,true,true,true,true,false]:[false,true,false]);expect(actual).toEqual({recorded:live,replayed:live});
   expect(events.filter(e=>e.type==="ledger_context").map(e=>e.turn)).toEqual([2]);
  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+it("keeps the exact checkpoint instruction after the integrated gym checklist",async()=>{
+ const s=setup(true,undefined,true),input=s.arrive(),out=await s.wiring.transformContext(input);
+ expect(out.slice(0,input.length)).toEqual(input);expect(out.slice(input.length).map(m=>m.content)).toEqual([expect.stringContaining("DISCOVERED GYM CHECKLIST"),NOTE]);
 });

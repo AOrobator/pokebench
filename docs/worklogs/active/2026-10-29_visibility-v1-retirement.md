@@ -29,3 +29,8 @@ Final branch gates fda91b549: full lintPASS, source buildPASS, corrected justtes
 
 All source reviewersLGTM plus testdeltaLGTM; source/gates ready for local landing, activation still pending separate postmain test and designated refresh/stop clearance. No old recording rewritten or activeprocess stopped. Canonical durable receipts/logs runs/reviews/visibility-v1-retirement and protected PID snapshot runs/launch-receipts/glm53-24h-visibility-v2/protected-before.json.
 COMMIT: record visibility retirement gates and independent approval (evidence only).
+
+Landed FF b84aa7ee129fe5ae5999766546c2fb9bd8dc725d at board#1, verified this chat 00000000-0000-4000-8000-03e24a3fdb1f. First attempted mistyped expanded SHA was rejected/no-op; corrected verified branch ref then exact FF. Canonical main source clean. Required combined postmain justtest exit0:5063agent/2342viewer/4934Python/116gateway, all90floors, protected3cardbaselinesPASS. Durable visibility-postmain-test.log retained. CPU priority released on completion. No runtime source changed by this evidence-only update.
+
+Coordinator conditionally approved one compatible viewer refresh and freshGLM24h/20k afterPASS; activationCPU includes immutable viewer preparation and justfixed-run check/run build prerequisites, sequential only. Protected9843/10025/47723/37156 starttimes unchanged before activation. Release landing board before rollout; later live evidence via brief evidence-only slot.
+COMMIT: record exact visibility landing and postmain PASS (evidence only).

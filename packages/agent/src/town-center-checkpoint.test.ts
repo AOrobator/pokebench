@@ -67,7 +67,7 @@ it("requires coherent native facts, free field, player party and a visible reach
  expect(townCenterFacts(f.state,[],f.resultText)).toBeNull();
 });
 it("does not deliver a stale, failed, unseen or mismatched result",async()=>{
- for(const mode of ["wrong-state","error","absent","changed-text"]){const s=setup(),input=s.arrive();if(mode==="wrong-state"||mode==="error")s.feed(event({type:"tool_result",seq:102,id:"result",name:"observe",text:f.resultText,state_seq:mode==="wrong-state"?99:100,is_error:mode==="error",frames:[],duration_ms:0}));const actual=mode==="absent"?[]:mode==="changed-text"?s.input("result","unrelated result"):input;expect(await s.wiring.transformContext(actual)).toBe(actual);expect(s.notes).toEqual([]);}
+ for(const mode of ["wrong-state","error","absent","changed-text"]){const s=setup(),input=s.arrive();if(mode==="wrong-state"||mode==="error")s.feed(event({type:"tool_result",seq:102,id:"result",name:"observe",text:f.resultText,state_seq:mode==="wrong-state"?99:100,is_error:mode==="error",frames:[],duration_ms:0}));const actual=mode==="absent"?[]:mode==="changed-text"?s.input("result",f.resultText+"\nChanged delivered text"):input;expect(await s.wiring.transformContext(actual)).toBe(actual);expect(s.notes).toEqual([]);}
 });
 it("restores a recorded delivery without emitting a second durable event",async()=>{const s=setup(),input=s.arrive();s.feed(event({type:"ledger_context",seq:102,text:NOTE,evidence:[100,101]}));expect((await s.wiring.transformContext(input)).at(-1)?.content).toBe(NOTE);expect(s.notes).toEqual([]);});
 it("does not invent a Center on routes, from a missing warp, or behind a native reachability gate",()=>{

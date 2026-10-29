@@ -52,21 +52,26 @@ export function townCenterContext(features:FeatureSet,recorder:Pick<RunRecorder,
   if(e.type==="tool_result"){result=latest!==null&&e.run===latest.run&&e.state_seq===latest.seq&&!e.is_error?e:null;recorded=null;}
   if(e.type==="ledger_context"&&result!==null&&e.evidence.includes(result.seq)&&isTownCenterText(e.text)){recorded=e.text;sent=true;}
  },false,true,true);
- return async messages=>{
-  const out=await base(messages),state=latest,current=result;
-  if(state===null||current===null||sent&&recorded===null)return out;
+ const notice=async(messages:AgentMessage[]):Promise<string|null>=>{
+  const state=latest,current=result;
+  if(state===null||current===null||sent&&recorded===null)return null;
   let delivered:AgentMessage|undefined;
   for(const m of [...messages].reverse()){if(m.role==="assistant"&&m.stopReason!=="error"&&m.stopReason!=="aborted"&&m.content.some(p=>p.type==="toolCall"))break;if(m.role==="toolResult"){delivered=m;break;}}
-  if(delivered?.role!=="toolResult"||delivered.isError||delivered.toolCallId!==current.id||delivered.toolName!==current.name)return out;
+  if(delivered?.role!=="toolResult"||delivered.isError||delivered.toolCallId!==current.id||delivered.toolName!==current.name)return null;
   const text=delivered.content.filter(p=>p.type==="text").map(p=>p.text).join("\n");
-  if(text!==current.text)return out;
+  if(text!==current.text)return null;
   const places=await table();
-  if(places===null||latest!==state||result!==current)return out;
+  if(places===null||latest!==state||result!==current)return null;
   const facts=townCenterFacts(state,places,text);
-  if(facts===null)return out;
+  if(facts===null)return null;
   const note=townCenterText(facts);
-  if(recorded!==null&&recorded!==note)return out;
+  if(recorded!==null&&recorded!==note)return null;
   if(recorded===null){recorded=note;sent=true;recorder.recordLedgerContext({text:note,evidence:[state.seq,current.seq]});}
-  return [...out,{role:"user",content:note,timestamp:Date.now()}];
+  return note;
+ };
+ return async messages=>{
+  // Ordinary ledger receipts belong to the upcoming decision, before the recorder advances it.
+  const note=await notice(messages),out=await base(messages);
+  return note===null?out:[...out,{role:"user",content:note,timestamp:Date.now()}];
  };
 }

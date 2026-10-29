@@ -402,10 +402,16 @@ export function recordedNotes(prior: readonly RunEvent[], turn: number): string[
     else if (e.phase === "supervisor") guard = e.message;
     else guard = null;
   }
-  const own = prior.filter((e) => e.turn === turn && (e.type === "ledger_context" || e.type === "navigation_context")).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" ? [e.text] : []));
+  const own = prior.filter((e) => e.turn === turn && (e.type === "navigation_context" || e.type === "ledger_context"&&!isTownCenterText(e.text))).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" ? [e.text] : []));
   // disproved-beliefs-v1 wraps the hint in the context chain, so its message comes before the pinned hint.
   const beliefs = prior.filter((e) => e.turn === turn && e.type === "belief_ledger").flatMap((e) => (e.type === "belief_ledger" ? [e.text] : []));
-  return [...(guard === null ? [] : [guard]), ...beliefs, ...(hint === null ? [] : [hint]), ...own];
+  // A checkpoint receipt is one per visit; text-only/error retries retain its exact transient note.
+  let town:string|null=null;
+  for(const e of prior){
+    if(e.type==="state"||e.type==="tool_result"||e.type==="assistant"&&e.stop_reason!=="error"&&e.stop_reason!=="aborted"&&e.tool_calls.length>0)town=null;
+    if(e.type==="ledger_context"&&e.turn<=turn&&isTownCenterText(e.text))town=e.text;
+  }
+  return [...(guard === null ? [] : [guard]), ...beliefs, ...(hint === null ? [] : [hint]), ...own,...(town===null?[]:[town])];
 }
 const sameSwitches = (a: FeatureSet, b: FeatureSet): boolean => SWITCHABLE_FEATURES.every((id) => a[id] === b[id]);
 const isMessage = (m: AgentMessage): m is Message => "role" in m;

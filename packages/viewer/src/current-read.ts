@@ -26,19 +26,20 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
   const root=realpathSync(options.runsRoot),stat=lstatSync(root);if(store===null||store.boundRoot()!==`${root}:${String(stat.dev)}:${String(stat.ino)}`)throw new Error("Current database recordings root mismatch");return store;};
  const history=(db:CurrentStore,q:Extract<CurrentQuery,{kind:"history"}>):CurrentAnswer=>{
   runId(q.run);const decoded=q.before===null?null:cursor(q.before,"history");if(decoded!==null&&(decoded["run"]!==q.run||typeof decoded["generation"]!=="string"||!n(decoded["before"])))throw new CurrentReadError(400,"Invalid history cursor binding");
-  const before=decoded===null?Number.MAX_SAFE_INTEGER:decoded["before"] as number,window=db.historyWindow(q.run,before),saved=window.current;
+  const before=decoded===null?Number.MAX_SAFE_INTEGER:decoded["before"] as number,window=db.historyWindow(q.run,before,limits.events-1),saved=window.current;
   const answer=(state:"ready"|"indexing"|"reset"|"oversized",events:Extract<CurrentAnswer,{kind:"history"}>["events"]=[],next:string|null=q.before):CurrentAnswer=>({kind:"history",version:1,epoch:window.epoch,generation:saved?.source.generation??"",state,events,before:next});
   if(saved===null||typeof window.auxiliary!=="string")return answer("indexing");
   if(decoded!==null&&(decoded["epoch"]!==window.epoch||decoded["generation"]!==saved.source.generation))return answer("reset",[],null);
   const target=decoded===null?saved.state.seq+1:before;if(target>saved.state.seq+1)throw new CurrentReadError(400,"History cursor is ahead of the committed source");if(target===0)return answer("ready",[],null);
-  const index=window.entry;if(index===null)return answer("indexing");const seq=Number(index["seq"]),offset=Number(index["offset"]),end=Number(index["end"]),aux=parseProjectorAux(window.auxiliary);
+  const aux=parseProjectorAux(window.auxiliary),start=Math.max(0,target-limits.events),prior=window.entry===null?null:Number(window.entry["seq"]);
+  const index=window.entry===null||(n(prior)&&start-prior>16&&!(prior===0&&start<aux.namespace))?window.following:window.entry;if(index===null)return answer("indexing");const seq=Number(index["seq"]),offset=Number(index["offset"]),end=Number(index["end"]);
   if(![seq,offset,end].every(n)||end<=offset||end>saved.source.offset||seq>=target)throw new Error("Invalid history index");
-  if(target-1-seq>16&&!(seq===0&&target<=aux.namespace))return answer("indexing");
+  if(Math.max(0,target-limits.events)-seq>16&&!(seq===0&&Math.max(0,target-limits.events)<aux.namespace))return answer("indexing");
   const sourceOptions:SourceOptions={read:(bytes,at,purpose)=>{options.read?.({run:q.run,bytes,offset:at,purpose});}};const file=openCurrentSource(options.runsRoot,q.run,sourceOptions);
   try{
    if(!file.compatible(saved.source)||sourceEvidence(file.path)!==saved.source.evidence)return answer("reset",[],null);
    const upper=saved.source.offset,c=lineCursor(offset),bounded={stat:{size:upper},read:(at:number,length:number,purpose?:"data"|"anchor")=>file.read(at,Math.max(0,Math.min(length,upper-at)),purpose)},events:Extract<CurrentAnswer,{kind:"history"}>["events"]=[],lengths:number[]=[];let bytes=0,payload=0,reached=false;
-   for(let steps=0;steps<64;steps++){
+   for(let steps=0;steps<limits.events+17;steps++){
     const batch=readCurrentLines(bounded,c,limits.bytes-bytes,1);bytes+=batch.bytes;const line=batch.lines[0];
     if(line===undefined){if(batch.atEnd){reached=true;break;}return answer("oversized",[],q.before);}
     if(line.event.run!==q.run)throw new Error("Foreign indexed history event");if(line.event.seq>=target){reached=true;break;}

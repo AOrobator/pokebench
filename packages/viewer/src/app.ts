@@ -1577,8 +1577,11 @@ export class App {
     mode.className = `mode ${label.cls}`;
     this.setHtml("run-controls", controlBar(view, this.controlLive, this.holdFraction()));
     const historyStatus = this.ui("history-status");
-    historyStatus.hidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale&&!this.historyLoading&&this.current.state.historyProblem===null:this.historyBefore===null;
-    historyStatus.textContent=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:this.historyLoading?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    const historyPending=this.historyLoading&&(this.current?.state.selected!==this.runId||this.currentHistoryEvents.length===0);
+    const historyHidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale&&!historyPending&&this.current.state.historyProblem===null:this.historyBefore===null;
+    const historyText=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:historyPending?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    if(historyStatus.hidden!==historyHidden)historyStatus.hidden=historyHidden;
+    if(historyStatus.textContent!==historyText)historyStatus.textContent=historyText;
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
     if (layer !== null) {

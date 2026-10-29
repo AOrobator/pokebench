@@ -434,7 +434,7 @@ async function playHuman(): Promise<void> {
   try {
     const basePlan = humanPlan(runsRoot,runId,port,romSha1());
     const plan = {...basePlan,romSha1:romSha1(),harnessFeatures:[...basePlan.harnessFeatures,...(process.env["POKEBENCH_HUMAN_VALIDATION"]==="true"?["probe"]:[])]};
-    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token,POKEBENCH_ACTIVE_UI:"1",POKEBENCH_FEATURES_OFF:"named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1"});
+    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token,POKEBENCH_ACTIVE_UI:"1",POKEBENCH_FEATURES_OFF:"named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1,player-map-visibility-v2"});
     await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});if(process.env["POKEBENCH_HUMAN_START_PAUSED"]==="true")writeFileSync(join(dir,"control.jsonl"),controlLine(1,"pause",new Date().toISOString())+"\n",{flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
       console.log(`Human play: ${humanPlayUrl(runId)}`);
       const reason=await driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);

@@ -60,3 +60,10 @@ Pending focused RED/GREEN tests, affected package type/lint, required reviews an
 - Astra's incomplete review exposed a concrete parser bug: a missing value for any new history flag consumes following `--context-only`, leaving contextOnly=false. Read-only compiled-source reproduction confirmed 3/3 malformed forms accepted, with zero model calls. **Fix** within existing CLI/fail-closed boundary. No new domain or unrelated feature added.
 - Added three regression cases; RED 3 failures / 9 passes. Receipt `/tmp/probe-replay-flag-red.log`.
 - COMMIT: `test: reject missing replay assertion flag values` (this RED commit; SHA recorded with GREEN).
+
+### Parser GREEN
+- RED commit `41529bce6`.
+- The value reader now rejects a following option token as a missing value; it never consumes `--context-only` as source API/provider/thinking-field data. This is one Boolean guard in the existing parser, with no new production domain.
+- GREEN 27/27 (12 native provenance/parser regressions plus 15 existing CLI tests). Changed-file ESLint, affected agent type check and whitespace pass. No model calls.
+- Source identity, recorder, schema and serializer implementation are byte-identical to the already full-gated `638c0d163` version; those native proof bodies are retained. Request fresh complete gate for final parser source and cumulative delta review; no premature landing.
+- COMMIT: `fix: keep context-only flag out of missing assertion values` (this GREEN commit; exact SHA recorded with final qualification).

@@ -34,7 +34,7 @@ export function parseArgs(argv: readonly string[]): ProbeArgs {
   let historyProvider: string | undefined, historyApi: string | undefined, historyThinkingField: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] ?? "";
-    const value = (): string => { const v = argv[++i]; if (v === undefined) throw new Error(`${arg} needs a value\n${USAGE}`); return v; };
+    const value = (): string => { const v = argv[++i]; if (v === undefined || v.startsWith("--")) throw new Error(`${arg} needs a value\n${USAGE}`); return v; };
     if (arg === "--switch") switches.push(parseSwitch(value()));
     else if (arg === "--samples") samples = Number(value());
     else if (arg === "--runs-root") runsRoot = value();

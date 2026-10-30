@@ -4,7 +4,7 @@ import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
@@ -526,6 +526,34 @@ describe("viewer server", () => {
     expect(await rejected(frameSocket(viewer, "/api/runs/done/frames"))).toBe(409);
     expect(await rejected(frameSocket(viewer, "/api/runs/missing/frames"))).toBe(404);
     expect(await rejected(frameSocket(viewer, "/api/runs/live/not-frames"))).toBe(404);
+  });
+
+  it.each([
+    ["/api/runs/done/frames", "http://evil.example", 403],
+    ["/api/runs/live/not-frames", null, 404],
+    ["/api/runs/missing/frames", null, 404],
+    ["/api/runs/done/frames", null, 409],
+  ])("contains ECONNRESET while rejecting upgrade %s (%s)", async (path, origin, status) => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "done", fullRun());
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.url = path;
+    req.headers = { host: `${HOST}:${String(viewer.port)}`, origin: origin ?? viewer.url.slice(0, -1) };
+    const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET", syscall: "read" });
+    const end = vi.spyOn(socket, "end").mockImplementation(() => {
+      socket.emit("error", reset);
+      return socket;
+    });
+    try {
+      expect(() => viewer.server.emit("upgrade", req, socket, Buffer.alloc(0))).not.toThrow();
+      expect(end).toHaveBeenCalledWith(`HTTP/1.1 ${String(status)} ${status === 403 ? "Forbidden" : status === 409 ? "Conflict" : "Not Found"}\r\nConnection: close\r\n\r\n`);
+      expect(socket.destroyed).toBe(true);
+      expect((await get(viewer, "/")).status).toBe(200);
+    } finally {
+      end.mockRestore();
+      socket.destroy();
+    }
   });
 
   it("accepts an explicitly configured published origin and matching Host", async () => {

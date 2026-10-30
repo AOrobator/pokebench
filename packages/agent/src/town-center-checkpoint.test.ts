@@ -117,7 +117,7 @@ it("decision replay preserves consumed visit receipts and rearms only after a ne
   const s=add({...state,type:"state",turn:n,raw_ram:f.rawRam});const r=add({type:"tool_result",turn:n,id,name:"observe",text:f.resultText,state_seq:s.seq,is_error:false,duration_ms:0,frames:[]});return {s,r};
  };
  turn(1);const first=observe(1,"first");add({type:"ledger_context",turn:2,text:NOTE,evidence:[first.s.seq,first.r.seq]});turn(2);observe(2,"consumed");turn(3);
- const run=recordedRun(events),features=recordedFeatures(run),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",places:()=>Promise.resolve(places.places)};
+ const run=recordedRun(events),features=recordedFeatures(run),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"},places:()=>Promise.resolve(places.places)};
  const recorded=await decisionContext(run,3,features,ports,"recorded"),replayed=await decisionContext(run,3,features,ports,"replayed");
  expect(recorded.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);expect(replayed.messages.some(m=>m.role==="user"&&m.content===NOTE)).toBe(false);
  observe(3,"leave",{...f.state,map_id:[0,16],location:"ROUTE 101"});turn(4);observe(4,"return");turn(5);
@@ -136,7 +136,7 @@ it.each(["successful-action","retries"] as const)("real recorder preserves live/
   await request();await action("arrival");await request();
   if(mode==="retries")for(const stop of ["stop","error","stop"] as const){const a=assistant([{type:"text",text:"Continue"}],stop);await rec.emit({type:"message_end",message:a});history.push(a,{role:"user",content:"Use a tool to continue.",timestamp:0});await request();}
   await action("consumed");await request();
-  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(s=>checkEvent(JSON.parse(s))),run=recordedRun(events),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",places:()=>Promise.resolve(places.places)};
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(s=>checkEvent(JSON.parse(s))),run=recordedRun(events),ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"},places:()=>Promise.resolve(places.places)};
   const actual:{recorded:boolean[];replayed:boolean[]}={recorded:[],replayed:[]};
   for(let turn=1;turn<=live.length;turn++)for(const derivation of ["recorded","replayed"] as const){const c=await decisionContext(run,turn,recordedFeatures(run),ports,derivation);actual[derivation].push(c.messages.some(m=>m.role==="user"&&m.content===NOTE));}
   expect(live).toEqual(mode==="retries"?[false,true,true,true,true,false]:[false,true,false]);expect(actual).toEqual({recorded:live,replayed:live});

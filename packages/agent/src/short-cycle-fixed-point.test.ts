@@ -429,7 +429,7 @@ function recordedRun(name:string){
  // The probe's inert ports cannot build battle-text-auto-advance-v1's press tool or gym-heal-warning-v1's recorder
  // (an existing probe limit); neither changes a recorded call or state here, so both arms leave them off.
  const probe=async(turn:number,on:boolean)=>{
-  const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content"};
+  const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"}};
   const base={...features(),"battle-text-auto-advance-v1":false,"gym-heal-warning-v1":false};
   const context=await decisionContext({start:start(),events:events()},turn,{...base,[ID]:on},ports,"replayed");
   return new Set(context.messages.flatMap(m=>m.role==="assistant"?m.content.flatMap(p=>p.type==="toolCall"?[p.id]:[]):[]));

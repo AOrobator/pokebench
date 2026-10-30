@@ -23,7 +23,7 @@ function fixture(options:{missingRaw?:boolean;missingScreen?:boolean;ambiguousSc
 }
 function ports(output?:(on:boolean)=>readonly string[]){
  const calls:{refs:readonly {path:string;sha256:string}[];on:boolean}[]=[];
- const port:ProbePorts={thinkingSignature:"reasoning_content",frame:()=>{throw Error("fixture has no images");},rerender:(refs,features)=>{
+ const port:ProbePorts={thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"},frame:()=>{throw Error("fixture has no images");},rerender:(refs,features)=>{
   calls.push({refs,on:features[ID]});return Promise.resolve(output?.(features[ID])??[`Screen: battle\nDialog: ${features[ID]?"corrected":"baseline"}`]);
  }};
  return {calls,port};

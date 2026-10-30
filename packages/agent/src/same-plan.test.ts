@@ -204,7 +204,7 @@ describe("states that qualify",()=>{
 it("the decision probe replays the note into the T145 context with the switch on, and not with it off",async()=>{
  const start=FIXTURE.events.find((e):e is Extract<RunEvent,{type:"run_start"}>=>e.type==="run_start");
  if(start===undefined)throw new Error("fixture has no run_start");
- const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content"};
+ const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"}};
  const notes=(messages:readonly {role:string;content:unknown}[])=>messages.flatMap(m=>m.role==="user"&&typeof m.content==="string"&&m.content.startsWith("SUPERVISOR: Your last 3 plans")?[m.content]:[]);
  const on=await decisionContext({start,events:FIXTURE.events},145,ON,ports,"replayed");
  const off=await decisionContext({start,events:FIXTURE.events},145,OFF,ports,"replayed");

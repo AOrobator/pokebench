@@ -569,7 +569,7 @@ describe("navigation-truth-v1 in the decision probe's replayed loop guard",()=>{
   lines.push(e(5,{type:"turn_start",context:{messages:1,images:0,est_tokens:10}}));
   return lines.join("\n");
  };
- const ports={thinkingSignature:"reasoning_content",frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender"))};
+ const ports={thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"},frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender"))};
  const warning=async(truth:boolean):Promise<string>=>{
   const context=await decisionContext(parseRun(log(truth)),5,features(truth),ports);
   const last=context.messages.at(-1);

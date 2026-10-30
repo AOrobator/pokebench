@@ -370,7 +370,7 @@ describe("replay: the decision probe rebuilds what the model saw",()=>{
  const start=FIXTURE.events.find((e):e is Extract<RunEvent,{type:"run_start"}>=>e.type==="run_start");
  if(start===undefined)throw new Error("fixture has no run_start");
  const run={start,events:FIXTURE.events};
- const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content"};
+ const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"}};
  it("replays the ledger into the T117 context with the switch on, and leaves it out with the switch off",async()=>{
   const on=await decisionContext(run,117,ON,ports,"replayed");
   const off=await decisionContext(run,117,OFF,ports,"replayed");

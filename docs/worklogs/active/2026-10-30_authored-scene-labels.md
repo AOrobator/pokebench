@@ -26,10 +26,10 @@ Read-only native RAM/ROM; exact verifiedROM source/provenance, pointer bounds an
 
 ## Milestones
 ### M1 — Source readiness and offline qualification
-- [ ] RED tests/native17 archive evidence, new schema/caller/retention/OFF fixtures and deletion/restoration.
-- [ ] GREEN bounded label feature for chase + employee request; affected cheap checks.
-- [ ] Full executable gates under CPU START; source-frozen independent review (two-round cap).
-- [ ] Exact production model-request, recorded metadata, Activity History/raw/replay and card/explainer proof.
+- [x] RED tests/native17 archive evidence, new schema/caller/retention/OFF fixtures and deletion/restoration.
+- [x] GREEN bounded label feature for chase + employee request; affected cheap checks.
+- [x] Full executable gates under CPU START; source-frozen independent review (two-round cap).
+- [x] Exact production model-request, recorded metadata, Activity History/raw/replay and card/explainer proof.
 ### M2 — Land reviewed implementation
 - [ ] Upstream-impact assessment, board FF only, combined post-main test.
 - [ ] Authorized single viewer refresh/phone feature explainer if needed; no bundle promotion.
@@ -68,3 +68,5 @@ GREEN source qualification: shared native reader recognizes all17 archived pages
 Full source gates GREEN: just build, just lint, just verify-vendor and just test exit0. Test totals5228agent/2383viewer/4979env/116gateway/3protectedtrainer-card. TS agent coverage statements96.51/branches92.47/functions97.59/lines99.20; viewer94.64/90.84/94.98/98.33. Python env lines97.50/branches93.60/functions99.90; gateway99.12/96.22/100.00, every required metric>=90. Five actual full-prefix contexts produce16 candidate cells through freshlybuilt source, native labels3chase/7cumulativeemployee and exactsource system prompt. Replay controls are reconstructed current incumbent, explicitly not byte-exact historical requests; source-memory/note ordering differences retained and actual-arm contrast audit pending. No disabled-switch shim used. Protected screenshots unchanged. Isolated feature-card/observed-model-consumer browser proof finishing; no canonical refresh or model call.
 
 Browser proof found an actual phone overflow caused by long source identifiers in the tracked explainer. Added local word wrapping only; unchanged executable source retains full gates. Recheck background screenshots before claiming complete phone proof. CPU window released after all executable gates and actual-context native qualification completed. All20 pairwise contrasts across16 contexts now match after normalizing only timestamps and reversing explicit label/memory/one-reply-note differences; ordinary readouts/system/tools/source histories/images identical within each case. Employee request quote retained. Source-offline validity is separate from provider-native token fit, still pending.
+
+Review round1 complete: immutable base3bb4a7b3c/head7d80440ec, binarydiffSHA256168aab0cb73ff66f864d13a3142c7d5d2c4dec00e91b9c922b8b49350402982b. ClaudeCLI exit0/one successful result/no stderr/terminal LGTM; independent normalGPT LGTM; GrokCursor out-of-usage exit1, retained as unavailable; distinct Astra+Sol fallback both LGTM. Standing human general outage waiver verified from native project transcript4964/6309, no repeated approval requested. Reduced vendor diversity disclosed. Zero blockers or source fixes. Nonblocking hardening suggestions recorded separately; provider-native fit remains required before inference. Browser exactcard/explainer and rawmetadata/tool/memory proof all3widths pass after HTML-only wrappingfix, exactHTMLSHAa5692fb938e4a81828b3a8a8bdaac77cfb0e5649e95417d2f6282d157b820aef. Owned browser/server stopped. Twenty actual-context contrasts and offline pi serialization preserve source thinking, enable_thinking/preserve_thinking and ordinary readouts. No model calls.

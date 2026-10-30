@@ -24,7 +24,7 @@ Feature switch assessment: this repairs recording and experimental replay correc
 
 ## Gates
 
-Source qualified: RED/GREEN, focused/native checks, full build/test/lint/vendor gates and independent Claude/GPT/Astra reviews pass. Integrated current ROM identity main with byte-identical replay feature delta and 30 merged focused checks passing. Landing queued at number 2; combined post-main test remains pending. No GPU use, activation or viewer restart. This record alone does not authorize bypassing coordination.
+Source qualified: RED/GREEN, focused/native checks, full build/test/lint/vendor gates and independent Claude/GPT/Astra reviews pass. Integrated current ROM identity main with byte-identical replay feature delta and 30 merged focused checks passing. Source landed at `f28959c36c39eb8e603fd98a9d2af75d39d59bc0`; combined post-main test passed. No GPU use, gameplay activation or viewer restart. Original provider-wire identity for legacy events remains unproven; explicit source assertions are required.
 
 ### RED
 - New actual pi `completeSimple` serialization tests stop at onPayload before network; global fetch forbidden.
@@ -87,3 +87,12 @@ Source qualified: RED/GREEN, focused/native checks, full build/test/lint/vendor 
 - Coordinator forwarded 2026-10-30T02:16:03.935118Z: actual board turn is now this branch; verified board entry is number 1 with exact helper session. Main `157b46e11c8fd4e09048d12a2dad76c5134ef9bb` adds only ROM owner's evidence worklog over integrated `46338c776`; synced without new source/contract changes and retained frozen source reviews/gates.
 - Post-main just test CPU explicitly cleared; preserve GLM/background/paused HyperQwen processes. Coordinator now states 8790 is down pending a separate socket-crash repair. Do not refresh/restart it from this branch. Source landing is distinct from service restoration.
 - COMMIT: `merge: sync ROM landing evidence before replay repair` (this integration evidence commit).
+
+## Landing and post-main complete
+- Actual board number 1 verified; canonical main clean before fast-forward. Landed reviewed/qualified integration at `f28959c36c39eb8e603fd98a9d2af75d39d59bc0`. Replay feature-only binary diff remained exact SHA-256 `65b8f1502c1067b0575a4f7cb9f1eee3411852e27b65df5738c140c21ebbf1c0` against ROM evidence main `157b46e11`.
+- One combined post-main `just test` on canonical main PASS: 5,077 agent, 2,345 viewer, 4,934 Python, 116 gateway and 3 protected-card checks, including build and ≥90% coverage gates. Receipt `/tmp/probe-replay-post-main-test.log`; CPU RELEASE delivered. Prelanding final lint/vendor checks retained; source bodies unchanged.
+- Protected PIDs 44575 (llama-server start18:10:11), 18986 (node start10:01:26), 37156 (node startOct27 15:23:07) remain present with original starts after gate. No GPU/model inference calls, active run changes, service restart or historical study rewrite.
+- Additional actual CLI rehearsal: supported synthetic legacy fixture completes `--context-only` with all three source assertions, zero fetch attempts. Actual 057c prefix hits existing `gym-heal-warning-v1 needs a recorder for gym_heal_warning events` before and after this repair (untouched frozen runtime reproduced it identically). This known replay-feature gap remains a separate follow-up, not hidden or expanded into this identity patch. Actual real-prefix `recordedConversation`→pi source serialization proof passes independently. Do not claim every historical feature/CLI path is supported.
+- Archived template/kwargs inference remains separate from live rendered-token proof. No inference experiment or gameplay benefit claim follows from this source repair.
+- Final evidence-only commit changes this worklog, then fast-forwards main under the held board turn and releases it. Coordinator owns viewer/socket status; no viewer refresh is required or performed by this probe-only patch. Keep worklog active; no archival authorization.
+- COMMIT: `docs: close replay identity repair with post-main proof` (this evidence-only commit).

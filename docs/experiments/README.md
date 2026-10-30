@@ -29,3 +29,5 @@ Readiness verdicts and supporting run IDs are recorded in the matching feature o
 - [Roxanne autonomous sixteen GPU-hour campaign — proposal](roxanne-autonomous-16gpuh-20261023.html)
 
 - [Roxanne controller offline proof](roxanne-controller-offline-20261023.html): native/history qualification, full-trace scoring and network-denied rehearsal; no campaign launch.
+
+- [Rusturf native note diagnostic pilot](rusturf-native-note-pilot16-20261029.html): known-save investigation and model-owned grunt victory;16perarm, before final sizing.

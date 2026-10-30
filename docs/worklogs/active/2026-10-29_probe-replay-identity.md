@@ -8,9 +8,9 @@ Historical assistant identity must reflect the source message, not the sampling 
 
 ## Milestone
 
-- [ ] RED: real pi serialization regression tests for local/gateway source, intentional cross-model conversion, missing legacy identity and recorder provenance.
-- [ ] GREEN: recording/replay/CLI identity plumbing; focused native-caller/serializer and affected package checks.
-- [ ] Reviewable commit and independent review; separate remaining full gates and landing.
+- [x] RED: real pi serialization regression tests for local/gateway source, intentional cross-model conversion, missing legacy identity and recorder provenance.
+- [x] GREEN: recording/replay/CLI identity plumbing; focused native-caller/serializer and affected package checks.
+- [x] Reviewable commit and independent review; separate remaining full gates and landing.
 
 Feature switch assessment: this repairs recording and experimental replay correctness, with no live gameplay prompt/tool/action/default changes. A gameplay A/B switch would knowingly retain invalid measurement behavior. Historical studies remain frozen; newly generated contexts use explicit qualification.
 
@@ -24,7 +24,7 @@ Feature switch assessment: this repairs recording and experimental replay correc
 
 ## Gates
 
-Pending focused RED/GREEN tests, affected package type/lint, required reviews and coordinated full gates. No merge or activation authorized by this record alone.
+Source qualified: RED/GREEN, focused/native checks, full build/test/lint/vendor gates and independent Claude/GPT/Astra reviews pass. Integrated current ROM identity main with byte-identical replay feature delta and 30 merged focused checks passing. Landing queued at number 2; combined post-main test remains pending. No GPU use, activation or viewer restart. This record alone does not authorize bypassing coordination.
 
 ### RED
 - New actual pi `completeSimple` serialization tests stop at onPayload before network; global fetch forbidden.
@@ -77,3 +77,8 @@ Pending focused RED/GREEN tests, affected package type/lint, required reviews an
 - Archived Qwen template offline check: all208screenfittedwires set preserve_thinking=true. Corrected reasoning_content should remain inside <think>; with preserve_thinking=false it is still retained after last real user. This is template/kwargs inference, not actual live rendered-token proof. No endpoint requests.
 - No gameplay/model inference, active process changes, historical metadata edits or viewer refresh. Coordinator explicitly states this probe-only repair needs no viewer refresh; ROM owner owns its one refresh. Preserve GLM44575, background18986 and paused hyperqwen37156.
 - COMMIT: `merge: integrate ROM identity with probe replay repair` (this integration/evidence commit; exact SHA recorded after landing).
+
+### Waiting for landing
+- Qualified integration commit `542a40303185f5b213aa0c76b3276980646eccd4`. Joined board with actual helper session `00000000-0000-4000-8000-b0f954d0ac4d`; queued number 2 behind ROM identity owner `codex/visibility-v1-retirement`. All owned CPU/GPU resources released; no waiting endpoint claimant.
+- Durable packet copied to canonical `runs/reviews/2026-10-29-probe-replay-identity/`; source is qualified but not landed or live. Await board notification, recheck main/feature identity, fast-forward only while first, run one combined post-main test under CPU clearance, then release board. Probe-only repair requires no viewer refresh per coordinator.
+- COMMIT: `docs: record qualified replay repair and landing wait` (this evidence-only commit).

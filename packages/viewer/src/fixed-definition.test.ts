@@ -110,3 +110,34 @@ it("enables both gym campaign treatments in bundle only for every maintained rec
   }
  }
 });
+
+it("validates immutable current-recipe ancestry without changing effective preset fields",()=>{
+ const {full,recipe}=sources(),dir=mkdtempSync(join(tmpdir(),"frozen-current-")),text=JSON.stringify(recipe),digest=createHash("sha256").update(text).digest("hex"),archive=`experiments/feature-configs/archive/current-${digest.slice(0,12)}.json`;
+ try{
+  mkdirSync(join(dir,"experiments/fixed"),{recursive:true});mkdirSync(join(dir,"experiments/feature-configs/archive"),{recursive:true});
+  writeFileSync(join(dir,archive),text);
+  const frozen={...full,derivedFrom:{recipe:"current",path:archive,sha256:digest}},file=join(dir,"experiments/fixed/test.json");
+  writeFileSync(file,JSON.stringify(frozen));
+  expect(readFixedDefinition(dir,"test").definition).toEqual(frozen);
+  expect(readFixedDefinition(dir,"test").featureRecipe).toBeNull();
+  writeFileSync(file,JSON.stringify({...frozen,derivedFrom:{...frozen.derivedFrom,sha256:"0".repeat(64)}}));
+  expect(()=>readFixedDefinition(dir,"test")).toThrow("frozen recipe path does not match its hash");
+  writeFileSync(file,JSON.stringify(frozen));
+  writeFileSync(join(dir,archive),text+" ");
+  expect(()=>readFixedDefinition(dir,"test")).toThrow("frozen recipe hash mismatch");
+  const wrong=JSON.stringify({...recipe,id:"other"}),wrongHash=createHash("sha256").update(wrong).digest("hex"),wrongPath=`experiments/feature-configs/archive/current-${wrongHash.slice(0,12)}.json`;
+  writeFileSync(join(dir,wrongPath),wrong);writeFileSync(file,JSON.stringify({...frozen,derivedFrom:{recipe:"current",path:wrongPath,sha256:wrongHash}}));
+  expect(()=>readFixedDefinition(dir,"test")).toThrow("frozen source must be a current feature recipe");
+  const malformed=JSON.stringify({id:"current"}),badHash=createHash("sha256").update(malformed).digest("hex"),badPath=`experiments/feature-configs/archive/current-${badHash.slice(0,12)}.json`;
+  writeFileSync(join(dir,badPath),malformed);writeFileSync(file,JSON.stringify({...frozen,derivedFrom:{recipe:"current",path:badPath,sha256:badHash}}));
+  expect(()=>readFixedDefinition(dir,"test")).toThrow("frozen source must be a current feature recipe");
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+it.each([
+ {recipe:"other",path:"experiments/feature-configs/archive/current-000000000000.json",sha256:"0".repeat(64)},
+ {recipe:"current",path:"../../outside.json",sha256:"0".repeat(64)},
+ {recipe:"current",path:"experiments/feature-configs/archive/current-000000000000.json",sha256:"bad"},
+ {recipe:"current",path:"experiments/feature-configs/archive/current-000000000000.json",sha256:"0".repeat(64),extra:true},
+])("rejects malformed ancestry before reading its source: %j",derivedFrom=>{
+ expect(()=>parseFixedDefinition(JSON.stringify({...definition(),derivedFrom}))).toThrow();
+});

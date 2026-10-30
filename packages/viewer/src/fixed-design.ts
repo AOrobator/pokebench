@@ -40,6 +40,12 @@ const draftShape = {
   id: Name,
   title: Type.String({ minLength: 1, maxLength: 120 }),
   worklog: Type.String({ minLength: 1 }),
+  // Immutable ancestry only; does not replace the definition's effective features.
+  derivedFrom: Type.Optional(Type.Object({
+    recipe: Type.Literal("current"),
+    path: Type.String({ pattern: "^experiments/feature-configs/archive/current-[0-9a-f]{12}\\.json$" }),
+    sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }),
+  }, closed)),
   primaryMilestone: Type.String({ minLength: 1 }),
   primaryOutcome: Type.Optional(Type.Union([Type.Literal("milestone"),Type.Literal("frontier")])),
   // Every trial, save or New Game, must record this ROM.

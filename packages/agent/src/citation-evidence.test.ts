@@ -1,3 +1,6 @@
+import {createHash} from "node:crypto";
+import {fileURLToPath} from "node:url";
+import {readFixedDefinition} from "../../viewer/src/fixed-definition.js";
 import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {readFileSync,readdirSync} from "node:fs";
 import {expect,it} from "vitest";
@@ -91,7 +94,18 @@ it("requires a structured quote, allows optional rationale and rejects malformed
 it("is on in both arms of current recipes; defaults and historical fixed definitions remain OFF",()=>{
  const dir=new URL("../../../experiments/fixed/",import.meta.url);
  for(const name of readdirSync(dir).filter(n=>n.endsWith(".json"))){
-  const current=(JSON.parse(readFileSync(new URL(name,dir),"utf8")) as {featureRecipe?:string}).featureRecipe==="current";
+  const raw=JSON.parse(readFileSync(new URL(name,dir),"utf8")) as {featureRecipe?:string;derivedFrom?:{recipe:string;path:string;sha256:string}};
+  const current=raw.featureRecipe==="current"||raw.derivedFrom?.recipe==="current";
+  if(raw.derivedFrom!==undefined){
+   const root=new URL("../../../",import.meta.url);
+   // Use the production reader to reject forged ancestry rather than trusting a label.
+   readFixedDefinition(fileURLToPath(root),name.slice(0,-5));
+   const text=readFileSync(new URL(raw.derivedFrom.path,root),"utf8");
+   expect(createHash("sha256").update(text).digest("hex"),name).toBe(raw.derivedFrom.sha256);
+   const source=JSON.parse(text) as {id:string;features:Record<string,boolean>;onInBoth:string[];switches:string[]};
+   expect(source.id,name).toBe("current");expect(source.features[ID],name).toBe(true);
+   expect(source.onInBoth,name).toContain(ID);expect(source.switches,name).not.toContain(ID);
+  }
   const d=JSON.parse(recipeText(new URL(name,dir),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth?:string[]};
   expect(d.base.features[ID]??false,name).toBe(current);
   expect(d.switches,name).not.toContain(ID);

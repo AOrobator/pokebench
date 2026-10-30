@@ -349,7 +349,8 @@
   "auto-talk-field-only-v1"
  ],
  "onInBoth": [
-  "save-state-task-truth-v1"
+  "save-state-task-truth-v1",
+  "citation-evidence-v1"
  ],
  "phases": [
   {
@@ -612,5 +613,10 @@
    "lane": "B",
    "arm": "control"
   }
- ]
+ ],
+ "derivedFrom": {
+  "recipe": "current",
+  "path": "experiments/feature-configs/archive/current-d5b1522eb28d.json",
+  "sha256": "d5b1522eb28d3e27b8bab67a44a4625986858454c64875edf7cdbd03e7fc2ed3"
+ }
 }

@@ -2,7 +2,8 @@
 import {createHash} from "node:crypto";
 import {existsSync,readFileSync} from "node:fs";
 import {join} from "node:path";
-import {FixedDesignError,parseFixedDefinition,type FixedDefinition} from "./fixed-design.js";
+import {Value} from "typebox/value";
+import {FeatureRecipeSchema,FixedDesignError,parseFixedDefinition,type FixedDefinition} from "./fixed-design.js";
 const validId=(id:string):void=>{if(!/^[a-z0-9][a-z0-9-]{0,79}$/.test(id))throw new FixedDesignError("invalid definition or recipe id");};
 export function readFeatureRecipe(root:string,id:string):string {
  validId(id);return readFileSync(join(root,"experiments/feature-configs",`${id}.json`),"utf8");
@@ -18,5 +19,13 @@ export function readFixedDefinition(root:string,id:string,allowArchive=false):{d
   const recipe=readFeatureRecipe(root,recipeId);
   featureRecipe={id:recipeId,sha256:createHash("sha256").update(recipe).digest("hex")};return recipe;
  });
+ const ancestry=parsed.definition.derivedFrom;
+ if(ancestry!==undefined){
+  if(ancestry.path!==`experiments/feature-configs/archive/current-${ancestry.sha256.slice(0,12)}.json`)throw new FixedDesignError("frozen recipe path does not match its hash");
+  const source=readFileSync(join(root,ancestry.path),"utf8");
+  if(createHash("sha256").update(source).digest("hex")!==ancestry.sha256)throw new FixedDesignError("frozen recipe hash mismatch");
+  const recipe:unknown=JSON.parse(source);
+  if(!Value.Check(FeatureRecipeSchema,recipe)||recipe.id!=="current")throw new FixedDesignError("frozen source must be a current feature recipe");
+ }
  return {...parsed,featureRecipe};
 }

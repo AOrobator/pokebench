@@ -80,8 +80,7 @@
   "current-question-focus-v1",
   "eight-badge-mission-v1",
   "discovered-gym-checklist-v1",
-  "player-map-visibility-v2",
-  "rom-identity-v1"
+  "player-map-visibility-v2"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -171,7 +170,8 @@
   "type-gap-team-last-message-v1",
   "instruction-memory-cap-v1",
   "destination-first-navigation-v1",
-  "town-center-checkpoint-v1"
+  "town-center-checkpoint-v1",
+  "rom-identity-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -474,6 +474,6 @@
   "discovered-gym-checklist-v1": false,
   "town-center-checkpoint-v1": true,
   "player-map-visibility-v2": false,
-  "rom-identity-v1": false
+  "rom-identity-v1": true
  }
 }

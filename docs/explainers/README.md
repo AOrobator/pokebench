@@ -365,3 +365,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Player map visibility V2](player-map-visibility-v2.html): whole fully lit current maps; native illumination and terrain memory in darkness. Registered default OFF.
 - [ROM identity](rom-identity-v1.html): exact tested identity fact, verified ROM hash, default-OFF switch and exploratory limits.
+
+- [Checkpoint research note](checkpoint-research-note-v1.html): one frozen, hash-validated initial prompt for an ordinary recorded save-state restart; default OFF.

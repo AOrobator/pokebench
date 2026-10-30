@@ -25,7 +25,7 @@ it("delivers the exact resumed task through the production consumer seam",async(
  const result=await deliverInitialPlayTask({kind:"save_state"},"RUSTBORO_CITY",features(true),()=>123,task=>{delivered=task;return Promise.resolve("played");});
  expect(result).toBe("played");expect(delivered).toEqual({role:"user",content:"The game has resumed from a recorded checkpoint. Reach the native game milestone RUSTBORO CITY.",timestamp:123});
  const live=readFileSync(new URL("./live.ts",import.meta.url),"utf8");
- expect(live).toContain("deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop))");
+ expect(live).toContain("deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop),researchNote)");
  expect(live).toContain('realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv)');
  expect(live).toContain("gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1)");
 });

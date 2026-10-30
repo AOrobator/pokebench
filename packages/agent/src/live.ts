@@ -1,3 +1,4 @@
+import {loadCheckpointResearchNote,checkpointResearchNoteReceipt} from "./checkpoint-research-note.js";
 import type {Model,Api} from "@mariozechner/pi-ai";
 import {gzipSync} from "node:zlib";
 import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuationStart,validateLiveContinuationModel,validateLiveContinuationFeatures,captureContinuationStart,continuationPayload} from "./roxanne-live-continuation.js";
@@ -25,7 +26,7 @@ import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { cutOffReplyNotice } from "./cut-off-reply.js";
 import { screenshotButtonBaseline, playHarnessFeatures, serverFeatureEnv } from "./features.js";
-import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, initialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { dirname, join, resolve } from "node:path";
@@ -235,6 +236,10 @@ async function playAgent(): Promise<void> {
   const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
   const serverEnv={...process.env,...serverFeatureEnv(features),...(continuation===null?{}:{POKEBENCH_RESTORE_RTC_MS:String(continuation.rtcMs)})};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
+  const researchFile=process.env["POKEBENCH_CHECKPOINT_RESEARCH_NOTE"];
+  const researchHash=process.env["POKEBENCH_CHECKPOINT_RESEARCH_NOTE_SHA256"];
+  const researchNote=loadCheckpointResearchNote(features,start,researchFile===undefined||researchHash===undefined?undefined:{path:researchFile,sha256:researchHash},path=>readFileSync(path,"utf8"));
+  if(researchNote!==null&&continuation!==null)throw new Error("checkpoint research note requires ordinary save-state startup, not restored history");
   if(continuation!==null){validateLiveContinuationStart(continuation,start);validateLiveContinuationFeatures(continuation,features);}
   const captureMode=checkpointSelection(process.env);
   const experiment=experimentFromEnv(process.env);
@@ -277,6 +282,7 @@ async function playAgent(): Promise<void> {
     realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv),
     new FrameStore(continuation?.frameRoot??RUNS_ROOT),
     async (recorder,gameServerUrl,startMeta,lifecycle) => {
+      if(researchNote!==null)writeFileSync(join(RUNS_ROOT,runId,"checkpoint-research-note.json"),JSON.stringify(checkpointResearchNoteReceipt(researchNote,initialPlayTask(start,goalTarget,features,researchNote))),{flag:"wx",mode:0o600});
       const controller = new AbortController();
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
@@ -370,7 +376,7 @@ async function playAgent(): Promise<void> {
       });
         if(restored!==null)return await playFromHistory(restored.messages,governor,loop);
         if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
-        return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop));
+        return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop),researchNote);
       } finally {
         if(absoluteStop!==null)clearTimeout(absoluteStop);
         wall.clear();

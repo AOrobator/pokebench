@@ -1,0 +1,25 @@
+# Rusturf native checkpoint research note
+
+## Approved boundary
+The operator authorized the overnight research campaign and actual Rusturf interaction/victory validation. This bounded implementation supplies one explicit, frozen candidate note at ordinary save-state startup. Root approved this path set before implementation. It adds no planner/controller, new game tool, route oracle, automatic action or changed stopping target. New registered treatment starts OFF; OFF preserves prior model bytes and performs no descriptor file I/O. Descriptor must be explicitly supplied with its expected hash, validated before startup, and recorded before first model input. Boot, missing inputs, invalid hash/schema/size and incompatible continuation paths fail closed. Native stopAt remains independent of model goal.
+
+## Milestone
+- [x] RED: focused test first failed importing the absent note module; after implementation, deletion of production initial-task wiring failed the exact-message assertion.
+- [x] GREEN: strict loader and initial-task production seam, appended registry/default-OFF entries and durable note/file/message-hash sidecar before initial model input. No milestone target validation changes.
+- [x] Wiring deletion/restoration proof: exact delivered candidate vanished under deletion, restored green. Fourteen guards plus three compound operands independently deleted and caught (17/17), then restored. First mutation pass exposed a whitespace fixture masked by wrong hash; corrected to a matching-hash whitespace descriptor and reran all. Receipt in canonical ignored campaign strategy-readiness/native-note-guard-mutations.json.
+- [x] Explainer registered, card and real HTTP route tests PASS in full viewer suite after owned build. Theme/page checks PASS; actual served browser proof remains root-owned after landing.
+- [ ] Root-owned full gates, frozen review, landing and live evidence before measured use.
+
+No GPU, native server or inference is part of this source implementation. Do not archive this active worklog without approval. WORKLOG.md pointer remains root-owned.
+
+## Focused receipts and handoff
+- Five affected agent test files:96/96 PASS after restore (new descriptor suite14 cases, legacy checkpoint/gym plus registry/preset contracts). Agent tsc --noEmit PASS; changed agent-file ESLint PASS after correcting a dynamic-delete test style error.
+- Viewer focused card test PASS. Exact route test failed before serving because the owned worktree has no viewer/dist/bag-history.js, an existing build prerequisite; no assertion weakened and no build run by this agent.
+- Temporary ignored dependency symlinks point to canonical package dependencies. Root must establish worktree-local pnpm workspace links before full viewer gates/build, to avoid resolving shared canonical agent artifacts. No canonical source/dependency/dist changes made.
+- No commits, full gates, merge, GPU, native server, inference or coordination messages performed by the implementation subagent. Root owns frozen review and landing. OFF descriptor path is not read; ON requires ordinary save-state startup and truthful-start switch, and is incompatible with restored-history/state-only modes. This is an initial note, not persistence restoration or an installed controller.
+
+## Root source validation
+- User explicitly authorized GPU testing/iteration and native talk-plus-victory goal, retaining new720aggregateGPUmin; this source change adds only the missing normal checkpoint initial-note delivery capability, default OFF. Measurement-only milestone goal/stop restrictions remain intact. Native trials will use normal goal/declared cap with postrun game-state grading, not bypass that guard.
+- Full source gates PASS, pinned14feature-file hashes unchanged: lint; agent5091/viewer2351 tests with coverage floors; Python4934zero skips/errors with metric gate; gateway116/metric gate; trainer-card guard and375/1280/1440screens; vendor. Durable receipts canonical `runs/probe-research/rusturf-overnight-20261029/source-gates/summary.json`.
+- Owned setup faults preserved: missing vendor caused first Python failure; one direct resume omitted dotenv and caused ROM-not-set failures/skips. Initialized exact owned vendor from local Git and reran Python correctly; no skipped evidence accepted, no assertions changed. Build/test JS receipts retained at unchanged source. Trainer-card-check hid a second owned build; disclosed, no canonical build occurred. CPU reservation released.
+- Frozen review and coordinated landing pending. Actual native delivery/behavior remains unclaimed until separate launch qualification; the current replay bridge does not use this source change.

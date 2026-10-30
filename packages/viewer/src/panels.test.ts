@@ -1970,3 +1970,15 @@ it("links ROM identity from its card without inferring a historical setting",()=
  expect(card.querySelector("a")?.getAttribute("href")).toBe("/explainers/rom-identity-v1.html");
  expect(card.textContent).toContain("NOT RECORDED");
 });
+
+
+it("links the checkpoint research note card without inferring historical activation",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="checkpoint-research-note-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card.textContent).toContain("NOT RECORDED");
+});

@@ -1,3 +1,4 @@
+import {checkpointResearchTask,type CheckpointResearchNote} from "./checkpoint-research-note.js";
 import {destinationFirstPrompt} from "./destination-first.js";
 import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
@@ -192,7 +193,7 @@ export function playGoal(target: string | null, features: FeatureSet): string {
   return features["open-goal-prompt-v1"] ? OPEN_PLAY_GOAL : PLAY_GOAL;
 }
 
-export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet):string {
+function initialTaskBase(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet):string {
   if(target===null&&features["eight-badge-mission-v1"])return `${start.kind==="boot"?"The game has just booted.":"The game has resumed from a recorded checkpoint."} ${EIGHT_BADGE_GOAL}`;
   if(start.kind==="save_state"&&features["save-state-task-truth-v1"]){
     return target===null?RESUME_TASK:`The game has resumed from a recorded checkpoint. ${playGoal(target,features)}`;
@@ -200,10 +201,14 @@ export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"sav
   return target===null?PLAY_TASK:`The game has just booted. ${playGoal(target,features)}`;
 }
 
+export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet,note:CheckpointResearchNote|null=null):string {
+ return checkpointResearchTask(initialTaskBase(start,target,features),start,features,note);
+}
+
 // Production seam for the first model input: tests observe the exact message
 // handed to the loop instead of merely inspecting live.ts source text.
-export function deliverInitialPlayTask<T>(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet,now:()=>number,deliver:(task:AgentMessage)=>T):T {
- return deliver({role:"user",content:initialPlayTask(start,target,features),timestamp:now()});
+export function deliverInitialPlayTask<T>(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet,now:()=>number,deliver:(task:AgentMessage)=>T,note:CheckpointResearchNote|null=null):T {
+ return deliver({role:"user",content:initialPlayTask(start,target,features,note),timestamp:now()});
 }
 
 // screen-center-player-v1: the camera centers the player's tile (pokeemerald field_camera.c); the game server

@@ -82,3 +82,8 @@ Source qualified: RED/GREEN, focused/native checks, full build/test/lint/vendor 
 - Qualified integration commit `542a40303185f5b213aa0c76b3276980646eccd4`. Joined board with actual helper session `00000000-0000-4000-8000-b0f954d0ac4d`; queued number 2 behind ROM identity owner `codex/visibility-v1-retirement`. All owned CPU/GPU resources released; no waiting endpoint claimant.
 - Durable packet copied to canonical `runs/reviews/2026-10-29-probe-replay-identity/`; source is qualified but not landed or live. Await board notification, recheck main/feature identity, fast-forward only while first, run one combined post-main test under CPU clearance, then release board. Probe-only repair requires no viewer refresh per coordinator.
 - COMMIT: `docs: record qualified replay repair and landing wait` (this evidence-only commit).
+
+### Landing turn
+- Coordinator forwarded 2026-10-30T02:16:03.935118Z: actual board turn is now this branch; verified board entry is number 1 with exact helper session. Main `157b46e11c8fd4e09048d12a2dad76c5134ef9bb` adds only ROM owner's evidence worklog over integrated `46338c776`; synced without new source/contract changes and retained frozen source reviews/gates.
+- Post-main just test CPU explicitly cleared; preserve GLM/background/paused HyperQwen processes. Coordinator now states 8790 is down pending a separate socket-crash repair. Do not refresh/restart it from this branch. Source landing is distinct from service restoration.
+- COMMIT: `merge: sync ROM landing evidence before replay repair` (this integration evidence commit).

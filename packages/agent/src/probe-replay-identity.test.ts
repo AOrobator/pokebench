@@ -66,3 +66,9 @@ it("preserves per-message API/model differences and does not invent a missing re
   if(identity.api!=="openai-completions"||identity.model!==sourceId)expect(p.content).toContain("Look first.");
  }
 });
+
+it.each(["--history-provider","--history-api","--history-thinking-field"])("refuses a missing %s value without consuming --context-only",flag=>{
+ const pairs=[["--history-provider","local-llamacpp"],["--history-api","openai-completions"],["--history-thinking-field","reasoning_content"]];
+ const args=["source","2",...pairs.filter(p=>p[0]!==flag).flat(),flag,"--context-only"];
+ expect(()=>parseArgs(args)).toThrow(/needs a value/);
+});

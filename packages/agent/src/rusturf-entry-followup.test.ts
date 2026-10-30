@@ -157,3 +157,22 @@ it("requires section text to equal the current observed field, not a remembered 
 it("rejects duplicate Location owners and unknown historical native completion",async()=>{
  for(const [extra,text]of [[sectionState(),sectionText()+"\nLocation: RUSTURF TUNNEL"],[{...sectionState(),story_progress:undefined},sectionText()]]as const){const s=setup();s.feed(state(extra),result({text}));expect(await s.transform(messages(text))).toEqual(messages(text));}
 });
+
+it("isolates the native map-group guard with the same map number and coherent bare readout",async()=>{
+ const s=setup();s.feed(state({map_id:[25,4]}),result());const input=messages();expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("isolates the native location-name guard with a coherently delivered foreign name",async()=>{
+ const text=TEXT.replace("RUSTURF TUNNEL","OTHER CAVE"),s=setup();s.feed(state({location:"OTHER CAVE"}),result({text}));const input=messages(text);expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("isolates actual delivered toolName from the matching recorded call ID and text",async()=>{
+ const s=setup();s.feed(state(),result());const input=messages().map(m=>m.role==="toolResult"?{...m,toolName:"press"}:m);expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("isolates the position X guard with identical wrong-X recorded and delivered text",async()=>{
+ const text=TEXT.replace("X=7","X=3"),s=setup();s.feed(state(),result({text}));const input=messages(text);expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("isolates the position Y guard with identical wrong-Y recorded and delivered text",async()=>{
+ const text=TEXT.replace("Y=12","Y=8"),s=setup();s.feed(state(),result({text}));const input=messages(text);expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});
+it("isolates a nonfield screen that native completion decoding still accepts",async()=>{
+ const s=setup();s.feed(state({screen:"evolution"}),result());const input=messages();expect(await s.transform(input)).toEqual(input);expect(s.notes).toEqual([]);
+});

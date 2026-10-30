@@ -20,9 +20,9 @@ const state=()=>event({...IN_GAME,type:"state",location:"RUSTURF TUNNEL",map_id:
 const result=()=>event({type:"tool_result",seq:2,id:"obs",name:"observe",state_seq:1,text:TEXT,is_error:false,duration_ms:1,frames:[]});
 const messages=():AgentMessage[]=>[{role:"user",content:"Continue playing.",timestamp:0},{role:"toolResult",toolCallId:"obs",toolName:"observe",content:[{type:"text",text:TEXT}],isError:false,timestamp:0}];
 function factory(on:boolean,restoring=false){
- const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[]}[]=[];
+ const listeners:((e:RunEvent)=>void)[]=[],notes:{text:string;evidence:number[];timing:"next"|"current"|undefined}[]=[];
  const features={...featuresOf(["ram-state-v1"]),[ID]:on};
- const wiring=contextTools(features,{isRestoring:()=>restoring,subscribe:f=>{listeners.push(f);},recordLedgerContext:n=>{notes.push(n);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
+ const wiring=contextTools(features,{isRestoring:()=>restoring,subscribe:f=>{listeners.push(f);},recordLedgerContext:(n,timing)=>{notes.push({...n,timing});},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
  return {wiring,notes,feed:(...events:RunEvent[])=>{for(const e of events)for(const f of listeners)f(e);}};
 }
 it("registers a globally OFF append-only treatment with its declared dependency",()=>{
@@ -39,7 +39,7 @@ it("future current recipe keeps control OFF and explicitly enables bundle only",
 });
 it("production factory appends final evidence-bound user feedback and logs source IDs",async()=>{
  const s=factory(true);s.feed(state(),result());const input=messages(),out=await s.wiring.transformContext(input);
- expect(out.slice(0,-1)).toEqual(input);expect(out.at(-1)).toMatchObject({role:"user"});expect(out.at(-1)?.content).toContain("RUSTURF ENTRY FOLLOW-UP");expect(out.at(-1)?.content).toContain("X=6, Y=9");expect(s.notes).toEqual([{text:out.at(-1)?.content,evidence:[1,2]}]);expect(s.wiring.tools).toEqual([]);
+ expect(out.slice(0,-1)).toEqual(input);expect(out.at(-1)).toMatchObject({role:"user"});expect(out.at(-1)?.content).toContain("RUSTURF ENTRY FOLLOW-UP");expect(out.at(-1)?.content).toContain("X=6, Y=9");expect(s.notes).toEqual([{text:out.at(-1)?.content,evidence:[1,2],timing:"current"}]);expect(s.wiring.tools).toEqual([]);
 });
 it("OFF preserves exact production context and never produces a receipt",async()=>{const s=factory(false);s.feed(state(),result());const input=messages();expect(await s.wiring.transformContext(input)).toBe(input);expect(s.notes).toEqual([]);});
 it("production recorder adapter propagates historical-restore suppression",async()=>{const s=factory(true,true);s.feed(state(),result());const input=messages();expect(await s.wiring.transformContext(input)).toEqual(input);expect(s.notes).toEqual([]);});

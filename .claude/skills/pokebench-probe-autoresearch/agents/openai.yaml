@@ -1,4 +1,4 @@
 interface:
   display_name: "PokeBench probe autoresearch"
-  short_description: "Research and hill-climb prompts with fresh confirmation"
-  default_prompt: "Use $pokebench-probe-autoresearch to research this decision failure, iterate on evidence-grounded prompts and return the best-supported candidate within the probe contract."
+  short_description: "Search strategies with trace analysis and confirmation"
+  default_prompt: "Use $pokebench-probe-autoresearch to research this decision failure, explore distinct strategies, analyze thinking and actual actions, and refine a policy with fresh confirmation within the probe contract."

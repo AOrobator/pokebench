@@ -1,6 +1,6 @@
 ---
 name: pokebench-decision-probes
-description: Design, power-size, grade and publish valid PokeBench decision probes. Use for frozen switch comparisons, historical-context ablations, prompt studies and probe visibility repairs; pair with pokebench-probe-autoresearch for research-driven prompt optimization, not gameplay-cohort launches.
+description: Design, power-size, grade and publish valid PokeBench decision probes. Use for frozen switch comparisons, historical-context ablations, prompt studies and probe visibility repairs; pair with pokebench-probe-autoresearch for research-driven strategy/prompt optimization, not gameplay-cohort launches.
 ---
 
 # PokeBench decision probes
@@ -15,8 +15,9 @@ Before scheduling or starting inference, apply [pokebench-run-coordination](../p
 - Use per-endpoint gameplay leases. Inspect actual processes and lease owners; an idle scheduler can reserve a free GPU. Stop it only when authorized and no gameplay remains. Do not infer free hardware from an old status.
 - Keep the runner, model-facing inputs, raw samples and provenance immutable during a measured batch. Visibility repairs must not restart or resample it.
 - Rehearse custom runners on fake data before inference. Keep fake lanes out of the real registry.
+- An approved fixed-N batch runs to its planned completion; an elapsed estimate is not a stop rule. Reserve a window that covers the whole batch and teardown. Honor explicit no-time-limit instructions: do not introduce a per-trial timer merely for convenience. Aggregate hard caps and lease/owner limits still apply; reconcile and coordinate a resource-only continuation within existing authorization before an inadequate window expires, without changing measurement inputs or resampling. If a hard limit or fault nevertheless prevents completion, retain the incomplete batch honestly rather than analyze a favorable prefix.
 
-## Default for prompt design: explore, diagnose and revise, confirm
+## Default for strategy/prompt design: explore, diagnose and revise, confirm
 
 Operator standing instruction, October 22, 2026: never begin prompt development with large frozen arms. Start with small directional comparisons and trace inspection; reserve large fixed comparisons for promising candidates. More GPU-time permission does not waive the pilot. If an operator later explicitly overrides this standing instruction, explain the tradeoff before using that override; a request to try variants or increase repetitions alone is not a reason to skip exploration.
 
@@ -26,21 +27,24 @@ Operator instruction, October 29, 2026: **power-size confirmation and cap the en
 
 - **8 per arm per case:** broad development comparisons across distinct failures and adverse controls. Inspect complete finished batches before revising. Nonsignificance is not evidence of no effect.
 - **16 per arm per case:** refine or replicate promising development candidates against a freshly sampled parent/incumbent. A new mechanism can return to 8 with a stated reason.
+- Explicit operator minimums override these development defaults. Record them in the current contract, not as a permanent global sample-size rule.
 - **Confirmation:** choose one fixed N from baseline, smallest useful effect, source-family variation and the actual acceptance rule. It is not an automatic 32/64/128/256 ladder, and draws per case are not total draws per arm.
 
 Read [power sizing](references/power-sizing.md) before designing confirmation or spending its reserve. Probe-research defaults are **90% target power and two-sided alpha .01 for the final comparison family per question**, with family-aware analysis and declared regression limits. Independent-draw Fisher sizing is a reference, not transfer power for repeated historical contexts. These are probe-specific defaults; general gameplay-cohort defaults remain with experiment-design. A valid result can be supported improvement, rejection or inconclusive evidence. A report must not promise a winner.
 
 1. **Explore.** Compare the incumbent and a few meaningfully different prompt hypotheses on the same development contexts with modest, balanced repetitions. Include contrast cases where the tempting intervention is inappropriate. Freeze each batch and its directional scoring. Record what each candidate changes and what observation would support revising, dropping or advancing it. Complete that batch before inspecting outcomes; report directional evidence rather than a confirmed winner.
 2. **Diagnose and revise.** Inspect full successful and failed responses, including reasoning, delivered observations and the first proposed tool call. Separate mistaken facts, self-imposed constraints, repeated tactics, uncertain decisions and blocked actions. Use those findings to make a focused revision; record the trace evidence, exact wording change and proposed mechanism. Compare the revision with its parent or incumbent on development data before committing most of the budget. Reuse of inspected cases is development evidence, even when the new draws have fresh random seeds. Prefer a bounded number of informative revisions; stop when the next batch is unlikely to change the decision or the exploration budget is spent.
-3. **Confirm.** Advance one finalist by default. Freeze wording, placement, eligibility, persistence, rubric, primary outcome, comparison, sample size, regression limits and analysis before opening untouched confirmation outcomes. If multiple final candidates or final looks are designed, preserve the question's combined error budget. Test on held-out source-run families, including neutral and adverse contrast cases; keep related histories together to prevent leakage. Size this fixed comparison for the effect and precision that matter within the remaining budget. Report repeated-draw reliability separately from transfer across contexts. If confirmation cases are inspected to revise wording, they become development cases and a further confirmation claim needs a fresh reserve.
+3. **Confirm.** Advance one finalist by default. Freeze wording, placement, eligibility, persistence, rubric, primary outcome, comparison, sample size, regression limits and analysis before opening untouched confirmation outcomes. If multiple final candidates or final looks are designed, preserve the question's combined error budget. For a transfer claim, test on held-out source-run families, including neutral and adverse contrast cases; keep related histories together to prevent leakage. Fresh final draws on inspected contexts support only a predeclared conditional-reliability claim, as described in the power-sizing reference. Size this fixed comparison for the effect and precision that matter within the remaining budget. Report repeated-draw reliability separately from transfer across contexts. If confirmation cases are inspected to revise wording, they become development cases and a further confirmation claim needs a fresh reserve.
+
+For adaptive research, the autoresearch skill's strategy-space map and completed-batch trace audit are gates before narrowing or choosing a revision. One frozen comparison need not become a search campaign.
 
 Keep a compact experiment ledger: stage, prompt versions and lineage, cases/families exposed, frozen N, predicted and actual GPU cost, findings and the next decision. Report the whole search history rather than only the best candidate. Exploratory selection does not justify confirmatory significance claims; account for shared controls, family clustering and multiple comparisons in the frozen confirmation analysis. Trace explanations generate hypotheses, not proof that a particular sentence caused the gain.
 
 This process permits planned adaptation between bounded batches inside an authorized search contract; it does not authorize unplanned extra runs, favorable early stopping of a fixed batch, or new gameplay checkpoints. Coordinate each new compute window. If a large batch is already authorized and running, preserve it unless the operator changes that instruction; apply this process to the next design.
 
-## What has moved the model so far (evidence to 2026-10-28)
+## Historical hypothesis sources (evidence to 2026-10-28)
 
-These are priors for choosing candidates, not rules. Each one comes from a small number of studies, mostly on Qwen 3.6. Recheck them when the model, the harness or the decision type changes. Paths are under `<repo>/`.
+These are priors for choosing candidates, not rules. These selected historical results do not establish universal placement/wording effects. Check their fidelity and exposure receipts, including any source-identity mismatch, before treating them as comparable to a repaired caller. Each one comes from a small number of studies, mostly on Qwen 3.6. Recheck them when the model, the harness or the decision type changes. Paths are under `<repo>/`.
 
 1. **The text must sit near the decision; in the scene study no system-prompt placement worked. Once the text is near, the wording matters most.**
    - Scene follow-up (9e33 t1385): every system-prompt placement scored 0/16, including the wording that scored 16/16 as the last message.
@@ -98,7 +102,7 @@ These are priors for choosing candidates, not rules. Each one comes from a small
 
 ## Qualify the actual intervention before sampling
 
-- Freeze each candidate as text/template, placement, deterministic eligibility and persistence/consumption. Check the real choice point and negative controls; a large lexical diff at an irrelevant turn is not a useful experiment.
+- Freeze each candidate as text/template, placement, deterministic eligibility and persistence/consumption, plus task/actor/action ownership, planner cadence and context policy when relevant. Check the real choice point and negative controls; a large lexical diff at an irrelevant turn is not a useful experiment.
 - Bind system prompt, messages/roles/parts, images, tool definitions, sampling (including penalties and reasoning limits), model/quant/template, runtime pins and scorer to the measured request. Preserve the actual final provider request or hashes where capture permits. Matching counts, approximate tokens, or two reconstructions using the same transform do not prove exact delivery.
 - Classify the baseline as recorded-exact, validated reconstruction, or approximate diagnostic. Historical missing wire bodies must be disclosed; resolve unexplained differences before sampling and limit the claim to what the reconstruction supports. Do not disable unrelated historical switches or strip context simply to make replay pass.
 - Exercise the production transform order, multipart text and stateful trackers over the full relevant prefix, including history later dropped from the model window. Verify the changed text and tools in every arm, prompt-plus-output fit, and final note ordering after all wrappers. An unsupported switch flip fails closed rather than silently becoming control.
@@ -120,6 +124,15 @@ The 2026-10-28 GPU windows lost runs to each of these. Check them with a `--cont
    - Events files over about 2 GB need `node --max-old-space-size=12288`.
    - Another model's run (Astra 429f) may not host the arm's switch set ("switch set is inconsistent").
 9. **Size the batch to the lock.** Comparable calls took 1.3–3.3 minutes per arm of 8 at ~20–35k tokens. Reserve the complete frozen batch and teardown before starting. Order exploratory batches by information value between batches; a deadline-truncated batch remains incomplete, with all partial calls retained, rather than an analyzed favorable subset.
+
+## Stage-wise trace evidence before adaptation
+
+Use the autoresearch [trace-analysis reference](../pokebench-probe-autoresearch/references/trace-analysis.md) for the audit. Preserve a primary actionable/native endpoint and separate labels for recognized evidence, stated task, actor choice, intended operation, actual request and native result. Binary departure, keyword agreement, schema validity and convincing reasoning do not establish recovery. A strict target-step rubric can also miss a different useful legal approach: keep its frozen score and report that diagnostic separately.
+
+- Analyze all completed arms and adverse controls, including failed/malformed planner output and every available executor. Missing/private thinking and uncalled executor stages are unavailable, not successful reasoning. Retain useful semantic intent separately from the failed architecture denominator.
+- For planner comparisons, inspect semantic role compliance: task-only text can select an actor despite having no actor field; evidence quotations alone need not be a selection. Actor-null output can still name a person operatively. Generate an independent plan for each logical trial unless a different nesting/analysis is explicitly designed; one plan executed repeatedly is not many independent planner trials.
+- Keep selection/role, request/schema validity, execution and temporal persistence distinct. Stated standing instructions or an initial handoff cannot prove resumption after a battle, moved actor or refusal, or retirement after completion. Native continuation is routed through the explicitly authorized checkpoint workflow.
+- Grade under random treatment codes before opening keys/aggregate results. Freeze the codebook/analysis for the intended test; later trace taxonomies and source exploration are labeled posthoc and consume those families for transfer. Record full-reading coverage versus indexing, unavailable blocks, rater disagreement and any adjudication. Do not turn the model's stated reason into a causal explanation without a discriminating experiment.
 
 ## Ground the correction in the traces
 
@@ -175,7 +188,7 @@ Use the repository's viewer-e2e skill for a broken control or polling behavior. 
 
 New assistant events record `replay_identity` (source API, provider, model and reasoning field); replay uses it per message. Historical events lack that evidence. Supply an explicit source assertion through `ProbePorts.historicalAssistantIdentity`, or the CLI's `--history-provider SOURCE_PROVIDER --history-api SOURCE_API --history-thinking-field FIELD`, and record how the source provider and reasoning field were established. Without a source assertion, historical replay fails closed. Do not infer it from the target endpoint or a model-name substring. A caller's assertion is provenance, not proof of historical wire identity.
 
-Keep the original source model ID. Pi deliberately converts thinking to ordinary text for a different API/provider/model; relabeling all history with the sampling destination would incorrectly suppress that distinction. Qualify same-source local and gateway serialization plus intentional cross-model conversion before inference. Preserve earlier studies' frozen artifacts and disclose any provider mismatch; a measurement repair is not a new prompt treatment.
+Keep the original source model ID. Pi deliberately converts thinking to ordinary text for a different API/provider/model; relabeling all history with the sampling destination would incorrectly suppress that distinction. Qualify same-source local and gateway serialization plus intentional cross-model conversion before inference. Inspect relevant server-template behavior as well: a correct wire field does not prove whether the final template preserves, drops or reorders historical thinking. Distinguish offline inference from captured/rendered-token proof. Preserve earlier studies' frozen artifacts and disclose any provider mismatch; a measurement repair is not a new prompt treatment. Requalify the actual production/replay caller and fit, then run a fresh matched incumbent/parent bridge before relying on prior rankings; never rewrite or pool old/new protocols as one frozen study.
 
 ## Respect grading boundaries
 

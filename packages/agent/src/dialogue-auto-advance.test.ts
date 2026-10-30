@@ -781,3 +781,22 @@ describe("dialogue-auto-advance-v1 keeps what the inner tools appended",()=>{
   expect(textOf(result)).toContain("Objective warning: fixture");
  });
 });
+
+it.each([false,true])("authored scene labels: actual auto-page capture/render respects switch %s without changing anonymous attribution",async enabled=>{
+ // pret RustboroCity_Text_HelpMeIWasRobbed: the authored employee request is distinct from the chase.
+ const text="Help me! I was robbed by TEAM AQUA!\nI have to get the DEVON GOODS back!";
+ const game=new FakeGame({text,ends:[text.length],then:"free"});game.place={location:"RUSTBORO CITY",map_id:[0,3]};
+ const original=game.state.bind(game);
+ const scene_label={source:"authored-script" as const,scene:"rustboro-employee-request" as const,beat:"employee-request" as const,speaker:"DEVON EMPLOYEE" as const,map_id:[0,3] as [0,3],actor_local_id:9,message_pointer:0x081e183e,return_pc:0x081e0b6d,rom_sha1:"f3ae088181bf583e55daf962a92bb46f4f1d07b7"};
+ game.state=()=>{
+  const s=original(),world=s.world_context;if(world==null)return s;
+  return {...s,interaction_targets:[],world_context:{...world,objects:[],...(world.message==null?{}:{message:{...world.message,scene_label}})}};
+ };
+ const features={...ON,"navigation-truth-v1":true,"script-line-presence-v1":true,"authored-scene-labels-v1":enabled};
+ const {tool,rec}=wire(game,features);const result=await tool("press").execute("authored-request",{buttons:["A"]});
+ const page=rec.advances()[0]?.pages[0];expect(page).toMatchObject({speaker:null,speaker_source:null,on_screen:[],text});
+ expect(textOf(result)).toContain(text);
+ if(enabled){expect(page).toHaveProperty("scene_label",scene_label);expect(textOf(result)).toContain("DEVON EMPLOYEE (authored script role)");}
+ else{expect(page).not.toHaveProperty("scene_label");expect(textOf(result)).not.toContain("DEVON EMPLOYEE");}
+ expect(()=>checkEvent(rec.advances()[0])).not.toThrow();
+});

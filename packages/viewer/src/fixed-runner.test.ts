@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { runFixed, type FixedHost, type FixedLaunch, type ServingReceipt } from "./fixed-runner.js";
+import { analyze, trialsFromLedger } from "./fixed-analysis.js";
 import { readLedger, queueState, type FixedLedgerEntry } from "./fixed-ledger.js";
 import {checkEvent} from "@pokebench/agent/events";
 import {cohortIndex} from "./workbench-store.js";
@@ -1073,4 +1074,57 @@ it("rehearses the authorized single GLM V2 replacement and retains its durable o
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:1,invalid:0,total:1});
   expect(experimentsAudit(runsRoot,await cohortIndex(runsRoot,join(root,"experiments")))).toEqual([]);
  }finally{rmSync(runsRoot,{recursive:true,force:true});}
+});
+
+function unequalRunnerDefinition(): FixedDefinition {
+  return definition({ replacementReserveMs: 0, terminalErrorsAsOutcomes: true, phases: [{ id: "confirmatory", armCounts: { control: 16, bundle: 100 }, maxWallMs: 120_000, primary: true, start: { kind: "boot" } }] });
+}
+
+describe("unequal allocation through the existing fixed runner", () => {
+  it("completes every frozen slot with 50 bundle and 8 control outcomes on each GPU, retaining model errors", async () => {
+    const { def, runsRoot, dir } = setup(unequalRunnerDefinition());
+    const host = new Fake(runsRoot, { ending: (_launch, n) => n === 1 ? "model_error" : "budget" });
+    try {
+      expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+      const ledger = readLedger(join(dir, "trials.jsonl")), launches = launchesOf(ledger), ended = outcomes(ledger);
+      expect(launches.map(x => x.slot).sort((a,b) => a-b)).toEqual(def.plan.map(x => x.slot));
+      expect(ended).toHaveLength(116); expect(ended.every(x => x.valid)).toBe(true);
+      expect(ended.filter(x => x.endReason === "model_error")).toHaveLength(1);
+      expect(launches.some(x => x.replaces !== undefined)).toBe(false);
+      for (const lane of def.lanes) for (const arm of ["control", "bundle"] as const) expect(launches.filter(x => x.lane === lane.id && x.arm === arm)).toHaveLength(arm === "bundle" ? 50 : 8);
+      for (const launch of host.launches) expect(JSON.parse(launch.env["POKEBENCH_EXPERIMENT"] ?? "")).toEqual({ id: def.id, arm: launch.arm, trial: launch.slot, of: 116 });
+      expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")))).toMatchObject({ state: "finished", total: 116, valid: 116, invalid: 0 });
+      expect(host.maxRunning).toBe(2);
+      const analysis = analyze(trialsFromLedger(def, ledger, "confirmatory"), def.lanes.map(lane => lane.id));
+      expect(analysis.groups.map(group => [group.name, group.bundle.n, group.control.n])).toEqual([["pooled", 100, 16], ["A", 50, 8], ["B", 50, 8]]);
+    } finally { rmSync(runsRoot, { recursive: true, force: true }); }
+  });
+
+  it("resumes the same frozen unequal slots without relaunching completed trials or changing the source pin", async () => {
+    const { def, runsRoot, dir } = setup(unequalRunnerDefinition());
+    let stop = false;
+    const host = new Fake(runsRoot, { ending: (_launch, n) => { if (n === 4) stop = true; return "budget"; } });
+    const options = { def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 };
+    try {
+      expect(await runFixed(options)).toBe("stopped");
+      const before = launchesOf(readLedger(join(dir, "trials.jsonl")));
+      expect(before.length).toBeGreaterThanOrEqual(4); expect(before.length).toBeLessThan(116);
+      stop = false;
+      expect(await runFixed(options)).toBe("finished");
+      const after = launchesOf(readLedger(join(dir, "trials.jsonl")));
+      expect(after.slice(0, before.length)).toEqual(before);
+      expect(after.map(x => x.slot).sort((a,b) => a-b)).toEqual(def.plan.map(x => x.slot));
+      expect(new Set(after.map(x => x.commit))).toEqual(new Set([COMMIT]));
+      expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(116);
+    } finally { rmSync(runsRoot, { recursive: true, force: true }); }
+  });
+
+  it("rejects malformed allocation counts and a mismatched plan before any host launch", async () => {
+    const { def, runsRoot } = setup(unequalRunnerDefinition()), host = new Fake(runsRoot);
+    const phase = def.phases[0]; if (phase === undefined) throw new Error("fixture phase");
+    try {
+      for (const bad of [{ ...def, phases: [{ ...phase, armCounts: { control: 3, bundle: 100 } }] }, { ...def, plan: def.plan.slice(1) }]) await expect(runFixed({ def: bad, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).rejects.toThrow();
+      expect(host.launches).toEqual([]); expect(host.verified).toEqual([]);
+    } finally { rmSync(runsRoot, { recursive: true, force: true }); }
+  });
 });

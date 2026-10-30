@@ -32,7 +32,10 @@ const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.Str
 const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
 const ArmSchema = Type.Union([Type.Literal("control"), Type.Literal("bundle")]);
 // singleArm: an unpaired, exploratory trial of one arm on one lane (`fixed-run rerun`).
-const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart, singlePair: Type.Optional(Type.Boolean()), singleArm: Type.Optional(ArmSchema) }, closed);
+const phaseCommon = { id: Name, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart };
+const safeCount = Type.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER });
+// Semantic validation below enforces exactly one allocation mode before parsing or generation succeeds.
+const PhaseSchema = Type.Object({ ...phaseCommon, perArm: Type.Optional(positive), singlePair: Type.Optional(Type.Boolean()), singleArm: Type.Optional(ArmSchema), armCounts: Type.Optional(Type.Object({ control: safeCount, bundle: safeCount }, closed)) }, closed);
 const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: ArmSchema }, closed);
 
 const draftShape = {
@@ -107,10 +110,46 @@ function shuffled<T>(items: readonly T[], seed: string, phase: string, block: nu
   return out;
 }
 
+// Guard direct generation as well as JSON parsing: malformed counts must never allocate an unbounded plan.
+function allocationProblems(phase: FixedPhase, lanes: number): string[] {
+  const counts = phase.armCounts;
+  if (counts === undefined) return [];
+  const prefix = `phase ${phase.id}: armCounts`;
+  if (phase.perArm !== undefined || phase.singlePair !== undefined || phase.singleArm !== undefined) return [`${prefix} cannot be combined with perArm, singlePair or singleArm`];
+  if (Object.keys(counts).length !== 2 || !FIXED_ARMS.every(arm => Object.hasOwn(counts, arm))) return [`${prefix} requires only control and bundle`];
+  if (!FIXED_ARMS.every(arm => Number.isSafeInteger(counts[arm]) && counts[arm] > 0)) return [`${prefix} must contain positive safe integers`];
+  if (counts.control + counts.bundle > 512) return [`${prefix} combined count must not exceed 512`];
+  if (lanes < 1 || !FIXED_ARMS.every(arm => counts[arm] % lanes === 0)) return [`${prefix} each count must be a multiple of ${String(lanes)} lanes`];
+  return [];
+}
+
 export function generatePlan(def: Pick<FixedDefinition, "seed" | "phases" | "lanes">): PlannedSlot[] {
   const plan: PlannedSlot[] = [];
   let block = 0;
   for (const phase of def.phases) {
+    if (phase.armCounts !== undefined) {
+      const problems = allocationProblems(phase, def.lanes.length);
+      if (problems.length > 0) throw new FixedDesignError(problems.join("\n"));
+      const minority: FixedArm = phase.armCounts.control <= phase.armCounts.bundle ? "control" : "bundle";
+      const majority: FixedArm = minority === "control" ? "bundle" : "control";
+      const strata = phase.armCounts[minority] / def.lanes.length;
+      const majorityPerLane = phase.armCounts[majority] / def.lanes.length;
+      const quotient = Math.floor(majorityPerLane / strata), remainder = majorityPerLane % strata;
+      for (let stratum = 0; stratum < strata; stratum++) {
+        block += 1;
+        // Floor differences spread remainder trials evenly rather than placing them all at one end.
+        const extra = Math.floor((stratum + 1) * remainder / strata) - Math.floor(stratum * remainder / strata);
+        const arms = [...Array<FixedArm>(quotient + extra).fill(majority), minority];
+        const orders = shuffled(def.lanes, def.seed, phase.id, block).map(lane => ({ lane: lane.id, arms: shuffled(arms, def.seed, `${phase.id}:${lane.id}`, block) }));
+        // Interleave lanes in the frozen plan; blocks remain labels, never scheduler barriers.
+        for (let position = 0; position < arms.length; position++) for (const order of orders) {
+          const arm = order.arms[position];
+          if (arm !== undefined) plan.push({ slot: plan.length + 1, phase: phase.id, block, lane: order.lane, arm });
+        }
+      }
+      continue;
+    }
+    if (phase.perArm === undefined) throw new FixedDesignError(`phase ${phase.id}: exactly one of perArm or armCounts is required`);
     if (phase.singleArm !== undefined) {
       block += 1;
       for (const lane of def.lanes) plan.push({ slot: plan.length + 1, phase: phase.id, block, lane: lane.id, arm: phase.singleArm });
@@ -192,7 +231,11 @@ function phaseProblems(def: FixedDefinition): string[] {
   if (new Set(def.phases.map((p) => p.id)).size !== def.phases.length) problems.push("phase ids must be unique");
   if (def.phases.filter((p) => p.primary).length > 1) problems.push("at most one phase may be primary");
   for (const p of def.phases) {
-    if (p.singleArm !== undefined) {
+    if (p.armCounts !== undefined) {
+      problems.push(...allocationProblems(p, def.lanes.length));
+    } else if (p.perArm === undefined) {
+      problems.push(`phase ${p.id}: exactly one of perArm or armCounts is required`);
+    } else if (p.singleArm !== undefined) {
       if (p.perArm !== 1 || def.lanes.length !== 1 || p.primary || p.singlePair === true) problems.push(`phase ${p.id}: singleArm requires one exploratory trial on one lane`);
     } else if (p.singlePair === true) {
       if (p.perArm !== 1 || def.lanes.length !== 2) problems.push(`phase ${p.id}: singlePair requires one trial per arm and two lanes`);
@@ -265,7 +308,12 @@ export function definitionProblems(def: FixedDefinition): string[] {
   if((def.base.stopAt??def.base.target)!==null&&(def.base.stopAt??def.base.target)!==def.primaryMilestone)problems.push("base stopping target must equal primaryMilestone");
   for(const name of def.progressOrder??[])if(!MILESTONE_ORDER.includes(name))problems.push(`unknown progress milestone ${name}`);
   if (!MILESTONE_ORDER.includes(def.primaryMilestone)) problems.push(`unknown primary milestone ${def.primaryMilestone}`);
-  if (JSON.stringify(def.plan) !== JSON.stringify(generatePlan(def))) problems.push(`plan does not match seed ${def.seed}: regenerate it with \`just fixed-run plan\``);
+  try {
+    if (JSON.stringify(def.plan) !== JSON.stringify(generatePlan(def))) problems.push(`plan does not match seed ${def.seed}: regenerate it with \`just fixed-run plan\``);
+  } catch (error) {
+    if (!(error instanceof FixedDesignError)) throw error;
+    problems.push(...error.message.split("\n"));
+  }
   return [...new Set(problems)];
 }
 

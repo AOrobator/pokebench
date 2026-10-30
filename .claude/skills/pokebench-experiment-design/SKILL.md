@@ -128,7 +128,7 @@ Write these into the design, the driver and the overview:
 - **Several executors** (for example both 4090s):
   - Verify live that every executor serves the same model file, quantization and context. An alias name proves nothing.
   - Give each runner its own endpoint.
-  - Have every executor run every arm equally.
+  - Have every executor run every arm, with each arm’s predeclared N divided equally across devices. Power-sized unequal arm totals are allowed: 100 candidate and 16 control trials means 50 candidate and 8 control on each of two GPUs. Use the normal driver’s exclusive `armCounts` allocation mode, which interleaves seeded proportional strata; do not trim a plan, stop an arm early, or reclassify exploratory solo trials. Legacy `perArm` definitions keep their existing equal allocation.
   - Report the result per executor as well.
 - **One frozen build for the whole experiment.** Grading and instrumentation code may not change mid-experiment. A grading change that has to land goes in first, in its own commit, and is re-measured on the incumbent.
 

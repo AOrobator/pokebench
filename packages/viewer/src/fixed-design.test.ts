@@ -1,8 +1,9 @@
 import {recipeText} from "../test-support/recipe-text.js";
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armFeatures, armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
+import { armFeatures, armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition, type FixedDefinition } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -394,4 +395,66 @@ it("enables truthful cut-off feedback in both arms and the larger reply budget o
    expect(preset.sampling.maxTokens,`${name}/${arm}`).toBe(name.startsWith("glm53-")&&arm==="bundle"?8192:4096);
   }
  }
+});
+
+// Frozen before the allocation extension: every currently tracked legacy plan, including singleton modes.
+const legacyAllocationFiles = [
+ "experiments/archive/fixed/bundle-cook-1h.json",
+ "experiments/archive/fixed/whole-map-cook-1h.json",
+ "experiments/archive/fixed/whole-map-pair-2h.json",
+ "experiments/fixed/bundle-cook-4h.json",
+ "experiments/fixed/bundle-cook-6h-v2.json",
+ "experiments/fixed/bundle-cook-6h.json",
+ "experiments/fixed/bundle-v-control-2h.json",
+ "experiments/fixed/bundle-v-control.json",
+ "experiments/fixed/glm53-24h-visibility-v2.json",
+ "experiments/fixed/glm53-flash-1h.json",
+ "experiments/fixed/glm53-flash-2h.json",
+ "experiments/fixed/glm53-flash-4h.json",
+ "experiments/fixed/gym-rustboro-torchic-healed.json",
+ "experiments/fixed/gym-rustboro-torchic.json",
+ "experiments/fixed/hyperqwen-control-3h.json",
+ "experiments/fixed/jit-10m.json",
+ "experiments/fixed/jit-v2-10m.json",
+ "experiments/fixed/jit-v2-cache-20m.json",
+ "experiments/fixed/jit-v2-pair-10m.json",
+ "experiments/fixed/qwen36-24h-visibility-off.json",
+ "experiments/fixed/random-starter-2h.json",
+ "experiments/fixed/rusturf-native-note-pilot16-20261029.json",
+ "experiments/fixed/starter-decision-salience.json",
+ "experiments/fixed/whole-map-pair-1h-v2.json",
+ "experiments/fixed/whole-map-pair-1h-v3.json",
+ "experiments/fixed/whole-map-pair-1h-v4.json",
+ "experiments/fixed/whole-map-pair-1h-v5.json",
+ "experiments/fixed/whole-map-pair-1h-v6.json",
+ "experiments/fixed/whole-map-pair-1h-v7.json",
+ "experiments/fixed/whole-map-pair-1h-v8.json",
+ "experiments/fixed/whole-map-pair-1h.json"
+];
+function unequalDraft(control:number,bundle:number): ReturnType<typeof draftDefinition> {
+ const base=draftDefinition();
+ return {...base, phases:[{id:"confirmatory",armCounts:{control,bundle},maxWallMs:900_000,primary:true,start:CLOCK_START}]};
+}
+describe("exclusive unequal arm allocation",()=>{
+ it("preserves all 31 existing legacy plans byte for byte",()=>{
+  const records=legacyAllocationFiles.map(name=>{const def=JSON.parse(readFileSync(new URL(`../../../${name}`,import.meta.url),"utf8")) as Pick<FixedDefinition,"seed"|"phases"|"lanes"> & {plan:unknown};const plan=generatePlan(def);expect(JSON.stringify(plan)).toBe(JSON.stringify(def.plan));return[name,plan];});
+  expect(sha(JSON.stringify(records))).toBe("c441200c3d6dc4458078cc1175f059afc764050240ff7ed19f8191a8aa0a9f1a");
+ });
+ it.each([16,32,48,100])("allocates 100 candidate plus %i controls evenly per GPU across proportional strata",control=>{
+  for(const swapped of[false,true]){
+   const counts=swapped?{control:100,bundle:control}:{control,bundle:100},draft=unequalDraft(counts.control,counts.bundle),plan=generatePlan(draft);
+   expect(plan).toHaveLength(100+control);expect(plan.map(s=>s.slot)).toEqual(Array.from({length:plan.length},(_,i)=>i+1));
+   expect(parseFixedDefinition(JSON.stringify({...draft,plan})).definition.plan).toEqual(plan);
+   for(const lane of draft.lanes){const order=plan.filter(s=>s.lane===lane.id);for(const arm of["control","bundle"] as const)expect(order.filter(s=>s.arm===arm)).toHaveLength(counts[arm]/2);
+    const minority=counts.control<=counts.bundle?"control":"bundle",majority=minority==="control"?"bundle":"control",blocks=[...new Set(order.map(s=>s.block))];expect(blocks).toHaveLength(Math.min(counts.control,counts.bundle)/2);
+    const majorities=blocks.map(block=>{const cells=order.filter(s=>s.block===block);expect(cells.filter(s=>s.arm===minority)).toHaveLength(1);return cells.filter(s=>s.arm===majority).length;});expect(Math.max(...majorities)-Math.min(...majorities)).toBeLessThanOrEqual(1); for(let k=1;k<=majorities.length;k++)expect(majorities.slice(0,k).reduce((a,b)=>a+b,0)).toBe(Math.floor(k*Math.max(counts.control,counts.bundle)/2/majorities.length));
+    const first=order.findIndex(s=>s.arm===minority),last=order.findLastIndex(s=>s.arm===minority),bound=Math.ceil(Math.max(counts.control,counts.bundle)/Math.min(counts.control,counts.bundle));expect(first).toBeLessThanOrEqual(bound);expect(order.length-1-last).toBeLessThanOrEqual(bound);
+   }
+  }
+ });
+ it("reproduces the seed and changes within-stratum order across seeds",()=>{const d=unequalDraft(16,100);expect(generatePlan(d)).toEqual(generatePlan(d));expect(generatePlan({...d,seed:"1".repeat(16)})).not.toEqual(generatePlan(d));});
+ it.each([0,-2,1.5,Number.MAX_SAFE_INTEGER+1,Infinity,NaN,3,514])("rejects invalid control count %s before allocating positions",control=>{const d=unequalDraft(control,100);expect(()=>generatePlan(d)).toThrow();expect(()=>parseFixedDefinition(JSON.stringify({...d,plan:[]}))).toThrow();});
+ it.each([{perArm:16},{singlePair:false},{singleArm:"bundle"},{armCounts:{control:16,bundle:100,other:2}}])("rejects mixed modes or unknown count keys %j",extra=>{const d=unequalDraft(16,100),phase={...d.phases[0],...extra};expect(()=>parseFixedDefinition(JSON.stringify({...d,phases:[phase],plan:[]}))).toThrow();});
+ it("accepts the finite512-position boundary and rejects missing count modes",()=>{expect(generatePlan(unequalDraft(256,256))).toHaveLength(512);const d=unequalDraft(16,100),phase={id:"confirmatory",maxWallMs:900_000,primary:true,start:CLOCK_START};expect(()=>generatePlan({...d,phases:[phase]})).toThrow(/exactly one/);expect(()=>parseFixedDefinition(JSON.stringify({...d,phases:[phase],plan:[]}))).toThrow(/exactly one/);});
+ it("fails closed on a missing arm and an altered generated plan",()=>{const d=unequalDraft(16,100),plan=generatePlan(d);expect(()=>parseFixedDefinition(JSON.stringify({...d,phases:[{...d.phases[0],armCounts:{bundle:100}}],plan}))).toThrow();expect(()=>parseFixedDefinition(JSON.stringify({...d,plan:plan.slice(1)}))).toThrow(/plan does not match seed/);});
 });

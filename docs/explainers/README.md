@@ -364,3 +364,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Town Center checkpoint](town-center-checkpoint-v1.html): the first eligible town decision gets the probed Center-entry reminder; native checkpoint completion suppresses it.
 
 - [Player map visibility V2](player-map-visibility-v2.html): whole fully lit current maps; native illumination and terrain memory in darkness. Registered default OFF.
+- [ROM identity](rom-identity-v1.html): exact tested identity fact, verified ROM hash, default-OFF switch and exploratory limits.

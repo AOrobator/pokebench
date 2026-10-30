@@ -31,3 +31,14 @@ Pending focused RED/GREEN tests, affected package type/lint, required reviews an
 - Focused run: 7 tests, 6 expected failures / 1 gateway control pass. Failures reproduce local/vLLM reasoning flattening, incorrect cross-provider source relabeling, missing legacy fail-closed handling, absent recorded source identity, and recorder provenance omission. Receipt `/tmp/probe-replay-red.log`.
 - Initial fixture timestamp and null-content assertion corrected before the meaningful RED result; no production changes yet.
 - COMMIT: `test: expose probe replay source identity loss` (this RED commit; SHA recorded in subsequent evidence).
+
+### GREEN source qualification
+- RED commit: `6af5c2e2c`.
+- Replay now uses recorded per-assistant source identity and reasoning signature. New recorder events capture that metadata from the actual native reply; checked-in JSON schema regenerated from TypeBox without a shared build.
+- Legacy records fail closed without an explicit source assertion. CLI requires source provider, API and thinking-field assertions together; it never derives source identity from the target endpoint. Source model remains recorded model ID; intentional cross-model/provider/API conversion is preserved.
+- Native serializer regression suite: 9/9 pass, no network calls. Includes llama.cpp/vLLM/gateway, explicit cross-model/provider/API cases, missing legacy provenance, signature precedence/absence, recorder capture and file-backed CLI source plumbing.
+- Existing focused group: 169/169 pass across eight files; final CLI refinements separately pass 24/24 (new regressions + existing CLI tests). Changed-file ESLint and agent package type checking passed before final CLI refinement; repeated final checks pending receipt.
+- Legacy fixture ports now explicitly assert their fixture's source gateway identity; no assertions, snapshots, thresholds or exclusions were weakened.
+- Initial package type check lacked viewer dependency links in the new worktree; resolved local ignored dependency links, then passed. No shared dependency tree was modified.
+- Full CPU gate window requested after the Rusturf census IO window releases; not started without clearance. No GPU calls, live runs, service changes, landing or activation.
+- COMMIT: `fix: preserve source identity in decision probe replay` (this GREEN commit; SHA recorded in subsequent evidence).

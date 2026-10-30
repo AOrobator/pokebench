@@ -171,6 +171,12 @@ Before claiming **launched**, verify all of:
 
 Use the repository's viewer-e2e skill for a broken control or polling behavior. An API 200 alone does not prove a visible click-through. Do not restart the viewer or edit gameplay for a data-registration repair. Do not add probe marks to the closed TIMELINE.
 
+## Preserve source assistant identity
+
+New assistant events record `replay_identity` (source API, provider, model and reasoning field); replay uses it per message. Historical events lack that evidence. Supply an explicit source assertion through `ProbePorts.historicalAssistantIdentity`, or the CLI's `--history-provider SOURCE_PROVIDER --history-api SOURCE_API --history-thinking-field FIELD`, and record how the source provider and reasoning field were established. Without a source assertion, historical replay fails closed. Do not infer it from the target endpoint or a model-name substring. A caller's assertion is provenance, not proof of historical wire identity.
+
+Keep the original source model ID. Pi deliberately converts thinking to ordinary text for a different API/provider/model; relabeling all history with the sampling destination would incorrectly suppress that distinction. Qualify same-source local and gateway serialization plus intentional cross-model conversion before inference. Preserve earlier studies' frozen artifacts and disclose any provider mismatch; a measurement repair is not a new prompt treatment.
+
 ## Respect grading boundaries
 
 The viewer's automatic “departs from recorded call” color is a proxy, not successful recovery. Its generic Fisher display does not replace a preregistered paired/clustered analysis. Repeated draws from one historical context are not independent gameplay runs. Preserve model groups; never pool Mac Qwen 3.8 and GPU Qwen 3.6. During operational visibility checks for a blinded batch, hide outcome bars and response details. Give graders the response reasoning and state evidence needed for scoring while withholding treatment labels and aggregate outcomes until scores are locked; visibility verification must not become interim outcome analysis. Deliberate trace inspection belongs after a completed exploratory batch and must not contaminate untouched confirmation.

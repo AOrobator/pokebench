@@ -11,6 +11,7 @@ import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
 import {GATEWAY_COMPAT} from "./gateway.js";
+import {filePorts,parseArgs} from "./probe-decision-cli.js";
 
 const sourceId=RUN_START_META.model.id;
 const model=(provider:string,id=sourceId):Model<"openai-completions">=>({id,name:id,api:"openai-completions",provider,baseUrl:"http://no-network.invalid/v1",reasoning:true,input:["text"],contextWindow:65536,maxTokens:4096,cost:{input:0,output:0,cacheRead:0,cacheWrite:0},compat:GATEWAY_COMPAT});
@@ -46,4 +47,22 @@ it("records native source identity and reasoning field from the actual assistant
  await recorder.start(RUN_START_META);const reply={...assistant({thinking:"native",text:"visible"}),provider:"local-llamacpp",model:sourceId,content:[{type:"thinking" as const,thinking:"native",thinkingSignature:"reasoning"},{type:"text" as const,text:"visible"}]};
  await recorder.emit({type:"message_end",message:reply});const row=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>JSON.parse(line)as Record<string,unknown>).find(e=>e.type==="assistant");
  expect(row?.replay_identity).toEqual({api:reply.api,provider:reply.provider,model:reply.model,thinking_signature:"reasoning"});
+});
+
+it("threads explicit legacy source identity through file-backed CLI ports",()=>{
+ const args=parseArgs(["source","2","--history-provider","local-llamacpp","--history-api","openai-completions","--history-thinking-field","reasoning_content","--context-only"]);
+ expect(args).toMatchObject({historyProvider:"local-llamacpp",historyApi:"openai-completions",historyThinkingField:"reasoning_content"});
+ const p=filePorts("/unused","/unused",args.historyThinkingField??"",()=>"",()=>Buffer.from(""),{}, {api:args.historyApi??"",provider:args.historyProvider??""});
+ expect(recordedConversation(source(),p).find(m=>m.role==="assistant")).toMatchObject({api:"openai-completions",provider:"local-llamacpp",model:sourceId});
+ expect(()=>parseArgs(["source","2","--history-provider",""])).toThrow(/source provider/);
+ expect(()=>parseArgs(["source","2","--history-provider","local-llamacpp"])).toThrow(/explicit/);
+ expect(()=>parseArgs(["source","2","--history-provider"])).toThrow(/needs a value/);
+});
+it("preserves per-message API/model differences and does not invent a missing recorded reasoning field",async()=>{
+ for(const identity of [{api:"openai-responses",provider:"local-llamacpp",model:sourceId,thinking_signature:"reasoning_content"},{api:"openai-completions",provider:"local-llamacpp",model:"other-source",thinking_signature:"reasoning_content"},{api:"openai-completions",provider:"local-llamacpp",model:sourceId}]){
+  const original=source(),run={...original,events:original.events.map((e,i)=>i===2?checkEvent({...e,replay_identity:identity}):e)};
+  const history=recordedConversation(run,ports("local-llamacpp"));const p=previous(await wire(model("local-llamacpp"),history));
+  expect(p.reasoning_content).toBeUndefined();
+  if(identity.api!=="openai-completions"||identity.model!==sourceId)expect(p.content).toContain("Look first.");
+ }
 });

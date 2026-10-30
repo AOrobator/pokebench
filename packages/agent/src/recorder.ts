@@ -300,6 +300,8 @@ export class RunRecorder {
   private recordAssistant(message: AssistantMessage): void {
     const done = this.now();
     const thinking = message.content.flatMap((block) => (block.type === "thinking" ? [block.thinking] : [])).join("\n");
+    const firstThinking = message.content.find(block=>block.type === "thinking" && block.thinking.trim() !== "");
+    const signature = firstThinking?.type === "thinking" ? firstThinking.thinkingSignature : undefined;
     const text = message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("");
     const tool_calls = message.content.flatMap((block) =>
       block.type === "toolCall" ? [{ id: block.id, name: block.name, args: block.arguments }] : [],
@@ -308,6 +310,7 @@ export class RunRecorder {
     this.append({
       type: "assistant",
       turn: this.turn,
+      replay_identity: {api:message.api,provider:message.provider,model:message.model,...(signature === undefined ? {} : {thinking_signature:signature})},
       thinking,
       ...(this.requestContext===null?{}:{request_context:this.requestContext}),
       text,

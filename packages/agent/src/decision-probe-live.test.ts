@@ -291,6 +291,7 @@ it("re-renders the window's readouts from raw RAM when asked, keeping each tool'
   const asked: { refs: number; on: boolean }[] = [];
   const ports = {
     thinkingSignature: "reasoning_content",
+    historicalAssistantIdentity:{api:"openai-completions",provider:"local-gateway"},
     frame: (p: string) => readFileSync(join(dir, p)).toString("base64"),
     rerender: (refs: readonly { path: string }[], features: typeof recorded) => {
       const on = features["named-warp-destinations-v1"];

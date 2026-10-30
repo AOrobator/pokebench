@@ -20,7 +20,7 @@ const FEATURES:FeatureSet={...ALL_ON,"harness-trust-v1":true,"instruction-goal-l
 const result=EVENTS.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.turn===273);
 if(result===undefined)throw Error("no 4caa result at turn 273");
 const requested:RawRef[]=[];
-const ports=(places=true):ProbePorts=>({frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",...(places?{places:(ref:RawRef)=>{requested.push(ref);return Promise.resolve(PLACES);}}:{})});
+const ports=(places=true):ProbePorts=>({frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"},...(places?{places:(ref:RawRef)=>{requested.push(ref);return Promise.resolve(PLACES);}}:{})});
 const STALE=`${TRUST_HEADER}\nStory goal: "something else" (MOM, turn 1) -> "LAB" = nowhere.`;
 
 const envelope=new Set(["v","run","seq","t","type","turn"]);

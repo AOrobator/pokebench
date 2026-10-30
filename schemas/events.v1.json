@@ -1255,6 +1255,32 @@
           "type": "string",
           "const": "assistant"
         },
+        "replay_identity": {
+          "type": "object",
+          "required": [
+            "api",
+            "provider",
+            "model"
+          ],
+          "properties": {
+            "api": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "thinking_signature": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
         "thinking": {
           "type": "string"
         },

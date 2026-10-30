@@ -47,7 +47,7 @@ describe("--recorded-trim in decisionContext",()=>{
   const {decisionContext,parseRun,recordedFeatures}=await import("./decision-probe.js");
   const {SAMPLES}=await import("../test-support/events.js");
   const run=parseRun(SAMPLES.map((b,i)=>JSON.stringify({v:1,run:"r",seq:i,t:"2026-10-28T00:00:00.000-04:00",...b})).join("\n"));
-  const ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content"};
+  const ports={frame:()=>"",rerender:()=>Promise.resolve([]),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"}};
   const plain=await decisionContext(run,1,recordedFeatures(run),ports);
   expect(plain.recorderSize).toBeUndefined();
   const trimmed=await decisionContext(run,1,recordedFeatures(run),ports,"replayed",false,null,false,true);

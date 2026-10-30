@@ -10,7 +10,6 @@ import type {PlaceSource} from "./story-destinations.js";
 import { checkEvent, type Button, type EventBody, type LoopBreakerBody, type RunEvent } from "./events.js";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featuresOf, type FeatureSet, type SwitchableFeature } from "./features.js";
 import type { GameStateSnapshot } from "./game-state.js";
-import { GATEWAY_PROVIDER } from "./gateway.js";
 import { gameTools } from "./game-tools.js";
 import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies } from "./harness.js";
 import { cutOffReplyNotice } from "./cut-off-reply.js";
@@ -69,8 +68,10 @@ export interface ProbePorts {
   readonly frame: (path: string) => string;
   /** Readouts re-rendered from raw RAM under a feature set, in order. */
   readonly rerender: (refs: readonly RawRef[], features: FeatureSet) => Promise<readonly string[]>;
-  /** The field the gateway streamed reasoning in (pi's thinkingSignature); prior reasoning is sent back under it. Events do not record it. */
+  /** Explicit reasoning field assertion for historical records without replay_identity. */
   readonly thinkingSignature: string;
+  /** Source identity assertion for legacy events; never the sampling destination identity. */
+  readonly historicalAssistantIdentity?: Pick<AssistantMessage, "api" | "provider">;
   /** The game's map table read from a recorded raw-RAM archive, as GET /pokebench/places serves it; used by --trust-header and checkpoint guidance. */
   readonly places?: (ref: RawRef, features: FeatureSet) => Promise<readonly Place[]>;
 }
@@ -221,11 +222,14 @@ function conversation(prior: readonly RunEvent[], goal: string | null, byId: Rea
   for (const e of prior) {
     if(e.type==="turn_start")atTurn?.(e.turn,[...history]);
     if (e.type !== "assistant" || e.stop_reason === "error" || e.stop_reason === "aborted") continue;
+    const identity = e.replay_identity ?? ports.historicalAssistantIdentity;
+    if (identity === undefined) throw new Error(`source assistant identity is not recorded at seq ${String(e.seq)}; supply an explicit historicalAssistantIdentity assertion`);
+    const signature = e.replay_identity === undefined ? ports.thinkingSignature : e.replay_identity.thinking_signature;
     const content: (TextContent | ThinkingContent | ToolCall)[] = [];
-    if (e.thinking !== "") content.push({ type: "thinking", thinking: e.thinking, thinkingSignature: ports.thinkingSignature });
+    if (e.thinking !== "") content.push({ type: "thinking", thinking: e.thinking, ...(signature === undefined ? {} : {thinkingSignature:signature}) });
     if (e.text !== "") content.push({ type: "text", text: e.text });
     for (const c of e.tool_calls) content.push({ type: "toolCall", id: c.id, name: c.name, arguments: c.args as Record<string, unknown> });
-    const assistant: AssistantMessage = { role: "assistant", content, api: "openai-completions", provider: GATEWAY_PROVIDER, model, usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: e.stop_reason, timestamp: 0 };
+    const assistant: AssistantMessage = { role: "assistant", content, api: identity.api, provider: identity.provider, model: e.replay_identity?.model ?? model, usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: e.stop_reason, timestamp: 0 };
     history.push(assistant);
     if (e.tool_calls.length === 0) {
       const supervised = notes[note]?.turn === e.turn ? notes[note] : undefined;

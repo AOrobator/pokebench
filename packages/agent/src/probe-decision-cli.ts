@@ -3,6 +3,8 @@
 // samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free). --trust-header also re-derives
 // harness-trust-v1's header in each arm; --recorded-trim cuts the rebuilt history to the request the run recorded sending;
 // POKEBENCH_ENDPOINT_FILE samples a local lane instead of the gateway.
+// Legacy events require --history-provider: an explicit source identity assertion for this
+// recorder, with explicit API/reasoning-field assertions, not identity inferred from the destination.
 import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -22,13 +24,14 @@ import { gatewayLoopConfig } from "./provider.js";
 export const MAX_SAMPLES = 8;
 // pi names a thinking block after the response field the reasoning streamed in; the gateway streams `reasoning_content`.
 export const THINKING_FIELD = "reasoning_content";
-const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only] [--trust-header] [--recorded-trim]";
+const USAGE = "usage: probe-decision <run id or unique suffix> <turn> [--switch <id>=on|off]... [--samples K≤8] [--runs-root DIR] [--model ID] [--context-only] [--trust-header] [--recorded-trim] [--history-provider SOURCE_PROVIDER --history-api SOURCE_API --history-thinking-field FIELD]";
 
-export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly trustHeader?: boolean; readonly recordedTrim?: boolean; readonly contextOnly: boolean }
+export interface ProbeArgs { readonly run: string; readonly turn: number; readonly switches: readonly ProbeSwitch[]; readonly samples: number; readonly runsRoot: string | null; readonly model: string | null; readonly trustHeader?: boolean; readonly recordedTrim?: boolean; readonly contextOnly: boolean; readonly historyProvider?: string; readonly historyApi?: string; readonly historyThinkingField?: string }
 export function parseArgs(argv: readonly string[]): ProbeArgs {
   const positional: string[] = [];
   const switches: ProbeSwitch[] = [];
   let samples = 4, runsRoot: string | null = null, model: string | null = null, contextOnly = false, trustHeader = false, recordedTrim = false;
+  let historyProvider: string | undefined, historyApi: string | undefined, historyThinkingField: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] ?? "";
     const value = (): string => { const v = argv[++i]; if (v === undefined) throw new Error(`${arg} needs a value\n${USAGE}`); return v; };
@@ -36,16 +39,21 @@ export function parseArgs(argv: readonly string[]): ProbeArgs {
     else if (arg === "--samples") samples = Number(value());
     else if (arg === "--runs-root") runsRoot = value();
     else if (arg === "--model") model = value();
+    else if (arg === "--history-provider") { historyProvider = value(); if (historyProvider.trim() === "") throw new Error("--history-provider must name the source provider"); }
+    else if (arg === "--history-api") historyApi = value();
+    else if (arg === "--history-thinking-field") historyThinkingField = value();
     else if (arg === "--context-only") contextOnly = true;
     else if (arg === "--trust-header") trustHeader = true;
     else if (arg === "--recorded-trim") recordedTrim = true;
     else if (arg.startsWith("--")) throw new Error(`unknown option ${arg}\n${USAGE}`);
     else positional.push(arg);
   }
+  const assertions = [historyProvider, historyApi, historyThinkingField];
+  if (assertions.some(v=>v!==undefined) && assertions.some(v=>v===undefined||v.trim()==="")) throw new Error("legacy history needs explicit --history-provider, --history-api and --history-thinking-field assertions");
   const [run, turn] = positional;
   if (run === undefined || turn === undefined || positional.length !== 2 || !/^\d+$/.test(turn)) throw new Error(USAGE);
   if (!Number.isInteger(samples) || samples < 1 || samples > MAX_SAMPLES) throw new Error(`--samples must be 1..${String(MAX_SAMPLES)}`);
-  return { run, turn: Number(turn), switches, samples, runsRoot, model, ...(trustHeader ? { trustHeader } : {}), ...(recordedTrim ? { recordedTrim } : {}), contextOnly };
+  return { run, turn: Number(turn), switches, samples, runsRoot, model, ...(trustHeader ? { trustHeader } : {}), ...(recordedTrim ? { recordedTrim } : {}), contextOnly, ...(historyProvider === undefined ? {} : {historyProvider,historyApi:historyApi??"",historyThinkingField:historyThinkingField??""}) };
 }
 
 export function resolveRun(runsRoot: string, run: string, list: (dir: string) => string[] = readdirSync, exists: (path: string) => boolean = existsSync): string {
@@ -58,13 +66,14 @@ export function resolveRun(runsRoot: string, run: string, list: (dir: string) =>
 export type Exec = (file: string, args: readonly string[], options: { cwd: string; env: NodeJS.ProcessEnv; input: string }) => string;
 const execArgv: Exec = (file, args, options) => execFileSync(file, [...args], { ...options, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 
-export function filePorts(runDir: string, envDir: string, thinkingSignature: string, exec: Exec = execArgv, read: (path: string) => Buffer = readFileSync, env: NodeJS.ProcessEnv = process.env): ProbePorts {
+export function filePorts(runDir: string, envDir: string, thinkingSignature: string, exec: Exec = execArgv, read: (path: string) => Buffer = readFileSync, env: NodeJS.ProcessEnv = process.env, historicalAssistantIdentity?: ProbePorts["historicalAssistantIdentity"]): ProbePorts {
   // Frame paths come from the run's own events; a recorded path that leaves the run directory is refused, and each
   // frame is read once however many turns are rebuilt.
   const frames = new Map<string, string>();
   const root = resolve(runDir);
   return {
     thinkingSignature,
+    ...(historicalAssistantIdentity === undefined ? {} : {historicalAssistantIdentity}),
     frame: (path) => {
       const full = resolve(root, path);
       const rel = relative(root, full);
@@ -169,7 +178,7 @@ async function main(argv: readonly string[]): Promise<number> {
     const model = selectModel(lane.models, args.model ?? run.start.model.id);
     sampler = gatewaySampler(completeSimple, model, thinkingLevel(run.start.sampling.thinking_level), run.start.sampling.max_tokens, lane.apiKey);
   }
-  const report = await probe(run, args, filePorts(runDir, join(REPO, "env"), THINKING_FIELD), sampler);
+  const report = await probe(run, args, filePorts(runDir, join(REPO, "env"), args.historyThinkingField ?? THINKING_FIELD, execArgv, readFileSync, process.env, args.historyProvider === undefined ? undefined : {api:args.historyApi??"",provider:args.historyProvider}), sampler);
   for (const line of reportLines(report)) console.log(line);
   const out = join(runsRoot, "decision-probes", `${report.run}_T${String(report.turn)}_${new Date().toISOString().replaceAll(":", "-")}.json`);
   mkdirSync(dirname(out), { recursive: true });

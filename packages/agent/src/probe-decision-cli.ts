@@ -8,7 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { checkEvent, type RunEvent } from "./events.js";
+import { AuthoredSceneLabelSchema, type AuthoredSceneLabel, checkEvent, type RunEvent } from "./events.js";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
@@ -89,6 +89,12 @@ export function filePorts(runDir: string, envDir: string, thinkingSignature: str
       const body: unknown = JSON.parse(out);
       if (typeof body !== "object" || body === null || !("readouts" in body) || !Array.isArray(body.readouts) || !body.readouts.every((r): r is string => typeof r === "string") || body.readouts.length !== refs.length) throw new Error("rerender returned an unexpected body");
       return Promise.resolve(body.readouts);
+    },
+    sceneLabels: (refs:readonly RawRef[]) => {
+      const out=exec("uv",["run","--project",envDir,"python","-m","pokebench_env.authored_scene_labels"],{cwd:envDir,env:{...env,POKEBENCH_FEATURES_OFF:""},input:JSON.stringify({run_dir:runDir,raw_ram:refs})});
+      const body:unknown=JSON.parse(out);
+      if(typeof body!=="object"||body===null||!("labels"in body)||!Array.isArray(body.labels)||body.labels.length!==refs.length||!body.labels.every((label):label is AuthoredSceneLabel|null=>label===null||Value.Check(AuthoredSceneLabelSchema,label)))throw new Error("native scene labels returned an unexpected body");
+      return Promise.resolve(body.labels);
     },
     places: (ref: RawRef, features: FeatureSet) => {
       const out = exec("uv", ["run", "--project", envDir, "python", "-m", "pokebench_env.rerender"], { cwd: envDir, env: { ...env, ...serverFeatureEnv(features) }, input: JSON.stringify({ run_dir: runDir, raw_ram: [], places: ref }) });

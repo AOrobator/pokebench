@@ -412,6 +412,14 @@ const DestinationCitationEvent = event("destination_citation", {
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
+// Exact authored script roles, qualified by the native US-ROM page recognizer.
+// These identify a displayed page's source, not an object's current presence.
+export const AuthoredSceneLabelSchema=Type.Union([
+  Type.Object({source:Type.Literal("authored-script"),scene:Type.Literal("rustboro-theft-chase"),beat:Type.Literal("grunt-escape"),speaker:Type.Literal("TEAM AQUA GRUNT"),map_id:Type.Tuple([Type.Literal(0),Type.Literal(3)]),actor_local_id:Type.Literal(10),message_pointer:Type.Literal(0x081e17fe),return_pc:Type.Literal(0x081e09d5),rom_sha1:Type.Literal("f3ae088181bf583e55daf962a92bb46f4f1d07b7")},closed),
+  Type.Object({source:Type.Literal("authored-script"),scene:Type.Literal("rustboro-theft-chase"),beat:Type.Literal("employee-chase"),speaker:Type.Literal("DEVON EMPLOYEE"),map_id:Type.Tuple([Type.Literal(0),Type.Literal(3)]),actor_local_id:Type.Literal(9),message_pointer:Type.Literal(0x081e1817),return_pc:Type.Literal(0x081e09ff),rom_sha1:Type.Literal("f3ae088181bf583e55daf962a92bb46f4f1d07b7")},closed),
+  Type.Object({source:Type.Literal("authored-script"),scene:Type.Literal("rustboro-employee-request"),beat:Type.Literal("employee-request"),speaker:Type.Literal("DEVON EMPLOYEE"),map_id:Type.Tuple([Type.Literal(0),Type.Literal(3)]),actor_local_id:Type.Literal(9),message_pointer:Type.Literal(0x081e183e),return_pc:Type.Literal(0x081e0b6d),rom_sha1:Type.Literal("f3ae088181bf583e55daf962a92bb46f4f1d07b7")},closed),
+]);
+export type AuthoredSceneLabel=Static<typeof AuthoredSceneLabelSchema>;
 const DialoguePageSchema = Type.Object({
   state_seq: Type.Union([NonNegativeInt, Type.Null()]),
   map: Type.Union([Type.String(), Type.Null()]),
@@ -420,6 +428,7 @@ const DialoguePageSchema = Type.Object({
   position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
   speaker: Type.Union([Type.String(), Type.Null()]),
   speaker_source: Type.Union([Type.Enum(["name_prefix", "faced_sprite", "faced_target"] as const), Type.Null()]),
+  scene_label: Type.Optional(AuthoredSceneLabelSchema),
   text: Type.String({ minLength: 1 }),
   battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
   battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
@@ -630,6 +639,7 @@ export const StateBodySchema = Type.Object(
       message: Type.Optional(Type.Union([Type.Object({
         phase: Type.Enum(["dismiss_wait", "printing", "button_wait", "page_wait", "scroll_wait", "scrolling", "audio_wait", "printing_pause"]),
         cursor: Type.Integer({minimum:0, maximum:999}), ready:Type.Boolean(),
+        scene_label:Type.Optional(AuthoredSceneLabelSchema),
         identity: Type.Optional(Type.Union([Type.String({pattern:"^[a-f0-9]{64}$"}),Type.Null()])),
       }, closed), Type.Null()])),
     }, closed), Type.Null()])),

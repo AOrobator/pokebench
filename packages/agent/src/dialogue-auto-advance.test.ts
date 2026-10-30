@@ -13,7 +13,7 @@ import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
-import {checkEvent,type Button,type RunEvent} from "./events.js";
+import {checkEvent,type AuthoredSceneLabel,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
@@ -787,7 +787,7 @@ it.each([false,true])("authored scene labels: actual auto-page capture/render re
  const text="Help me! I was robbed by TEAM AQUA!\nI have to get the DEVON GOODS back!";
  const game=new FakeGame({text,ends:[text.length],then:"free"});game.place={location:"RUSTBORO CITY",map_id:[0,3]};
  const original=game.state.bind(game);
- const scene_label={source:"authored-script" as const,scene:"rustboro-employee-request" as const,beat:"employee-request" as const,speaker:"DEVON EMPLOYEE" as const,map_id:[0,3] as [0,3],actor_local_id:9,message_pointer:0x081e183e,return_pc:0x081e0b6d,rom_sha1:"f3ae088181bf583e55daf962a92bb46f4f1d07b7"};
+ const scene_label:AuthoredSceneLabel={source:"authored-script" as const,scene:"rustboro-employee-request" as const,beat:"employee-request" as const,speaker:"DEVON EMPLOYEE" as const,map_id:[0,3] as [0,3],actor_local_id:9,message_pointer:0x081e183e,return_pc:0x081e0b6d,rom_sha1:"f3ae088181bf583e55daf962a92bb46f4f1d07b7"};
  game.state=()=>{
   const s=original(),world=s.world_context;if(world==null)return s;
   return {...s,interaction_targets:[],world_context:{...world,objects:[],...(world.message==null?{}:{message:{...world.message,scene_label}})}};

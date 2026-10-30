@@ -283,3 +283,82 @@ def test_label_cli_rejects_archive_paths_outside_the_named_run(bad_path: str) ->
     request = {"run_dir": "/run", "raw_ram": [{"path": bad_path, "sha256": "a" * 64}]}
     with pytest.raises(ValueError, match="inside the run"):
         labels.main({}, io.StringIO(json.dumps(request)), io.StringIO())
+
+
+def test_state_ready_identity_and_dialogue_each_bind_the_native_message() -> None:
+    read, state = fixture()
+    assert state.world_context is not None and state.world_context.message is not None
+    message = state.world_context.message
+    for changed in [
+        replace(message, ready=False),
+        replace(message, identity=None),
+        replace(message, identity="0" * 64),
+        replace(message, cursor=message.cursor + 1),
+    ]:
+        assert (
+            labels.read_scene_label(
+                read, replace(state, world_context=replace(state.world_context, message=changed))
+            )
+            is None
+        )
+    assert (
+        labels.read_scene_label(
+            read,
+            replace(
+                state, world_context=replace(state.world_context, dialogue="other delivered text")
+            ),
+        )
+        is None
+    )
+    assert (
+        labels.read_scene_label(
+            read,
+            replace(
+                state,
+                world_context=replace(
+                    state.world_context, message_diagnostic="unsupported printer"
+                ),
+            ),
+        )
+        is None
+    )
+    assert labels.read_scene_label(read, replace(state, field_controls_locked=False)) is None
+
+
+@pytest.mark.parametrize("short", [0, 2, 0x68])
+def test_verified_metadata_does_not_hide_unavailable_or_short_native_context(short: int) -> None:
+    read, state = fixture()
+
+    class Unavailable:
+        metadata = {"rom_sha1": EMERALD_SHA1}
+
+        def __call__(self, address: int, length: int) -> bytes:
+            if address == SCRIPT:
+                if short:
+                    return read(address, length)[:short]
+                raise ValueError("snapshot context unavailable")
+            return read(address, length)
+
+    assert labels.read_scene_label(Unavailable(), state) is None
+
+
+def test_native_source_and_buffer_match_cannot_override_the_rom_loadword_pointer() -> None:
+    read, state = fixture()
+    read.memory.put(0x081E09D5 - 6, struct.pack("<I", 0x081E1817))
+    assert labels.read_scene_label(read, state) is None
+
+
+def test_matching_bytes_at_an_unknown_pointer_and_return_pc_are_not_catalog_evidence() -> None:
+    read, state = fixture()
+    pointer, return_pc = 0x081E2000, 0x081E2100
+    read.memory.put(pointer, read.memory.read(0x081E17FE, 1000))
+    read.memory.put(return_pc - 8, b"\x0f\x00" + struct.pack("<I", pointer) + b"\x09\x04")
+    read.memory.put(SCRIPT + 12, struct.pack("<I", return_pc))
+    read.memory.put(SCRIPT + 0x64, struct.pack("<I", pointer))
+    assert labels.read_scene_label(read, state) is None
+
+
+def test_two_ready_phases_cannot_substitute_for_the_coherent_printer_phase() -> None:
+    read, state = fixture()
+    read.memory.put(0x020201B0 + 0x1C, b"\x01")
+    assert labels.read_scene_label(read, state) is None

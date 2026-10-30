@@ -1,3 +1,4 @@
+import {authoredSceneSpeaker} from "./authored-scene-labels.js";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import type {RunEvent} from "./events.js";
@@ -7,13 +8,14 @@ import {presenceTag} from "./script-line-presence.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 // presence: script-line-presence-v1's tag, on an auto-advance page recorded with no speaker.
-export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string;readonly presence?:string}
+export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string;readonly authoredSpeaker?:string;readonly presence?:string}
 
 const DEFAULT_LAST=8;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 // dialogue-auto-advance-v1's speaker label: the game's NAME: prefix, else the faced sprite kind or object, labelled as such.
 // A page with neither carries script-line-presence-v1's on-screen tag when it was recorded with one.
-export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source"|"on_screen">):string|null {
+export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source"|"on_screen">&Partial<Pick<Page,"scene_label"|"map_id"|"battle_turn"|"battle_message_id">>):string|null {
+ const authored=authoredSceneSpeaker(page);if(authored!==null)return authored;
  return page.speaker===null?page.on_screen===undefined?null:presenceTag(page.on_screen):page.speaker_source==="faced_sprite"?`${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?`${page.speaker} (faced object)`:page.speaker;
 }
 type Place={location:string|null;location_display?:string;map_id:readonly number[]|null};
@@ -44,7 +46,8 @@ export class DialogueLog {
    // battle-text-auto-advance-v1's battle messages are not dialogue for the log, ledger or supervisors.
    this.pending.set(event.tool_call_id,event.pages.filter(page=>page.battle_turn===undefined).map(page=>{
     const place={location:page.map,...(page.map_display===undefined?{}:{location_display:page.map_display}),map_id:page.map_id};
-    const entry:DialogueEntry={seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+    const authoredSpeaker=this.features["authored-scene-labels-v1"]?authoredSceneSpeaker(page):null;
+    const entry:DialogueEntry={...(authoredSpeaker===null?{}:{authoredSpeaker}),seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
     return page.speaker===null&&page.on_screen!==undefined?{...entry,presence:presenceTag(page.on_screen)}:entry;
    }));
    if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");
@@ -61,7 +64,8 @@ export class DialogueLog {
   if(delivered)return;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
-  this.add({seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});
+  const authoredSpeaker=this.features["authored-scene-labels-v1"]?authoredSceneSpeaker({map_id:state.map_id,...(state.world_context?.message?.scene_label===undefined?{}:{scene_label:state.world_context.message.scene_label})}):null;
+  this.add({...(authoredSpeaker===null?{}:{authoredSpeaker}),seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});
  }
  private add(entry:DialogueEntry):void {
   const previous=this.log.at(-1);
@@ -88,7 +92,7 @@ export class DialogueLog {
   if(matches.length===0)return `No recorded dialogue matches (${String(this.log.length)} pages recorded this run).`;
   const chosen=matches.slice(-last).reverse();
   let text=`DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. ${String(matches.length)} of ${String(this.log.length)} entries match.`;
-  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}${e.presence===undefined?"":` · ${e.presence}`}: "${e.text}"`;
+  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}${e.presence===undefined?"":` · ${e.presence}`}${e.authoredSpeaker===undefined?"":` · ${e.authoredSpeaker}`}: "${e.text}"`;
   return `${text}\n${String(chosen.length)} shown.`;
  }
  tool():AgentTool<typeof Args> {

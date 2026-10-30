@@ -6,7 +6,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 const ID="authored-scene-labels-v1";
 it("registers the authored scene treatment append-only and globally OFF",()=>{
  expect(SWITCHABLE_FEATURES.map(String).indexOf(ID)).toBe(316);
- expect(FEATURES.find(f=>String(f.id)===ID)).toMatchObject({needs:"dialogue-auto-advance-v1",switchable:true});
+ expect(FEATURES.find(f=>f.id===ID)).toMatchObject({needs:"dialogue-auto-advance-v1",switchable:true});
  expect(featuresOf([])[ID]).toBe(false);
  expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})[ID]).toBe(false);
  expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);

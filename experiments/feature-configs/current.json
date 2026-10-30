@@ -104,7 +104,8 @@
   "milestone-drought-suppression-v1",
   "pokedex-own-v1",
   "navigation-recovery-v1",
-  "map-cycle-recovery-v1"
+  "map-cycle-recovery-v1",
+  "authored-scene-labels-v1"
  ],
  "onInBoth": [
   "gym-door-label-v1",
@@ -476,6 +477,7 @@
   "town-center-checkpoint-v1": true,
   "player-map-visibility-v2": false,
   "rom-identity-v1": true,
-  "rusturf-entry-followup-v1": false
+  "rusturf-entry-followup-v1": false,
+  "authored-scene-labels-v1": false
  }
 }

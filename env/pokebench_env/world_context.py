@@ -11,6 +11,10 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pokebench_env.authored_scene_labels import SceneLabel
 
 from pokebench_env.game_screen import TASKS, ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, OBJECT_EVENTS
@@ -75,11 +79,16 @@ class FieldMessage:
     cursor: int
     ready: bool
     identity: str | None = None
+    scene_label: "SceneLabel | None" = None
 
     def json(self) -> dict[str, object]:
         value = asdict(self)
         if self.identity is None:
             value.pop("identity")
+        if self.scene_label is None:
+            value.pop("scene_label")
+        else:
+            value["scene_label"] = self.scene_label.json()
         return value
 
 
@@ -249,6 +258,14 @@ class WorldContext:
         value.pop("trigger_origin")
         if self.message is None:
             value.pop("message")
+        else:
+            # Keep the prior nested identity:null representation byte-identical.
+            message = asdict(self.message)
+            if self.message.scene_label is None:
+                message.pop("scene_label")
+            else:
+                message["scene_label"] = self.message.scene_label.json()
+            value["message"] = message
         if self.message_diagnostic is None:
             value.pop("message_diagnostic")
         if self.field_activity is None:

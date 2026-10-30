@@ -1,3 +1,6 @@
+import {Value} from "typebox/value";
+import {applySceneLabelsToPages} from "./authored-scene-labels.js";
+import {pageLines} from "./dialogue-auto-advance.js";
 import {isTownCenterText} from "./town-center-checkpoint.js";
 // Decision-point probes (M6 of the harness-fixes worklog): rebuild the exact context a recorded turn
 // was decided from, re-derive it under a different switch set, and sample the next tool call.
@@ -7,7 +10,7 @@ import {isTownCenterText} from "./town-center-checkpoint.js";
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, Message, TextContent, ThinkingContent, Tool, ToolCall, ToolResultMessage } from "@mariozechner/pi-ai";
 import type {PlaceSource} from "./story-destinations.js";
-import { checkEvent, type Button, type EventBody, type LoopBreakerBody, type RunEvent } from "./events.js";
+import { AuthoredSceneLabelSchema, type AuthoredSceneLabel, checkEvent, type Button, type EventBody, type LoopBreakerBody, type RunEvent } from "./events.js";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featuresOf, type FeatureSet, type SwitchableFeature } from "./features.js";
 import type { GameStateSnapshot } from "./game-state.js";
 import { gameTools } from "./game-tools.js";
@@ -68,6 +71,8 @@ export interface ProbePorts {
   readonly frame: (path: string) => string;
   /** Readouts re-rendered from raw RAM under a feature set, in order. */
   readonly rerender: (refs: readonly RawRef[], features: FeatureSet) => Promise<readonly string[]>;
+  /** Qualified per-page labels from the same raw native archives; metadata only, not readout rerendering. */
+  readonly sceneLabels?: (refs: readonly RawRef[]) => Promise<readonly (AuthoredSceneLabel|null)[]>;
   /** Explicit reasoning field assertion for historical records without replay_identity. */
   readonly thinkingSignature: string;
   /** Source identity assertion for legacy events; never the sampling destination identity. */
@@ -105,19 +110,21 @@ export const serverSwitch = (id: SwitchableFeature): boolean => id === "active-u
 async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, features: FeatureSet, ports: ProbePorts, visible: ReadonlySet<number>, rerender: boolean, compositeReadouts: "party-menu-message-v1" | null): Promise<Map<number, string>> {
   const texts = new Map<number, string>();
   const partyOnly = compositeReadouts === "party-menu-message-v1" && SWITCHABLE_FEATURES.every((id) => id === compositeReadouts || recorded[id] === features[id]);
-  const auto = parts.find((p) => p.auto && (AUTO_TEXT.some((id) => recorded[id] !== features[id]) || (rerender && visible.has(p.event.seq) && !partyOnly)));
+  const labelsOnly = !recorded["authored-scene-labels-v1"]&&features["authored-scene-labels-v1"]&&SWITCHABLE_FEATURES.every(id=>id==="authored-scene-labels-v1"||!serverSwitch(id)||recorded[id]===features[id]);
+  const readoutRerender=rerender&&!labelsOnly;
+  const auto = parts.find((p) => p.auto && (AUTO_TEXT.some((id) => recorded[id] !== features[id]) || (readoutRerender && visible.has(p.event.seq) && !partyOnly)));
   if (auto !== undefined) throw new Error(`tool_result seq ${String(auto.event.seq)} was auto-advanced through dialogue; its text cannot be re-derived under these switches yet`);
-  const composite = parts.filter((p) => p.auto && rerender && visible.has(p.event.seq));
+  const composite = parts.filter((p) => p.auto && readoutRerender && visible.has(p.event.seq));
   if (composite.some((p) => p.event.is_error || p.after?.raw_ram === undefined || (p.event.text.match(/^Screen: /gm)?.length ?? 0) !== 1)) throw new Error("composite result has no supported final readout/raw RAM");
   const shown = new ShownStates();
   const switches = toolSwitches(features);
-  const rendered = parts.filter((p) => rerender && visible.has(p.event.seq) && p.after?.raw_ram !== undefined && READOUT.test(p.event.text));
+  const rendered = parts.filter((p) => readoutRerender && visible.has(p.event.seq) && p.after?.raw_ram !== undefined && READOUT.test(p.event.text));
   const readouts = rendered.length === 0 ? [] : await ports.rerender(rendered.map((p) => ({ path: p.after?.raw_ram?.path ?? "", sha256: p.after?.raw_ram?.sha256 ?? "" })), features);
   const fresh = new Map(rendered.map((p, i) => [p.event.seq, readouts[i] ?? ""]));
   for (const part of parts) {
     let text = part.event.text;
     if (part.auto) {
-      if (rerender && visible.has(part.event.seq)) {
+      if (readoutRerender && visible.has(part.event.seq)) {
         const readout = fresh.get(part.event.seq);
         if (readout === undefined || !readout.startsWith("Screen: ")) throw new Error("composite result has no reconstructed final readout");
         text = text.slice(0, text.search(READOUT)) + readout;
@@ -331,6 +338,61 @@ export async function trimToRecorded(messages: readonly AgentMessage[], warning:
   throw new Error(`--recorded-trim: no whole-turn cut of the rebuilt request matches the recorded one (${String(recorded.messages)} messages, ${String(recorded.images)} images); cuts measured messages/images ${seen.join(", ")}`);
 }
 
+// Native page metadata is reconstructed across the complete prefix, including pages
+// no longer in the model window: observed memory still owns those episodes. Final
+// readouts, frames, original attribution and unrelated composite features stay intact.
+async function sceneLabeledEvents(events:readonly RunEvent[],features:FeatureSet,ports:ProbePorts):Promise<readonly RunEvent[]> {
+ const on=features["authored-scene-labels-v1"];
+ const states=new Map(events.filter((e):e is StateEvent=>e.type==="state"&&"started"in e).map(e=>[e.seq,e]));
+ const results=new Map(events.filter((e):e is ToolResultEvent=>e.type==="tool_result").map(e=>[e.id,e]));
+ const advances=events.filter((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.type==="dialogue_auto_advance");
+ const nativeStates=new Map<number,StateEvent>();
+ if(on)for(const e of advances){
+  const result=results.get(e.tool_call_id);
+  if(result===undefined||result.is_error||result.seq<=e.seq)continue;
+  if(result.run!==e.run)throw new Error("scene label result run differs from source dialogue");
+  for(const page of e.pages){
+   if(page.battle_turn!==undefined||page.battle_message_id!==undefined||page.map_id?.[0]!==0||page.map_id[1]!==3)continue;
+   const state=page.state_seq===null?undefined:states.get(page.state_seq);
+   if(state?.raw_ram===undefined)throw new Error("scene label page has no raw RAM archive");
+   if(state.run!==e.run||state.seq>=e.seq||state.world_context?.dialogue?.includes(page.text)!==true||state.map_id?.[0]!==page.map_id[0]||state.map_id[1]!==page.map_id[1])throw new Error("scene label page differs from its source state");
+   nativeStates.set(state.seq,state);
+  }
+ }
+ const labels=new Map<number,AuthoredSceneLabel|null>();
+ if(nativeStates.size>0){
+  if(ports.sceneLabels===undefined)throw new Error("scene label native qualification port is required");
+  const sources=[...nativeStates.values()],refs=sources.map(s=>{if(s.raw_ram===undefined)throw new Error("scene label source has no raw RAM archive");return {path:s.raw_ram.path,sha256:s.raw_ram.sha256};});
+  const qualified=await ports.sceneLabels(refs);
+  if(qualified.length!==sources.length)throw new Error("scene label qualification result count differs from source pages");
+  qualified.forEach((label,i)=>{if(label!==null&&!Value.Check(AuthoredSceneLabelSchema,label))throw new Error("scene label native qualification is malformed");const state=sources[i];if(state===undefined)throw new Error("missing scene label source");labels.set(state.seq,label);});
+ }
+ const changes=new Map<string,{from:string;to:string}[]>();
+ const annotated=new Map<number,RunEvent>();
+ for(const e of advances){
+  const delivered=results.get(e.tool_call_id);
+  const mayLabel=on&&delivered!==undefined&&!delivered.is_error&&delivered.seq>e.seq&&delivered.run===e.run;
+  const pages=applySceneLabelsToPages(e.pages.map(page=>{
+   const {scene_label:previous,...raw}=page;
+   const label=mayLabel&&page.state_seq!==null?labels.get(page.state_seq):null;
+   return label==null?(previous===undefined?page:raw):{...raw,scene_label:label};
+  }),features);
+  if(pages.every((p,i)=>p===e.pages[i]))continue;
+  const before=pageLines(e.pages,e.turn),after=pageLines(pages,e.turn),delta=changes.get(e.tool_call_id)??[];
+  before.forEach((from,i)=>{const to=after[i];if(to===undefined)throw new Error("scene label page count changed");if(from!==to)delta.push({from,to});});
+  changes.set(e.tool_call_id,delta);annotated.set(e.seq,{...e,pages});
+ }
+ for(const [id,delta]of changes){
+  if(delta.length===0)continue;
+  const result=results.get(id);if(result===undefined||result.is_error)throw new Error("scene label dialogue has no successfully delivered result");
+  let text=result.text;
+  for(const {from,to}of delta){if(text.split(from).length!==2)throw new Error("scene label source page line does not match the recorded dialogue format exactly once");text=text.replace(from,to);}
+  annotated.set(result.seq,{...result,text});
+ }
+ if(annotated.size===0)return events;
+ return events.map(e=>annotated.get(e.seq)??e);
+}
+
 export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false, recordedTrim = false): Promise<DecisionContext> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
@@ -338,7 +400,8 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   if (features["objective-tracking-v1"] || features["state-only-decisions-v1"]) throw new Error("probes do not rebuild objective-tracking or state-only runs yet");
   const recorded = recordedFeatures(run);
   if (derivation === "recorded" && !sameSwitches(recorded, features)) throw new Error("the recorded context exists only under the run's own switches");
-  const prior = events.filter((e) => e.seq < target.seq);
+  const sourcePrior = events.filter((e) => e.seq < target.seq);
+  const prior = derivation==="recorded"?sourcePrior:await sceneLabeledEvents(sourcePrior,features,ports);
   const states = new Map(prior.filter((e): e is StateEvent => e.type === "state" && "started" in e).map((e) => [e.seq, e]));
   const pressed = new Map(prior.flatMap((e) => (e.type === "button_press" ? [[e.tool_call_id, e] as const] : [])));
   const calls = new Map(prior.flatMap((e) => (e.type === "tool_call" ? [[e.id, e] as const] : [])));

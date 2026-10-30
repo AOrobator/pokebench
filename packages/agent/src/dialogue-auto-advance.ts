@@ -1,3 +1,4 @@
+import {applySceneLabelsToPages} from "./authored-scene-labels.js";
 import {battleOnScreen,nonBattleOwner} from "./battle-context.js";
 // dialogue-auto-advance-v1: once a press or navigate_to engages a field message,
 // the harness advances it with B until the next decision point, drops the rest
@@ -137,7 +138,7 @@ class Pages {
  private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;private namedFace:string|null=null;
  // script-line-presence-v1: who is on screen, recorded on a page with no speaker; null when the switch is off.
  // navigation-truth-v1: whole pages (a scroll prompt is not a page end) and speakers kept across a conversation.
- constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null,private readonly present:((s:GameStateSnapshot)=>OnScreenObject[]|null)|null=null,private readonly truth=false){}
+ constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null,private readonly present:((s:GameStateSnapshot)=>OnScreenObject[]|null)|null=null,private readonly truth=false,private readonly sceneLabels=false){}
  // A page already waiting when the call begins is recorded now unless an earlier call recorded it.
  prime(s:GameStateSnapshot):void {
   this.see(s);
@@ -198,7 +199,7 @@ class Pages {
   if(text==="")return;
   const speaker=this.truth&&narrates(text,s.name)?null:this.speaker;
   const presence=speaker===null&&this.present!==null?{on_screen:this.present(s)}:{};
-  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:speaker?.name??null,speaker_source:speaker?.source??null,text,...presence});
+  this.pages.push(...applySceneLabelsToPages([{state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:speaker?.name??null,speaker_source:speaker?.source??null,text,...presence,...(s.world_context?.message?.scene_label===undefined?{}:{scene_label:s.world_context.message.scene_label})}],{"authored-scene-labels-v1":this.sceneLabels}));
  }
 }
 
@@ -395,7 +396,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=async(buttons:Button[],first:boolean)=>{const result=await (first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update,options):press.execute(id,{buttons,...walking},signal,update));carry.remember(stateOf(result));return result;};
-  const pages=new Pages(record,open,present,truth);if(before!==undefined)pages.prime(before);
+  const pages=new Pages(record,open,present,truth,features["authored-scene-labels-v1"]);if(before!==undefined)pages.prime(before);
   const shownBefore=pages.pages.length>0;
   // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
   // YES/NO (B answers NO) or a locked script. Without a read, a message the last call left open counts.
@@ -453,7 +454,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const began=full.clock.now(),carry=new BlackoutCarry();
   carry.remember(state);
   const battle=await openBattle(signal,true);
-  const pages=new Pages(record,open,present,truth);
+  const pages=new Pages(record,open,present,truth,features["authored-scene-labels-v1"]);
   const outcome=await drive(state,pages,autoPress(id,carry),full,battle,signal);
   open=pages.openAt(outcome.state);
   const done=await finish(id,tool,outcome,pages,[],[],[],began,carry,signal);
@@ -507,7 +508,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    if(!dialogueEngaged(state)&&!(battle!==null&&isBattleEngaged(state)))return result;
    // battle-move-tool-v1: "nothing pressed" stays true for the whole call (review round 1 note).
    if(battleAction&&refusedAction(result.details))return result;
-   const pages=new Pages(record,open,present,truth);
+   const pages=new Pages(record,open,present,truth,features["authored-scene-labels-v1"]);
    const outcome=await drive(state,pages,autoPress(id,carry),full,battle,signal);
    open=pages.openAt(outcome.state);
    const done=await finish(id,name,outcome,pages,[],[],[],began,carry,signal);

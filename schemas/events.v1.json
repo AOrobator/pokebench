@@ -6616,6 +6616,202 @@
                   }
                 ]
               },
+              "scene_label": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "scene",
+                      "beat",
+                      "speaker",
+                      "map_id",
+                      "actor_local_id",
+                      "message_pointer",
+                      "return_pc",
+                      "rom_sha1"
+                    ],
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "authored-script"
+                      },
+                      "scene": {
+                        "type": "string",
+                        "const": "rustboro-theft-chase"
+                      },
+                      "beat": {
+                        "type": "string",
+                        "const": "grunt-escape"
+                      },
+                      "speaker": {
+                        "type": "string",
+                        "const": "TEAM AQUA GRUNT"
+                      },
+                      "map_id": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "number",
+                            "const": 0
+                          },
+                          {
+                            "type": "number",
+                            "const": 3
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      "actor_local_id": {
+                        "type": "number",
+                        "const": 10
+                      },
+                      "message_pointer": {
+                        "type": "number",
+                        "const": 136189950
+                      },
+                      "return_pc": {
+                        "type": "number",
+                        "const": 136186325
+                      },
+                      "rom_sha1": {
+                        "type": "string",
+                        "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "scene",
+                      "beat",
+                      "speaker",
+                      "map_id",
+                      "actor_local_id",
+                      "message_pointer",
+                      "return_pc",
+                      "rom_sha1"
+                    ],
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "authored-script"
+                      },
+                      "scene": {
+                        "type": "string",
+                        "const": "rustboro-theft-chase"
+                      },
+                      "beat": {
+                        "type": "string",
+                        "const": "employee-chase"
+                      },
+                      "speaker": {
+                        "type": "string",
+                        "const": "DEVON EMPLOYEE"
+                      },
+                      "map_id": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "number",
+                            "const": 0
+                          },
+                          {
+                            "type": "number",
+                            "const": 3
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      "actor_local_id": {
+                        "type": "number",
+                        "const": 9
+                      },
+                      "message_pointer": {
+                        "type": "number",
+                        "const": 136189975
+                      },
+                      "return_pc": {
+                        "type": "number",
+                        "const": 136186367
+                      },
+                      "rom_sha1": {
+                        "type": "string",
+                        "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "scene",
+                      "beat",
+                      "speaker",
+                      "map_id",
+                      "actor_local_id",
+                      "message_pointer",
+                      "return_pc",
+                      "rom_sha1"
+                    ],
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "authored-script"
+                      },
+                      "scene": {
+                        "type": "string",
+                        "const": "rustboro-employee-request"
+                      },
+                      "beat": {
+                        "type": "string",
+                        "const": "employee-request"
+                      },
+                      "speaker": {
+                        "type": "string",
+                        "const": "DEVON EMPLOYEE"
+                      },
+                      "map_id": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "number",
+                            "const": 0
+                          },
+                          {
+                            "type": "number",
+                            "const": 3
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      "actor_local_id": {
+                        "type": "number",
+                        "const": 9
+                      },
+                      "message_pointer": {
+                        "type": "number",
+                        "const": 136190014
+                      },
+                      "return_pc": {
+                        "type": "number",
+                        "const": 136186733
+                      },
+                      "rom_sha1": {
+                        "type": "string",
+                        "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
               "text": {
                 "type": "string",
                 "minLength": 1
@@ -10963,6 +11159,202 @@
                         },
                         "ready": {
                           "type": "boolean"
+                        },
+                        "scene_label": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "source",
+                                "scene",
+                                "beat",
+                                "speaker",
+                                "map_id",
+                                "actor_local_id",
+                                "message_pointer",
+                                "return_pc",
+                                "rom_sha1"
+                              ],
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "authored-script"
+                                },
+                                "scene": {
+                                  "type": "string",
+                                  "const": "rustboro-theft-chase"
+                                },
+                                "beat": {
+                                  "type": "string",
+                                  "const": "grunt-escape"
+                                },
+                                "speaker": {
+                                  "type": "string",
+                                  "const": "TEAM AQUA GRUNT"
+                                },
+                                "map_id": {
+                                  "type": "array",
+                                  "additionalItems": false,
+                                  "items": [
+                                    {
+                                      "type": "number",
+                                      "const": 0
+                                    },
+                                    {
+                                      "type": "number",
+                                      "const": 3
+                                    }
+                                  ],
+                                  "minItems": 2
+                                },
+                                "actor_local_id": {
+                                  "type": "number",
+                                  "const": 10
+                                },
+                                "message_pointer": {
+                                  "type": "number",
+                                  "const": 136189950
+                                },
+                                "return_pc": {
+                                  "type": "number",
+                                  "const": 136186325
+                                },
+                                "rom_sha1": {
+                                  "type": "string",
+                                  "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "source",
+                                "scene",
+                                "beat",
+                                "speaker",
+                                "map_id",
+                                "actor_local_id",
+                                "message_pointer",
+                                "return_pc",
+                                "rom_sha1"
+                              ],
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "authored-script"
+                                },
+                                "scene": {
+                                  "type": "string",
+                                  "const": "rustboro-theft-chase"
+                                },
+                                "beat": {
+                                  "type": "string",
+                                  "const": "employee-chase"
+                                },
+                                "speaker": {
+                                  "type": "string",
+                                  "const": "DEVON EMPLOYEE"
+                                },
+                                "map_id": {
+                                  "type": "array",
+                                  "additionalItems": false,
+                                  "items": [
+                                    {
+                                      "type": "number",
+                                      "const": 0
+                                    },
+                                    {
+                                      "type": "number",
+                                      "const": 3
+                                    }
+                                  ],
+                                  "minItems": 2
+                                },
+                                "actor_local_id": {
+                                  "type": "number",
+                                  "const": 9
+                                },
+                                "message_pointer": {
+                                  "type": "number",
+                                  "const": 136189975
+                                },
+                                "return_pc": {
+                                  "type": "number",
+                                  "const": 136186367
+                                },
+                                "rom_sha1": {
+                                  "type": "string",
+                                  "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "source",
+                                "scene",
+                                "beat",
+                                "speaker",
+                                "map_id",
+                                "actor_local_id",
+                                "message_pointer",
+                                "return_pc",
+                                "rom_sha1"
+                              ],
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "authored-script"
+                                },
+                                "scene": {
+                                  "type": "string",
+                                  "const": "rustboro-employee-request"
+                                },
+                                "beat": {
+                                  "type": "string",
+                                  "const": "employee-request"
+                                },
+                                "speaker": {
+                                  "type": "string",
+                                  "const": "DEVON EMPLOYEE"
+                                },
+                                "map_id": {
+                                  "type": "array",
+                                  "additionalItems": false,
+                                  "items": [
+                                    {
+                                      "type": "number",
+                                      "const": 0
+                                    },
+                                    {
+                                      "type": "number",
+                                      "const": 3
+                                    }
+                                  ],
+                                  "minItems": 2
+                                },
+                                "actor_local_id": {
+                                  "type": "number",
+                                  "const": 9
+                                },
+                                "message_pointer": {
+                                  "type": "number",
+                                  "const": 136190014
+                                },
+                                "return_pc": {
+                                  "type": "number",
+                                  "const": 136186733
+                                },
+                                "rom_sha1": {
+                                  "type": "string",
+                                  "const": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          ]
                         },
                         "identity": {
                           "anyOf": [

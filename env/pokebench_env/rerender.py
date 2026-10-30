@@ -21,6 +21,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import TextIO
 
+from pokebench_env import authored_scene_labels
 from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
 from pokebench_env.elevation_view import SWITCH as ELEVATION_MAP
@@ -148,6 +149,8 @@ def read_state(
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
+    if authored_scene_labels.SWITCH not in off:
+        state = authored_scene_labels.annotate_scene_label(read, state)
     # Optional session memory belongs to the observation/replay delivery factory.
     # Raw callers retain the unprojected native facts for offline diagnostics.
     return (

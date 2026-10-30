@@ -4,7 +4,8 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {featuresOf} from "./features.js";
 import {pageLine} from "./dialogue-auto-advance.js";
 import {DialogueLog} from "./dialogue-log.js";
-import {observedInstructions} from "./observed-instructions.js";
+import {sceneFollowup} from "./scene-followup.js";
+import {ObservedInstructions,observedInstructions} from "./observed-instructions.js";
 import {IN_GAME} from "../test-support/events.js";
 
 // pret731ad5bfd6e6f265508d0efcca0ba42f9dcf5881: RustboroCity employee help request,
@@ -19,9 +20,10 @@ const bare=(text=REQUEST,speaker:string|null=null)=>({state_seq:1,map:"RUSTBORO 
 const dialogue=(pages:readonly unknown[],seq=2,id=`call-${String(seq)}`)=>event({type:"dialogue_auto_advance",seq,tool_call_id:id,tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0,pages});
 const result=(seq=3,id=`call-${String(seq-1)}`,text="Location: RUSTBORO CITY")=>event({type:"tool_result",seq,id,name:"press",text,is_error:false,duration_ms:1,frames:[]});
 function pages(...raw:unknown[]){const d=dialogue(raw);if(d.type!=="dialogue_auto_advance")throw Error("fixture");return d.pages;}
+function first<T>(items:readonly T[]):T {const item=items[0];if(item===undefined)throw Error("missing fixture page");return item;}
 function memory(enabled=true,allField=true,yaml=false){
  const listeners:((e:RunEvent)=>void)[]=[],receipts:{text:string;evidence:number[]}[]=[];
- const features={...on,"authored-scene-labels-v1":enabled,"observed-instructions-v1":true,"observed-field-dialogue-v1":allField,"instruction-memory-cap-v1":true,"instruction-memory-yaml-v1":yaml};
+ const features={...on,"authored-scene-labels-v1":enabled,"observed-instructions-v1":true,"observed-field-dialogue-v1":allField,"instruction-memory-cap-v1":true,"milestone-instruction-memory-v1":true,"instruction-memory-yaml-v1":yaml};
  const transform=observedInstructions(features,{subscribe:f=>{listeners.push(f);},recordLedgerContext:n=>{receipts.push(n);}},m=>Promise.resolve(m));
  return {receipts,transform,feed:(...events:RunEvent[])=>{for(const e of events)for(const f of listeners)f(e);}};
 }
@@ -43,13 +45,13 @@ it.each([
 it("helper OFF produces exact legacy page bytes even when replay carries ON metadata",()=>{
  const legacy=pages(bare()),annotated=pages({...bare(),scene_label:label});
  const original=structuredClone(annotated),out=applySceneLabelsToPages(annotated,off);
- expect(out).toEqual(legacy);expect(pageLine(out[0]!,7)).toBe(pageLine(legacy[0]!,7));expect(annotated).toEqual(original);
+ expect(out).toEqual(legacy);expect(pageLine(first(out),7)).toBe(pageLine(first(legacy),7));expect(annotated).toEqual(original);
 });
 it("helper and page renderer label authored roles, preserve every quoted word and anonymous presence",()=>{
  const input=pages({...bare(),scene_label:label}),out=applySceneLabelsToPages(input,on);
  expect(out[0]).toMatchObject({speaker:null,speaker_source:null,on_screen:[],text:REQUEST,scene_label:label});
- expect(pageLine(out[0]!,7)).toContain(`DEVON EMPLOYEE (authored script role): "${REQUEST}"`);
- expect(pageLine(out[0]!,7)).not.toMatch(/current actor|go to|recover.*now|local_id/i);
+ expect(pageLine(first(out),7)).toContain(`DEVON EMPLOYEE (authored script role): "${REQUEST}"`);
+ expect(pageLine(first(out),7)).not.toMatch(/current actor|go to|recover.*now|local_id/i);
 });
 it("helper refuses authored presentation on another map or a battle page without mutating raw pages",()=>{
  const input=pages({...bare(),map_id:[0,4],scene_label:label},{...bare(),battle_turn:1,scene_label:label});
@@ -84,5 +86,23 @@ it("memory OFF ignores metadata exactly and failed delivery adds no authored epi
 it.each([false,true])("counts the actual authored rendering against the existing whole-episode cap, YAML=%s",async yaml=>{
  const h=memory(true,true,yaml);
  for(let i=0;i<90;i++){const seq=2+i*2;h.feed(dialogue([{...bare(`Unique request ${String(i)}: ${"unchanged words ".repeat(15)}`,"MAN_2"),scene_label:label}],seq),result(seq+1));}
- await h.transform([]);const text=h.receipts.at(-1)?.text??"";expect(Array.from(text).length).toBeLessThanOrEqual(16000);expect(text).toContain("DEVON EMPLOYEE");expect(text).toContain("authored-script");expect(text).toContain("other episodes are left out");
+ await h.transform([]);const text=h.receipts.at(-1)?.text??"";expect(Array.from(text).length).toBeLessThanOrEqual(yaml?19000:16000);expect(text).toContain("DEVON EMPLOYEE");expect(text).toContain("authored-script");expect(text).toContain("other episodes are left out");if(yaml)expect(text).toContain("otherwise they carry over");
+});
+
+it("authored labels preserve the existing anonymous-scene followup trigger independently",()=>{
+ const person=(x:number)=>({local_id:9,graphics_id:17,sprite_kind:"MAN_2",x,y:8,character:null});
+ const grunt={...label,scene:"rustboro-theft-chase",beat:"grunt-escape",speaker:"TEAM AQUA GRUNT",actor_local_id:10,message_pointer:0x081e17fe,return_pc:0x081e09d5};
+ const employee={...label,scene:"rustboro-theft-chase",beat:"employee-chase",message_pointer:0x081e1817,return_pc:0x081e09ff};
+ const annotated=pages({...bare("Get out!\nOut of the way!"),position:{x:12,y:8},on_screen:[person(11)],scene_label:grunt},{...bare("Wait! Pleeeaaase!\nDon't take my GOODS!"),position:{x:12,y:8},on_screen:[person(10)],scene_label:employee});
+ const yes=dialogue(applySceneLabelsToPages(annotated,on)),no=dialogue(applySceneLabelsToPages(annotated,off));
+ if(yes.type!=="dialogue_auto_advance"||no.type!=="dialogue_auto_advance")throw Error("fixture");
+ expect(sceneFollowup(yes)).not.toBeNull();expect(sceneFollowup(yes)).toEqual(sceneFollowup(no));
+ expect(yes.pages.map(p=>[p.speaker,p.speaker_source,p.on_screen])).toEqual(no.pages.map(p=>[p.speaker,p.speaker_source,p.on_screen]));
+});
+
+it("legacy uncapped rendering labels historical roles while the archive keeps raw attribution",()=>{
+ const memory=new ObservedInstructions(true,false,false,false,false,false,false,true);
+ memory.observe(dialogue([{...bare(REQUEST,"MAN_2"),scene_label:label}]));memory.observe(result());
+ expect(memory.text()).toContain('speaker: "DEVON EMPLOYEE"');expect(memory.text()).toContain('speaker_source: "authored-script"');
+ expect(memory.archive()[0]?.pages[0]).toMatchObject({speaker:"MAN_2",speaker_source:"faced_sprite",scene_label:label});
 });

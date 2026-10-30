@@ -733,6 +733,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   });
   const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
   server.on("upgrade", (req, socket, head) => {
+    socket.on("error", () => { socket.destroy(); });
     const reject = (status: number, message: string): void => {
       socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
     };

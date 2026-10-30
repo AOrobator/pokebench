@@ -5,7 +5,7 @@ import {playSystemPrompt} from "./play-config.js";
 const ID="player-map-visibility-v2";
 it("registers V2 default off with independent server wiring and a matching prompt",()=>{
  const off={...ALL_ON,[ID]:false},on={...off,[ID]:true};
- expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+ expect(SWITCHABLE_FEATURES[312]).toBe(ID);
  expect(SWITCHABLE_FEATURES).not.toContain("player-map-visibility-v1");
  expect(featureInfo(ID).description).toContain("Off:");
  expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);

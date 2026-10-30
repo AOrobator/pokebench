@@ -1741,3 +1741,12 @@ it("serves the tracked player map visibility V2 explainer",async()=>{
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });
+
+it("serves the ROM identity explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/rom-identity-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-rom-identity-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"rom-identity-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),port:0,staticDir});open.push(viewer);
+ const reply=await get(viewer,"/explainers/rom-identity-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

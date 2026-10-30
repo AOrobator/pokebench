@@ -109,6 +109,8 @@ export const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
   CONTEXTUAL_CONTROLS,
 );
 
+export const ROM_IDENTITY_SECTION = "This is standard Pokémon Emerald running from a hash-verified, unmodified ROM. No ROM hacks, randomizer, or custom story changes are applied.";
+
 export const GAME_EVIDENCE_SECTION = `Game evidence first: this game, as observed, is the source of truth. What characters have told you, the names of people, objects and rooms in the readout, the location line and the story flags outrank what you remember about Pokémon games, guides or walkthroughs. Your memory of the series can be wrong about this moment of this game. Before choosing where to go, name the observed evidence that supports it: who said it, where, and what they said. When your expectation and the game disagree, for example a different person, a different room or unexpected dialogue, believe the game, say so in one sentence, and change your plan. Do not keep pursuing a goal no character or readout in this game has given you; if nothing tells you where to go, explore places you have not tried yet.`;
 
 export const DIALOGUE_AUTO_ADVANCE_SECTION = `Dialogue auto-advance: once a press or navigate_to opens or continues a field message, the harness advances it with B itself, page by page, until the next decision point: field control returns, a YES/NO or other menu opens, the naming screen, a battle, a screen change, or a cutscene that keeps controls locked. The result lists every page shown, whole, with speaker, map, position and turn. Buttons left in your batch once the conversation opens are not sent, so you never need A or B to read dialogue; decide your next action from the returned state. A menu is left for you to choose. get_dialogue searches every page recorded this run by speaker, words, map or recency.`;
@@ -275,7 +277,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   // move-learn-tool-v1 (tool-prompt-sync): learn_move is offered in every scene, so its section is too.
   if (features["move-learn-tool-v1"]) prompt += `\n\n${features["move-learn-offer-identity-v1"]?GUARDED_LEARN_MOVE_SECTION:LEARN_MOVE_SECTION}`;
   if (show("overworld") && features["screen-center-player-v1"]) prompt += `\n\n${SCREEN_CENTER_SECTION}`;
-  // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
+  // Order the game-evidence sources after the main controls.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
   if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
@@ -285,7 +287,8 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   }
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   if(features["player-map-visibility-v2"])prompt += "\n\nMap visibility: Fully lit maps show the whole current map, including terrain, static exits and connections beyond the camera. In dark maps, ? is unseen terrain; previously seen terrain is remembered without refreshing hidden tiles. People require current screen and illumination evidence. Navigation uses known terrain. Unknown visibility remains unavailable. Trainer-sight checks require currently revealed terrain and currently visible trainers.";
-  return features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
+  const contextual = features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
+  return features["rom-identity-v1"] ? `${contextual}\n\n${ROM_IDENTITY_SECTION}` : contextual;
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.

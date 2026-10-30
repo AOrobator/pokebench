@@ -378,6 +378,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "rom-identity-v1":"rom-identity-v1.html",
  "eight-badge-mission-v1":"eight-badge-mission-v1.html",
  "discovered-gym-checklist-v1":"discovered-gym-checklist-v1.html",
  "town-center-checkpoint-v1":"town-center-checkpoint-v1.html",

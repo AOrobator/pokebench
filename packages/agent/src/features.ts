@@ -322,6 +322,7 @@ export const SWITCHABLE_FEATURES = [
   "discovered-gym-checklist-v1",
   "town-center-checkpoint-v1",
   "player-map-visibility-v2",
+  "rom-identity-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -762,6 +763,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("discovered-gym-checklist-v1", "guidance", "DISCOVERED GYM CHECKLIST", null, "Default off; current bundle ON and control OFF by operator approval. A bounded checklist remembers gyms named in successful delivered current location, sign, entrance or dialogue evidence. Only delivered native badge state completes them. Leaving, errands, loss and model claims never remove an obligation. Reminds the model before decisions without choosing a route, forcing a battle or blocking travel. Hidden templates do not discover gyms. Off: no checklist, extra context or checklist receipts; existing behavior is unchanged."),
   on("town-center-checkpoint-v1", "guidance", "TOWN CENTER CHECKPOINT", "heal-before-trainers-v1", "Default off; enabled in both future current-recipe arms by operator approval. The first eligible free-field decision of a town visit gets the probed short instruction as a final plain-string user message: enter the listed local POKéMON CENTER now, even with a healthy party, because entry sets the blackout return point; heal with the nurse if needed, then resume the objective. Requires native lastHealLocation to differ from this town and an already-listed reachable Center entrance from the game map table. Dialogue, menus, battles, locked controls and unavailable facts defer delivery. Native checkpoint completion suppresses the note; a successful action consumes this visit notice, while failed/text-only replies retain it. Delivery is recorded with state/result references in Activity History and raw events, without a timeline mark. No tools or movement are changed. Off: model context, tools and results retain their previous bytes; no checkpoint note is recorded."),
   on("player-map-visibility-v2", "observation", "PLAYER MAP VISIBILITY V2", null, "Default off. Fully lit maps reveal the whole current map terrain, static exits and connections beyond the camera. Dark maps reveal only the native illuminated area and retain previously seen terrain without refreshing hidden tiles. Live people still require current screen and illumination evidence; hidden NPC templates and the global route graph stay withheld. Connected-map transitions retain current terrain even when the player object keeps its spawn-map identity. Off: preserves the unrestricted baseline byte for byte."),
+  on("rom-identity-v1", "guidance", "ROM IDENTITY", null, "Default off; retained in the future current bundle by operator approval. Appends the exact tested statement that PokeBench uses a hash-verified, unmodified standard Pokémon Emerald ROM, with no ROM hacks, randomizer or custom story changes. The ROM resolver enforces the expected hash. This is an environment fact, not route advice or a claim that harness interpretations cannot be wrong. The exploratory pilot moved house proposals from 2/8 to 4/8 in one case; reliable gameplay benefit is unproven. Off: the previous system prompt is byte-identical."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1172,6 +1174,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("discovered-gym-checklist-v1"),
     ...when("town-center-checkpoint-v1"),
     ...when("player-map-visibility-v2"),
+    ...when("rom-identity-v1"),
   ];
 }
 

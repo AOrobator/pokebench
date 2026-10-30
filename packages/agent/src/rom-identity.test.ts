@@ -7,7 +7,8 @@ const ID="rom-identity-v1";
 const TEXT="This is standard Pokémon Emerald running from a hash-verified, unmodified ROM. No ROM hacks, randomizer, or custom story changes are applied.";
 it("keeps ROM identity default off and preserves the pre-change system prompt",()=>{
  const off=featuresOf([]);
- expect(normalizeFeatures(off)).toHaveProperty(ID,false);
+ const legacy={...off};Reflect.deleteProperty(legacy,ID);
+ expect(normalizeFeatures(legacy)).toHaveProperty(ID,false);
  expect(createHash("sha256").update(playSystemPrompt(off,null)).digest("hex")).toBe("d5fc2e2ddc6a70cb012644f1362aed62786e9f915a88eb38f3b6f65d850639e9");
 });
 it("appends exactly the tested paragraph through the production prompt factory without changing tools",()=>{

@@ -1963,3 +1963,10 @@ it("keeps retired visibility V1 recorded ON and OFF cards without enabling the s
   expect(card?.querySelector("a")).toBeNull();
  }
 });
+
+it("links ROM identity from its card without inferring a historical setting",()=>{
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()));
+ const card=must(doc.querySelector('[data-feature="rom-identity-v1"]'));
+ expect(card.querySelector("a")?.getAttribute("href")).toBe("/explainers/rom-identity-v1.html");
+ expect(card.textContent).toContain("NOT RECORDED");
+});

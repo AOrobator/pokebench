@@ -474,6 +474,6 @@
   "discovered-gym-checklist-v1": false,
   "town-center-checkpoint-v1": true,
   "player-map-visibility-v2": false,
-  "rom-identity-v1": true
+  "rom-identity-v1": false
  }
 }

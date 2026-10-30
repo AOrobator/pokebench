@@ -1982,3 +1982,19 @@ it("links the checkpoint research note card without inferring historical activat
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  expect(card.textContent).toContain("NOT RECORDED");
 });
+
+it("links the Rusturf entry follow-up card without inferring historical activation",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="rusturf-entry-followup-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card.textContent).toContain("NOT RECORDED");
+ const recorded=new Log();recorded.add(0,{...START,harness_features:[id]});
+ doc.body.innerHTML=harnessConfig(view(recorded),currentFeatures);
+ const enabled=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(enabled.querySelector(".config-badge")?.textContent).toBe("ON");
+ expect(enabled.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

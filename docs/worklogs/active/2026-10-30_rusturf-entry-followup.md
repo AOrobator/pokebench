@@ -1,0 +1,33 @@
+# Rusturf entry follow-up
+
+## Authorized outcome and boundary
+The operator explicitly requested automatic prompt injection upon entering Rusturf, implemented with a subagent, behind a switch ON in the bundle and dependent on observed game state. Register `rusturf-entry-followup-v1` globally OFF; future current-recipe bundle ON and control OFF. This authorizes the source/config change and its tests/review/landing workflow, not a new model experiment or alteration of an active frozen run. Existing checkpoint research injection remains a separate switch. This dynamic policy does not inherit the checkpoint candidate's 92/100 result.
+
+## Implementation contract
+Use the existing context transform and typed ledger_context event. Require a coherent successful delivered observation/result bound to the same run/state/tool call and still present in actual model input: Rusturf map24/4, current observed name/position, free overworld input, no menu/battle/dialogue/unknown diagnostics. Both native grunt-defeat and Goods-recovery predicates must be explicitly false; unknown or complete suppresses. Completion flags are eligibility guards, not unseen narrative facts in the prompt.
+
+Render current location/position and generic local-priority, inquiry, actor/tool-binding and follow-through guidance. Never inject the research checkpoint's fixed coordinates, prior-run quotes, actor IDs or unseen Peeko/Black Belt story. First coherent observation starting inside counts; unsafe entry defers until safe field control. A delivered cue remains pending through failed/aborted response retry, is consumed after its successful response, and never repeats after consumption or completed-state evidence. No automatic input, global context reset, changed goal, recurring planner or timeline addition.
+
+## Owned work and planned gates
+Subagent owns new module/tests only; root owns registry/preset/default, production context wiring/factory test, current recipe and README, feature explainer/card mapping/route assertions and worklog. Reuse existing delivered-only memory recorder and Activity History/raw-inspector ledger rendering; no new event schema or server RAM reader.
+
+- [ ] RED/GREEN module, factory and feature/bundle assertions, wiring deletion/restoration.
+- [ ] Focused lint/type checks; shared CPU window for full lint/build/test/vendor without weakened gates.
+- [ ] Background explainer/card/Activity History delivery proof, fake production-loop request capture with no model/GPU call.
+- [ ] Frozen source multi-model review, coordinated main landing and applicable post-main checks.
+- [ ] Future bundle recipe activation only; no frozen definition rewrite or running-process restart.
+
+## Source and current progress
+Base main48bfb4fe7; owned branchb181cb3ab also carries reviewed documentation-only research/explainer evidence. Source reference pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 clean; Rusturf flag1296 marks trainer defeated and flag143 marks recovered Goods. Ignored evidence audit under canonical runs/probe-research/rusturf-overnight-20261029/rusturf-entry-implementation/. The dialogue contains later reusable cottage advice; the new cue must not globally retire existing instruction-memory episodes.
+
+## Bounded source corrections and cheap proof
+The ledger recorder's existing API now accepts optional timing `next | current` (default `next` preserves all old callers). This is the same typed ledger_context owner, not a new event schema. The entry transform awaits the base request before recording actual delivery, so it passes `current`; RED real-recorder tests exposed receipt turn3 versus actual request turn2 before correction. The existing memory adapter forwards timing. Root scope therefore additionally includes recorder.ts; new-module tests cover the real recorder, restoration suppression and exact turn identity.
+
+59 module/factory tests passed before adding the production pi HTTP consumer; 100 focused tests across module/factory/recorder then passed. The fake HTTP provider captures actual serialized pi requests: initial request lacks cue, coherent observation leads to one final dynamic user cue, successful exposure consumes it before the third request. No inference/GPU/game process participates. Agent and viewer direct typechecks passed; viewer changed-file lint passed. Entry card mapping and tracked exact-document server tests were RED (missing mapping/404), then both GREEN. Source wiring and restore-guard deletion mutations independently failed and were restored; original receipts remain ignored.
+
+The separate read-only post-Roxanne census covers776 logical runs:18 earned-model cases,14 native/coherent entries,10 native grunt/Goods completions, with215 inherited starts separated. Selected consequential windows cover all8 noncompleters/all10 successes. Four scene-journal deliveries/three follow-up receipts expose a participant-attribution gap; no causal feature estimate, exhaustive transcript semantic claim or safe-capture treatment claim. No code fix to cutscene tracking is bundled here; it is a separate research target.
+
+## Actual-history readiness correction
+Offline replay of all14 frozen coherent arrivals exposed a real delivery-format defect:12 initially suppressed; actual delivered Location includes map/terrain section while the trigger required the bare state.location. The owning map_sections.py format was checked. The helper now also accepts an exact observed exit_sections.current with matching native map/name and valid section grammar, copying the whole observed line verbatim. Positive test was RED before correction;63 module tests and typecheck/lint now pass, including forged-name/map/section, duplicate Location, differing state.current, and unknown completion evidence rejection. Same-input replay now12/14 deliver versus2/14 before, including4/4 historical entered noncompleters; two older cases retain unknown completion flags and correctly suppress. OFF preserves exact input identity14/14. These are input-compatibility checks with synthesized exact-result messages, not efficacy or native-wire claims.
+
+First full lint passed. First justtest passed TS/Python/gateway coverage but stopped at protected-art setup: the gate runner mistakenly used nonexistent runs/card-art instead of canonical supported runs/sprites/trainer-card-v1. Failed receipt is preserved; no asset, baseline or assertion was edited. CPU RELEASE sent, updatedcheapchecks passed, fresh CPU START granted for final source fullgates with correct path. Final source helper SHA708f531926e301be4f52edbaafb78468a3aa6be527b839944647d7f364bf08b1. Current scoped source unchanged beyond original helper/tests format repair; no cutscene fix included.

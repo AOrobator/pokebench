@@ -1,3 +1,4 @@
+import {rusturfEntryFollowupContext} from "./rusturf-entry-followup.js";
 import {discoveredGymChecklist} from "./gym-campaign.js";
 import {townCenterContext} from "./town-center-checkpoint.js";
 import type {PlaceSource} from "./story-destinations.js";
@@ -71,12 +72,12 @@ import {withUnfinishedActivity,type ActivityRecorder} from "./unfinished-activit
 import type {TrainerSightCheck,TrainerSightPorts} from "./trainer-sight.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
+type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">&Partial<Pick<RunRecorder,"isRestoring">>;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform,cutOffNotice?:string,places:PlaceSource={}):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null;training?:TrainingBlock;instructionGoals?:GoalTools}{
  const tools:AgentTool[]=[];
- const memoryRecorder:WiringRecorder={subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:body=>{recorder.recordLedgerContext(body);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
+ const memoryRecorder:WiringRecorder={isRestoring:()=>recorder.isRestoring?.()??false,subscribe:(observer,milestones,latest)=>{recorder.subscribe(observer,milestones,latest,true);},recordNavigationContext:body=>{recorder.recordNavigationContext(body);},recordLedgerContext:(body,timing)=>{recorder.recordLedgerContext(body,timing);},recordMilestoneHint:body=>{recorder.recordMilestoneHint(body);},recordBeliefLedger:body=>{recorder.recordBeliefLedger(body);},recordLoopBreaker:body=>{recorder.recordLoopBreaker(body);}};
 
  const observedBase=features["instruction-goal-ledger-v1"]?base:observedInstructions(features,memoryRecorder,base);
  const memory=navigationMemory(features,memoryRecorder,observedBase);
@@ -100,7 +101,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const campaign=discoveredGymChecklist(features,memoryRecorder,instructionGoals?.transform??history.transform);
  // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.
  const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,campaign))));
- const transformContext=townCenterContext(features,memoryRecorder,priorContext,places);
+ const transformContext=rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places));
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

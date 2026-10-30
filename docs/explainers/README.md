@@ -367,3 +367,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [ROM identity](rom-identity-v1.html): exact tested identity fact, verified ROM hash, default-OFF switch and exploratory limits.
 
 - [Checkpoint research note](checkpoint-research-note-v1.html): startup gates, first-user-message timing, exact measured note and the unimplemented location-entry design; default OFF.
+
+- [Rusturf entry follow-up](rusturf-entry-followup-v1.html): once-per-run current-observation reminder; global default OFF, future bundle ON.

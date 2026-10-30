@@ -1,0 +1,7 @@
+# Retain the tested ROM identity statement
+
+User 2026-10-29: "if ROM identity, like, weekly helped, I'm pretty sure we should just keep it in"; asks for successful/failed thinking and older hacked-ROM examples. Retain the exact tested factual identity paragraph in future current bundle only, behind a default-OFF registered rom-identity-v1 switch. No new calibration wording, goal repair, generic replay repair, gameplay launch or historical trace rewriting. The generic replay-provider defect belongs to the separate repair chat.
+
+Evidence: corrected pilot32 complete, T31 house2/8→4/8; control8/8both, no errors/truncation. One source family, weak/inconclusive; inclusion is operator preference for a verified environment fact, not measured gameplay/promotion proof. ROM resolver checks SHA1f3ae088181bf583e55daf962a92bb46f4f1d07b7. Prior31a7 T42/45/102/176 and6b41 T40–45 show modification explanations; source Oldale layout is20x20, contradicting the model's guessed30x25 vanilla dimensions. Keep ON text identical to the probed final system paragraph. OFF byte-identical; no tools/actions change. New defaults false, current bundle true/control false.
+
+Stages: RED registry/default/prompt/factory/arm/explainer contracts; GREEN append-only registration and exact paragraph, mutation check; independent reviews and executable gates; board FF and post-main checks; coordinated compatible viewer/card-to-explainer proof. No endpoint inference or gameplay required.

@@ -141,3 +141,13 @@ it.each([
 ])("rejects malformed ancestry before reading its source: %j",derivedFrom=>{
  expect(()=>parseFixedDefinition(JSON.stringify({...definition(),derivedFrom}))).toThrow();
 });
+
+ it("enables compact grids and bounded supervisor briefings in both current arms",()=>{
+ for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
+  const d=readFixedDefinition(root,name).definition;
+  for(const id of ["compact-map-grid-v1","supervisor-briefing-bound-v1"]){
+   expect(d.onInBoth,name).toContain(id);expect(d.switches,name).not.toContain(id);expect(d.offInBoth,name).not.toContain(id);
+   for(const arm of ["control","bundle"] as const){expect(armFeatureBits(d,arm)[id],name).toBe(true);expect(armFeatures(d,arm)[id],name).toBe(true);}
+  }
+ }
+});

@@ -38,3 +38,7 @@ CPU rerun grant claim99925 includes branch just test/lint/vendor and mandatory p
 - [x] Required gates and independent review under verified standing Grok waiver
 - [x] Report-only audit with mobile delivery and inspected screenshots
 - [ ] Landing board + post-main gate
+
+Landed FF92e537f69 from unchanged982dbeb12 while board#1 owned by actual Codex 00000000-0000-4000-8000-e9e7c8fce0c2. Mandatory post-main just testPASS (agent5249/viewer2386/Python4979/gateway116/3protected-card baselines), same>=90coverage floors; receipt canonical runs/reviews/context-growth-audit/post-main-test.log. Main production resolver verified all12arms bothflagsTRUE in main-resolved-arms.json. Source settings now enabled for future current-recipe runs. Active pinned recordings/processes unchanged; no launch or live model call needed/claimed. No viewer refresh: served Harness Config is per-recorded-run read-only; source recipe is consumed by future fixed launches. PIDs44575/18986/37156 verified alive before and after. Existing frozen recipe ancestry and archive unmodified.
+- [x] Landing board and post-main gate
+Report remains report-only; only the two operator-authorized configuration switches changed. Evidence-only completion commit introduces no executable delta, no repeat review/build or refresh required. Worklog remains active (not archived).

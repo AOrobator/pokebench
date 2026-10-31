@@ -371,3 +371,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Rusturf entry follow-up](rusturf-entry-followup-v1.html): once-per-run current-observation reminder; global default OFF, future bundle ON.
 
 - [Authored Rustboro scene labels](authored-scene-labels-v1.html)
+
+- [Native instruction tasks](native-instruction-tasks-v1.html): deterministic delivered Devon request tracking in the existing ledger, default OFF.

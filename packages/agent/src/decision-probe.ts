@@ -393,7 +393,14 @@ async function sceneLabeledEvents(events:readonly RunEvent[],features:FeatureSet
  return events.map(e=>annotated.get(e.seq)??e);
 }
 
+export interface DecisionSession {
+ readonly context:DecisionContext;
+ readonly bookkeeping:(message:AssistantMessage)=>Promise<DecisionContext>;
+}
 export async function decisionContext(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false, recordedTrim = false): Promise<DecisionContext> {
+ return (await decisionSession(run,turn,features,ports,derivation,rerender,compositeReadouts,trustHeader,recordedTrim)).context;
+}
+export async function decisionSession(run: RecordedRun, turn: number, features: FeatureSet, ports: ProbePorts, derivation: Derivation = "replayed", rerender = false, compositeReadouts: "party-menu-message-v1" | null = null, trustHeader = false, recordedTrim = false): Promise<DecisionSession> {
   const { events, start } = run;
   const target = events.find((e): e is TurnStartEvent => e.type === "turn_start" && e.turn === turn);
   if (target === undefined) throw new Error(`turn ${String(turn)} has no turn_start in this run`);
@@ -433,7 +440,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
     const messages = (features["fresh-retry-v1"] ? withoutTextOnlyReplies(window) : window).filter(isMessage);
     const notes = recordedNotes(prior, turn);
     for (const text of notes) messages.push({ role: "user", content: text, timestamp: 0 });
-    return { turn, systemPrompt: start.system_prompt, messages, tools, size: contextSize(messages) };
+    return {context:{ turn, systemPrompt: start.system_prompt, messages, tools, size: contextSize(messages) },bookkeeping:()=>Promise.reject(new Error("Recorded-only context cannot execute bookkeeping"))};
   }
   // The wiring, replayed over the recorded stream under the probe's switches.
   const replay = new Replay(start);
@@ -459,7 +466,25 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   recorderView.size = null;
   const messages = (await wiring.transform(windowed)).filter(isMessage);
   const recorderSize = recordedTrim ? lastMeasured() : null;
-  return { turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
+  const context:DecisionContext={ turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
+  let continuing:AgentMessage[]=[...windowed];
+  return {context,bookkeeping:async message=>{
+   const calls=message.content.filter((p):p is ToolCall=>p.type==="toolCall");
+   if(calls.length===0||calls.some(c=>!["review_goals","get_instruction_goals"].includes(c.name)))throw new Error("Bookkeeping continuation accepts only instruction-ledger tools; no game execution");
+   continuing.push(message);
+   for(const call of calls){
+    const tool=wiring.tools.find(t=>t.name===call.name);if(tool===undefined)throw new Error("Bookkeeping tool is not available in this arm");
+    let content:ToolResultMessage["content"],isError=false;
+    try{
+     if(!Value.Check(tool.parameters,call.arguments))throw new Error("Invalid bookkeeping tool arguments");
+     const result=await tool.execute(call.id,call.arguments);content=result.content;
+    }catch(error){content=[{type:"text",text:error instanceof Error?error.message:String(error)}];isError=true;}
+    continuing.push({role:"toolResult",toolCallId:call.id,toolName:call.name,content,isError,timestamp:Date.now()});
+   }
+   continuing=slideWindow(continuing,wiring.window);
+   const next=(await wiring.transform(continuing)).filter(isMessage);
+   return {...context,messages:next,size:contextSize(next)};
+  }};
 }
 // The guard text in context at `turn` (LoopDetector.context over the recorded notices), then the
 // pinned hint and this turn's ledger and navigation memory, in the order the wiring appended them.

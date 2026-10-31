@@ -20,7 +20,7 @@ const result=(seq=3,extra:Record<string,unknown>={})=>event({type:"tool_result",
 function setup(on=true){
  const listeners:((e:RunEvent)=>void)[]=[];
  const records:unknown[]=[];
- const features={...featuresOf(["ram-state-v1","field-dialogue-phase-v1","dialogue-auto-advance-v1","authored-scene-labels-v1","instruction-goal-ledger-v1","instruction-goal-advisory-v1"]),[ID]:on};
+ const features={...featuresOf(["ram-state-v1","active-field-message-buffer-v1","field-dialogue-phase-v1","dialogue-auto-advance-v1","authored-scene-labels-v1","instruction-goal-ledger-v1","instruction-goal-advisory-v1"]),[ID]:on};
  const context=contextTools(features,{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:b=>{records.push(b);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
  const feed=(...events:RunEvent[])=>{for(const e of events)for(const l of listeners)l(e);};
  const ledger=context.instructionGoals?.ledger;if(ledger===undefined)throw Error("missing ledger");
@@ -31,6 +31,8 @@ it("factory creates exactly one harness-owned task from the delivered request an
  expect(JSON.parse(s.ledger.archive(undefined,TASK))).toMatchObject({owner:"harness",status:"open",native_phase:"pending",sources:[{episode:3,page:0}]});
  const before=s.ledger.text();expect(before).toContain(REQUEST.replaceAll("\n","\\n"));expect(before).not.toContain("No route or goal is assigned by the harness");
  expect(JSON.stringify(await s.context.transformContext([]))).toContain(TASK);
+ const stale=[{role:"toolResult" as const,toolCallId:"past",toolName:"observe",content:[{type:"text" as const,text:"Story goal: obsolete gym instruction\nStory goal away: old destination"}],isError:false,timestamp:0}];
+ const rendered=JSON.stringify(await s.context.transformContext(stale));expect(rendered).not.toContain("Story goal:");expect(rendered).toContain("Historical place dialogue (not your active goal):");expect(stale[0]?.content[0]?.text).toContain("Story goal:");
  const repeat=[state(4),dialogue(5),result(6)];s.feed(...repeat);
  const listing=JSON.parse(s.ledger.archive()) as {goal_count:number};expect(listing.goal_count).toBe(1);
  const travel=[state(7,[],{map_id:[0,31],world_context:{objects:[],triggers:[],dialogue:null}}),result(8,{id:"travel",state_seq:7})];s.feed(...travel);
@@ -38,10 +40,10 @@ it("factory creates exactly one harness-owned task from the delivered request an
  const restored=setup();restored.feed(...events,...repeat,...travel);expect(restored.ledger.text()).toBe(s.ledger.text());
  const off=setup(false);off.feed(...events);expect(()=>off.ledger.archive(undefined,TASK)).toThrow("Unknown goal");
 });
-it.each(["failed","greeting","unlabelled","wrong-map","battle","missing-state","unknown-native","already-recovered","mismatched-native"])("does not create a task on %s",kind=>{
+it.each(["failed","greeting","unlabelled","wrong-map","battle","missing-state","unknown-native","already-recovered","mismatched-native","undelivered-quote","missing-result-state","foreign"])("does not create a task on %s",kind=>{
  const s=setup();let st=state(),d=dialogue(),r=result();
  if(kind==="failed")r=result(3,{is_error:true});
- if(kind==="greeting")d=dialogue(2,"Oh, it's you!");
+ if(kind==="greeting"){d=dialogue(2,"Oh, it's you!");r=result(3,{text:"Oh, it's you!"});}
  if(kind==="unlabelled")d=dialogue(2,REQUEST,{scene_label:undefined});
  if(kind==="wrong-map")d=dialogue(2,REQUEST,{map_id:[0,4]});
  if(kind==="battle")d=dialogue(2,REQUEST,{battle_turn:1});
@@ -49,12 +51,15 @@ it.each(["failed","greeting","unlabelled","wrong-map","battle","missing-state","
  if(kind==="unknown-native")st=state(1,[],{story_progress:null});
  if(kind==="already-recovered")st=state(1,[143]);
  if(kind==="mismatched-native")st=state(1,[],{world_context:{objects:[],triggers:[],dialogue:"Other page"}});
+ if(kind==="undelivered-quote")r=result(3,{text:"No dialogue delivered"});
+ if(kind==="missing-result-state")r=result(3,{state_seq:undefined});
+ if(kind==="foreign")r=result(3,{run:"another-run"});
  s.feed(st,d,r);expect(()=>s.ledger.archive(undefined,TASK)).toThrow("Unknown goal");
 });
 it("canonical request cannot be erased, renamed, abandoned or model-completed; supporting plans remain editable",()=>{
  const s=setup();s.feed(state(),dialogue(),result());const original=JSON.parse(s.ledger.archive(undefined,TASK)) as Record<string,unknown>;
  for(const status of ["open","active","deferred","blocked","reported_complete","superseded","abandoned"]){
-  expect(()=>s.ledger.apply({reviewed:[],updates:[{id:TASK,title:"Changed",sources:[{episode:3,page:0}],parent:null,status,reason:"Model says",completion:"I said so"}]})).toThrow(/harness|canonical/i);
+  expect(()=>{s.ledger.apply({reviewed:[],updates:[{id:TASK,title:"Changed",sources:[{episode:3,page:0}],parent:null,status,reason:"Model says",completion:"I said so"}]});}).toThrow(/harness|canonical/i);
   expect(JSON.parse(s.ledger.archive(undefined,TASK))).toEqual(original);
  }
  s.ledger.apply({reviewed:[],updates:[{id:"heal",title:"Heal first",sources:[{episode:3,page:0}],parent:TASK,status:"active",reason:"Need health",completion:"Party healed"}]});
@@ -76,7 +81,54 @@ it("registers appended default-OFF mode with ledger, advisory and authored evide
  expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  const s=setup();expect(dependencyProblems(s.features)).toEqual([]);
- for(const dependency of ["instruction-goal-ledger-v1","instruction-goal-advisory-v1","authored-scene-labels-v1"] as const)expect(dependencyProblems({...s.features,[dependency]:false})).toContain(`${ID} needs ${dependency}`);
+ for(const dependency of ["instruction-goal-advisory-v1","authored-scene-labels-v1"] as const)expect(dependencyProblems({...s.features,[dependency]:false})).toContain(`${ID} needs ${dependency}`);
+ expect(dependencyProblems({...s.features,"instruction-goal-ledger-v1":false})).toEqual([]);
+ expect(playSystemPrompt({...s.features,"instruction-goal-ledger-v1":false},null)).not.toContain("harness-owned");
  expect(playSystemPrompt(s.features,null)).toContain("harness-owned");
  expect(playSystemPrompt(s.features,null)).not.toContain("The harness never assigns a goal");
+});
+
+it("delivers the canonical task through pinned pi HTTP after the history window has been cleared",async()=>{
+ const {createServer}=await import("node:http");
+ const {Governor,piLoop,play}=await import("./harness.js");
+ const {discoverModels,selectModel}=await import("./gateway.js");
+ const {gatewayLoopConfig}=await import("./provider.js");
+ const {Type}=await import("typebox");
+ const requests:unknown[]=[];
+ const server=createServer((req,res)=>{
+  if(req.url==="/v1/models"){res.writeHead(200,{"content-type":"application/json"});res.end(JSON.stringify({data:[{id:"native-task-fixture",context_window:65536,max_tokens:4096}]}));return;}
+  let body="";req.setEncoding("utf8");req.on("data",(chunk:string)=>{body+=chunk;});req.on("end",()=>{
+   requests.push(JSON.parse(body) as unknown);res.writeHead(200,{"content-type":"text/event-stream"});
+   for(const [delta,finish]of [[{role:"assistant",tool_calls:[{index:0,id:`action${String(requests.length)}`,type:"function",function:{name:"observe",arguments:"{}"}}]},null],[{},"tool_calls"]]as const)res.write(`data: ${JSON.stringify({id:"fixture",object:"chat.completion.chunk",created:0,model:"native-task-fixture",choices:[{index:0,delta,finish_reason:finish}]})}\n\n`);
+   res.end("data: [DONE]\n\n");
+  });
+ });
+ await new Promise<void>(resolve=>{server.listen(0,"127.0.0.1",resolve);});
+ try{
+  const address=server.address();if(address===null||typeof address==="string")throw Error("missing port");
+  const model=selectModel(await discoverModels({gatewayUrl:`http://127.0.0.1:${String(address.port)}/v1`,visionModels:["native-task-fixture"]}),"native-task-fixture");
+  const s=setup();s.feed(state(),dialogue(),result());
+  const abort=new AbortController(),governor=new Governor({limits:{maxTurns:1,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{abort.abort();},now:()=>0});
+  const loop=piLoop({systemPrompt:playSystemPrompt(s.features,null),tools:[{name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Current field observation"}],details:undefined})}],base:gatewayLoopConfig(model,"off"),governor,signal:abort.signal,transformContext:s.context.transformContext,emit:()=>{}});
+  expect(await play({role:"user",content:"Continue after context reset",timestamp:0},governor,loop)).toBe("budget");
+  expect(requests).toHaveLength(1);const wire=JSON.stringify(requests[0]);expect(wire).toContain(TASK);expect(wire).toContain("harness-owned");expect(wire).toContain("I have to get the DEVON GOODS back!");
+ }finally{await new Promise<void>((resolve,reject)=>{server.close(error=>{if(error)reject(error);else resolve();});});}
+});
+
+it("rebuilds the canonical task through real recorder checkpoint restoration without rewriting the historical log",async()=>{
+ const {mkdtempSync,rmSync,readFileSync}=await import("node:fs"),{join}=await import("node:path"),{tmpdir}=await import("node:os");
+ const {RunLog}=await import("./run-log.js"),{RunRecorder}=await import("./recorder.js"),{FrameStore}=await import("./frames.js"),{RUN_START_META}=await import("../test-support/events.js");
+ const root=mkdtempSync(join(tmpdir(),"native-task-restore-"));
+ try{
+  const current=state();if(current.type!=="state"||!("started"in current))throw Error("missing state");
+  const log=RunLog.create(root,"restored-task",()=>new Date("2026-10-30T16:00:00Z"),100);
+  const recorder=new RunRecorder({log,frames:new FrameStore(log.runDir),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(current)},history:[state(),dialogue(),result()],restoreRunIdentity:true});
+  const f=setup().features,context=contextTools(f,recorder,recorder.transformContext);
+  await recorder.start({...RUN_START_META,harness_features:SWITCHABLE_FEATURES.filter(id=>f[id])});
+  await recorder.restoreHistory(()=>Promise.resolve());
+  expect(context.instructionGoals?.ledger.archive(undefined,TASK)).toContain('"native_phase":"pending"');
+  const payload=await context.transformContext([]);expect(JSON.stringify(payload)).toContain(TASK);
+  recorder.end("budget");const durable=readFileSync(log.eventsPath,"utf8");
+  expect(durable).toContain("harness-owned tasks");expect(durable).not.toContain('"run":"native-task"');
+ }finally{rmSync(root,{recursive:true,force:true});}
 });

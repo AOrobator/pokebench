@@ -1,0 +1,41 @@
+import {readFileSync} from "node:fs";
+import {gunzipSync} from "node:zlib";
+import {expect,it} from "vitest";
+import {RUN_START_META} from "../test-support/events.js";
+import {assistant} from "../test-support/pi.js";
+import {checkEvent} from "./events.js";
+import {featuresOf} from "./features.js";
+import {decisionContext,decisionSession,recordedRun,type ProbePorts} from "./decision-probe.js";
+const raw=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pokenav-instruction-goals.json.gz",import.meta.url))).toString()) as {events:unknown[]};
+const events=raw.events.map(checkEvent),source=events[0];if(source===undefined)throw Error("missing fixture");
+const event=(body:Record<string,unknown>)=>checkEvent({v:1,run:source.run,t:source.t,turn:1030,seq:50000,...body});
+const run=recordedRun([event({type:"run_start",...RUN_START_META,seq:0,turn:0}),...events,event({type:"turn_start",context:{messages:1,images:0,est_tokens:1}})]);
+const features={...featuresOf([]),"instruction-goal-ledger-v1":true,"instruction-goal-advisory-v1":true};
+const ports:ProbePorts={thinkingSignature:"reasoning_content",frame:()=>"",rerender:()=>Promise.reject(new Error("no native renderer expected"))};
+const call=(name:string,args:Record<string,unknown>={})=>assistant({thinking:"Consider the request before acting",toolCalls:[{type:"toolCall",id:"admin-1",name,arguments:args}]});
+it("executes real ledger bookkeeping then supplies its return and refreshed ledger without game input",async()=>{
+ const s=await decisionSession(run,1030,features,ports);
+ const plain=await decisionContext(run,1030,features,ports);
+ expect(s.context.tools).toEqual(plain.tools);expect(s.context.systemPrompt).toBe(plain.systemPrompt);
+ const next=await s.bookkeeping(call("review_goals",{reviewed:[{episode:39462,interpretation:"Scientist asks for menu selection"}],updates:[{id:"select",title:"Select POKéNAV",sources:[{episode:39462,page:0}],parent:null,status:"active",reason:"Scientist request",completion:"Menu opens"}]}));
+ expect(JSON.stringify(next.messages)).toContain('Select POKéNAV');
+ expect(next.messages.some(m=>m.role==="assistant"&&m.content.some(p=>p.type==="thinking"&&p.thinking.includes("Consider the request")))).toBe(true);
+ expect(next.messages.some(m=>m.role==="toolResult"&&m.toolName==="review_goals"&&!m.isError)).toBe(true);
+ const last=next.messages.at(-1);expect(JSON.stringify(last)).toContain('active');
+});
+it("keeps invalid reviews as failed tool results and never executes gameplay or missing-arm tools",async()=>{
+ const s=await decisionSession(run,1030,features,ports);
+ const invalid=await s.bookkeeping(call("review_goals",{reviewed:[],updates:[{id:"bad"}]}));
+ expect(invalid.messages.some(m=>m.role==="toolResult"&&m.isError)).toBe(true);
+ await expect(s.bookkeeping(call("press",{buttons:["A"]}))).rejects.toThrow("no game execution");
+ await expect(s.bookkeeping(assistant({text:"No call"}))).rejects.toThrow("only instruction-ledger");
+ const off=await decisionSession(run,1030,featuresOf([]),ports);
+ await expect(off.bookkeeping(call("review_goals",{reviewed:[],updates:[]}))).rejects.toThrow("not available");
+ const recorded=await decisionSession(run,1030,featuresOf([]),ports,"recorded");
+ await expect(recorded.bookkeeping(call("get_instruction_goals"))).rejects.toThrow("Recorded-only");
+});
+it("returns exact archive quotes through the production retrieve tool",async()=>{
+ const s=await decisionSession(run,1030,features,ports);
+ const next=await s.bookkeeping(call("get_instruction_goals",{episode:39462}));
+ expect(next.messages.some(m=>m.role==="toolResult"&&m.content.some(p=>p.type==="text"&&p.text.includes("Please select the POKéNAV.")))).toBe(true);
+});

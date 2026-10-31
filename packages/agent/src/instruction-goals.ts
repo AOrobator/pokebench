@@ -5,8 +5,8 @@ import {GoalReviewSchema,type InstructionGoal} from "./instruction-goal-schema.j
 
 type Dialogue=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 interface Episode {id:number;turn:number;pages:Dialogue["pages"];latest_result:number;reviewed_result:number;interpretation:string|null;repeated_of:number|null}
-interface GoalRecord extends InstructionGoal {updated_result:number;verification:"model_interpretation"|"model_reported"|"native_verified";native_reason?:string}
-export interface NativeGoalTask {readonly requires:readonly string[]}
+interface GoalRecord extends InstructionGoal {owner?:"harness";native_phase?:"pending"|"recovered"|"reported_back";updated_result:number;verification:"model_interpretation"|"model_reported"|"native_verified";native_reason?:string}
+export interface NativeGoalTask {readonly requires:readonly string[];readonly canonical?:{readonly id:string;readonly title:string;readonly reported_requires:readonly string[]}}
 export interface InstructionNativeProof {
  observe:(state:Extract<RunEvent,{type:"state";started:boolean}>)=>void;
  tasks:(pages:readonly Dialogue["pages"][number][])=>ReadonlyMap<Dialogue["pages"][number],NativeGoalTask>;
@@ -18,7 +18,7 @@ export const GOAL_LIMITS={headerGoals:12,headerEpisodes:4,maxUnfinished:128} as 
 export class GoalReviewError extends Error {}
 
 export class InstructionGoals {
- constructor(private readonly native?:InstructionNativeProof,private readonly limits:Readonly<{headerGoals:number;headerEpisodes:number;maxUnfinished:number}>=GOAL_LIMITS,private readonly options:Readonly<{advisory?:boolean;repairFeedback?:boolean}>={}){}
+ constructor(private readonly native?:InstructionNativeProof,private readonly limits:Readonly<{headerGoals:number;headerEpisodes:number;maxUnfinished:number}>=GOAL_LIMITS,private readonly options:Readonly<{advisory?:boolean;repairFeedback?:boolean;nativeInstructions?:boolean}>={}){}
  private reject(original:string,detail:string):never {throw new GoalReviewError(this.options.repairFeedback?detail:original);}
  private recentEpisodes():string {return JSON.stringify([...this.episodes.keys()].slice(-16));}
  private readonly states=new Map<number,Extract<RunEvent,{type:"state";started:boolean}>>();
@@ -54,6 +54,14 @@ export class InstructionGoals {
   this.episodes.set(id,episode);this.episodeKeys.set(key,id);
   this.nativeSources.set(id,this.native?.tasks(pages)??new Map());
   this.current=episode;
+  if(this.options.nativeInstructions&&event.state_seq!==undefined&&this.deliveredState!==undefined){
+   for(const [page,task] of this.nativeSources.get(id)??[]){
+    const definition=task.canonical;if(definition===undefined||this.goals.has(definition.id)||page.state_seq===null||page.state_seq>event.state_seq||!event.text.includes(page.text))continue;
+    this.goals.set(definition.id,{id:definition.id,title:definition.title,sources:[{episode:id,page:pages.indexOf(page)}],parent:null,status:"open",reason:"Verified game request delivered; issuer is historical, not proof of current presence.",completion:"Native game evidence confirms Goods recovery.",native_source_completion:true,updated_result:id,verification:"model_interpretation",owner:"harness",native_phase:"pending"});
+    this.nativeGoals.set(definition.id,[task]);
+   }
+   this.completeNative(id);
+  }
  }
  pending():number[]{return [...this.episodes.values()].filter(e=>e.reviewed_result<e.latest_result).map(e=>e.id);}
  apply(input:unknown,callId?:string,beforeCommit?:()=>void):void {
@@ -70,6 +78,7 @@ export class InstructionGoals {
    reviewed.add(r.episode);
   }
   for(const g of input.updates){
+   if(this.options.nativeInstructions&&g.id.startsWith("native_"))throw new GoalReviewError("Harness-owned canonical task IDs cannot be changed by model reviews; create a supporting plan instead");
    if(updated.has(g.id))throw new GoalReviewError("Only one update per goal per review");updated.add(g.id);
    for(const [index,s] of g.sources.entries()){
     const e=this.episodes.get(s.episode);
@@ -102,7 +111,17 @@ export class InstructionGoals {
   const native=this.native;
   if(native===undefined||this.deliveredState===undefined)return;
   for(const [id,tasks] of this.nativeGoals){
-   const goal=this.goals.get(id);if(goal===undefined||goal.verification==="native_verified"||["superseded","abandoned"].includes(goal.status)||tasks.length===0)continue;
+   const goal=this.goals.get(id);
+   if(goal?.owner==="harness"){
+    const task=tasks[0],definition=task?.canonical;
+    if(task!==undefined&&definition!==undefined){
+     const recovery=native.completed(task,this.deliveredState),reported=native.completed({requires:definition.reported_requires},this.deliveredState);
+     const phase=reported!==null?"reported_back":recovery!==null?"recovered":null;
+     if(phase!==null&&goal.native_phase!=="reported_back"&&(goal.native_phase==="pending"||phase==="reported_back"))this.goals.set(id,{...goal,status:"reported_complete",verification:"native_verified",native_phase:phase,native_reason:reported??recovery??"Native completion",evidence:[resultSeq],updated_result:resultSeq});
+    }
+    continue;
+   }
+   if(goal===undefined||goal.verification==="native_verified"||["superseded","abandoned"].includes(goal.status)||tasks.length===0)continue;
    const reasons=tasks.map(task=>native.completed(task,this.deliveredState));
    if(reasons.every((reason):reason is string=>reason!==null))this.goals.set(id,{...goal,status:"reported_complete",verification:"native_verified",native_reason:[...new Set(reasons)].join("; "),evidence:[resultSeq],updated_result:resultSeq});
   }
@@ -117,15 +136,16 @@ export class InstructionGoals {
  evidence():number[]{return [...new Set([...this.episodes.values()].map(e=>e.latest_result).concat([...this.goals.values()].flatMap(g=>g.evidence??[])))].slice(-64);}
  text():string {
   const pending=this.pending(),goals=[...this.goals.values()],unfinished=goals.filter(g=>!terminal(g));
-  const ordered=[...unfinished.filter(g=>g.status==="active"),...unfinished.filter(g=>g.status!=="active")];
+  const ordered=[...unfinished.filter(g=>g.owner==="harness"),...unfinished.filter(g=>g.owner!=="harness"&&g.status==="active"),...unfinished.filter(g=>g.owner!=="harness"&&g.status!=="active")];
   const shown=pending.slice(-this.limits.headerEpisodes).flatMap(id=>{const episode=this.episodes.get(id);return episode===undefined?[]:[episode];});
-  return ["INSTRUCTION GOALS — exact game dialogue and your own interpretations. No route or goal is assigned by the harness. Current observations override historical state.",
+  return [this.options.nativeInstructions?"INSTRUCTION GOALS — harness-owned tasks quote verified delivered game requests; model-authored goals are your interpretations. Current observations override historical state. The harness selects no route or action.":"INSTRUCTION GOALS — exact game dialogue and your own interpretations. No route or goal is assigned by the harness. Current observations override historical state.",
    `Latest delivered observation result: ${this.results.size===0?"none":String(this.latestResult)}; native state: ${this.deliveredState===undefined?"unavailable":String(this.deliveredState.seq)}. Cite delivered result IDs for observation evidence.`,
    `Current observed interface: ${this.deliveredState===undefined?"unavailable":JSON.stringify({screen:this.deliveredState.screen,phase:this.deliveredState.active_ui?.phase??null,selected:this.deliveredState.active_ui?.selected??null,ready:this.deliveredState.active_ui?.ready??null})}`,
    `Last delivered field dialogue (historical; not proof the interaction is still active): ${this.current===null?"none recorded":JSON.stringify(this.current)}`,
    `Dialogue awaiting your interpretation (${String(pending.length)}): ${JSON.stringify(pending.slice(-16))} (up to 16 recent IDs shown; archive lists the rest). ${this.options.advisory?"Reviews are optional bookkeeping and never a prerequisite for gameplay; you may explain that an episode is not a request.":"Account for each new episode with goal_review or review_goals before a game-changing action; you may explain that it is not a request."}`,
    `Recent pending episodes (${String(shown.length)} shown; get_instruction_goals retrieves any episode): ${JSON.stringify(shown)}`,
    `Unfinished goals (${String(unfinished.length)} total, ${String(Math.min(ordered.length,this.limits.headerGoals))} shown): ${JSON.stringify(ordered.slice(0,this.limits.headerGoals))}`,
+   ...(this.options.nativeInstructions?[`Harness-owned task state (preserved independently of conversation; only native game evidence changes completion): ${JSON.stringify(goals.filter(g=>g.owner==="harness"))}`]:[]),
    `Recently closed goals (model claims unless native proof is explicitly labelled): ${JSON.stringify(goals.filter(terminal).slice(-4))}`,
    "Review a changed plan explicitly: defer, block, abandon or supersede existing goals with a reason. Age, arrival and a different active goal do not prove completion. Reported completion is your interpretation, not native game verification. get_instruction_goals lists every goal and retrieves whole quotes.",
   ].join("\n");

@@ -10,6 +10,7 @@ export function instructionGoalsSection(features:FeatureSet):string {
  let text=INSTRUCTION_GOALS_SECTION;
  if(features["instruction-goal-advisory-v1"])text=text.replace("Account for new dialogue before changing the game; interpretation can say it is not a request.","Reviews are optional bookkeeping and never a prerequisite for gameplay; interpretation can say it is not a request.");
  if(features["goal-review-repair-feedback-v1"])text+="\n\nGoal review repair feedback identifies invalid fields and delivered reference IDs. A valid reference establishes delivery, not the truth of a goal or its completion.";
+ if(features["native-instruction-tasks-v1"])text=text.replace("The harness never assigns a goal or chooses an action.","The harness registers supported, verified delivered game requests as harness-owned tasks. These native_ IDs and source tasks cannot be edited by your reviews. You choose supporting plans and gameplay actions; a plan may defer action for healing without erasing the request. Only native evidence closes the source task; recovery and reporting back are distinct facts.");
  return text;
 }
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
@@ -18,7 +19,7 @@ export interface GoalTools {advisory:boolean;ledger:InstructionGoals;tools:Agent
 export function instructionGoalTools(features:FeatureSet,recorder:Recorder,base:Transform,native?:InstructionNativeProof):GoalTools|null {
  if(!features[INSTRUCTION_GOALS_ID])return null;
  const advisory=features["instruction-goal-advisory-v1"];
- const ledger=new InstructionGoals(native,undefined,{advisory,repairFeedback:features["goal-review-repair-feedback-v1"]});recorder.subscribe(e=>{ledger.observe(e);},false,false,true);
+ const ledger=new InstructionGoals(native,undefined,{advisory,nativeInstructions:features["native-instruction-tasks-v1"],repairFeedback:features["goal-review-repair-feedback-v1"]});recorder.subscribe(e=>{ledger.observe(e);},false,false,true);
  const record=(id:string,review:unknown):void=>{
   ledger.apply(review,id,()=>{
    recorder.recordLedgerContext({text:`Instruction goal review committed (model interpretation): ${JSON.stringify(review)}`,evidence:ledger.evidence(),instruction_goals:{call_id:id,review:GoalReviewSchemaParse(review)}});
@@ -28,7 +29,8 @@ export function instructionGoalTools(features:FeatureSet,recorder:Recorder,base:
  const archive:AgentTool<typeof GoalArchiveArgs>={name:"get_instruction_goals",label:"Retrieve instruction goals",description:"Retrieve full delivered dialogue or a goal record; without arguments list episode and goal IDs in pages of 50 (offset, limit up to 100).",parameters:GoalArchiveArgs,execute:(_id,args)=>Promise.resolve().then(()=>({content:[{type:"text",text:ledger.archive(args.episode,args.goal,args.offset,args.limit)}],details:undefined}))};
  return {advisory,ledger,tools:[review,archive],record,transform:async messages=>{
   const text=ledger.text();recorder.recordLedgerContext({text,evidence:ledger.evidence()});
-  return base([...messages,{role:"user",content:text,timestamp:Date.now()}]);
+  const history=features["native-instruction-tasks-v1"]?messages.map(m=>m.role==="toolResult"?{...m,content:neutral({content:m.content,details:undefined}).content}:m):messages;
+  return base([...history,{role:"user",content:text,timestamp:Date.now()}]);
  }};
 }
 // Validation and inference use one schema; no unchecked model JSON crosses the boundary.

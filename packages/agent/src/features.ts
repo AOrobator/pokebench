@@ -326,6 +326,7 @@ export const SWITCHABLE_FEATURES = [
   "checkpoint-research-note-v1",
   "rusturf-entry-followup-v1",
   "authored-scene-labels-v1",
+  "native-instruction-tasks-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -770,6 +771,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("checkpoint-research-note-v1", "guidance", "CHECKPOINT RESEARCH NOTE", "save-state-task-truth-v1", "Default off. Appends one explicitly supplied, hash-validated frozen research note to the initial user message of an ordinary save-state run. The descriptor and exact initial-task hash are recorded before the first model input. It adds no game facts, tools or automatic actions and does not change the native stopping target. Boot, missing/invalid descriptors and incompatible continuation modes are rejected. Off: no research descriptor is read and the previous initial message is byte-identical."),
   on("rusturf-entry-followup-v1", "guidance", "RUSTURF ENTRY FOLLOW-UP", "ram-state-v1", "Default off; enabled in future bundle runs by operator request. After the first coherent delivered Rusturf Tunnel field observation with native grunt-defeat and Goods-recovery evidence both known false, appends one current-location local-inquiry and action-binding reminder. Defers menus, battles, dialogue and unknown state; carries pending feedback through failed replies and never repeats after a successful exposed response or native completion. Uses current coordinates and no prior-run dialogue, actor ID or route facts. Off: no subscriber or added model context; previous behavior is unchanged."),
   on("authored-scene-labels-v1", "observation", "AUTHORED SCENE LABELS", "dialogue-auto-advance-v1", "Experimental and default OFF. Labels the verified Rustboro stolen-Goods chase and later Devon employee request with authored speaker roles from matching native script/message evidence. Keeps original dialogue and raw attribution; carries labels through delivered dialogue and enabled historical instruction memory. Labels establish historical speakers, not current presence or an active task. Off: previous dialogue display and memory attribution unchanged."),
+  on("native-instruction-tasks-v1", "guidance", "NATIVE INSTRUCTION TASKS", null, "Experimental and default OFF. Automatically registers the successfully delivered, native-script-qualified Rustboro employee Goods request in the existing instruction ledger. Preserves the request through travel and context reset; native Goods recovery and reporting back are distinct. The model chooses supporting plans and actions but cannot overwrite this source task. With the ledger enabled, requires advisory mode and authored scene evidence; inactive when the ledger is OFF. Off: existing model-maintained instruction goals and all prior behavior are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -795,6 +797,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
   }),
   ...(features["screenshot-button-baseline-v1"] && !screenshotButtonBaseline(features) ? ["screenshot-button-baseline-v1 requires every other behavior switch OFF"] : []),
+  ...(["instruction-goal-advisory-v1","authored-scene-labels-v1"] as const).flatMap(id=>features["native-instruction-tasks-v1"]&&features["instruction-goal-ledger-v1"]&&!features[id]?[`native-instruction-tasks-v1 needs ${id}`]:[]),
   ...(features["instruction-goal-ledger-v1"]&&features["objective-tracking-v1"]?["instruction-goal-ledger-v1 requires objective-tracking-v1 OFF (one goal authority)"]:[]),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
   ...(features["town-center-checkpoint-v1"] && !features["exit-reachability-v1"] ? ["town-center-checkpoint-v1 needs exit-reachability-v1"] : []),
@@ -1185,6 +1188,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("checkpoint-research-note-v1"),
     ...when("rusturf-entry-followup-v1"),
     ...when("authored-scene-labels-v1"),
+    ...when("native-instruction-tasks-v1"),
   ];
 }
 
@@ -1195,5 +1199,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["eight-badge-mission-v1","discovered-gym-checklist-v1","pokenav-call-auto-advance-v1","cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1","checkpoint-research-note-v1","rusturf-entry-followup-v1","authored-scene-labels-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["native-instruction-tasks-v1","eight-badge-mission-v1","discovered-gym-checklist-v1","pokenav-call-auto-advance-v1","cutscene-journal-v1","native-task-goal-retirement-v1","instruction-goal-ledger-v1","menu-option-tool-v1","refusal-ledger-v1","trainer-observed-party-v1","move-learn-goal-reminder-v1","delivered-place-evidence-v1","explorer-family-guidance-v1","coherent-healing-feedback-v1","menu-item-guidance-v1","factual-healing-guidance-v1","milestone-instruction-memory-v1","gym-evidence-v1","observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1","checkpoint-research-note-v1","rusturf-entry-followup-v1","authored-scene-labels-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

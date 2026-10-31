@@ -96,7 +96,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const breaker=fixedPointBreaker(features,memoryRecorder,cutOffNotice);
  const note=features["fixed-point-breaker-v1"];
  const history=trainingContext(features,memoryRecorder,moveLearnGoalReminder(features,memoryRecorder,breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;}),tools);
- const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion());
+ const instructionGoals=instructionGoalTools(features,memoryRecorder,history.transform,new TaskGoalCompletion(features["native-instruction-tasks-v1"]));
  if(instructionGoals!==null)tools.push(...instructionGoals.tools);
  const campaign=discoveredGymChecklist(features,memoryRecorder,instructionGoals?.transform??history.transform);
  // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.

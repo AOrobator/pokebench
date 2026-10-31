@@ -381,6 +381,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "rom-identity-v1":"rom-identity-v1.html",
  "checkpoint-research-note-v1":"checkpoint-research-note-v1.html",
  "rusturf-entry-followup-v1":"rusturf-entry-followup-v1.html",
+ "native-instruction-tasks-v1":"native-instruction-tasks-v1.html",
  "authored-scene-labels-v1":"authored-scene-labels-v1.html",
  "eight-badge-mission-v1":"eight-badge-mission-v1.html",
  "discovered-gym-checklist-v1":"discovered-gym-checklist-v1.html",

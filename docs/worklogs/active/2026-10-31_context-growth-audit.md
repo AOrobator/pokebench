@@ -11,3 +11,5 @@ Scope: move only those two IDs from current recipe switches to onInBoth, set bas
 - [ ] Report read-only source inventory plus historical measured payloads and ranked proposals
 
 RED: fixed-definition.test.ts 20 PASS / 1 FAIL because compact-map-grid-v1 is absent from onInBoth. The added test checks resolved flags and materialized preset features for both arms of all four maintained current recipes.
+
+GREEN: only current.json switches/onInBoth/base bits changed. Fixed-definition + registry: 22 PASS. Full-gate CPU START requested through Claude relay; pending grant. Historical recipes remain frozen. No runtime restart or run launch.

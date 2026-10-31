@@ -29,8 +29,8 @@ Typed evidence/source refs and replay identity validated; canonical task ownersh
 ## Milestones
 ### M1 — Source readiness
 - [x] RED tests for source/page/delivery gating, idempotence, canonical ownership, completion phases, replay/restore and final request delivery.
-- [ ] GREEN bounded default-OFF mode in existing ledger; registered switch and tracked explainer/card, production caller tests and mutation/restore proof.
-- [ ] Cheap affected checks then coordinated full gates, >=90percent each metric, independent review with bounded fixes.
+- [x] GREEN bounded default-OFF mode in existing ledger; registered switch and tracked explainer/card, production caller tests and mutation/restore proof.
+- [x] Cheap affected checks then coordinated full gates, >=90percent each metric, independent review with bounded fixes.
 ### M2 — Landing
 - [ ] Board FF landing, required combined main test and authorized single viewer refresh; live card/explainer proof. No global ON.
 ### M3 — Decision probes
@@ -55,7 +55,7 @@ Full test first pass: lint/build GREEN, agent5247pass/2presetfail. Existing ALL_
 Source audit corrected3prior grades: talkingagain toemployee9 reveals new tunnel hint. Originalgrades retained; use v2source-corrected scoring for futuredesign. Do not repeat a source-unverified continuation assumption.
 
 ## Multi-Model Review Log
-Pending implementation/source gates; do not reuse prior feature review as approval of new code.
+Source GREEN COMMIT: `feat(agent): retain native delivered Devon request in instruction ledger` (05db0ada54a781eabdaaa643e0f785ad1cc588c9). Frozenbase42ea0b5b9/head05db0ada5/diffSHAdee97f899eef15ef89683a8b36e0823757cf4e016253bb304b4e5b33bcdf32a4. ClaudeCLI exit0/one success/empty stderr terminalLGTM; fresh normalGPT LGTM21tests; distinct Astra fallbackLGTM21tests; distinctSol fallbackLGTM. Discovered Grok4.7high Cursor actualexit1usageexhausted, notapproval. Standing human blanketoutagewaiver independently reverified native transcript redacted-id records4964/6309, no redundantpermission; reducedvendordiversitydisclosed. No blockers/sourcefixes. Followups: reuse after unavailable admin tool could leave an unmatched call if caller retries; caller trialcaps must be frozen/rehearsed before M3. Synthesis ignored implementation/review/synthesis.md. No new feature domains.
 
 ## Boy Scout Log
 No adjacent cleanup planned.

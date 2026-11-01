@@ -114,3 +114,19 @@ it("shows normal clocks for a complete snapshot with a timestamp warning and kee
  now+=2000;app.tick(2000);expect(text("clock")).toContain("0:00:06");expect(text("run-head")).not.toContain("unavailable");
  expect(f.snapshot.warning).toBe(warning);expect(app.view.milestones).toEqual([]);
 });
+
+it("keeps thinking elapsed seconds on the emerald box while a current snapshot is live",async()=>{
+ dom();
+ const f=currentFixture({extra:[{type:"turn_start",turn:2,context:{messages:2,images:0,est_tokens:300}},{type:"assistant_delta",turn:2,thinking:"Planning the next step.",text:""}]});
+ expect(f.snapshot.phase).toMatchObject({kind:"thinking"});
+ expect(f.snapshot.run.turn).toBe(2);
+ let now=BASE_MS+4000;
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):url.includes("/history")?Promise.resolve({kind:"history",version:1,epoch:"epoch",generation:f.snapshot.generation,state:"ready",events:f.log.events,before:null} satisfies CurrentAnswer):new Promise(()=>{})),sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>now,hash:`#run=${RUN}`});
+ apps.push(app);
+ for(let n=0;n<8;n++)await Promise.resolve();
+ const head=()=>document.querySelector('[data-ui="think-head"]')?.textContent;
+ expect(head()).toBe("AGENT is thinking… 4.0s");
+ now+=1500;app.tick(1500);
+ expect(head()).toBe("AGENT is thinking… 5.5s");
+ expect(document.querySelector('[data-ui="think-body"]')?.textContent).toContain("Planning the next step.");
+});

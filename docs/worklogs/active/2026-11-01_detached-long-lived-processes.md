@@ -1,8 +1,8 @@
 # Detached long-lived processes (runs / viewer / proxy)
 
 **Started:** 2026-11-01
-**Status:** Landing (reviews waived)
-**Branch:** `cursor/detached-long-lived-processes`
+**Status:** Done
+**Branch:** `cursor/detached-long-lived-processes` (merged `a8c3838af`)
 
 ## Problem Statement
 
@@ -37,7 +37,7 @@ Documentation/skills only. No runtime, ROM, network, or secret changes.
 - [x] Update `CLAUDE.md` / `AGENTS.md`; symlink `.agents/skills/` discovery
 - [x] `git diff --check` clean on candidate
 - [x] Cloud review waived by operator 2026-11-01 (“reviews are waived, land ur changes”); Claude CLI lane had already returned `VERDICT: LGTM` on frozen packet `905c465760b4f7fecb0096afbf30364177bb953f00abc5dbe243138c493afc97` before Grok/GPT harness outages
-- [ ] Land FF to main; prose checks on main; `just land-done`
+- [x] Land FF to main at `a8c3838af`; prose path checks on main; `just land-done`
 
 ## Multi-Model Review Log
 

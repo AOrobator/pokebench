@@ -30,9 +30,9 @@ No new attack surface; recipe/config and copy only.
 - [x] RED: pins expect onInBoth / both arms true
 - [x] GREEN: current.json + registry/explainer/README copy
 - [x] Cheap checks: focused viewer + agent tests (24 PASS)
-- [ ] Full gates: just lint / build / test / verify-vendor
-- [ ] Multi-model review LGTM ×3
-- [ ] Land FF to main; post-merge just test; viewer-main; land-done
+- [x] Full gates: just lint / build / test / verify-vendor
+- [x] Multi-model review: Claude LGTM; Grok+GPT waived by operator for land
+- [x] Land FF to main; post-merge just test; viewer-main; land-done
 
 ## Closing the Loop
 
@@ -85,3 +85,11 @@ Landing blocked until Grok + GPT cloud lanes return LGTM or operator waives.
 ## Upstream impact (landing)
 
 main advanced to 483fd5e45 (moving-npc burst). Merge conflict only in `experiments/feature-configs/current.json` switches list: kept our removal of viz-v2 + gym checklist from switches (they stay onInBoth) and kept main's `moving-npc-frame-burst-v1` switch. Feature intent unchanged. Operator waived Grok/GPT lanes and ordered land 2026-11-01.
+
+## Landing evidence
+
+- FF merge onto main: `98fc1cec7`
+- Operator waived Grok/GPT lanes and ordered land (2026-11-01 08:28 ET)
+- Claude LGTM retained on frozen feature packet; integration merge only added moving-npc switch coexistence
+- Post-merge `just test`: PASS (`POSTMERGE_EXIT:0`)
+- `just viewer-main`: see runs/reviews/viz-gym-both-arms/viewer-main.log

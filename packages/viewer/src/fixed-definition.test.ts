@@ -111,6 +111,17 @@ it("enables both gym campaign treatments in bundle only for every maintained rec
  }
 });
 
+it("enables moving-NPC frame burst in bundle only and keeps moving-NPC target onInBoth",()=>{
+ const burst="moving-npc-frame-burst-v1",target="moving-npc-target-v1";
+ for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
+  const d=readFixedDefinition(root,name).definition;
+  expect(d.switches).toContain(burst);expect(d.onInBoth).not.toContain(burst);
+  expect(armFeatureBits(d,"bundle")[burst]).toBe(true);expect(armFeatureBits(d,"control")[burst]).toBe(false);
+  expect(d.onInBoth).toContain(target);expect(d.switches).not.toContain(target);
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(d,arm)[target]).toBe(true);
+ }
+});
+
 it("validates immutable current-recipe ancestry without changing effective preset fields",()=>{
  const {full,recipe}=sources(),dir=mkdtempSync(join(tmpdir(),"frozen-current-")),text=JSON.stringify(recipe),digest=createHash("sha256").update(text).digest("hex"),archive=`experiments/feature-configs/archive/current-${digest.slice(0,12)}.json`;
  try{

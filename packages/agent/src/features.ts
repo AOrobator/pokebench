@@ -327,6 +327,7 @@ export const SWITCHABLE_FEATURES = [
   "rusturf-entry-followup-v1",
   "authored-scene-labels-v1",
   "native-instruction-tasks-v1",
+  "moving-npc-frame-burst-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -772,6 +773,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rusturf-entry-followup-v1", "guidance", "RUSTURF ENTRY FOLLOW-UP", "ram-state-v1", "Default off; enabled in future bundle runs by operator request. After the first coherent delivered Rusturf Tunnel field observation with native grunt-defeat and Goods-recovery evidence both known false, appends one current-location local-inquiry and action-binding reminder. Defers menus, battles, dialogue and unknown state; carries pending feedback through failed replies and never repeats after a successful exposed response or native completion. Uses current coordinates and no prior-run dialogue, actor ID or route facts. Off: no subscriber or added model context; previous behavior is unchanged."),
   on("authored-scene-labels-v1", "observation", "AUTHORED SCENE LABELS", "dialogue-auto-advance-v1", "Experimental and default OFF. Labels the verified Rustboro stolen-Goods chase and later Devon employee request with authored speaker roles from matching native script/message evidence. Keeps original dialogue and raw attribution; carries labels through delivered dialogue and enabled historical instruction memory. Labels establish historical speakers, not current presence or an active task. Off: previous dialogue display and memory attribution unchanged."),
   on("native-instruction-tasks-v1", "guidance", "NATIVE INSTRUCTION TASKS", null, "Experimental and default OFF. Automatically registers the successfully delivered, native-script-qualified Rustboro employee Goods request in the existing instruction ledger. Preserves the request through travel and context reset; native Goods recovery and reporting back are distinct. The model chooses supporting plans and actions but cannot overwrite this source task. With the ledger enabled, requires advisory mode and authored scene evidence; inactive when the ledger is OFF. Off: existing model-maintained instruction goals and all prior behavior are unchanged."),
+  on("moving-npc-frame-burst-v1", "observation", "MOVING NPC FRAME BURST", null, "Default off; bundle treatment. While navigate_to_target follows a loaded moving NPC (moving-npc-target-v1), captures up to six chronological screenshots across the follow (start, after movement steps, and the final state) and delivers them with that tool result so the model can see patrol motion such as walking a square around furniture. Does not press extra buttons or invent character names from sprites. Off: one screenshot per tool result as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1189,6 +1191,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rusturf-entry-followup-v1"),
     ...when("authored-scene-labels-v1"),
     ...when("native-instruction-tasks-v1"),
+    ...when("moving-npc-frame-burst-v1"),
   ];
 }
 

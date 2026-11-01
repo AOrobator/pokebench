@@ -12,7 +12,7 @@ import {Type} from "typebox";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import type {Button} from "./events.js";
-import {featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
@@ -31,7 +31,7 @@ const field=()=>place({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],p
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
 function fixture(on=true,after?:(state:GameStateSnapshot,buttons:readonly Button[],count:number)=>GameStateSnapshot,before?:(state:GameStateSnapshot,button:Button|undefined)=>GameStateSnapshot,overrides:Partial<FeatureSet>={},sightReply?:TrainerSightReply){
  let current=field();const sent:Button[][]=[],sightRecords:TrainerSightCheck[]=[];
- const observe:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current))};
+ const observe:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"image" as const,data:`frame-${String(Date.now())}`,mimeType:"image/png"},{type:"text" as const,text:"state"}],details:{state:current}})};
  const checked={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id:string,args:{buttons:Button[]})=>checked.executeChecked(id,args,()=>undefined),executeChecked:(_id:string,args:{buttons:Button[]},check:(state:GameStateSnapshot)=>void)=>{
   current=before?.(current,args.buttons[0])??current;check(current);sent.push(args.buttons);
   const button=args.buttons[0];if(button==="A")current={...current,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:"Hello"}};
@@ -44,10 +44,24 @@ function fixture(on=true,after?:(state:GameStateSnapshot,buttons:readonly Button
  const tool=tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing tool");
  return {sent,tool,sightRecords,state:()=>current,set:(state:GameStateSnapshot)=>{current=state;}};
 }
+const BURST="moving-npc-frame-burst-v1";
+const images=(out:AgentToolResult<unknown>)=>out.content.filter(part=>part.type==="image");
 it("defaults OFF and records only explicitly enabled moving target support",()=>{
  const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
  const {[ID]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[ID]).toBe(false);
  expect(flags[ID]).toBe(false);expect(featureInfo(ID).description).toContain("Off:");expect(playHarnessFeatures({...flags,[ID]:true},null)).toContain(ID);
+});
+it("defaults frame burst OFF, pins registry append index, and keeps it bundle-only in the current recipe",()=>{
+ const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
+ const {[BURST]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[BURST]).toBe(false);
+ expect(flags[BURST]).toBe(false);expect(featureInfo(BURST).description).toContain("Off:");expect(featureInfo(BURST).needs).toBeNull();
+ expect(featureInfo(BURST).group).toBe("observation");
+ expect(SWITCHABLE_FEATURES.indexOf(BURST)).toBe(318);
+ expect(playHarnessFeatures({...flags,[BURST]:true},null).at(-1)).toBe(BURST);
+ const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[];offInBoth:string[]};
+ expect(recipe.features[BURST]).toBe(false);expect(recipe.switches.filter(id=>id===BURST)).toEqual([BURST]);
+ expect(recipe.onInBoth).not.toContain(BURST);expect(recipe.offInBoth).not.toContain(BURST);
+ expect(recipe.onInBoth).toContain(ID);
 });
 it("production path follows a moving NPC, faces its new tile and presses A once",async()=>{
  const f=fixture(true,(s,_b,n)=>n===1?place(s,[npc(4,2)]):s);
@@ -55,6 +69,16 @@ it("production path follows a moving NPC, faces its new tile and presses A once"
  expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true,status:"activation handed control back: dialogue or a field message opened"}});
  expect(f.state().position).toEqual({x:4,y:1});expect(f.state().facing).toBe("down");
+ expect(images(out)).toEqual([]);
+});
+it("ON frame burst delivers multiple chronological screenshots with the follow result; OFF keeps none from observe",async()=>{
+ const move=(s:GameStateSnapshot,_b:readonly Button[],n:number)=>n===1?place(s,[npc(4,2)]):s;
+ const off=await fixture(true,move).tool.execute("off-burst",request);
+ const on=await fixture(true,move,undefined,{[BURST]:true}).tool.execute("on-burst",request);
+ expect(images(off)).toEqual([]);
+ expect(images(on).length).toBeGreaterThanOrEqual(2);
+ expect(images(on).length).toBeLessThanOrEqual(6);
+ expect(on.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 it("OFF preserves the first-movement abort and never talks",async()=>{
  const f=fixture(false,(s,_b,n)=>n===1?place(s,[npc(4,2)]):s);

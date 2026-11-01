@@ -236,7 +236,22 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
  const followObject=async(id:string,request:SemanticRequest,initial:SnapshotTarget,before:GameStateSnapshot,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>{
   const selected=label(request.target),moved="moving target position changed before input";
   let last:AgentToolResult<unknown>={content:[],details:{state:before}};
-  const finish=(status:string,attempted=false)=>withStatus(last,status,selected,request.target,attempted);
+  type BurstImage={readonly type:"image";readonly data:string;readonly mimeType:string};
+  const burst:BurstImage[]=[];
+  const capture=async():Promise<void>=>{
+   if(!features["moving-npc-frame-burst-v1"]||observe===undefined||burst.length>=6)return;
+   const shot=await observe.execute(`${id}-npc-burst-${String(burst.length)}`,{},signal);
+   for(const part of shot.content){
+    if(part.type==="image"&&"data" in part&&typeof part.data==="string"){
+     burst.push({type:"image",data:part.data,mimeType:typeof part.mimeType==="string"?part.mimeType:"image/png"});
+     break;
+    }
+   }
+  };
+  const finish=(status:string,attempted=false)=>{
+   const base=withStatus(last,status,selected,request.target,attempted);
+   return burst.length===0?base:{...base,content:[...burst,...base.content]};
+  };
   const identity=(state:GameStateSnapshot):SnapshotTarget|null=>{
    const fresh=resolve(state,request.target,baseOptions);
    return fresh?.kind==="object"&&initial.kind==="object"&&fresh.local_id===initial.local_id&&initial.native_slot!==undefined&&fresh.native_slot===initial.native_slot&&fresh.elevation===initial.elevation&&fresh.activation===initial.activation?fresh:null;
@@ -249,6 +264,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(identity(actual)===null)return "selected moving object disappeared or changed identity";
    return null;
   };
+  await capture();
   for(let attempt=0;attempt<32;attempt++){
    signal?.throwIfAborted();
    const current=await stateSource.read(signal);last={...last,details:{...last.details as Record<string,unknown>,state:current}};
@@ -268,6 +284,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     const status=navigationStatus(last);
     if(navigationStopRequested(last)||status===SIGHT_STATUS)return finish(status??"semantic travel stop requested");
     if(status!=="arrived at requested coordinate"&&!navigationCanContinue(status))return finish(status??"route ended before the selected approach");
+    await capture();
     continue;
    }
    const facing=choice.facing;if(facing===null)return finish("no verified facing for the selected object");
@@ -287,13 +304,15 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     },signal);
    }catch(error){
     if(!(error instanceof SemanticPreconditionError))throw error;
-    if(error.message===moved)continue;
+    if(error.message===moved){await capture();continue;}
     const state=await stateSource.read(signal);last={content:[],details:{state}};return finish(error.message);
    }
    if(button==="A"){
+    await capture();
     const state=stateOf(last),reason=interrupted(state);
     return finish(reason!==null?`activation handed control back: ${reason}`:!isMap(state,request.map_id)?"activation changed maps; inspect the destination":"activation completed; inspect the resulting state",true);
    }
+   await capture();
   }
   const state=await stateSource.read(signal);last={...last,details:{...last.details as Record<string,unknown>,state}};
   if(!isMap(state,request.map_id))return finish("interrupted by a map transition");

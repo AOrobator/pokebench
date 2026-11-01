@@ -1,7 +1,7 @@
 # Moving-NPC wait fix + free-field frame burst
 
 **Started:** 2026-11-01
-**Status:** M1 GREEN in progress → M2 next; operator approved execute+land 2026-11-01
+**Status:** M2 GREEN ready → M3 gates/review/land; operator approved execute+land 2026-11-01
 **Branch:** `cursor/moving-npc-burst-and-wait`
 
 ## Problem Statement
@@ -68,17 +68,16 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 - [x] COMMIT: `test(agent): require moving-NPC wait and drift walking` (RED) `447dd316c`
 - [x] Implement: navigate checks identity only (not tile drift); prefer current tile when it remains a valid approach; update `MOVING_NPC_SENTENCE`
 - [x] Focused vitest `moving-npc-target.test.ts` 26/26 PASS
-- [ ] COMMIT: `fix(agent): walk through moving-NPC drift; stay on valid approach` (GREEN)
+- [x] COMMIT: `fix(agent): walk through moving-NPC drift; stay on valid approach` (GREEN) `f67afe190`
 - Note: pure “hold forever while NPC is off-adjacency” needs emu frame advance without input; deferred. Stay-when-still-valid-approach covers the adjacent re-face case; 0-move thrash is the cottage failure mode.
 - Source readiness only; no recipe change required (already onInBoth)
 
 **M2 — Register `moving-npc-frame-burst-v1`, OFF exact, ON burst, bundle switch**
-- [ ] RED: registry/preset/wiring/frame-count expectations
-- [ ] COMMIT: `test(agent): moving-npc frame burst switch` (RED)
-- [ ] Implement burst capture + production wiring + `current.json` `switches` entry + README note
-- [ ] Cheap checks; delete-guard once
+- [x] RED+GREEN combined: registry/preset/wiring/frame-count + implementation (same commit; RED-only commit skipped after M1 GREEN already on branch with operator execute+land)
+- [x] Implement burst capture in `followObject` + production wiring + `current.json` `switches` + explainer README
+- [x] Delete-guard once: force `capture` early-return → ON multi-image assertion failed (0 ≥ 2); restore → 28/28 PASS
+- [x] Explainer + `FEATURE_EXPLAINERS` map; `just pages-theme` / `pages-check` clean
 - [ ] COMMIT: `feat(agent): moving-npc free-field frame burst` (GREEN)
-- [ ] Explainer + `FEATURE_EXPLAINERS` map; `just pages-theme` / `pages-check`
 
 **M3 — Landing and activation**
 - [ ] Applicable full gates; freeze packet; multi-model review
@@ -95,7 +94,8 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 - 2026-11-01: Forensics on DeepSeek control4h Briney cottage; operator approved direction (own burst switch ON in bundle; update moving-npc and keep for bundle). Worklog drafted; waiting approval before branch/implementation.
 - Note: `moving-npc-target-v1` is already onInBoth in `current.json` (promoted 2026-10-27); "put in the bundle" = keep it there under the corrected ON semantics, not a demotion to switches-only.
-- 2026-11-01: Operator approved worklog and “execute … and land it”. Branch opened. M1 RED `447dd316c`; GREEN implementation ready (26/26 focused).
+- 2026-11-01: Operator approved worklog and “execute … and land it”. Branch opened. M1 RED `447dd316c`; GREEN `f67afe190` (26/26 then).
+- 2026-11-01: M2 burst switch registered (index 318), followObject observe burst ≤6, recipe `switches`, explainer themed; focused 28/28; delete-guard red then green.
 
 
 ## Surprises

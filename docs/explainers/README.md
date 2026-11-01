@@ -308,6 +308,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Quoted destination evidence](citation-evidence-v1.html) — separate copied game words from unverified rationale; default OFF, bundle only.
 
 - [Moving NPC target](moving-npc-target-v1.html): bounded live-position follow for a selected loaded object; default OFF, bundle ON.
+- [Moving NPC frame burst](moving-npc-frame-burst-v1.html): up to six chronological screenshots during a moving-NPC follow; default OFF, bundle ON.
 
 - [Caught nickname input V2](caught-nickname-prompt-v2.html): coherent live nickname selection in both maintained arms.
 - [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.

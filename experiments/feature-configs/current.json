@@ -79,7 +79,8 @@
   "eight-badge-mission-v1",
   "discovered-gym-checklist-v1",
   "player-map-visibility-v2",
-  "rusturf-entry-followup-v1"
+  "rusturf-entry-followup-v1",
+  "moving-npc-frame-burst-v1"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -478,6 +479,7 @@
   "player-map-visibility-v2": false,
   "rom-identity-v1": true,
   "rusturf-entry-followup-v1": false,
-  "authored-scene-labels-v1": false
+  "authored-scene-labels-v1": false,
+  "moving-npc-frame-burst-v1": false
  }
 }

@@ -850,11 +850,21 @@ it("historical archived protocol: enables the five move-learn switches only in t
  }
 });
 
-it("enables the mart stock readout only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+it("enables the mart stock readout in both arms of current-recipe definitions, and keeps it OFF in the next-run default",()=>{
  const id="mart-stock-readout-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  // the operator 2026-11-01: promote into control; historical non-current recipes kept their recorded settings.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
+  if(current){
+   expect(def.switches).not.toContain(id);
+   expect(def.onInBoth).toContain(id);
+   expect(def.base.features[id]).toBe(true);
+   expect([armFeatures(def,"control")[id],armFeatures(def,"bundle")[id]]).toEqual([true,true]);
+   expect([armFeatureBits(def,"control")[id],armFeatureBits(def,"bundle")[id]]).toEqual([true,true]);
+   continue;
+  }
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(def.base.features[id]).toBe(false);
@@ -865,11 +875,21 @@ it("enables the mart stock readout only in the bundle of the four current bundle
  }
 });
 
-it("enables the shop interface only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+it("enables the shop interface in both arms of current-recipe definitions, and keeps it OFF in the next-run default",()=>{
  const id="shop-interface-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
- for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  // the operator 2026-11-01: promote into control; historical non-current recipes kept their recorded settings.
+  const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
+  if(current){
+   expect(def.switches).not.toContain(id);
+   expect(def.onInBoth).toContain(id);
+   expect(def.base.features[id]).toBe(true);
+   expect([armFeatures(def,"control")[id],armFeatures(def,"bundle")[id]]).toEqual([true,true]);
+   expect([armFeatureBits(def,"control")[id],armFeatureBits(def,"bundle")[id]]).toEqual([true,true]);
+   continue;
+  }
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
   expect(def.base.features[id]).toBe(false);
@@ -971,10 +991,18 @@ it("adds progress-aware cycles only to the bundle in canonical and current whole
  }
 });
 
-it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s",file=>{
  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
+ // the operator 2026-11-01: shop-interface-v1 is onInBoth in the current recipe.
+ const current=file==="bundle-v-control"||file==="bundle-v-control-2h";
  for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1","birch-intro-pages-v1"] as const){
+  if(current&&id==="shop-interface-v1"){
+   expect(def.switches).not.toContain(id);expect(def.onInBoth).toContain(id);expect(def.base.features[id]).toBe(true);
+   expect(armPreset(def,phase.id,"control").features[id]).toBe(true);
+   expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
+   continue;
+  }
   expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
   expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
   expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);

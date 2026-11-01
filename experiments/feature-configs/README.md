@@ -18,6 +18,8 @@ Correctness promotion (the operator 2026-10-27, from the a702 POKéNAV Match Cal
 
 PokéNav call auto-advance (the operator 2026-11-01, "control should have that switch"): pokenav-call-auto-advance-v1 is onInBoth. Registered default remains OFF; earlier current recipes kept it bundle-only. Existing runs and frozen historical presets keep their recorded settings.
 
+Shop/mart readouts (the operator 2026-11-01, "promote both into control"): mart-stock-readout-v1 and shop-interface-v1 are onInBoth. Registered defaults remain OFF; earlier current recipes kept them bundle-only. shop-interface-v1 is a harness Interface-line correctness fix; mart-stock-readout-v1 adds prices and game item descriptions on the buy list. Existing runs and frozen historical presets keep their recorded settings.
+
 Control promotion (the operator 2026-10-27, from the type-gap-team-v1 decision probes: held-out first results after a ROXANNE loss in four untouched Qwen runs, plans to catch a type strong against ROCK 13/64 control vs 40/64 with the block): type-gap-team-v1 is onInBoth. supplies-v1 and untalked-in-gym-v1 stay bundle-only. The switch remains registered; archived and frozen definitions keep their recorded settings.
 
 Story readout promotion (the operator 2026-10-28, "Land, on in both arms", from the a702 Dewford analysis): self-named-speaker-v1, story-briefing-native-milestones-v1 and retire-reached-story-line-v1 are onInBoth. retire-reached-story-line-v1 counts extended campaign steps (the operator 2026-10-28, "Count extended steps too"). All three are registered default off; their dependencies (dialogue-auto-advance-v1, loop-guard-supervisor-v1, unfinished-activity-v1) are already on in both arms. Archived and frozen definitions keep their recorded settings.

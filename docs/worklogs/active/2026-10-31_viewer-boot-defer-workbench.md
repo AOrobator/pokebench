@@ -45,6 +45,8 @@ No new network surface; only delays an existing read-only loopback fetch. No ROM
 ## Session Log
 
 - 2026-10-31: operator flagged sus startup work; measured current ~0.4 MB vs workbench ~26 MB; authorized deferral.
+- 2026-10-31: source on `5ff236595`; focused suites 144 passed; eslint void-expression fix pending commit.
+- 2026-10-31: operator "go for it" → land + `just viewer-main` authorized (operator-directed land; board slot held).
 
 ## Surprises
 

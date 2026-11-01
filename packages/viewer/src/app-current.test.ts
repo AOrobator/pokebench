@@ -53,7 +53,7 @@ it("defers cold card workbench fetch until splits or incomplete reconstruction",
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();
  for(let i=0;i<6;i++)await Promise.resolve();
  expect(urls.some(url=>url.startsWith(`/api/cards?run=${encodeURIComponent(RUN)}`))).toBe(true);
- document.body.innerHTML="";apps.splice(0).forEach(a=>a.dispose());dom();
+ document.body.innerHTML="";for(const a of apps.splice(0))a.dispose();dom();
  const incomplete=currentFixture({complete:false,headerOnly:true}),late:string[]=[];
  const second=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{late.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...incomplete.summary.run,card:{name:"MAY",location:null,party:[]}}]});return defaults(url)??(url==="/api/current-runs"?Promise.resolve(incomplete.list):url.endsWith("/current")?Promise.resolve(incomplete.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(second);
  for(let i=0;i<8;i++)await Promise.resolve();

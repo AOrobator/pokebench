@@ -101,12 +101,15 @@ it("enables neutral YES/NO controls only in the current bundle",()=>{
  }
 });
 
-it("enables both gym campaign treatments in bundle only for every maintained recipe",()=>{
+it("keeps the eight-badge mission bundle-only while the discovered gym checklist is on in both arms",()=>{
  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
   const d=readFixedDefinition(root,name).definition;
-  for(const id of ["eight-badge-mission-v1","discovered-gym-checklist-v1"]){
-   expect(d.switches).toContain(id);expect(d.onInBoth).not.toContain(id);
-   expect(armFeatureBits(d,"bundle")[id]).toBe(true);expect(armFeatureBits(d,"control")[id]).toBe(false);
+  expect(d.switches).toContain("eight-badge-mission-v1");expect(d.onInBoth).not.toContain("eight-badge-mission-v1");
+  expect(armFeatureBits(d,"bundle")["eight-badge-mission-v1"]).toBe(true);expect(armFeatureBits(d,"control")["eight-badge-mission-v1"]).toBe(false);
+  expect(d.onInBoth).toContain("discovered-gym-checklist-v1");expect(d.switches).not.toContain("discovered-gym-checklist-v1");
+  for(const arm of ["control","bundle"] as const){
+   expect(armFeatureBits(d,arm)["discovered-gym-checklist-v1"]).toBe(true);
+   expect(armFeatures(d,arm)["discovered-gym-checklist-v1"]).toBe(true);
   }
  }
 });

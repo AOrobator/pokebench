@@ -13,20 +13,20 @@ it("freezes the authorized replacement as one 24-hour bundle trial on GPU0 with 
  expect(presetFeatures(parsePlayPreset(armPreset(def,"cook","bundle")))).not.toHaveProperty("player-map-visibility-v1");
 });
 
-it("enables V2 only in future bundle arms while global defaults stay off",()=>{
+it("enables V2 in both future arms while global defaults stay off",()=>{
  const id="player-map-visibility-v2";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url))).definition;
- expect(def.switches).toContain(id);
+ expect(def.onInBoth).toContain(id);
+ expect(def.switches).not.toContain(id);
  expect(def.offInBoth).not.toContain(id);
- expect(def.onInBoth).not.toContain(id);
- expect(def.base.features[id]).toBe(false);
+ expect(def.base.features[id]).toBe(true);
  expect(definitionProblems(def)).toEqual([]);
  const base=recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url));
  expect(controlBaseProblems(def,base)).toEqual([]);
  for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
   const features=presetFeatures(parsePlayPreset(armPreset(def,phase.id,arm)));
-  expect(features[id]).toBe(arm==="bundle");
+  expect(features[id]).toBe(true);
   expect(features).not.toHaveProperty("player-map-visibility-v1");
  }
 });

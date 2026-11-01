@@ -23,3 +23,5 @@ Operator asked to kick off a HyperQwen 24-hour bundle run against the live TP2 H
 ## Session log
 
 - 2026-10-31: added fixed definition and launched via `just fixed-run run hyperqwen-bundle-24h`.
+
+- Restarted after cadence fix ad5113ead: archived prior trial to runs/aborted/hyperqwen-bundle-24h-20261101T023944Z/.

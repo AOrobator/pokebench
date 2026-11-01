@@ -35,3 +35,5 @@
 - 2026-10-31: operator discussion → update both switches; restart HyperQwen bundle with the pin.
 
 - 2026-10-31: implemented event-scoped delivery; focused tests 74 passed.
+
+- Landed ad5113ead on main; HyperQwen restart authorized.

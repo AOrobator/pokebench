@@ -226,6 +226,21 @@ async function smoke(): Promise<void> {
 }
 
 
+// The composition live.ts uses, exported so a test can prove the decision itself: a model error that
+// the recovery cannot answer ends the run instead of being resent.
+export function modelErrorHandlers(
+  recovery: ModelErrorRecovery | null,
+  abort: (reason: "model_error") => void,
+): { readonly modelErrorRecovery: boolean; readonly onModelError?: (message: { readonly errorMessage?: string }) => void } {
+  if (recovery === null) return { modelErrorRecovery: false };
+  return {
+    modelErrorRecovery: true,
+    onModelError: (message) => {
+      if (recovery.observe(message)) abort("model_error");
+    },
+  };
+}
+
 async function playAgent(): Promise<void> {
   const signals = operatorSignalLatch(process);
   const presetPath=process.env["POKEBENCH_PLAY_PRESET"];
@@ -295,7 +310,7 @@ async function playAgent(): Promise<void> {
       // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
       // probed before the retry, and neither ends the run.
       const recovery = features["model-error-recovery-v1"]
-        ? new ModelErrorRecovery({baseUrl: model.baseUrl, record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
+        ? new ModelErrorRecovery({baseUrl: model.baseUrl, ...(apiKey===undefined?{}:{apiKey}), record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
         : null;
       const {governor,control:runControl} = controlledRun({
         limits,
@@ -312,7 +327,7 @@ async function playAgent(): Promise<void> {
         ...(preset===null?{}:{startedAt:0}),
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
-        ...(recovery===null?{}:{modelErrorRecovery:true,onModelError:(message)=> { if(recovery.observe(message)) governor.abort("model_error"); }}),
+        ...modelErrorHandlers(recovery, (reason) => { governor.abort(reason); }),
       }, {
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
@@ -353,7 +368,7 @@ async function playAgent(): Promise<void> {
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
-      const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey));
+      const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey),(report)=>{ if(!report.fits) recovery?.markUnsatisfiable(); });
       recovery?.attach({...budget, ...(exact===undefined?{}:{exact})});
       const restored=continuation===null?null:await restoreLiveContinuation(continuation,features,recorder,context,{systemPrompt,tools:tools.map(({name,description,parameters})=>({name,description,parameters})),...(budget.budget===undefined?{}:{budget:budget.budget})});
       const messages:AgentMessage[]=restored===null?[]:[...restored.messages];

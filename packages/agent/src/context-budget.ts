@@ -11,6 +11,14 @@ export const BUDGET_MARGIN = 2048;
 export const CHARS_PER_WEIGHT = 3;
 export const IMAGE_WEIGHT = 1000;
 
+export interface FitReport {
+  // False when even the smallest request this fitter can build is still over the limit: the caller
+  // cannot fix that by asking again, and must stop instead of resending.
+  readonly fits: boolean;
+  readonly limit: number;
+  readonly predicted: number;
+}
+
 export interface BudgetTrim {
   readonly limit: number;
   readonly from: number;
@@ -70,7 +78,7 @@ export class ContextBudget {
   // three quarters of it. Sticky for the run; whole turns are dropped, text is never cut.
   private ceiling: number | null = null;
 
-  constructor(readonly limit: number, private readonly vllmOverflow = false) {}
+  constructor(readonly limit: number, private readonly vllmOverflow = false, private readonly onFit?: (report: FitReport) => void) {}
 
   capAt(tokens: number): void {
     this.ceiling = this.ceiling === null ? tokens : Math.min(this.ceiling, tokens);
@@ -106,6 +114,7 @@ export class ContextBudget {
       predicted = this.predict(requestWeight(kept));
     }
     this.sent = requestWeight(kept);
+    this.onFit?.({ fits: predicted <= limit, limit, predicted });
     if (cut === 0) return { messages, trim: null };
     return { messages: kept, trim: { limit, from, predicted, turns: starts.length, kept: starts.length - cut, basis: this.anchor?.basis ?? "estimate" } };
   }

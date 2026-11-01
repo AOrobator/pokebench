@@ -1,7 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { BUDGET_MARGIN, CHARS_PER_WEIGHT, IMAGE_WEIGHT, overflowTokens } from "./context-budget.js";
+import { BUDGET_MARGIN, CHARS_PER_WEIGHT, IMAGE_WEIGHT, overflowTokens, type FitReport } from "./context-budget.js";
 import type { FeatureSet } from "./features.js";
 import { LOCAL_PROVIDER, VLLM_PROVIDER } from "./local-endpoint.js";
 
@@ -172,6 +172,7 @@ export class ExactContext {
     private readonly contextWindow: number,
     private readonly maxTokens: number,
     private readonly hooks: ExactHooks,
+    private readonly onFit?: (report: FitReport) => void,
   ) {}
 
   capAt(tokens: number): void {
@@ -208,6 +209,7 @@ export class ExactContext {
       counted = await measure(messages);
     }
     this.sent = { tokens: counted.tokens, source };
+    this.onFit?.({ fits: counted.tokens <= limit(), limit: limit(), predicted: counted.tokens });
     this.hooks.promptCount({ tokens: counted.tokens, source, limit: limit(), reserve: this.reserve, dropped_turns: cut });
     if (cut === 0) return payload;
     this.hooks.compaction(first, counted.tokens);

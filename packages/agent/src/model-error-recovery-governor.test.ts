@@ -8,8 +8,9 @@ import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, 
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools } from "./play-config.js";
 import { contextBudget } from "./play-wiring.js";
+import { modelErrorHandlers } from "./live.js";
 import { ALL_ON } from "./features.js";
-import { InputCeiling, LaneReadiness, ModelErrorRecovery, refusedPromptTokens } from "./model-error-recovery.js";
+import { InputCeiling, LaneReadiness, ModelErrorRecovery, modelsProbe, refusedPromptTokens } from "./model-error-recovery.js";
 const ON = { ...ALL_ON, "model-error-recovery-v1": true } as FeatureSet;
 const OFF = { ...ALL_ON, "model-error-recovery-v1": false } as FeatureSet;
 
@@ -35,12 +36,18 @@ function governor(modelErrorRecovery: boolean, onModelError?: (message: Assistan
 }
 
 describe("Governor with model-error-recovery-v1", () => {
-  it("keeps the run alive through consecutive model errors", () => {
+  it("absorbs model errors up to the configured bound, then still ends the run", () => {
     const seen: string[] = [];
     const { g } = governor(true, (message) => seen.push(message.errorMessage ?? ""));
-    for (let i = 0; i < 5; i += 1) expect(g.modelError(failed())).toBe(false);
+    expect(g.modelError(failed())).toBe(false);
     expect(g.stopReason).toBeNull();
-    expect(seen).toHaveLength(5);
+    expect(g.modelError(failed())).toBe(false);
+    expect(g.stopReason).toBeNull();
+    // failureLimit is 3: the third consecutive model error ends the run, so a dead lane is still
+    // recorded as model_error rather than surfacing later as a budget stop.
+    expect(g.modelError(failed())).toBe(true);
+    expect(g.stopReason).toBe("model_error");
+    expect(seen).toHaveLength(3);
   });
 
   it("still ends the run after three model errors when the switch is off", () => {
@@ -63,20 +70,21 @@ describe("Governor with model-error-recovery-v1", () => {
   });
 
   it("still stops on the turn budget while model errors are being absorbed", async () => {
-    const { g } = governor(true);
+    // failureLimit high enough that every error here is absorbed: the stop must come from the turn
+    // budget, not from the error bound, which is what INV-2 claims.
+    const retries: { reason: string; attempt: number; limit: number }[] = [];
+    const g = new Governor({
+      limits: { maxTurns: 3, maxWallMs: 1_000_000, failureLimit: 10 },
+      retry: (reason, attempt, limit) => retries.push({ reason, attempt, limit }),
+      abort: () => undefined,
+      now: () => 0,
+      modelErrorRecovery: true,
+    });
     const failing = (): AssistantMessage[] => [failed("HTTP 500")];
-    const calls: number[] = [];
-    const loop: Loop = {
-      start: () => Promise.resolve(failing()),
-      resume: () => {
-        calls.push(calls.length);
-        if (calls.length === 4) g.abort("budget");
-        return Promise.resolve(failing());
-      },
-    };
+    const loop: Loop = { start: () => Promise.resolve(failing()), resume: () => Promise.resolve(failing()) };
     const task = { role: "user" as const, content: "play", timestamp: 0 };
     expect(await play(task, g, loop)).toBe("budget");
-    expect(calls.length).toBe(4);
+    expect(retries.length).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -207,5 +215,106 @@ describe("a refusal the ceiling cannot answer", () => {
     expect(g.stopReason).toBeNull();
     onModelError({ errorMessage: MLX.replace("42430", "41000") });
     expect(g.stopReason).toBe("model_error");
+  });
+});
+
+describe("ModelErrorRecovery against the real fitters", () => {
+  const model = { contextWindow: 200_000 };
+  const task = { role: "user" as const, content: "task", timestamp: 0 };
+  const turns = (n: number): unknown[] =>
+    Array.from({ length: n }, (_, i) => [
+      { role: "assistant", content: "x".repeat(4000), timestamp: i },
+      { role: "user", content: "y".repeat(4000), timestamp: i },
+    ]).flat();
+
+  it("applies the ceiling to the next request through the fitter live.ts builds", () => {
+    let last: { fits: boolean; limit: number } | null = null;
+    const wired = contextBudget(
+      { ...ON, "context-token-budget-v1": true, "context-exact-count-v1": false, "model-error-recovery-v1": true },
+      model,
+      4096,
+      { compaction: () => undefined },
+      null,
+      (report) => {
+        last = { fits: report.fits, limit: report.limit };
+      },
+    );
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://lane/v1", record: () => undefined });
+    recovery.attach(wired);
+    recovery.observe({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    const fitted = wired.budget?.fit([task, ...turns(60)] as never[]);
+    expect(fitted?.trim?.limit).toBe(31822);
+    expect(requestWeight(fitted?.messages ?? [])).toBeLessThanOrEqual(31822);
+    expect(last).toEqual({ fits: true, limit: 31822 });
+  });
+
+  it("ends the run when even the smallest request cannot fit, instead of resending it", () => {
+    const events: string[] = [];
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://lane/v1", record: (reason) => events.push(reason) });
+    const budget = new ContextBudget(1_000_000, false, (report) => {
+      if (!report.fits) recovery.markUnsatisfiable();
+    });
+    recovery.attach({ budget });
+    recovery.observe({ errorMessage: "This prompt (2000 tokens) does not fit in GPU memory" });
+    expect(recovery.ceiling.limit).toBe(1500);
+    // The newest turn alone outweighs the ceiling, so nothing can be dropped to fit.
+    const fitted = budget.fit([task, { role: "assistant", content: "z".repeat(30_000), timestamp: 1 }] as never[]);
+    expect(fitted.trim).toBeNull();
+    expect(events.at(-1)).toContain("no request fits under the input ceiling 1500");
+    expect(recovery.observe({ errorMessage: "This prompt (2000 tokens) does not fit in GPU memory" })).toBe(true);
+  });
+
+  it("does not trim before a refusal when only recovery is on", () => {
+    const wired = contextBudget(
+      { ...ON, "context-token-budget-v1": false, "context-exact-count-v1": false, "model-error-recovery-v1": true },
+      { contextWindow: 1000 },
+      100,
+      { compaction: () => undefined },
+    );
+    expect(wired.budget?.fit([task, { role: "assistant", content: "x".repeat(40_000), timestamp: 1 }] as never[]).trim).toBeNull();
+  });
+});
+
+describe("the probe and the wait", () => {
+  it("probes the lane with its key and a bounded timeout of its own", async () => {
+    let seen: RequestInit | undefined;
+    const fake = (_url: string | URL | Request, init?: RequestInit) => {
+      seen = init;
+      return Promise.resolve(new Response(null, { status: 200 }));
+    };
+    const probe = modelsProbe("http://lane/v1/", fake, "k");
+    expect(await probe()).toBe(true);
+    expect((seen?.headers as Record<string, string>).authorization).toBe("Bearer k");
+    expect(seen?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("says so when the lane never comes back, and still lets the request through", async () => {
+    const phases: string[] = [];
+    const readiness = new LaneReadiness({
+      probe: () => Promise.resolve(false),
+      sleep: () => Promise.resolve(),
+      onWait: (phase) => phases.push(phase),
+      attempts: 4,
+    });
+    expect(await readiness.wait()).toBe(500 + 1000 + 2000 + 4000);
+    expect(phases).toEqual(["start", "exhausted"]);
+  });
+});
+
+describe("the composition live.ts actually uses", () => {
+  it("ends the run through the seam when the recovery cannot answer", () => {
+    const aborts: string[] = [];
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://lane/v1", record: () => undefined });
+    const handlers = modelErrorHandlers(recovery, (reason) => aborts.push(reason));
+    expect(handlers.modelErrorRecovery).toBe(true);
+    handlers.onModelError?.({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    expect(aborts).toEqual([]);
+    recovery.markUnsatisfiable();
+    handlers.onModelError?.({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    expect(aborts).toEqual(["model_error"]);
+  });
+
+  it("is inert when the switch is off", () => {
+    expect(modelErrorHandlers(null, () => undefined)).toEqual({ modelErrorRecovery: false });
   });
 });

@@ -157,7 +157,7 @@ export interface GovernorDeps {
   readonly textOnlyReminder?: string;
   // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
   readonly cutOffNotice?: string;
-  // model-error-recovery-v1: a model error never ends the run; the lane is probed before the retry.
+  // model-error-recovery-v1: model errors are absorbed up to the failure bound; the lane is probed before the retry.
   readonly modelErrorRecovery?: boolean;
   readonly onModelError?: (message: AssistantMessage) => void;
 }
@@ -229,12 +229,18 @@ export class Governor {
   private fail(reason: string): void {
     this.failures += 1;
     this.deps.retry(reason, this.failures, this.deps.limits.failureLimit);
-    // model-error-recovery-v1: a streak that contains a model error never ends the run. Each absorbed
+    // model-error-recovery-v1: a streak of model errors is absorbed up to the failure bound. Each absorbed
     // error starts a fresh streak, so the recorded attempt is per error, not cumulative.
+    // Absorb up to failureLimit-1 consecutive model errors; the failureLimit-th still ends the run,
+    // so a dead lane stays visible as model_error instead of surfacing later as a budget stop.
     if (this.deps.modelErrorRecovery === true && this.modelErrors > 0) {
-      this.failures = 0;
-      this.silent = 0;
-      return;
+      if (this.modelErrors < this.deps.limits.failureLimit) {
+        this.failures = 0;
+        this.silent = 0;
+        return;
+      }
+      // Bound reached: count the absorbed streak against the limit so the normal end-of-run path runs.
+      this.failures = this.deps.limits.failureLimit;
     }
     if (this.failures < this.deps.limits.failureLimit) return;
     // Only a streak made entirely of replies with no tool call earns a note instead of the stop.

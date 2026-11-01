@@ -73,11 +73,22 @@ export interface ReadinessOptions {
 
 // GET {baseUrl}/models is the lane's own health surface: the same host, port and key the model
 // calls already use, so nothing new is reachable.
-export function modelsProbe(baseUrl: string, fetchFn: typeof fetch = fetch): (signal?: AbortSignal) => Promise<boolean> {
+export function modelsProbe(
+  baseUrl: string,
+  fetchFn: typeof fetch = fetch,
+  apiKey?: string,
+  timeoutMs = 5000,
+): (signal?: AbortSignal) => Promise<boolean> {
   const url = `${baseUrl.replace(/\/+$/, "")}/models`;
   return async (signal) => {
+    // A lane that accepts the socket and never answers must not own the probe: bound it here.
+    const timeout = AbortSignal.timeout(timeoutMs);
     try {
-      const response = await fetchFn(url, { method: "GET", ...(signal === undefined ? {} : { signal }) });
+      const response = await fetchFn(url, {
+        method: "GET",
+        headers: apiKey === undefined ? {} : { authorization: `Bearer ${apiKey}` },
+        signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
+      });
       return response.ok;
     } catch {
       return false;
@@ -126,6 +137,8 @@ export class LaneReadiness {
 
 export interface RecoveryOptions {
   readonly baseUrl: string;
+  readonly apiKey?: string;
+  readonly probeTimeoutMs?: number;
   readonly record: (reason: string) => void;
   readonly fetchFn?: typeof fetch;
   readonly sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
@@ -142,11 +155,12 @@ export class ModelErrorRecovery {
   private readonly options: RecoveryOptions;
   private fitters: { budget?: ContextBudget; exact?: ExactContext } = {};
   private pending = false;
+  private unsatisfiable = false;
 
   constructor(options: RecoveryOptions) {
     this.options = options;
     this.readiness = new LaneReadiness({
-      probe: modelsProbe(options.baseUrl, options.fetchFn ?? fetch),
+      probe: modelsProbe(options.baseUrl, options.fetchFn ?? fetch, options.apiKey, options.probeTimeoutMs ?? 5000),
       sleep: options.sleep ?? abortableSleep,
       onWait: (phase, waitedMs) => {
         if (phase === "start") options.record("lane readiness wait started; no request is sent until GET /models answers");
@@ -164,10 +178,19 @@ export class ModelErrorRecovery {
     this.apply();
   }
 
+  // Called by the fitter when even the smallest request it can build is still over the ceiling: no
+  // retry can help, so the run ends rather than resending a request the lane has already refused.
+  markUnsatisfiable(): void {
+    if (this.unsatisfiable) return;
+    this.unsatisfiable = true;
+    this.options.record(`no request fits under the input ceiling ${String(this.ceiling.limit ?? 0)}; ending the run`);
+  }
+
   // Called for every model error: a size refusal lowers the ceiling, anything else waits on the lane.
   // Returns true when the run cannot make progress and must end: the request that was just refused is
   // no smaller than what the ceiling already allows, so the next attempt would be the same request.
   observe(message: { readonly errorMessage?: string }): boolean {
+    if (this.unsatisfiable) return true;
     const refused = refusedPromptTokens(message.errorMessage);
     if (refused === null) {
       this.pending = true;

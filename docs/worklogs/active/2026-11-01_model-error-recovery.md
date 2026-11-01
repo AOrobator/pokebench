@@ -89,13 +89,16 @@ lane's own error body and only ever lowers a token ceiling.
 
 ## Closing the Loop
 
-A DeepSeek control restart with `model-error-recovery-v1` on both arms survives a prompt the lane
+**Not yet measured.** No restart has run: nothing below has been observed in a run, and no claim of
+improvement is made (PB3). What follows is the intended path that the tests pin.
+
+A DeepSeek control restart with `model-error-recovery-v1` on both arms would survive a prompt the lane
 refuses: the run trims to the ceiling, keeps playing, and the refusal is visible in Activity
 History as a retry with the refused and ceiling token counts.
 
 ## Session Log
 
-- 2026-11-01: branch `claude/model-error-recovery-v1` from main `8c2fa0614`; worklog drafted.
+- 2026-11-01: branch `claude/model-error-recovery-v1` from main `f1e53bd78` (the packet base); worklog drafted.
 
 ## Surprises
 
@@ -134,6 +137,35 @@ not a treatment: the arm contrast stays on the 68 bundle switches. Four-line dif
   ends the run; the turn budget still stops a run that is absorbing errors; both fitters drop whole
   turns under the ceiling and never cut text; the production wiring builds a fitter when only
   recovery is on; registry membership, position, default-off and unchanged prompt/tool list.
+
+## Review batch (advisory lanes, since the cloud lanes were billing-blocked)
+
+Two read-only reviewers returned BLOCKING and were right on every point taken below. Fixed in this
+batch:
+
+1. **Silent over-ceiling resend.** The fitters stop dropping at "keep the newest turn" and returned
+   the over-limit list unchanged, so a request the lane had already refused could be sent again with
+   no trim and no record. Both fitters now report `fits` through `FitReport`; the recovery marks
+   itself unsatisfiable and the run ends with `model_error`.
+2. **No bound on absorbed errors.** `fail()` now absorbs up to `failureLimit - 1` consecutive model
+   errors and ends on the `failureLimit`-th, so a dead lane is recorded as `model_error` instead of
+   surfacing later as `budget`. This is a **deliberate deviation from PB8's default** (which ends a
+   run at the bound with no absorption) taken on operator direction: the run must survive a lane
+   refusal that the harness can work around.
+3. **Probe could not see the lane behind the gateway, and carried no credentials.** The gateway
+   answers `/models` 200 while the lane behind it refuses, so the readiness wait was a no-op there;
+   and a key-protected local endpoint answered 401, giving ~54 minutes of silence per error. The
+   probe now sends the lane's bearer key and bounds itself with `AbortSignal.timeout(5000)`. The
+   absorbed-error bound above is the real safety net; the probe is a best-effort early exit and the
+   registry description says so.
+4. **Two variables at once.** Building a `ContextBudget` because recovery is on made the run trim
+   from turn 1 at the model's window, even with `context-token-budget-v1` off. That budget is now
+   built with an infinite limit, so nothing is trimmed until a refusal lowers it.
+5. **Untested seam.** `live.ts` now exports `modelErrorHandlers`, and tests drive it plus
+   `ModelErrorRecovery` against the real `ContextBudget`. Mutation evidence, run just now: making
+   `observe` ignore the unsatisfiable state fails 2 tests; making the seam never abort fails 1;
+   restoring is 21/21 green. What remains uncovered is `playAgent`'s own assembly of these pieces,
+   which is unexported and would need a larger refactor to test directly.
 
 ## Decisions
 

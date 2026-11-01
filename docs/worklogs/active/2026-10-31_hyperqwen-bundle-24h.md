@@ -27,3 +27,5 @@ Operator asked to kick off a HyperQwen 24-hour bundle run against the live TP2 H
 - Restarted after cadence fix ad5113ead: archived prior trial to runs/aborted/hyperqwen-bundle-24h-20261101T023944Z/.
 
 - Relaunched pin `013d273b7` as `2026-10-31T22-48-04_hyperqwen-gpu0_eefc` (bundle; both switches ON; dirty false). Prior trial archived `runs/aborted/hyperqwen-bundle-24h-20261101T023944Z/` at RIVAL_BATTLE_WON / operator_abort T331. Viewer 8790 at same pin; workbench live; experiments-audit clean.
+
+- 2026-11-01: set `bundleMaxTokens: 8192` (doubled from 4096) after post-Roxanne-whiteout forensics on `eefc`: thinking burned the shared 4096 cap with `stop_reason=length` and no tool call, then text-only supervisor notes. Live `eefc` left running at 4096; 8192 applies on the next launch/restart only.

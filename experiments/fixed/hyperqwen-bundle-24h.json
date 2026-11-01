@@ -51,6 +51,7 @@
   "slots": 1
  },
  "replacementReserveMs": 0,
+ "bundleMaxTokens": 8192,
  "featureRecipe": "current",
  "seed": "079870c5d2f6222d",
  "plan": [

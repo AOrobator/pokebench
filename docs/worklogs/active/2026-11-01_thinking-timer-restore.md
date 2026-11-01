@@ -1,7 +1,7 @@
 # Restore thinking elapsed seconds on live current snapshot
 
 **Started:** 2026-11-01
-**Status:** Landed on main `a4dfbd3fb`; not live on 8790 until authorized `just viewer-main`
+**Status:** Live on 8790 at `5d2bef331` (authorized `just viewer-main`)
 **Branch:** `cursor/thinking-timer-restore` (merged)
 
 ## Problem Statement
@@ -55,6 +55,7 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 - 2026-11-01: RED `abfb3c99c` (head was `MODEL IS THINKING…`); GREEN `f60351b71` restores `AGENT is thinking… N.Ns` when recorded thinking is on the live turn.
 - 2026-11-01: Operator "land it". Packet sealed; Claude LGTM; Grok/GPT outage waived by that wording. Full gates PASS. Landing.
 - 2026-11-01: Landed ff-only onto main at `a4dfbd3fb`. Post-merge `just test` PASS (agent 5256, viewer 2388, python 4979, gateway 116, trainer-card 3). `just land-done`. Not activated on 8790.
+- 2026-11-01: Operator authorized `just viewer-main`. Served stamp `5d2bef331` (ancestor of feature `a4dfbd3fb`); gameplay PIDs 49879/52610/85134 kept; no viewer-build skew. Live proof on `7da5`: think-head `AGENT is thinking… 18.4s` (CURRENT · TURN 102).
 
 ## Surprises
 

@@ -102,6 +102,7 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 ## Surprises
 
+- destination-first Qwen prompt fixture pinned the previous moving-NPC sentence; updated with the stay-on-approach wording.
 - Follow already ON in control for the failing DeepSeek run — failure is ON thrash + single-frame observation, not a missing bundle flag.
 
 ## Multi-Model Review Log
@@ -115,3 +116,4 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 ## Archive Milestone
 
 - ASK USER
+- 2026-11-01: Full `just test` FAIL once: destination-first-qwen.json.gz still had pre-stay-on-approach MOVING_NPC_SENTENCE; fixture updated to match ON prompt. Lint PASS. Releasing CPU; re-running gates after commit.

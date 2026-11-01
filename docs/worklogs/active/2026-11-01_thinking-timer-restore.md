@@ -33,8 +33,8 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 - [x] RED test: live current snapshot keeps thinking elapsed seconds (fails: `MODEL IS THINKING…`)
 - [x] COMMIT: `test(viewer): require thinking elapsed seconds under live current snapshot` (RED) `abfb3c99c`
 - [x] GREEN: keep seconds when recorded thinking is caught up
-- [ ] COMMIT: `fix(viewer): restore thinking elapsed seconds on live current head`
-- [ ] Focused vitest for `app-current`
+- [x] COMMIT: `fix(viewer): restore thinking elapsed seconds on live current head` `f60351b71`
+- [x] Focused vitest for `app-current` (25/25) + thinking panel filter (9/9)
 - [ ] Cheap lint/types on changed files
 - [ ] Full gates + review + land/activation as separate stages
 
@@ -46,6 +46,7 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 ## Session Log
 
 - 2026-11-01: Confirmed regression in `app.ts` liveSnapshot override; opened branch.
+- 2026-11-01: RED `abfb3c99c` (head was `MODEL IS THINKING…`); GREEN `f60351b71` restores `AGENT is thinking… N.Ns` when recorded thinking is on the live turn.
 
 ## Surprises
 

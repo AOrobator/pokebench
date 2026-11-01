@@ -35,7 +35,8 @@ Model-facing text only; no new tools, no ROM, no network, no secrets.
 - [x] Implement note + registry + explainer
 - [x] Cheap checks: `vitest` scene-followup + gym-campaign 38/38; `just pages-theme` / `pages-check` clean
 - [x] Full gates: `just lint`/`build`/`test`/`verify-vendor` PASS on `e752ea01a` (agent 5256, viewer 2387, python 4979, gateway 116, trainer-card 3; coverage ≥90). CPU START unilateral after empty lock/board + 2 unanswered relay pings; RELEASE after gates.
-- [ ] Principles self-review (0 FAIL) + three cloud lanes LGTM
+- [x] Principles self-review (0 FAIL)
+- [ ] Three cloud lanes LGTM — BLOCKED (see review log)
 - [ ] Land ff-only onto main; post-merge `just test`; `just land-done`
 
 ## Closing the Loop
@@ -52,9 +53,13 @@ None yet.
 
 ## Multi-Model Review Log
 
-- Frozen base `8a2abbb74` head `e752ea01a` diff SHA-256 `5c29b5b34f634c13836a0c12710eed36d87504a22062f84ab7d11cd0ce54a940`
+- Frozen (resealed after worklog commit): base `8a2abbb74` head `a11506d39` (feature code `e752ea01a`) diff SHA-256 `8ace43e516a574784abc9f4fde521e8c799366d65e3e3e7a0430f52c19d6e9d7`
 - Principles: `runs/reviews/scene-followup-facts-only/principles-adherence.md` (0 FAIL)
-- Round 1 in flight: Claude / Grok / GPT Cursor Task reviewers (read-only)
+- Round 1 Cursor Task Claude/Grok/GPT: all failed — Cursor usage limit.
+- Harness switch: Claude CLI (`~/.claude-review`, plan mode) → **VERDICT: LGTM** (`/tmp/review-sf-facts-20261101011000.claude.log`). Non-blocking notes: update worklog freeze SHA; split pre/post `e752ea01a` bundle runs by harness commit when comparing.
+- Grok: `cursor-agent` `grok-4.7-high-fast` and `cursor-grok-4.5-high` → same Cursor usage limit. No alternate Grok harness.
+- GPT: Cursor Task + `cursor-agent gpt-5.6-sol-xhigh` → usage limit. Codex CLI ChatGPT account rejected `gpt-6.1-sol` and `gpt-5.2` (`model_not_found`).
+- Per execute-worklog: missing cloud lanes → no self-merge. Asking operator.
 
 ## Boy Scout Log
 

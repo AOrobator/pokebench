@@ -35,8 +35,13 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 - [x] GREEN: keep seconds when recorded thinking is caught up
 - [x] COMMIT: `fix(viewer): restore thinking elapsed seconds on live current head` `f60351b71`
 - [x] Focused vitest for `app-current` (25/25) + thinking panel filter (9/9)
-- [ ] Cheap lint/types on changed files
+- [x] Cheap lint/types on changed files (`eslint` app.ts+app-current.test.ts; `tsc --noEmit` viewer) PASS
 - [ ] Full gates + review + land/activation as separate stages
+
+### Freeze / principles (pre-land)
+- Packet: `fe51cafc6`..`8a3468e49`
+- Diff SHA-256: `d8de6edfc14173ad1880da3e7c53f933cd6012e7ed78acf61802973b549a0e6f`
+- Principles self-review: 4 PASS / 9 N/A / 0 FAIL (PB7/PB9/PB10/PB13 PASS)
 
 ## Closing the Loop
 

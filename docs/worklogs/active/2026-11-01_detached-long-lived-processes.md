@@ -1,7 +1,7 @@
 # Detached long-lived processes (runs / viewer / proxy)
 
 **Started:** 2026-11-01
-**Status:** Landing
+**Status:** Landing (reviews waived)
 **Branch:** `cursor/detached-long-lived-processes`
 
 ## Problem Statement
@@ -36,14 +36,18 @@ Documentation/skills only. No runtime, ROM, network, or secret changes.
 - [x] Update fixed-run-launch, pokebench-run-coordination, close-the-loop
 - [x] Update `CLAUDE.md` / `AGENTS.md`; symlink `.agents/skills/` discovery
 - [x] `git diff --check` clean on candidate
-- [ ] Cloud review LGTM (Claude / Grok / GPT)
+- [x] Cloud review waived by operator 2026-11-01 (“reviews are waived, land ur changes”); Claude CLI lane had already returned `VERDICT: LGTM` on frozen packet `905c465760b4f7fecb0096afbf30364177bb953f00abc5dbe243138c493afc97` before Grok/GPT harness outages
 - [ ] Land FF to main; prose checks on main; `just land-done`
 
 ## Multi-Model Review Log
 
-(pending)
+- Packet: BASE `1961fb3d7`..HEAD `ab61a672b`; `git diff --binary` SHA-256 `905c465760b4f7fecb0096afbf30364177bb953f00abc5dbe243138c493afc97`
+- Claude CLI (`~/.claude-review`, plan mode): `VERDICT: LGTM` (hardening follow-ups only: process-group note, runner.pid ambiguity, viewer-main wording)
+- Grok (cursor-agent): unavailable — Cursor usage limit
+- GPT (codex exec): unavailable — default `gpt-6.1-sol` rejected; retry interrupted
+- Operator waiver 2026-11-01: land without remaining cloud LGTMs
 
 ## Evidence
 
 - Incident run: `2026-11-01T01-01-00_deepseek-v4.1-flash_control4h` ended `operator_abort` on Cursor restart (LLM-owned background shell).
-- Operator 2026-11-01: “all runs always need to be detached… when a viewer or run starts, the process can NOT be LLM owned”; “land ur changes”.
+- Operator 2026-11-01: “all runs always need to be detached… when a viewer or run starts, the process can NOT be LLM owned”; “land ur changes”; then “reviews are waived, land ur changes”.

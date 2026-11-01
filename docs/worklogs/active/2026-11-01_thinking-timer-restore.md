@@ -36,7 +36,8 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 - [x] COMMIT: `fix(viewer): restore thinking elapsed seconds on live current head` `f60351b71`
 - [x] Focused vitest for `app-current` (25/25) + thinking panel filter (9/9)
 - [x] Cheap lint/types on changed files (`eslint` app.ts+app-current.test.ts; `tsc --noEmit` viewer) PASS
-- [ ] Full gates + review + land/activation as separate stages
+- [x] Full gates on `6b73a9173` (feature freeze `8a3468e49` + docs): `just lint`/`build`/`test`/`verify-vendor` PASS after linking worktree `.env`, mgba, vendor pin, trainer-card art from main. Counts: agent 5256, viewer 2388, python 4979, gateway 116, trainer-card 3; coverage ≥90.
+- [x] Review + land (operator "land it")
 
 ### Freeze / principles (pre-land)
 - Packet: `fe51cafc6`..`8a3468e49`
@@ -52,6 +53,7 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 
 - 2026-11-01: Confirmed regression in `app.ts` liveSnapshot override; opened branch.
 - 2026-11-01: RED `abfb3c99c` (head was `MODEL IS THINKING…`); GREEN `f60351b71` restores `AGENT is thinking… N.Ns` when recorded thinking is on the live turn.
+- 2026-11-01: Operator "land it". Packet sealed; Claude LGTM; Grok/GPT outage waived by that wording. Full gates PASS. Landing.
 
 ## Surprises
 
@@ -59,7 +61,10 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 
 ## Multi-Model Review Log
 
-- (pending)
+- Claude CLI (`CLAUDE_CONFIG_DIR=~/.claude-review`, plan mode) → **VERDICT: LGTM** (`/tmp/pb-thinking-timer/claude-review.log`). Optional nits only (string duplication with `thinkingDialog`; replay+live scrub timer oddity pre-existing).
+- Cursor Task Claude/Grok/GPT → all three hit Cursor usage limit ("You're out of usage").
+- Codex CLI GPT (`gpt-6.1-sol`) → `model_not_found` on ChatGPT account (same as scene-followup).
+- Operator "land it" after being offered full gates+land: authorize land with Claude LGTM only; Grok/GPT waived for the same Cursor/Codex outage pattern as scene-followup facts-only.
 
 ## Boy Scout Log
 

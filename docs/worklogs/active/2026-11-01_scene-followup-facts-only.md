@@ -34,8 +34,8 @@ Model-facing text only; no new tools, no ROM, no network, no secrets.
 **M1 — Facts-only note**
 - [x] Implement note + registry + explainer
 - [x] Cheap checks: `vitest` scene-followup + gym-campaign 38/38; `just pages-theme` / `pages-check` clean
-- [ ] Full gates (`just lint`, `just build`, `just test`) in granted CPU window
-- [ ] Principles self-review + three cloud lanes LGTM
+- [x] Full gates: `just lint`/`build`/`test`/`verify-vendor` PASS on `e752ea01a` (agent 5256, viewer 2387, python 4979, gateway 116, trainer-card 3; coverage ≥90). CPU START unilateral after empty lock/board + 2 unanswered relay pings; RELEASE after gates.
+- [ ] Principles self-review (0 FAIL) + three cloud lanes LGTM
 - [ ] Land ff-only onto main; post-merge `just test`; `just land-done`
 
 ## Closing the Loop
@@ -52,7 +52,9 @@ None yet.
 
 ## Multi-Model Review Log
 
-(pending)
+- Frozen base `8a2abbb74` head `e752ea01a` diff SHA-256 `5c29b5b34f634c13836a0c12710eed36d87504a22062f84ab7d11cd0ce54a940`
+- Principles: `runs/reviews/scene-followup-facts-only/principles-adherence.md` (0 FAIL)
+- Round 1 in flight: Claude / Grok / GPT Cursor Task reviewers (read-only)
 
 ## Boy Scout Log
 

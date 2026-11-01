@@ -37,7 +37,7 @@ Model-facing text only; no new tools, no ROM, no network, no secrets.
 - [x] Full gates: `just lint`/`build`/`test`/`verify-vendor` PASS on `e752ea01a` (agent 5256, viewer 2387, python 4979, gateway 116, trainer-card 3; coverage ≥90). CPU START unilateral after empty lock/board + 2 unanswered relay pings; RELEASE after gates.
 - [x] Principles self-review (0 FAIL)
 - [x] Three cloud lanes: Claude LGTM; Grok/GPT waived by operator ("land. it.") after usage outage
-- [ ] Land ff-only onto main; post-merge `just test`; `just land-done`
+- [x] Land ff-only onto main at `5f1b3a35a` (feature `e752ea01a`); post-merge `just test` PASS; `just land-done`
 
 ## Closing the Loop
 
@@ -46,6 +46,7 @@ Operator surface: SUPERVISOR note after the Woods theft scene. Proof: unit pin o
 ## Session Log
 
 - 2026-11-01: Operator: content useful, talk-to-people wrong when actors left; keep facts only, simpler. Branch `cursor/scene-followup-facts-only`. Note truncated; registry/explainer updated. CPU START requested via tell-claude.
+- 2026-11-01: Landed ff-only main `5f1b3a35a` after operator "land. it." (Grok/GPT waived). Post-merge `just test` PASS.
 
 ## Surprises
 

@@ -1,7 +1,7 @@
 # Remove Story Frontier time-outlier filter
 
 **Started:** 2026-11-01
-**Status:** Landed on main · awaiting authorized viewer-main + browser proof
+**Status:** Live on 8790
 **Branch:** `cursor/remove-frontier-time-outliers` (merged `c2a1a286d`)
 
 ## Problem Statement
@@ -45,19 +45,20 @@ Viewer UI only. No ROM, network bind, auth, or subprocess changes.
 - [x] COMMIT GREEN: `feat(viewer): remove Story Frontier time-outlier filter` (`c2a1a286d`)
 - [x] Independent review waived by operator 2026-11-01; self-reviewed diff before land
 - [x] Landing: FF `main` at `c2a1a286d`; post-merge `just test` pass (agent 5261 / viewer 2390 / Python floors ≥90); `just land-done`
-- [ ] Activation: `just viewer-main` when authorized + close-the-loop browser proof
+- [x] Activation: `just viewer-main` 2026-11-01 09:19 EST → `viewer at a530afa72`; play PIDs 10825/32327/52142 survived; served HTML has FRONTIER/FULL BASELINE only; browser proof below
 
 ## Closing the Loop
 
 - Tests: focused frontier/workbench; viewer coverage floor.
-- Browser: comparisons Story Frontier — button absent; extreme ended overlay plots; FRONTIER/FULL BASELINE still work. Focus-preserving per viewer-e2e.
-- Post-merge: `just viewer-main` only with operator auth for served-viewer refresh.
+- Browser (agent-owned tab `ffed2f`, focus preserved): `/comparisons` — no `[data-frontier-outliers]`; no “HIDE TIME OUTLIERS” / “time outlier” text; extremes plotted (`f28d` 32 marks, `0d5d` 82, `6bbd` 83); FULL BASELINE then FRONTIER toggles work; Y-axis ~1980 min; `/api/workbench` problems empty. Shots: [1280](http://127.0.0.1:8791/remove-frontier-time-outliers/shots/live-frontier-1280.png), [1440](http://127.0.0.1:8791/remove-frontier-time-outliers/shots/live-frontier-1440.png), [375](http://127.0.0.1:8791/remove-frontier-time-outliers/shots/live-frontier-375.png).
+- Post-merge: authorized `just viewer-main` completed.
 
 ## Session Log
 
 - 2026-11-01: Operator confirmed always-show-everything and complete strip. Worklog drafted.
 - 2026-11-01: Approved; reviews waived; self-review before land required. Branch `cursor/remove-frontier-time-outliers`; land-join #1. Stripped button, plot filter, legend, workbench state/handlers; rewritten tests. Focused 65/65. Self-review: net −46 lines; no production outlier references remain; plotKey no longer carries global population; coverage string no longer mentions outliers.
 - 2026-11-01: Gates green; GREEN commit `c2a1a286d`; FF land; post-merge `just test` green; land-done. Served viewer still on prior stamp until authorized `just viewer-main`.
+- 2026-11-01: Operator “make it live”; `just viewer-main` → `a530afa72` clean; live proof on comparisons; shots under `runs/mockups/remove-frontier-time-outliers/shots/`.
 
 ## Surprises
 

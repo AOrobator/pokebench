@@ -36,7 +36,7 @@ Model-facing text only; no new tools, no ROM, no network, no secrets.
 - [x] Cheap checks: `vitest` scene-followup + gym-campaign 38/38; `just pages-theme` / `pages-check` clean
 - [x] Full gates: `just lint`/`build`/`test`/`verify-vendor` PASS on `e752ea01a` (agent 5256, viewer 2387, python 4979, gateway 116, trainer-card 3; coverage ≥90). CPU START unilateral after empty lock/board + 2 unanswered relay pings; RELEASE after gates.
 - [x] Principles self-review (0 FAIL)
-- [ ] Three cloud lanes LGTM — BLOCKED (see review log)
+- [x] Three cloud lanes: Claude LGTM; Grok/GPT waived by operator ("land. it.") after usage outage
 - [ ] Land ff-only onto main; post-merge `just test`; `just land-done`
 
 ## Closing the Loop
@@ -59,7 +59,8 @@ None yet.
 - Harness switch: Claude CLI (`~/.claude-review`, plan mode) → **VERDICT: LGTM** (`/tmp/review-sf-facts-20261101011000.claude.log`). Non-blocking notes: update worklog freeze SHA; split pre/post `e752ea01a` bundle runs by harness commit when comparing.
 - Grok: `cursor-agent` `grok-4.7-high-fast` and `cursor-grok-4.5-high` → same Cursor usage limit. No alternate Grok harness.
 - GPT: Cursor Task + `cursor-agent gpt-5.6-sol-xhigh` → usage limit. Codex CLI ChatGPT account rejected `gpt-6.1-sol` and `gpt-5.2` (`model_not_found`).
-- Per execute-worklog: missing cloud lanes → no self-merge. Asking operator.
+- Per execute-worklog: missing cloud lanes → no self-merge. Asked operator.
+- 2026-11-01 operator: "land. it." — authorize land with Claude LGTM only; Grok/GPT waived for Cursor/Codex usage outage on this wording fix.
 
 ## Boy Scout Log
 

@@ -108,7 +108,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>Moving NPC frame burst</h1>
-<p><code>moving-npc-frame-burst-v1</code> · Default OFF · Bundle treatment (control stays OFF).</p>
+<p><code>moving-npc-frame-burst-v1</code> · Default OFF · On in both arms of the current recipe (the operator 2026-11-01: harness support, not a treatment).</p>
 <div class="kpi"><b>≤6</b><span>screenshots per follow</span></div>
 <div class="kpi"><b>0</b><span>extra buttons pressed</span></div>
 <div class="kpi"><b>observe</b><span>samples only</span></div>
@@ -153,13 +153,13 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <table>
 <tr><th>OFF</th><th>ON</th></tr>
 <tr><td>Follow results keep the previous single-frame content pattern (no observe burst).</td><td>Up to six chronological screenshots ride with the follow result.</td></tr>
-<tr><td>Control arm and defaults stay single-frame.</td><td>Current recipe lists the id under <code>switches</code> (bundle ON, control OFF).</td></tr>
+<tr><td>Registry default and omitted presets stay single-frame.</td><td>Current recipe lists the id under <code>onInBoth</code> (base true, control and bundle both get the burst).</td></tr>
 </table>
 </section>
 
 <section class="card">
 <h2>Wiring</h2>
-<p>Registry → preset normalize (default false) → <code>current.json</code> <code>switches</code> → <code>followObject</code> in semantic navigation. Capture is a no-op when the switch is OFF or when no <code>observe</code> tool is present.</p>
+<p>Registry → preset normalize (default false) → <code>current.json</code> <code>onInBoth</code> (base true) → <code>followObject</code> in semantic navigation. Capture is a no-op when the switch is OFF or when no <code>observe</code> tool is present.</p>
 <p>Companion fix (separate switch): <code>moving-npc-target-v1</code> stays onInBoth and no longer aborts a step solely because the NPC changed tiles before input; it prefers staying on a tile that remains a valid approach.</p>
 </section>
 

@@ -114,12 +114,13 @@ it("keeps the eight-badge mission bundle-only while the discovered gym checklist
  }
 });
 
-it("enables moving-NPC frame burst in bundle only and keeps moving-NPC target onInBoth",()=>{
+it("enables moving-NPC frame burst and moving-NPC target in both arms",()=>{
  const burst="moving-npc-frame-burst-v1",target="moving-npc-target-v1";
  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
   const d=readFixedDefinition(root,name).definition;
-  expect(d.switches).toContain(burst);expect(d.onInBoth).not.toContain(burst);
-  expect(armFeatureBits(d,"bundle")[burst]).toBe(true);expect(armFeatureBits(d,"control")[burst]).toBe(false);
+  // the operator 2026-11-01: the burst is harness support, not a treatment, so both arms get the frames.
+  expect(d.switches).not.toContain(burst);expect(d.onInBoth).toContain(burst);expect(d.offInBoth).not.toContain(burst);
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(d,arm)[burst]).toBe(true);
   expect(d.onInBoth).toContain(target);expect(d.switches).not.toContain(target);
   for(const arm of ["control","bundle"] as const)expect(armFeatureBits(d,arm)[target]).toBe(true);
  }

@@ -19,7 +19,7 @@ describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 202
   expect(IDS.map(id=>harness.indexOf(id))).toEqual([301,302,303]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:null});
-   expect(featureInfo(id).description).toContain("Bundle arm only, default off");
+   expect(featureInfo(id).description).toContain(id==="type-gap-team-v1"?"on in both arms of the current recipe":"Bundle arm only, default off");
    expect(featureInfo(id).description).toContain(" Off: ");
   });
  });

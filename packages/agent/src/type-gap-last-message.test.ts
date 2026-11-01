@@ -44,7 +44,7 @@ describe(ID,()=>{
  it("is a default-off bundle observation switch registered exactly once, needing type-gap-team-v1, with OFF copy",()=>{
   expect(SWITCHABLE_FEATURES.filter(id=>id===ID)).toEqual([ID]);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"type-gap-team-v1",switchable:true,title:"GYM TYPE GAP LAST MESSAGE"});
-  expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
+  expect(featureInfo(ID).description).toContain("on in both arms of the current recipe");
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...LEGACY_ALL_ON,[ID]:true},null).filter(id=>id===ID)).toEqual([ID]);

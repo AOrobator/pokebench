@@ -51,16 +51,17 @@ it("defaults OFF and records only explicitly enabled moving target support",()=>
  const {[ID]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[ID]).toBe(false);
  expect(flags[ID]).toBe(false);expect(featureInfo(ID).description).toContain("Off:");expect(playHarnessFeatures({...flags,[ID]:true},null)).toContain(ID);
 });
-it("defaults frame burst OFF, pins registry append index, and keeps it bundle-only in the current recipe",()=>{
+it("defaults frame burst OFF, pins registry append index, and puts it in both arms of the current recipe",()=>{
  const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
  const {[BURST]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[BURST]).toBe(false);
  expect(flags[BURST]).toBe(false);expect(featureInfo(BURST).description).toContain("Off:");expect(featureInfo(BURST).needs).toBeNull();
+ expect(featureInfo(BURST).description).toContain("on in both arms of the current recipe");
  expect(featureInfo(BURST).group).toBe("observation");
  expect(SWITCHABLE_FEATURES.indexOf(BURST)).toBe(318);
  expect(playHarnessFeatures({...flags,[BURST]:true},null).at(-1)).toBe(BURST);
  const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[];offInBoth:string[]};
- expect(recipe.features[BURST]).toBe(false);expect(recipe.switches.filter(id=>id===BURST)).toEqual([BURST]);
- expect(recipe.onInBoth).not.toContain(BURST);expect(recipe.offInBoth).not.toContain(BURST);
+ expect(recipe.features[BURST]).toBe(true);expect(recipe.switches).not.toContain(BURST);
+ expect(recipe.onInBoth.filter(id=>id===BURST)).toEqual([BURST]);expect(recipe.offInBoth).not.toContain(BURST);
  expect(recipe.onInBoth).toContain(ID);
 });
 it("production path follows a moving NPC, faces its new tile and presses A once",async()=>{

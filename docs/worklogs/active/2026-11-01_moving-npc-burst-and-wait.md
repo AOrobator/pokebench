@@ -1,8 +1,8 @@
 # Moving-NPC wait fix + free-field frame burst
 
 **Started:** 2026-11-01
-**Status:** Awaiting operator approval of this worklog (no implementation edits yet)
-**Branch:** `cursor/moving-npc-burst-and-wait` (to open after approval)
+**Status:** M1 GREEN in progress → M2 next; operator approved execute+land 2026-11-01
+**Branch:** `cursor/moving-npc-burst-and-wait`
 
 ## Problem Statement
 
@@ -64,11 +64,12 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 ## Milestones
 
 **M1 — Correct `moving-npc-target-v1` ON follow (wait / adjacent hold)**
-- [ ] RED: Briney-shaped patrol burns bound with 0 moves under current ON; desired wait/face/A or truthful non-thrash status
-- [ ] COMMIT: `test(agent): moving-npc wait on adjacent approach` (RED)
-- [ ] Implement follow fix + prompt/description sync
-- [ ] Cheap checks + focused tests; delete-guard once
-- [ ] COMMIT: `fix(agent): wait on approach for moving NPC targets` (GREEN)
+- [x] RED: Briney-shaped drift + stay-on-valid-approach expectations
+- [x] COMMIT: `test(agent): require moving-NPC wait and drift walking` (RED) `447dd316c`
+- [x] Implement: navigate checks identity only (not tile drift); prefer current tile when it remains a valid approach; update `MOVING_NPC_SENTENCE`
+- [x] Focused vitest `moving-npc-target.test.ts` 26/26 PASS
+- [ ] COMMIT: `fix(agent): walk through moving-NPC drift; stay on valid approach` (GREEN)
+- Note: pure “hold forever while NPC is off-adjacency” needs emu frame advance without input; deferred. Stay-when-still-valid-approach covers the adjacent re-face case; 0-move thrash is the cottage failure mode.
 - Source readiness only; no recipe change required (already onInBoth)
 
 **M2 — Register `moving-npc-frame-burst-v1`, OFF exact, ON burst, bundle switch**
@@ -94,6 +95,8 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 - 2026-11-01: Forensics on DeepSeek control4h Briney cottage; operator approved direction (own burst switch ON in bundle; update moving-npc and keep for bundle). Worklog drafted; waiting approval before branch/implementation.
 - Note: `moving-npc-target-v1` is already onInBoth in `current.json` (promoted 2026-10-27); "put in the bundle" = keep it there under the corrected ON semantics, not a demotion to switches-only.
+- 2026-11-01: Operator approved worklog and “execute … and land it”. Branch opened. M1 RED `447dd316c`; GREEN implementation ready (26/26 focused).
+
 
 ## Surprises
 

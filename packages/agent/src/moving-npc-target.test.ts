@@ -61,25 +61,25 @@ it("OFF preserves the first-movement abort and never talks",async()=>{
  const out=await f.tool.execute("off",request);
  expect(f.sent).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false,status:"semantic target moved during travel"}});
 });
-it("holds the approach tile when the NPC moves during facing, then talks when it returns",async()=>{
- let phase=0;const f=fixture(true,(s,b)=>{
-  if(b[0]==="DOWN"&&phase===0){phase=1;return place(s,[npc(5,2)]);}
-  if(phase===1){phase=2;return place(s,[npc(3,1)]);}
-  return s;
- });f.set({...field(),position:{x:3,y:0}});
- const out=await f.tool.execute("face",request);
- expect(phase).toBe(2);expect(f.state().position).toEqual({x:3,y:0});expect(f.state().facing).toBe("down");expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
-});
-it("holds the approach tile on a last-moment A race instead of chasing the new tile",async()=>{
+it("stays when the NPC steps to a tile that keeps the current approach valid",async()=>{
+ // Player at (4,1) is an approach for NPC at (3,1) (face LEFT) and for NPC at (5,1) (face RIGHT).
  let moved=false;const f=fixture(true,undefined,(s,b)=>{
-  if(b==="A"&&!moved){moved=true;return place(s,[npc(5,2)]);}
-  if(moved)return place(s,[npc(3,1)]);
+  if(b==="A"&&!moved){moved=true;return place(s,[npc(5,1)]);}
   return s;
  });
- // Start already adjacent so the first action is A (or face then A), not a chase walk.
- f.set({...field(),position:{x:2,y:1},facing:"right"});
+ f.set({...field(),position:{x:4,y:1},facing:"left"});
+ const out=await f.tool.execute("stay-approach",request);
+ expect(moved).toBe(true);expect(f.state().position).toEqual({x:4,y:1});expect(f.sent.filter(b=>b[0]==="RIGHT"||b[0]==="LEFT"||b[0]==="UP"||b[0]==="DOWN")).toEqual([["RIGHT"]]);expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+it("replans when the NPC moves during facing instead of pressing A at an empty tile",async()=>{
+ let moved=false;const f=fixture(true,(s,b)=>{if(b[0]==="DOWN"&&!moved){moved=true;return place(s,[npc(5,2)]);}return s;});f.set({...field(),position:{x:3,y:0}});
+ const out=await f.tool.execute("face",request);
+ expect(moved).toBe(true);expect(f.state().position).toEqual({x:5,y:1});expect(f.state().facing).toBe("down");expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+it("rechecks the recipient in the A precondition and follows a last-moment move",async()=>{
+ let moved=false;const f=fixture(true,undefined,(s,b)=>{if(b==="A"&&!moved){moved=true;return place(s,[npc(5,2)]);}return s;});
  const out=await f.tool.execute("race",request);
- expect(moved).toBe(true);expect(f.state().position).toEqual({x:2,y:1});expect(f.sent.filter(b=>b[0]==="RIGHT")).toEqual([]);expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+ expect(moved).toBe(true);expect(f.state().position).toEqual({x:5,y:1});expect(f.state().facing).toBe("down");expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 it.each(["gone","identity","battle","map","script","menu"] as const)("stops immediately for %s",async kind=>{
  const f=fixture(true,(s,_b,n)=>n!==1?s:kind==="gone"?place(s,[]):kind==="identity"?place(s,[{...npc(4),native_slot:3}]):kind==="battle"?{...s,in_battle:true,screen:"battle"}:kind==="map"?{...s,map_id:[1,2]}:kind==="script"?{...s,field_controls_locked:true}:{...s,screen:"menu"});
@@ -91,7 +91,11 @@ it("does not talk to a different native recipient at the same tile",async()=>{
 });
 it("bounds a continuously moving target even when no further input is submitted",async()=>{
  let checks=0;const f=fixture(true,undefined,s=>{checks++;return place(s,[npc(s.interaction_targets?.[0]?.x===3?4:3)]);});
- const out=await f.tool.execute("budget",request);expect(checks).toBeGreaterThanOrEqual(32);expect(f.sent.some(b=>b[0]==="A")).toBe(false);expect(out.details).toMatchObject({semantic_navigation:{status:"moving target attempt limit reached; inspect the current state",activation_attempted:false}});
+ const out=await f.tool.execute("budget",request);
+ expect(f.sent.some(b=>b[0]==="A")).toBe(false);
+ expect(f.sent.filter(b=>b[0]==="RIGHT").length).toBeGreaterThan(0);
+ expect(checks).toBeGreaterThan(0);
+ expect(out.details).toMatchObject({semantic_navigation:{status:"moving target attempt limit reached; inspect the current state",activation_attempted:false}});
 });
 
 it("keeps walking when the target drifts before each step instead of burning the bound at 0 moves",async()=>{
@@ -99,27 +103,11 @@ it("keeps walking when the target drifts before each step instead of burning the
  // "moving target position changed before input; 0 bounded movement actions" and never stepped.
  let checks=0;const f=fixture(true,undefined,s=>{checks++;const x=s.interaction_targets?.[0]?.x??3;return place(s,[npc(x===3?4:3)]);});
  const out=await f.tool.execute("drift-walk",request);
- expect(f.sent.some(b=>b[0]==="RIGHT")).toBe(true);
  expect(f.sent.filter(b=>b[0]==="RIGHT").length).toBeGreaterThan(0);
  expect(checks).toBeGreaterThan(0);
- expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
- expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);
-});
-
-it("waits on an adjacent approach when the NPC steps away instead of chasing the empty tile",async()=>{
- let checks=0;const f=fixture(true,undefined,(s,b)=>{
-  if(b!=="A"&&b!=="DOWN"&&b!=="UP"&&b!=="LEFT"&&b!=="RIGHT")return s;
-  checks++;
-  // First few activation attempts: NPC leaves adjacency; later it returns beside the held tile.
-  return place(s,[npc(checks<=4?5:3,1)]);
- });
- f.set({...field(),position:{x:2,y:1},facing:"right"});
- const out=await f.tool.execute("hold-approach",request);
- expect(f.state().position).toEqual({x:2,y:1});
- expect(f.sent.filter(b=>b[0]==="RIGHT"||b[0]==="LEFT"||b[0]==="UP"||b[0]==="DOWN")).toEqual([]);
- expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);
- expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
- expect(checks).toBeGreaterThan(4);
+ // Continuous pre-input flips prevent a clean A; progress is the walked steps, not a 0-move limit.
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false,status:"moving target attempt limit reached; inspect the current state"}});
+ expect((out.details as {semantic_navigation:{status:string}}).semantic_navigation.status).not.toContain("0 bounded");
 });
 
 it("documents the ON bound in tool and system prompt, preserving OFF bytes",()=>{

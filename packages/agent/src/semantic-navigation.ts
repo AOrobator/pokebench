@@ -219,7 +219,7 @@ export function fieldOwner(state:GameStateSnapshot):string|null {
 // semantic-navigation-v2: how to copy a target from the readout, and what happens after activation.
 const SEMANTIC_V2_DESCRIPTION="The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to.";
 
-export const MOVING_NPC_SENTENCE="For a loaded NPC selected by object local_id, navigate_to_target follows its verified current position after each bounded movement action, then faces it and presses A once. This path returns after at most 32 movement, facing or activation attempts, including changed-state retries, or earlier if identity, field control or a supported route becomes unavailable.";
+export const MOVING_NPC_SENTENCE="For a loaded NPC selected by object local_id, navigate_to_target walks toward its verified current position one bounded movement action at a time (the NPC moving to another tile during a step does not cancel that step), then faces it and presses A once. When the player is already on a tile that remains a valid approach for the NPC's new tile, it stays and re-faces or retries A instead of walking away. This path returns after at most 32 movement, facing or activation attempts, including changed-state retries, or earlier if identity, field control or a supported route becomes unavailable.";
 export const STATIC_NPC_APPROACH_SENTENCE="For a static scripted object template listed in current-map native facts, pass target kind static_object with its local_id. This approaches only: current presence and position are unverified, scripts may relocate it, and the tool returns without facing or pressing A even if the object has loaded. No automatic field or battle text is advanced.";
 export const NPC_TEMPLATE_APPROACH_SENTENCE="Exception for an explicitly requested unloaded trainer listed in current-map trainer facts: navigate_to_target may approach its template tile, then returns without facing or pressing A. The template may have moved; inspect the current returned state before choosing an interaction.";
 const SEMANTIC_V2_DIALOGUE=" Dialogue the activation opens is advanced for you as with navigate_to.";
@@ -241,6 +241,14 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const fresh=resolve(state,request.target,baseOptions);
    return fresh?.kind==="object"&&initial.kind==="object"&&fresh.local_id===initial.local_id&&initial.native_slot!==undefined&&fresh.native_slot===initial.native_slot&&fresh.elevation===initial.elevation&&fresh.activation===initial.activation?fresh:null;
   };
+  // Travel: identity and field ownership only. Coordinate drift during a step is normal for
+  // patrol NPCs (Briney); aborting before input caused 0-move attempt-limit thrash.
+  const stable=(actual:GameStateSnapshot):string|null=>{
+   if(!isMap(actual,request.map_id))return "interrupted by a map transition";
+   const reason=interrupted(actual);if(reason!==null)return `semantic navigation interrupted: ${reason}`;
+   if(identity(actual)===null)return "selected moving object disappeared or changed identity";
+   return null;
+  };
   for(let attempt=0;attempt<32;attempt++){
    signal?.throwIfAborted();
    const current=await stateSource.read(signal);last={...last,details:{...last.details as Record<string,unknown>,state:current}};
@@ -251,17 +259,13 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
    let choices=approaches(planned,fresh,options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=approaches(planned,fresh,options);}
-   const choice=choices[0];if(choice===undefined)return finish("no supported route to a valid approach");
-   const changed=(actual:GameStateSnapshot):string|null=>{
-    if(!isMap(actual,request.map_id))return "interrupted by a map transition";
-    const reason=interrupted(actual);if(reason!==null)return `semantic navigation interrupted: ${reason}`;
-    const target=identity(actual);if(target===null)return "selected moving object disappeared or changed identity";
-    return target.x!==fresh.x||target.y!==fresh.y?moved:null;
-   };
-   if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y){
-    last=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id},changed,signal,{exactTarget:true,commandLimit:1,...(sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:fresh.local_id}}:{})});
+   const here=current.position;
+   // Prefer staying when the current tile is still a valid approach for the NPC's new tile.
+   const choice=(here===null?undefined:choices.find(c=>c.point.x===here.x&&c.point.y===here.y))??choices[0];
+   if(choice===undefined)return finish("no supported route to a valid approach");
+   if(here===null||here.x!==choice.point.x||here.y!==choice.point.y){
+    last=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id},stable,signal,{exactTarget:true,commandLimit:1,...(sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:fresh.local_id}}:{})});
     const status=navigationStatus(last);
-    if(status===moved)continue;
     if(navigationStopRequested(last)||status===SIGHT_STATUS)return finish(status??"semantic travel stop requested");
     if(status!=="arrived at requested coordinate"&&!navigationCanContinue(status))return finish(status??"route ended before the selected approach");
     continue;
@@ -271,11 +275,14 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    try{
     last=await executePress(id,button,actual=>{
      if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before input");
-     const issue=changed(actual);if(issue!==null)throw new SemanticPreconditionError(issue);
+     const issue=stable(actual);if(issue!==null)throw new SemanticPreconditionError(issue);
      if(actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError("semantic target approach changed before input");
+     const target=identity(actual);
+     if(target===null)throw new SemanticPreconditionError("selected moving object disappeared or changed identity");
+     if(target.x!==fresh.x||target.y!==fresh.y)throw new SemanticPreconditionError(moved);
      // GetInteractedObjectEventScript selects the native object at the facing tile, including counters.
-     const target=identity(actual),recipient=target===null?null:interactionRecipient(actual,target,choice,options);
-     if(target===null||recipient===null||!sameTargetIdentity(target,recipient))throw new SemanticPreconditionError("semantic interaction recipient changed before input");
+     const recipient=interactionRecipient(actual,target,choice,options);
+     if(recipient===null||!sameTargetIdentity(target,recipient))throw new SemanticPreconditionError("semantic interaction recipient changed before input");
      if(button==="A"&&actual.facing!==facing.toLowerCase())throw new SemanticPreconditionError("player facing changed before activation");
     },signal);
    }catch(error){

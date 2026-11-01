@@ -671,7 +671,8 @@ export class App {
       if(snapshot!==null&&snapshot!==this.currentApplied){
         if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
-        if(first){void this.loadWorkbench();if(this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+        if(first){if(this.needsWorkbenchEnrichment())void this.loadWorkbench();if(this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+        else if(!snapshot.complete)void this.loadWorkbench();
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
         const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
@@ -702,6 +703,19 @@ export class App {
   private savedCurrentCard(run:string,generation:string):WorkbenchRun|null {
     const owner=this.currentSavedCardOwners.get(run);if(owner===undefined||owner.epoch!==this.current?.state.epoch||owner.generation!==generation)return null;
     return this.currentRecordedWorkbench?.runs.find(row=>row.id===run&&row.card!=null)??null;
+  }
+
+  // Live current watching already paints frames, stats and trainer cards from the projector.
+  // Workbench `/api/cards` is enrichment: incomplete reconstruction, splits/comparisons, or replay.
+  private needsWorkbenchEnrichment(): boolean {
+    if (this.current === null) return true;
+    if (this.runId === null) return false;
+    if (this.mode === "replay") return true;
+    if (this.runs.find(run => run.id === this.runId)?.ended === true) return true;
+    if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) return true;
+    const snapshot = this.current.state.snapshot;
+    if (snapshot !== null && snapshot.id === this.runId && !snapshot.complete) return true;
+    return this.current.state.runs.some(run => run.id === this.runId && !run.complete);
   }
 
   private loadWorkbench(): Promise<void> {
@@ -735,6 +749,16 @@ export class App {
     if(this.current!==null){await Promise.all([this.loadArt(),...(this.runId!==null?[this.loadWorkbench()]:[]),...(this.runId!==null&&this.frontierRetry?[this.loadFrontier(this.runId,true)]:[])]);this.render();return;}
     await Promise.all([this.loadArt(), this.loadWorkbench(), ...(this.runId === null || !this.frontierRetry ? [] : [this.loadFrontier(this.runId, true)])]);
     this.render();
+  }
+
+  // Boot and the live poll timer: keep art fresh, but do not pull the card workbench until enrichment is needed.
+  async pollCardsIfNeeded(): Promise<void> {
+    if (this.current !== null && !this.needsWorkbenchEnrichment()) {
+      await this.loadArt();
+      this.render();
+      return;
+    }
+    await this.pollCards();
   }
 
   private recordedSplits(): BestSplits | null {
@@ -969,7 +993,7 @@ export class App {
   }
 
   private showPage(name: string): void {
-    if (name === "splits" && this.runId !== null) { if(this.current!==null)void this.loadFrontier(this.runId);if(this.comparisonsRun!==this.runId)void this.loadComparisons(this.runId); }
+    if (name === "splits" && this.runId !== null) { if(this.current!==null){void this.loadWorkbench();void this.loadFrontier(this.runId);}if(this.comparisonsRun!==this.runId)void this.loadComparisons(this.runId); }
     if (name === "bag") { this.bagNextPoll = 0; }
     if (name === "party") void this.loadPartyArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
@@ -1176,7 +1200,7 @@ export class App {
   }
 
   select(runId:string,automatic=false):void {
-    if(this.current!==null&&this.runs.find(run=>run.id===runId)?.ended!==true){this.resetSelection(runId,automatic);void this.current.select(runId);void this.pollCards();this.render();return;}
+    if(this.current!==null&&this.runs.find(run=>run.id===runId)?.ended!==true){this.resetSelection(runId,automatic);void this.current.select(runId);void this.pollCardsIfNeeded();this.render();return;}
     const preserve=this.current!==null&&this.runId===runId&&this.view.start!==null,retainedCurrent=this.currentApplied;
     if(this.current!==null)void this.current.select(null);
     this.selectRecorded(runId,automatic,preserve,retainedCurrent);
@@ -1757,7 +1781,7 @@ export async function boot(win: BootWindow): Promise<App> {
     void app.refreshRuns();
     void app.next.poll();
   }, RUN_LIST_MS);
-  win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
+  win.setInterval(() => { void app.pollCardsIfNeeded(); }, WORKBENCH_POLL_MS);
   win.setInterval(()=>{void app.pollCurrent();},500);
   return app;
 }

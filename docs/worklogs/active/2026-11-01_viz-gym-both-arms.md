@@ -81,3 +81,7 @@ Frozen packet: base 14991d479 .. head 72d6540c1; diff SHA-256 5f4579c3028442fa63
 - GPT (Codex ChatGPT + cursor-agent gpt-5.6-sol-medium): UNAVAILABLE — Codex model_not_found for tried SKUs; Cursor usage limit
 
 Landing blocked until Grok + GPT cloud lanes return LGTM or operator waives.
+
+## Upstream impact (landing)
+
+main advanced to 483fd5e45 (moving-npc burst). Merge conflict only in `experiments/feature-configs/current.json` switches list: kept our removal of viz-v2 + gym checklist from switches (they stay onInBoth) and kept main's `moving-npc-frame-burst-v1` switch. Feature intent unchanged. Operator waived Grok/GPT lanes and ordered land 2026-11-01.

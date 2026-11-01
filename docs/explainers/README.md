@@ -308,6 +308,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Quoted destination evidence](citation-evidence-v1.html) — separate copied game words from unverified rationale; default OFF, bundle only.
 
 - [Moving NPC target](moving-npc-target-v1.html): bounded live-position follow for a selected loaded object; default OFF, bundle ON.
+- [Moving NPC frame burst](moving-npc-frame-burst-v1.html): up to six chronological screenshots during a moving-NPC follow; default OFF, bundle ON.
 
 - [Caught nickname input V2](caught-nickname-prompt-v2.html): coherent live nickname selection in both maintained arms.
 - [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.
@@ -334,7 +335,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Safe scene capture](scene-journal-safe-capture-v1.html): confirmed idle-point sampling, bounded raw diagnostics and measured cost.
 
 - [Neutral YES/NO controls](neutral-yes-no-readout-v1.html): symmetric descriptions of both answers, preserving the legacy readout when OFF.
-- [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; current bundle only.
+- [PokéNav call auto-advance](pokenav-call-auto-advance-v1.html): bounded active-call advancement and native forced tutorial completion; on in both arms of current.
 
 
 

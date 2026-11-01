@@ -1,8 +1,8 @@
 # Remove Story Frontier time-outlier filter
 
 **Started:** 2026-11-01
-**Status:** Source ready · landing
-**Branch:** `cursor/remove-frontier-time-outliers`
+**Status:** Landed on main · awaiting authorized viewer-main + browser proof
+**Branch:** `cursor/remove-frontier-time-outliers` (merged `c2a1a286d`)
 
 ## Problem Statement
 
@@ -42,9 +42,10 @@ Viewer UI only. No ROM, network bind, auth, or subprocess changes.
 - [x] Implement strip
 - [x] Cheap checks: focused `frontier.test.ts` + `frontier-workbench.test.ts` + `frontier-legend.test.ts` → 65/65
 - [x] Applicable gates: `just verify-vendor` OK; `just lint` pass; `just build` pass; `just test` agent 5261 + viewer 2390 + Python floors ≥90 (viewer 94.63/90.86/94.93 stmts/branches/funcs table; Python lines 97.50 / branches 93.60 / functions 99.90)
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(viewer): remove Story Frontier time-outlier filter` (`c2a1a286d`)
 - [x] Independent review waived by operator 2026-11-01; self-reviewed diff before land
-- [ ] Landing (FF) + activation (`just viewer-main` when authorized) + close-the-loop browser proof
+- [x] Landing: FF `main` at `c2a1a286d`; post-merge `just test` pass (agent 5261 / viewer 2390 / Python floors ≥90); `just land-done`
+- [ ] Activation: `just viewer-main` when authorized + close-the-loop browser proof
 
 ## Closing the Loop
 
@@ -56,6 +57,7 @@ Viewer UI only. No ROM, network bind, auth, or subprocess changes.
 
 - 2026-11-01: Operator confirmed always-show-everything and complete strip. Worklog drafted.
 - 2026-11-01: Approved; reviews waived; self-review before land required. Branch `cursor/remove-frontier-time-outliers`; land-join #1. Stripped button, plot filter, legend, workbench state/handlers; rewritten tests. Focused 65/65. Self-review: net −46 lines; no production outlier references remain; plotKey no longer carries global population; coverage string no longer mentions outliers.
+- 2026-11-01: Gates green; GREEN commit `c2a1a286d`; FF land; post-merge `just test` green; land-done. Served viewer still on prior stamp until authorized `just viewer-main`.
 
 ## Surprises
 

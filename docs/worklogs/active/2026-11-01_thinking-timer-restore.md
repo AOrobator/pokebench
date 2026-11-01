@@ -1,8 +1,8 @@
 # Restore thinking elapsed seconds on live current snapshot
 
 **Started:** 2026-11-01
-**Status:** Active; operator confirmed the Oct 28 regression and asked to restore the timer
-**Branch:** `cursor/thinking-timer-restore`
+**Status:** Landed on main `a4dfbd3fb`; not live on 8790 until authorized `just viewer-main`
+**Branch:** `cursor/thinking-timer-restore` (merged)
 
 ## Problem Statement
 
@@ -54,6 +54,7 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 - 2026-11-01: Confirmed regression in `app.ts` liveSnapshot override; opened branch.
 - 2026-11-01: RED `abfb3c99c` (head was `MODEL IS THINKING…`); GREEN `f60351b71` restores `AGENT is thinking… N.Ns` when recorded thinking is on the live turn.
 - 2026-11-01: Operator "land it". Packet sealed; Claude LGTM; Grok/GPT outage waived by that wording. Full gates PASS. Landing.
+- 2026-11-01: Landed ff-only onto main at `a4dfbd3fb`. Post-merge `just test` PASS (agent 5256, viewer 2388, python 4979, gateway 116, trainer-card 3). `just land-done`. Not activated on 8790.
 
 ## Surprises
 

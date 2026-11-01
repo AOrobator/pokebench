@@ -31,8 +31,8 @@ Viewer display string only. No new network, ROM, tools, or secrets.
 
 **M1 — Restore timed thinking head**
 - [x] RED test: live current snapshot keeps thinking elapsed seconds (fails: `MODEL IS THINKING…`)
-- [ ] COMMIT: `test(viewer): require thinking elapsed seconds under live current snapshot` (RED)
-- [ ] GREEN: keep seconds when recorded thinking is caught up
+- [x] COMMIT: `test(viewer): require thinking elapsed seconds under live current snapshot` (RED) `abfb3c99c`
+- [x] GREEN: keep seconds when recorded thinking is caught up
 - [ ] COMMIT: `fix(viewer): restore thinking elapsed seconds on live current head`
 - [ ] Focused vitest for `app-current`
 - [ ] Cheap lint/types on changed files

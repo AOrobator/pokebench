@@ -81,7 +81,9 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 **M3 — Landing and activation**
 - [x] Full gates PASS on `6cd0c89bb` (lint; test incl. build+coverage+trainer-cards; verify-vendor). whole-game-instructions 5s timeout flake once under load, PASS on re-run alone and in full suite.
-- [ ] Freeze packet; multi-model review
+- [x] Freeze packet R2 `14991d479..1549b9be9` sha256 `64c924e01ad2008714cd8a36e85a687fa842d944ff75ccf478b0c581a1e8f866`
+- [x] Claude CLI R2 `VERDICT: LGTM` (B1 closed)
+- [ ] Grok/GPT lanes unavailable (Cursor usage limit; Codex ChatGPT account rejects configured models incl. gpt-6.1-sol) — landing under operator execute+land with disclosed reduced diversity
 - [ ] Land FF-only; report merge SHA
 - [ ] Authorized `just viewer-main` only if operator requests Harness Config refresh; no experiment launch without separate approval
 
@@ -111,6 +113,7 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 - Round 1 Claude CLI (`~/.claude-review`, plan mode): `VERDICT: BLOCKING` — B1 follow finishes when navigate refuses an approach the NPC just occupied (stable no longer aborts drift; occupied goal/step is not continuable). Non-blocking: burst may drop final frame at cap; principles packet head lag; observe burst updates shown-state (speculation).
 - Fix: continue follow when navigate status matches person/object occupation and identity remains (`semantic-navigation.ts`); test `replans when navigate refuses an approach the NPC just occupied`.
+- Round 2 Claude CLI: `VERDICT: LGTM` (B1 closed). Grok via cursor-agent and Cursor Task: usage limit. Codex CLI: model_not_found for gpt-6.1-sol/gpt-5.4/etc on ChatGPT auth. GPT cursor-agent: usage limit.
 
 ## Boy Scout Log
 

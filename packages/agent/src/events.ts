@@ -368,6 +368,18 @@ const GymHealWarningEvent = event("gym_heal_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// dark-area-flash-reminder-v1: the SUPERVISOR paragraph a game-tool result gained on entering a dark map, with its facts.
+const DarkAreaFlashReminderEvent = event("dark_area_flash_reminder", {
+  tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  location: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  flash_level: Type.Union([Type.Integer({ minimum: 0, maximum: 8 }), Type.Null()]),
+  kind: Type.Enum(["use", "teach"]),
+  knows: Type.Array(Type.String({ minLength: 1 }), { maxItems: 6 }),
+  able: Type.Array(Type.String({ minLength: 1 }), { maxItems: 6 }),
+  not_able: Type.Array(Type.String({ minLength: 1 }), { maxItems: 6 }),
+  text: Type.String({ minLength: 1 }),
+});
+
 // heal-before-trainers-v1: the SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
@@ -860,6 +872,7 @@ export const RunEventSchema = Type.Union([
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,
   GymHealWarningEvent,
+  DarkAreaFlashReminderEvent,
   StoryGoalAwayEvent,
   DestinationCitationEvent,
   DialogueAutoAdvance,

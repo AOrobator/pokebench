@@ -328,6 +328,7 @@ export const SWITCHABLE_FEATURES = [
   "authored-scene-labels-v1",
   "native-instruction-tasks-v1",
   "moving-npc-frame-burst-v1",
+  "dark-area-flash-reminder-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -774,6 +775,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("authored-scene-labels-v1", "observation", "AUTHORED SCENE LABELS", "dialogue-auto-advance-v1", "Experimental and default OFF. Labels the verified Rustboro stolen-Goods chase and later Devon employee request with authored speaker roles from matching native script/message evidence. Keeps original dialogue and raw attribution; carries labels through delivered dialogue and enabled historical instruction memory. Labels establish historical speakers, not current presence or an active task. Off: previous dialogue display and memory attribution unchanged."),
   on("native-instruction-tasks-v1", "guidance", "NATIVE INSTRUCTION TASKS", null, "Experimental and default OFF. Automatically registers the successfully delivered, native-script-qualified Rustboro employee Goods request in the existing instruction ledger. Preserves the request through travel and context reset; native Goods recovery and reporting back are distinct. The model chooses supporting plans and actions but cannot overwrite this source task. With the ledger enabled, requires advisory mode and authored scene evidence; inactive when the ledger is OFF. Off: existing model-maintained instruction goals and all prior behavior are unchanged."),
   on("moving-npc-frame-burst-v1", "observation", "MOVING NPC FRAME BURST", null, "Default off; bundle treatment. While navigate_to_target follows a loaded moving NPC (moving-npc-target-v1), captures up to six chronological screenshots across the follow (start, after movement steps, and the final state) and delivers them with that tool result so the model can see patrol motion such as walking a square around furniture. Does not press extra buttons or invent character names from sprites. Off: one screenshot per tool result as before."),
+  on("dark-area-flash-reminder-v1", "guidance", "DARK AREA FLASH REMINDER", null, "Default off; not in any recipe (coordinator brief 2026-11-01, from run 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h: it held the KNUCKLE BADGE and HM05 from turn 882, walked GRANITE CAVE B1F and B2F at darkness level 7 for dozens of turns looking for STEVEN, and at turns 901, 937 and 986 reasoned that SABLEYE cannot learn FLASH, which the game marks \"ABLE!\"). With this switch on, the first game-tool result on a visit to a map whose map.json sets requires_flash (MapHeader.cave: GRANITE CAVE B1F and B2F, VICTORY ROAD B1F and B2F, three unused CAVE OF ORIGIN maps), in the free field with the KNUCKLE BADGE and the map not already lit (SaveBlock1.flashLevel 0 or 1 when the state reports it), gains one SUPERVISOR paragraph after its text: when a party Pokémon knows FLASH, that it does and that the party menu uses it; otherwise, when HM05 is in the bag, that it teaches FLASH and which party Pokémon the game marks \"ABLE!\" or \"NOT ABLE!\" (pret tmhm_learnsets.h). Nothing is said without the badge, or with neither HM05 nor a FLASH user. A visit to another map re-arms it. Each paragraph is recorded as a dark_area_flash_reminder event (Activity History, SUPERVISOR); no timeline mark. Agent side only. Off: no paragraph and no event; every result is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1192,6 +1194,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("authored-scene-labels-v1"),
     ...when("native-instruction-tasks-v1"),
     ...when("moving-npc-frame-burst-v1"),
+    ...when("dark-area-flash-reminder-v1"),
   ];
 }
 

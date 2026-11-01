@@ -35,7 +35,7 @@ No new network surface; only delays an existing read-only loopback fetch. No ROM
 - [x] RED: complete live mount does not hit `/api/cards`; splits open or incomplete does
 - [x] GREEN: gate `loadWorkbench` / `pollCards` for the current path
 - [x] Focused viewer tests (`app-current` 24 passed)
-- [ ] Land + `just viewer-main` proof that live HyperQwen paints without cold workbench churn
+- [x] Land + `just viewer-main` proof that live watching paints without cold workbench churn
 
 ## Closing the Loop
 
@@ -47,6 +47,8 @@ No new network surface; only delays an existing read-only loopback fetch. No ROM
 - 2026-10-31: operator flagged sus startup work; measured current ~0.4 MB vs workbench ~26 MB; authorized deferral.
 - 2026-10-31: source on `5ff236595`; focused suites 144 passed; eslint void-expression fix pending commit.
 - 2026-10-31: operator "go for it" → land + `just viewer-main` authorized (operator-directed land; board slot held).
+- Landed FF `e29d32706` on main. Post-merge `just test` passed (viewer stamp e29d327). `just viewer-main` at 2026-10-31 23:28 EDT; served tree stamp `e29d32706…`, one 8790 listener, gameplay kept running.
+- Live proof (background browser, focus preserved): cold `#run=…deepseek…` → mode RUNNING, resource spy `cards=[]` `workbench=[]`; opening SPLITS then fetched `/api/cards?run=…` and `/frontier` only. Trainer cards painted from current without boot workbench.
 
 ## Surprises
 

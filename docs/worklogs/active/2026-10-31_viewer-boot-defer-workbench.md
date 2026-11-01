@@ -57,6 +57,7 @@ No new network surface; only delays an existing read-only loopback fetch. No ROM
 - Live proof (background browser, focus preserved): cold `#run=…deepseek…` → mode RUNNING, resource spy `cards=[]` `workbench=[]`; opening SPLITS then fetched `/api/cards?run=…` and `/frontier` only. Trainer cards painted from current without boot workbench.
 - 2026-11-01: operator: watch-side SPLIT TIMES VS FRONTIER not loading; milestones/splits feel broken. Root cause: M1 gated cards+frontier on PokéNav SPLITS, but the watch strip is always visible and current ships `splits:[]`, so the UI painted empty progress + forever "loading the frontier run…". Oct 28 (`979ef9074`) had already deferred frontier to that PokéNav page. M2 restores select-time cards+frontier for the watch card; keeps full workbench off the live index.
 - 2026-11-01: M2 source on `cursor/fix-splits-frontier-watch`; focused 143 passed; candidate viewer `http://127.0.0.1:8847/` proved cold select paints frontier deltas without PokéNav SPLITS. Live `:8790` left on `e29d327` until land + `viewer-main`.
+- 2026-11-01: operator "yes, land this" (operator-directed land; board #1). Pre-land gates on `b97f9d9`: `just lint` PASS, `just build` PASS, `just verify-vendor` PASS, `just test` PASS (agent 5256, viewer 2387, Python 4979, gateway 116, trainer-card-check 3/3). Multi-model review waived by operator-directed land (same as M1).
 
 ## Surprises
 

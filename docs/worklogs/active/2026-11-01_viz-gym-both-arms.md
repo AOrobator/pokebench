@@ -28,8 +28,8 @@ No new attack surface; recipe/config and copy only.
 
 ### M1 — Promote both to onInBoth
 - [x] RED: pins expect onInBoth / both arms true
-- [ ] GREEN: current.json + registry/explainer/README copy
-- [ ] Cheap checks: focused viewer + agent tests
+- [x] GREEN: current.json + registry/explainer/README copy
+- [x] Cheap checks: focused viewer + agent tests (24 PASS)
 - [ ] Full gates: just lint / build / test / verify-vendor
 - [ ] Multi-model review LGTM ×3
 - [ ] Land FF to main; post-merge just test; viewer-main; land-done
@@ -60,3 +60,5 @@ ASK USER before archive.
 
 
 Session: RED pins committed; GREEN next.
+
+GREEN: recipe onInBoth + copy; focused viewer 24 PASS.

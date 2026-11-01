@@ -360,10 +360,10 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [eight-badge-mission-v1](eight-badge-mission-v1.html): independently switchable gym campaign guidance.
 
-- [discovered-gym-checklist-v1](discovered-gym-checklist-v1.html): independently switchable gym campaign guidance.
+- [discovered-gym-checklist-v1](discovered-gym-checklist-v1.html): discovered unfinished gyms stay on the checklist; current recipe ON in both arms.
 - [Town Center checkpoint](town-center-checkpoint-v1.html): the first eligible town decision gets the probed Center-entry reminder; native checkpoint completion suppresses it.
 
-- [Player map visibility V2](player-map-visibility-v2.html): whole fully lit current maps; native illumination and terrain memory in darkness. Registered default OFF.
+- [Player map visibility V2](player-map-visibility-v2.html): whole fully lit current maps; native illumination and terrain memory in darkness. Registered default OFF; current recipe ON in both arms.
 - [ROM identity](rom-identity-v1.html): exact tested identity fact, verified ROM hash, default-OFF switch and exploratory limits.
 
 - [Checkpoint research note](checkpoint-research-note-v1.html): startup gates, first-user-message timing, exact measured note and the unimplemented location-entry design; default OFF.

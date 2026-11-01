@@ -77,7 +77,7 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 - [x] Implement burst capture in `followObject` + production wiring + `current.json` `switches` + explainer README
 - [x] Delete-guard once: force `capture` early-return → ON multi-image assertion failed (0 ≥ 2); restore → 28/28 PASS
 - [x] Explainer + `FEATURE_EXPLAINERS` map; `just pages-theme` / `pages-check` clean
-- [ ] COMMIT: `feat(agent): moving-npc free-field frame burst` (GREEN)
+- [x] COMMIT: `feat(agent): moving-npc free-field frame burst` (GREEN) `6f8e595ef`
 
 **M3 — Landing and activation**
 - [ ] Applicable full gates; freeze packet; multi-model review
@@ -89,13 +89,15 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 - Tests for both switches (OFF bytes, ON behaviors, factory wiring, recipe materialization).
 - No emulator smoke claimed until a rehearsal is authorized; DeepSeek cottage evidence is the motivating trace only.
 - Explainer local links after pages-check 200.
+- Cheap checks: agent 28/28; viewer fixed-definition/panels/server burst tests PASS after `just build` (dist FeatureSetSchema); pages-check clean.
 
 ## Session Log
 
 - 2026-11-01: Forensics on DeepSeek control4h Briney cottage; operator approved direction (own burst switch ON in bundle; update moving-npc and keep for bundle). Worklog drafted; waiting approval before branch/implementation.
 - Note: `moving-npc-target-v1` is already onInBoth in `current.json` (promoted 2026-10-27); "put in the bundle" = keep it there under the corrected ON semantics, not a demotion to switches-only.
 - 2026-11-01: Operator approved worklog and “execute … and land it”. Branch opened. M1 RED `447dd316c`; GREEN `f67afe190` (26/26 then).
-- 2026-11-01: M2 burst switch registered (index 318), followObject observe burst ≤6, recipe `switches`, explainer themed; focused 28/28; delete-guard red then green.
+- 2026-11-01: M2 burst switch registered (index 318), followObject observe burst ≤6, recipe `switches`, explainer themed; focused 28/28; delete-guard red then green. GREEN `6f8e595ef`.
+- 2026-11-01: Principles self-review PB1–PB13 zero FAIL (`runs/reviews/moving-npc-burst-principles.md`). CPU START requested via tell-claude (Delivered).
 
 
 ## Surprises

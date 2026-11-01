@@ -1,6 +1,6 @@
-// dark-area-flash-reminder-v1: one SUPERVISOR paragraph on entering a map the game marks dark, when the KNUCKLE BADGE
-// lets FLASH be used and either a party Pokémon knows FLASH or HM05 is in the bag. Every fact comes from the state and
-// from pret/pokeemerald 731ad5b tables; the wording is the game's.
+// dark-area-flash-reminder-v1: one SUPERVISOR paragraph on entering a map the game marks dark and has not lit: whether
+// the KNUCKLE BADGE lets FLASH be used, which party Pokémon know FLASH, and whether HM05 is in the bag and who can learn
+// it. Every fact comes from the state and from pret/pokeemerald 731ad5b tables; the wording is the game's.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
@@ -35,13 +35,17 @@ export const FLASH_LEARNERS:ReadonlySet<number>=new Set([
 ]);
 // data/maps/DewfordTown_Gym/scripts.inc DewfordTown_Gym_Text_KnuckleBadgeInfoTakeThis, said when the badge is given.
 const BADGE_SAYS="\"you'll be able to use the HM move FLASH outside of battle\"";
+// src/strings.c gText_CantUseUntilNewBadge, printed when a field move is chosen without its badge.
+const NO_BADGE_SAYS="\"This can't be used until a new BADGE is obtained.\"";
 
 export interface DarkAreaFlashFacts {
  readonly map_id:readonly [number,number];
  readonly location:string|null;
  // SaveBlock1.flashLevel from the map observation, null when the state has none for this map.
  readonly flash_level:number|null;
- readonly kind:"use"|"teach";
+ readonly badge:boolean;
+ // use: a party Pokémon knows FLASH; teach: none does and HM05 is in the bag; none: neither.
+ readonly kind:"use"|"teach"|"none";
  // Party Pokémon that know FLASH, by the name the party menu shows.
  readonly knows:readonly string[];
  // With HM05 and no FLASH user: what the game marks each party Pokémon when HM05 is used from the bag.
@@ -55,16 +59,18 @@ const nameOf=(mon:GameStateSnapshot["party"][number]):string|null=>mon.nickname?
 export function darkAreaFlash(state:GameStateSnapshot):DarkAreaFlashFacts|null {
  if(!state.started||state.screen!=="overworld"||state.in_battle||state.party_owner!=="player"||state.map_id===null)return null;
  const map:readonly [number,number]=[state.map_id[0],state.map_id[1]];
- if(!FLASH_MAPS.has(keyOf(map))||!state.badges.includes(FLASH_BADGE))return null;
+ if(!FLASH_MAPS.has(keyOf(map)))return null;
  const observed=state.map_observation;
  const level=observed!==undefined&&observed.map_id[0]===map[0]&&observed.map_id[1]===map[1]?observed.layout?.flash_level??null:null;
  // SetDefaultFlashLevel: 1 once FLAG_SYS_USE_FLASH is set (FLASH was used), 0 on a map with no darkness.
  if(level!==null&&level<=1)return null;
+ const bag=state.resources?.bag;
+ if(bag==null)return null;
  const party=state.party.filter(mon=>mon.is_egg!==true);
  const knows=party.flatMap(mon=>{const name=nameOf(mon);return name!==null&&mon.moves?.some(move=>move.move_id===MOVE_FLASH)===true?[name]:[];});
- const base={map_id:map,location:state.location,flash_level:level};
+ const base={map_id:map,location:state.location,flash_level:level,badge:state.badges.includes(FLASH_BADGE)};
  if(knows.length>0)return {...base,kind:"use",knows,able:[],not_able:[]};
- if(state.resources?.bag?.some(item=>item.item_id===ITEM_HM05&&item.quantity>0)!==true)return null;
+ if(!bag.some(item=>item.item_id===ITEM_HM05&&item.quantity>0))return {...base,kind:"none",knows:[],able:[],not_able:[]};
  const able:string[]=[],notAble:string[]=[];
  for(const mon of party){
   const name=nameOf(mon);
@@ -75,13 +81,25 @@ export function darkAreaFlash(state:GameStateSnapshot):DarkAreaFlashFacts|null {
 }
 
 const list=(names:readonly string[]):string=>names.length<=1?names.join(""):`${names.slice(0,-1).join(", ")} and ${names[names.length-1]??""}`;
+const HM05_HERE="HM05 in the TMs & HMs pocket of your bag";
 
 export function darkAreaFlashText(f:DarkAreaFlashFacts):string {
- const where=f.location===null?"This area":f.location;
- const head=`SUPERVISOR: ${where} is dark. You have the KNUCKLE BADGE (${BADGE_SAYS})`;
- if(f.kind==="use")return `${head}, and ${list(f.knows)} ${f.knows.length===1?"knows":"know"} FLASH. In the party menu, choose ${f.knows[0]??""} and then FLASH to light up the area.`;
+ const where=`SUPERVISOR: ${f.location===null?"This area":f.location} is dark.`;
+ const knows=`${list(f.knows)} ${f.knows.length===1?"knows":"know"} FLASH`;
  const marks=[...(f.able.length===0?[]:[`${list(f.able)} "ABLE!"`]),...(f.not_able.length===0?[]:[`${list(f.not_able)} "NOT ABLE!"`])].join(" and ");
- return `${head} and HM05 in the TMs & HMs pocket of your bag, but no Pokémon in your party knows FLASH. Using HM05 from the bag teaches FLASH${marks===""?"":`; the game marks ${marks} to learn it`}. A Pokémon that knows FLASH can use it from the party menu to light up the area.`;
+ const noneAble=f.able.length===0&&f.not_able.length>0?`no Pokémon in your party knows FLASH or can learn it: using HM05 from the bag, the game marks ${list(f.not_able)} "NOT ABLE!"`:null;
+ if(!f.badge){
+  const head=`${where} You do not have the KNUCKLE BADGE, so FLASH cannot be used outside of battle yet; choosing FLASH in the party menu, the game says ${NO_BADGE_SAYS}`;
+  if(f.kind==="use")return `${head} ${knows}.`;
+  if(f.kind==="none")return `${head} HM05 is not in your bag, and no Pokémon in your party knows FLASH.`;
+  if(noneAble!==null)return `${head} You have ${HM05_HERE}, but ${noneAble}.`;
+  return `${head} You have ${HM05_HERE}; using it from the bag teaches FLASH${marks===""?"":`, and the game marks ${marks} to learn it`}.`;
+ }
+ const head=`${where} You have the KNUCKLE BADGE (${BADGE_SAYS})`;
+ if(f.kind==="use")return `${head}, and ${knows}. In the party menu, choose ${f.knows[0]??""} and then FLASH to light up the area.`;
+ if(f.kind==="none")return `${head}, but HM05 is not in your bag and no Pokémon in your party knows FLASH.`;
+ if(noneAble!==null)return `${head} and ${HM05_HERE}, but ${noneAble}.`;
+ return `${head} and ${HM05_HERE}, but no Pokémon in your party knows FLASH. Using HM05 from the bag teaches FLASH${marks===""?"":`; the game marks ${marks} to learn it`}. A Pokémon that knows FLASH can use it from the party menu to light up the area.`;
 }
 
 // Once per map visit: the first qualifying state on a map fires; a state on another map re-arms it. States with no map

@@ -25,17 +25,28 @@ import {DarkAreaFlashReminder,FLASH_LEARNERS,FLASH_MAPS,MOVE_FLASH,darkAreaFlash
 
 const ID="dark-area-flash-reminder-v1";
 interface Row {readonly seq:number;readonly tool:string;readonly text:string;readonly state:GameStateSnapshot}
-const RUN=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/dark-area-flash-deepseek.json.gz",import.meta.url))).toString("utf8")) as {results:{seq:number;tool:string;text:string;state:unknown}[]};
+const RUN=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/dark-area-flash-deepseek.json.gz",import.meta.url))).toString("utf8")) as {results:{seq:number;tool:string;text:string;state:unknown}[];pre_badge:{seq:number;tool:string;text:string;state:unknown}[]};
 const ROWS:Row[]=RUN.results.map(r=>({seq:r.seq,tool:r.tool,text:r.text,state:parseGameState(r.state)}));
 const must=<T,>(value:T|null|undefined):T=>{if(value==null)throw new Error("missing");return value;};
 const at=(seq:number):GameStateSnapshot=>must(ROWS.find(r=>r.seq===seq)).state;
 const B1F=at(53954),F1=at(54542);
+// Result 35624 (turn 613): B1F before the KNUCKLE BADGE, with HM05 and COMBUSKEN alone in the party.
+const PRE:Row=(r=>({seq:r.seq,tool:r.tool,text:r.text,state:parseGameState(r.state)}))(must(RUN.pre_badge[0]));
 const OFF:FeatureSet=featuresOf([]);
 const ON:FeatureSet={...OFF,[ID]:true};
 
 const BADGE="SUPERVISOR: GRANITE CAVE B1F is dark. You have the KNUCKLE BADGE (\"you'll be able to use the HM move FLASH outside of battle\")";
 const TEACH=`${BADGE} and HM05 in the TMs & HMs pocket of your bag, but no Pokémon in your party knows FLASH. Using HM05 from the bag teaches FLASH; the game marks SABLEYE "ABLE!" and COMBUSKEN "NOT ABLE!" to learn it. A Pokémon that knows FLASH can use it from the party menu to light up the area.`;
 const USE=`${BADGE}, and SABLEYE knows FLASH. In the party menu, choose SABLEYE and then FLASH to light up the area.`;
+const HM05_NONE_ABLE=`HM05 in the TMs & HMs pocket of your bag, but no Pokémon in your party knows FLASH or can learn it: using HM05 from the bag, the game marks COMBUSKEN "NOT ABLE!".`;
+const BADGE_NONE_ABLE=`${BADGE} and ${HM05_NONE_ABLE}`;
+const BADGE_NO_HM=`${BADGE}, but HM05 is not in your bag and no Pokémon in your party knows FLASH.`;
+const NO_BADGE="SUPERVISOR: GRANITE CAVE B1F is dark. You do not have the KNUCKLE BADGE, so FLASH cannot be used outside of battle yet; choosing FLASH in the party menu, the game says \"This can't be used until a new BADGE is obtained.\"";
+const NO_BADGE_NONE_ABLE=`${NO_BADGE} You have ${HM05_NONE_ABLE}`;
+const NO_BADGE_TEACH=`${NO_BADGE} You have HM05 in the TMs & HMs pocket of your bag; using it from the bag teaches FLASH, and the game marks SABLEYE "ABLE!" and COMBUSKEN "NOT ABLE!" to learn it.`;
+const NO_BADGE_USE=`${NO_BADGE} SABLEYE knows FLASH.`;
+const NO_BADGE_NO_HM=`${NO_BADGE} HM05 is not in your bag, and no Pokémon in your party knows FLASH.`;
+const noBadge=(s:GameStateSnapshot):GameStateSnapshot=>({...s,badges:s.badges.filter(b=>b!=="KNUCKLE")});
 
 const withFlash=(s:GameStateSnapshot,species="SABLEYE"):GameStateSnapshot=>({...s,party:s.party.map(m=>m.species!==species?m:{...m,moves:[...(m.moves??[]).slice(0,3),{move_id:MOVE_FLASH,name:"FLASH",pp:20,max_pp:20,pp_bonus:0}]})});
 const level=(s:GameStateSnapshot,flash:number):GameStateSnapshot=>{const o=must(s.map_observation);return {...s,map_observation:{...o,layout:{...must(o.layout),flash_level:flash}}};};
@@ -61,6 +72,7 @@ describe("registry",()=>{
  it("is a default-off, agent-side guidance switch with no dependency, registered last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"DARK AREA FLASH REMINDER"});
   expect(featureInfo(ID).description).toContain(" Off: ");
+  expect(featureInfo(ID).description).toContain("on in both arms of the current recipe");
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(319);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures(ON,null).at(-1)).toBe(ID);
@@ -95,7 +107,7 @@ describe("conditions",()=>{
   expect(B1F.badges).toContain("KNUCKLE");
   expect(B1F.map_observation?.layout?.flash_level).toBe(7);
   const facts=must(darkAreaFlash(B1F));
-  expect(facts).toEqual({map_id:[24,8],location:"GRANITE CAVE B1F",flash_level:7,kind:"teach",knows:[],able:["SABLEYE"],not_able:["COMBUSKEN"]});
+  expect(facts).toEqual({map_id:[24,8],location:"GRANITE CAVE B1F",flash_level:7,badge:true,kind:"teach",knows:[],able:["SABLEYE"],not_able:["COMBUSKEN"]});
   expect(darkAreaFlashText(facts)).toBe(TEACH);
  });
  it("(b) a party Pokémon knows FLASH: use it from the party menu, named as the party shows it",()=>{
@@ -108,12 +120,29 @@ describe("conditions",()=>{
   expect(darkAreaFlashText(must(darkAreaFlash(both)))).toContain("and SABLEYE and COMBUSKEN know FLASH. In the party menu, choose SABLEYE and then FLASH");
   expect(must(darkAreaFlash(withoutItem(withFlash(B1F),343))).kind).toBe("use");
  });
- it("(c) says nothing without the badge, with neither HM05 nor a FLASH user, on a lit or not-dark map",()=>{
-  expect(darkAreaFlash({...B1F,badges:["STONE"]})).toBeNull();
-  expect(darkAreaFlash({...withFlash(B1F),badges:["STONE"]})).toBeNull();
-  expect(darkAreaFlash(withoutItem(B1F,343))).toBeNull();
+ it("(c) no KNUCKLE BADGE: says so, with the game's own refusal, then the FLASH facts",()=>{
+  expect(PRE.state.badges).toEqual(["STONE"]);
+  expect(PRE.state.party.map(m=>m.species)).toEqual(["COMBUSKEN"]);
+  expect(must(darkAreaFlash(PRE.state))).toMatchObject({badge:false,kind:"teach",able:[],not_able:["COMBUSKEN"]});
+  expect(darkAreaFlashText(must(darkAreaFlash(PRE.state)))).toBe(NO_BADGE_NONE_ABLE);
+  expect(darkAreaFlashText(must(darkAreaFlash(noBadge(B1F))))).toBe(NO_BADGE_TEACH);
+  expect(darkAreaFlashText(must(darkAreaFlash(noBadge(withFlash(B1F)))))).toBe(NO_BADGE_USE);
+  expect(darkAreaFlashText(must(darkAreaFlash(noBadge(withoutItem(B1F,343)))))).toBe(NO_BADGE_NO_HM);
+  const unnamed={...noBadge(B1F),party:B1F.party.map(m=>({...m,species_id:null}))};
+  expect(darkAreaFlashText(must(darkAreaFlash(unnamed)))).toBe(`${NO_BADGE} You have HM05 in the TMs & HMs pocket of your bag; using it from the bag teaches FLASH.`);
+ });
+ it("(d) badge but nobody can learn FLASH, or no HM05 and no FLASH user: says so plainly",()=>{
+  const combusken={...B1F,party:B1F.party.filter(m=>m.species==="COMBUSKEN")};
+  expect(must(darkAreaFlash(combusken))).toMatchObject({badge:true,kind:"teach",able:[],not_able:["COMBUSKEN"]});
+  expect(darkAreaFlashText(must(darkAreaFlash(combusken)))).toBe(BADGE_NONE_ABLE);
+  expect(must(darkAreaFlash(withoutItem(B1F,343)))).toMatchObject({badge:true,kind:"none",knows:[],able:[],not_able:[]});
+  expect(darkAreaFlashText(must(darkAreaFlash(withoutItem(B1F,343))))).toBe(BADGE_NO_HM);
+  expect(darkAreaFlashText(must(darkAreaFlash({...B1F,resources:{...must(B1F.resources),bag:must(must(B1F.resources).bag).map(i=>i.item_id===343?{...i,quantity:0}:i)}})))).toBe(BADGE_NO_HM);
+ });
+ it("(e) silent only on a lit map or a map without requires_flash",()=>{
   expect(darkAreaFlash(level(B1F,1))).toBeNull();
   expect(darkAreaFlash(level(B1F,0))).toBeNull();
+  expect(darkAreaFlash(level(noBadge(withoutItem(B1F,343)),1))).toBeNull();
   expect(darkAreaFlash(F1)).toBeNull();
   expect(darkAreaFlash({...F1,badges:B1F.badges})).toBeNull();
  });
@@ -132,15 +161,14 @@ describe("conditions",()=>{
   delete noLayout.map_observation.layout;
   expect(must(darkAreaFlash(noLayout)).flash_level).toBeNull();
  });
- it("leaves eggs and unnamed Pokémon out; with no bag read it says nothing",()=>{
+ it("leaves eggs and unnamed Pokémon out; with no bag read it says nothing, since HM05 is unknown",()=>{
   const egg={...B1F,party:B1F.party.map(m=>m.species==="SABLEYE"?{...m,is_egg:true}:m)};
   expect(must(darkAreaFlash(egg))).toMatchObject({able:[],not_able:["COMBUSKEN"]});
-  expect(darkAreaFlashText(must(darkAreaFlash(egg)))).toContain(`; the game marks COMBUSKEN "NOT ABLE!" to learn it.`);
+  expect(darkAreaFlashText(must(darkAreaFlash(egg)))).toBe(BADGE_NONE_ABLE);
   const unnamed={...B1F,party:B1F.party.map(m=>({...m,nickname:null,species:null,species_id:null}))};
   expect(darkAreaFlashText(must(darkAreaFlash(unnamed)))).toContain("Using HM05 from the bag teaches FLASH. A Pokémon");
   expect(darkAreaFlash({...B1F,resources:null})).toBeNull();
   expect(darkAreaFlash({...B1F,resources:{...must(B1F.resources),bag:null}})).toBeNull();
-  expect(darkAreaFlash({...B1F,resources:{...must(B1F.resources),bag:must(must(B1F.resources).bag).map(i=>i.item_id===343?{...i,quantity:0}:i)}})).toBeNull();
   expect(darkAreaFlashText({...must(darkAreaFlash(B1F)),location:null})).toMatch(/^SUPERVISOR: This area is dark\./);
  });
 });
@@ -179,6 +207,11 @@ describe("DeepSeek replay",()=>{
   const twice=[ROWS[2],ROWS[2]].map(must);
   expect(await added(ON,twice)).toEqual([TEACH,""]);
   expect(await added(ON,[{text:"no state",state:undefined},{text:"bad",state:{} as GameStateSnapshot}])).toEqual(["",""]);
+ });
+ it("ON before the badge: the real turn-613 B1F result gains the no-badge paragraph once per visit",async()=>{
+  expect(await added(ON,[PRE,PRE,{...PRE,state:F1},PRE])).toEqual([NO_BADGE_NONE_ABLE,"","",NO_BADGE_NONE_ABLE]);
+  const [tool]=withDarkAreaFlashReminder([replay([PRE])],OFF,{});
+  expect(await must(tool).execute("c",{})).toEqual({content:[{type:"text",text:PRE.text}],details:{state:PRE.state}});
  });
  it("ON with SABLEYE knowing FLASH: the use paragraph",async()=>{
   expect(await added(ON,ROWS.map(r=>({...r,state:withFlash(r.state)})))).toEqual(["","",USE,"",USE]);
@@ -226,8 +259,9 @@ it("playGameTools adds the paragraph and records a valid dark_area_flash_reminde
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
-it("tail names a FLASH user, a missing ABLE! list, and a map with no name",()=>{
+it("tail names a FLASH user, a missing badge, a missing ABLE! list, no HM05, and a map with no name",()=>{
  const base={v:1 as const,run:"r",seq:1,t:"2026-11-01T00:00:00.000Z",type:"dark_area_flash_reminder" as const,turn:1,tool:"press",map_id:[24,9] as [number,number],flash_level:null,text:"x"};
- expect(formatEvent({...base,location:null,kind:"use",knows:["SABLEYE"],able:[],not_able:[]})).toContain("map 24/9 · knows FLASH: SABLEYE");
- expect(formatEvent({...base,location:"GRANITE CAVE B2F",kind:"teach",knows:[],able:[],not_able:["COMBUSKEN"]})).toContain("HM05; ABLE: none");
+ expect(formatEvent({...base,location:null,badge:true,kind:"use",knows:["SABLEYE"],able:[],not_able:[]})).toContain("map 24/9 · knows FLASH: SABLEYE");
+ expect(formatEvent({...base,location:"GRANITE CAVE B2F",badge:false,kind:"teach",knows:[],able:[],not_able:["COMBUSKEN"]})).toContain("GRANITE CAVE B2F · no KNUCKLE BADGE · HM05; ABLE: none");
+ expect(formatEvent({...base,location:"GRANITE CAVE B2F",badge:true,kind:"none",knows:[],able:[],not_able:[]})).toContain("GRANITE CAVE B2F · no HM05, no FLASH user");
 });

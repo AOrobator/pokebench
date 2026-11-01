@@ -548,7 +548,7 @@ export class RunRecorder {
 
   // dark-area-flash-reminder-v1: recorded as the paragraph is added to the tool result.
   darkAreaFlashReminder(tool: string, facts: DarkAreaFlashFacts, text: string): void {
-    this.append({ type: "dark_area_flash_reminder", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], location: facts.location, flash_level: facts.flash_level, kind: facts.kind, knows: [...facts.knows], able: [...facts.able], not_able: [...facts.not_able], text });
+    this.append({ type: "dark_area_flash_reminder", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], location: facts.location, flash_level: facts.flash_level, badge: facts.badge, kind: facts.kind, knows: [...facts.knows], able: [...facts.able], not_able: [...facts.not_able], text });
   }
 
   // harness-trust-v1: recorded as the walk-away note is added under the result's header.

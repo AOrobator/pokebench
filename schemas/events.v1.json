@@ -6070,6 +6070,7 @@
         "map_id",
         "location",
         "flash_level",
+        "badge",
         "kind",
         "knows",
         "able",
@@ -6141,10 +6142,14 @@
             }
           ]
         },
+        "badge": {
+          "type": "boolean"
+        },
         "kind": {
           "enum": [
             "use",
-            "teach"
+            "teach",
+            "none"
           ]
         },
         "knows": {

@@ -18,12 +18,17 @@ A launch is not done until every check below passes. A check that fails means st
 ## 2. Launch
 
 - Launch only when the operator has said, in this conversation, to start the runs. There is no approval file or approve command (removed 2026-10-28, the operator); `run` uses the definition and feature recipe as they are on main at launch, and the ledger records their hash.
-- Launch only through `just`, which loads `.env` (POKEBENCH_ROM and friends). Never run `node packages/viewer/dist/fixed-cli.js run` directly. Detach so the runner outlives the session:
+- Launch only through `just`, which loads `.env` (POKEBENCH_ROM and friends). Never run `node packages/viewer/dist/fixed-cli.js run` directly.
+- **Detach is mandatory (operator 2026-11-01).** The runner and every trial must outlive Cursor/Claude/Codex restarts. Follow `.claude/skills/detached-long-lived-processes/SKILL.md`. Never start `fixed-run` / `live.js play` as an LLM-owned background terminal (`block_until_ms: 0`, `run_in_background`, lingering `exec`). Use nohup + logs + pid + disown in a shell that **returns immediately**:
 
   ```bash
-  nohup just fixed-run run <id> >> runs/experiments/<id>/runner.log 2>&1 < /dev/null & disown
+  mkdir -p runs/experiments/<id>
+  nohup just fixed-run run <id> >> runs/experiments/<id>/runner.log 2>&1 < /dev/null &
+  echo $! | tee runs/experiments/<id>/runner.pid
+  disown
   ```
 
+- Before calling it launched, confirm the runner pid's parent is not an agent/Cursor helper (see detached-long-lived-processes).
 - The CLI refuses to start without a readable POKEBENCH_ROM; if it does, fix the environment, never the check.
 - Trials never run the main checkout's build. Before the first trial the runner prepares a detached experiment checkout at the pinned commit, `/private/tmp/pokebench-fixed-<commit12>` (pnpm and uv installs, the native mGBA binding copied from main's venv, agent built, stamped), and launches every trial's `live.js` from it into the main `runs/`. Merges, `just build` and viewer restarts on main cannot reach a running trial. Never edit, rebuild or check out anything inside that directory while the experiment runs.
 

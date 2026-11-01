@@ -5,3 +5,5 @@ Codex: read `CLAUDE.md` first. Its rules are this repo's rules for every agent, 
 Claude sessions work in this repo alongside you and land on the same local `main`. Before you merge anything into `main`, join the landing board and wait for your turn. To tell Claude something, use `just tell-claude`. Both are in `.agents/skills/talk-to-claude/SKILL.md`.
 
 PokeBench-specific skills are versioned under `.claude/skills/`. Codex discovers them through the repository-relative links in `.agents/skills/`. Keep project-specific skills here rather than under `~/.codex/skills`, so a clone carries its workflow and helper scripts.
+
+Long-lived gameplay, fixed-run runners, viewers, and proxies must be detached from the agent session (operator 2026-11-01): `.claude/skills/detached-long-lived-processes/SKILL.md`. Never own them with a Cursor/Codex background terminal.

@@ -177,7 +177,8 @@ it("regenerates the checked-in source text and lexicons from the clean pinned pr
  const repo=fileURLToPath(new URL("../../../",import.meta.url));
  const common=execFileSync("git",["rev-parse","--path-format=absolute","--git-common-dir"],{cwd:repo,encoding:"utf8"}).trim();
  const pret=process.env["POKEEMERALD_DIR"]??resolve(dirname(common),"../pokeemerald");
- // 60s, not 15s: the sweep is 0.5s alone but the full parallel suite plus a live emulator run starves it.
- const output=execFileSync("python3",[resolve(repo,"scripts/build-instruction-memory-junk.py"),"--pret",pret,"--labels",resolve(repo,"packages/agent/src/data/npc-flavor-labels.json"),"--output",resolve(repo,"packages/agent/src/data"),"--check"],{cwd:repo,encoding:"utf8",timeout:60000});
+ // 25s inner / 30s test: the sweep is 0.5s alone, but vitest's 5s default is what a
+ // loaded full-suite run plus a live emulator actually blows through.
+ const output=execFileSync("python3",[resolve(repo,"scripts/build-instruction-memory-junk.py"),"--pret",pret,"--labels",resolve(repo,"packages/agent/src/data/npc-flavor-labels.json"),"--output",resolve(repo,"packages/agent/src/data"),"--check"],{cwd:repo,encoding:"utf8",timeout:25000});
  expect(output).toContain("npc-flavor-labels.json");expect(output).toContain("instruction-memory-junk-source.json");
-});
+},30000);

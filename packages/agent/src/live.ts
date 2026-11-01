@@ -5,6 +5,7 @@ import {liveContinuationFromEnv,restoreLiveContinuation,validateLiveContinuation
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {exactCountProblems,payloadCounter} from "./exact-context.js";
+import type {FitReport} from "./context-budget.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {ModelErrorRecovery} from "./model-error-recovery.js";
 import { operatorSignalLatch } from "./operator-signals.js";
@@ -226,6 +227,14 @@ async function smoke(): Promise<void> {
 }
 
 
+// A fit that failed is only the run's death sentence when it was fitted against a ceiling that is
+// actually in force: a plain window-limit fit with no refusal behind it proves nothing about the lane.
+export function ceilingMakesRunUnsatisfiable(recovery: ModelErrorRecovery | null, report: FitReport): boolean {
+  if (recovery === null || report.fits) return false;
+  const ceiling = recovery.ceiling.limit;
+  return ceiling !== null && report.limit === ceiling;
+}
+
 // The composition live.ts uses, exported so a test can prove the decision itself: a model error that
 // the recovery cannot answer ends the run instead of being resent.
 export function modelErrorHandlers(
@@ -308,7 +317,7 @@ async function playAgent(): Promise<void> {
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
-      // probed before the retry, and neither ends the run.
+      // probed before the retry. Two consecutive model errors are absorbed; the third ends the run.
       const recovery = features["model-error-recovery-v1"]
         ? new ModelErrorRecovery({baseUrl: model.baseUrl, ...(apiKey===undefined?{}:{apiKey}), record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
         : null;
@@ -368,7 +377,7 @@ async function playAgent(): Promise<void> {
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
-      const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey),(report)=>{ if(!report.fits) recovery?.markUnsatisfiable(); });
+      const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey),(report)=>{ if(ceilingMakesRunUnsatisfiable(recovery,report)) recovery?.markUnsatisfiable(); });
       recovery?.attach({...budget, ...(exact===undefined?{}:{exact})});
       const restored=continuation===null?null:await restoreLiveContinuation(continuation,features,recorder,context,{systemPrompt,tools:tools.map(({name,description,parameters})=>({name,description,parameters})),...(budget.budget===undefined?{}:{budget:budget.budget})});
       const messages:AgentMessage[]=restored===null?[]:[...restored.messages];

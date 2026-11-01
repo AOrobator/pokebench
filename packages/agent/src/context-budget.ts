@@ -91,7 +91,7 @@ export class ContextBudget {
   snapshot():ContextBudgetState{return {limit:this.limit,sent:this.sent,anchor:this.anchor===null?null:{...this.anchor}};}
   restore(state:ContextBudgetState):void{
     const positive=(n:number)=>Number.isSafeInteger(n)&&n>=0;
-    if(state.limit!==this.limit||state.sent!==null&&!positive(state.sent)||state.anchor!==null&&(!positive(state.anchor.weight)||!positive(state.anchor.tokens)||!["usage","overflow"].includes(state.anchor.basis)))throw new Error("invalid context budget restoration");
+    if(Number.isFinite(this.limit)&&state.limit!==this.limit||state.sent!==null&&!positive(state.sent)||state.anchor!==null&&(!positive(state.anchor.weight)||!positive(state.anchor.tokens)||!["usage","overflow"].includes(state.anchor.basis)))throw new Error("invalid context budget restoration");
     this.sent=state.sent;this.anchor=state.anchor===null?null:{...state.anchor};
   }
 

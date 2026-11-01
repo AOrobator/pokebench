@@ -161,11 +161,36 @@ batch:
 4. **Two variables at once.** Building a `ContextBudget` because recovery is on made the run trim
    from turn 1 at the model's window, even with `context-token-budget-v1` off. That budget is now
    built with an infinite limit, so nothing is trimmed until a refusal lowers it.
-5. **Untested seam.** `live.ts` now exports `modelErrorHandlers`, and tests drive it plus
-   `ModelErrorRecovery` against the real `ContextBudget`. Mutation evidence, run just now: making
-   `observe` ignore the unsatisfiable state fails 2 tests; making the seam never abort fails 1;
-   restoring is 21/21 green. What remains uncovered is `playAgent`'s own assembly of these pieces,
-   which is unexported and would need a larger refactor to test directly.
+5. **Untested seam.** `live.ts` now exports `modelErrorHandlers` and
+   `ceilingMakesRunUnsatisfiable`, and tests drive them plus `ModelErrorRecovery` against the real
+   `ContextBudget` and `ExactContext`. Mutation evidence, each run and restored in this session:
+   deleting the unsatisfiable check fails 1 test; deleting the exact fitter's `onFit` call fails 1;
+   dropping the `report.limit === ceiling` condition fails 1; reverting the error bound to
+   always-absorb fails 1; making the seam never abort fails 1. Restoring is 24/24 green. What
+   remains uncovered is `playAgent`'s own assembly of these pieces, which is unexported and would
+   need a larger refactor to test directly.
+
+## Second review batch (the final advisory lane)
+
+That lane returned LGTM with five SHOULD-FIX items; four were real and are fixed here:
+
+1. **The unsatisfiable flag was untested.** Deleting `if (this.unsatisfiable) return true;` left the
+   suite green, because the tests reached the older same-size branch instead. A test now refutes the
+   flag's absence with a refusal size that *changes* the ceiling (42000 against a 31822 ceiling gives
+   31500), so only the flag can end that run.
+2. **The exact fitter's report was untested**, even though `context-exact-count-v1` is on in the
+   recipe, so that is the fitter production actually uses. A test now drives `ExactContext` through
+   `capAt` and asserts the report.
+3. **Over-claiming what the fit does.** The unfittable request still goes out once — the check runs
+   before the next send, not instead of it — so "rather than sending the refused request again" was
+   false in the explainer, the registry description and this worklog. All three now say what happens:
+   one send, then the next refusal ends the run.
+4. **The flag could end a healthy run early.** Any `fits: false` set it, including a plain window
+   fit with no refusal behind it, and it never cleared — so one oversized newest turn plus one
+   transient 502 would end the run. Only a failed fit against a ceiling actually in force can set it
+   now, through `ceilingMakesRunUnsatisfiable`.
+5. Two stale "neither ends the run" comments and the explainer index line are corrected; the
+   restore path no longer rejects a recorded finite limit when the budget was built uncapped.
 
 ## Decisions
 

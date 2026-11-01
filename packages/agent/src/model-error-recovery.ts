@@ -183,7 +183,7 @@ export class ModelErrorRecovery {
   markUnsatisfiable(): void {
     if (this.unsatisfiable) return;
     this.unsatisfiable = true;
-    this.options.record(`no request fits under the input ceiling ${String(this.ceiling.limit ?? 0)}; ending the run`);
+    this.options.record(`no request fits under the input ceiling ${String(this.ceiling.limit)}; ending the run`);
   }
 
   // Called for every model error: a size refusal lowers the ceiling, anything else waits on the lane.

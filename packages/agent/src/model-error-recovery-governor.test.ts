@@ -8,7 +8,7 @@ import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, 
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools } from "./play-config.js";
 import { contextBudget } from "./play-wiring.js";
-import { modelErrorHandlers } from "./live.js";
+import { ceilingMakesRunUnsatisfiable, modelErrorHandlers } from "./live.js";
 import { ALL_ON } from "./features.js";
 import { InputCeiling, LaneReadiness, ModelErrorRecovery, modelsProbe, refusedPromptTokens } from "./model-error-recovery.js";
 const ON = { ...ALL_ON, "model-error-recovery-v1": true } as FeatureSet;
@@ -264,7 +264,7 @@ describe("ModelErrorRecovery against the real fitters", () => {
     expect(recovery.observe({ errorMessage: "This prompt (2000 tokens) does not fit in GPU memory" })).toBe(true);
   });
 
-  it("does not trim before a refusal when only recovery is on", () => {
+  it("does not trim before a refusal through the estimate fitter when only recovery is on", () => {
     const wired = contextBudget(
       { ...ON, "context-token-budget-v1": false, "context-exact-count-v1": false, "model-error-recovery-v1": true },
       { contextWindow: 1000 },
@@ -316,5 +316,51 @@ describe("the composition live.ts actually uses", () => {
 
   it("is inert when the switch is off", () => {
     expect(modelErrorHandlers(null, () => undefined)).toEqual({ modelErrorRecovery: false });
+  });
+});
+
+describe("a fit that cannot succeed decides the run", () => {
+  it("ends the run from the flag even when every refusal quotes a different size", () => {
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://lane/v1", record: () => undefined });
+    recovery.observe({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    expect(recovery.ceiling.limit).toBe(31822);
+    recovery.markUnsatisfiable();
+    // 42000 would lower the ceiling to 31500: a different value, so the same-size predicate cannot fire.
+    expect(recovery.observe({ errorMessage: "This prompt (42000 tokens) does not fit in GPU memory" })).toBe(true);
+  });
+
+  it("only calls the run unsatisfiable for a fit against a ceiling in force", () => {
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://lane/v1", record: () => undefined });
+    expect(ceilingMakesRunUnsatisfiable(recovery, { fits: false, limit: 1000, predicted: 40_000 })).toBe(false);
+    recovery.observe({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    expect(ceilingMakesRunUnsatisfiable(recovery, { fits: true, limit: 31822, predicted: 30_000 })).toBe(false);
+    expect(ceilingMakesRunUnsatisfiable(recovery, { fits: false, limit: 1000, predicted: 40_000 })).toBe(false);
+    expect(ceilingMakesRunUnsatisfiable(recovery, { fits: false, limit: 31822, predicted: 40_000 })).toBe(true);
+    expect(ceilingMakesRunUnsatisfiable(null, { fits: false, limit: 31822, predicted: 40_000 })).toBe(false);
+  });
+
+  it("reports an unfittable fit through the exact fitter too", async () => {
+    const reports: { fits: boolean; limit: number }[] = [];
+    const exact = new ExactContext(
+      {
+        source: "vllm-tokenize",
+        count: () => Promise.resolve({ tokens: 40_000, window: 200_000, source: "vllm-tokenize" as const }),
+      },
+      200_000,
+      4096,
+      { compaction: () => undefined, promptCount: () => undefined },
+      (report) => reports.push({ fits: report.fits, limit: report.limit }),
+    );
+    exact.capAt(31822);
+    await exact.fit({
+      model: "qwen",
+      messages: [
+        { role: "system", content: "rules" },
+        { role: "user", content: "Play." },
+        { role: "assistant", content: "x" },
+      ],
+      tools: [{ type: "function", function: { name: "press" } }],
+    });
+    expect(reports.at(-1)).toEqual({ fits: false, limit: 31822 });
   });
 });

@@ -99,13 +99,13 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <section class="card">
 <h2>What it does</h2>
-<p>A refusal that names a prompt size sets a ceiling on model input for the rest of the run at three quarters of the refused size, <code>floor(0.75 x 42430) = 31822</code>. The next request drops the oldest whole turns until it fits under that ceiling. A second refusal lowers the ceiling again; it never rises. If even the shortest request that still holds the task and the newest turn is over the ceiling, nothing can be dropped to make it fit — the run then ends with <code>model_error</code> rather than sending the refused request again.</p>
+<p>A refusal that names a prompt size sets a ceiling on model input for the rest of the run at three quarters of the refused size, <code>floor(0.75 x 42430) = 31822</code>. The next request drops the oldest whole turns until it fits under that ceiling. A second refusal lowers the ceiling again; it never rises. If even the shortest request that still holds the task and the newest turn is over the ceiling, nothing can be dropped to make it fit: that request still goes out once, and the next refusal ends the run with <code>model_error</code> instead of resending it forever.</p>
 <p>Any other model error — a dead process, a 502, a timeout — waits until the lane answers <code>GET /models</code> with a 200 before the next model call, probing on a growing interval capped at one minute.</p>
 </section>
 
 <section class="card">
 <h2>What it never does</h2>
-<p>It never cuts text. It drops whole turns only, through the fitters that already exist, so a message is never truncated mid-sentence. It never hides a lane failure either: two consecutive lane errors are absorbed and recorded, the third ends the run as <code>model_error</code>, and a refusal nothing can be dropped to satisfy ends it at once. The turn budget, the operator stop and the loop guard still end runs exactly as before.</p>
+<p>It never cuts text. It drops whole turns only, through the fitters that already exist, so a message is never truncated mid-sentence. It never hides a lane failure either: two consecutive lane errors are absorbed and recorded, the third ends the run as <code>model_error</code>, and a refusal nothing can be dropped to satisfy ends it on the next refusal, not after a loop. The turn budget, the operator stop and the loop guard still end runs exactly as before.</p>
 </section>
 
 <section class="card">

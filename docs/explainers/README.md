@@ -269,7 +269,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Map-cycle recovery briefing](map-cycle-recovery-v1.html): each unresolved map-cycle episode briefs and resets the cycle count without ending the run.
 - [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.
 - [Dark area FLASH reminder](dark-area-flash-reminder-v1.html) — on in both arms of current; one SUPERVISOR paragraph on the first free-field result after entering an unlit `requires_flash` map, stating the KNUCKLE BADGE, the party's FLASH users, HM05 and the game's "ABLE!"/"NOT ABLE!" marks. No action taken.
-- [Model error recovery](model-error-recovery-v1.html) — on in both arms of current; a prompt-size refusal sets a sticky input ceiling at 75% of the refused size and drops whole turns to fit, any other model error waits for the lane to answer, and neither ends the run. Recorded as retry events.
+- [Model error recovery](model-error-recovery-v1.html) — on in both arms of current; a prompt-size refusal sets a sticky input ceiling at 75% of the refused size and drops whole turns to fit, any other model error waits for the lane to answer; two consecutive lane errors are absorbed and the third ends the run as model_error. Recorded as retry events.
 
 - [move-learn-goal-reminder-v1](move-learn-goal-reminder-v1.html) — tested task reminder after an explicit skip plan; both-arm operator activation.
 

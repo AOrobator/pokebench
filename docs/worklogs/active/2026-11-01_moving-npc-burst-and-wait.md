@@ -1,7 +1,7 @@
 # Moving-NPC wait fix + free-field frame burst
 
 **Started:** 2026-11-01
-**Status:** Landing; operator approved execute+land 2026-11-01
+**Status:** Landed on main `67c39f1cb`; post-merge `just test` PASS
 **Branch:** `cursor/moving-npc-burst-and-wait`
 
 ## Problem Statement
@@ -84,8 +84,8 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 - [x] Freeze packet R2 `14991d479..1549b9be9` sha256 `64c924e01ad2008714cd8a36e85a687fa842d944ff75ccf478b0c581a1e8f866`
 - [x] Claude CLI R2 `VERDICT: LGTM` (B1 closed)
 - [ ] Grok/GPT lanes unavailable (Cursor usage limit; Codex ChatGPT account rejects configured models incl. gpt-6.1-sol) — landing under operator execute+land with disclosed reduced diversity
-- [ ] Land FF-only; report merge SHA
-- [ ] Authorized `just viewer-main` only if operator requests Harness Config refresh; no experiment launch without separate approval
+- [x] Land FF-only `67c39f1cb`; post-merge `just test` PASS
+- [ ] `just viewer-main` not run (needs operator request for Harness Config refresh); no experiment launch
 
 ## Closing the Loop
 
@@ -124,3 +124,5 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 ## Archive Milestone
 
 - ASK USER
+
+- 2026-11-01: Landed FF onto main `67c39f1cb`. Post-merge `just test` PASS. CPU RELEASE. `just land-done`.

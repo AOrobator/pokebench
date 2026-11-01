@@ -283,7 +283,13 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     last=await navigate.executeChecked(id,{x:choice.point.x,y:choice.point.y,map_id:request.map_id},stable,signal,{exactTarget:true,commandLimit:1,...(sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:fresh.local_id}}:{})});
     const status=navigationStatus(last);
     if(navigationStopRequested(last)||status===SIGHT_STATUS)return finish(status??"semantic travel stop requested");
-    if(status!=="arrived at requested coordinate"&&!navigationCanContinue(status))return finish(status??"route ended before the selected approach");
+    if(status!=="arrived at requested coordinate"&&!navigationCanContinue(status)){
+     // NPC walked onto the chosen approach: plan/step refuses the occupied tile. Identity is
+     // intact, so replan like a pre-input drift instead of ending the follow early.
+     const occupied=status!==null&&(/person or object|cannot stand on/.test(status));
+     if(occupied&&identity(await stateSource.read(signal))!==null){await capture();continue;}
+     return finish(status??"route ended before the selected approach");
+    }
     await capture();
     continue;
    }

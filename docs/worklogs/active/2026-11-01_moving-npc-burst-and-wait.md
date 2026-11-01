@@ -109,7 +109,8 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 
 ## Multi-Model Review Log
 
-- (pending)
+- Round 1 Claude CLI (`~/.claude-review`, plan mode): `VERDICT: BLOCKING` — B1 follow finishes when navigate refuses an approach the NPC just occupied (stable no longer aborts drift; occupied goal/step is not continuable). Non-blocking: burst may drop final frame at cap; principles packet head lag; observe burst updates shown-state (speculation).
+- Fix: continue follow when navigate status matches person/object occupation and identity remains (`semantic-navigation.ts`); test `replans when navigate refuses an approach the NPC just occupied`.
 
 ## Boy Scout Log
 

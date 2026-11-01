@@ -29,8 +29,8 @@ function place(state:GameStateSnapshot,targets:readonly Target[]):GameStateSnaps
 }
 const field=()=>place({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:1},facing:"right",field_controls_locked:false},[npc(3)]);
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
-function fixture(on=true,after?:(state:GameStateSnapshot,buttons:readonly Button[],count:number)=>GameStateSnapshot,before?:(state:GameStateSnapshot,button:Button|undefined)=>GameStateSnapshot,overrides:Partial<FeatureSet>={},sightReply?:TrainerSightReply){
- let current=field();const sent:Button[][]=[],sightRecords:TrainerSightCheck[]=[];
+function fixture(on=true,after?:(state:GameStateSnapshot,buttons:readonly Button[],count:number)=>GameStateSnapshot,before?:(state:GameStateSnapshot,button:Button|undefined)=>GameStateSnapshot,overrides:Partial<FeatureSet>={},sightReply?:TrainerSightReply,onRead?:(state:GameStateSnapshot,read:number)=>GameStateSnapshot){
+ let current=field(),reads=0;const sent:Button[][]=[],sightRecords:TrainerSightCheck[]=[];
  const observe:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"image" as const,data:`frame-${String(Date.now())}`,mimeType:"image/png"},{type:"text" as const,text:"state"}],details:{state:current}})};
  const checked={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id:string,args:{buttons:Button[]})=>checked.executeChecked(id,args,()=>undefined),executeChecked:(_id:string,args:{buttons:Button[]},check:(state:GameStateSnapshot)=>void)=>{
   current=before?.(current,args.buttons[0])??current;check(current);sent.push(args.buttons);
@@ -40,7 +40,7 @@ function fixture(on=true,after?:(state:GameStateSnapshot,buttons:readonly Button
  }} as unknown as CheckedPressTool;
  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true,[ID]:on,...overrides};
  const recorder={trainerSightCheck:(check:TrainerSightCheck)=>{sightRecords.push(check);},subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
- const tools=playGameTools([observe,checked],features,{read:()=>Promise.resolve(current),trainerSight:()=>Promise.resolve(sightReply??{available:false,reason:"fixture"})},recorder);
+ const tools=playGameTools([observe,checked],features,{read:()=>{reads+=1;current=onRead?.(current,reads)??current;return Promise.resolve(current);},trainerSight:()=>Promise.resolve(sightReply??{available:false,reason:"fixture"})},recorder);
  const tool=tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing tool");
  return {sent,tool,sightRecords,state:()=>current,set:(state:GameStateSnapshot)=>{current=state;}};
 }
@@ -132,6 +132,22 @@ it("keeps walking when the target drifts before each step instead of burning the
  // Continuous pre-input flips prevent a clean A; progress is the walked steps, not a 0-move limit.
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false,status:"moving target attempt limit reached; inspect the current state"}});
  expect((out.details as {semantic_navigation:{status:string}}).semantic_navigation.status).not.toContain("0 bounded");
+});
+it("replans when navigate refuses an approach the NPC just occupied",async()=>{
+ // Player one tile shy of approach (2,1) for NPC at (3,1). After followObject chooses (2,1), the
+ // next state read (navigate's plan) parks the NPC on that tile so the destination is occupied.
+ let parked=false;
+ const f=fixture(true,undefined,undefined,{},undefined,(s,read)=>{
+  if(!parked&&read>=2&&(s.interaction_targets?.[0]?.x??0)===3){parked=true;return place(s,[npc(2,1)]);}
+  return s;
+ });
+ f.set({...field(),position:{x:1,y:1},facing:"right"});
+ const out=await f.tool.execute("occupy-approach",request);
+ expect(parked).toBe(true);
+ const status=(out.details as {semantic_navigation:{status:string}}).semantic_navigation.status;
+ expect(status).not.toMatch(/person or object|cannot stand on/i);
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+ expect(f.sent.filter(b=>b[0]==="A")).toEqual([["A"]]);
 });
 
 it("documents the ON bound in tool and system prompt, preserving OFF bytes",()=>{

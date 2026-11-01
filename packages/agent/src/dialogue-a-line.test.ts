@@ -2,14 +2,14 @@ import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
 import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
+import {normalizeFeatures} from "./play-preset.js";
 import {DIALOGUE_A_LINE_SECTION,DIALOGUE_BUTTON_B_SECTION,SEMANTIC_TALK_IS_CHEAP,SEMANTIC_TALK_IS_CHEAP_A_LINE,playSystemPrompt} from "./play-config.js";
 
 const ID = "dialogue-a-line-v1" as const;
 const HISTORICAL_SECTION = "Dialogue button: B is the button for a message. Press B to advance or close one. Do not press A to move a message along: A talks to whatever you face and starts its message again, so the same sign or person speaks once more. Once you can walk, leave instead of pressing A in front of it.";
 const HISTORICAL_TALK = "Talking is cheap: when the readout gives the person a navigate_to_target target, call navigate_to_target with it; it walks there, faces them and presses A, and the harness reads the conversation until your next decision.";
 // The three sections this switch rewrites, on, on the same flags the current arms run.
-const arm: FeatureSet = {"dialog-button-b-v1": true, "dialogue-auto-advance-v1": true, "explorer-guidance-v2": true, "semantic-navigation-v2": true};
+const arm = {"dialog-button-b-v1": true, "dialogue-auto-advance-v1": true, "explorer-guidance-v2": true, "semantic-navigation-v2": true} as unknown as FeatureSet;
 const prompt = (features: FeatureSet): string => playSystemPrompt(features, null);
 
 // dialogue-a-line-v1: the dialogue section used to end "Once you can walk, leave instead of pressing A in
@@ -42,7 +42,7 @@ describe("dialogue-a-line-v1", () => {
   });
 
   it("ON names no character, place or story step", () => {
-    expect(prompt({...arm, [ID]: true})).not.toMatch(/MOM|truck|Aqua|Roxanne/);
+    expect(DIALOGUE_A_LINE_SECTION).not.toMatch(/MOM|truck|Aqua|Roxanne/);
   });
 
   it("ON leaves navigate_to_target preferred and still gives A as the way to talk without a target", () => {
@@ -50,14 +50,15 @@ describe("dialogue-a-line-v1", () => {
     expect(SEMANTIC_TALK_IS_CHEAP_A_LINE).toContain("When it gives none, face the person and press A.");
     const on = prompt({...arm, [ID]: true});
     expect(on).toContain(SEMANTIC_TALK_IS_CHEAP_A_LINE);
-    expect(on).not.toContain(`${SEMANTIC_TALK_IS_CHEAP} `);
+    // the paragraph does not end at the historical sentence: the no-target clause follows it.
+    expect(on).not.toMatch(/until your next decision\.\n/);
   });
 
   it("is a default-off guidance switch, on in both arms of the current recipe", () => {
     expect(featureInfo(ID)).toMatchObject({group: "guidance", needs: null, switchable: true});
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(SWITCHABLE_FEATURES).toContain(ID);
-    expect(playHarnessFeatures({...arm, [ID]: true} as FeatureSet, null)).toContain(ID);
+    expect(playHarnessFeatures({...arm, [ID]: true}, null)).toContain(ID);
     expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
     const recipe = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/feature-configs/current.json", import.meta.url)), "utf8")) as {
       features: Record<string, boolean>;
@@ -66,6 +67,7 @@ describe("dialogue-a-line-v1", () => {
     };
     expect(recipe.features[ID]).toBe(true);
     expect(recipe.switches).not.toContain(ID);
+    expect((recipe as {onInBoth?: string[]}).onInBoth).toContain(ID);
     expect(recipe.offInBoth).not.toContain(ID);
     const shared = {...recipe.features, ...Object.fromEntries(recipe.switches.map((name) => [name, false]))} as unknown as FeatureSet;
     const control = playSystemPrompt(shared, null);

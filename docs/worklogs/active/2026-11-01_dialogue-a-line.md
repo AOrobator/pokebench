@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Operator (2026-11-01): the system prompt's `DIALOGUE_BUTTON_B_SECTION` ends with a general instruction to leave instead of pressing A. It was added by `05060925c` ("feat(truck-dialogue): count a closed sign and tell the model to press B") to stop A-spam at signs, but it generalizes to people and contradicts `explorer-guidance-v2`'s "Talk to people" section two thirds of the way up the same prompt.
+Operator (2026-11-01): the system prompt's dialogue section ended with a general instruction to leave instead of pressing A. `05060925c` added it ("feat(truck-dialogue): count a closed sign and tell the model to press B") to stop A-spam at signs, but it generalizes to people and contradicts `explorer-guidance-v2`'s "Talk to people" section.
 
 Measured in the 24h Qwen run: turn 354 stood one tile west of a scripted Team Aqua NPC at (14,5) blocking the only corridor east and pressed RIGHT (a bump) instead of A. Recorded reasoning: "talking just made it move suggests this is a SCRIPTED NPC … Bumping might trigger a battle script, or might do nothing. Let me just try pressing RIGHT." The bump returned "blocked or unavailable"; turn 355 concluded it was "stuck on this Aqua member that won't budge" and abandoned the mandatory story path, with no further milestones for 11 hours. The one action never tried was A on the person.
 
@@ -11,53 +11,63 @@ Measured on this branch before the edit (current recipe features, `playSystemPro
 ## Skills Loaded
 
 - `pokebench-agent-workflow` (worktree setup, gate ladder)
-- `.claude/skills/feature-switch/SKILL.md` (activation placement only; no new switch added)
+- `.claude/skills/feature-switch/SKILL.md` (switch placement, registry, explainer)
 - `.claude/skills/talk-to-claude/SKILL.md` (landing board, CPU windows)
 
 ## Architecture
 
-`dialog-button-b-v1` already gates the section and is already set `true` in the `features` dict of `experiments/feature-configs/current.json`, which both arms share; it is in neither `switches` nor `offInBoth`. The fix is text only, so both arms get it with no arming change and no new flag.
+Text only, but the wording cannot change as a shared constant: two pins reproduce historical prompts byte for byte, and both of their configurations carry `dialog-button-b-v1` **on**, so the section is in the prompt those pins compare against —
 
-Two strings change in `packages/agent/src/play-config.ts`:
+- `destination-first.test.ts` compares the recorded 24h Qwen prompt (20,853 chars; `dialog-button-b-v1` is in its 275 recorded features) to `playSystemPrompt` today.
+- `tool-prompt-sync.test.ts` pins sha256 `9bd07f02…` for the control-base preset.
 
-- `DIALOGUE_BUTTON_B_SECTION` — the leave sentence becomes a rule scoped to a message already read, plus one sentence that A is how to talk to a person or read a sign.
-- `SEMANTIC_TALK_IS_CHEAP` — one trailing clause so the talk paragraph agrees: when the readout gives no target, face the person and press A.
+Gating the new words behind `dialog-button-b-v1` therefore cannot restore either pin: the ON branch is the one those pins take. So the corrected wording sits behind a default-off switch, `dialogue-a-line-v1`, the way every other prompt-text change in this repo ships: OFF emits the historical bytes, ON emits the corrected text. The switch is on in both arms through `experiments/feature-configs/current.json` — `features["dialogue-a-line-v1"]=true` **and** listed in `onInBoth` (a feature the pinned control base does not set must be in `onInBoth`, or `controlBaseProblems` rejects the recipe). It is in neither `switches` nor `offInBoth`.
 
-`packages/agent/src/features.ts`'s registry copy for `dialog-button-b-v1` described the removed sentence and is updated with it. `docs/explainers/dialog-button-b-v1.html` quotes the section and gets the new text.
+Two strings in `packages/agent/src/play-config.ts`, both chosen by the switch:
+
+- `DIALOGUE_A_LINE_SECTION` — the leave sentence becomes a rule scoped to a message already read, plus one sentence that A is how you talk to a person or read a sign.
+- `SEMANTIC_TALK_IS_CHEAP_A_LINE` — `SEMANTIC_TALK_IS_CHEAP` plus "When it gives none, face the person and press A.", so the talk paragraph agrees with the dialogue section while `navigate_to_target` stays preferred when the readout gives a target.
+
+`DIALOGUE_BUTTON_B_SECTION` and `SEMANTIC_TALK_IS_CHEAP` are untouched, so `dialog-button-b-v1` on with `dialogue-a-line-v1` off still emits the old words.
 
 ## Invariants
 
-- INV-1: the section never states a general "leave instead of pressing A" rule, in the constant or in either arm's assembled prompt. Test: `dialog-button-b.test.ts` "drops the general leave rule…" and "the current recipe keeps the fixed section on in both arms…".
-- INV-2: the section keeps the game facts — B advances or closes a message; A talks to whatever you face and starts that sign's or person's message again. Test: same block, positive assertions on those sentences.
-- INV-3: the anti-A-spam rule survives, scoped to a message already read. Test: "…or press it again on a message you have already read".
-- INV-4: A stays a legitimate way to talk, and `navigate_to_target` stays preferred when the readout gives a target. Test: the SEMANTIC_TALK_IS_CHEAP clause test.
-- INV-5: arming unchanged — `features["dialog-button-b-v1"]===true`, not in `switches`/`offInBoth`. Test: the recipe read in the both-arms test.
-- INV-6: no new game facts, NPCs, maps or story steps; the section still names no character or place (`not.toContain("MOM")`, `not.toContain("truck")`).
+- INV-1: OFF keeps the historical bytes. Test: `dialogue-a-line.test.ts` "OFF keeps the historical words, leave rule included, byte for byte", plus the untouched `destination-first` and `tool-prompt-sync` pins.
+- INV-2: the corrected section never states a general leave rule and keeps the game facts — B advances or closes a message; A talks to whatever you face and starts that sign's or person's message again. Test: "ON keeps the B facts and the A fact, drops the general leave rule".
+- INV-3: the anti-A-spam rule survives, scoped to a message already read. Test: "ON scopes the anti-A-spam rule to a message already read, and says A talks to a person".
+- INV-4: A stays a legitimate way to talk, and `navigate_to_target` stays preferred when the readout gives a target. Test: "ON leaves navigate_to_target preferred and still gives A as the way to talk without a target".
+- INV-5: no new game facts, NPCs, maps or story steps; the section names no character or place. Test: "ON names no character, place or story step".
+- INV-6: arming — `features["dialogue-a-line-v1"]===true`, in `onInBoth`, not in `switches`/`offInBoth`, and both arms' assembled prompts carry the corrected section. Test: "is a default-off guidance switch, on in both arms of the current recipe".
+- INV-7: default off — `normalizeFeatures({})[id]===false`, registered last, ` Off: ` copy. Test: the same case plus the registry pins.
 
 ## Security Review
 
-Prompt copy only; no new input, tool, server read or filesystem access.
+Prompt copy only; no new input, tool, server read or filesystem access. The switch is agent-side only (`SERVER_FEATURES` unchanged).
 
 ## Milestones
 
-### M1 — Reword the dialogue section and the talk clause
-- [x] RED: `dialog-button-b.test.ts` asserts the leave rule is gone and the new sentences are present (3 failed, 2 passed before the edit)
-- [ ] GREEN: `play-config.ts` (both strings), `features.ts` registry copy, explainer quote
-- [ ] Full gates: `just test` / `just lint` / `just build` / `just coverage`
+### M1 — Reword the dialogue section behind dialogue-a-line-v1
+- [x] RED: `c4a69a8ca` — `dialogue-a-line.test.ts` pins the OFF bytes and the ON wording (4 failed, 2 passed before the switch existed)
+- [x] GREEN: `play-config.ts` (both strings, selected by the switch), `features.ts` registry, `play-preset.ts`, `next-run.ts`, `current.json` (`features` + `onInBoth`), explainer + `panels.ts` mapping, one registry-index pin in `model-error-recovery-governor.test.ts`
+- [ ] Full gates: `just lint` / `just coverage`
 - [ ] Multi-model review
 - [ ] Land (landing board slot)
 
 ## Closing the Loop
 
-Fixed at the prompt surface the model reads: `playSystemPrompt` with the current recipe's shared features returns the new section in both arms and no leave rule. No live run restart without operator ask.
+`playSystemPrompt` with the current recipe's shared features returns the corrected section in both arms and no leave rule anywhere in the prompt; `normalizeFeatures({})` and every pinned preset still return the old bytes. No live run restart without operator ask.
 
 ## Session Log
 
-- 2026-11-01: worktree `/private/tmp/pb-dialogue-a-line`, branch `claude/dialogue-a-line-both`, off main `3623a82a4`. RED committed; GREEN next.
+- 2026-11-01: worktree `/private/tmp/pb-dialogue-a-line`, branch `claude/dialogue-a-line-both`, off main `3623a82a4` (main at `e3f7c2ae0` when the branch started). `just setup`, `just build-mgba`, `just verify-vendor`, `just verify-rom` pass.
+- 2026-11-01: first GREEN attempt (`260aa12d5`, since dropped) changed the shared constants; it turned both OFF-byte pins red. Reworked to a default-off switch so the OFF arm keeps the historical bytes, per operator instruction.
+- 2026-11-01: CPU window requested from the Claude relay at 22:05Z; no grant arrived, gates run unmonitored and labelled as such.
 
 ## Surprises
 
-- `bundle-v-control`'s base features already carry `dialog-button-b-v1: true` while its registry copy still says "Bundle arm only"; the arming test pins that wording, so it stays untouched here.
+- `dialog-button-b-v1` is already `true` in the recipe's shared features and in `bundle-v-control`'s base while its registry copy still says "Bundle arm only"; the arming test pins that wording, so it stays untouched here.
+- `panels.test.ts` crashes a vitest worker with SIGABRT on this machine; it reproduces on a clean `HEAD` with the change stashed, so it is not this branch's doing, and the full-suite run passes it.
+- A fresh worktree has no `runs/sprites/trainer-card-v1`; `trainer-card-check` fails with "Approved font/art did not load" until `just trainer-card-art` generates it.
 
 ## Multi-Model Review Log
 

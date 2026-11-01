@@ -37,3 +37,5 @@
 - 2026-10-31: implemented event-scoped delivery; focused tests 74 passed.
 
 - Landed ad5113ead on main; HyperQwen restart authorized.
+
+- Activation: HyperQwen bundle relaunched on pin 013d273b7 with event-scoped delivery live.

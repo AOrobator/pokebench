@@ -25,3 +25,5 @@ Operator asked to kick off a HyperQwen 24-hour bundle run against the live TP2 H
 - 2026-10-31: added fixed definition and launched via `just fixed-run run hyperqwen-bundle-24h`.
 
 - Restarted after cadence fix ad5113ead: archived prior trial to runs/aborted/hyperqwen-bundle-24h-20261101T023944Z/.
+
+- Relaunched pin `013d273b7` as `2026-10-31T22-48-04_hyperqwen-gpu0_eefc` (bundle; both switches ON; dirty false). Prior trial archived `runs/aborted/hyperqwen-bundle-24h-20261101T023944Z/` at RIVAL_BATTLE_WON / operator_abort T331. Viewer 8790 at same pin; workbench live; experiments-audit clean.

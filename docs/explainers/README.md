@@ -268,6 +268,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Screen-center player](screen-center-player-v1.html): Default off; bundle treatment. The system prompt says the player is the sprite at the screen's center tile, and the readout says when the map's top layer hides it.
 - [Map-cycle recovery briefing](map-cycle-recovery-v1.html): each unresolved map-cycle episode briefs and resets the cycle count without ending the run.
 - [Random starter pick](random-starter-v1.html): data-collection switch; at the starter bag the harness picks Treecko or Mudkip 50/50, confirms it and hands the game back.
+- [Dark area FLASH reminder](dark-area-flash-reminder-v1.html) — on in both arms of current; one SUPERVISOR paragraph on the first free-field result after entering an unlit `requires_flash` map, stating the KNUCKLE BADGE, the party's FLASH users, HM05 and the game's "ABLE!"/"NOT ABLE!" marks. No action taken.
 
 - [move-learn-goal-reminder-v1](move-learn-goal-reminder-v1.html) — tested task reminder after an explicit skip plan; both-arm operator activation.
 

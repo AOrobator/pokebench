@@ -679,6 +679,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "move-learn-goal-reminder-v1":"move-learn-goal-reminder-v1.html",
  "navigation-cycle-stop-v1":"navigation-cycle-stop-v1.html",
  "random-starter-v1":"random-starter-v1.html",
+ "dark-area-flash-reminder-v1":"dark-area-flash-reminder-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

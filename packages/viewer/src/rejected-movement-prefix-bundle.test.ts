@@ -4,7 +4,10 @@ import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 const ID = "rejected-movement-prefix-v1";
-const RECIPES = [["bundle-v-control",37],["bundle-cook-1h",108],["whole-map-cook-1h",108],["whole-map-pair-2h",47],["bundle-v-control-2h",37],["glm53-flash-4h",37]] as const;
+// Indices into the shared `current` recipe's switch list, which lost two entries before these
+// groups when compact-map-grid-v1 and player-map-visibility-v2 became onInBoth (2026-10-28).
+// Cook and whole-map recipes carry their own inline lists, so their positions did not move.
+const RECIPES = [["bundle-v-control",35],["bundle-cook-1h",108],["whole-map-cook-1h",108],["whole-map-pair-2h",47],["bundle-v-control-2h",35],["glm53-flash-4h",35]] as const;
 
 // the operator 2026-10-22: turn the longest-valid-prefix walk on in the bundle arm; the control arm keeps it off.
 describe("rejected movement prefix bundle activation", () => {

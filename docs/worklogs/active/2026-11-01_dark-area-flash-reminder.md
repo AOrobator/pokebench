@@ -33,3 +33,9 @@ The operator 2026-11-01 (DeepSeek control run `2026-11-01T09-10-00_deepseek-v4.1
 ## Open
 - Landing: operator waived multi-model review 2026-11-01 ("land it reviews are waived"). No reviewer verdict exists for this change; record that plainly in the landing note
 - Fixed definitions built from `featureRecipe: current` change identity (base features change); launches from a newer pin pick it up, running runs keep their recorded settings
+
+**M4 — Post-landing red in shared-recipe index pins**
+- main `91b6f9957` already failed `just test` before this branch merged: `current.json`'s `switches` list lost two entries ahead of these groups when compact-map-grid-v1 and player-map-visibility-v2 became onInBoth, and four bundle tests still pinned the old positions. Proof: the `switches` array is byte-identical between `91b6f9957` and `8c2fa0614` (turn-drought-clock-v1 at 36 both ways) while the tests asserted 38; the archived recipe `current-d5b1522eb28d` puts the same features at 38/48
+- [x] Renumbered only the live `featureRecipe: current` recipes (bundle-v-control, bundle-v-control-2h, glm53-flash-4h): 37→35, 38→36, 39→37, 48→46. Overlap/order guards unchanged; cook, whole-map-pair and gym-rustboro recipes carry inline switch lists and keep their positions
+- [x] Four failing files plus `dark-area-flash-both.test.ts` GREEN (16/16 in 761 ms) before the full gate rerun
+- COMMIT: `test(viewer): renumber shared-recipe switch pins after the onInBoth promotions`

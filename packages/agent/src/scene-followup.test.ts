@@ -16,7 +16,7 @@ type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 const FIXTURES=JSON.parse(readFileSync(new URL("../test-support/scene-followup-events.json",import.meta.url),"utf8")) as Record<string,{run:string;seq:number;event:Advance}>;
 const ev=(name:string):Advance=>checkEvent(FIXTURES[name]?.event) as Advance;
 const ID="scene-followup-prompt-v1";
-const NOTE="SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: \"Get out! Out of the way!\" \"Wait! Pleeeaaase!\" \"Don't take my GOODS!\" The people in it were: MAN_3 at 26,23; MAN_4 at 19,27; MAN_2 at 20,21 (where they stood during the scene). That was a story event, not background flavor. Before anything else, walk up to the nearest person who took part in it and talk to them (face them and press A). Only then return to older plans.";
+const NOTE="SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: \"Get out! Out of the way!\" \"Wait! Pleeeaaase!\" \"Don't take my GOODS!\" The people in it were: MAN_3 at 26,23; MAN_4 at 19,27; MAN_2 at 20,21 (where they stood during the scene). That was a story event, not background flavor.";
 const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {switches:string[];offInBoth:string[];onInBoth:string[];features:Record<string,boolean>};
 const control={...LEGACY_ALL_ON,...recipe.features} as FeatureSet;
 const bundle={...control,...Object.fromEntries(recipe.switches.map(id=>[id,true]))} as FeatureSet;

@@ -107,7 +107,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <section class="card">
 <h2>What it does</h2>
-<p>When a scene plays out on its own, the next request gets one SUPERVISOR message. It quotes the scene's pages and names who was on screen, then asks the model to talk to the nearest of them before following older plans. The note joins each request until the model has answered one that carried it, so other results in the same turn can't drop it, and the model reads it once. The message is built from the game's own pages and object list, whole and in order, never truncated. It names nothing the game did not show, and it says nothing about what the scene leads to.</p>
+<p>When a scene plays out on its own, the next request gets one SUPERVISOR message. It quotes the scene's pages whole, lists who was on screen (at the tiles where they stood during the scene), and marks that as a story event rather than background flavor. Facts only: it does not tell the model to talk to anyone or prescribe a next action, because those actors often leave before control returns. The note joins each request until the model has answered one that carried it, so other results in the same turn can't drop it, and the model reads it once. The message is built from the game's own pages and object list, whole and in order, never truncated. It names nothing the game did not show, and it says nothing about what the scene leads to.</p>
 <p><b>Off:</b> no message; every request is unchanged. The system prompt is the same in both arms.</p>
 </section>
 
@@ -130,17 +130,17 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <section class="card">
 <h2>Recorded example (9e33, turn 1384)</h2>
-<blockquote>SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: "Get out! Out of the way!" "Wait! Pleeeaaase!" "Don't take my GOODS!" The people in it were: MAN_3 at 26,23; MAN_4 at 19,27; MAN_2 at 20,21 (where they stood during the scene). That was a story event, not background flavor. Before anything else, walk up to the nearest person who took part in it and talk to them (face them and press A). Only then return to older plans.</blockquote>
+<blockquote>SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: "Get out! Out of the way!" "Wait! Pleeeaaase!" "Don't take my GOODS!" The people in it were: MAN_3 at 26,23; MAN_4 at 19,27; MAN_2 at 20,21 (where they stood during the scene). That was a story event, not background flavor.</blockquote>
 </section>
 
 <section class="card">
 <h2>Evidence (decision probes on 9e33's model and quant)</h2>
-<table><thead><tr><th>Measure</th><th>off</th><th>this note</th></tr></thead><tbody>
+<table><thead><tr><th>Measure</th><th>off</th><th>prior talk-order note</th></tr></thead><tbody>
 <tr><td>DEV, 3 theft contexts, 32 each</td><td>2/96</td><td>90/96</td></tr>
 <tr><td>Fresh held-out, 5 unseen runs, 32 each</td><td>5/160</td><td>141/160</td></tr>
 <tr><td>Note forced onto a no-scene city turn</td><td>1/32</td><td>2/32</td></tr>
 </tbody></table>
-<p>Probes measure the next action only. The full study is in the viewer's Reports section (2026-10-27 scene follow-up prompting). Measured run effect: none yet; that needs a fixed-run comparison.</p>
+<p>Those probes graded the next action against a talk-to-participant ritual and used the earlier note that prescribed that ritual. Facts-only wording has not been re-probed. The full study is in the viewer's Reports section (2026-10-27 scene follow-up prompting). Measured run effect: none yet; that needs a fixed-run comparison.</p>
 </section>
 </main>
 </body>

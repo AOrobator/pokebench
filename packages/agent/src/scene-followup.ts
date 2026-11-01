@@ -6,8 +6,9 @@ import {onScreenItem} from "./script-line-presence.js";
 
 // scene-followup-prompt-v1: after a scene plays on its own (people speak and move while the player stands still,
 // and nobody in it addresses the player by name), the next request gets one SUPERVISOR note that quotes the
-// scene's pages and names who was on screen, then asks the model to talk to them before older plans.
-// Probed on 9e33's model: 141/160 on five unseen runs vs 5/160 off (runs/reports/run-analysis/2026-10-27_scene-followup-prompt-research).
+// scene's pages and names who was on screen. Facts only: no talk/action order (actors often leave before control
+// returns). Earlier talk-order wording was probed on 9e33's model at 141/160 vs 5/160 off
+// (runs/reports/run-analysis/2026-10-27_scene-followup-prompt-research); that success metric rewarded the talk ritual.
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
@@ -30,7 +31,7 @@ export function sceneFollowup(e:Advance):Scene|null {
 }
 
 export function sceneFollowupNote(scene:Scene):string {
- return `SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: ${scene.texts.map(t=>`"${t}"`).join(" ")} The people in it were: ${scene.people.join("; ")} (where they stood during the scene). That was a story event, not background flavor. Before anything else, walk up to the nearest person who took part in it and talk to them (face them and press A). Only then return to older plans.`;
+ return `SUPERVISOR: You just watched a scene play out on its own while you could not move. The game showed: ${scene.texts.map(t=>`"${t}"`).join(" ")} The people in it were: ${scene.people.join("; ")} (where they stood during the scene). That was a story event, not background flavor.`;
 }
 
 // Armed by the scene's own tool result, the note joins every request until the next model reply that did not

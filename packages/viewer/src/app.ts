@@ -660,8 +660,10 @@ export class App {
     if(state===null||this.current===null)return;const now=this.deps.now();
     for(const row of state.runs)this.knownLiveCards.add(row.id);
     const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs){
-      const saved=this.savedCurrentCard(s.id,s.generation),fallback=!s.complete&&s.run.card==null?saved:null;
-      recorded.set(s.id,{...s.run,experiment:s.run.experiment??saved?.experiment??null,splits:saved?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+      // Current projector ships splits:[]; story progress and the watch-side strip come from the generation-matched cards projection.
+      // Card presence is only required when falling back to a saved trainer plate during incomplete reconstruction.
+      const matched=this.recordedWorkbenchRun(s.id,s.generation),saved=matched?.card!=null?matched:null,fallback=!s.complete&&s.run.card==null?saved:null;
+      recorded.set(s.id,{...s.run,experiment:s.run.experiment??matched?.experiment??null,splits:matched?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
     }
     this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:[...recorded.values()]};
     const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;
@@ -671,7 +673,7 @@ export class App {
       if(snapshot!==null&&snapshot!==this.currentApplied){
         if(this.currentApplied!==null&&this.currentApplied.generation!==snapshot.generation)this.resetSelection(snapshot.id,this.following);
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
-        if(first){if(this.needsWorkbenchEnrichment())void this.loadWorkbench();if(this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
+        if(first){if(this.needsWorkbenchEnrichment())void this.loadWorkbench();void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
         else if(!snapshot.complete)void this.loadWorkbench();
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
@@ -700,22 +702,22 @@ export class App {
     return this.artLoad;
   }
 
-  private savedCurrentCard(run:string,generation:string):WorkbenchRun|null {
+  private recordedWorkbenchRun(run:string,generation:string):WorkbenchRun|null {
     const owner=this.currentSavedCardOwners.get(run);if(owner===undefined||owner.epoch!==this.current?.state.epoch||owner.generation!==generation)return null;
-    return this.currentRecordedWorkbench?.runs.find(row=>row.id===run&&row.card!=null)??null;
+    return this.currentRecordedWorkbench?.runs.find(row=>row.id===run)??null;
   }
 
-  // Live current watching already paints frames, stats and trainer cards from the projector.
-  // Workbench `/api/cards` is enrichment: incomplete reconstruction, splits/comparisons, or replay.
+  private savedCurrentCard(run:string,generation:string):WorkbenchRun|null {
+    const matched=this.recordedWorkbenchRun(run,generation);
+    return matched?.card!=null?matched:null;
+  }
+
+  // Live current watching paints frames and the trainer plate from the projector, but story splits stay
+  // empty there (splits:[]). The always-visible watch-side strip, split times vs frontier, and card
+  // STORY progress need `/api/cards` for the selected run. Full `/api/workbench` stays off the live index.
   private needsWorkbenchEnrichment(): boolean {
     if (this.current === null) return true;
-    if (this.runId === null) return false;
-    if (this.mode === "replay") return true;
-    if (this.runs.find(run => run.id === this.runId)?.ended === true) return true;
-    if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) return true;
-    const snapshot = this.current.state.snapshot;
-    if (snapshot !== null && snapshot.id === this.runId && !snapshot.complete) return true;
-    return this.current.state.runs.some(run => run.id === this.runId && !run.complete);
+    return this.runId !== null;
   }
 
   private loadWorkbench(): Promise<void> {
@@ -761,9 +763,20 @@ export class App {
     await this.pollCards();
   }
 
-  private recordedSplits(): BestSplits | null {
+  // null = still loading recorded splits; undefined = fall back to the live event-stream milestones
+  // (never paint the current projector's empty splits[] as "nothing reached").
+  private recordedSplits(): BestSplits | null | undefined {
+    if (this.runId === null) return null;
+    if (this.current !== null) {
+      const generation = this.current.state.runs.find(run => run.id === this.runId)?.generation
+        ?? this.current.state.snapshot?.generation ?? null;
+      if (generation === null) return undefined;
+      const matched = this.recordedWorkbenchRun(this.runId, generation);
+      if (matched === null) return this.workbenchLoad !== null || this.needsWorkbenchEnrichment() ? null : undefined;
+      return { run: this.runId, milestones: matched.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
+    }
     const run = this.workbench?.runs.find((candidate) => candidate.id === this.runId);
-    return run === undefined || this.runId === null ? null : { run: this.runId, milestones: run.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
+    return run === undefined ? null : { run: this.runId, milestones: run.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
   }
 
   private cardInputs(): CardInput[] {
@@ -1282,7 +1295,8 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
-    if(this.current===null||this.doc.querySelector('[data-page="splits"][aria-pressed="true"]')!==null)void this.loadFrontier(runId);
+    // The watch-side SPLIT TIMES VS FRONTIER card races the frontier with every pick; comparisons stay gated to the PokéNav splits page.
+    void this.loadFrontier(runId);
     if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }

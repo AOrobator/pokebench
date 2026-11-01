@@ -32,30 +32,33 @@ it("selects an ended catalog run when the recent current index is empty and pres
   urls.push(url);return defaults(url)??(url==="/api/current-runs"?Promise.resolve({...f.list,runs:[]}):url==="/api/runs"?Promise.resolve([{id:RUN,model:"fixture",started:f.snapshot.header.t,ended:true,problem:null}]):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));
  },sendJson:writes,openStream:()=>{const stream=new ReplayStream();streams.push(stream);return stream;},now:()=>BASE_MS+4000,hash:""});apps.push(app);
  await app.refreshRuns();for(let i=0;i<8;i++)await Promise.resolve();
- expect(urls).toContain(`/api/runs/${RUN}/current`);expect(streams).toHaveLength(1);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(false);
+ expect(urls).toContain(`/api/runs/${RUN}/current`);expect(streams).toHaveLength(1);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(true);
  expect(document.querySelector('[data-ui="stats"]')?.textContent).toContain("—");
  expect(document.querySelector('[data-ui="counters"]')?.textContent).toContain("Lifetime totals are still loading");expect(document.querySelector('[data-ui="clock"]')?.textContent).toContain("time loading");expect(document.querySelector('[data-ui="run-head"]')?.textContent).toContain("Time loading");
  streams[0]?.send("head",f.log.events);expect(app.mode).toBe("replay");
  expect(app.view.tokens.input).toBe(500);expect(document.querySelector('[data-ui="counters"]')?.textContent).not.toContain("Lifetime totals are still loading");
 });
-it("defers cold frontier grading until the existing splits page is requested",async()=>{
+it("races frontier and cards for the watch-side split card when a current run is selected",async()=>{
  dom();const f=currentFixture(),urls:string[]=[];let frontierReads=0;
- const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]});if(url.endsWith("/frontier")){frontierReads++;return Promise.resolve({state:frontierReads===1?"loading":"ready",frontier:null});}return defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
- expect(app.view.tokens.input).toBe(500);expect(urls.some(url=>url.endsWith("/frontier"))).toBe(false);
- document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();
- expect(urls).toContain(`/api/runs/${RUN}/frontier`);expect(urls.some(url=>url.includes("comparisons"))).toBe(true);for(let i=0;i<6;i++)await Promise.resolve();expect(frontierReads).toBe(1);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("loading the frontier run");await app.pollCards();expect(frontierReads).toBe(2);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("no frontier run to compare yet");
-});
-it("defers cold card workbench fetch until splits or incomplete reconstruction",async()=>{
- dom();const complete=currentFixture(),urls:string[]=[];
- const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]});return defaults(url)??(url==="/api/current-runs"?Promise.resolve(complete.list):url.endsWith("/current")?Promise.resolve(complete.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
- expect(app.view.tokens.input).toBe(500);expect(urls.some(url=>url.startsWith("/api/cards")||url.startsWith("/api/workbench"))).toBe(false);
- await app.pollCardsIfNeeded();expect(urls.some(url=>url.startsWith("/api/cards"))).toBe(false);
- document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();
- for(let i=0;i<6;i++)await Promise.resolve();
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...f.summary.run,splits:[{name:"PLAYER_NAME_CONFIRMED",elapsedMs:1000,segmentMs:1000,seq:3,turn:1,inputTokens:1,outputTokens:1}]}]});if(url.endsWith("/frontier")){frontierReads++;return Promise.resolve({state:frontierReads===1?"loading":"ready",frontier:null});}return defaults(url)??(url==="/api/current-runs"?Promise.resolve(f.list):url.endsWith("/current")?Promise.resolve(f.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
+ expect(app.view.tokens.input).toBe(500);
+ expect(urls).toContain(`/api/runs/${RUN}/frontier`);
  expect(urls.some(url=>url.startsWith(`/api/cards?run=${encodeURIComponent(RUN)}`))).toBe(true);
+ expect(urls.some(url=>url.startsWith("/api/workbench"))).toBe(false);
+ for(let i=0;i<8;i++)await Promise.resolve();
+ expect(frontierReads).toBe(1);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("loading the frontier run");
+ expect(document.querySelector('[data-ui="split-preview"]')?.textContent).toContain("NAME ✔");
+ await app.pollCards();expect(frontierReads).toBe(2);expect(document.querySelector('[data-ui="split-times"]')?.textContent).toContain("no frontier run to compare yet");
+});
+it("keeps full workbench off the live index while still enriching a selected run",async()=>{
+ dom();const complete=currentFixture(),urls:string[]=[];
+ const app=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{urls.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[]});if(url.endsWith("/frontier"))return Promise.resolve({state:"ready",frontier:null});return defaults(url)??(url==="/api/current-runs"?Promise.resolve(complete.list):url.endsWith("/current")?Promise.resolve(complete.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(app);
+ expect(app.view.tokens.input).toBe(500);
+ expect(urls.some(url=>url.startsWith(`/api/cards?run=${encodeURIComponent(RUN)}`))).toBe(true);
+ expect(urls.some(url=>url.startsWith("/api/workbench"))).toBe(false);
  document.body.innerHTML="";for(const a of apps.splice(0))a.dispose();dom();
  const incomplete=currentFixture({complete:false,headerOnly:true}),late:string[]=[];
- const second=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{late.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...incomplete.summary.run,card:{name:"MAY",location:null,party:[]}}]});return defaults(url)??(url==="/api/current-runs"?Promise.resolve(incomplete.list):url.endsWith("/current")?Promise.resolve(incomplete.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(second);
+ const second=await mountApp(document,{snapshotFirst:true,currentFactory:createCurrentBrowser,fetchJson:url=>{late.push(url);if(url==="/sprites/manifest.json")return Promise.resolve(null);if(url.startsWith("/api/cards"))return Promise.resolve({version:1,at:BASE_MS+4000,milestones:[],problems:[],runs:[{...incomplete.summary.run,card:{name:"MAY",location:null,party:[]}}]});if(url.endsWith("/frontier"))return Promise.resolve({state:"ready",frontier:null});return defaults(url)??(url==="/api/current-runs"?Promise.resolve(incomplete.list):url.endsWith("/current")?Promise.resolve(incomplete.detail):new Promise(()=>{}));},sendJson:writes,openStream:()=>({addEventListener:()=>{},close:()=>{}}),now:()=>BASE_MS+4000,hash:`#run=${RUN}`});apps.push(second);
  for(let i=0;i<8;i++)await Promise.resolve();
  expect(late.some(url=>url.startsWith(`/api/cards?run=${encodeURIComponent(RUN)}`))).toBe(true);
 });

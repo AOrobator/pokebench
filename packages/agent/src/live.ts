@@ -312,7 +312,7 @@ async function playAgent(): Promise<void> {
         ...(preset===null?{}:{startedAt:0}),
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
-        ...(recovery===null?{}:{modelErrorRecovery:true,onModelError:(message)=> { recovery.observe(message); }}),
+        ...(recovery===null?{}:{modelErrorRecovery:true,onModelError:(message)=> { if(recovery.observe(message)) governor.abort("model_error"); }}),
       }, {
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },

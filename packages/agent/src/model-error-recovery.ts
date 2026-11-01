@@ -165,15 +165,25 @@ export class ModelErrorRecovery {
   }
 
   // Called for every model error: a size refusal lowers the ceiling, anything else waits on the lane.
-  observe(message: { readonly errorMessage?: string }): void {
+  // Returns true when the run cannot make progress and must end: the request that was just refused is
+  // no smaller than what the ceiling already allows, so the next attempt would be the same request.
+  observe(message: { readonly errorMessage?: string }): boolean {
     const refused = refusedPromptTokens(message.errorMessage);
     if (refused === null) {
       this.pending = true;
-      return;
+      return false;
     }
+    const before = this.ceiling.limit;
     const ceiling = this.ceiling.lower(refused);
     this.apply();
+    if (before !== null && ceiling === before) {
+      this.options.record(
+        `prompt refused again at ${String(refused)} tokens; it cannot fit under the input ceiling ${String(ceiling)}; ending the run`,
+      );
+      return true;
+    }
     this.options.record(`prompt refused at ${String(refused)} tokens; input ceiling ${String(ceiling)}`);
+    return false;
   }
 
   async beforeModelCall(signal?: AbortSignal): Promise<void> {

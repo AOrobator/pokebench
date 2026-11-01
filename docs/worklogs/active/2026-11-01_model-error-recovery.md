@@ -144,3 +144,22 @@ not a treatment: the arm contrast stays on the 68 bundle switches. Four-line dif
   intact and keeps the prompt cache warm on the tail.
 - Absorbed model errors reset the failure streak after being recorded, so the recorded attempt is
   per error rather than cumulative; the streak has no meaning once it cannot end the run.
+
+## Review finding: a refusal the ceiling cannot answer (fixed)
+
+The runtime advisory reviewer found the failure this fix addresses: both fitters stop at "keep the
+newest turn" and then return the over-limit list unchanged, so when `floor(0.75 x refused)` is below
+the weight of (task + system/tools + newest turn) the harness resent the *same* over-ceiling request,
+the lane refused it again, the ceiling ratcheted down, and nothing ended the run — a slow hang
+bounded only by the 20,000-turn budget, which is exactly what PB8's bound exists to prevent.
+
+Fix: `ModelErrorRecovery.observe` now returns whether the run can still make progress. A refusal
+that cannot lower the ceiling (the refused prompt is no smaller than what the ceiling already
+allows) records `prompt refused again at N tokens; it cannot fit under the input ceiling M; ending
+the run` and `live.ts` ends the run with stop reason `model_error`. The fitter behaviour is
+unchanged: it still drops whole turns and never cuts text; it is now the caller that stops instead
+of asking again.
+
+Tests: a refusal lowers 42430 -> 31822 and does not end the run; a smaller refusal lowers again
+(42000 -> 31500); a third refusal at the same size returns true, records the end, and the wired
+governor reaches `stopReason === "model_error"`.

@@ -9,7 +9,7 @@ import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools } from "./play-config.js";
 import { contextBudget } from "./play-wiring.js";
 import { ALL_ON } from "./features.js";
-import { InputCeiling, LaneReadiness, refusedPromptTokens } from "./model-error-recovery.js";
+import { InputCeiling, LaneReadiness, ModelErrorRecovery, refusedPromptTokens } from "./model-error-recovery.js";
 const ON = { ...ALL_ON, "model-error-recovery-v1": true } as FeatureSet;
 const OFF = { ...ALL_ON, "model-error-recovery-v1": false } as FeatureSet;
 
@@ -170,5 +170,42 @@ describe("production wiring", () => {
     const wired = contextBudget({ ...OFF, "context-token-budget-v1": false, "model-error-recovery-v1": true }, model, 4096, recorder);
     expect(wired.budget).toBeInstanceOf(ContextBudget);
     expect(wired.exact).toBeUndefined();
+  });
+});
+
+describe("a refusal the ceiling cannot answer", () => {
+  const MLX = "This prompt (42430 tokens) does not fit in GPU memory: only ~2046MB is available.";
+
+  it("lowers once, then reports that the ceiling cannot go lower", () => {
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://127.0.0.1:8091/v1", record: () => undefined });
+    expect(recovery.observe({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" })).toBe(false);
+    expect(recovery.ceiling.limit).toBe(31822);
+    expect(recovery.observe({ errorMessage: MLX.replace("42430", "42000") })).toBe(false);
+    expect(recovery.ceiling.limit).toBe(31500);
+    expect(recovery.observe({ errorMessage: MLX.replace("42430", "42000") })).toBe(true);
+  });
+
+  it("records why the run is ending instead of retrying into the same wall", () => {
+    const events: string[] = [];
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://127.0.0.1:8091/v1", record: (reason) => events.push(reason) });
+    recovery.observe({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    recovery.observe({ errorMessage: MLX.replace("42430", "42000") });
+    recovery.observe({ errorMessage: MLX.replace("42430", "42000") });
+    expect(events.at(-1)).toContain("cannot fit under the input ceiling");
+    expect(events.at(-1)).toContain("31500");
+  });
+
+  it("ends the run with model_error once the lane refuses twice at the same wall", () => {
+    const { g } = governor(true, () => undefined);
+    const recovery = new ModelErrorRecovery({ baseUrl: "http://127.0.0.1:8091/v1", record: () => undefined });
+    const onModelError = (message: { errorMessage?: string }): void => {
+      if (recovery.observe(message)) g.abort("model_error");
+    };
+    onModelError({ errorMessage: "This prompt (42430 tokens) does not fit in GPU memory" });
+    expect(g.stopReason).toBeNull();
+    onModelError({ errorMessage: MLX.replace("42430", "41000") });
+    expect(g.stopReason).toBeNull();
+    onModelError({ errorMessage: MLX.replace("42430", "41000") });
+    expect(g.stopReason).toBe("model_error");
   });
 });

@@ -1,7 +1,7 @@
 # Moving-NPC wait fix + free-field frame burst
 
 **Started:** 2026-11-01
-**Status:** M2 GREEN ready → M3 gates/review/land; operator approved execute+land 2026-11-01
+**Status:** Landing; operator approved execute+land 2026-11-01
 **Branch:** `cursor/moving-npc-burst-and-wait`
 
 ## Problem Statement
@@ -101,6 +101,7 @@ No new network binds, ROM paths, or secrets. Screenshots remain run-local under 
 - 2026-11-01: Operator approved worklog and “execute … and land it”. Branch opened. M1 RED `447dd316c`; GREEN `f67afe190` (26/26 then).
 - 2026-11-01: M2 burst switch registered (index 318), followObject observe burst ≤6, recipe `switches`, explainer themed; focused 28/28; delete-guard red then green. GREEN `6f8e595ef`.
 - 2026-11-01: Principles self-review PB1–PB13 zero FAIL (`runs/reviews/moving-npc-burst-principles.md`). CPU START requested via tell-claude (Delivered).
+- 2026-11-01: Pre-land gates PASS on `0f4e986b3` (lint/test/verify-vendor) after B1 fix + Claude R2 LGTM.
 - 2026-11-01: Full gates PASS (lint/test/verify-vendor) at `6cd0c89bb` after fixture sync; one load flake on whole-game-instructions timeouts, clean on re-run.
 - 2026-11-01: Full `just test` FAIL once: destination-first-qwen.json.gz still had pre-stay-on-approach MOVING_NPC_SENTENCE; fixture updated (`6cd0c89bb`). Lint PASS. Re-running full gates.
 

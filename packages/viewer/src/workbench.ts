@@ -78,7 +78,6 @@ export class Workbench {
   private dateFrom = "";
   private dateThrough = "";
   private zoom = true;
-  private hideTimeOutliers = true;
   private runLanes: RunLanes | LaneUnknown = "loading";
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
@@ -198,12 +197,12 @@ export class Workbench {
       config: run.config, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };
-    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers, this.hideTimeOutliers ? this.data.runs.map(run => [run.id, run.splits]) : null]);
+    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated]);
     if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;
     const replayHref = active?.tagName === "A" && coverage?.contains(active) === true ? active.getAttribute("href") : null;
-    plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers, this.data.runs);
+    plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered);
     this.plotKey = plotKey;
     const nextCoverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     if (nextCoverage !== null) {
@@ -212,12 +211,6 @@ export class Workbench {
         const replay = replayHref === null ? null : [...nextCoverage.querySelectorAll("a")].find(link => link.getAttribute("href") === replayHref);
         (replay ?? nextCoverage.querySelector("summary"))?.focus({ preventScroll: true });
       }
-    }
-    const outliers = this.doc.querySelector<HTMLButtonElement>("[data-frontier-outliers]"), chart = this.ui("frontier-full").querySelector<SVGElement>("[data-hidden-outliers]");
-    if (outliers !== null) {
-      const count = chart?.dataset.hiddenOutliers ?? "0";
-      outliers.textContent = `HIDE TIME OUTLIERS${count === "0" ? "" : ` (${count})`}`;
-      outliers.title = chart?.dataset.outlierSummary || "Hide extreme ended overlay runs; references and current runs stay visible";
     }
     this.pressed();
   }
@@ -228,7 +221,7 @@ export class Workbench {
     for (const series of plot.querySelectorAll<SVGGElement>(".wb-series")) series.classList.toggle("wb-on", focus !== null && (series.dataset.version === focus || series.dataset.member === focus));
   }
   private isolate(id: string | null): void { this.isolated = id === this.isolated ? null : id; this.renderCharts(); }
-  private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.hasAttribute("data-frontier-outliers") ? this.hideTimeOutliers : (button.dataset.frontierView === "zoom") === this.zoom)); }
+  private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
     const dateProblem = this.ui("date-problem"), reversed = this.dateFrom !== "" && this.dateThrough !== "" && this.dateFrom > this.dateThrough;
     dateProblem.hidden = !reversed; dateProblem.textContent = reversed ? "From must be on or before Through." : "";
@@ -272,7 +265,6 @@ export class Workbench {
     if (more !== null) { const id = more.dataset.verMore ?? ""; if (!this.expanded.delete(id)) this.expanded.add(id); this.renderCharts(); return; }
     const version = target.closest<HTMLElement>("[data-ver]");
     if (version !== null) { const inner = target.closest("details, summary, a, button"); if (inner === null || !version.contains(inner)) this.isolate(version.dataset.ver ?? null); return; }
-    if (target.closest("[data-frontier-outliers]") !== null) { this.hideTimeOutliers = !this.hideTimeOutliers; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     if (target.closest("[data-clear-dates]") !== null) {
       this.dateFrom = ""; this.dateThrough = "";
       for (const name of ["date-from", "date-through"]) (this.ui(name) as HTMLInputElement).value = "";

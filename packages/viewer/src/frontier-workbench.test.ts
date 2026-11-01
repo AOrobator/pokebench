@@ -266,88 +266,63 @@ it("fetches the switch catalog once, describes each switch in the legend and kee
 });
 
 
-it("hides extreme time overlays by default, restores them without losing data, and retains the choice and focus across polling failures", async () => {
+it("always plots extreme ended overlays, has no outlier toggle, and keeps them across poll failure and range change", async () => {
   const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
-  const normal = Array.from({length: 20}, (_, i) => Object.assign(run({id: `normal-${String(i)}`}), {measurement}));
-  const outlier = Object.assign(run({id: "extreme", splits: run().splits.map(s => ({...s, elapsedMs: s.elapsedMs * 100}))}), {measurement});
+  const normal = Array.from({ length: 20 }, (_, i) => Object.assign(run({ id: `normal-${String(i)}` }), { measurement }));
+  const extreme = Object.assign(run({ id: "extreme", splits: run().splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 100 })) }), { measurement });
   let fail = false;
-  const wb = new Workbench(document, {fetchSnapshot: () => fail ? Promise.reject(Error("offline")) : Promise.resolve({version:1, at:1000, milestones:[], runs:[...normal,outlier], problems:[]}), now:()=>1000, width:()=>900});
+  const wb = new Workbench(document, { fetchSnapshot: () => fail ? Promise.reject(Error("offline")) : Promise.resolve({ version: 1, at: 1000, milestones: [], runs: [...normal, extreme], problems: [] }), now: () => 1000, width: () => 900 });
   await wb.refresh();
-  const button = document.querySelector<HTMLButtonElement>("[data-frontier-outliers]");
-  expect(button).not.toBeNull();
-  expect(button?.getAttribute("aria-pressed")).toBe("true");
-  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
-  expect(ui("frontier-full").querySelector(".wb-notice")).toBeNull();
-  expect(button?.textContent).toContain("(1)");
-  expect(button?.title).toContain("extreme");
-  button?.click(); button?.focus();
-  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  expect(document.querySelector("[data-frontier-outliers]")).toBeNull();
+  expect(ui("frontier-legend").textContent).not.toContain("Time outliers");
   expect(ui("frontier-full").querySelector('[data-run="extreme"]')).not.toBeNull();
-  await wb.refresh(); fail = true; await wb.refresh();
-  expect(document.activeElement).toBe(button);
-  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  expect(ui("frontier-full").querySelector("[data-hidden-outliers]")).toBeNull();
+  expect(ui("frontier-full").textContent).not.toContain("time outlier");
+  document.querySelector<HTMLElement>('[data-frontier-view="full"]')?.focus();
   document.querySelector<HTMLElement>('[data-frontier-view="full"]')?.click();
-  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  await wb.refresh(); fail = true; await wb.refresh();
+  expect(document.activeElement).toBe(document.querySelector('[data-frontier-view="full"]'));
   expect(ui("frontier-full").querySelector('[data-run="extreme"]')).not.toBeNull();
-  button?.click();
-  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
-  expect(outlier.splits).toHaveLength(2);
+  expect(extreme.splits).toHaveLength(2);
   wb.destroy();
 });
 
-
-it("retains extreme frontier and live runs, and leaves small cohorts unfiltered", async () => {
+it("plots extreme frontier, live and ended overlays together", async () => {
   const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
   const split = run().splits[0]; if (split === undefined) throw new Error("missing fixture split");
-  const make = (id: string, minutes: number, status: "live" | "ended" = "ended") => Object.assign(run({id, status, splits:[{...split, elapsedMs:minutes * 60000}]}), {measurement});
-  const normal = Array.from({length:40}, (_, i) => make(`n-${String(i)}`,2));
-  const best = make("best-extreme",400); best.splits.push({...split, name:"STONE_BADGE"});
-  const live = make("live-extreme",500,"live"), ended = make("ended-extreme",600);
-  let runs = [...normal,best,live,ended];
-  const wb = new Workbench(document, {fetchSnapshot:()=>Promise.resolve({version:1,at:1000,milestones:[],runs,problems:[]}),now:()=>1000,width:()=>900});
+  const make = (id: string, minutes: number, status: "live" | "ended" = "ended") => Object.assign(run({ id, status, splits: [{ ...split, elapsedMs: minutes * 60000 }] }), { measurement });
+  const normal = Array.from({ length: 40 }, (_, i) => make(`n-${String(i)}`, 2));
+  const best = make("best-extreme", 400); best.splits.push({ ...split, name: "STONE_BADGE" });
+  const live = make("live-extreme", 500, "live"), ended = make("ended-extreme", 600);
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at: 1000, milestones: [], runs: [...normal, best, live, ended], problems: [] }), now: () => 1000, width: () => 900 });
   await wb.refresh();
   const plotted = (id: string) => ui("frontier-full").querySelector(`[data-run="${id}"]`);
-  expect(plotted("best-extreme")).not.toBeNull(); expect(plotted("live-extreme")).not.toBeNull();
-  expect(plotted("ended-extreme")).toBeNull();
-  runs = [make("small",2), ended]; await wb.refresh();
+  expect(plotted("best-extreme")).not.toBeNull();
+  expect(plotted("live-extreme")).not.toBeNull();
   expect(plotted("ended-extreme")).not.toBeNull();
   wb.destroy();
 });
 
-it("keeps outliers hidden when experiment, model, configuration, date or overlay filters leave one run", async () => {
+it("keeps an extreme overlay plotted under experiment, model, configuration, date and overlay filters", async () => {
   const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
-  const normal = Array.from({length:20}, (_, i) => Object.assign(run({id:`normal-${String(i)}`, started:"2026-10-19T12:00:00Z"}), {measurement}));
+  const normal = Array.from({ length: 20 }, (_, i) => Object.assign(run({ id: `normal-${String(i)}`, started: "2026-10-19T12:00:00Z" }), { measurement }));
   const config = run().config; if (config === null) throw Error("fixture config");
-  const extreme = Object.assign(run({id:"extreme", cohort:"six-hour", model:"outlier-model", started:"2026-10-20T12:00:00Z", config:{...config,preset:"long-config"}, splits:run().splits.map(s=>({...s,elapsedMs:s.elapsedMs*100}))}), {measurement});
-  const wb = new Workbench(document,{fetchSnapshot:()=>Promise.resolve({version:1,at:1000,milestones:[],runs:[...normal,extreme],problems:[]}),now:()=>1000,width:()=>900});
+  const extreme = Object.assign(run({ id: "extreme", cohort: "six-hour", model: "outlier-model", started: "2026-10-20T12:00:00Z", config: { ...config, preset: "long-config" }, splits: run().splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 100 })) }), { measurement });
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at: 1000, milestones: [], runs: [...normal, extreme], problems: [] }), now: () => 1000, width: () => 900 });
   await wb.refresh();
   const points = () => ui("frontier-full").querySelectorAll('[data-run="extreme"]');
-  const button = document.querySelector<HTMLButtonElement>("[data-frontier-outliers]"); if (button === null) throw Error("outlier button");
-  for (const [name,value] of [["model","outlier-model"],["preset","long-config"],["date-from","2026-10-20"],["date-through","2026-10-20"],["overlay","extreme"]] as const) {
-    if (name === "date-through") change("date-from","2026-10-20");
-    change(name,value);
-    expect(points(),name).toHaveLength(0); expect(button.textContent,name).toContain("(1)");
-    button.click(); expect(points(),name).toHaveLength(2); button.click(); expect(points(),name).toHaveLength(0);
-    if (name === "date-from" || name === "date-through") { change("date-from",""); change("date-through",""); } else change(name,"all");
+  expect(document.querySelector("[data-frontier-outliers]")).toBeNull();
+  for (const [name, value] of [["model", "outlier-model"], ["preset", "long-config"], ["date-from", "2026-10-20"], ["date-through", "2026-10-20"], ["overlay", "extreme"]] as const) {
+    if (name === "date-through") change("date-from", "2026-10-20");
+    change(name, value);
+    expect(points(), name).toHaveLength(2);
+    if (name === "date-from" || name === "date-through") { change("date-from", ""); change("date-through", ""); } else change(name, "all");
   }
-  change("model","outlier-model"); await wb.refresh();
-  expect(points()).toHaveLength(0); document.querySelector<HTMLButtonElement>('[data-frontier-view="full"]')?.click(); expect(points()).toHaveLength(0);
-  button.click(); expect(points()).toHaveLength(2); wb.destroy();
-});
-
-it("refreshes a selected graph when checkpoints outside the filters change its global outlier cutoff", async () => {
-  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
-  const normal = Array.from({ length: 20 }, (_, i) => Object.assign(run({ id: `population-${String(i)}`, cohort: "population" }), { measurement }));
-  const first = run().splits[0]; if (first === undefined) throw Error("fixture split");
-  const leader = Object.assign(run({ id: "fixed-leader", cohort: "population", splits: [...run().splits, { ...first, name: "STONE_BADGE" }] }), { measurement });
-  const selected = Object.assign(run({ id: "selected-extreme", cohort: "selected", splits: run().splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 100 })) }), { measurement });
-  let data = { version: 1, at: 1000, milestones: [], problems: [], runs: [...normal, leader, selected] };
-  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve(data), now: () => 1000, width: () => 900 });
-  await wb.refresh();
-  const points = () => ui("frontier-full").querySelectorAll('[data-run="selected-extreme"]');
-  expect(points()).toHaveLength(0);
-  data = { ...data, at: 2000, runs: [...normal.map(r => ({ ...r, splits: r.splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 50 })) })), leader, selected] };
-  await wb.refresh(); expect(points()).toHaveLength(2); wb.destroy();
+  change("model", "outlier-model"); await wb.refresh();
+  expect(points()).toHaveLength(2);
+  document.querySelector<HTMLButtonElement>('[data-frontier-view="full"]')?.click();
+  expect(points()).toHaveLength(2);
+  wb.destroy();
 });
 
 it("updates a plotted split's clock warning without changing its recorded time or hiding progress", async () => {

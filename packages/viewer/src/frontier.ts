@@ -136,7 +136,7 @@ function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): n
   const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
   return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null, hideTimeOutliers = false, outlierRuns: readonly WorkbenchRun[] | null = null): string {
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null): string {
   const versions = given ?? frontierVersions([...overlays, ...currentRuns, ...(refs.best === null ? [] : [refs.best])]);
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
@@ -151,15 +151,6 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
   const onChart = (run: WorkbenchRun, name: string): boolean => resumeMilestone(run) === null || RECORD_ORDER.indexOf(name) >= RECORD_ORDER.indexOf(run.config?.resume ?? "");
   const times = (run: WorkbenchRun, range: readonly { readonly id: string }[] = milestones): number[] => range.flatMap(m => onChart(run, m.id) ? run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []);
-  // The workbench supplies all eligible recordings before its filters; a narrow selection cannot
-  // turn an outlier into its own reference population. Story split maxima also survive range toggles.
-  const population = outlierRuns === null ? series.filter(s => s.kind !== "human").map(s => s.run) : outlierRuns.filter(shownAgent);
-  const outlierPeak = (run: WorkbenchRun): number => Math.max(0, ...times(run, outlierRuns === null ? milestones : FRONTIER_MILESTONES));
-  const peaks = population.map(outlierPeak).filter(t => t > 0).sort((a, b) => a - b);
-  const cutoff = peaks.length < 10 ? Infinity : 3 * (peaks[Math.ceil(peaks.length * 0.9) - 1] ?? Infinity);
-  const removed = hideTimeOutliers ? series.filter(s => (s.kind === "overlay" || s.kind === "resumed") && s.run.status === "ended" && outlierPeak(s.run) > cutoff) : [];
-  for (const entry of removed) series.splice(series.indexOf(entry), 1);
-  const outlierSummary = removed.length === 0 ? "" : `${String(removed.length)} time outlier${removed.length === 1 ? "" : "s"} hidden: ${removed.map(s => s.run.id).join(", ")}. Turn off HIDE TIME OUTLIERS to restore every point.`;
   const values = series.flatMap(s => times(s.run));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
   const max = Math.max(1, Math.ceil(peak / step) * step);
@@ -210,19 +201,18 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   // Account for selected recordings even when validation, start provenance or missing checkpoints prevent a trace.
   const selected = [...new Map([...overlays, ...currentRuns].map(run => [run.id, run])).values()];
   const visible = new Set(series.filter(s => times(s.run).length > 0).map(s => s.run.id));
-  const hiddenIds = new Set(removed.map(s => s.run.id));
-  const missing = selected.filter(run => !visible.has(run.id) && !hiddenIds.has(run.id));
+  const missing = selected.filter(run => !visible.has(run.id));
   const reason = (run: WorkbenchRun): string => run.problem ?? (run.excluded !== null && invalidTrial(run) === null ? run.excluded : !shownAgent(run) ? "Unrecognized start provenance or controller; no trace graded" : "No recorded story checkpoints at or after this run's start");
   const loading = missing.filter(run => run.problem?.startsWith("Recording is still loading;") === true).length;
-  const count = `${String(selected.length)} selected recordings · ${String(selected.filter(run => visible.has(run.id)).length)} plotted${hiddenIds.size === 0 ? "" : ` · ${String(hiddenIds.size)} time outliers hidden`}${loading === 0 ? "" : ` · ${String(loading)} loading`}${missing.length === loading ? "" : ` · ${String(missing.length - loading)} unavailable`}`;
+  const count = `${String(selected.length)} selected recordings · ${String(selected.filter(run => visible.has(run.id)).length)} plotted${loading === 0 ? "" : ` · ${String(loading)} loading`}${missing.length === loading ? "" : ` · ${String(missing.length - loading)} unavailable`}`;
   const coverage = `<details data-frontier-coverage class="wb-muted"><summary>${count}</summary><ul>${selected.map(run => {
     const last = milestones.findLast(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
     const split = run.splits.find(s => s.name === last?.id);
-    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · flagged: ${invalidTrial(run) ?? ""}`}${endedByOperator(run.reason) === null ? "" : ` · ${endedByOperator(run.reason) ?? ""}`}` : hiddenIds.has(run.id) ? "Time outlier hidden; turn off HIDE TIME OUTLIERS to restore" : reason(run);
+    const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · flagged: ${invalidTrial(run) ?? ""}`}${endedByOperator(run.reason) === null ? "" : ` · ${endedByOperator(run.reason) ?? ""}`}` : reason(run);
     return `<li><a href="/#replay=${encodeURIComponent(run.id)}">${esc(run.id)}</a> · ${esc(progress)}</li>`;
   }).join("")}</ul></details>`;
   const unavailable = `${refs.human === null ? '<p class="wb-muted">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-muted">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;
   const currentKeys = current.map(run => { const color = versions.byRun.get(run.id)?.color ?? OTHER_COLOR; return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${checkpointResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => onChart(run, s.name) && milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
   const legend = currentKeys === "" ? "" : `<div class="wb-model-legend wb-current-keys" aria-label="Runs in progress">${currentKeys}</div>`;
-  return `${coverage}${unavailable}${legend}<svg data-hidden-outliers="${String(removed.length)}" data-outlier-summary="${esc(outlierSummary)}" class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Story and gym trainer frontier through badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} progress checkpoints, including optional gym trainers.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
+  return `${coverage}${unavailable}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Story and gym trainer frontier through badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} progress checkpoints, including optional gym trainers.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
 }

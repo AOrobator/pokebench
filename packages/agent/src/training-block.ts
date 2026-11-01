@@ -51,6 +51,8 @@ const partyExp=(party:Party):string=>party.filter(m=>m.species!==null&&m.is_egg!
 const BATTLE_TYPE_TRAINER=1<<3;
 const leaderActive=(s:Pick<Snapshot,"trainer_opponent">)=>s.trainer_opponent?.battle_active===true&&s.trainer_opponent.trainer_class===LEADER_CLASS;
 
+const hasWhiteoutReceipt=(s:Pick<State,"blackout_receipt"|"blackout_receipts">):boolean=>s.blackout_receipt!==undefined||(s.blackout_receipts!==undefined&&s.blackout_receipts.length>0);
+
 export class TrainingBlock {
  // EXP pages are attributed through the state their page names; states are kept as the battle they belong to.
  private readonly actions=new BattleActionHistory();
@@ -58,6 +60,9 @@ export class TrainingBlock {
  private receipt:number|null=null;
  private offeredLoss:number|null=null;
  private consumedLoss:number|null=null;
+ private pendingWhiteout:number|null=null;
+ private offeredWhiteout:number|null=null;
+ private consumedWhiteout:number|null=null;
  private readonly sources=new Map<number,Source>();
  // Per battle: the trainer's name once a state showed it, and battles the battle type marks as a trainer's.
  private readonly trainerLabels=new Map<number,string>();
@@ -79,9 +84,22 @@ export class TrainingBlock {
   // Failed results and all game-tool results still require a matching current receipt.
   if(event.type==="tool_result"&&!event.is_error&&event.state_seq===undefined&&this.contextToolNames.has(event.name))return;
   if(this.features["battle-action-history-v1"])this.actions.observe(event);
-  if(event.type==="assistant"&&event.stop_reason!=="error"&&event.stop_reason!=="aborted"&&event.error===undefined&&this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
-  if(event.type==="state"){this.latest="started" in event?event:null;this.receipt=null;}
-  if(event.type==="tool_result"||event.type==="decision_input")this.receipt=(event.type==="decision_input"||!event.is_error)&&this.latest!==null&&event.state_seq===this.latest.seq?event.seq:null;
+  if(event.type==="assistant"&&event.stop_reason!=="error"&&event.stop_reason!=="aborted"&&event.error===undefined){
+   if(this.offeredLoss!==null){this.consumedLoss=this.offeredLoss;this.offeredLoss=null;}
+   if(this.offeredWhiteout!==null){this.consumedWhiteout=this.offeredWhiteout;this.offeredWhiteout=null;this.pendingWhiteout=null;this.actions.clear();}
+  }
+  if(event.type==="state"){
+   const prior=this.latest;
+   this.latest="started" in event?event:null;this.receipt=null;
+   if(this.features["battle-action-history-v1"]&&prior!==null&&this.latest!==null){
+    const leftBattle=inBattle(prior)&&!inBattle(this.latest);
+    if(leftBattle&&!hasWhiteoutReceipt(this.latest))this.actions.clear();
+   }
+  }
+  if(event.type==="tool_result"||event.type==="decision_input"){
+   this.receipt=(event.type==="decision_input"||!event.is_error)&&this.latest!==null&&event.state_seq===this.latest.seq?event.seq:null;
+   if(this.features["battle-action-history-v1"]&&event.type==="tool_result"&&!event.is_error&&this.latest!==null&&event.state_seq===this.latest.seq&&field(this.latest)&&hasWhiteoutReceipt(this.latest)&&this.latest.seq!==this.consumedWhiteout)this.pendingWhiteout=this.latest.seq;
+  }
   if(event.type==="state"&&"started" in event){this.state(event);return;}
   if(this.features["leader-loss-comparison-v1"])this.lossDelivery(event);
   if(event.type!=="dialogue_auto_advance"||!this.features["exp-earned-ledger-v1"])return;
@@ -318,8 +336,11 @@ export class TrainingBlock {
    parts.push(...this.lossPart(state,true));this.offeredLoss=latest.endSeq;
    evidence.push(latest.startSeq,...(latest.endSeq===null?[]:[latest.endSeq]),...[...latest.foes.values()].map(f=>f.seq),...latest.messageSources.values(),...latest.effectivenessSources.values());
   }
-  const actions=this.features["battle-action-history-v1"]?this.actions.context(64-new Set(evidence).size,BATTLE_HISTORY_CONTEXT_CHARS-parts.join("\n").length-(parts.length===0?0:1)):null;
-  if(actions!==null){parts.push(actions.text);evidence.push(...actions.evidence);}
+  // battle-action-history-v1: in-battle decisions, plus one post-whiteout field decision only.
+  const whiteoutDue=this.features["battle-action-history-v1"]&&this.pendingWhiteout!==null&&this.pendingWhiteout!==this.consumedWhiteout&&field(state);
+  const actionsDue=this.features["battle-action-history-v1"]&&(inBattle(state)||whiteoutDue);
+  const actions=actionsDue?this.actions.context(64-new Set(evidence).size,BATTLE_HISTORY_CONTEXT_CHARS-parts.join("\n").length-(parts.length===0?0:1),whiteoutDue||inBattle(state)?new Set([this.actions.currentBattle()]):undefined):null;
+  if(actions!==null){parts.push(actions.text);evidence.push(...actions.evidence);if(whiteoutDue)this.offeredWhiteout=this.pendingWhiteout;}
   return parts.length===0?null:{text:parts.join("\n"),evidence:[...new Set(evidence)]};
  }
 

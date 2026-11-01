@@ -44,6 +44,19 @@ describe("native battle history delivery",()=>{
   expect(last(out)).toContain("Foe GEODUDE used ROCK TOMB");
   expect(last(out)).not.toContain("Scratch base damage is around 12");
  });
+ it("delivers action history in battle and after whiteout, but not on ordinary overworld decisions",async()=>{
+  const inBattle=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});inBattle.feed(2066);
+  expect(last(await inBattle.wired.transformContext(before))).toContain("Player TORCHIC used SCRATCH");
+  const whiteout=setup({"battle-action-history-v1":true,"leader-loss-comparison-v1":false});whiteout.feed(2171);
+  expect(last(await whiteout.wired.transformContext(before))).toContain("Observed battle actions");
+  const reply={v:1,run:"r",t:"2026-10-23T00:00:00.000-04:00",turn:1,type:"assistant" as const,seq:2172,thinking:"",text:"ok",tool_calls:[],stop_reason:"stop" as const,usage:{input:0,output:0,cache_read:0},latency_ms:0,ttft_ms:null};
+  const after=eventAt(2171);if(after.type!=="tool_result")throw new Error("receipt");
+  whiteout.emit(checkEvent({...reply,run:after.run,t:after.t,turn:after.turn}));
+  const field=eventAt(2169);if(field.type!=="state"||!("started" in field))throw new Error("field");
+  whiteout.emit(checkEvent({...field,seq:2173,blackout_receipt:undefined,blackout_receipts:undefined}));
+  whiteout.emit({...after,seq:2174,id:"post-whiteout-field",state_seq:2173});
+  expect(await whiteout.wired.transformContext(before)).toBe(before);
+ });
  it("compact comparison labels the last completed attempt and distinguishes unchanged EXP from full HP",async()=>{
   const s=setup({"leader-loss-immediate-v1":true,"leader-preparation-comparison-v1":true});s.feed(1744);
   const out=await s.wired.transformContext(before);

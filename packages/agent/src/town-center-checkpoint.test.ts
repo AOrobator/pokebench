@@ -144,7 +144,8 @@ it.each(["successful-action","retries"] as const)("real recorder preserves live/
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
-it("keeps the exact checkpoint instruction after the integrated gym checklist",async()=>{
+it("keeps the exact checkpoint instruction when the gym checklist has no due event",async()=>{
  const s=setup(true,undefined,true),input=s.arrive(),out=await s.wiring.transformContext(input);
- expect(out.slice(0,input.length)).toEqual(input);expect(out.slice(input.length).map(m=>m.content)).toEqual([expect.stringContaining("DISCOVERED GYM CHECKLIST"),NOTE]);
+ expect(out.slice(0,input.length)).toEqual(input);expect(out.slice(input.length).map(m=>m.content)).toEqual([NOTE]);
+ expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(false);
 });

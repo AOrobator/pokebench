@@ -2,7 +2,7 @@ import type {RunEvent} from "./events.js";
 interface Observation {readonly seq:number;readonly battle:number;readonly party:readonly {species:string|null;nickname:string|null|undefined}[];readonly battlers:readonly {identity:string;position:number;party_slot:number;species:string;absent:boolean;hp:number;max_hp:number}[]|null}
 export const BATTLE_HISTORY_CONTEXT_CHARS=6000;
 const DEFAULT_LIMITS={intervals:8,memory:512,pages:8,sources:60};
-interface Entry {text:string;evidence:number[]}
+interface Entry {text:string;evidence:number[];battle:number}
 const HEADER="Observed battle actions (last 8 delivered intervals, up to 8 game pages each and 60 source rows; game pages and native HP, not advice):\nHP is net change between the stated battle snapshots; attribution to individual moves is unknown.";
 // Delivered game pages and paired observations, never assistant recollections or inferred move damage.
 // pret/pokeemerald731ad5b: battle_message.c STRINGID_USEDMOVE / sText_AttackerUsedX,
@@ -18,11 +18,16 @@ export class BattleActionHistory {
  private previousBattle=-1;
  private wasBattle=false;
  private readonly entries:Entry[]=[];
+ currentBattle():number {return this.battle;}
+ keepBattles(keep:ReadonlySet<number>):void {
+  for(let i=this.entries.length-1;i>=0;i--){const entry=this.entries[i];if(entry!==undefined&&!keep.has(entry.battle))this.entries.splice(i,1);}
+ }
+ clear():void {this.entries.length=0;this.previous=null;}
  observe(e:RunEvent):void {
   if(e.type==="state"){
    if(!("started" in e)){this.previous=null;this.latestSeq=null;this.wasBattle=false;return;}
    const active=e.in_battle||e.screen==="battle";
-   if(active&&!this.wasBattle)this.battle+=1;
+   if(active&&!this.wasBattle){this.battle+=1;this.keepBattles(new Set([this.battle]));}
    this.wasBattle=active;this.latestSeq=e.seq;this.states.set(e.seq,{seq:e.seq,battle:this.battle,party:e.party.map(m=>({species:m.species,nickname:m.nickname})),battlers:e.battle?.battlers?.map(b=>({identity:b.identity,position:b.position,party_slot:b.party_slot,species:b.species,absent:b.absent,hp:b.hp,max_hp:b.max_hp}))??null});
    if(this.states.size>this.limits.memory){const first=this.states.keys().next().value;if(first!==undefined)this.states.delete(first);}
    return;
@@ -82,13 +87,13 @@ export class BattleActionHistory {
     }
    }else lines.push("HP changes: unknown (paired battle snapshots unavailable).");
    const evidence=[...new Set([...(before===null?[]:[before.seq]),...pages.map(p=>p.seq),...nameSources,...(end===null?[]:[end.seq]),now.seq,e.seq])];
-   this.entries.push({text:`- Turn ${String(e.turn)} · observation interval ${String(before?.seq??"unknown")} → ${String(now.seq)}${end!==null&&end.seq!==now.seq?`; HP endpoint ${String(end.seq)} (last delivered battle-page snapshot; final observation ${String(now.seq)})`:""}: ${lines.join("; ")}`,evidence});
+   this.entries.push({battle:now.battle,text:`- Turn ${String(e.turn)} · observation interval ${String(before?.seq??"unknown")} → ${String(now.seq)}${end!==null&&end.seq!==now.seq?`; HP endpoint ${String(end.seq)} (last delivered battle-page snapshot; final observation ${String(now.seq)})`:""}: ${lines.join("; ")}`,evidence});
    this.entries.splice(0,Math.max(0,this.entries.length-this.limits.intervals));
   }
   this.previous=now;this.previousBattle=this.battle;
  }
- context(maxSources=this.limits.sources,maxChars=BATTLE_HISTORY_CONTEXT_CHARS):{text:string;evidence:number[]}|null {
-  const entries=[...this.entries];
+ context(maxSources=this.limits.sources,maxChars=BATTLE_HISTORY_CONTEXT_CHARS,battles?:ReadonlySet<number>):{text:string;evidence:number[]}|null {
+  const entries=this.entries.filter(entry=>battles===undefined||battles.has(entry.battle));
   let chars=HEADER.length+entries.reduce((sum,entry)=>sum+entry.text.length+1,0);
   while(entries.length>0&&(new Set(entries.flatMap(entry=>entry.evidence)).size>Math.max(0,Math.min(this.limits.sources,maxSources))||chars>maxChars)){const removed=entries.shift();if(removed!==undefined)chars-=removed.text.length+1;}
   if(entries.length===0)return null;

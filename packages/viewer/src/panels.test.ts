@@ -1417,6 +1417,20 @@ it("links the dark area FLASH reminder from its recorded feature card",()=>{
  expect(html).toContain('the game marks SABLEYE "ABLE!" and COMBUSKEN "NOT ABLE!"');
 });
 
+it("links the model error recovery explainer from its recorded feature card",()=>{
+ const id="model-error-recovery-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("floor(0.75 x 42430) = 31822");
+ expect(html).toContain("on in both arms");
+});
+
 it("links the birch intro pages from its recorded feature card",()=>{
  const id="birch-intro-pages-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

@@ -111,7 +111,8 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
 export function contextBudget(features:FeatureSet,model:{readonly contextWindow:number},maxTokens:number,recorder:Pick<RunRecorder,"compaction">&Partial<Pick<RunRecorder,"promptCount">>,counter:PayloadCounter|null=null):{budget?:ContextBudget;onBudgetTrim?:(trim:BudgetTrim)=>void;exact?:ExactContext}{
  const exact=features["context-exact-count-v1"];
  if(exact&&counter!==null)return {exact:new ExactContext(counter,model.contextWindow,maxTokens,{compaction:(from,to)=>{recorder.compaction(from,to);},promptCount:count=>{recorder.promptCount?.(count);}})};
- if(!features["context-token-budget-v1"])return {};
+ // model-error-recovery-v1: the ceiling needs a fitter, so it builds one when the budget is off.
+ if(!features["context-token-budget-v1"]&&!features["model-error-recovery-v1"])return {};
  return {budget:new ContextBudget(budgetLimit(model.contextWindow,maxTokens),exact),onBudgetTrim:trim=>{recorder.compaction(trim.from,trim.predicted);}};
 }
 

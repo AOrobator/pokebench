@@ -6,6 +6,7 @@ import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {exactCountProblems,payloadCounter} from "./exact-context.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {ModelErrorRecovery} from "./model-error-recovery.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
@@ -291,6 +292,11 @@ async function playAgent(): Promise<void> {
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
+      // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
+      // probed before the retry, and neither ends the run.
+      const recovery = features["model-error-recovery-v1"]
+        ? new ModelErrorRecovery({baseUrl: model.baseUrl, record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
+        : null;
       const {governor,control:runControl} = controlledRun({
         limits,
         ...(screenshotButtonBaseline(features) ? { uncoachedBaseline: true } : {}),
@@ -306,6 +312,7 @@ async function playAgent(): Promise<void> {
         ...(preset===null?{}:{startedAt:0}),
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
+        ...(recovery===null?{}:{modelErrorRecovery:true,onModelError:(message)=> { recovery.observe(message); }}),
       }, {
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
@@ -347,6 +354,7 @@ async function playAgent(): Promise<void> {
       const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
       const {exact,...budget}=contextBudget(features, model, maxTokens, recorder, payloadCounter(model.provider, model.baseUrl, apiKey));
+      recovery?.attach({...budget, ...(exact===undefined?{}:{exact})});
       const restored=continuation===null?null:await restoreLiveContinuation(continuation,features,recorder,context,{systemPrompt,tools:tools.map(({name,description,parameters})=>({name,description,parameters})),...(budget.budget===undefined?{}:{budget:budget.budget})});
       const messages:AgentMessage[]=restored===null?[]:[...restored.messages];
       let requestIndex=0;
@@ -372,10 +380,10 @@ async function playAgent(): Promise<void> {
         ...budget,
         emit: event=>{if(event.type==="message_end"){exact?.observe(event.message);if(restored!==null)messages.push(event.message);}return recorder.emit(event);},
         signal: controller.signal,
-        gate: (signal) => runControl.gate(signal),
+        gate: async (signal) => { await runControl.gate(signal); await recovery?.beforeModelCall(signal); },
       });
         if(restored!==null)return await playFromHistory(restored.messages,governor,loop);
-        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
+        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:async signal=>{await runControl.gate(signal);await recovery?.beforeModelCall(signal);},inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
         return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop),researchNote);
       } finally {
         if(absoluteStop!==null)clearTimeout(absoluteStop);

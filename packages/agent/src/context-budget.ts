@@ -66,8 +66,19 @@ export interface ContextBudgetState{readonly limit:number;readonly sent:number|n
 export class ContextBudget {
   private sent: number | null = null;
   private anchor: { weight: number; tokens: number; basis: "usage" | "overflow" } | null = null;
+  // model-error-recovery-v1: the lane refused a prompt of this size, so no later request may exceed
+  // three quarters of it. Sticky for the run; whole turns are dropped, text is never cut.
+  private ceiling: number | null = null;
 
   constructor(readonly limit: number, private readonly vllmOverflow = false) {}
+
+  capAt(tokens: number): void {
+    this.ceiling = this.ceiling === null ? tokens : Math.min(this.ceiling, tokens);
+  }
+
+  get effectiveLimit(): number {
+    return this.ceiling === null ? this.limit : Math.min(this.limit, this.ceiling);
+  }
 
   snapshot():ContextBudgetState{return {limit:this.limit,sent:this.sent,anchor:this.anchor===null?null:{...this.anchor}};}
   restore(state:ContextBudgetState):void{
@@ -84,18 +95,19 @@ export class ContextBudget {
     const [task, ...rest] = messages;
     if (task === undefined) return { messages, trim: null };
     const starts = rest.flatMap((message, i) => (message.role === "assistant" ? [i] : []));
+    const limit = this.effectiveLimit;
     const from = this.predict(requestWeight(messages));
     let kept = messages;
     let predicted = from;
     let cut = 0;
-    while (predicted > this.limit && cut < starts.length - 1) {
+    while (predicted > limit && cut < starts.length - 1) {
       cut += 1;
       kept = [task, ...rest.slice(starts[cut] ?? 0)];
       predicted = this.predict(requestWeight(kept));
     }
     this.sent = requestWeight(kept);
     if (cut === 0) return { messages, trim: null };
-    return { messages: kept, trim: { limit: this.limit, from, predicted, turns: starts.length, kept: starts.length - cut, basis: this.anchor?.basis ?? "estimate" } };
+    return { messages: kept, trim: { limit, from, predicted, turns: starts.length, kept: starts.length - cut, basis: this.anchor?.basis ?? "estimate" } };
   }
 
   // Called with each finished assistant message, so the next prediction starts from the server's own count.

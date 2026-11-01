@@ -175,7 +175,8 @@
   "supervisor-briefing-bound-v1",
   "compact-map-grid-v1",
   "discovered-gym-checklist-v1",
-  "player-map-visibility-v2"
+  "player-map-visibility-v2",
+  "model-error-recovery-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -482,6 +483,7 @@
   "rusturf-entry-followup-v1": false,
   "authored-scene-labels-v1": false,
   "moving-npc-frame-burst-v1": false,
-  "dark-area-flash-reminder-v1": true
+  "dark-area-flash-reminder-v1": true,
+  "model-error-recovery-v1": true
  }
 }

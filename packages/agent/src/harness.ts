@@ -157,6 +157,9 @@ export interface GovernorDeps {
   readonly textOnlyReminder?: string;
   // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
   readonly cutOffNotice?: string;
+  // model-error-recovery-v1: a model error never ends the run; the lane is probed before the retry.
+  readonly modelErrorRecovery?: boolean;
+  readonly onModelError?: (message: AssistantMessage) => void;
 }
 
 export class Governor {
@@ -194,6 +197,7 @@ export class Governor {
     if(this.stopReason!==null)return true;
     this.silent = 0;
     this.modelErrors += 1;
+    this.deps.onModelError?.(message);
     this.fail(`model error: ${message.errorMessage ?? message.stopReason}`);
     return this.countTurn();
   }
@@ -225,6 +229,13 @@ export class Governor {
   private fail(reason: string): void {
     this.failures += 1;
     this.deps.retry(reason, this.failures, this.deps.limits.failureLimit);
+    // model-error-recovery-v1: a streak that contains a model error never ends the run. Each absorbed
+    // error starts a fresh streak, so the recorded attempt is per error, not cumulative.
+    if (this.deps.modelErrorRecovery === true && this.modelErrors > 0) {
+      this.failures = 0;
+      this.silent = 0;
+      return;
+    }
     if (this.failures < this.deps.limits.failureLimit) return;
     // Only a streak made entirely of replies with no tool call earns a note instead of the stop.
     if (this.deps.textOnlySupervisor !== undefined && this.silent >= this.failures && this.notes < TEXT_ONLY_NOTE_LIMIT) {

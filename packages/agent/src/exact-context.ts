@@ -164,6 +164,8 @@ export function dropTurns(messages: readonly ChatMessage[], cut: number): ChatMe
 export class ExactContext {
   private reserve = 0;
   private sent: { tokens: number; source: CountSource } | null = null;
+  // model-error-recovery-v1: a refused prompt caps every later request at three quarters of itself.
+  private ceiling: number | null = null;
 
   constructor(
     private readonly counter: PayloadCounter,
@@ -171,6 +173,10 @@ export class ExactContext {
     private readonly maxTokens: number,
     private readonly hooks: ExactHooks,
   ) {}
+
+  capAt(tokens: number): void {
+    this.ceiling = this.ceiling === null ? tokens : Math.min(this.ceiling, tokens);
+  }
 
   async fit(payload: unknown, signal?: AbortSignal): Promise<unknown> {
     if (!Value.Check(ChatPayload, payload)) return payload;
@@ -191,7 +197,11 @@ export class ExactContext {
     let messages = [...payload.messages];
     let counted = await measure(messages);
     const first = counted.tokens;
-    const limit = (): number => (counted.window ?? this.contextWindow) - this.maxTokens - (source === "estimate" ? BUDGET_MARGIN : 0) - this.reserve;
+    const limit = (): number =>
+      Math.min(
+        (counted.window ?? this.contextWindow) - this.maxTokens - (source === "estimate" ? BUDGET_MARGIN : 0) - this.reserve,
+        this.ceiling ?? Number.POSITIVE_INFINITY,
+      );
     while (counted.tokens > limit() && cut < starts - 1) {
       cut += 1;
       messages = dropTurns(payload.messages, cut);

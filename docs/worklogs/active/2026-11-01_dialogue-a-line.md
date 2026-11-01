@@ -49,9 +49,22 @@ Prompt copy only; no new input, tool, server read or filesystem access. The swit
 ### M1 — Reword the dialogue section behind dialogue-a-line-v1
 - [x] RED: `c4a69a8ca` — `dialogue-a-line.test.ts` pins the OFF bytes and the ON wording (4 failed, 2 passed before the switch existed)
 - [x] GREEN: `play-config.ts` (both strings, selected by the switch), `features.ts` registry, `play-preset.ts`, `next-run.ts`, `current.json` (`features` + `onInBoth`), explainer + `panels.ts` mapping, one registry-index pin in `model-error-recovery-governor.test.ts`
-- [ ] Full gates: `just lint` / `just coverage`
+- [x] Full gates: `just lint` / `just coverage` (receipts below)
 - [ ] Multi-model review
 - [ ] Land (landing board slot)
+
+## Gate receipts (3698ce2bc)
+
+- `just build`: PASS (stamp `3698ce2` — inside `just coverage`)
+- `just lint`: PASS (tsc + eslint both packages, ruff, ruff format, mypy; exit 0)
+- `just coverage` (same recipe as `just test`): PASS, exit 0
+  - agent: 374 files / 5325 tests passed; coverage 96.43 stmts, 92.47 branch, 97.5 funcs, 99.07 lines
+  - viewer: 184 files / 2407 tests passed; coverage 94.62 stmts, 90.83 branch, 94.93 funcs, 98.28 lines
+  - env pytest: 4979 passed, TOTAL 96%; coverage gate --min 90 PASS
+  - claude-gateway: 116 passed, TOTAL 98%; coverage gate --min 90 PASS
+  - trainer-card-check: 3 design tests passed
+- Not granted: the Claude-relay CPU window (requested 22:05Z, no START). Gates ran unmonitored.
+- `just test` was not run as a separate pass: the justfile defines `coverage: test`, and the recipe comment says to run the single pass once.
 
 ## Closing the Loop
 

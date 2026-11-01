@@ -62,3 +62,22 @@ ASK USER before archive.
 Session: RED pins committed; GREEN next.
 
 GREEN: recipe onInBoth + copy; focused viewer 24 PASS.
+
+## Gate receipts (72d6540c1)
+
+- Cheap: viewer fixed-definition + both-arms 24 PASS
+- just lint: PASS (prior worktree run)
+- just build: stamp 72d6540
+- just test (final with .env + mgba + trainer-card art links): TEST_EXIT:0
+  - agent 5256 PASS, viewer 2388 PASS, python 4979 PASS, gateway 116 PASS, trainer-card 3 PASS
+- just verify-vendor: vendor OK at bbab97ad
+
+## Multi-Model Review Log
+
+Frozen packet: base 14991d479 .. head 72d6540c1; diff SHA-256 5f4579c3028442fa6351bb209152adcd7c298c23302871408d786b53b18c6fb3
+
+- Claude CLI (`~/.claude-review`): VERDICT: LGTM (hardening follow-ups only: DEFAULT_NEXT_RUN pin for checklist; PB1 N/A→PASS caveat; no blockers)
+- Grok (cursor-agent grok-4.7-high-fast): UNAVAILABLE — Cursor usage limit
+- GPT (Codex ChatGPT + cursor-agent gpt-5.6-sol-medium): UNAVAILABLE — Codex model_not_found for tried SKUs; Cursor usage limit
+
+Landing blocked until Grok + GPT cloud lanes return LGTM or operator waives.

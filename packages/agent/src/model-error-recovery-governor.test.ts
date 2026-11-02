@@ -146,13 +146,13 @@ describe("a run wired for recovery", () => {
 
 describe("registry", () => {
   const ID = "model-error-recovery-v1";
-  it("is a default-off, agent-side guard switch with no dependency, registered last", () => {
+  it("is a default-off, agent-side guard switch with no dependency, appended after its predecessors", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "MODEL ERROR RECOVERY" });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("on in both arms of the current recipe");
     expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(320);
     expect(SERVER_FEATURES).not.toContain(ID);
-    expect(playHarnessFeatures(ON, null).at(-1)).toBe(ID);
+    expect(playHarnessFeatures(ON, null).at(-2)).toBe(ID);
     expect(playHarnessFeatures(OFF, null)).not.toContain(ID);
     expect(dependencyProblems(ON)).toEqual(dependencyProblems(OFF));
   });

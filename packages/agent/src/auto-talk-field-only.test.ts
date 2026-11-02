@@ -14,7 +14,7 @@ import {autoTalkContext} from "./auto-talk.js";
 
 const ID="auto-talk-field-only-v1" as const;
 const NONE=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
-const BASE:FeatureSet={...NONE,"duplicate-turn-collapse-v1":true,"auto-talk-v1":true};
+const BASE:FeatureSet={...NONE,"duplicate-turn-collapse-v1":true,"auto-talk-v1":true,"auto-talk-interrupt-note-v1":true};
 type Target=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 const BOY:Target={kind:"object",name:"BOY_1",x:9,y:9,elevation:3,activation:"A",availability:"live",facing:"down",local_id:3,destination:null};
 const FIELD:GameStateSnapshot={...IN_GAME,map_id:[0,17],location:"ROUTE102",position:{x:7,y:9},facing:"right",field_controls_locked:false,in_battle:false,active_ui:null,interaction_targets:[BOY]};
@@ -94,6 +94,14 @@ describe("auto-talk-field-only-v1",()=>{
   await r.send();
   expect(r.talks).toEqual([{outcome:"not_free",text:null}]);
   expect(r.calls).toEqual(["navigate_to"]);
+  // The walk still happened, so the note is not thrown away with the battle: it lands on the first
+  // request that can read the field. 07a7 never got it and re-derived the same detour for 20 turns.
+  r.set(FIELD);
+  const out=await r.send();
+  expect(r.talks.length).toBe(1);
+  expect(out.at(-1)).toMatchObject({role:"user"});
+  expect(JSON.stringify(out.at(-1))).toContain("walked you toward BOY_1 at (9,9)");
+  expect(JSON.stringify(out.at(-1))).toContain("the game took the field");
  });
  it("is registered as a default-off agent-only guard that needs auto-talk-v1",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"auto-talk-v1",switchable:true});

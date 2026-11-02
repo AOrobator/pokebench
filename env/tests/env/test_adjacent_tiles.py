@@ -459,3 +459,49 @@ def test_each_named_glyph_is_the_glyph_the_map_draws(behavior: int, collision: i
             assert glyph is not None, text
             assert glyph.group(1) == cells[gy][gx + 1], (direction, text, cells)
         assert "elevation" not in text and "blocked by" not in text
+
+
+def test_a_solid_tile_leads_with_the_collision_not_the_element_beneath() -> None:
+    """07a7 read "down (12,6) ground (cave); collision (#), cannot be entered from here" and pressed
+    DOWN into that wall across twenty turns. The element says what the tile is made of; the collision
+    says whether the step is allowed, and that is the part the agent has to act on."""
+    from pokebench_env.map_observation import build_observation
+    from pokebench_env.map_observation_types import MapElement
+
+    shown = grid({(5, 4): (1, 0)})
+    observation = build_observation(
+        shown, (4, 4), (MapElement("encounter_ground", 5, 4, state="cave"),)
+    )
+    text = next_tiles(
+        shown,
+        (5, 5),
+        coordinates=True,
+        ledges=True,
+        edge_walls=True,
+        counters=True,
+        warp_guidance=True,
+        topology=None,
+        on_foot=True,
+        observation=observation,
+        solid_first=True,
+    )
+    up = text.removeprefix("Next tiles: ")
+    assert up.startswith(
+        "up (5,4) collision (#), cannot be entered from here, collision set; ground (cave); down "
+    ), up
+    # solid-tile-leads-v1 off is the shipped sentence: the element leads and the refusal follows.
+    shipped = next_tiles(
+        shown,
+        (5, 5),
+        coordinates=True,
+        ledges=True,
+        edge_walls=True,
+        counters=True,
+        warp_guidance=True,
+        topology=None,
+        on_foot=True,
+        observation=observation,
+    )
+    assert shipped.removeprefix("Next tiles: ").startswith(
+        "up (5,4) ground (cave); collision (#), cannot be entered from here"
+    ), shipped

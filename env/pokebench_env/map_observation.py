@@ -221,31 +221,84 @@ def labels_at(
     )
 
 
-# Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge and the rest), so a
-# code can never be mistaken for a glyph; shorter codes run out before longer ones start.
-CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
+# Codes never reuse a one-character glyph (W warp, N object, g grass, v ledge, L other level), so a
+# code can never be mistaken for a glyph; shorter codes run out before longer ones start. The
+# alphabet is fixed here rather than taken from the grid being drawn: a code issued on one turn has
+# to stay unambiguous on every later turn of the same run.
+GLYPH_LETTERS = frozenset("NVWLgv")
+CODE_LETTERS = "".join(
+    c for c in "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz" if c not in GLYPH_LETTERS
+)
+# A code is never an element legend key either, so "I" cannot mean anything but ice there.
+LEGEND_KEYS = frozenset(
+    v for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS) for v in table.values()
+)
 
 
-def compact_codes(rendered: list[list[str]]) -> dict[str, str]:
-    glyphs = {token for row in rendered for token in row if len(token) == 1}
-    # A code is never an element legend key either, so "I" cannot mean anything but ice there.
-    legend = {
-        v
-        for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS)
-        for v in table.values()
-    }
-    letters = [c for c in CODE_LETTERS if c not in glyphs and c not in legend]
-    names = (
-        "".join(p)
-        for size in itertools.count(1)
-        for p in itertools.product(letters, repeat=size)
-        if "".join(p) not in legend
-    )
+class CodeBook:
+    """The Codes line is a dictionary, and the model reads it once.
+
+    A letter, once it means a token, keeps meaning that token for the rest of the run. Run 07a7 read
+    "F = ./Eg:cv" (floor) at turn 395 and "F = N/Eg:cv" (an object) at turn 396 on one strip of
+    Rusturf Tunnel, because every render handed letters out in first-appearance order again. A
+    dictionary that re-letters itself is worse than no dictionary.
+    """
+
+    def __init__(self) -> None:
+        self._codes: dict[str, str] = {}
+        self._used: set[str] = set()
+        self._names = (
+            "".join(name)
+            for size in itertools.count(1)
+            for name in itertools.product(
+                [c for c in CODE_LETTERS if c not in LEGEND_KEYS], repeat=size
+            )
+            if "".join(name) not in LEGEND_KEYS
+        )
+
+    def codes_for(self, tokens: "Iterable[str]") -> dict[str, str]:
+        """Codes for these tokens in first-appearance order; a token new to the book takes a free one."""
+        wanted = [token for token in dict.fromkeys(tokens) if len(token) > 1]
+        for token in wanted:
+            if token not in self._codes:
+                self._codes[token] = self._take()
+        return {token: self._codes[token] for token in wanted}
+
+    def _take(self) -> str:
+        while True:
+            name = next(self._names)
+            if name not in self._used:
+                self._used.add(name)
+                return name
+
+
+CODES = CodeBook()
+
+
+def reset_codebook() -> None:
+    """A new run starts a fresh book (and so does a test)."""
+    global CODES
+    CODES = CodeBook()
+
+
+# The switch-off alphabet, exactly as compact-map-grid-v1 shipped it: L included (it is also the
+# other-level glyph) and no legend-key check, because the off state must be byte for byte.
+LEGACY_CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
+
+
+def compact_codes(rendered: list[list[str]], *, stable: bool = False) -> dict[str, str]:
+    tokens = [token for row in rendered for token in row]
+    if stable:
+        return CODES.codes_for(tokens)
     codes: dict[str, str] = {}
-    for row in rendered:
-        for token in row:
-            if len(token) > 1 and token not in codes:
-                codes[token] = next(names)
+    names = (
+        "".join(name)
+        for size in itertools.count(1)
+        for name in itertools.product(LEGACY_CODE_LETTERS, repeat=size)
+    )
+    for token in tokens:
+        if len(token) > 1 and token not in codes:
+            codes[token] = next(names)
     return codes
 
 
@@ -258,6 +311,7 @@ def render_observation(
     counters: bool = True,
     terrain: bool = False,
     compact: bool = False,
+    stable_codes: bool = False,  # needs compact: the letter that replaces a token in a cell
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -313,7 +367,8 @@ def render_observation(
     if compact:
         # compact-map-grid-v1: each multi-character token is shown by its code from the Codes line,
         # columns share one width and column numbers read top to bottom. Nothing is cut or dropped.
-        codes = compact_codes(rendered)
+        # stable-map-codes-v1: a letter, once issued, keeps its token for the rest of the run.
+        codes = compact_codes(rendered, stable=stable_codes)
         rendered = [[codes.get(token, token) for token in row] for row in rendered]
         width = max([1, *(len(code) for code in codes.values())])
         widths = [width] * observation.width

@@ -50,6 +50,8 @@ export class AutoTalk {
  private named:string|null=null;
  // auto-talk-v3: the map the quiet stretch is on and its free-field turns so far.
  private quiet={map:"",turns:0};
+ // A walk a battle interrupted: a note into a battle is the 10/22 bug, so it waits for the field.
+ private pending:{readonly text:string;readonly map:string|null}|null=null;
  constructor(private readonly features:FeatureSet,private readonly state:StateSource,private readonly tools:readonly AgentTool[],private readonly breaker:Pick<FixedPointBreaker,"fixedPoint"|"noTool">|null,private readonly recorder:AutoTalkRecorder){
   recorder.subscribe(event=>{
    this.gate.observe(event);
@@ -60,7 +62,16 @@ export class AutoTalk {
 
  transform(base:Transform,signal?:AbortSignal):Transform {
   return async messages=>{
-   const out=await base(messages);
+   let out=await base(messages);
+   if(this.pending!==null){
+    const now=await this.state.read();
+    if(!battleOwns(now)){
+     const {text,map}=this.pending;
+     this.pending=null;
+     // Same map only: a lost battle puts the player somewhere else, and the note would be a lie there.
+     if(map===null||now.map_id?.join("/")===map)out=[...out,{role:"user",content:[{type:"text",text}],timestamp:Date.now()}];
+    }
+   }
    const anchor=this.anchor(messages);
    if(this.retained!==null&&this.retained.anchor!==anchor)this.retained=null;
    const due=this.features["auto-talk-v3"]?await this.quietDue(signal):this.due();
@@ -157,7 +168,18 @@ export class AutoTalk {
    const reached=await this.approach(target,navigate,s,signal,()=>{walks++;});
    s=reached.state;
    // A wild battle or a script took the field mid-walk: stop here, the game has something new to show.
-   if(!free(s)){record("not_free",target,walks,tried,null);return {message:null,settled:true};}
+   if(!free(s)){
+    // Run 07a7 recorded not_free with text:null here at 06:32:53, after walking to the Aqua grunt, and
+    // never told the model: it re-derived the same walk, and the same detour decision, for twenty
+    // turns. The walk happened and the talk did not; both halves have to reach the model.
+    const where=s.screen.replaceAll("_"," ");
+    const text=`SUPERVISOR: Your last ${String(due.repeats)} ${why(due.trigger)}, so the harness walked you toward ${target.name} at (${String(target.x)},${String(target.y)}) (${String(walks)} step${walks===1?"":"s"}) and the game took the field before it could be talked to: it is showing the ${where} now (screen ${s.screen}). Nothing was said to it and the walk stopped short of it; it is not evidence that talking to it does nothing.`;
+    if(!this.features["auto-talk-interrupt-note-v1"]){record("not_free",target,walks,tried,null);return {message:null,settled:true};}
+    // A note sent into a battle is the 10/22 bug; hold it for the first request on a readable field.
+    if(battleOwns(s)){this.pending={text,map:s.map_id?.join("/")??null};record("not_free",target,walks,tried,null);return {message:null,settled:true};}
+    record("not_free",target,walks,tried,text);
+    return {message:{role:"user",content:[{type:"text",text}],timestamp:Date.now()},settled:true};
+   }
    if(reached.facing===null)continue;
    const turn=s.facing?.toUpperCase()===reached.facing?[]:[reached.facing];
    if(turn.length>0)await press.execute(this.id("turn"),{buttons:turn},signal);

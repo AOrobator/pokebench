@@ -333,6 +333,9 @@ export const SWITCHABLE_FEATURES = [
   "dialogue-a-line-v1",
   "warp-target-navigation-v1",
   "semantic-refusal-reasons-v1",
+  "stable-map-codes-v1",
+  "solid-tile-leads-v1",
+  "auto-talk-interrupt-note-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -784,6 +787,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("dialogue-a-line-v1", "guidance", "DIALOGUE A LINE", null, "Default off. Rewrites the dialogue section the button guidance adds, which ended by telling the model to leave instead of pressing A in front of what it just read. That rule was written for signs and generalizes to people: a press of A talks to whatever you face, so leaving instead of pressing A skips a person who blocks the way. On run 2026-11-01 (24h Qwen), turn 354 stood one tile west of a person blocking the only corridor east, bumped the wall with RIGHT instead of pressing A, then left the story path for eleven hours. This switch keeps the game facts (B advances or closes a message; A talks to whatever you face and starts that sign's or person's message again), scopes the anti-A-spam rule to a message already read, and says A is how to talk to a person or read a sign. It adds one clause to the talking paragraph: when the readout gives the person no navigate_to_target target, face the person and press A. Names no character, place or story step. Off: the dialogue section and the talking paragraph keep their previous words, which tell the model to leave instead of pressing A."),
   on("warp-target-navigation-v1", "observation", "WARP TARGET NAVIGATION", null, "Default off; on in both arms of the current recipe (operator 2026-11-02: new switch, on in both arms, general goal-only target scoped to the Lavaridge gym). Run 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h spent 1h40m in LAVARIDGE TOWN GYM with no milestone: its untried-exits line advertised the walkable step-on pads with a handle, but navigate_to_target accepts a warp target only when the current observation listed it, so 7 of 15 warp calls answered \"target is not listed in the current verified state\" for a pad one to three tiles away, and 3 answered \"no supported route to a valid approach\" because MB_LAVARIDGE_GYM_B1F_WARP sits in the unwalkable set beside water and ledges, unlike the floor-down holes that already work. With this switch on, a warp the map's own warp records advertise resolves as a navigate_to_target argument when its tile is MB_LAVARIDGE_GYM_B1F_WARP, and that tile becomes a goal-only step: a route may end on it but never cross it, since entering one carries the player to the other floor. A pad with no reachable route answers \"no supported route to the step-on warp at (x,y)\" instead of the generic refusal. No destination, landing tile, floor mapping or route advice is added; the model still learns where a pad goes only by stepping on it. Off: every warp resolves through interaction_targets alone, the pad stays unwalkable and ungoalisable, and every result string is unchanged byte for byte."),
   on("semantic-refusal-reasons-v1", "guidance", "SEMANTIC REFUSAL REASONS", null, "Bug fix, on in both arms: a refused navigate_to_target says why and what would work instead of one generic sentence. When no approach tile is reachable, the refusal names the cause from exit-reachability-v1's flood (the target cannot be walked to on foot or across water, sits across water, or has no walkable route from your tile at all) and then lists up to three warp exits on the current map that navigate_to can still reach, nearest first, with their step count and destination map. The same cause and list are recorded on the semantic_navigation receipt as refused and refusal. Off: the refusal is the single sentence it is today (\"no supported route to a valid approach\" or the step-on warp form) and the receipt keeps only target and activation_attempted."),
+  on("stable-map-codes-v1", "observation", "STABLE MAP CODES", "compact-map-grid-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). Run 07a7 read a Codes line that re-lettered itself: on one strip of Rusturf Tunnel F meant the cave floor at turn 395, an object at turn 396 and the floor again at 414, because compact-map-grid-v1 hands letters out by first appearance on every render. With this switch on, a letter once issued keeps its token for the rest of the run, a token new to the book takes an unused letter, tokens that leave the view are simply absent, and the alphabet is fixed rather than taken from the grid: it excludes every one-character glyph and every element legend key, so a code can never read as a glyph or an element (L, the other-level glyph, was previously reachable as a code). No glyph, legend entry or element meaning changes. Off: first-appearance letters on every render, byte for byte, including L."),
+  on("solid-tile-leads-v1", "observation", "SOLID TILE LEADS", "adjacent-tiles-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). adjacent-tiles-v1 described a solid neighbour element first and refusal second, so a wall read as ground with a note: turn 395 of run 07a7 saw the cave floor before the collision, and the model pressed DOWN into that wall twenty times. On: a neighbour that cannot be entered leads with the refusal and names the element beneath it afterwards, so the direction, the verdict and the reason stay in one clause. Walkable neighbours, ledges, warps and every other line keep their previous words. Off: the element-first order, byte for byte."),
+  on("auto-talk-interrupt-note-v1", "guard", "AUTO-TALK INTERRUPT NOTE", "auto-talk-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). Run 07a7 at 06:32:53: auto-talk chose AQUA_MEMBER_M on Rusturf Tunnel, walked the player toward it, a wild Whismur battle took the field, and the attempt was recorded not_free with text null. The model was never told it had been walked to the grunt, so it re-derived the same detour decision for the next twenty turns; a later retry chose the WINGULL instead and read a dialog of none, which taught it that talking to these people does nothing. On: the interrupted walk is reported in one sentence naming the target, its tile and the screen that took the field, and saying that nothing was said and the walk stopped short, so silence cannot be read as a refusal. A note is never sent into a battle (the 2026-10-22 rule): it is held and delivered on the first request that can read the field, and dropped if the player is on another map by then. Off: the attempt is recorded with text null and nothing reaches the model."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -891,6 +897,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "player-map-visibility-v2",
   "authored-scene-labels-v1",
   "warp-target-navigation-v1",
+  "stable-map-codes-v1",
+  "solid-tile-leads-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1208,6 +1216,9 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("dialogue-a-line-v1"),
     ...when("warp-target-navigation-v1"),
     ...when("semantic-refusal-reasons-v1"),
+    ...when("stable-map-codes-v1"),
+    ...when("solid-tile-leads-v1"),
+    ...when("auto-talk-interrupt-note-v1"),
   ];
 }
 

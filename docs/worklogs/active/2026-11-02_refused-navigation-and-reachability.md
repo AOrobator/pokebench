@@ -101,3 +101,34 @@ Recorded on `claude/refusal-reasons-and-reachability` at the commit below, after
 - `is_error=true` looked like the obvious way to mark a refusal. It is not: three ledgers treat a refusal as data, and two viewer surfaces would call it a tool failure.
 - `fresh-retry-v1` already implements the "stop re-feeding the truncated reply" half of cut-off recovery; only the notice was missing.
 - The viewer's `panels.test.ts` worker crash (`SIGABRT` at 216/234) predates this branch and reproduces on clean `main`; it is not attributable to the recipe key added here.
+
+
+## M4 — Rusturf Tunnel: the readout re-lettered itself, the wall led with its floor, and the walk happened in silence
+
+Same run, `2026-11-02T02-55-21_hyperqwen-gpu0_07a7`, still live at turn 418 on map `24/4`. It reached
+the tunnel mouth at turn 395 / 06:25 and never left: position `(12,5)` facing down, `AQUA_MEMBER_M`
+(object 6) at `(14,5)` and `WINGULL` (object 7) at `(14,4)`, the exit at `(29,16)` behind both of them.
+
+- Reachability was correct. BFS over the rendered grid with `E = #/Eg:cv` as collision reaches 53 tiles and stops at `x=13`; the two NPCs are the only frontier entities. Treat the pair as passable and reachability jumps to 177 tiles with `(29,16)` reachable. `navigate_to_target` had to refuse, and it did.
+- The map read as unstable. `compact-map-grid-v1` re-lettered by first appearance on every render: `F = ./Eg:cv` (floor) at 395, `F = N/Eg:cv` (an object) at 396, floor again at 414, on a scene that had not changed.
+- `Next tiles` read as walkable. `down (12,6) ground (cave); collision (#), cannot be entered from here, collision set` put the cave floor first; the model pressed DOWN, got `Stopped before step 1: (12,6) is a wall`, and repeated it.
+- auto-talk walked to the grunt at 06:32:53 and recorded `not_free` with `text: null` (`screen: battle`). Nothing reached the model, so it re-derived the detour for twenty turns; the 06:38:43 retry talked to the WINGULL instead and read `Dialog: none`.
+
+**Landing — three switches, registered off by default, on in both arms**
+
+- `stable-map-codes-v1` (`observation`, needs `compact-map-grid-v1`): a `CodeBook` keeps a letter's token for the rest of the run, allocates new letters for new tokens, and draws from a fixed alphabet that excludes every one-character glyph and every element legend key (`L` was previously reachable as a code and is the other-level glyph). No glyph, legend entry or element meaning changed. Off: first-appearance letters on every render, byte for byte.
+- `solid-tile-leads-v1` (`observation`, needs `adjacent-tiles-v1`): a neighbour that cannot be entered leads with the refusal and names the element after it. Off: the element-first sentence, byte for byte.
+- `auto-talk-interrupt-note-v1` (`guard`, needs `auto-talk-v1`): the interrupted walk is reported in one sentence naming target, tile and the screen that took the field, saying nothing was said and the walk stopped short. A note is never sent into a battle (2026-10-22 rule): it is held and delivered on the first request that can read the field, and dropped if the player is on another map. Off: `text: null` and silence.
+
+**Registry pins touched**: `features.ts` (switchable tail, `FEATURES` tail, `SERVER_FEATURES`, `playHarnessFeatures`), `play-preset.ts` (v2 schema, filter chain, `Exclude` union, `merged`, `flagFeatures`), `viewer/src/next-run.ts` (fresh-draft default), `experiment-configs/current.json` (`onInBoth` + `features`), `presets/current-control-24h-8k.json`, `warp-target-navigation.test.ts` (`length-2` → literal 322: the invariant is that the switch does not move, and the tail keeps growing).
+
+**Gate figures** — `just test` on `claude/map-symbol-stability` after `pnpm -r build`:
+
+- `env` pytest: **4,993 passed**
+- `packages/agent` vitest: **5,385 passed (5,385)**
+- `packages/viewer` vitest: **2,425 passed (2,425)**
+- `just lint` 116 passed; page checks 3 passed
+
+**Coordination**: `claude/map-elements-readout` (worktree `/private/tmp/pb-map-elements`) is unlanded and edits the same `if compact:` block in `map_observation.py` for `compact-map-base-glyph-v1`. The two compose — its `codes[token]` lookup simply receives stable letters, and the fixed alphabet keeps a code from reading as the base glyph it now sits beside — but the merge conflicts in `test_compact_map_grid.py`, `features.ts`, `play-preset.ts` and `warp-target-navigation.test.ts` are append-at-the-same-anchor conflicts that that branch resolves by merging `main` after this lands.
+
+**Operator authorization**: The operator 2026-11-02 — "you can land all the changes, on in both arms", with cloud review lanes waived for this landing (same waiver shape as the 8K promotion).

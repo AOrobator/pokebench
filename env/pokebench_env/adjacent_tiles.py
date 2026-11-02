@@ -124,6 +124,7 @@ def next_tiles(
     terrain: bool = False,
     elevation: int | None = None,
     observation: "MapObservation | None" = None,
+    solid_first: bool = False,
 ) -> str:
     """One line naming the tiles up, down, left and right of the player, in that order."""
     cells = shown.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
@@ -192,11 +193,8 @@ def next_tiles(
                 observation, x, y, tile=tile, terrain=terrain and glyph not in ("N", "W")
             )
             if observed:
-                name = "; ".join(observed) + (
-                    f"; {name}"
-                    if glyph in ("@", "N", "W", "#", "+", "=", "~", "L", *ARROWS)
-                    else ""
-                )
+                labels = "; ".join(observed)
+                note = ""
                 if (
                     elevation is not None
                     and glyph in (".", "g")
@@ -205,11 +203,28 @@ def next_tiles(
                         for e in observation.elements
                     )
                 ):
-                    name += f"; elevation {tile.elevation} (yours is {elevation})"
+                    note += f"; elevation {tile.elevation} (yours is {elevation})"
                     if shut:
-                        name += f", {SHUT}"
+                        note += f", {SHUT}"
                 if tile.collision and glyph not in ("N", "W"):
-                    name += ", collision set"
+                    note += ", collision set"
+                # A solid tile is not a tile you can stand on, so the refusal leads and the element
+                # it is made of follows. "ground (cave); collision (#), cannot be entered from here"
+                # read as walkable cave ground in run 07a7, which pressed into that wall twenty times.
+                # solid-tile-leads-v1: a solid tile is not a tile you can stand on, so the refusal
+                # leads and the element it is made of follows. Off: the element leads, byte for byte.
+                described = glyph in ("@", "N", "W", "#", "+", "=", "~", "L", *ARROWS)
+                name = (
+                    (
+                        f"{name}{note}; {labels}"
+                        if tile.collision and described
+                        else f"{labels}; {name}{note}"
+                        if described
+                        else f"{labels}{note}"
+                    )
+                    if solid_first
+                    else (f"{labels}; {name}" if described else labels) + note
+                )
             crossed = tuple(
                 e
                 for e in observation.elements

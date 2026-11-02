@@ -13,7 +13,9 @@ import {withCitedDestination,type DestinationCitationFacts} from "./cited-destin
 import {StoryCharacterGate} from "./stall-gate.js";
 
 const NONE=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
-const ON:FeatureSet={...NONE,"fixed-point-breaker-v1":true,"auto-talk-v1":true};
+const ON:FeatureSet={...NONE,"fixed-point-breaker-v1":true,"auto-talk-v1":true,"auto-talk-interrupt-note-v1":true};
+// The same switches with the new note off: the interrupted walk must behave exactly as it shipped.
+const NOTE_OFF:FeatureSet={...NONE,"fixed-point-breaker-v1":true,"auto-talk-v1":true};
 type Talk=Omit<Extract<RunEvent,{type:"auto_talk"}>,"v"|"run"|"seq"|"t"|"turn"|"type">;
 type Target=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 const person=(local_id:number,name:string,x:number,y:number):Target=>({kind:"object",name,x,y,elevation:3,activation:"A",availability:"live",facing:"down",local_id,destination:null});
@@ -21,13 +23,13 @@ const sign=(x:number,y:number):Target=>({kind:"background",name:"Sign text \"ROU
 const LINE="Story characters here: MAY at 10,3. Not on this map: PROF. BIRCH.";
 
 // A small Route 103: navigate_to walks straight to any tile not in `walls`; press A answers whoever the player faces.
-function world(targets:Target[],options:{walls?:readonly string[];battle?:boolean;encounter?:boolean;trainers?:{local_id:number;defeated:boolean}[]}={}){
+function world(targets:Target[],options:{walls?:readonly string[];battle?:boolean;encounter?:boolean;script?:boolean;trainers?:{local_id:number;defeated:boolean}[]}={}){
  let s:GameStateSnapshot={...IN_GAME,map_id:[0,18],location:"ROUTE103",position:{x:14,y:10},facing:"up",field_controls_locked:false,interaction_targets:targets,in_battle:options.battle===true,...(options.trainers===undefined?{}:{heal_before_trainers:{trainers:options.trainers.map(t=>({...t,x:0,y:0,graphics_id:1,sprite_kind:null,trainer_id:1})),move_power:[],last_heal:null,home:null,mom_heals:false}})};
  const calls:string[]=[];
  const walls=new Set(options.walls??[]);
  const STEP:Record<string,[number,number]>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
  const tool=(name:string,run:(args:Record<string,unknown>)=>string):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:(_id,params)=>{const text=run(params as Record<string,unknown>);calls.push(`${name} ${JSON.stringify(params)}`);return Promise.resolve({content:[{type:"image",data:"AAAA",mimeType:"image/png"},{type:"text",text}],details:{}});}});
- const tools=[tool("navigate_to",a=>{const x=Number(a["x"]),y=Number(a["y"]);if(walls.has(`${String(x)},${String(y)}`))return "Navigation: no route.";s={...s,position:{x,y},in_battle:options.encounter===true};return "Navigation: arrived.";}),
+ const tools=[tool("navigate_to",a=>{const x=Number(a["x"]),y=Number(a["y"]);if(walls.has(`${String(x)},${String(y)}`))return "Navigation: no route.";s={...s,position:{x,y},in_battle:options.encounter===true,...(options.script===true?{field_controls_locked:true}:{})};return "Navigation: arrived.";}),
   tool("press",a=>{const b=(a["buttons"] as string[])[0]??"";if(b!=="A"){s={...s,facing:b.toLowerCase()};return `pressed ${b}`;}const [dx,dy]=STEP[s.facing??"up"]??[0,0];const p=s.position??{x:0,y:0};const t=targets.find(t=>t.x===p.x+dx&&t.y===p.y+dy);return `pressed A\nDialogue shown during this call (1 page, in order, whole):\n1. "${t?.name??"nothing"} says hi"`;})];
  return {tools,calls,state:{read:()=>Promise.resolve(s)}};
 }
@@ -141,14 +143,31 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
   const out=await silent.send();
   expect(last(out)).toContain("SUPERVISOR: Your last 3 replies called no tool, so the harness walked you to MAY at (10,3)");
  });
- it("stops when a wild battle starts on the way, and stays on the starting map",async()=>{
+ it("stops when a wild battle starts on the way, holds the note, and stays on the starting map",async()=>{
   const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3),person(3,"BOY_1",12,10)],{encounter:true});
   r.loop(8);
+  // 07a7: the harness walked to the Aqua grunt at 06:32:53 and a Whismur battle took the field. A
+  // note into a battle is the 10/22 bug, so nothing is said while it is on screen.
   expect(await r.send()).toEqual(r.messages);
   expect(r.talks).toEqual([{trigger:"fixed_point",repeats:8,outcome:"not_free",target:{kind:"story_character",name:"MAY",character:"MAY",key:"0/18#2",x:10,y:3,map_id:[0,18]},walks:1,tried:1,text:null}]);
   expect(r.calls.filter(c=>c.startsWith("press"))).toEqual([]);
  });
- it("teaches the stall gate that the person was talked to",()=>{
+ it("says nothing when the note switch is off, exactly as it shipped",async()=>{
+  const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3)],{script:true},NOTE_OFF);
+  r.loop(8);
+  expect(await r.send()).toEqual(r.messages);
+  expect(r.talks).toEqual([{trigger:"fixed_point",repeats:8,outcome:"not_free",target:{kind:"story_character",name:"MAY",character:"MAY",key:"0/18#2",x:10,y:3,map_id:[0,18]},walks:1,tried:1,text:null}]);
+ });
+ it("says what happened when a script takes the field mid-walk, so a silent not_free is not read as a refusal",async()=>{
+  const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3)],{script:true});
+  r.loop(8);
+  const out=await r.send();
+  expect(last(out)).toContain("walked you toward MAY at (10,3)");
+  expect(last(out)).toContain("is not evidence that talking to it does nothing");
+  expect(r.talks).toMatchObject([{outcome:"not_free",walks:1,tried:1}]);
+  expect(r.talks[0]?.text).toContain("walked you toward MAY at (10,3)");
+  expect(r.calls.filter(c=>c.startsWith("press"))).toEqual([]);
+ }); it("teaches the stall gate that the person was talked to",()=>{
   const gate=new StoryCharacterGate({recordStallGate:()=>undefined});
   gate.observe(checkEvent({v:1,run:"r",seq:1,t:"2026-10-20T03:40:00.000-04:00",type:"auto_talk",turn:1,trigger:"fixed_point",repeats:8,outcome:"talked",target:{kind:"story_character",name:"MAY",character:"MAY",key:"0/18#2",x:10,y:3,map_id:[0,18]},walks:1,tried:1,text:"x"}));
   expect(gate.talkedTo("0/18#2")).toBe(true);

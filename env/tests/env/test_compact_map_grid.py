@@ -12,6 +12,8 @@ import pytest
 from pokebench_env.live_map import FullMap, MapTile
 from pokebench_env.map_observation import (
     CODE_LETTERS,
+    CodeBook,
+    reset_codebook,
     COLOR_TOKENS,
     DIRECTION_TOKENS,
     KIND_TOKENS,
@@ -72,6 +74,17 @@ def synthetic(width: int, height: int, seed: int) -> tuple[FullMap, tuple[MapEle
             )
         elements.append(MapElement("rotating_gate", x, y, state="pivot", group=f"gate:{k}"))
     return shown, tuple(elements)
+
+
+def codes_of(text: str) -> dict[str, str]:
+    """The Codes line as a token -> code table."""
+    line = text.split("\n")[1]
+    if line == "Codes: none":
+        return {}
+    return {
+        token: code
+        for token, code in (part.split(" = ", 1) for part in line[len("Codes: ") :].split("; "))
+    }
 
 
 def parse(text: str) -> dict[str, object]:
@@ -228,7 +241,7 @@ def test_codes_never_reuse_a_glyph_or_an_element_legend_key() -> None:
     letters = [c for c in CODE_LETTERS if c not in legend and c not in {"#", ".", "g", "W", "N"}]
     # One past every one- and two-letter code, so the supply must grow to three letters.
     tokens = [f"./T:{i}" for i in range(len(letters) + len(letters) ** 2 + 1)]
-    codes = compact_codes([["#", ".", "g", "W", "N", *tokens]])
+    codes = compact_codes([["#", ".", "g", "W", "N", *tokens]], stable=True)
     assert len(set(codes.values())) == len(tokens)
     assert max(len(code) for code in codes.values()) == 3
     for code in codes.values():
@@ -244,3 +257,54 @@ def test_compact_round_trip_on_signed_origins(ox: int, oy: int) -> None:
     compact = render_observation(shown, observation, compact=True)
     assert parse(compact) == parse(verbose)
     assert len(parse(compact)["cells"]) == 15  # type: ignore[arg-type]
+
+
+def test_a_code_keeps_its_token_when_a_later_observation_shows_more_tokens() -> None:
+    """The grid is re-rendered every turn against whatever is visible right now.
+
+    Run 07a7 read "F = ./Eg:cv" (floor) at turn 395 and "F = N/Eg:cv" (an object) at turn 396 on the
+    same strip of Rusturf Tunnel: the letters were handed out in first-appearance order, so the
+    player stepping onto a warp re-lettered every other token. A dictionary that re-letters itself
+    is worse than no dictionary; a code, once issued, has to keep meaning that token.
+    """
+    book = CodeBook()
+    first = book.codes_for(["#/Eg:cv", "./Eg:cv", "@/Wp:arrow:v", "W/Wp:arrow:v"])
+    second = book.codes_for(["./Eg:cv", "N/Eg:cv", "@/Eg:cv"])
+    assert second["./Eg:cv"] == first["./Eg:cv"]
+    assert "@/Wp:arrow:v" not in second
+    # A token that appears later takes a letter of its own instead of re-using a taken one.
+    assert second["N/Eg:cv"] not in set(first.values())
+    assert second["@/Eg:cv"] not in set(first.values())
+
+
+def test_the_codes_line_reads_the_same_for_the_same_tokens_on_a_second_render() -> None:
+    reset_codebook()
+    shown, elements = synthetic(9, 4, 31)
+    observation = build_observation(shown, (0, 0), elements)
+    first = codes_of(render_observation(shown, observation, compact=True, stable_codes=True))
+    later = dataclasses.replace(
+        observation,
+        elements=observation.elements
+        + (MapElement("warp", 1, 1, state="arrow", direction="south"),),
+    )
+    second = codes_of(render_observation(shown, later, compact=True, stable_codes=True))
+    shared = set(first) & set(second)
+    assert shared
+    assert {token: first[token] for token in shared} == {token: second[token] for token in shared}
+
+
+def test_the_switch_off_state_re_letters_exactly_as_compact_map_grid_v1_did() -> None:
+    """stable-map-codes-v1 off is the shipped behavior: first-appearance letters, every render."""
+    reset_codebook()
+    rendered = [[".", "./Eg:cv"], ["./Eg:cv", "N/Eg:cv"]]
+    assert compact_codes(rendered) == {"./Eg:cv": "A", "N/Eg:cv": "B"}
+    # The same token lands on a different letter once it appears later in the grid: the defect the
+    # switch exists to remove, kept byte for byte while the switch is off.
+    assert compact_codes([["N/Eg:cv", "./Eg:cv"]]) == {"N/Eg:cv": "A", "./Eg:cv": "B"}
+
+
+def test_a_code_is_never_a_glyph_the_grid_can_paint() -> None:
+    """`L` is the map's other-level glyph, so it can never be a code."""
+    assert "L" not in CODE_LETTERS
+    for glyph in ("N", "W", "L", "g", "v"):
+        assert glyph not in CODE_LETTERS

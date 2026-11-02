@@ -31,6 +31,11 @@ const UNWALKABLE=new Set([
 ]);
 // NUM_METATILE_BEHAVIORS is 0xF0; higher bytes (0xFF is MB_INVALID) are not game terrain.
 const FLOOR=new Set(Array.from({length:0xf0},(_,behavior)=>behavior).filter(behavior=>!UNWALKABLE.has(behavior)));
+// warp-target-navigation-v1: a step-on warp pad is enterable as the last tile of a route and never
+// as an intermediate one. Stepping in either direction moves the player to another map, so routing
+// through one would teleport mid-route. Only MB_LAVARIDGE_GYM_B1F_WARP is enrolled (operator scope
+// 2026-11-02); it is collision-free, so the tile class is what kept it out, not its collision.
+export const GOAL_ONLY_BEHAVIORS:ReadonlySet<number>=new Set([0x29]);
 // Before walkable-floor-v1: plain ground, grass and doors/warps only.
 const LEGACY_WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
 const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
@@ -62,7 +67,7 @@ const terrainStepCost=(tile:Tile,options:NavigationOptions):number=>options.gras
 export interface MatchingTrigger {readonly x:number;readonly y:number;readonly elevation:number;readonly variable:number;readonly required:number;readonly current:number|null}
 // field-move-gates-v1 slopes: a slope tile (MB_MUDDY_SLOPE) is stepped onto only moving down, and the walker slides south to
 // the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean}
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean}
 export const SLOPE=0xd0;
 // Describes unsupported movement; no bike action, destination or puzzle solution is chosen.
 function terrainObstacle(behavior:number,mapObservability=false):string|null {
@@ -539,7 +544,10 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     pending.push(node.cost+1+step(land)+distance(landing,goal),{p:landing,here:land.elevation,elevation:landed,cost:node.cost+1+step(land),parent:node,direction});continue;
    }
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
-   if(!(walkable.has(tile.behavior)||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
+   // A goal-only pad is entered only as the terminal tile: distance 0 is the goal, so it can never
+   // appear as an intermediate node in a returned route.
+   const goalOnly=options.goalOnly===true&&GOAL_ONLY_BEHAVIORS.has(tile.behavior)&&distance(next,goal)===0;
+   if(!(walkable.has(tile.behavior)||goalOnly||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;

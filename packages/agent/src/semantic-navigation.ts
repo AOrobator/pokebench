@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {COUNTER} from "./tile-rules.js";
 import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
 
@@ -40,7 +40,7 @@ const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{})};
+ return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -121,7 +121,8 @@ function resolve(state:GameStateSnapshot,target:RequestTarget,options:Navigation
   const standing=here===null?undefined:state.navigation_grid?.tiles.find(tile=>tile.x===here.x&&tile.y===here.y)?.elevation??state.navigation_grid?.elevation??state.map_grid?.elevation;
   const elevation=plannedArrivalElevation(state,{x:target.x,y:target.y},options)??standing??null;
   if(elevation===null)return null;
-  return listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  return found??(options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null);
  }
  return listed.find(item=>item.kind===target.interaction_kind&&item.x===target.x&&item.y===target.y)??null;
 }
@@ -139,10 +140,28 @@ function tileBehavior(state:GameStateSnapshot,point:Point,mode:NavigationMode|un
  }
  return state.navigation_grid?.tiles.find(tile=>tile.x===point.x&&tile.y===point.y)?.behavior??null;
 }
+// warp-target-navigation-v1: the untried-exits line is built from the map's warp records, while
+// interaction_targets only carries what this observation happened to resolve. Run
+// 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h hit that gap seven times: the readout offered a
+// handle for a pad one to three tiles away and the tool answered "not listed in the current verified
+// state". An advertised warp therefore resolves from the grid's warp records when its tile is an
+// enrolled step-on pad. The destination stays unknown: the record carries no landing coordinate.
+function advertisedWarp(state:GameStateSnapshot,point:Point,options:NavigationOptions):SnapshotTarget|null {
+ const mode=options.mode??"local";
+ const grid=mode==="full"?state.map_grid:state.navigation_grid;
+ if(grid===null||grid===undefined)return null;
+ if(!grid.warps.some(warp=>warp.x===point.x&&warp.y===point.y))return null;
+ const behavior=tileBehavior(state,point,mode);
+ if(behavior===null||!GOAL_ONLY_BEHAVIORS.has(behavior))return null;
+ const elevation=plannedArrivalElevation(state,point,options);
+ if(elevation===null)return null;
+ return {name:null,kind:"warp",x:point.x,y:point.y,elevation,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null};
+}
 function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
  const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
  if(target.kind==="warp"){
-  return (state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  const found=(state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  return found??(options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null);
  }
  if(target.activation!=="A")return target;
  const slots=state.interaction_object_slots;if(slots===undefined)return null;

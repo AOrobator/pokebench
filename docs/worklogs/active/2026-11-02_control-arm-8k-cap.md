@@ -66,3 +66,39 @@ Primary: `no_tool_call` loop breakers per 100 turns (47 in the aborted control).
 Secondary: `retry reason: "reply hit max_tokens"` count (940) and whether the run
 clears Lavaridge Gym at all — the aborted control spent its last 1263 turns
 inside it.
+
+## Promotion: the cap now belongs to the arm, not just the default (operator "yes", 2026-11-02)
+
+The 8K change above only reached runs that carry no preset, and every control run
+carries one, so on its own it changed nothing that is measured. Promoted:
+
+- `experiments/presets/current-control-24h-8k.json` — the 24h control arm at
+  `maxTokens: 8192`, thinking `medium`, boot start, `target: null`, 20000 turns /
+  86400000 ms. Its features are the control arm of
+  `experiments/feature-configs/current.json`, so the aborted 4096 control and this
+  run differ in the cap, not in a switch.
+
+`packages/agent/src/control-preset-8k.test.ts` pins the cap and the thinking level,
+pins the features to the recipe so the preset cannot drift off the arm, and pins the
+frozen fixed-run base at 4096.
+
+### Why the fixed-run control base stayed at 4096
+
+Repointing `experiments/feature-configs/current.json` at an 8K control base was the
+first attempt, and the full suite rejected it: 54 tests failed with `base sampling
+differs from the control base`. `materializeFixedSource` takes `controlBase` from
+the recipe but keeps `base.sampling` from the definition, so moving the recipe's
+pointer retroactively re-points all 8 feature-referenced definitions
+(`bundle-v-control`, `bundle-v-control-2h`, `glm53-*`, `hyperqwen-*`, `qwen36-*`)
+while their recorded `base.sampling` is still 4096, and their `fixed-run check` fails.
+
+Their comparisons are already recorded at 4K, and this worklog's scope keeps fixed
+definitions on their explicit caps. Moving them to 8K means re-authoring those eight
+definitions as new ones rather than editing frozen plans, which is a separate
+decision and not part of this promotion.
+
+Launching is unchanged: `just run-agent` with `POKEBENCH_PLAY_PRESET` on the
+promoted preset. The run launched under this worklog
+(`2026-11-02T06-25-22_deepseek-deepseek-v4.1-flash_53be`, commit `6522d1084`,
+`harness.dirty: false`) records `max_tokens: 8192`, `thinking_level: medium` and
+`max_wall_ms: 86400000` in its `run_start`.

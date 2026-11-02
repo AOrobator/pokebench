@@ -1,0 +1,98 @@
+import type {AgentToolResult} from "@mariozechner/pi-agent-core";
+import {Type} from "typebox";
+import {describe,expect,it} from "vitest";
+import {IN_GAME} from "../test-support/events.js";
+import type {FeatureSet} from "./features.js";
+import type {CheckedPressTool} from "./game-tools.js";
+import type {GameStateSnapshot} from "./game-state.js";
+import {navigationTool,planNavigation,type CheckedNavigationTool,type Direction} from "./navigation.js";
+import {flagFeatures} from "./play-preset.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
+
+type ListedTarget=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
+const PAD=0x29;
+const MAP:[number,number]=[4,2];
+const tile=(x:number,y:number,behavior=0,elevation=3)=>({x,y,collision:0,behavior,elevation});
+const baseFeatures=():FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:false,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true});
+
+// A 5x3 gym floor with one step-on pad. The pad is in the grid's warp records — the same source
+// the untried-exits line is built from — and deliberately absent from interaction_targets, which is
+// the state that produced "target is not listed in the current verified state" seven times in
+// run 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h.
+function gym(over:Partial<GameStateSnapshot>={},padBehavior=PAD):GameStateSnapshot{
+ const tiles=[0,1,2].flatMap(y=>[0,1,2,3,4].map(x=>tile(x,y,x===2&&y===1?padBehavior:0)));
+ return {...IN_GAME,screen:"overworld",started:true,location:"LAVARIDGE TOWN GYM B1F",map_id:MAP,position:{x:0,y:1},facing:"right",
+  field_controls_locked:false,in_battle:false,interaction_targets:[],interaction_object_slots:[],
+  navigation_grid:{elevation:3,tiles,objects:[],warps:[{x:2,y:1}]},...over};
+}
+const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
+function fixture(initial:GameStateSnapshot,features:FeatureSet=baseFeatures()){
+ let current=initial;const navigations:unknown[]=[];
+ const navigateExecute=(args:unknown,check?:(state:GameStateSnapshot)=>string|null)=>{
+  const stopped=check?.(current)??null;
+  if(stopped!==null)return Promise.resolve({...result(current),details:{state:current,navigation:{status:stopped,commands:0,stop_requested:true,goal_entry_attempted:false}}});
+  navigations.push(args);
+  const goal=args as {x:number;y:number};
+  current={...current,position:{x:goal.x,y:goal.y}};
+  return Promise.resolve({...result(current),details:{state:current,navigation:{status:"arrived at requested coordinate",commands:1,stop_requested:false,goal_entry_attempted:true}}});
+ };
+ const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),
+  execute:(_id:string,args:unknown)=>navigateExecute(args),
+  executeChecked:(_id:string,args:unknown,check:(state:GameStateSnapshot)=>string|null)=>navigateExecute(args,check)} as unknown as CheckedNavigationTool;
+ const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),
+  execute:()=>Promise.resolve(result(current)),executeChecked:()=>Promise.resolve(result(current))} as unknown as CheckedPressTool;
+ const tools=withSemanticNavigation([navigate,press],features,{read:()=>Promise.resolve(current)});
+ const tool=tools.find(item=>item.name==="navigate_to_target");
+ if(tool===undefined)throw new Error("missing semantic tool");
+ return {tool,navigations,state:()=>current};
+}
+const text=(out:AgentToolResult<unknown>):string=>out.content.filter(part=>part.type==="text").map(part=>part.text).join("\n");
+const walk=(from:{x:number;y:number},path:readonly Direction[]):{x:number;y:number}[]=>{
+ const delta:Record<Direction,[number,number]>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
+ const seen:[number,number][]=[];let point=from;
+ for(const direction of path){const [dx,dy]=delta[direction];point={x:point.x+dx,y:point.y+dy};seen.push([point.x,point.y]);}
+ return seen.map(([x,y])=>({x,y}));
+};
+
+describe("warp-target-navigation-v1",()=>{
+ const on=()=>({...baseFeatures(),"warp-target-navigation-v1":true});
+
+ it("OFF keeps the recorded refusal for a warp the exits line advertises",async()=>{
+  const f=fixture(gym()),out=await f.tool.execute("s",{map_id:MAP,target:{kind:"warp",x:2,y:1}});
+  expect(f.navigations).toEqual([]);
+  expect(text(out)).toContain("target is not listed in the current verified state");
+ });
+
+ it("ON walks onto an advertised step-on pad that is absent from interaction_targets",async()=>{
+  const f=fixture(gym(),on()),out=await f.tool.execute("s",{map_id:MAP,target:{kind:"warp",x:2,y:1}});
+  expect(f.navigations).toEqual([{x:2,y:1,map_id:MAP}]);
+  expect(text(out)).not.toContain("target is not listed in the current verified state");
+ });
+
+ it("ON still refuses a warp record whose tile is not a step-on pad",async()=>{
+  const f=fixture(gym({},0x10),on()),out=await f.tool.execute("s",{map_id:MAP,target:{kind:"warp",x:2,y:1}});
+  expect(f.navigations).toEqual([]);
+  expect(text(out)).toContain("target is not listed in the current verified state");
+ });
+
+ it("ON does not resolve a coordinate that carries no warp record",async()=>{
+  const f=fixture(gym(),on()),out=await f.tool.execute("s",{map_id:MAP,target:{kind:"warp",x:3,y:2}});
+  expect(f.navigations).toEqual([]);
+  expect(text(out)).toContain("target is not listed in the current verified state");
+ });
+
+ it("plans onto a goal-only pad, and never routes through one",()=>{
+  const state=gym(),options={mode:"local" as const,floor:true,goalOnly:true};
+  const pad=planNavigation(state,{x:2,y:1},options);
+  expect(pad).not.toBeNull();
+  expect(walk({x:0,y:1},pad??[]).at(-1)).toEqual({x:2,y:1});
+  const beyond=planNavigation(state,{x:4,y:1},options);
+  expect(beyond).not.toBeNull();
+  expect(walk({x:0,y:1},beyond??[])).not.toContainEqual({x:2,y:1});
+ });
+
+ it("keeps the pad unreachable as a goal when goal-only routing is off",()=>{
+  const state=gym();
+  expect(planNavigation(state,{x:2,y:1},{mode:"local",floor:true})).toBeNull();
+ });
+});

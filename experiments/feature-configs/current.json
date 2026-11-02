@@ -177,7 +177,8 @@
   "player-map-visibility-v2",
   "model-error-recovery-v1",
   "moving-npc-frame-burst-v1",
-  "fresh-retry-v1"
+  "fresh-retry-v1",
+  "dialogue-a-line-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -223,6 +224,7 @@
   "deterministic-loop-guard-v1": true,
   "deterministic-warp-navigation-v1": true,
   "dialog-button-b-v1": true,
+  "dialogue-a-line-v1": true,
   "dialogue-auto-advance-v1": true,
   "dialogue-context-kept-v1": true,
   "dialogue-log-v1": false,

@@ -122,6 +122,8 @@ export const EXPLORER_GUIDANCE_SECTION = "Talk to people: in this game, people t
 export const EXPLORER_GUIDANCE_V2_SECTION = "Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.";
 // semantic-navigation-v2: talking goes through navigate_to_target.
 export const SEMANTIC_TALK_IS_CHEAP = "Talking is cheap: when the readout gives the person a navigate_to_target target, call navigate_to_target with it; it walks there, faces them and presses A, and the harness reads the conversation until your next decision.";
+// dialogue-a-line-v1: the same paragraph, plus the case the readout gives no target — the one the 24h run hit.
+export const SEMANTIC_TALK_IS_CHEAP_A_LINE = `${SEMANTIC_TALK_IS_CHEAP} When it gives none, face the person and press A.`;
 export const SEMANTIC_TARGET_SECTION = `- navigate_to_target: supply the current map_id from the Navigation map_id readout and a target copied from the readout. A listed person, object, warp or map exit that the tool can tell apart and reach carries "navigate_to_target target" followed by its target; pass that target exactly as written. Use navigate_to for anything listed without one. The harness chooses the approach, walks there, faces the target and talks to it, uses it or goes through it, once. It stops and returns the new state if a battle, a menu, a script, forced movement, unavailable field control or a map change interrupts it; when it refuses or stops early, its result says why.`;
 export const SEMANTIC_USAGE = "For a person, object, door, stairs, other warp or map exit that the readout lists with a navigate_to_target target, use navigate_to_target with that target instead.";
 export const SEMANTIC_UNTAKEN_EXITS_SECTION = "Exits you have not taken: before you leave a building or area, consider the exits there you have not taken yet (the readout lists them; each one navigate_to_target can reach carries its target), especially any exit someone mentioned.";
@@ -144,6 +146,9 @@ export const PEOPLE_ID_CARDS_SECTION = "ID cards: when a person comes into view 
 
 // dialog-button-b-v1: B advances a message; A starts whatever the player faces (FieldInputHandling).
 export const DIALOGUE_BUTTON_B_SECTION = "Dialogue button: B is the button for a message. Press B to advance or close one. Do not press A to move a message along: A talks to whatever you face and starts its message again, so the same sign or person speaks once more. Once you can walk, leave instead of pressing A in front of it.";
+// dialogue-a-line-v1 replaces the leave rule, which generalizes from signs to people: the anti-A-spam rule
+// is scoped to a message already read, and A stays how you talk to a person.
+export const DIALOGUE_A_LINE_SECTION = "Dialogue button: B is the button for a message. Press B to advance or close one. A talks to whatever you face and starts that sign's or person's message again. Do not press A to advance a message, or press it again on a message you have already read. To talk to a person or read a sign, press A once on it.";
 
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
@@ -258,7 +263,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${features["whiteout-healed-v1"] ? TRAINER_HEAL_SECTION.replace(BLACKOUT_FAR, `${BLACKOUT_FAR}${WHITEOUT_HEALED}`) : TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
   const explorer = features["explorer-family-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
-  if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? SEMANTIC_TALK_IS_CHEAP : EXPLORER_TALK_IS_CHEAP}` : ""}`;
+  if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? (features["dialogue-a-line-v1"] ? SEMANTIC_TALK_IS_CHEAP_A_LINE : SEMANTIC_TALK_IS_CHEAP) : EXPLORER_TALK_IS_CHEAP}` : ""}`;
   if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${semantic2 ? SEMANTIC_UNTAKEN_EXITS_SECTION : UNTAKEN_EXITS_SECTION}`;
   if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
   if (navigateFirst && semantic2) prompt = `${navigateFirstToolList(prompt, true)}\n\n${features["full-map-navigation-v1"] ? SEMANTIC_MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? SEMANTIC_MOVING_AROUND_VISITED : SEMANTIC_MOVING_AROUND_LOCAL}`;
@@ -268,7 +273,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && semanticNavigation(features) && features["npc-approach-feedback-v1"]) prompt += `\n\n${NPC_TEMPLATE_APPROACH_SENTENCE}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${features["citation-evidence-v1"] ? CITATION_EVIDENCE_SECTION : CITED_DESTINATION_SECTION}`;
-  if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
+  if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${features["dialogue-a-line-v1"] ? DIALOGUE_A_LINE_SECTION : DIALOGUE_BUTTON_B_SECTION}`;
   if (show("overworld") && features["trainer-sight-check-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${TRAINER_SIGHT_SECTION}`;
   if (features["tool-prompt-docs-v1"]) {
     if (features["evolution-decision-v1"]) prompt += `\n\n${CHOOSE_EVOLUTION_SECTION}`;

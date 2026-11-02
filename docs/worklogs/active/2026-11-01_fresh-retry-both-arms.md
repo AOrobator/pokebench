@@ -74,11 +74,14 @@ experiments/feature-configs/current.json
 - [x] Focused: `fresh-retry-both-arms` + `feature-config-registry` + `fixed-definition` +
   `fixed-design` → 97/97 PASS (4 files)
 - [x] COMMIT GREEN (this commit); recipe sha256 `bdfc7bf4275e…`
-- [x] Full gates on the branch tip: all four below PASS
+- [x] Full gates on the GREEN tree — not on the merge result; see Post-merge below
 
 ## Gate Figures
 
-Run from `/private/tmp/pb-fresh-retry-both` on the GREEN tree (JS rebuilt at `48fa55b`):
+Run from `/private/tmp/pb-fresh-retry-both` on the GREEN tree. The viewer build stamp reads `48fa55b`, which is the
+**RED** commit rather than the tip: the GREEN commit changed only `experiments/feature-configs/current.json`, which
+the viewer reads at runtime instead of baking into JS, so the stamped JS is the RED commit's. The tested tree
+content is correct; the stamp is simply not the commit this table describes.
 
 | Gate | Result |
 | --- | --- |
@@ -87,7 +90,23 @@ Run from `/private/tmp/pb-fresh-retry-both` on the GREEN tree (JS rebuilt at `48
 | `just test` | PASS (exit 0) — agent 5319 tests (96.43% stmts / 92.47% branch / 97.5% funcs / 99.07% lines), viewer 185 files / 2416 tests (94.61% / 90.83% / 94.93% / 98.28%), env pytest 4979 passed `lines 97.50% branches 93.60% functions 99.90% (floor 90.00%)`, claude-gateway 116 passed `lines 99.12% branches 96.22% functions 100.00% (floor 90.00%)`, trainer cards 3 passed |
 | `just coverage` | PASS (exit 0) — same single pass: agent 5319 tests (96.43 / 92.47 / 97.5 / 99.07), viewer 2416 tests (94.62 / 90.83 / 94.93 / 98.28), env `lines 97.50% branches 93.60% functions 99.90%`, claude-gateway `lines 99.12% branches 96.22% functions 100.00%` |
 
-Every per-metric figure is ≥90 on both stacks.
+Viewer statement coverage appears as **94.61%** in the `just test` row and **94.62%** in the `just coverage` row for
+what is a single pass (`justfile`: `coverage: test`). One transcription is wrong and neither figure is reconciled
+here. Every other per-metric figure is ≥90 on both stacks.
+
+## Post-merge (conflict resolution)
+
+`main` had already taken `dialogue-a-line-v1` in both arms when this branch landed, so `current.json` conflicted on
+`onInBoth`, where both branches appended. Resolved by keeping both ids in `onInBoth` and both keys `true` in
+`features`; nothing was dropped and there are no duplicates.
+
+After that merge the focused suite **failed 7 of 9** until `pnpm -r build` was re-run: the viewer's built
+`FeatureSetSchema` predated `dialogue-a-line-v1` and rejected the key. With `dist` rebuilt the same suite passes
+**9/9**. The stale-dist failure is a build-order artifact, not a recipe defect — and it is a standing hazard
+whenever the recipe gains a key.
+
+**No gate was re-run after the merge.** This branch carries gate receipts for the pre-merge GREEN commit and a
+focused test receipt (9/9) for the merged result, not a full gate receipt for what actually landed.
 
 ## Session Log
 

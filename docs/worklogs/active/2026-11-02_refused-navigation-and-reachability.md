@@ -132,3 +132,25 @@ the tunnel mouth at turn 395 / 06:25 and never left: position `(12,5)` facing do
 **Coordination**: `claude/map-elements-readout` (worktree `/private/tmp/pb-map-elements`) is unlanded and edits the same `if compact:` block in `map_observation.py` for `compact-map-base-glyph-v1`. The two compose — its `codes[token]` lookup simply receives stable letters, and the fixed alphabet keeps a code from reading as the base glyph it now sits beside — but the merge conflicts in `test_compact_map_grid.py`, `features.ts`, `play-preset.ts` and `warp-target-navigation.test.ts` are append-at-the-same-anchor conflicts that that branch resolves by merging `main` after this lands.
 
 **Operator authorization**: The operator 2026-11-02 — "you can land all the changes, on in both arms", with cloud review lanes waived for this landing (same waiver shape as the 8K promotion).
+
+### M4 merge with `compact-map-base-glyph-v1`
+
+`main` moved to `5b823cc45` (map-elements-readout landed) while the landing lock was being taken, so this branch merges it before the ff-only step. Seven conflicts, all "both sides appended at the same anchor"; every id is kept, in landing order:
+
+- `map_observation.py`: both flags on `render_observation` (`stable_codes`, `base_glyph`); the compact block keeps their glyph-in-cell structure and takes its letters from `compact_codes(rendered, stable=stable_codes)`. The two compose: with `#E`, the `E` is now a stable code and the alphabet excludes glyphs, so a code can never read as the glyph it sits beside.
+- `readout.py`: `SERVER_FEATURES`, the default-off list, and both kwargs.
+- `features.ts`, `play-preset.ts` (schema, filter chain, `Exclude` union, `merged`, `flagFeatures`), `presets/current-control-24h-8k.json`, `features.ts` `SERVER_FEATURES`.
+- `warp-target-navigation.test.ts`: replaced `length-3` with the literal `322`. Their comment already needed updating when they landed; an absolute index is append-proof, a `length-n` is not.
+- `test_compact_map_grid.py`: kept both helpers; their `parse(text, *, base_glyph)` signature was the one whose body needed it.
+
+Three defects surfaced only by merging, fixed here:
+
+- `viewer/src/next-run.ts` never learned `compact-map-base-glyph-v1`, so a fresh viewer draft inherited it from `ALL_ON` (true) while every other new switch is off.
+- The play-preset filter chain needed its closing quote re-balanced after the insertion; `pnpm -r build` caught it (`TS1005` at a 6,500-column line).
+- `Exclude<..., ...>` in the same file had to drop the three new ids, or the spread's key type collides with the explicit entries (`TS2783`).
+
+**Post-merge gates** (worktree, `pnpm -r build` clean):
+
+- `env` pytest: **5,077 passed**
+- `packages/agent` vitest: **5,385 passed (5,385)**
+- `packages/viewer` vitest: **2,405 passed of 2,425** (20 skipped, same as before)

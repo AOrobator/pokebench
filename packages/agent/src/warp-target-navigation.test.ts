@@ -191,8 +191,8 @@ describe("warp-target-navigation-v1",()=>{
 
  it("enrols exactly the gym pad behaviour",()=>{
   expect([...GOAL_ONLY_BEHAVIORS]).toEqual([PAD]);
-  // Append-only: later switches land after this one, so its own index never moves. A literal, not
-  // length-2, because the tail keeps growing and the invariant is that this switch stays put.
+  // Append-only: five switches landed after this one, so its index never moves. A literal,
+  // not length-5, because the tail keeps growing and the invariant is that this switch stays put.
   expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(322);
  });
 

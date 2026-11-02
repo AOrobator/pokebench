@@ -179,30 +179,41 @@ class MapMemory:
         rendered = screen_visible(read)
         # ObjectEvent map IDs identify its spawn map; connected-map camera updates
         # shift coordinates without updating them (pret731ad5bf event_object_movement.c).
-        stable = (
-            rendered
-            and state.screen == "overworld"
-            and not state.in_battle
-            and state.field_controls_locked is False
+        overworld = rendered and state.screen == "overworld" and not state.in_battle
+        located = (
+            overworld
             and player is not None
             and tuple(v - MAP_OFFSET for v in struct.unpack_from("<hh", player, 0x10))
             == state.position
             and player[0x10:0x14] == player[0x14:0x18]
         )
+        # A script that holds field controls moves the player; it does not change what the map is.
+        # On a fully lit layout every in-bounds tile is visible by its own light, so the lock may
+        # withhold the player-relative proof but never the element layer. Run
+        # 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h seq 84184: a forced move inside
+        # Mauville Gym emptied this set, which filtered every barrier/switch element out of the
+        # observation and drew closed electric gates as plain '#' walls. A hidden or unreadable
+        # player sprite still withholds the whole map: the lock is the only proof relaxed here.
+        lit = layout is not None and layout.flash_level == 0
+        can_see = located and rect is not None and (lit or rows is not None)
         visible: set[Point] = set()
         actors: set[int] = set()
-        if stable and rect is not None and rows is not None:
-            px, py, width, height = rect
-            # Field sprite feet are the tile bottom center; its tile center is 8px above.
-            assert player is not None
-            offsets = read(SPRITES + player[4] * 0x44 + 0x24, 4)
-            dx2, dy2 = struct.unpack("<hh", offsets)
-            center = (px + width // 2 - dx2, py + height - 8 - dy2)
+        if can_see:
+            center = None
+            if rect is not None:
+                px, py, width, height = rect
+                # Field sprite feet are the tile bottom center; its tile center is 8px above.
+                assert player is not None
+                offsets = read(SPRITES + player[4] * 0x44 + 0x24, 4)
+                dx2, dy2 = struct.unpack("<hh", offsets)
+                center = (px + width // 2 - dx2, py + height - 8 - dy2)
             ox, oy = shown.origin
             for tile in shown.tiles:
                 dx, dy = tile.x - state.position[0], tile.y - state.position[1]
-                if (layout is not None and layout.flash_level == 0) or lit_rect(
-                    rows, (center[0] + dx * 16 - 4, center[1] + dy * 16 - 4, 8, 8)
+                if lit or (
+                    center is not None
+                    and rows is not None
+                    and lit_rect(rows, (center[0] + dx * 16 - 4, center[1] + dy * 16 - 4, 8, 8))
                 ):
                     point = (tile.x, tile.y)
                     visible.add(point)
@@ -236,9 +247,7 @@ class MapMemory:
         visibility = MapVisibility(
             tuple(sorted(known)),
             tuple(sorted(visible)),
-            None
-            if stable and rect is not None and rows is not None
-            else "current map visibility unavailable",
+            None if can_see else "current map visibility unavailable",
         )
 
         position = state.position

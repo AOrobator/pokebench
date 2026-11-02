@@ -321,6 +321,7 @@
     "dark-area-flash-reminder-v1": true,
     "model-error-recovery-v1": true,
     "warp-target-navigation-v1": true,
+    "compact-map-base-glyph-v1": true,
     "stable-map-codes-v1": true,
     "solid-tile-leads-v1": true,
     "auto-talk-interrupt-note-v1": true,

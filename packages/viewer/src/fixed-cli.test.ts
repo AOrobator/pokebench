@@ -579,3 +579,21 @@ it("keeps archived recipe analysis available while refusing a new archived launc
   expect(f.err.at(-1)).toContain("no definition");expect(f.runs).toEqual([]);
  }finally{rmSync(f.root,{recursive:true,force:true});}
 });
+
+it("prints usage for play --help instead of preparing a checkout and launching",async()=>{
+ const f=setup({hostDeps:()=>{throw new Error("prepared an experiment checkout");}});
+ try{
+  expect(await main(["play","--help"],f.deps)).toBe(0);
+  expect(f.out.join("\n")).toContain("fixed-run play");
+  expect(f.runs).toEqual([]);
+ }finally{rmSync(f.root,{recursive:true,force:true});}
+});
+
+it("refuses an unknown play argument instead of launching",async()=>{
+ const f=setup({hostDeps:()=>{throw new Error("prepared an experiment checkout");}});
+ try{
+  expect(await main(["play","--commmit","abc123"],f.deps)).toBe(2);
+  expect(f.err.join("\n")).toContain("unknown argument --commmit");
+  expect(f.runs).toEqual([]);
+ }finally{rmSync(f.root,{recursive:true,force:true});}
+});

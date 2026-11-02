@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "hyperqwen-bundle-24h-v3",
+  "title": "HyperQwen (vLLM Qwen3.8-27B W4A16, TP2 both 4090s) current bundle after the 2026-11-02 stable-codes landing, 24 hours",
+  "worklog": "docs/worklogs/active/2026-11-02_hyperqwen-bundle-24h-v3.md",
+  "primaryMilestone": "ROUTE_102",
+  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+  "base": {
+    "target": null,
+    "limits": {
+      "maxTurns": 20000,
+      "failureLimit": 3,
+      "replyFailuresEndRun": false
+    },
+    "sampling": {
+      "thinkingLevel": "medium",
+      "maxTokens": 4096
+    }
+  },
+  "phases": [
+    {
+      "id": "cook",
+      "perArm": 1,
+      "maxWallMs": 86400000,
+      "primary": false,
+      "start": {
+        "kind": "save_state",
+        "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
+        "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
+      },
+      "singleArm": "bundle"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "A",
+      "gpu": "GPU0",
+      "gamePort": 8075,
+      "modelUrl": "http://127.0.0.1:18020",
+      "runName": "hyperqwen-gpu0",
+      "server": "vllm",
+      "slots": 1,
+      "vision": true,
+      "apiKeyFile": "/Users/user/.config/pokebench/hyperqwen.key"
+    }
+  ],
+  "serving": {
+    "model": "qwen3.8-27b",
+    "build": "vllm-0.31.0 /app/models/Qwen3.8-27B-W4A16-AutoRound-fast",
+    "contextTokens": 262144,
+    "slots": 1
+  },
+  "replacementReserveMs": 0,
+  "bundleMaxTokens": 8192,
+  "featureRecipe": "current",
+  "seed": "079870c5d2f6222d",
+  "plan": [
+    {
+      "slot": 1,
+      "phase": "cook",
+      "block": 1,
+      "lane": "A",
+      "arm": "bundle"
+    }
+  ]
+}

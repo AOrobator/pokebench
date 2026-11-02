@@ -53,3 +53,16 @@ The control arm, unmodified, over a full day. With `b463203f4` a clock step no l
 so a `clock_step` event is expected evidence the fix fired, not a failure. The hyperqwen 24h bundle
 is in flight beside it (`2026-11-02T14-53-03_hyperqwen-gpu0_de7a`, GPU0 vLLM lane, port 8075): the
 two runs share the machine, not the checkout, the model lane, or the game port.
+
+## Launch skill
+
+Operator instruction (2026-11-02): "you need a skill for launching runs so this is faster".
+
+`.claude/skills/plain-run-launch/` (linked into `.agents/skills/`) records the procedure this launch
+had to re-derive: which file is the arm (`experiments/presets/*` vs `experiments/fixed/*`), that the
+endpoint file is the only path that carries an API key because `live()` reads `local.apiKey`, that
+`POKEBENCH_ROM` comes from `.env` with no dotenv load inside the agent, that leaving
+`POKEBENCH_GAME_SERVER_URL` unset takes the configured 8000 rather than the 8090–8099 pool, and that
+`just run-claims` lists ended runs as live owners so `lsof` is the port truth. It ends with the
+`run_start` fields a launch must match and the crash triage that starts in the run directory.
+

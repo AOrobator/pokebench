@@ -1,0 +1,134 @@
+---
+name: plain-run-launch
+description: Launch one ordinary `just run-agent` gameplay run — a solo control arm, a bundle arm, or an ad-hoc play — on a cloud model lane or a local one, and prove it is live from the run's own `run_start` before calling it launched. Use for any `live.js play` launch; use fixed-run-launch for two-arm `just fixed-run` cohorts.
+---
+
+# Plain run launch (`just run-agent`)
+
+One run, one arm, one wall cap. A launch is not done until `run_start` is read back from
+`runs/<id>/events.jsonl` and matches what you meant to launch.
+
+## 1. Pick the arm file, not the flags
+
+| What you are launching | File | Launcher |
+|---|---|---|
+| Control arm / solo arm on the current recipe | `experiments/presets/current-control-24h-8k.json` (promoted `68f7da476`) | `just run-agent` + `POKEBENCH_PLAY_PRESET` |
+| A named bundle arm over N trials | `experiments/fixed/<id>.json` | `just fixed-run` — use `fixed-run-launch` |
+| A shipped comparison snapshot | `experiments/presets/<name>.json` | `just run-agent` + `POKEBENCH_PLAY_PRESET` |
+
+The preset is the arm: `limits`, `sampling`, and all 313 `features` keys. Do not "just bump
+max_tokens" with an env var — there is no such override, and a run that does not match a committed
+preset is not a benchmark run.
+
+`version: 2` presets carry `limits {maxTurns, maxWallMs, failureLimit, replyFailuresEndRun}`,
+`sampling {thinkingLevel, maxTokens}`, and a flat `features` map; there is no `base` key (that is a
+fixed-run definition). Verify with `parsePlayPreset` before launching:
+
+```bash
+node -e "const {parsePlayPreset}=require('./packages/agent/dist/play-preset.js');console.log(parsePlayPreset(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))).limits)" experiments/presets/current-control-24h-8k.json
+```
+
+## 2. Wire the lane
+
+A run needs a model with `vision` and a gateway or endpoint file. The two are not interchangeable:
+
+- **Endpoint file** (`POKEBENCH_ENDPOINT_FILE`) carries `{base_url, api_key, vision}` and is the only
+  path that supplies an API key — `live()` passes `local.apiKey` and nothing else, so a cloud lane
+  reached through `POKEBENCH_GATEWAY_URL` alone is unauthenticated and will 401.
+- `base_url` must be loopback (`http://127.0.0.1:<port>`); the CLI rejects anything else.
+- Cloud lanes get a loopback OpenAI-compatible proxy; the DeepSeek lane's lives at
+  `runs/orca-deepseek-control-24h/proxy.py` on `127.0.0.1:18100` with its key in
+  `~/.config/local-inference-stack/orcarouter.env`. If it is not listening, start it detached first —
+  it is long-lived and belongs to no run.
+
+Prove the lane before launching (a 200 with the right `model` field, not a `/v1/models` read):
+
+```bash
+curl -s http://127.0.0.1:18100/v1/models | head -c 400   # expect max_model_len 1048576
+# then one 16-token completion through the same base_url + bearer key
+```
+
+`context_window` comes from the lane's `/v1/models` (`max_model_len`), and `maxTokens` is set equal to
+it, so a `max_tokens 8192` sampling cap is what actually bounds replies.
+
+## 3. Launch detached, from `just`
+
+`just run-agent` expands to `just build` + `node packages/viewer/dist/fixed-cli.js play`, which
+prepares `/private/tmp/pokebench-fixed-<commit12>` and runs `live.js` from **there**, with cwd kept at
+the main checkout. That is why `POKEBENCH_ROM` (from `.env`), a relative preset path, and the runs
+root all still resolve, while `harness.dirty` stays false no matter what main does next.
+
+`POKEBENCH_ROM` is read from `process.env` with no dotenv load in the agent, so source `.env` in the
+launching shell — a shell without it dies with `POKEBENCH_ROM is required`.
+
+```bash
+#!/bin/zsh
+set -euo pipefail
+cd "$HOME/dev/pokebench"
+META="$PWD/runs/<meta-dir>"; mkdir -p "$META/logs"
+set -a; source .env; set +a
+export POKEBENCH_MODEL="deepseek/deepseek-v4.1-flash"
+export POKEBENCH_ENDPOINT_FILE="$PWD/runs/orca-deepseek-control-24h/endpoint.json"
+export POKEBENCH_PLAY_PRESET="$PWD/experiments/presets/current-control-24h-8k.json"
+unset POKEBENCH_GAME_SERVER_URL POKEBENCH_GATEWAY_URL POKEBENCH_RUN_ID
+STAMP=$(date +%Y%m%dT%H%M%S)
+nohup just run-agent >"$META/logs/play-$STAMP.log" 2>&1 < /dev/null &
+echo "$!" | tee "$META/logs/play-$STAMP.pid"
+disown
+```
+
+`POKEBENCH_PLAY_PRESET`, `POKEBENCH_MODEL`, `POKEBENCH_ENDPOINT_FILE` and `POKEBENCH_GATEWAY_URL` are
+the only variables `frozenPlay` forwards (`PRESERVED_PLAIN_VARIABLES`); everything else in the shell
+env is inherited minus the lane variables. Anonymous `--commit <sha>` runs an older pin.
+
+## 4. Ports
+
+- Leaving `POKEBENCH_GAME_SERVER_URL` unset is the default path and is not the allocator: the
+  configured default is `http://127.0.0.1:8000`, so the run takes **8000** if it is free. The
+  8090–8099 pool (`GAME_PORT_POOL`) is only consulted when the URL carries no port.
+- Set an explicit port only to avoid a live run's port, and check with `lsof` rather than
+  `just run-claims`: ended runs whose claims were never closed (e.g. the `server-kill-smoke` pair from
+  2026-11-02) are still listed as live owners of 8000. `lsof -nP -iTCP:<port> -sTCP:LISTEN` is the
+  truth; a claim with no listener is stale, not a conflict.
+
+## 5. Prove it, from the run's own events
+
+```bash
+python3 - <<'EOF'
+import json;R="runs/<run-id>";s=json.loads(open(R+"/events.jsonl").readline())
+print(s["model"], s["sampling"], s["budgets"], s["harness"], s.get("evaluation",{}).get("preset_id"), s["isolation"]["port"], s["start_state"])
+EOF
+```
+
+All of these must hold, or the launch was wrong and the run should be stopped (`kill -TERM` the
+`live.js` pid — recorded as `operator_abort`), the cause fixed, and a **new** run id started:
+
+- `evaluation.preset_id` is the preset you named; `sampling.max_tokens` and `thinking_level` match it.
+- `budgets` is the preset's cap (e.g. `{20000, 86400000}`) and `extend_run`/`extend_budget` are true.
+- `harness.commit` is `git rev-parse HEAD` **at launch time** and `harness.dirty` is false.
+- `model.id` is the lane, `start_state.kind` is `boot` unless you meant a checkpoint start.
+- `isolation.port` matches the listener you expected.
+
+Then confirm liveness: `runs/<id>/run-claim.json` heartbeat is moving, `just tail-run <id>` shows
+turns, and `runs/<id>/events.jsonl` is past `GAME_RUNNING` within a few minutes. The launcher chain
+must root at pid 1 (`ps -o ppid= -p <pid>` up the chain); `fixed-cli` and `just` are expected parents —
+an agent terminal is not.
+
+## 6. Traps that cost a launch
+
+- **Main moves after the launch and that is fine.** A docs commit landing while the run plays leaves
+  `harness.commit` at the pinned sha; never "fix" the run by rebuilding or re-checking out. Commits are
+  also what makes replay honest: record the launch in a worklog and commit it after the run is live.
+- **Never touch `/private/tmp/pokebench-fixed-<sha>` while its run is live** — no edits, no rebuild,
+  no checkout. Another live run may share that same tree (it is keyed by commit, not by run).
+- **A crash has no resume.** Record the end reason, root-cause it, and launch a fresh run id; the
+  crashed one keeps its own evidence directory.
+- **`just build` inside `run-agent` rebuilds main's dist.** Safe only because runs execute from the
+  frozen tree; it is not safe to rebuild anything a *legacy* run started before run isolation (pre
+  `40d51feb8`) is still executing from.
+- **The :8790 viewer must be built at or after the pin.** If `packages/viewer/dist/build-stamp.json`
+  names an older commit, run `just viewer-main` before the launch, not after.
+- **Crash triage starts in the run directory**, not the log: `runs/<id>/server-stdout.log` and
+  `server-stderr.log` now carry the vendor's `Received signal N` line, and `server_exit` / `clock_step`
+  events are evidence, not errors. A `clock_step` from an NTP step is benign since `b463203f4`;
+  before it, the same event killed the run as `Invalid native action journal continuity`.

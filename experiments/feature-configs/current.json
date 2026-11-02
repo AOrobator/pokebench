@@ -59,7 +59,6 @@
   "leader-preparation-comparison-v1",
   "refusal-ledger-v1",
   "party-menu-message-v1",
-  "active-warp-exits-v1",
   "available-exits-presentation-v1",
   "native-task-goal-retirement-v1",
   "cutscene-journal-v1",
@@ -176,7 +175,9 @@
   "discovered-gym-checklist-v1",
   "player-map-visibility-v2",
   "model-error-recovery-v1",
-  "moving-npc-frame-burst-v1"
+  "moving-npc-frame-burst-v1",
+  "active-warp-exits-v1",
+  "warp-target-navigation-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -433,7 +434,7 @@
   "drought-progress-facts-v1": true,
   "whiteout-outcomes-v2": true,
   "interface-guidance-v1": true,
-  "active-warp-exits-v1": false,
+  "active-warp-exits-v1": true,
   "available-exits-presentation-v1": false,
   "instruction-goal-ledger-v1": false,
   "menu-option-tool-v1": true,
@@ -484,6 +485,7 @@
   "authored-scene-labels-v1": false,
   "moving-npc-frame-burst-v1": true,
   "dark-area-flash-reminder-v1": true,
-  "model-error-recovery-v1": true
+  "model-error-recovery-v1": true,
+  "warp-target-navigation-v1": true
  }
 }

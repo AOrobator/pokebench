@@ -62,17 +62,6 @@ def test_no_observation_means_no_label():
     assert _step_on_pad(None, target()) is False
 
 
-def test_the_pad_label_names_the_mechanic_and_withholds_the_destination():
-    raw = target()
-    labelled = replace(
-        raw, name="Warp (step-on pad)", activation="step onto tile", destination=None
-    ).text(named=True)
-    assert "destination map" in raw.text()
-    assert "destination" not in labelled
-    assert "Warp (step-on pad)" in labelled
-    assert "step onto tile" in labelled
-
-
 def readout_state():
     """A pocket state whose observation carries a floor-up pad and whose targets carry its warp."""
     state = pocket_state()

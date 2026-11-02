@@ -150,6 +150,16 @@ function tileBehavior(state:GameStateSnapshot,point:Point,mode:NavigationMode|un
 // handle for a pad one to three tiles away and the tool answered "not listed in the current verified
 // state". An advertised warp therefore resolves from the grid's warp records when its tile is an
 // enrolled step-on pad. The destination stays unknown: the record carries no landing coordinate.
+// The full grid encodes elevation in the cell above the behaviour byte; the local grid carries it
+// as a field. Both are the tile's own elevation, which is what keeps an enrolled pad's identity
+// stable across the re-resolve that navigate_to performs before every step.
+function tileElevation(state:GameStateSnapshot,point:Point,mode:NavigationOptions["mode"],fallback:number):number {
+ if(mode==="full"){
+  const cell=state.map_grid?.rows[point.y]?.slice(point.x*4,point.x*4+4)??"";
+  return /^[0-9a-f]{4}$/.test(cell)?(Number.parseInt(cell,16)>>8)&0xf:fallback;
+ }
+ return state.navigation_grid?.tiles.find(tile=>tile.x===point.x&&tile.y===point.y)?.elevation??fallback;
+}
 function advertisedWarp(state:GameStateSnapshot,point:Point,options:NavigationOptions):SnapshotTarget|null {
  const mode=options.mode??"local";
  const grid=mode==="full"?state.map_grid:state.navigation_grid;
@@ -160,7 +170,7 @@ function advertisedWarp(state:GameStateSnapshot,point:Point,options:NavigationOp
  // The tile's own elevation, not the arrival elevation of the current plan: navigate_to_target
  // re-resolves the target before every step, so an elevation that tracked the walker would be
  // reported as "semantic target changed during travel" one step short of the pad.
- const elevation=(mode==="full"?null:state.navigation_grid?.tiles.find(tile=>tile.x===point.x&&tile.y===point.y)?.elevation)??grid.elevation;
+ const elevation=tileElevation(state,point,mode,grid.elevation);
  return {name:null,kind:"warp",x:point.x,y:point.y,elevation,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null};
 }
 function goalOnlyTile(state:GameStateSnapshot,point:Point,options:NavigationOptions):boolean {
@@ -395,6 +405,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
       const point={x:template.x+dx,y:template.y+dy};
       if(point.x<0||point.y<0)return [];
       if((before.interaction_targets??[]).some(t=>t.kind==="warp"&&t.x===point.x&&t.y===point.y))return [];
+      if(goalOnlyTile(planned,point,templateOptions))return [];
       if(staticRequest&&[...(planned.navigation_grid?.warps??[]),...(planned.map_grid?.warps??[])].some(w=>w.x===point.x&&w.y===point.y))return [];
       if(staticRequest&&(before.world_context?.triggers??[]).some(t=>t.x===point.x&&t.y===point.y))return [];
       const path=planNavigation(planned,point,templateOptions);

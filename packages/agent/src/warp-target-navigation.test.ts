@@ -7,7 +7,7 @@ import {IN_GAME} from "../test-support/events.js";
 import type {FeatureSet} from "./features.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {GOAL_ONLY_BEHAVIORS,planNavigation,type CheckedNavigationTool} from "./navigation.js";
+import {GOAL_ONLY_BEHAVIORS,planNavigation,withNavigation,type CheckedNavigationTool} from "./navigation.js";
 import {SWITCHABLE_FEATURES} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
@@ -126,13 +126,57 @@ describe("warp-target-navigation-v1",()=>{
  });
 
  it("plans onto a goal-only pad, and never routes through one",()=>{
-  const state=gym(),options={mode:"local" as const,floor:true,goalOnly:true};
+  // No warp record here: with one, the pre-existing "never step on a warp that is not the goal" rule
+  // would block the tile on its own and the test would pass with the goal-only condition deleted.
+  const bare=gym();
+  const grid=bare.navigation_grid as NonNullable<typeof bare.navigation_grid>;
+  const state=gym({navigation_grid:{elevation:grid.elevation,tiles:grid.tiles,objects:grid.objects,warps:[]}}),options={mode:"local" as const,floor:true,goalOnly:true};
   const pad=planNavigation(state,{x:2,y:1},options);
   expect(pad).not.toBeNull();
   expect(walk({x:0,y:1},pad??[]).at(-1)).toEqual({x:2,y:1});
   const beyond=planNavigation(state,{x:4,y:1},options);
   expect(beyond).not.toBeNull();
   expect(walk({x:0,y:1},beyond??[])).not.toContainEqual({x:2,y:1});
+ });
+
+ // The stub navigate above accepts any goal it is handed, which is exactly how the executor's own
+ // planner went unwired: the semantic layer planned a route the walker refused one layer down.
+ function realTools(features: FeatureSet) {
+  let current = gym();
+  const presses: string[] = [];
+  const read = () => Promise.resolve(current);
+  const move = (params: {buttons: readonly string[]}) => {
+   const button = params.buttons[0] ?? "A";
+   presses.push(button);
+   const [dx, dy] = button === "UP" ? [0, -1] : button === "DOWN" ? [0, 1] : button === "LEFT" ? [-1, 0] : [1, 0];
+   const point = current.position ?? {x: 0, y: 1};
+   current = {...current, position: {x: point.x + dx, y: point.y + dy}};
+   return result(current);
+  };
+  const press = {name: "press", label: "press", description: "press", parameters: Type.Object({buttons: Type.Array(Type.String())}),
+   execute: (_id: string, params: {buttons: readonly string[]}) => Promise.resolve(move(params)),
+   executeChecked: (_id: string, params: {buttons: readonly string[]}) => Promise.resolve(move(params))} as unknown as CheckedPressTool;
+  const observe = {name: "observe", label: "observe", description: "observe", parameters: Type.Object({}), execute: () => Promise.resolve(result(current))};
+  const tools = withSemanticNavigation(withNavigation([press, observe], features, {read}), features, {read});
+  const tool = tools.find(item => item.name === "navigate_to_target");
+  if (tool === undefined) throw new Error("missing semantic tool");
+  return {tool, presses, position: () => current.position};
+ }
+
+ it("walks the last step onto the pad through the real navigate_to, not only past the chooser", async () => {
+  const f = realTools(on());
+  const out = await f.tool.execute("s", {map_id: MAP, target: {kind: "warp", x: 2, y: 1}});
+  expect(text(out)).not.toContain("not listed in the current verified state");
+  expect(text(out)).not.toContain("no supported path");
+  expect(f.presses.length).toBeGreaterThan(0);
+  expect(f.position()).toEqual({x: 2, y: 1});
+ });
+
+ it("still refuses the pad through the real navigate_to when the switch is off", async () => {
+  const f = realTools(baseFeatures());
+  const out = await f.tool.execute("s", {map_id: MAP, target: {kind: "warp", x: 2, y: 1}});
+  expect(f.presses).toEqual([]);
+  expect(text(out)).toContain("target is not listed in the current verified state");
  });
 
  it("enrols exactly the gym pad behaviour",()=>{

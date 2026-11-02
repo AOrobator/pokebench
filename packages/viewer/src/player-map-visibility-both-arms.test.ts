@@ -13,25 +13,25 @@ it("freezes the authorized replacement as one 24-hour bundle trial on GPU0 with 
  expect(presetFeatures(parsePlayPreset(armPreset(def,"cook","bundle")))).not.toHaveProperty("player-map-visibility-v1");
 });
 
-it("enables V2 in both future arms while global defaults stay off",()=>{
+it("leaves V2 off in both future arms while global defaults stay off",()=>{
  const id="player-map-visibility-v2";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url))).definition;
- expect(def.onInBoth).toContain(id);
+ expect(def.offInBoth).toContain(id);
  expect(def.switches).not.toContain(id);
- expect(def.offInBoth).not.toContain(id);
- expect(def.base.features[id]).toBe(true);
+ expect(def.onInBoth).not.toContain(id);
+ expect(def.base.features[id]).toBe(false);
  expect(definitionProblems(def)).toEqual([]);
  const base=recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url));
  expect(controlBaseProblems(def,base)).toEqual([]);
  for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
   const features=presetFeatures(parsePlayPreset(armPreset(def,phase.id,arm)));
-  expect(features[id]).toBe(true);
+  expect(features[id]).toBe(false);
   expect(features).not.toHaveProperty("player-map-visibility-v1");
  }
 });
 
-it("pins the GLM replacement to one Mac bundle trial with V2 on and the existing start and cap",()=>{
+it("pins the GLM replacement to one Mac bundle trial with V2 following the maintained recipe and the existing start and cap",()=>{
  const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/glm53-24h-visibility-v2.json",import.meta.url))).definition;
  expect(definitionProblems(def)).toEqual([]);
  expect(def.plan).toEqual([{slot:1,phase:"cook",block:1,lane:"A",arm:"bundle"}]);
@@ -41,6 +41,6 @@ it("pins the GLM replacement to one Mac bundle trial with V2 on and the existing
  expect(def.phases[0]?.start).toEqual({kind:"save_state",path:"runs/launch-receipts/fast-text/MAIN_MENU.state",sha1:"b3a6cc1c19836600a15febf41b8f8b19661ce5d4"});
  const p=parsePlayPreset(armPreset(def,"cook","bundle"));
  expect(p.limits.maxTurns).toBe(20000);expect(p.sampling).toEqual({thinkingLevel:"medium",maxTokens:8192});
- expect(presetFeatures(p)["player-map-visibility-v2"]).toBe(true);
+ expect(presetFeatures(p)["player-map-visibility-v2"]).toBe(false);
  expect(presetFeatures(p)).not.toHaveProperty("player-map-visibility-v1");
 });

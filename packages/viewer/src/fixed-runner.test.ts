@@ -1097,7 +1097,7 @@ it("rehearses the authorized single GLM V2 replacement and retains its durable o
   const launch=host.launches[0];if(launch===undefined)throw new Error("missing launch");
   const p=parsePlayPreset(JSON.parse(readFileSync(launch.presetPath,"utf8")));
   expect(p.limits.maxWallMs).toBe(86_400_000);expect(p.sampling.maxTokens).toBe(8192);
-  expect(presetFeatures(p)["player-map-visibility-v2"]).toBe(true);
+  expect(presetFeatures(p)["player-map-visibility-v2"]).toBe(false);
   expect(presetFeatures(p)).not.toHaveProperty("player-map-visibility-v1");
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")))).toMatchObject({state:"finished",valid:1,invalid:0,total:1});
   expect(experimentsAudit(runsRoot,await cohortIndex(runsRoot,join(root,"experiments")))).toEqual([]);

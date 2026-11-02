@@ -69,8 +69,6 @@
   "instruction-memory-dedup-v1",
   "neutral-yes-no-readout-v1",
   "refusal-ledger-bound-v1",
-  "disproved-beliefs-bound-v1",
-  "id-card-bound-v1",
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
   "eight-badge-mission-v1",
@@ -178,7 +176,9 @@
   "model-error-recovery-v1",
   "moving-npc-frame-burst-v1",
   "fresh-retry-v1",
-  "dialogue-a-line-v1"
+  "dialogue-a-line-v1",
+  "disproved-beliefs-bound-v1",
+  "id-card-bound-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -474,9 +474,9 @@
   "compact-map-grid-v1": true,
   "supervisor-briefing-bound-v1": true,
   "refusal-ledger-bound-v1": false,
-  "disproved-beliefs-bound-v1": false,
+  "disproved-beliefs-bound-v1": true,
   "destination-first-navigation-v1": true,
-  "id-card-bound-v1": false,
+  "id-card-bound-v1": true,
   "instruction-memory-yaml-v1": false,
   "eight-badge-mission-v1": false,
   "discovered-gym-checklist-v1": true,

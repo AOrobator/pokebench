@@ -74,7 +74,7 @@ def synthetic(width: int, height: int, seed: int) -> tuple[FullMap, tuple[MapEle
     return shown, tuple(elements)
 
 
-def parse(text: str) -> dict[str, object]:
+def parse(text: str, *, base_glyph: bool = False) -> dict[str, object]:
     """Cells, gate marks and junctions of either form, by the columns its header implies."""
     lines = text.split("\n")
     title = lines[0]
@@ -96,7 +96,7 @@ def parse(text: str) -> dict[str, object]:
         header.append(lines[i])
         i += 1
     if compact:
-        width = max([1, *(len(c) for c in codes)])
+        width = (1 if base_glyph else 0) + max([1, *(len(c) for c in codes)])
         columns = max(len(h) for h in header)
         ends = list(range(4 + width, columns + 1, width + 1))
     else:
@@ -113,7 +113,7 @@ def parse(text: str) -> dict[str, object]:
             row = []
             for x, (s, e) in enumerate(zip(starts, ends, strict=True)):
                 tok = padded[s : e + 1].strip()
-                row.append(codes.get(tok, tok))
+                row.append(decode(tok, codes, compact=compact, base_glyph=base_glyph))
                 if padded[e + 1] == "|":
                     vertical.add((x, y))
             if padded[4] == "|":
@@ -137,6 +137,18 @@ def parse(text: str) -> dict[str, object]:
     }
 
 
+def decode(tok: str, codes: dict[str, str], *, compact: bool, base_glyph: bool) -> str:
+    """A grid cell as the verbose form draws it: `<base glyph>/<element token>`."""
+    if not compact:
+        return tok
+    if not base_glyph:
+        return codes.get(tok, tok)
+    if not tok:
+        return tok
+    glyph, code = tok[:1], tok[1:]
+    return f"{glyph}/{codes[code]}" if code else glyph
+
+
 @pytest.mark.parametrize("width,height", layout_sizes())
 def test_compact_codes_round_trip_every_pret_layout_size(width: int, height: int) -> None:
     shown, elements = synthetic(width, height, width * 1000 + height)
@@ -147,6 +159,48 @@ def test_compact_codes_round_trip_every_pret_layout_size(width: int, height: int
     assert parse(compact) == parse(verbose)
     if width * height >= 400:
         assert len(compact) < len(verbose) * 0.6
+
+
+@pytest.mark.parametrize("width,height", layout_sizes())
+def test_base_glyph_compact_round_trips_every_pret_layout_size(width: int, height: int) -> None:
+    """compact-map-base-glyph-v1: the base glyph stays in the cell, the code stands for the token."""
+    shown, elements = synthetic(width, height, width * 1000 + height)
+    observation = build_observation(shown, (0, 0), elements)
+    verbose = render_observation(shown, observation)
+    compact = render_observation(shown, observation, compact=True, base_glyph=True)
+    assert compact.startswith("Current map (observed elements v1, compact codes); top-left (0,0)")
+    assert parse(compact, base_glyph=True) == parse(verbose)
+    # Every gate, switch and terrain token still names its own annotation in the codes line.
+    codes_line = compact.split("\n")[1]
+    assert "#/" not in codes_line and "./" not in codes_line
+
+
+def test_base_glyph_compact_never_hides_a_gate_behind_its_code() -> None:
+    rows = ("#.", ".G")
+    tiles = tuple(MapTile(x, y, 0, 0, 0) for y in range(2) for x in range(2))
+    shown = FullMap(2, 2, rows, tiles, (), ())
+    observation = build_observation(
+        shown,
+        (0, 0),
+        (
+            MapElement("barrier", 0, 0, state="blocked"),
+            MapElement("barrier", 1, 1, state="open"),
+        ),
+    )
+    text = render_observation(shown, observation, compact=True, base_glyph=True)
+    cells = parse(text, base_glyph=True)["cells"]
+    assert isinstance(cells, list)
+    assert cells[0][0] == "#/B:X"
+    assert cells[1][1] == "./B:O"
+    assert text.split("\n")[1] == "Codes: E = B:X; F = B:O"
+
+
+def test_legacy_compact_codes_still_replace_the_whole_cell() -> None:
+    shown, elements = synthetic(6, 2, 7)
+    observation = build_observation(shown, (0, 0), elements)
+    compact = render_observation(shown, observation, compact=True)
+    assert parse(compact) == parse(render_observation(shown, observation))
+    assert "/" in compact.split("\n")[1]  # codes still name the two-layer token
 
 
 def test_compact_is_off_by_default_and_codes_skip_glyph_letters() -> None:

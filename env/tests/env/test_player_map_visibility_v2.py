@@ -3,6 +3,8 @@ from dataclasses import replace
 import pytest
 from test_player_map_visibility import field, state
 
+from pokebench_env.map_observation import build_observation
+from pokebench_env.map_observation_types import MapElement
 from pokebench_env.player_map_visibility import MapMemory
 
 
@@ -189,3 +191,33 @@ def test_connected_map_visibility_still_requires_coherent_stationary_player():
     memory.put(0x02037350 + 0x10, struct.pack("<h", 18))
     result = MapMemory().project(memory.read, state())
     assert not result.map_visibility.visible
+
+
+def test_lit_map_stays_visible_while_a_script_holds_field_controls():
+    # Run 2026-11-01T09-10-00_deepseek-v4.1-flash_control24h seq 84184: inside Mauville Gym
+    # (layout 89, darkness level 0) a forced move held field controls. The stability gate then
+    # emptied `visible`, every barrier and switch element was filtered out, the closed electric
+    # gates drew as plain '#' cells, and the model concluded the top of the gym was sealed.
+    # Darkness, not the input lock, is what decides which tiles a lit map shows.
+    current = replace(state(), field_controls_locked=True)
+    result = MapMemory().project(field(0).read, current)
+    assert result.map_visibility is not None and result.full_map is not None
+    assert result.map_visibility.diagnostic is None
+    assert len(result.map_visibility.visible) == 625
+    assert len(result.full_map.tiles) == 625
+
+
+def test_locked_script_keeps_current_map_elements_annotated():
+    gate = MapElement("barrier", 10, 10, state="blocked")
+    shown = state().full_map
+    assert shown is not None
+    current = replace(
+        state(),
+        field_controls_locked=True,
+        map_observation=build_observation(shown, (24, 46), (gate,)),
+    )
+    result = MapMemory().project(field(0).read, current)
+    assert result.map_observation is not None
+    assert [(e.kind, e.x, e.y, e.state) for e in result.map_observation.elements] == [
+        ("barrier", 10, 10, "blocked")
+    ]

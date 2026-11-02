@@ -1,8 +1,10 @@
 # Bounded-input switches on both arms
 
 **Started:** 2026-11-02
-**Status:** Committed on `codex/bound-both-arms`; gate and review pending
+**Status:** Landed on `main` at `b592e291e`
 **Operator:** The operator, 2026-11-02 — "add all of the bound switches to both arms"
+**Review:** no external lane returned a verdict; operator waived Claude and
+GPT/Codex in chat, Grok unreachable. See Review lanes below.
 
 ## Problem Statement
 
@@ -49,26 +51,57 @@ a bound.
 
 ## Verification
 
-Focused, no full gate (a 24h run owns the CPU; `just test` would compete):
+Focused, then the full gate:
 
 ```
 cd packages/viewer && npx vitest run src/feature-config-registry.test.ts \
   src/fixed-design.test.ts src/fixed-runner.test.ts
-→ 3 files, 149 tests passed
+→ 149 passed
+just test
+→ coverage lines 99.12% / branches 96.22% / functions 100.00% (floor 90)
+→ viewer build stamp b592e29, trainer-card guard OK,
+  3 design-tests Playwright specs passed
 ```
 
-The first attempt failed 32 tests with the three-way promotion; the
+The first focused attempt failed 32 tests with the three-way promotion; the
 `refusal-ledger-v1` dependency is what those failures named.
+
+`just viewer-main` restarted the persistent viewer; it serves
+`b592e291e` on 127.0.0.1:8790.
+
+## Review lanes
+
+No lane returned a verdict. Recorded rather than implied:
+
+- Claude CLI — 7-day rate limit at 100%, overage out of credits
+  (`rateLimitType: seven_day`, status rejected).
+- Cursor Claude fallback — Pro+ monthly usage limit, resets 2026-11-17.
+- GPT/Codex — usage limit, resets 2026-11-04 01:36.
+- Grok via `think-fast` / `think-swarm` — HTTP 502, the local fleet has no
+  memory while the 24h bundle run holds it.
+
+Operator waived the Claude and GPT/Codex lanes for this patch in chat on
+2026-11-02. The Grok lane is unreachable, not waived-and-passed. **No reviewer
+VERDICT exists for this patch**; the only independent signal is the full gate.
+
+Note for a future patch: the two switches were promoted on decision-parity
+evidence, not on a measured gameplay benefit. If a later run shows a behavioral
+difference between arms, this is the commit to bisect to.
 
 ## Milestones
 
 - [x] Arm placement moved for the two switches whose dependency holds
-- [x] Focused registry/design/runner tests green
-- [ ] Full gate in a CPU window + Claude/Grok/GPT review lanes
-- [ ] Land `--ff-only`, then restart `just viewer-main`
+- [x] Focused registry/design/runner tests green (149)
+- [x] Full gate green
+- [x] Operator waived the unavailable review lanes
+- [x] Landed `--ff-only` on `main` at `b592e291e`, `land-done` recorded
+- [x] Viewer restarted and serving the landed build
 
 ## Session Log
 
 - 2026-11-02: moved `id-card-bound-v1` and `disproved-beliefs-bound-v1` to
   `onInBoth`; `refusal-ledger-bound-v1` held back on its `needs` dependency;
   focused tests 149 passed.
+- 2026-11-02: rebased onto `7658621fc` (main had advanced one commit), full gate
+  green, operator waived the unavailable Claude and GPT/Codex lanes, landed
+  `--ff-only` as `b592e291e`, viewer restarted on the landed build.

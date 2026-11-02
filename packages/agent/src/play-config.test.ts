@@ -5,6 +5,7 @@ import { type FeatureSet, type SwitchableFeature} from "./features.js";
 const ALL_ON={...REGISTRY_ALL_ON,"evolution-decision-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"open-goal-prompt-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"no-nickname-guidance-v1":false,"battle-text-auto-advance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"readout-rules-in-prompt-v1":false,"navigate-first-prompt-v1":false,"battle-triage-guidance-v1":false,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"loop-guard-supervisor-v1":false,"instruction-ledger-v1":false,"next-milestone-hint-v1":false};
 Object.assign(ALL_ON,{"semantic-navigation-v1":false,"semantic-navigation-v2":false,"deterministic-exploration-v1":false});
 import { CONTEXTUAL_CONTROLS, GAME_EVIDENCE_SECTION, NAVIGATE_TO_USAGE, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
+import { PLAY_MAX_TOKENS, PLAY_THINKING } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -104,4 +105,11 @@ it("adds navigate_to usage guidance only when navigation is also on",()=>{
 it("keeps the evidence sections free of any character, place or story-step name",()=>{
  const names=/\b(rival|birch|professor|may|brendan|mom|neighbou?r|next door|lab|littleroot|oldale|petalburg|rustboro|route|starter|gym|badge|pok[eé]dex|truck|clock|bedroom|house|town|city)\b/i;
  expect(GAME_EVIDENCE_SECTION).not.toMatch(names);expect(NAVIGATE_TO_USAGE).not.toMatch(names);
+});
+
+// The control arm's reply cap: 8K, so thinking has room past 4096. Thinking level is deliberately
+// untouched at medium; the 2026-11-01 control run lost 24% of its turns to the old cap.
+it("gives the control arm an 8K reply cap without changing the thinking level", () => {
+ expect(PLAY_MAX_TOKENS).toBe(8192);
+ expect(PLAY_THINKING).toBe("medium");
 });

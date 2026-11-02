@@ -20,7 +20,9 @@ import { trustSection } from "./harness-trust.js";
 import { pickRandomStarter } from "./random-starter.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
-export const PLAY_MAX_TOKENS = 4096;
+// 8192: the bundle arm already runs at 8K, and on 2026-11-01T09-10-00 ...control24h 940 of 3964 turns (24%)
+// died at the 4096 cap, 74% of those with no tool call. The cap is the arm difference that was not a switch.
+export const PLAY_MAX_TOKENS = 8192;
 export const PLAY_THINKING = "medium";
 
 export const PLAY_SYSTEM_PROMPT = `You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.

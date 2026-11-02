@@ -187,3 +187,4 @@ Fix receipts, each by mutation:
 | delete both `goalOnlyTile` approach guards | `ON never picks a pad as the tile to stand on` fails |
 | delete the readout label branch | both `format_readout` cases fail |
 | revert the refusal string | the message case fails |
+| delete the template-approach guard | `never uses a pad as the tile to stand on for an unloaded trainer template` fails — the only failure |

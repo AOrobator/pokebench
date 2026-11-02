@@ -179,6 +179,16 @@ describe("warp-target-navigation-v1",()=>{
   expect(text(out)).toContain("target is not listed in the current verified state");
  });
 
+ it("never uses a pad as the tile to stand on for an unloaded trainer template",async () => {
+  // The only route-level guard for this arm: the warp-record filter beside it is staticRequest-only,
+  // so without it the trainer approach walks onto the pad and the floor changes mid-command.
+  const state={...gym({position:{x: 2, y: 0}}),heal_before_trainers:{trainers:[{local_id: 7,x: 2,y: 2,graphics_id: 0,sprite_kind: "PERSON",trainer_id: 1,defeated: false,loaded: false}],move_power: [],last_heal: null,home: null,mom_heals: false}};
+  const f=fixture(state,{...on(),"npc-approach-feedback-v1": true});
+  await f.tool.execute("s",{map_id: MAP,target: {kind: "object",local_id: 7}});
+  expect(f.navigations.length).toBeGreaterThan(0);
+  expect(f.navigations).not.toContainEqual({x: 2,y: 1});
+ });
+
  it("enrols exactly the gym pad behaviour",()=>{
   expect([...GOAL_ONLY_BEHAVIORS]).toEqual([PAD]);
   // Append-only: the switch sits last, so no predecessor index moved.

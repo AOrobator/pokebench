@@ -154,6 +154,7 @@ function tileBehavior(state:GameStateSnapshot,point:Point,mode:NavigationMode|un
 // as a field. Both are the tile's own elevation, which is what keeps an enrolled pad's identity
 // stable across the re-resolve that navigate_to performs before every step.
 function tileElevation(state:GameStateSnapshot,point:Point,mode:NavigationOptions["mode"],fallback:number):number {
+ if(point.x<0||point.y<0)return fallback;
  if(mode==="full"){
   const cell=state.map_grid?.rows[point.y]?.slice(point.x*4,point.x*4+4)??"";
   return /^[0-9a-f]{4}$/.test(cell)?(Number.parseInt(cell,16)>>8)&0xf:fallback;

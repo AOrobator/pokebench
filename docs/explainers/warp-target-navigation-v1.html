@@ -113,6 +113,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </ul>
 
 <h2>Reading a run</h2>
+<p>One asymmetry remains by design: a <code>navigate_to</code> may <em>end</em> on a pad, while a multi-direction <code>press</code> batch onto the same tile is still refused. A batch declares no goal, so it cannot distinguish a final step from a crossing, and the walker will not gamble on it.</p>
 <p>With the switch off, every result string is unchanged and a pad is still refused exactly as before. With it on, a successful pad call walks the final step onto the pad and the world moves floors; an unreachable pad says <em>no supported route to the step-on warp at (x,y)</em> instead of denying that the pad exists.</p>
 </main>
 </body></html>

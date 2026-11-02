@@ -44,7 +44,16 @@ export interface ServerHandle {
   readonly serverDir: string;
   // The game server process; absent when a host builds a handle around a server it does not own.
   readonly pid?: number;
+  // Resolves when the server process ends, with how it ended. Optional: a host that does not own
+  // the process cannot observe it.
+  readonly exit?: Promise<ServerExitInfo>;
   stop(): Promise<void>;
+}
+
+export interface ServerExitInfo {
+  readonly code: number | null;
+  readonly signal: string | null;
+  readonly stopRequested: boolean;
 }
 
 export interface RunHost {
@@ -122,6 +131,13 @@ export async function withRun(
   };
   if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
   const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState,...(plan.continuation===undefined?{}:{history:prior,turnBase:plan.continuation.sourceTurn-1,restoreRunIdentity:plan.harnessFeatures.includes("restored-memory-run-v1")}) });
+  // A server that dies while the run is live is recorded at the moment it dies; a server stopped by
+  // teardown arrives after run_end, where the log refuses it.
+  const watchServer = (handle: ServerHandle | undefined): void => {
+    if (handle?.exit === undefined) return;
+    void handle.exit.then((info) => { recorder.serverExit(info); }).catch(() => undefined);
+  };
+  watchServer(server);
   let reason: RunEndReason = "crash";
   try {
     const startMeta:RunStartMeta={
@@ -146,6 +162,7 @@ export async function withRun(
     await recorder.start(startMeta, plan.controller === undefined&&plan.continuation===undefined);
     if (plan.controller !== undefined) {
       server = await host.launchServer(log.runDir, plan.runId, plan.port);
+      watchServer(server);
       await recorder.checkMilestones();
     }
     claimed = true;

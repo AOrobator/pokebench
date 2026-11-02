@@ -32,6 +32,6 @@ it("delivers the exact resumed task through the production consumer seam",async(
 
 it("forwards one verified absolute state path to the owned launcher without changing it",()=>{
  const state="/runs/source/checkpoints/PETALBURG_WOODS.state";
- expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123,state)).toEqual(["/venv/python","-m","pokebench_env.launcher","--run-dir","/runs/new","--run-id","run-2","--port","8123","--load-state",state]);
+ expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123,state)).toEqual(["/venv/python","-m","pokebench_env.launcher","--run-dir","/runs/new","--run-id","run-2","--port","8123","--exec","--load-state",state]);
  expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123)).not.toContain("--load-state");
 });

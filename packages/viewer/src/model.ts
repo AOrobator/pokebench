@@ -72,6 +72,8 @@ export interface Thought {
 // One entry per schema event type: adding a type to the agent schema fails to
 // compile here until the viewer lists it.
 const KNOWN: Record<RunEvent["type"], true> = {
+  clock_step: true,
+  server_exit: true,
   operator_control: true,
   loop_guard: true,
   objective_update: true,

@@ -17,7 +17,7 @@ it("runs the 24h control arm at the 8K cap and the unchanged thinking level", ()
   const preset = parsePlayPreset(json(PRESET));
   expect(preset.id).toBe("current-control-24h-8k");
   expect(preset.target).toBeNull();
-  expect(preset.start).toBeUndefined();
+  expect(json<Record<string, unknown>>(PRESET)["start"]).toBeUndefined();
   expect(preset.sampling).toEqual({ thinkingLevel: "medium", maxTokens: 8192 });
   expect(preset.limits).toEqual({ maxTurns: 20000, maxWallMs: 86_400_000, failureLimit: 3, replyFailuresEndRun: false });
 });

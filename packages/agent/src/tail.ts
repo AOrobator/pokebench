@@ -107,6 +107,10 @@ function body(event: RunEvent): [string, string] {
     }
     case "telemetry_error":
       return ["TELEMETRY", `${event.source} read failed: ${event.message}`];
+    case "clock_step":
+      return ["CLOCK", `wall clock stepped back ${String(event.back_ms)}ms at native action ${String(event.last_id)}; ignored`];
+    case "server_exit":
+      return ["SERVER EXIT", `${event.stop_requested ? "stopped" : "DIED"} code=${event.code === null ? "-" : String(event.code)} signal=${event.signal ?? "-"}`];
     case "assistant_delta":
       return ["STREAM", [event.thinking === "" ? "" : `think: ${clip(event.thinking)}`, event.text === "" ? "" : `say: ${clip(event.text)}`].filter((part) => part !== "").join(" ")];
     case "compaction":

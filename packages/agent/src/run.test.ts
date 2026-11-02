@@ -281,3 +281,21 @@ it("validates continuation before any host call and preserves source evidence na
  const log=events(runsRoot,"continued");expect(log[0]).toMatchObject({seq:0,restoration:{source_run:"source",source_turn:4,prefix_last_seq:10}});
  expect(log.filter(e=>e.seq>0).every(e=>e.seq>10)).toBe(true);expect(log.at(-1)).toMatchObject({turn:4,turns:1});expect(fake.calls.at(-1)).toBe("stop");
 });
+// A server that dies mid-run must leave its own evidence; without it the recorder can only report a
+// failed read, which reads identically whether the emulator died or answered badly.
+it("records how a server exited while the run was still live",async()=>{
+ const runsRoot=root(),fake=host(),runId=plan(runsRoot).runId;
+ let markLaunched!:()=>void;const launched=new Promise<void>(resolve=>{markLaunched=resolve;});
+ let releaseExit!:(info:{code:number|null;signal:string|null;stopRequested:boolean})=>void;
+ const exit=new Promise<{code:number|null;signal:string|null;stopRequested:boolean}>(resolve=>{releaseExit=resolve;});
+ const launch=fake.launchServer;
+ fake.launchServer=(dir,id,port)=>launch(dir,id,port).then(handle=>{markLaunched();return {...handle,exit};});
+ let releaseBody!:()=>void;const bodyGate=new Promise<void>(resolve=>{releaseBody=resolve;});
+ const run=withRun(plan(runsRoot),fake,new FrameStore(runsRoot),async()=>{await bodyGate;return "crash";});
+ await launched;releaseExit({code:null,signal:"SIGTERM",stopRequested:false});
+ await new Promise(resolve=>{setImmediate(resolve);});
+ releaseBody();await run;
+ const log=events(runsRoot,runId);
+ expect(log.find(e=>e.type==="server_exit")).toMatchObject({type:"server_exit",code:null,signal:"SIGTERM",stop_requested:false});
+ expect(log.findIndex(e=>e.type==="server_exit")).toBeLessThan(log.findIndex(e=>e.type==="run_end"));
+});

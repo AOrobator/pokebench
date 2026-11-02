@@ -813,6 +813,19 @@ const TelemetryError = event("telemetry_error", {
   message: Type.String(),
 });
 
+// The journal stamps entries with the server's wall clock, so an NTP adjustment can move a
+// timestamp backwards without any hole in the journal. Recorded as evidence: a clock step is not
+// corruption, and id/frame own ordering.
+const ClockStep = event("clock_step", { back_ms: NonNegativeInt, last_id: NonNegativeInt });
+
+// How the game server process ended, written while the run is still live so a server that died is
+// distinguishable from a healthy server whose read failed.
+const ServerExit = event("server_exit", {
+  code: Type.Union([NonNegativeInt, Type.Null()]),
+  signal: Type.Union([Type.String(), Type.Null()]),
+  stop_requested: Type.Boolean(),
+});
+
 const RunEnd = event("run_end", {
   target_proof:Type.Optional(TargetProof),
   reason: RunEndReason,
@@ -890,6 +903,8 @@ export const RunEventSchema = Type.Union([
   LegacyState,
   Compaction,
   TelemetryError,
+  ClockStep,
+  ServerExit,
   AssistantDelta,
 ]);
 

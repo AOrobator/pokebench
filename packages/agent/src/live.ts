@@ -25,7 +25,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
 import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint, humanPlayUrl, viewerRunUrl } from "./human.js";
-import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
+import { closeSync, linkSync, mkdirSync, openSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { cutOffReplyNotice } from "./cut-off-reply.js";
@@ -103,18 +103,35 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
       // isolates the vendor server. Own process group so stop() reaches both
       // the launcher and its server child.
       const python = join(REPO_ROOT, "env", ".venv", "bin", "python");
-      const child = spawn(
-        python,
-        gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1),
-        { env, cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
-      );
+      // The server's own streams are evidence: the vendor announces the signal it received on
+      // stdout, and inheriting stderr left that announcement in a stream the run did not own.
+      // They live beside the isolation dir, not in it: the launcher owns runs/<id>/server and
+      // refuses a run directory it finds already prepared.
+      mkdirSync(runDir, { recursive: true });
+      const serverStdout = openSync(join(runDir, "server-stdout.log"), "a");
+      const serverStderr = openSync(join(runDir, "server-stderr.log"), "a");
+      let child: ReturnType<typeof spawn>;
+      try {
+        child = spawn(
+          python,
+          gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1),
+          { env, cwd: join(REPO_ROOT, "env"), stdio: ["ignore", serverStdout, serverStderr], detached: true },
+        );
+      } finally {
+        // The child holds its own duplicates of both descriptors, and a refused spawn still owes
+        // them back.
+        closeSync(serverStdout);
+        closeSync(serverStderr);
+      }
       if(env["POKEBENCH_CAMPAIGN_CONTINUATION"]!==undefined&&child.pid!==undefined)writeFileSync(join(runDir,"campaign-server-owner.json"),JSON.stringify({pid:child.pid,runId,port:serverPort}),{flag:"wx",mode:0o600});
-      const exited = new Promise<void>((resolve) => {
-        child.once("exit", () => {
-          resolve();
+      let stopRequested = false;
+      const exited = new Promise<{code:number|null;signal:NodeJS.Signals|null}>((resolve) => {
+        child.once("exit", (code, signal) => {
+          resolve({ code, signal });
         });
       });
       const stop = async (): Promise<void> => {
+        stopRequested = true;
         if (child.exitCode === null && child.pid !== undefined) process.kill(-child.pid, "SIGTERM");
         await exited;
       };
@@ -129,7 +146,7 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
         await stop();
         throw error;
       }
-      return { serverDir: join(runDir, "server"), ...(child.pid===undefined?{}:{pid:child.pid}), stop };
+      return { serverDir: join(runDir, "server"), ...(child.pid===undefined?{}:{pid:child.pid}), stop, exit: exited.then(({code,signal})=>({code,signal,stopRequested})) };
     },
     harness: () => harnessInfo(git(REPO_ROOT)),
     vendorPin: () => git(VENDOR_DIR)(["rev-parse", "HEAD"]).trim(),

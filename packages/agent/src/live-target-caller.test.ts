@@ -322,6 +322,7 @@ it.each([
       "live-native-caller",
       "--port",
       "8123",
+      "--exec",
     ]);
     expect(launch.options.env?.["POKEBENCH_ACTIVE_UI"]).toBe(
       activeUi ? "1" : "0",

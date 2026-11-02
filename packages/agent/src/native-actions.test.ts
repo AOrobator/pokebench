@@ -31,16 +31,30 @@ describe('native action history',()=>{
   {frame:20,last_id:2,entries:[learned,{...learned,id:3}]},
   {frame:9,last_id:1,entries:[learned]},
   {frame:20,last_id:2,entries:[learned]},
-  {frame:20,last_id:2,entries:[learned,{...learned,id:2,server_timestamp:999}]},
   {frame:20,last_id:1,entries:[{...learned,kind:'guessed_move'}]},
- ])('rejects a broken batch before partially recording and latches the failure',async batch=>{
+])('rejects a broken batch before partially recording and latches the failure',async batch=>{
   const h=setup(batch);await h.start();
   await expect(h.recorder.recordNativeActions()).rejects.toThrow();
   await expect(h.recorder.recordNativeActions()).rejects.toThrow();
   expect(h.events().filter(e=>e.type==='native_action')).toHaveLength(0);
   expect(h.events().filter(e=>e.type==='telemetry_error')).toHaveLength(1);
   expect(h.fetcher).toHaveBeenCalledTimes(1);
- });
+});
+// The journal stamps entries with the server's wall clock, so an NTP step regresses a timestamp
+// without any hole in the journal. Frame and id stay monotone, so the run must survive.
+it('records a wall-clock step instead of failing a batch that is otherwise continuous',async()=>{
+  const h=setup({frame:20,last_id:2,entries:[learned,{...learned,id:2,frame:20,server_timestamp:999}]});await h.start();
+  await h.recorder.recordNativeActions();
+  const events=h.events();
+  expect(events.filter(e=>e.type==='native_action').map(e=>e.id)).toEqual([1,2]);
+  const steps=events.filter(e=>e.type==='clock_step');
+  expect(steps).toHaveLength(1);
+  expect(steps[0]).toMatchObject({back_ms:1000,last_id:2});
+  expect(events.filter(e=>e.type==='telemetry_error')).toHaveLength(0);
+  h.fetcher.mockResolvedValue(Response.json({frame:21,last_id:2,entries:[]}));
+  await expect(h.recorder.recordNativeActions()).resolves.toBeUndefined();
+  expect(h.fetcher.mock.calls[1]?.[0]).toBe('http://game/pokebench/actions?after=2');
+});
  it('does not require journals for older run contracts',async()=>{
   const h=setup({},false);await h.start();await h.recorder.recordNativeActions();expect(h.fetcher).not.toHaveBeenCalled();
  });

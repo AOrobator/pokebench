@@ -98,16 +98,28 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser.add_argument(
         "--port", type=int, default=int(os.environ.get("POKEBENCH_GAME_PORT", "8000"))
     )
+    parser.add_argument(
+        "--exec",
+        action="store_true",
+        dest="exec_server",
+        help="replace this process with the server, so its pid and exit status are the server's",
+    )
     args = parser.parse_args(argv)
     run_id = validate_run_id(args.run_id or default_run_id(datetime.now(UTC)))
     run_dir = args.run_dir or RUNS_DIR / run_id
-    process = launch(
-        ServerSpec(port=args.port, no_ocr=True, load_state=args.load_state), run_dir, run_id
-    )
-    forward_sigterm(process)
+    spec = ServerSpec(port=args.port, no_ocr=True, load_state=args.load_state)
     print(
         f"game server ({run_id}): http://127.0.0.1:{args.port}/stream (Ctrl-C to stop)", flush=True
     )
+    if args.exec_server:
+        # A supervising harness can only report how the server ended if the pid it holds is the
+        # server. Without exec it holds this wrapper, which outlives the server it started.
+        server_dir = prepare(os.environ, run_dir)
+        env = server_env(os.environ, vendor_dir=VENDOR_DIR, run_id=run_id, pycache_dir=PYCACHE_DIR)
+        os.chdir(server_dir)
+        os.execvpe(str(Path(sys.executable)), server_command(Path(sys.executable), spec), env)
+    process = launch(spec, run_dir, run_id)
+    forward_sigterm(process)
     try:
         return process.wait()
     except KeyboardInterrupt:

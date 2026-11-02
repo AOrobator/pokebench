@@ -417,6 +417,13 @@ export class RunRecorder {
   }
 
   checkpointFailure(error:unknown):void {this.telemetryError("checkpoint",error);}
+  // A server that exits while the run is live is evidence in its own right: it separates "the
+  // emulator died" from "a read of a healthy emulator failed". During teardown run_end is already
+  // written, so the end of the log is not the place for it.
+  serverExit(info:{code:number|null;signal:string|null;stopRequested:boolean}):void {
+    if(this.log.ended)return;
+    this.append({type:"server_exit",turn:this.turn,code:info.code,signal:info.signal,stop_requested:info.stopRequested});
+  }
   private telemetryError(source: "milestones" | "state" | "battle" | "actions" | "checkpoint", error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     this.append({ type: "telemetry_error", turn: this.turn, source, message });
@@ -464,8 +471,12 @@ export class RunRecorder {
       let cursor=this.nativeActionCursor,frame=this.nativeActionFrame,time=this.nativeActionTime;
       if(batch.frame<frame)throw new RecorderError("Native action journal frame regressed");
       for(const entry of batch.entries) {
-        if(entry.id!==cursor+1||entry.frame<frame||entry.frame>batch.frame||entry.server_timestamp<time)throw new RecorderError("Invalid native action journal continuity");
-        cursor=entry.id;frame=entry.frame;time=entry.server_timestamp;
+        if(entry.id!==cursor+1||entry.frame<frame||entry.frame>batch.frame)throw new RecorderError("Invalid native action journal continuity");
+        // Id and frame own ordering: both advance monotonically in the server's frame loop. The
+        // journal's timestamp is wall clock, so an NTP adjustment can move it backwards without a
+        // hole in the journal; record the step instead of failing a healthy run.
+        if(entry.server_timestamp<time)this.append({type:"clock_step",turn:this.turn,back_ms:Math.round((time-entry.server_timestamp)*1000),last_id:entry.id});
+        cursor=entry.id;frame=entry.frame;time=Math.max(time,entry.server_timestamp);
       }
       if(batch.last_id!==cursor)throw new RecorderError("Native action journal cursor does not cover snapshot");
       for(const entry of batch.entries)this.append({type:"native_action",turn:this.turn,...entry});

@@ -385,3 +385,32 @@ def test_launcher_cli_forwards_load_state_exactly(
         == 0
     )
     assert seen == [(ServerSpec(port=8032, no_ocr=True, load_state=saved), tmp_path, "probe-test")]
+
+
+def test_exec_mode_hands_the_process_to_the_server(monkeypatch, tmp_path) -> None:
+    from pokebench_env import launcher
+
+    seen: dict[str, object] = {}
+
+    def prepare(env, run_dir):
+        seen["prepared"] = run_dir
+        return tmp_path
+
+    def execvpe(file, argv, env):
+        seen.update(file=file, argv=list(argv), env=dict(env))
+        raise SystemExit(0)
+
+    monkeypatch.setattr(launcher, "prepare", prepare)
+    monkeypatch.setattr(launcher, "server_env", lambda *a, **k: {"PB": "1"})
+    monkeypatch.setattr(launcher.os, "chdir", lambda path: seen.update(cwd=path))
+    monkeypatch.setattr(launcher.os, "execvpe", execvpe)
+    with pytest.raises(SystemExit):
+        launcher.main(
+            ["--run-dir", str(tmp_path), "--run-id", "probe-test", "--port", "8033", "--exec"]
+        )
+    assert seen["prepared"] == tmp_path
+    assert seen["cwd"] == tmp_path
+    argv = seen["argv"]
+    assert isinstance(argv, list)
+    assert argv[1:5] == ["-m", "pokebench_env.serve", "--port", "8033"]
+    assert seen["env"] == {"PB": "1"}

@@ -1,4 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {mkdtempSync,readdirSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import type {RunPlan,RunHost} from './run.js';
 const context=vi.hoisted(()=>({completion:Promise.resolve(),hosts:[] as RunHost[],spawn:vi.fn<(file:string,args:readonly string[],options:{env:NodeJS.ProcessEnv})=>never>(),off:vi.fn(),plans:[] as RunPlan[],leases:[] as {root:string;run:string}[],paths:[] as {repo:string;common:string}[],release:vi.fn(),git:vi.fn(),write:vi.fn(),errors:vi.fn()}));
 vi.mock('node:child_process',()=>({execFileSync:(file:string,args:string[])=>{
@@ -63,7 +66,11 @@ it('keeps default-off visibility V2 disabled in the real human launcher environm
  fakeProcess.env['POKEBENCH_HUMAN_RUN_ID']='assigned-human-run';
  await completed();
  const host=context.hosts[0];if(host===undefined)throw Error('missing production human host');
- await expect(host.launchServer('/test-owned/run','assigned-human-run',8140)).rejects.toThrow('test forbids launching a service');
+ const runDir=mkdtempSync(join(tmpdir(),'pb-human-run-'));
+ await expect(host.launchServer(runDir,'assigned-human-run',8140)).rejects.toThrow('test forbids launching a service');
+ // The capture files are opened before the spawn, so a refused launch still leaves the run's
+ // evidence in place rather than orphaning two descriptors.
+ expect(readdirSync(runDir).sort()).toEqual(['server-stderr.log','server-stdout.log']);
  const env=context.spawn.mock.calls[0]?.[2].env;
  expect(env?.['POKEBENCH_FEATURES_OFF']?.split(',')).toContain('player-map-visibility-v2');
 });

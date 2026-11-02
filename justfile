@@ -102,9 +102,10 @@ smoke:
 smoke-llm: build
     node packages/agent/dist/live.js smoke
 
-# Ordinary play: one isolated, recorded fresh-boot run (300 turns / 30 min).
-run-agent: build
-    node packages/agent/dist/live.js play
+# Ordinary play, but never from the main checkout: the run gets a prepared checkout at HEAD, so a
+# build, test run or post-landing gate on main can neither reach it nor make it record dirty.
+run-agent *args: build
+    node packages/viewer/dist/fixed-cli.js play {{args}}
 
 # Who owns a pid or port. Exit 1 means a live run does: do not kill it, do not reuse its port.
 run-claims:

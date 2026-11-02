@@ -1,6 +1,6 @@
 // `just fixed-run <command>`: the fixed-N two-arm experiment driver. Definitions live in
 // experiments/fixed/<id>.json; their ledgers and status in runs/experiments/<id>/.
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -19,6 +19,7 @@ import { fileLines, type LogLines } from "./run-log.js";
 import { laneApiKey, runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
+import { frozenPlay } from "./frozen-play.js";
 import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
@@ -36,6 +37,8 @@ export interface FixedCliDeps {
   readonly run: (options: FixedRunOptions) => Promise<"finished" | "stopped">;
   readonly host: () => FixedHost;
   readonly stopRequested?: () => boolean;
+  // Everything an experiment checkout needs; supplied by the entrypoint, absent in partial harnesses.
+  readonly hostDeps?: () => FixedHostDeps;
 }
 
 const USAGE = [
@@ -47,6 +50,7 @@ const USAGE = [
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
   "       fixed-run analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms> [--primary <milestone>]",
+  "       fixed-run play [--commit <sha>]          run ordinary play from a prepared experiment checkout, not from main",
 ].join("\n");
 
 class CliError extends Error {}
@@ -253,10 +257,29 @@ function analyzeReceipt(argv: readonly string[], deps: FixedCliDeps): number {
   return 0;
 }
 
+// Ordinary play from a prepared experiment checkout, so builds, tests and post-landing gates on main
+// can neither reach the run in flight nor make it record harness.dirty.
+async function plainPlay(argv: readonly string[], deps: FixedCliDeps): Promise<number> {
+  const build = deps.hostDeps;
+  if (build === undefined) throw new CliError("this build cannot prepare an experiment checkout; run it through `just run-agent`");
+  const commit = flag(argv, "--commit") ?? deps.head();
+  return await frozenPlay({
+    host: productionFixedHost(build()),
+    hostDeps: build(),
+    spawn: (spec) => new Promise<number>((resolve, reject) => {
+      const child = spawn(spec.command, [...spec.argv], { cwd: spec.cwd, env: spec.env, stdio: "inherit" });
+      child.once("error", reject);
+      child.once("exit", (status) => { resolve(status ?? 1); });
+    }),
+    out: deps.out,
+  }, commit);
+}
+
 export async function main(argv: readonly string[], deps: FixedCliDeps): Promise<number> {
   const [command, id, ...rest] = argv;
   try {
     if (command === "analyze-receipt") return analyzeReceipt(argv.slice(1), deps);
+    if (command === "play") return await plainPlay(argv.slice(1), deps);
     if (id === undefined) throw new RangeError();
     if (command === "plan") plan(rest, deps, id);
     else if (command === "check") check(deps, id);
@@ -417,6 +440,7 @@ if (import.meta.main) {
     sha1File: (path) => (existsSync(path) ? createHash("sha1").update(readFileSync(path)).digest("hex") : null),
     rom: process.env["POKEBENCH_ROM"],
     run: runFixed, host: () => productionFixedHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
+    hostDeps: () => ({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
     stopRequested: () => stop,
   }).then((code) => { process.exitCode = code; }, (error: unknown) => {
     console.error(`fixed-run: ${error instanceof Error ? error.message : String(error)}`);

@@ -107,7 +107,7 @@ and the `withRun` import.
 | 1 run claim | **done** — `run-claim.ts` + 8 tests, wired into `withRun`, `ServerHandle.pid` |
 | 2 loud aborts | **done** — `operator_signal` on `run_end`, schema regenerated, signalled trials classified invalid and exempted from lane backoff |
 | 3 port ownership | **done** — `port-allocator.ts` + 9 tests, used when a run has no explicit port, `just run-claims` / `scripts/run-claim.mjs` to ask before killing |
-| 4 frozen tree | **not done** — see below |
+| 4 frozen tree | **done** — `frozen-play.ts`; `just run-agent` runs from a prepared checkout at main's HEAD |
 
 Also added `scripts/run-control.mjs` and `just run-control`, because the refusal message points at a
 graceful stop and there was no command for one. That missing obvious command is part of why the incident
@@ -134,22 +134,36 @@ alone, and reproduces identically on clean `main` with these edits stashed (216 
 - `RunEnd` gained `operator_signal`, which made the checked-in `schemas/events.v1.json` stale. Regenerated
   via `just schema`.
 
-### Why phase 4 is not in this change
+### Phase 4 — every run, not just fixed trials
 
-`prepareFixedTree` is viewer code driven by `FixedHostDeps` (root, runsRoot, git, fetchFn, node, env, log),
-while `just run-agent` invokes `packages/agent/dist/live.js play` directly from the main checkout. Routing
-the ad-hoc path through the frozen tree means giving the viewer CLI that dependency surface and a spawn
-path, which is a separate, testable change rather than something to staple onto an unverified tree. It
-remains the protection against `pnpm -r build` and post-landing gates reaching a live run — a real hazard,
-but not the one that ended the control arm.
+`just run-agent` called `packages/agent/dist/live.js play` from the main checkout, so an ordinary run
+executed the very `dist` that a merge, a `pnpm -r build` or a post-landing gate rewrites underneath it.
+`frozen-play.ts` closes that: it takes the same `prepareFixedTree` path fixed trials take, then spawns the
+tree's own `live.js`, and `just run-agent` now goes through it (`fixed-run play`).
+
+- The commit comes from `deps.head()`, which is the **main checkout's** HEAD, not the worktree's.
+- `verifyBuild` prepares `/private/tmp/pokebench-fixed-<sha12>` and refuses a checkout with changes, so a
+  plain run can no longer record `harness.dirty: true` — the thing that made the dead control run
+  unreproducible.
+- The run keeps its own preset, gateway URL, model and endpoint file, and gets a fresh runs root, run id
+  and port (the allocator from phase 3 picks from 8090-8099).
+- The spawned command is asserted to point into the experiment checkout, so a refactor cannot quietly fall
+  back to running from main.
+
+Verified end to end: `fixed-run play` printed `run 35871b7 from /private/tmp/pokebench-fixed-35871b7602ff`
+and prepared that checkout before spawning. It then exited on
+`GatewayDiscoveryError: model think-swarm is not served by the gateway (available: none)` — the ad-hoc
+play path wants the agent gateway, and the only model lane up here is the fixed run's vLLM on 18020, which
+rejects unauthenticated requests. That is an environment gap in the probe, not the launch path; the tree
+preparation and the spawn had already happened, and `frozen-play.test.ts` covers the ordering.
 
 ### Open
 
-- Phase 4 (frozen tree for ad-hoc/preset runs).
 - Runs started before this change write no claim, so `run-claims` cannot see them; the port allocator still
   refuses their ports because it also checks for listeners.
 - No post-landing gate ran: the hyperqwen 24h run (`2026-11-02T02-55-21_hyperqwen-gpu0_07a7`) is live, and
   `dist` in the main checkout was not rebuilt.
+- Ad-hoc play still needs a gateway that serves its model; the frozen tree does not supply one.
 
 Per phase: unit tests for the new module, then the full agent suite (376 files / 5,339 tests at `d1f105ddc`),
 then the viewer suite. Post-landing gates deferred while the hyperqwen 24h run is live, and disclosed.

@@ -41,7 +41,8 @@ describe("dialogue-a-line-v1", () => {
     expect(on).toContain("To talk to a person or read a sign, press A once on it");
   });
 
-  it("ON names no character, place or story step", () => {
+  it("ON contains no name from this deny-list", () => {
+    // Three tokens is all this can prove; it is a leak check, not proof that no name exists.
     expect(DIALOGUE_A_LINE_SECTION).not.toMatch(/MOM|truck|Aqua|Roxanne/);
   });
 

@@ -177,7 +177,7 @@
   "player-map-visibility-v2",
   "model-error-recovery-v1",
   "moving-npc-frame-burst-v1",
-    "dialogue-a-line-v1"
+  "dialogue-a-line-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,

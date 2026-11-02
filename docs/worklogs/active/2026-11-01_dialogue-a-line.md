@@ -75,6 +75,11 @@ Prompt copy only; no new input, tool, server read or filesystem access. The swit
 - 2026-11-01: worktree `/private/tmp/pb-dialogue-a-line`, branch `claude/dialogue-a-line-both`, off main `3623a82a4` (main at `e3f7c2ae0` when the branch started). `just setup`, `just build-mgba`, `just verify-vendor`, `just verify-rom` pass.
 - 2026-11-01: first GREEN attempt (`260aa12d5`, since dropped) changed the shared constants; it turned both OFF-byte pins red. Reworked to a default-off switch so the OFF arm keeps the historical bytes, per operator instruction.
 - 2026-11-01: CPU window requested from the Claude relay at 22:05Z; no grant arrived, gates run unmonitored and labelled as such.
+- 2026-11-02: review-fix commit on top of `3968d3343` — renamed the deny-list test to what it checks and
+  corrected the recipe indent. Tests for this commit: `vitest run dialogue-a-line.test.ts
+  destination-first.test.ts tool-prompt-sync.test.ts` → 3 files / 172 tests passed (1.09s), which includes
+  both OFF-byte-identity pins. Gates were **not** re-run for this commit: `just test` / `just coverage` were
+  not run, so this commit carries a test receipt only, not a gate receipt.
 
 ## Surprises
 
@@ -84,7 +89,25 @@ Prompt copy only; no new input, tool, server read or filesystem access. The swit
 
 ## Multi-Model Review Log
 
-(pending)
+- 2026-11-02: the three cloud lanes `CLAUDE.md` requires are blocked on billing — Claude CLI usage limit
+  (resets 2026-11-02 22:00), Cursor Claude and Grok monthly spend cap (resets 2026-11-17), Codex
+  `model_not_found` for every gpt model. **No lane review exists for this branch and it must not be described
+  as reviewed.** Two advisory read-only reviewers substituted, as in `2026-11-01_landing-waiver-both.md`.
+- Advisory round 1 (behaviour, byte-identity, reproducibility): LGTM. Independently confirmed OFF can only
+  emit the historical strings, that `play-preset`, `next-run` and `flagFeatures` each force the new flag
+  false, and that both pinned hashes still hold. SHOULD-FIX: the registry entry declares `needs: null` though
+  its dialogue paragraph only emits when `dialog-button-b-v1` is on; the new test builds a feature map by
+  hand instead of through `readFixedDefinition`; 4-space indent inside a 2-space recipe array.
+- Advisory round 2 (test quality, gate honesty): LGTM. Confirmed the OFF pin duplicates the historical
+  strings as literals, so a revert is a compile error. SHOULD-FIX: "ON names no character, place or story
+  step" is a three-token deny-list that cannot prove its title; the `.at(-1)`→`.at(-2)` shift in
+  `model-error-recovery-governor.test.ts` couples that flag to this one staying last in the harness order;
+  the exit-0 receipt came from a run that bypassed the CPU-window gate.
+- Fixed in the follow-up commit: the deny-list test is renamed to what it actually checks, and the recipe
+  indent is corrected. Left open deliberately, not overlooked: `needs` stays null because setting it would
+  change gating semantics, the positional coupling stays because position pins are being retired as a class
+  (see `2026-11-01_collapse-versioned-stacks.md`), and the unmonitored gate run is disclosed above rather
+  than re-run without a window.
 
 ## Boy Scout Log
 

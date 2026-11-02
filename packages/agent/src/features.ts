@@ -886,6 +886,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "move-learn-type-matchup-v1",
   "player-map-visibility-v2",
   "authored-scene-labels-v1",
+  "warp-target-navigation-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {

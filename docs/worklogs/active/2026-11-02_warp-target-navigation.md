@@ -112,6 +112,10 @@ Two runtime owners, one switch id.
 
 **M1 — GREEN.** `navigate_to_target` now resolves an advertised warp from the grid's warp records when its tile is enrolled, and the planner gains a goal-only tile class. Focused suites: `warp-target-navigation`, `semantic-navigation`, `features`, `play-preset`, `deterministic-warp-navigation` = 155 passed. `just build` green.
 
+**M2 — readout.** `SERVER_FEATURES` gains the id on both sides (the Python tuple is compared against the `features.ts` list by `test_feature_switches`), and a pad's candidate line now reads `Warp (step-on pad) … ; step onto tile` with no `destination map 4/1 warp 25` suffix. Detection is the observation's own `Wp:floor_up` element, not a ROM join, and it is gated on the switch, so OFF output is byte-identical. `env/tests/env/test_warp_target_navigation.py`: 6 cases, including that a `floor_down` hole is **not** a pad. Correction recorded: the `E` glyph flip I scoped was wrong — `E` is the Mauville electric door, and `Wp:floor_up` / `Wp:floor_down` are already keyed to behaviour, so no glyph work was needed.
+
+**M3 — promotion.** `warp-target-navigation-v1` and `active-warp-exits-v1` are base-true and `onInBoth`; `active-warp-exits-v1` leaves `switches`. README entry names the directive and the motivating run. Pin: `warp-target-navigation.test.ts` asserts all three placements for both ids.
+
 ## Surprises
 
 - The pads were labelled, advertised with handles, and listed among untried exits the whole time. The failure was the tool refusing targets its own readout had just offered — not a missing label.

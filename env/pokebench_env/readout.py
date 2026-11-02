@@ -31,7 +31,7 @@ from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
-from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
+from pokebench_env.map_observation import MapObservation, SWITCH as MAP_OBSERVABILITY
 from pokebench_env.map_observation import render_observation
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
@@ -199,6 +199,7 @@ SERVER_FEATURES = (
     "move-learn-type-matchup-v1",
     "player-map-visibility-v2",
     "authored-scene-labels-v1",
+    "warp-target-navigation-v1",
 )
 
 
@@ -229,7 +230,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,authored-scene-labels-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,authored-scene-labels-v1,warp-target-navigation-v1",
     )
     if raw == "":
         return frozenset()
@@ -297,6 +298,19 @@ def _menu(
     return (
         f"Unverified menu buffer: cursor {state.menu.selected} of {state.menu.options}"
         "; active menu owner unavailable"
+    )
+
+
+def _step_on_pad(observation: MapObservation | None, target: InteractionTarget) -> bool:
+    """True when this warp sits on a step-on floor pad (0x29) in the current observation."""
+    if observation is None:
+        return False
+    return any(
+        element.kind == "warp"
+        and element.state == "floor_up"
+        and element.edge is None
+        and (element.x, element.y) == (target.x, target.y)
+        for element in observation.elements
     )
 
 
@@ -962,6 +976,17 @@ def format_readout(
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
 
         def target_text(t: InteractionTarget) -> str:
+            # warp-target-navigation-v1: a step-on pad is advertised by what it does, not where it
+            # leads. "destination map 4/1 warp 25" names no place the model can use, and the pad's
+            # label is the only thing standing between "regular tile" and "a thing you ride".
+            if (
+                t.kind == "warp"
+                and "warp-target-navigation-v1" not in off
+                and _step_on_pad(observation, t)
+            ):
+                return replace(
+                    t, name="Warp (step-on pad)", activation="step onto tile", destination=None
+                ).text(named=True)
             name = (
                 switch_name(puzzle_map, state.map_id, t.x, t.y)
                 if t.kind == "coordinate_trigger"

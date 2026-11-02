@@ -163,7 +163,7 @@ def test_compact_codes_round_trip_every_pret_layout_size(width: int, height: int
 
 @pytest.mark.parametrize("width,height", layout_sizes())
 def test_base_glyph_compact_round_trips_every_pret_layout_size(width: int, height: int) -> None:
-    """compact-map-base-glyph-v1: the base glyph stays in the cell, the code stands for the token."""
+    """base glyph stays in the cell; the code stands for the element token only."""
     shown, elements = synthetic(width, height, width * 1000 + height)
     observation = build_observation(shown, (0, 0), elements)
     verbose = render_observation(shown, observation)
@@ -176,7 +176,7 @@ def test_base_glyph_compact_round_trips_every_pret_layout_size(width: int, heigh
 
 
 def test_base_glyph_compact_never_hides_a_gate_behind_its_code() -> None:
-    rows = ("#.", ".G")
+    rows = ("#.", "..")
     tiles = tuple(MapTile(x, y, 0, 0, 0) for y in range(2) for x in range(2))
     shown = FullMap(2, 2, rows, tiles, (), ())
     observation = build_observation(
@@ -188,11 +188,22 @@ def test_base_glyph_compact_never_hides_a_gate_behind_its_code() -> None:
         ),
     )
     text = render_observation(shown, observation, compact=True, base_glyph=True)
+    codes = {
+        annotation: code
+        for code, annotation in (
+            part.split(" = ", 1) for part in text.split("\n")[1][len("Codes: ") :].split("; ")
+        )
+    }
+    assert set(codes) == {"B:X", "B:O"}
     cells = parse(text, base_glyph=True)["cells"]
     assert isinstance(cells, list)
     assert cells[0][0] == "#/B:X"
     assert cells[1][1] == "./B:O"
-    assert text.split("\n")[1] == "Codes: E = B:X; F = B:O"
+    # The passability glyph sits in the cell, so a gate never has to be read through the codes.
+    first_row = next(line for line in text.split("\n") if line.startswith("   0"))
+    assert f"#{codes['B:X']}" in first_row
+    second_row = next(line for line in text.split("\n") if line.startswith("   1"))
+    assert f".{codes['B:O']}" in second_row
 
 
 def test_legacy_compact_codes_still_replace_the_whole_cell() -> None:
@@ -241,6 +252,35 @@ def test_server_switch_is_default_off_and_only_recodes_the_grid() -> None:
     assert parse(compact[grid.start :]) == parse(verbose[verbose.index("Current map") :])
     assert compact[: grid.start] == verbose[: verbose.index("Current map")]
     assert compact[grid.stop :] == verbose[verbose.index("Base glyph") :]
+
+
+def test_base_glyph_switch_is_wired_through_the_production_readout() -> None:
+    from test_map_observation_wiring import ENABLED, MAPS, map_memory
+
+    from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
+    from pokebench_env.rerender import read_state, render
+
+    switch = "compact-map-base-glyph-v1"
+    off: frozenset[str] = frozenset(SERVER_FEATURES) - ENABLED
+    assert switch in SERVER_FEATURES and switch in features_off_from_env({})
+    # The run config turns both map switches on; the base glyph needs the compact grid it decorates.
+    off = off - {"compact-map-grid-v1"}
+    state = read_state(map_memory().read, MAPS, active_ui=False, off=off)
+    legacy = render(state, off)
+    base = render(state, off - {switch})
+    assert "Current map (observed elements v1, compact codes)" in legacy
+    assert "Current map (observed elements v1, compact codes)" in base
+    assert legacy != base
+    start = legacy.index("Current map")
+    end = legacy.index("Base glyph")
+    base_start = base.index("Current map")
+    base_end = base.index("Base glyph")
+    assert parse(base[base_start:], base_glyph=True) == parse(legacy[start:])
+    # Only the grid body and its codes line move; every other readout line stays byte-identical.
+    assert legacy[:start] + legacy[end:] == base[:base_start] + base[base_end:]
+    # Legacy codes name the two-layer token; the base-glyph codes name the annotation only.
+    assert "/" in legacy[start:end].split("\n")[1]
+    assert "/" not in base[base_start:base_end].split("\n")[1]
 
 
 @pytest.mark.parametrize("ox,width", [(-5, 15), (-12, 4), (-7, 15), (95, 10), (0, 1)])

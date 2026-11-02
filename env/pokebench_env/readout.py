@@ -200,6 +200,7 @@ SERVER_FEATURES = (
     "player-map-visibility-v2",
     "authored-scene-labels-v1",
     "warp-target-navigation-v1",
+    "compact-map-base-glyph-v1",
 )
 
 
@@ -230,7 +231,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,authored-scene-labels-v1,warp-target-navigation-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1",
     )
     if raw == "":
         return frozenset()
@@ -800,6 +801,7 @@ def format_readout(
                     counters=counters,
                     terrain=FIELD_MOVES not in off,
                     compact="compact-map-grid-v1" not in off,
+                    base_glyph="compact-map-base-glyph-v1" not in off,
                 )
                 if observation is not None
                 else None,

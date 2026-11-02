@@ -44,19 +44,28 @@ def test_v2_remembers_but_does_not_refresh_hidden_terrain_when_darkness_returns(
     assert (0, 0) not in hidden.map_visibility.visible
 
 
-@pytest.mark.parametrize("invalid", ["menu", "locked", "hidden_player", "bad_light"])
+@pytest.mark.parametrize("invalid", ["menu", "hidden_player", "bad_light"])
 def test_v2_never_assumes_daylight_when_state_is_unverified(invalid):
     m, current = field(0), state()
     if invalid == "menu":
         current = replace(current, screen="party")
-    elif invalid == "locked":
-        current = replace(current, field_controls_locked=True)
     elif invalid == "hidden_player":
         m.put(0x02020630 + 0x3E, b"\x05")
     else:
         m.put(0x02010030, b"\xff")
     result = MapMemory().project(m.read, current)
     assert not result.full_map.tiles
+
+
+@pytest.mark.parametrize("level", [1, 3, 7])
+def test_v2_locked_field_still_hides_an_unlit_room(level):
+    """The lock is no longer what withholds a lit map; darkness still withholds every dark one."""
+    current = replace(state(), field_controls_locked=True)
+    result = MapMemory().project(field(level).read, current)
+    assert result.map_visibility is not None and result.full_map is not None
+    assert result.map_visibility.visible
+    assert len(result.map_visibility.visible) < 625
+    assert result.full_map.rows[0][0] == "?"
 
 
 def test_v2_whole_lit_map_exposes_static_exit_but_not_hidden_actor():

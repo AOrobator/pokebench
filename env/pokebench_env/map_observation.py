@@ -258,6 +258,7 @@ def render_observation(
     counters: bool = True,
     terrain: bool = False,
     compact: bool = False,
+    base_glyph: bool = False,  # needs compact: the code follows the glyph inside the cell
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -313,9 +314,21 @@ def render_observation(
     if compact:
         # compact-map-grid-v1: each multi-character token is shown by its code from the Codes line,
         # columns share one width and column numbers read top to bottom. Nothing is cut or dropped.
+        # compact-map-base-glyph-v1 keeps the base glyph inside the cell and codes only the element
+        # annotation, so a blocked gate reads "#E" and a cell's passability never depends on the
+        # Codes line alone.
         codes = compact_codes(rendered)
-        rendered = [[codes.get(token, token) for token in row] for row in rendered]
-        width = max([1, *(len(code) for code in codes.values())])
+        if base_glyph:
+            rendered = [
+                [f"{token[:1]}{codes[token]}" if token in codes else token for token in row]
+                for row in rendered
+            ]
+            width = max([1, *(1 + len(code) for code in codes.values())])
+            note = {token: token.split("/", 1)[1] if "/" in token else token for token in codes}
+        else:
+            rendered = [[codes.get(token, token) for token in row] for row in rendered]
+            width = max([1, *(len(code) for code in codes.values())])
+            note = {token: token for token in codes}
         widths = [width] * observation.width
         # A local view near the west edge starts at a negative column: the widest can be the first.
         digits = max(len(str(ox + x)) for x in range(observation.width))
@@ -323,7 +336,8 @@ def render_observation(
         lines = [
             "Current map (observed elements v1, compact codes); "
             f"top-left ({ox},{oy}), north is up:",
-            "Codes: " + ("; ".join(f"{code} = {token}" for token, code in codes.items()) or "none"),
+            "Codes: "
+            + ("; ".join(f"{code} = {note[token]}" for token, code in codes.items()) or "none"),
             *(
                 ("     " + " ".join(n[place].rjust(width) for n in numbers)).rstrip()
                 for place in range(digits)

@@ -103,10 +103,15 @@ def test_unverified_layout_or_hidden_player_never_defaults_to_full_visibility():
     assert illumination(m.read, (24, 46)) is None
 
 
-def test_no_fresh_geometry_is_learned_under_menus_or_locked_field():
-    for current in (replace(state(), screen="party"), replace(state(), field_controls_locked=True)):
-        result = MapMemory().project(field(0).read, current)
-        assert not result.full_map.tiles
+def test_no_fresh_geometry_is_learned_under_menus_and_a_lock_only_keeps_what_is_lit():
+    menus = MapMemory().project(field(0).read, replace(state(), screen="party"))
+    assert not menus.full_map.tiles
+    locked_lit = MapMemory().project(field(0).read, replace(state(), field_controls_locked=True))
+    assert len(locked_lit.full_map.tiles) == 625
+    locked_dark = MapMemory().project(field(7).read, replace(state(), field_controls_locked=True))
+    assert locked_dark.map_visibility.visible
+    assert len(locked_dark.map_visibility.visible) < 625
+    assert locked_dark.full_map.rows[0][0] == "?"
 
 
 def test_projection_removes_template_reachability_and_offscreen_bypasses():

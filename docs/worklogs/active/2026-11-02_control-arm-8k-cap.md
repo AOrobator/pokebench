@@ -102,3 +102,21 @@ promoted preset. The run launched under this worklog
 (`2026-11-02T06-25-22_deepseek-deepseek-v4.1-flash_53be`, commit `6522d1084`,
 `harness.dirty: false`) records `max_tokens: 8192`, `thinking_level: medium` and
 `max_wall_ms: 86400000` in its `run_start`.
+
+### Review and gates
+
+Operator waived the three cloud review lanes for this change on 2026-11-02 ("cloud
+models are waived since i'm outta tokens rn"), so the landing rests on a self-review
+of the diff rather than on Claude/Grok/GPT verdicts.
+
+Self-review: the preset is a version-2 control arm — no switch id on, no `offInBoth`
+on, all 84 `onInBoth` on, and its feature keys are exactly the recipe's. `sampling`
+is `medium`/8192 (the thinking level is unchanged), limits are 20000 turns and 86400000
+ms, start is omitted so the run boots, and `parsePlayPreset` accepts it. The worklog
+change is additive and alters none of the earlier record.
+
+Gates: `pnpm -r coverage` green (viewer 94.53% statements, 90.77% branches; the agent
+package ran first and passed). The Python env suite fails in a fresh worktree only
+because `.env` with `POKEBENCH_ROM` is gitignored; with the ROM exported the suites
+that failed there pass 56/56 in the main checkout. `just test` on `main` after the
+merge is the activation gate.

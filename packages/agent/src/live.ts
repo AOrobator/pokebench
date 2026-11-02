@@ -9,6 +9,8 @@ import type {FitReport} from "./context-budget.js";
 import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {ModelErrorRecovery} from "./model-error-recovery.js";
 import { operatorSignalLatch } from "./operator-signals.js";
+import { GAME_PORT_POOL, allocatePort, noPortMessage } from "./port-allocator.js";
+import { listClaims } from "./run-claim.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -127,7 +129,7 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
         await stop();
         throw error;
       }
-      return { serverDir: join(runDir, "server"), stop };
+      return { serverDir: join(runDir, "server"), ...(child.pid===undefined?{}:{pid:child.pid}), stop };
     },
     harness: () => harnessInfo(git(REPO_ROOT)),
     vendorPin: () => git(VENDOR_DIR)(["rev-parse", "HEAD"]).trim(),
@@ -143,13 +145,29 @@ interface Live {
   readonly apiKey: string | undefined;
 }
 
+// An unset port is allocated and then recorded on the run claim, never guessed down from a constant:
+// a busy port belongs to some run, and taking it means ending that run (INV-Q5).
+function allocateGamePort(): number {
+  const listening = (port: number): boolean => {
+    try {
+      return execFileSync("lsof", ["-nP", "-t", `-iTCP:${String(port)}`, "-sTCP:LISTEN"], {encoding: "utf8"}).trim() !== "";
+    } catch {
+      return false;
+    }
+  };
+  const claims = listClaims(RUNS_ROOT);
+  const port = allocatePort({claims, listening});
+  if (port === null) throw new Error(noPortMessage(GAME_PORT_POOL, claims));
+  return port;
+}
+
 async function live(): Promise<Live> {
   const config = loadConfig(process.env);
   const configured = new URL(config.gameServerUrl);
   if (configured.hostname !== "127.0.0.1") {
     throw new Error(`POKEBENCH_GAME_SERVER_URL must be http://127.0.0.1:<port>; each run launches its own server (INV-7)`);
   }
-  const port = Number(configured.port || "8000");
+  const port = configured.port === "" ? allocateGamePort() : Number(configured.port);
   const local = config.endpointFile === null ? null : readEndpoint(config.endpointFile);
   const models =
     local === null
@@ -252,6 +270,8 @@ export function modelErrorHandlers(
 
 async function playAgent(): Promise<void> {
   const signals = operatorSignalLatch(process);
+  // Set by the latch so the run_end can name the signal that ended it, instead of looking finished.
+  let operatorAbort: string | null = null;
   const presetPath=process.env["POKEBENCH_PLAY_PRESET"];
   const preset=presetPath===undefined?null:parsePlayPreset(JSON.parse(readFileSync(presetPath,"utf8")) as unknown);
   const assigned=process.env["POKEBENCH_RUN_ID"];
@@ -287,6 +307,7 @@ async function playAgent(): Promise<void> {
   const reason = await withRun(
     {
       romSha1:romSha1(),
+      operatorSignal:()=>operatorAbort,
       ...(continuation===null?{}:{continuation:{prior:continuation.source.events,sourceTurn:continuation.bundle.turn,sourceRun:continuation.bundle.sourceRun,prefix:continuation.prefix}}),
       runsRoot: RUNS_ROOT,
       runId,
@@ -366,6 +387,7 @@ async function playAgent(): Promise<void> {
       const stopWatching = watchControl(controlFile, runControl);
       signals.onAbort((signal) => {
         console.log(`operator abort (${signal}): finishing the run record`);
+        operatorAbort = signal;
         governor.abort("operator_abort");
       });
       const absoluteStop=continuation?.stopAt===undefined?null:setTimeout(()=>{governor.abort("budget");},Math.max(0,continuation.stopAt-Date.now()));

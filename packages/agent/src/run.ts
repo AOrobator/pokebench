@@ -8,6 +8,7 @@ import type { FrameStore } from "./frames.js";
 import type { StateSource } from "./game-state.js";
 import type { MilestoneSource } from "./milestones.js";
 import { RunRecorder, type RunStartMeta } from "./recorder.js";
+import { HEARTBEAT_MS, writeClaim, type RunClaim } from "./run-claim.js";
 import { RunLog, easternTimestamp } from "./run-log.js";
 
 type RunStart = BodyOf<"run_start">;
@@ -35,10 +36,14 @@ export interface RunPlan {
   readonly evaluation?:RunStart["evaluation"];
   readonly controller?:RunStart["controller"];
   readonly romSha1?:string;
+  // Set when the runner latches SIGINT/SIGTERM, so a signalled end records which signal it was.
+  readonly operatorSignal?: () => string | null;
 }
 
 export interface ServerHandle {
   readonly serverDir: string;
+  // The game server process; absent when a host builds a handle around a server it does not own.
+  readonly pid?: number;
   stop(): Promise<void>;
 }
 
@@ -66,12 +71,12 @@ export function harnessInfo(git: (args: string[]) => string): RunStart["harness"
 
 export interface RunLifecycle {beforeRunEnd(task:()=>Promise<void>):void}
 
-async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean,tasks:readonly (()=>Promise<void>)[]):Promise<void>{
+async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean,tasks:readonly (()=>Promise<void>)[],operatorSignal:(()=>string|null)|undefined):Promise<void>{
   let terminal=reason,failure:Error|undefined;
   const asError=(value:unknown):Error=>value instanceof Error?value:new Error(String(value));
   try {if(capture)await recorder.afterPress();} catch(error){terminal="crash";failure=asError(error);}
   for(const task of tasks){try {await task();} catch(error){terminal="crash";failure??=asError(error);}}
-  recorder.end(terminal);
+  recorder.end(terminal,terminal==="operator_abort"?operatorSignal?.()??null:null);
   if(failure!==undefined)throw failure;
 }
 
@@ -98,6 +103,23 @@ export async function withRun(
   if(plan.continuation!==undefined)writeFileSync(join(log.runDir,"restoration-prefix.jsonl"),plan.continuation.prefix,{flag:"wx"});
   let server: ServerHandle | undefined;
   const beforeRunEnd:(()=>Promise<void>)[]=[];
+  const startedAt = new Date().toISOString();
+  let claimed = false;
+  let pulse: ReturnType<typeof setInterval> | undefined;
+  // Refreshed while the run is live so a hard kill leaves a stale claim rather than a plausible one.
+  const claim = (ended: {end_reason: string; operator_signal?: string} | null = null): RunClaim => ({
+    v: 1, run: plan.runId, pid: process.pid, child: server?.pid ?? null, port: plan.port,
+    started: startedAt, heartbeat: new Date().toISOString(), ...(ended ?? {}),
+  });
+  // A run must never die because its claim could not be written, but a silent failure would tell a
+  // cleanup tool the run is unowned, so it is reported.
+  const claimNow = (ended: {end_reason: string; operator_signal?: string} | null = null): void => {
+    try {
+      writeClaim(log.runDir, claim(ended));
+    } catch (error) {
+      console.error(`cannot record the run claim for ${plan.runId}: ${String(error)}; cleanup tools will not see this run as live`);
+    }
+  };
   if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
   const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState,...(plan.continuation===undefined?{}:{history:prior,turnBase:plan.continuation.sourceTurn-1,restoreRunIdentity:plan.harnessFeatures.includes("restored-memory-run-v1")}) });
   let reason: RunEndReason = "crash";
@@ -126,6 +148,9 @@ export async function withRun(
       server = await host.launchServer(log.runDir, plan.runId, plan.port);
       await recorder.checkMilestones();
     }
+    claimed = true;
+    claimNow();
+    pulse = setInterval(() => { claimNow(); }, HEARTBEAT_MS);
     reason = await body(recorder,url,startMeta,{beforeRunEnd:(task)=>{beforeRunEnd.push(task);}});
     return reason;
   } finally {
@@ -133,10 +158,13 @@ export async function withRun(
       if (log.nextSeq > 0 && !log.ended) {
         // A script can commit progress after the last tool's captured frame.
         // Take one final snapshot before teardown; no inputs or polling loop.
-        await finishRecording(recorder,reason,server!==undefined,beforeRunEnd);
+        await finishRecording(recorder,reason,server!==undefined,beforeRunEnd,plan.operatorSignal);
       }
     } finally {
+      if (pulse !== undefined) clearInterval(pulse);
       await server?.stop();
+      // Written after the server stops, so a claim that reads ended is not still holding its port.
+      if (claimed) claimNow({end_reason: reason, ...(reason==="operator_abort"&&plan.operatorSignal?.()!=null?{operator_signal:String(plan.operatorSignal())}:{})});
     }
   }
 }

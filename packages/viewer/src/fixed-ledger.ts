@@ -276,9 +276,17 @@ export function classifyTrial(log: LogLines | null, expect: TrialExpectation, ex
     return verdict(true, why.startsWith("model error:") || lastRetry === undefined ? `${GATEWAY}${why}` : `model behavior: ${why}`);
   }
   if (reason === "crash") return verdict(true, CRASH);
-  if (reason === "operator_abort" || reason === "operator_stop") return verdict(true, `ended by the operator (${reason}); progress before it counts`);
+  // A signalled run was interrupted from outside: its data is real but it is not a completed trial.
+  // A control-request abort is a deliberate operator stop, which still counts.
+  if (reason === "operator_abort" || reason === "operator_stop") {
+    const signal = typeof end["operator_signal"] === "string" ? end["operator_signal"] : null;
+    if (signal !== null) return verdict(false, `${INTERRUPTED}${signal}: the run was signalled, so it is an interrupted observation, not a completed trial`);
+    return verdict(true, `ended by the operator (${reason}); progress before it counts`);
+  }
   return verdict(true, `ended ${reason} before the wall cap`);
 }
 const DIED = "no run_end: the play process died mid-run", GATEWAY = "model/gateway error: ", CRASH = "emulator or game server crash";
+// An interrupted trial is not evidence about the lane, so it must not put the lane into backoff.
+export const INTERRUPTED = "interrupted by ";
 // Operations only: after a trial that never began or whose infrastructure failed, the runner pauses the lane with backoff.
-export const laneBackoff = (o: FixedOutcome): boolean => !o.valid || o.reason.startsWith(DIED) || o.reason.startsWith(GATEWAY) || o.reason.startsWith(CRASH);
+export const laneBackoff = (o: FixedOutcome): boolean => o.reason.startsWith(INTERRUPTED) ? false : (!o.valid || o.reason.startsWith(DIED) || o.reason.startsWith(GATEWAY) || o.reason.startsWith(CRASH));

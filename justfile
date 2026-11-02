@@ -106,6 +106,14 @@ smoke-llm: build
 run-agent: build
     node packages/agent/dist/live.js play
 
+# Who owns a pid or port. Exit 1 means a live run does: do not kill it, do not reuse its port.
+run-claims:
+    node scripts/run-claim.mjs --list
+
+# Ask a live run to change course without a signal: pause, resume, stop, cancel_stop, abort.
+run-control id action:
+    node scripts/run-control.mjs {{quote(id)}} {{quote(action)}}
+
 # Freeze a comparison manifest without starting gameplay; qualification is checked at execution.
 prepare-comparison manifest: build
     node packages/agent/dist/serial-comparison-cli.js prepare {{quote(manifest)}}

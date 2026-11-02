@@ -229,6 +229,12 @@ describe("classifyTrial", () => {
       expect(stopped).toMatchObject({ valid: true, reason: `ended by the operator (${reason}); progress before it counts`, endReason: reason, primaryReached: true });
       expect(laneBackoff(stopped)).toBe(false);
     }
+    // A signalled stop is an interruption, not a completed trial, and not evidence about the lane.
+    for (const signal of ["SIGTERM", "SIGINT"] as const) {
+      const killed = classify((log) => { log.add(0, goodStart); log.add(10, { type: "milestone", turn: 1, name: "RIVAL_MET", server_timestamp: 1 }); log.add(20, { ...end, reason: "operator_abort", operator_signal: signal }); });
+      expect(killed).toMatchObject({ valid: false, reason: `interrupted by ${signal}: the run was signalled, so it is an interrupted observation, not a completed trial`, endReason: "operator_abort", primaryReached: true });
+      expect(laneBackoff(killed)).toBe(false);
+    }
     for (const o of [died, gateway, crash, { ...crash, reason: `${crash.reason}; launcher reported: lost` }]) expect(laneBackoff(o)).toBe(true);
     expect(laneBackoff(classify((log) => { log.add(0, goodStart); log.add(20, { ...end, reason: "budget" }); }))).toBe(false);
   });

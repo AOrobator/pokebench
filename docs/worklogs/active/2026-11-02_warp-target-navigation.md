@@ -188,3 +188,27 @@ Fix receipts, each by mutation:
 | delete the readout label branch | both `format_readout` cases fail |
 | revert the refusal string | the message case fails |
 | delete the template-approach guard | `never uses a pad as the tile to stand on for an unloaded trainer template` fails — the only failure |
+
+## Landing (2026-11-02)
+
+- Branch head `2ae4d518e`, fast-forwarded onto `main` from `857c79367`. `main` is now `2ae4d518e`.
+- Landing lock taken with `just land-join --who agent-warp-target --branch claude/warp-target-navigation` after `just land-board` reported nobody landing.
+- Two merges of `main` were needed; both times the only conflict was `onInBoth` in `experiments/feature-configs/current.json`, because main kept landing switch ids while this branch held the lock. Every id was kept and this switch stayed last.
+- Main was lint-red when this branch merged it: `frozen-play.test.ts` (11 `require-await` errors in test doubles) and `map-observability-both-arms.test.ts` (unused `SWITCHABLE_FEATURES` import). Fixed in the first merge commit so the ladder could be green; both files' own tests pass.
+- The first merge dropped this switch's TS `SERVER_FEATURES` entry, which `test_server_feature_list_matches_the_agent_registry` caught immediately. Restored, and the registry order now matches the Python tuple exactly.
+
+Gate receipts on the landed tree:
+
+| Gate | Result |
+|---|---|
+| `just lint` | green (tsc, eslint, ruff, mypy --strict) |
+| `just build` | green |
+| agent suite | 379 files / 5371 tests pass, run alone with `--no-file-parallelism` |
+| env suite | 4987 passed |
+| `just verify-rom` / `just verify-vendor` / `just trainer-card-check` | green |
+| `just smoke` | not run: it would spawn a second game server beside the operator's live control run |
+| post-merge `just test` in the main checkout | deliberately deferred: rebuilding `dist` there while the 24h control run executes from it is the one thing this change must not do |
+
+Review rounds: round 1 BLOCKING ×2 (identity flap, pad-as-approach, worklog accuracy); round 2 BLOCKING on correctness (the executor never received `goalOnly`) and LGTM on test quality; round 3 LGTM across the board with three non-blocking follow-ups, two of which were unpinned lines and are now pinned.
+
+Still open, deliberately: the descriptor does not state its dependency on `map-observability-v1` and `world-targets-v1` (both on in `current.json`), and `packages/viewer/src/panels.test.ts` aborts its worker at 216/234 on this host for reasons reproducible without this change.

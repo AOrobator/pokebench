@@ -1,7 +1,7 @@
 # Eight badge mission on both arms
 
 **Started:** 2026-11-02
-**Status:** In progress
+**Status:** Landed on `main` at `4d78db38d`
 **Operator:** The operator, 2026-11-02 — "for pokebench, lets turn this on in both arms and
 land it on main … 122 min of Steven came from 'is Steven even required?' dithering;
 control has no objective that names the badges."
@@ -139,11 +139,21 @@ VERDICT exists for this patch**; the independent signal is the full gate above.
 - [x] Focused tests green
 - [x] Full gate green (`just test`, `just lint`, `just build`)
 - [x] Review lanes attempted and recorded
-- [ ] Landed `--ff-only` on `main`, `land-done` recorded
-- [ ] Viewer restarted on the landed build
+- [x] Landed `--ff-only` on `main` at `4d78db38d`, `land-done` recorded
+- [x] Viewer restarted and serving the landed build (`4d78db38d`, 127.0.0.1:8790)
 
 ## Session Log
 
-- 2026-11-02: opened from the operator directive; recipe currently carries the
-  mission in `switches` with `features` false. Main at `693261a4c`, land board
-  free.
+- 2026-11-02: opened from the operator directive; recipe carried the mission in
+  `switches` with `features` false. Main at `693261a4c`, land board free.
+- 2026-11-02: RED placement pin failed as expected (1 failed | 21 passed), then
+  recipe moved to `onInBoth` with `features` true (switches 64 → 63, onInBoth
+  82 → 83) and focused tests went green.
+- 2026-11-02: full gate green (agent 5372, viewer 2425, env 4987, lint clean);
+  review lanes attempted with the receipts above; committed `4d78db38d` on
+  `claude/eight-badge-both-arms`.
+- 2026-11-02: `land-join` held the lane, `git merge --ff-only` moved `main`
+  `693261a4c..4d78db38d`, `land-done` released it. Post-land on `main`:
+  `just build` stamps `4d78db3` clean, placement pin 22/22, `just viewer-main`
+  serves `4d78db38d` on 127.0.0.1:8790 and the explainer shows "ON in both
+  arms".

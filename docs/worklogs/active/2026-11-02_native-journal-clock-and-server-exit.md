@@ -63,8 +63,32 @@ load-bearing.
   catches SIGTERM and exits 0, so the signal's identity lives in the captured stream while the
   ledger carries the timing and the fact that teardown did not request the stop. Both halves are
   needed; neither alone would have answered the incident.
-- Full gates: see the landing section below.
 - The first full agent run caught one regression in the human launcher path: opening the capture
   files before the run directory exists threw `ENOENT` ahead of the spawn guard. `launchServer`
   now creates the run directory and closes both descriptors in a `finally`, and the human-path
   test asserts the two capture files exist even when the spawn itself is refused.
+
+## Landing
+
+Self-review only: the cloud review lanes were not run (the operator is out of tokens, per the
+previous landing's waiver), so no independent verdict exists for this diff. What was checked by
+hand: the continuity check still throws on a bad id, a regressing frame, or an entry beyond the
+batch frame; `clock_step` and `server_exit` are in the schema, the tail renderer and the viewer's
+`KNOWN` map; the launcher's `--exec` path is reachable only from owned runs, `just serve` keeps its
+wrapper; and the pre-commit worklog hook passes.
+
+Gates on this branch:
+
+- agent: 381 files, 5392 tests passed, exit 0 (package thresholds 90% lines/branches/functions/
+  statements met)
+- viewer: exit 0
+- env: 5199 passed, 97.51% lines / 93.58% branches / 99.90% functions, coverage gate exit 0
+- claude-gateway: 116 passed, 99.12% / 96.22% / 100.00%, coverage gate exit 0
+- trainer cards: 3 passed
+
+Final end-to-end proof at the landed SHA `b463203f4`: killed the emulator at turn 51 of a live
+run. `server-stdout.log` holds `Received signal 15, shutting down gracefully...`; the ledger holds
+`server_exit {seq: 732, turn: 51, code: 0, signal: null, stop_requested: false}` before
+`run_end {reason: "crash"}`; the process group is gone afterwards. The incident's question —
+"was this us, or did the emulator die?" — now has a recorded answer.
+

@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {FEATURES, featureInfo} from "./features.js";
+import {FEATURES} from "./features.js";
 
 // One live switch per concept. A flag id ending in -vN is a version of the stack named by its base (the id
 // without the -vN), and a stack keeps exactly one version: the newest. Two ids sharing a base is the same
@@ -34,7 +34,7 @@ const version = (id: string): number => Number(/-v(\d+)$/.exec(id)?.[1] ?? "0");
 const same = (actual: readonly string[], recorded: readonly string[]): boolean => actual.length === recorded.length && recorded.every(id => actual.includes(id));
 
 // Every stack in a registry, keyed by base, in registry order.
-export function stacks(flags: readonly Flag[] = FEATURES): Map<string, string[]> {
+const stacks = (flags: readonly Flag[] = FEATURES): Map<string, string[]> => {
   const found = new Map<string, string[]>();
   for (const {id} of flags) {
     if (!/-v\d+$/.test(id)) continue;
@@ -42,14 +42,13 @@ export function stacks(flags: readonly Flag[] = FEATURES): Map<string, string[]>
     found.set(key, [...(found.get(key) ?? []), id]);
   }
   return found;
-}
+};
 
 // The bases this test rejects: every base whose versions are not exactly what OPEN_STACKS records.
-export function duplicateStacks(flags: readonly Flag[] = FEATURES): string[] {
-  return [...stacks(flags)]
+const duplicateStacks = (flags: readonly Flag[] = FEATURES): string[] =>
+  [...stacks(flags)]
     .filter(([name, ids]) => (name in OPEN_STACKS ? !same(ids, OPEN_STACKS[name] ?? []) : ids.length > 1))
     .map(([name]) => name);
-}
 
 describe("versioned feature stacks", () => {
   it("keeps at most one version per concept outside the recorded open stacks", () => {
@@ -68,26 +67,24 @@ describe("versioned feature stacks", () => {
     expect(drifted).toEqual([]);
   });
 
-  it("lists each open stack oldest first, so the surviving version is the last one", () => {
-    const unordered = Object.entries(OPEN_STACKS)
+  it("lists each open stack in registry order, oldest view first, so the survivor is the last one", () => {
+    const found = stacks();
+    const recorded = Object.entries(OPEN_STACKS);
+    // The registry order is what decides the survivor, so the recorded list has to match it, not merely hold
+    // the same ids (the previous test already covers id membership).
+    const outOfOrder = recorded.flatMap(([name, ids]) => {
+      const actual = (found.get(name) ?? []).filter(id => ids.includes(id));
+      return actual.join(",") === ids.join(",") ? [] : [`${name}: recorded ${ids.join(", ")} but features.ts defines ${actual.join(", ")}`];
+    });
+    const descending = recorded
       .filter(([, ids]) => ids.some((id, index) => index > 0 && version(ids[index - 1] ?? "") >= version(id)))
       .map(([name]) => name);
-    expect(unordered).toEqual([]);
+    expect({outOfOrder, descending}).toEqual({outOfOrder: [], descending: []});
   });
 
-  it("gives every recorded stack id a registered flag", () => {
-    const missing = Object.values(OPEN_STACKS).flat().filter(id => {
-      try {
-        featureInfo(id as never);
-        return false;
-      } catch {
-        return true;
-      }
-    });
-    expect(missing).toEqual([]);
-  });
-
-  it("fails when a version is added to a stack", () => {
+  // Exercises the same predicate the two tests above use, on the real registry plus ids that must be caught:
+  // a v4 on a recorded stack, a v3 where only v1/v2 are recorded, and a genuinely new concept.
+  it("detects a version added to a recorded stack", () => {
     const grown: Flag[] = [...FEATURES, {id: "auto-talk-v4"}, {id: "text-only-supervisor-v3"}, {id: "brand-new-thing-v1"}];
     expect(duplicateStacks(grown).sort()).toEqual(["auto-talk", "text-only-supervisor"]);
   });

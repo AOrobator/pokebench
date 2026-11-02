@@ -56,10 +56,13 @@ The 13 remaining stacks are behavioural supersets (evidence per stack below), so
 1. `SWITCHABLE_FEATURES` is append-only by contract (`test-support/legacy-features.ts`: "SWITCHABLE_FEATURES
    is append-only. These fixtures were frozen when map-observability-v1 was the last switch") and
    `FROZEN_SWITCH_COUNT=SWITCHABLE_FEATURES.indexOf(LAST_FROZEN_SWITCH)+1` derives the legacy fixture
-   boundary from an index. Removing an entry from the middle moves that boundary, so every recorded
-   preset silently gains or loses flags.
-2. 163 absolute position pins in tests (`SWITCHABLE_FEATURES.at(166)`, `FEATURES.filter(...).at(-92)`,
-   `SERVER_FEATURES.at(57)`, `indexOf(id)).toBe(304)`) renumber.
+   boundary from an index. Removing an entry from the middle moves that boundary, so `LEGACY_ALL_ON` and
+   `BATCH_DEFAULTS_OFF` shift and the historical prompt fixtures are rebuilt from the wrong set. Recorded
+   presets are name-keyed and never read the index, so they are unaffected — the fixture boundary is what
+   turned the trial deletion red.
+2. More than a hundred absolute position pins renumber. Measured by grep over
+   `packages/agent/src/**/*.test.ts`: 73 `SWITCHABLE_FEATURES.at(N)`, 36 `indexOf(id)).toBe(N)` and 26
+   `SERVER_FEATURES.at(N)`, plus the `.at(-N)` pins.
 3. `FeatureSetSchema` is `{additionalProperties:false}`, so every byte-pinned recorded artifact that
    names a retired id stops parsing: the control base `whole-map-bundle-fd95.json` (sha256 pinned in
    `current.json`, in use by the two live runs), the `experiments/fixed/*` arm definitions and the
@@ -133,14 +136,15 @@ Every figure below came from a command executed in
 - `just lint` — exit 0. `tsc --noEmit` + eslint on both packages, ruff check/format, mypy on
   `pokebench_env` and `mypy --strict` on the claude-gateway sources ("Success: no issues found in
   3 source files").
-- `just test` — test suites all green: agent `374 files / 5324 tests` passed (one more test file than
-  the 373/5319 baseline, this worklog's), viewer `184 files / 2407 tests` passed (the baseline's
-  17-test worker crash did not reproduce).
+- `just test` — the test suites passed: agent `374 files / 5324 tests` (one more test file than the
+  373/5319 baseline, this worklog's), viewer `184 files / 2407 tests` (the baseline's 17-test worker
+  crash did not reproduce).
   - Coverage floors (90) met on both stacks: `pokebench_env` lines 97.50 % / branches 93.60 % /
     functions 99.90 %; `claude-gateway` lines 99.12 % / branches 96.22 % / functions 100.00 %.
   - TypeScript coverage: agent 96.43 stmts / 92.47 branch / 97.5 funcs / 99.07 lines; viewer
     94.6 / 90.81 / 94.93 / 98.28.
-- `just test` exit code: **1**, from two environment-dependent steps that are not this change:
+- **`just test` exited 1. It did not go green**, and this branch does not claim it did. Two
+  environment-dependent steps failed, neither caused by this change:
   - `just trainer-card-check` needs ROM-derived art at `runs/sprites/trainer-card-v1`, which is
     generated (gitignored) and absent in a fresh worktree *and* in the main tree (0 B there).
     Building it — `python scripts/trainer-card/build_art.py runs/sprites/trainer-card-v1 --rom
@@ -160,4 +164,25 @@ here. That preserves every position pin, the legacy freeze boundary and every re
 control base while leaving one live switch per concept — the 13 behavioural-superset stacks can then
 collapse one commit each, and `auto-talk` / `navigation-refusal-reasons` stay open until a version
 that actually subsumes them exists.
+
+## Review record (advisory — the required lanes were blocked)
+
+The three cloud lanes `CLAUDE.md` requires could not run: Claude CLI is over its usage limit (resets
+2026-11-02 22:00), Cursor Claude and Grok are over the monthly spend cap (resets 2026-11-17), and Codex
+returns `model_not_found` for every gpt model. This branch therefore has **no** lane review and must never be
+described as reviewed. Two advisory read-only reviewers substituted, as in
+`2026-11-01_landing-waiver-both.md`; their verdicts are advisory by definition.
+
+| round | scope | verdict |
+| --- | --- | --- |
+| 1 | behaviour, reproducibility, prompt byte-identity | LGTM — confirmed the append-only anchor and the closed `FeatureSetSchema`, and that the ratchet is not tautological; corrected this worklog's "163" pin count as unreproducible |
+| 2 | test quality, gate honesty | **BLOCKING** — the order test validated `OPEN_STACKS` against itself, one test was implied by another, both helpers were exported as API from a `.test.ts`, and this worklog's "all green" contradicted its own `exit 1` |
+
+All four findings are fixed in the commit that adds this section: the order test now compares the recorded
+list against registry order read from `FEATURES` (mutation: reversing `auto-talk` fails it), the redundant
+test is gone, the helpers are module-local, and the gate section above states the recipe exited 1.
+
+Unresolved and left visible rather than papered over: this worklog reports viewer branch coverage 90.81 %
+where the two sibling branches report 90.83 % for the same base. This branch touches no viewer source, so one
+of the three measurements is wrong. It is recorded as measured, not reconciled.
 

@@ -597,11 +597,12 @@ export class RunRecorder {
     this.append({ type: "stall_gate", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });
   }
 
-  end(reason: RunEndReason): void {
+  end(reason: RunEndReason, operatorSignal: string | null = null): void {
     this.append({
       type: "run_end",
       turn: this.turn,
       reason,
+      ...(operatorSignal===null?{}:{operator_signal:operatorSignal}),
       ...(reason==="milestone"&&this.targetProof!==null?{target_proof:{...this.targetProof,state_evidence:[...this.targetProof.state_evidence]}}:{}),
       furthest_milestone: this.furthest,
       turns: this.turn-this.turnBase,

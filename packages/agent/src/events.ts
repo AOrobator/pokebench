@@ -812,6 +812,8 @@ const TelemetryError = event("telemetry_error", {
 const RunEnd = event("run_end", {
   target_proof:Type.Optional(TargetProof),
   reason: RunEndReason,
+  // Why an operator_abort happened: a signalled run is an interrupted observation, not a finished one.
+  operator_signal: Type.Optional(Type.String()),
   furthest_milestone: Type.Union([Type.String(), Type.Null()]),
   turns: NonNegativeInt,
   wall_ms: NonNegativeInt,

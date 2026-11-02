@@ -122,7 +122,11 @@ function resolve(state:GameStateSnapshot,target:RequestTarget,options:Navigation
   const elevation=plannedArrivalElevation(state,{x:target.x,y:target.y},options)??standing??null;
   if(elevation===null)return null;
   const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
-  return found??(options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null);
+  // An enrolled pad resolves canonically from the map's records, never from whichever source happens
+  // to list it this read: navigate_to_target re-resolves before every step, and a target that flips
+  // between the synthetic and the listed record reads as "changed during travel" mid-walk.
+  const advertised=options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null;
+  return advertised??found;
  }
  return listed.find(item=>item.kind===target.interaction_kind&&item.x===target.x&&item.y===target.y)??null;
 }
@@ -153,15 +157,21 @@ function advertisedWarp(state:GameStateSnapshot,point:Point,options:NavigationOp
  if(!grid.warps.some(warp=>warp.x===point.x&&warp.y===point.y))return null;
  const behavior=tileBehavior(state,point,mode);
  if(behavior===null||!GOAL_ONLY_BEHAVIORS.has(behavior))return null;
- const elevation=plannedArrivalElevation(state,point,options);
- if(elevation===null)return null;
+ // The tile's own elevation, not the arrival elevation of the current plan: navigate_to_target
+ // re-resolves the target before every step, so an elevation that tracked the walker would be
+ // reported as "semantic target changed during travel" one step short of the pad.
+ const elevation=(mode==="full"?null:state.navigation_grid?.tiles.find(tile=>tile.x===point.x&&tile.y===point.y)?.elevation)??grid.elevation;
  return {name:null,kind:"warp",x:point.x,y:point.y,elevation,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null};
+}
+function goalOnlyTile(state:GameStateSnapshot,point:Point,options:NavigationOptions):boolean {
+ const behavior=tileBehavior(state,point,options.mode);
+ return behavior!==null&&options.goalOnly===true&&GOAL_ONLY_BEHAVIORS.has(behavior);
 }
 function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
  const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
  if(target.kind==="warp"){
   const found=(state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
-  return found??(options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null);
+  return (options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null)??found;
  }
  if(target.activation!=="A")return target;
  const slots=state.interaction_object_slots;if(slots===undefined)return null;
@@ -192,7 +202,10 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
  }
  const ordinary=STEPS.flatMap(([facing,dx,dy])=>{
   if(target.facing!==null&&target.facing!==facing.toLowerCase())return [];
-  const point={x:target.x-dx,y:target.y-dy},path=planNavigation(state,point,options);
+  const point={x:target.x-dx,y:target.y-dy};
+  // A step-on pad is a goal, never a place to stand while pressing something else.
+  if(goalOnlyTile(state,point,options))return [];
+  const path=planNavigation(state,point,options);
   if(path===null)return [];
   const elevation=plannedArrivalElevation(state,point,options);
   if(elevation===null||!elevationsMatch(target.elevation,elevation))return [];
@@ -202,7 +215,9 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
  });
  const counters=target.kind!=="object"?[]:STEPS.flatMap(([facing,dx,dy])=>{
   const counter={x:target.x-dx,y:target.y-dy};if(tileBehavior(state,counter,options.mode)!==COUNTER)return [];
-  const point={x:counter.x-dx,y:counter.y-dy},path=planNavigation(state,point,options);if(path===null)return [];
+  const point={x:counter.x-dx,y:counter.y-dy};
+  if(goalOnlyTile(state,point,options))return [];
+  const path=planNavigation(state,point,options);if(path===null)return [];
   const elevation=plannedArrivalElevation(state,point,options);if(elevation===null||!elevationsMatch(target.elevation,elevation))return [];
   const approach={point,facing,length:path.length},recipient=interactionRecipient(state,target,approach,options);
   return recipient!==null&&sameTargetIdentity(target,recipient)?[approach]:[];
@@ -420,7 +435,8 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
    let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
-   const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,request.target,false);
+   const choice=choices[0];
+   if(choice===undefined)return withStatus({content:[],details:{state:before}},request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach",selected,request.target,false);
    const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
    const selectedConnection=connectionDirection===null?null:before.topology?.connections.find(item=>item.direction===connectionDirection)??null;
    const identityIssue=(actual:GameStateSnapshot,phase:string):string|null=>{

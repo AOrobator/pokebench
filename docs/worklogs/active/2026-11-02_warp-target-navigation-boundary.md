@@ -35,8 +35,9 @@ Planner (`navigation.ts`), semantic tool (`semantic-navigation.ts`), registry (`
 
 ## Terminator
 
-FAIL if a returned route crosses a 0x29 tile as an intermediate, or if any behaviour other than
-0x29 resolves through the geometry path, or if the switch OFF changes a byte of model-facing output.
+FAIL if a returned route crosses a 0x29 tile as an intermediate, if a 0x29 tile is chosen as the
+tile to stand on for another target, if any behaviour other than 0x29 resolves through the geometry
+path, or if the switch OFF changes a byte of model-facing output.
 
 ## Split triggers
 

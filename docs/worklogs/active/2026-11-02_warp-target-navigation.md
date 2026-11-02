@@ -34,12 +34,13 @@ Two runtime owners, one switch id.
 **Agent (`packages/agent/src`)**
 - `navigation.ts` — add a third tile class beside `UNWALKABLE`: **`GOAL_ONLY_BEHAVIORS` = {`0x29`}**. `planNavigation` treats a goal-only tile as non-traversable for intermediate steps and as a legal **terminal** step; `approaches()` emits an adjacent-then-press choice for it. `0x68` is untouched (already traversable, already works as an exit).
 - `semantic-navigation.ts:343` — `resolve()` gains a warp source-parity path: a `kind:"warp"` request resolves from the same warp records the exits line is built from (current map only), not only from `interaction_targets`. `:397` keeps its meaning (wrong map, off-grid, not a warp there) but stops firing for a warp the harness itself just advertised.
-- `:404` — for a goal-only target, no-approach returns `no route to a tile adjacent to the warp at (x,y)`, naming the mechanic instead of the generic refusal.
+- `:436` — for a goal-only warp, no-approach returns `no supported route to the step-on warp at (x,y)`, naming the mechanic instead of the generic refusal. `approaches()` also refuses to use a pad as the tile the harness stands on for some *other* target.
+- An enrolled pad resolves canonically from the map's warp records on every read, so a walk does not see its own target change when a later observation lists it.
 - `features.ts` / `play-preset.ts` / `viewer/src/next-run.ts` — register `warp-target-navigation-v1`, default OFF.
 
 **Env (`env/pokebench_env`)**
-- `readout.py` — `METATILE_TARGETS` gains `0x29` so a geyser is a named interaction target with its **mechanic** (`step-on exit; approach the tile, then press into it; carries you up one floor`), matching the existing `[step onto tile]` / `[directional exit: …]` vocabulary. Same id joins `SERVER_FEATURES` + the Python default-off list.
-- Local-map glyph for `0x29` becomes a dedicated letter whose meaning does **not** change between 1F and B1F; the legend is scoped to the current map's glyphs.
+- `readout.py` — a warp sitting on a `Wp:floor_up` element reads `Warp (step-on pad) … ; step onto tile` with no destination suffix. Same id joins `SERVER_FEATURES` + the Python default-off list.
+- **Dropped:** the glyph and legend work planned here. `Wp:floor_up` / `Wp:floor_down` are already keyed to behaviour and stable across maps; `E` is the Mauville electric door, not a warp. No glyph change was made.
 
 **Config (`experiments/feature-configs`)**
 - `current.json` is the sole owner. `warp-target-navigation-v1` and `active-warp-exits-v1` both go into the shared `features` base as `true` **and** into `onInBoth`; README gains a dated entry naming the operator directive.
@@ -77,13 +78,13 @@ Two runtime owners, one switch id.
 - [ ] Record eval plan/readiness (fixed-run arms both ON)
 
 **M2 — Step-on mechanics in the readout and glyphs (env server)**
-- [ ] Write tests: `0x29` appears as a named target with mechanic text; glyph stable across 1F/B1F; legend scoped; no destination text; `serverOffWith` pins the Python off-list
+- [x] Write tests: the readout line carries the mechanic and no destination, and is unchanged with the switch off (`format_readout`, both arms). Glyph/legend and `serverOffWith` dropped — see the plan note.
 - [ ] COMMIT: `test(env): step-on warp mechanics and stable glyphs` (RED)
-- [ ] Implement `METATILE_TARGETS[0x29]`, glyph + legend scope, `SERVER_FEATURES` entries
+- [x] Implement the pad label branch in `readout.py` and the `SERVER_FEATURES` entries on both sides
 - [ ] Cheap checks: ruff/mypy on changed files, focused pytest
 - [ ] Gates: `just test` (pytest side) with coverage ≥90; record figures
 - [ ] COMMIT: `feat(env): name geyser pads with their mechanic` (GREEN)
-- [ ] Explainer page + `FEATURE_EXPLAINERS` mapping; `just pages-theme` then `just pages-check`
+- [ ] Explainer page + `FEATURE_EXPLAINERS` mapping — **still open**; `panels.ts` degrades gracefully, so no gate notices
 - [ ] Independent review; accepted fixes in one batch
 
 **M3 — Promote both switches to both arms (config)**
@@ -115,6 +116,35 @@ Two runtime owners, one switch id.
 **M2 — readout.** `SERVER_FEATURES` gains the id on both sides (the Python tuple is compared against the `features.ts` list by `test_feature_switches`), and a pad's candidate line now reads `Warp (step-on pad) … ; step onto tile` with no `destination map 4/1 warp 25` suffix. Detection is the observation's own `Wp:floor_up` element, not a ROM join, and it is gated on the switch, so OFF output is byte-identical. `env/tests/env/test_warp_target_navigation.py`: 6 cases, including that a `floor_down` hole is **not** a pad. Correction recorded: the `E` glyph flip I scoped was wrong — `E` is the Mauville electric door, and `Wp:floor_up` / `Wp:floor_down` are already keyed to behaviour, so no glyph work was needed.
 
 **M3 — promotion.** `warp-target-navigation-v1` and `active-warp-exits-v1` are base-true and `onInBoth`; `active-warp-exits-v1` leaves `switches`. README entry names the directive and the motivating run. Pin: `warp-target-navigation.test.ts` asserts all three placements for both ids.
+
+## Gate receipts (head 0b53925c5 unless noted)
+
+| Gate | Result |
+|------|--------|
+| `just build` | pass — `tsc` agent + viewer |
+| `just lint` | pass — ts/eslint, ruff, ruff format, mypy, mypy --strict gateway |
+| agent coverage | 374 files / **5326 tests** pass, sequential (`--no-file-parallelism`); parallel pass flakes 1–2 tests in `whole-game-instructions` under live-run load, and the file passes alone |
+| env coverage | **4985 passed** — lines 97.50 / branches 93.59 / functions 99.90 (floor 90) |
+| gateway coverage | **116 passed** — 99.12 / 96.22 / 100.00 |
+| `just trainer-card-check` | pass after `just trainer-card-art` generated the worktree's missing sprite art |
+| `just verify-rom` | pass — `/Users/user/.roms/pokemon-emerald.gba` |
+| `just verify-vendor` | pass — submodule at the reviewed pin |
+| `just smoke` | **not run, deliberately**: it spawns a second game server while the operator's live control is running, and the directive is to leave that run untouched |
+
+## Review round 1 (both reviewers: BLOCKING)
+
+Cloud lanes were blocked again (Claude weekly limit, resets 10pm ET; Grok monthly, resets 11/17; Codex rejects every model on this ChatGPT account), so two fresh read-only reviewers ran as the contract's fallback. Both returned BLOCKING, and both were right.
+
+- **Identity flap — fixed.** An enrolled pad resolved from geometry when absent and from the listed record when present, so the next observation after the first press compared a known destination against an unknown one and aborted with `semantic target changed during travel`. An enrolled pad now resolves canonically from the map's warp records on every read, with the tile's own elevation. The regression test fails without the fix (verified by reverting).
+- **Pad as an approach tile — fixed.** `options.goalOnly` reached `approaches()`, so a pad could be chosen as the tile to stand on for an unrelated target and teleport mid-command. `approaches()` now drops goal-only tiles from its approach candidates. The regression test fails without the guard (verified by reverting).
+- **Phantom message — implemented.** The descriptor promised `no supported route to the step-on warp at (x,y)` and nothing emitted it; `:436` now does.
+- **Env tests were decorative — fixed.** None called `format_readout`; deleting the whole readout branch left all six green. Two tests now drive `format_readout` in both arms and both fail when the branch is removed (verified by mutation).
+- **`{0x29}` unpinned — fixed.** `expect([...GOAL_ONLY_BEHAVIORS]).toEqual([0x29])` plus a `0x68` refusal case.
+- **Server default-off unpinned — fixed.** `features_off_from_env({})` carries the id.
+- **Governor pin de-coupled** — it no longer pins a fixed offset from the tail; it asserts the switch is present and gated, and this switch pins its own absolute index instead.
+- **Worklog drift — corrected.** The Architecture rows still described `METATILE_TARGETS`, a glyph change and the old message; the plan's checkboxes read as an unstarted milestone.
+
+Open follow-ups, deliberately not fixed here: the explainer page, an epoch note for `active-warp-exits-v1`, `hyperqwen-control-3h` outside the viewer test's arm list, and the descriptor's unstated dependency on `map-observability-v1` + `world-targets-v1`.
 
 ## Surprises
 

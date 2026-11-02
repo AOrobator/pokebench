@@ -130,6 +130,7 @@ Two runtime owners, one switch id.
 | `just verify-rom` | pass — `/Users/user/.roms/pokemon-emerald.gba` |
 | `just verify-vendor` | pass — submodule at the reviewed pin |
 | `just smoke` | **not run, deliberately**: it spawns a second game server while the operator's live control is running, and the directive is to leave that run untouched |
+| `packages/viewer` suite | 183/184 files, 2389/2409 tests pass; `src/panels.test.ts` aborts its worker with SIGABRT at 216/234. **Pre-existing and environmental**: the identical abort reproduces with this change's `FEATURE_EXPLAINERS` entry removed, and the file passes in the main clone |
 
 ## Review round 1 (both reviewers: BLOCKING)
 

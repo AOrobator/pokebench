@@ -7,11 +7,11 @@ import {IN_GAME} from "../test-support/events.js";
 import type {FeatureSet} from "./features.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {navigationTool,planNavigation,type CheckedNavigationTool,type Direction} from "./navigation.js";
+import {planNavigation,type CheckedNavigationTool} from "./navigation.js";
 import {flagFeatures} from "./play-preset.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
 
-type ListedTarget=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
+type Step="UP"|"DOWN"|"LEFT"|"RIGHT";
 const PAD=0x29;
 const MAP:[number,number]=[4,2];
 const tile=(x:number,y:number,behavior=0,elevation=3)=>({x,y,collision:0,behavior,elevation});
@@ -49,8 +49,8 @@ function fixture(initial:GameStateSnapshot,features:FeatureSet=baseFeatures()){
  return {tool,navigations,state:()=>current};
 }
 const text=(out:AgentToolResult<unknown>):string=>out.content.filter(part=>part.type==="text").map(part=>part.text).join("\n");
-const walk=(from:{x:number;y:number},path:readonly Direction[]):{x:number;y:number}[]=>{
- const delta:Record<Direction,[number,number]>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
+const walk=(from:{x:number;y:number},path:readonly Step[]):{x:number;y:number}[]=>{
+ const delta:Record<Step,readonly [number,number]>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
  const seen:[number,number][]=[];let point=from;
  for(const direction of path){const [dx,dy]=delta[direction];point={x:point.x+dx,y:point.y+dy};seen.push([point.x,point.y]);}
  return seen.map(([x,y])=>({x,y}));

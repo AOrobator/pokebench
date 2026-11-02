@@ -31,8 +31,8 @@ from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
-from pokebench_env.map_observation import MapObservation, SWITCH as MAP_OBSERVABILITY
-from pokebench_env.map_observation import render_observation
+from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
+from pokebench_env.map_observation import MapObservation, render_observation
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.mart_stock import stock_lines

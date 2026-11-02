@@ -1,0 +1,149 @@
+# Eight badge mission on both arms
+
+**Started:** 2026-11-02
+**Status:** In progress
+**Operator:** The operator, 2026-11-02 — "for pokebench, lets turn this on in both arms and
+land it on main … 122 min of Steven came from 'is Steven even required?' dithering;
+control has no objective that names the badges."
+**Review:** pending
+
+## Problem Statement
+
+`eight-badge-mission-v1` is the only statement in the current recipe of the
+benchmark's own success condition — all eight Gym Badges — and it runs in the
+bundle only. Control's untargeted goal is `PLAY_GOAL` ("work toward defeating the
+first Gym Leader in Rustboro City") or `OPEN_PLAY_GOAL` ("make as much story
+progress as you can"), so the control objective never names badges at all.
+
+Since 2026-11-01 `discovered-gym-checklist-v1` is on in both arms. It tells the
+control arm that a discovered gym stays "unfinished until you earn its badges" —
+a badge consequence with no badge objective above it. That is an internal
+inconsistency in the control arm, not a treatment difference worth measuring.
+
+The operator reports 122 minutes of a control run spent on "is Steven even
+required?" dithering. The control mission gives the model no terminal objective
+that bounds that deliberation: story progress is open-ended, badges are unnamed.
+The bundle arm does not have that gap.
+
+## Change
+
+Recipe only: `experiments/feature-configs/current.json`.
+
+| switch | from | to | `features` |
+|---|---|---|---|
+| `eight-badge-mission-v1` | `switches` | `onInBoth` | false → true |
+
+`switches` 64 → 63, `onInBoth` 82 → 83. Registered default stays OFF
+(`DEFAULT_NEXT_RUN` and `normalizeFeatures` untouched); no application code
+changes. The feature bit stays registered so OFF still reproduces the prior
+goal verbatim.
+
+The mission text is unchanged by this promotion. It names no route, no future
+leader identity and no Rayquaza objective, and explicit milestone targets keep
+precedence — the same text the bundle has run since 2026-10-28.
+
+Eight fixed definitions reference `featureRecipe: current`, so future launches
+from any of them get the promotion: `bundle-v-control`, `bundle-v-control-2h`,
+`glm53-24h-visibility-v2`, `glm53-flash-4h`, `hyperqwen-bundle-24h`,
+`hyperqwen-bundle-24h-v2`, `hyperqwen-control-3h`, `qwen36-24h-visibility-off`.
+Running and frozen runs keep their recorded settings; the two `rusturf-native-*`
+definitions that embed the old placement are historical and untouched.
+
+## What this does not claim
+
+No measured gameplay-benefit claim. This is decision-neutral framing: both arms
+now see the benchmark's success condition, as the bound switches and the gym
+checklist were promoted for parity rather than treatment. If a later comparison
+shows an arm difference, this is the commit to bisect to.
+
+## Evidence
+
+- `packages/agent/src/play-config.ts:199-204` — ON replaces the untargeted goal
+  and the initial task with `EIGHT_BADGE_GOAL`; explicit targets bypass it.
+- `packages/agent/src/features.ts:771` — the registry copy previously said
+  "current bundle ON and control OFF by operator approval"; updated in this
+  change.
+- `packages/viewer/src/fixed-definition.test.ts:104` — the placement pin
+  previously required bundle-only; rewritten RED-first in this change.
+- Operator report of the 122-minute Steven deliberation (2026-11-02, message
+  opening this worklog). Not independently re-measured here.
+
+## Invariants
+
+- OFF reproduces the previous mission sentence byte-for-byte
+  (`FeatureSet` default false; `playGoal`/`initialPlayTask` fall through).
+- The two arms differ only by `switches`; moving the mission does not add a
+  route, tool, readout block or automatic input to control.
+- No running run, preset or frozen definition is rewritten.
+
+## Verification
+
+Focused, RED first:
+
+```
+packages/viewer  src/fixed-definition.test.ts   RED: 1 failed | 21 passed (563 ms)
+  AssertionError: expected switches to not include 'eight-badge-mission-v1'
+  GREEN: 22 passed (414 ms)
+packages/agent   gym-campaign + features        50 passed (883 ms)
+packages/viewer  fixed-definition, fixed-design, fixed-runner
+                                                 386 passed across 3 files
+packages/viewer  panels.test.ts                  234 passed alone (6.11 s)
+```
+
+The combined viewer run hit a vitest worker `SIGABRT` (node OOM) on
+`panels.test.ts`; rerun alone under `NODE_OPTIONS=--max-old-space-size=8192` it
+passed 234/234. That is a harness heap limit, not an assertion failure.
+
+Full gate:
+
+```
+just test  → pnpm -r coverage
+             agent  379 files / 5372 tests passed
+             viewer 186 files / 2425 tests passed
+             viewer coverage 94.54 stmts / 90.78 branch / 94.79 func / 98.19 lines
+           → env pytest 4987 passed in 80.71 s
+             env coverage lines 97.50 / branches 93.60 / functions 99.90
+           → claude-gateway 116 passed; 99.12 / 96.22 / 100.00
+           → trainer-card guard OK; 3 Playwright design specs passed
+just lint  → tsc + eslint (agent, viewer), ruff/format/mypy 137 files,
+             claude-gateway strict mypy — clean
+just build → viewer build stamp 693261a (working tree)
+```
+
+`just test` rebuilt `dist` in the main checkout. No live run reads it: the
+running controller executes from `/private/tmp/pokebench-fixed-875132337f5e`
+and the viewers serve content-addressed builds under `~/.cache/pokebench/`.
+
+## Review lanes
+
+Attempted 2026-11-02, receipts rather than recollection:
+
+- Claude CLI — `Failed to authenticate: OAuth session expired and could not be
+  refreshed`.
+- Codex — `model_not_found`: "The 'gpt-6.1-sol' model is not supported when
+  using Codex with a ChatGPT account".
+- Grok via `think-fast` — gateway `/v1/models` returns 200, chat completion
+  returns HTTP 502 (local fleet holds no memory while the 24 h run is up).
+- Cursor Claude — not re-attempted; standing Pro+ monthly limit recorded on
+  2026-11-02 in the bound-switches worklog, resets 2026-11-17.
+
+The operator ordered this landing directly ("turn this on in both arms and land it on
+main"), which is the operator waiver for the unreachable lanes. **No reviewer
+VERDICT exists for this patch**; the independent signal is the full gate above.
+
+## Milestones
+
+- [x] RED: placement pin requires the mission in both arms
+- [x] GREEN: recipe moved to `onInBoth`, `features` true
+- [x] Registry copy, explainer and README updated to match the recipe
+- [x] Focused tests green
+- [x] Full gate green (`just test`, `just lint`, `just build`)
+- [x] Review lanes attempted and recorded
+- [ ] Landed `--ff-only` on `main`, `land-done` recorded
+- [ ] Viewer restarted on the landed build
+
+## Session Log
+
+- 2026-11-02: opened from the operator directive; recipe currently carries the
+  mission in `switches` with `features` false. Main at `693261a4c`, land board
+  free.

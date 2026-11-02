@@ -70,7 +70,6 @@
   "refusal-ledger-bound-v1",
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
-  "eight-badge-mission-v1",
   "rusturf-entry-followup-v1"
  ],
  "offInBoth": [
@@ -179,7 +178,8 @@
   "disproved-beliefs-bound-v1",
   "id-card-bound-v1",
   "active-warp-exits-v1",
-  "warp-target-navigation-v1"
+  "warp-target-navigation-v1",
+  "eight-badge-mission-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -479,7 +479,7 @@
   "destination-first-navigation-v1": true,
   "id-card-bound-v1": true,
   "instruction-memory-yaml-v1": false,
-  "eight-badge-mission-v1": false,
+  "eight-badge-mission-v1": true,
   "discovered-gym-checklist-v1": true,
   "town-center-checkpoint-v1": true,
   "player-map-visibility-v2": true,

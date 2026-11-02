@@ -101,11 +101,15 @@ it("enables neutral YES/NO controls only in the current bundle",()=>{
  }
 });
 
-it("keeps the eight-badge mission bundle-only while the discovered gym checklist is on in both arms",()=>{
+it("keeps the eight-badge mission and discovered gym checklist on in both arms",()=>{
  for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
   const d=readFixedDefinition(root,name).definition;
-  expect(d.switches).toContain("eight-badge-mission-v1");expect(d.onInBoth).not.toContain("eight-badge-mission-v1");
-  expect(armFeatureBits(d,"bundle")["eight-badge-mission-v1"]).toBe(true);expect(armFeatureBits(d,"control")["eight-badge-mission-v1"]).toBe(false);
+  // Operator 2026-11-02: control's untargeted goal never named badges while the
+  // checklist already told it gyms stay unfinished without one.
+  expect(d.switches).not.toContain("eight-badge-mission-v1");expect(d.onInBoth).toContain("eight-badge-mission-v1");expect(d.offInBoth).not.toContain("eight-badge-mission-v1");
+  for(const arm of ["control","bundle"] as const){
+   expect(armFeatureBits(d,arm)["eight-badge-mission-v1"]).toBe(true);expect(armFeatures(d,arm)["eight-badge-mission-v1"]).toBe(true);
+  }
   expect(d.onInBoth).toContain("discovered-gym-checklist-v1");expect(d.switches).not.toContain("discovered-gym-checklist-v1");
   for(const arm of ["control","bundle"] as const){
    expect(armFeatureBits(d,arm)["discovered-gym-checklist-v1"]).toBe(true);

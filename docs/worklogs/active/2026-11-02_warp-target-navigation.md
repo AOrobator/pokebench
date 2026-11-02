@@ -144,7 +144,7 @@ Cloud lanes were blocked again (Claude weekly limit, resets 10pm ET; Grok monthl
 - **Governor pin de-coupled** — it no longer pins a fixed offset from the tail; it asserts the switch is present and gated, and this switch pins its own absolute index instead.
 - **Worklog drift — corrected.** The Architecture rows still described `METATILE_TARGETS`, a glyph change and the old message; the plan's checkboxes read as an unstarted milestone.
 
-Open follow-ups, deliberately not fixed here: the explainer page, an epoch note for `active-warp-exits-v1`, `hyperqwen-control-3h` outside the viewer test's arm list, and the descriptor's unstated dependency on `map-observability-v1` + `world-targets-v1`.
+Round-1 follow-ups, now closed: the explainer page (`docs/explainers/warp-target-navigation-v1.html` + `FEATURE_EXPLAINERS`, themed and pages-checked), the epoch note for `active-warp-exits-v1`, and `hyperqwen-control-3h` / `hyperqwen-bundle-24h` added to the viewer arm test. Still open: the descriptor does not state that the readout half needs `map-observability-v1` and `world-targets-v1` (both on in `current.json`, so nothing changes today), and there is no stored byte snapshot proving OFF parity beyond the readout test's two-arm comparison.
 
 ## Surprises
 

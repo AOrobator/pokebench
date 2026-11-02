@@ -88,7 +88,11 @@ function semanticReceipt(name: string, result: unknown): SemanticReceipt | null 
   if ((name !== "navigate_to_target" && name !== "explore_map") || !isRecord(result) || !isRecord(result.details)) return null;
   const { semantic_navigation: receipt } = result.details;
   if (!isRecord(receipt)) return null;
-  const picked = { target: receipt.target, activation_attempted: receipt.activation_attempted };
+  const picked = {
+    target: receipt.target,
+    activation_attempted: receipt.activation_attempted,
+    ...(receipt.refused === true && isRecord(receipt.refusal) ? { refused: true, refusal: receipt.refusal } : {}),
+  };
   return Value.Check(SemanticReceiptSchema, picked) ? picked : null;
 }
 

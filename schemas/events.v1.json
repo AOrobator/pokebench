@@ -2839,6 +2839,31 @@
             },
             "activation_attempted": {
               "type": "boolean"
+            },
+            "refused": {
+              "type": "boolean"
+            },
+            "refusal": {
+              "type": "object",
+              "required": [
+                "cause",
+                "alternatives"
+              ],
+              "properties": {
+                "cause": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "alternatives": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "maxItems": 3
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

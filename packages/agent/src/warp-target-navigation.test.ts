@@ -191,8 +191,8 @@ describe("warp-target-navigation-v1",()=>{
 
  it("enrols exactly the gym pad behaviour",()=>{
   expect([...GOAL_ONLY_BEHAVIORS]).toEqual([PAD]);
-  // Append-only: this index never moved when compact-map-base-glyph-v1 was appended after it.
-  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(322);
+  // Append-only: two switches (semantic-refusal-reasons-v1, compact-map-base-glyph-v1) were appended after it.
+  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(SWITCHABLE_FEATURES.length-3);
  });
 
  it("keeps the pad unreachable as a goal when goal-only routing is off",()=>{

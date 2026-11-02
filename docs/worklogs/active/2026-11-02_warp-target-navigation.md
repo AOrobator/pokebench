@@ -164,3 +164,26 @@ _(none yet)_
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog
+
+## Review round 2 (2026-11-02)
+
+Two read-only fallback reviewers (deepseek-v4.1-flash, batch `deleg_bbd37a06`): correctness **BLOCKING**, test quality **LGTM**.
+
+The correctness reviewer executed the built code rather than reading it and found that the switch could not work in production:
+
+1. **The chooser was wired, the walker was not.** `goalOnly` existed only in `NavigationOptions` and was set only by `semantic-navigation.ts`. `navigationTool`'s `guardedOptions` — the planner that actually walks — had no goal-only switch, so `navigate_to_target` promised a route and `navigate_to` refused it one layer down: `route ended before the selected approach` + `no supported path on the current map`. Fixed with a `warpTargets` port wired to the switch in `withNavigation`; `wholeGuarded` inherits it through its spread.
+2. **Template approaches still admitted pads.** The ordinary and counter branches were guarded, the template candidate loop filtered pads only under `staticRequest`, so a trainer-approach stand tile could be a pad — latent behind (1), a teleport once (1) was fixed. Guarded in both arms.
+3. **Full-map elevation disagreed with local.** `map_grid.elevation` is the map's base elevation; the tile's own sits in the cell's high nibble. `tileElevation` now decodes it in both modes, so the two arms agree about the same pad and the listed-record elevation gate is no longer bypassed.
+
+The test-quality reviewer mutation-tested every claim in a scratch copy and rebutted all three round-1 defects as genuinely pinned, then found: the "never routes through" case did not discriminate (the pre-existing warp rule blocked the tile anyway), one env case rebuilt the label by hand and passed with the branch deleted, and nothing exercised the real executor.
+
+Fix receipts, each by mutation:
+
+| Mutation | Result |
+|---|---|
+| drop `goalOnly` from `guardedOptions` | `walks the last step onto the pad through the real navigate_to` fails — the only failure |
+| drop `distance(next,goal)===0` | `plans onto a goal-only pad, and never routes through one` fails (now that its grid carries no warp record) |
+| `advertised??found` → `found??advertised` | identity-continuity case fails |
+| delete both `goalOnlyTile` approach guards | `ON never picks a pad as the tile to stand on` fails |
+| delete the readout label branch | both `format_readout` cases fail |
+| revert the refusal string | the message case fails |

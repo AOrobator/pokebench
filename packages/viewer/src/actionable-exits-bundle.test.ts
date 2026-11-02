@@ -13,7 +13,7 @@ const BOTH=["active-warp-exits-v1"] as const;
 const BUNDLE_ONLY=["available-exits-presentation-v1"] as const;
 const IDS=[...BOTH,...BUNDLE_ONLY] as const;
 it.each(IDS)("%s stays default OFF",id=>{expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);});
-it.each(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"])("%s: the both-arm switch is on in both, the bundle-only switch only in the bundle",name=>{
+it.each(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h","hyperqwen-bundle-24h"])("%s: the both-arm switch is on in both, the bundle-only switch only in the bundle",name=>{
  const {definition}=readFixedDefinition(sourceRoot,name);
  expect(controlBaseProblems(definition,readFileSync(new URL(`../../../${definition.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  for(const phase of definition.phases)for(const arm of ["control","bundle"] as const){

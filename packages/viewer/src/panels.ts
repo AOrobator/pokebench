@@ -379,6 +379,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "warp-target-navigation-v1":"warp-target-navigation-v1.html",
  "rom-identity-v1":"rom-identity-v1.html",
  "checkpoint-research-note-v1":"checkpoint-research-note-v1.html",
  "rusturf-entry-followup-v1":"rusturf-entry-followup-v1.html",

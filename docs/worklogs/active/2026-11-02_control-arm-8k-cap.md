@@ -120,3 +120,23 @@ package ran first and passed). The Python env suite fails in a fresh worktree on
 because `.env` with `POKEBENCH_ROM` is gitignored; with the ROM exported the suites
 that failed there pass 56/56 in the main checkout. `just test` on `main` after the
 merge is the activation gate.
+
+### Landing and activation (2026-11-02)
+
+Landed fast-forward on `main` as `68f7da476` (`9f6005db3` the feature commit, the
+waiver record on top), from `claude/control-8k-promotion` based on `980acbad0`.
+
+`just test` on `main` failed once, 11 tests across 6 files at the 5s default timeout,
+all in the agent package while 381 workers ran alongside the live 24h run. Not a
+regression: `whole-game-instructions.test.ts` passes alone (10/10, 6.5s for the file),
+and the full agent suite run sequentially (`--no-file-parallelism`, the repo's mode for
+long suites) exits 0 with coverage 96.39% statements / 92.40% branches / 97.45%
+functions / 99.03% lines. The rest of the gate on `main`:
+
+- viewer: 2425 tests passed, 94.54% statements / 90.78% branches, exit 0.
+- env: 4988 pytest tests passed; coverage gate lines 97.50%, branches 93.60%,
+  functions 99.90% (floor 90%).
+- `just trainer-card-check`: 3 passed.
+
+The 8K control arm is now the arm a 24h run actually plays, and the fixed-run
+comparisons are untouched at 4K.

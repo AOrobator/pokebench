@@ -4,7 +4,8 @@ import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import type {AssistantMessage,ToolResultMessage} from "@mariozechner/pi-ai";
-import {Governor,NUDGE,TEXT_ONLY_REMINDER} from "./harness.js";
+import {Governor,NUDGE,TEXT_ONLY_REMINDER,withoutTextOnlyReplies} from "./harness.js";
+import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {cutOffReplyNotice} from "./cut-off-reply.js";
 import {followUpText} from "./decision-probe.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
@@ -57,6 +58,39 @@ describe("Governor",()=>{
  });
 });
 
+describe("the notice counts the cut-offs in a row",()=>{
+ const ON={...ALL_ON,[ID]:true};
+ it("the second and later notices say how many replies in a row have now been cut off",()=>{
+  const one=cutOffReplyNotice(ON,8192)??"";
+  const two=cutOffReplyNotice(ON,8192,2)??"";
+  const three=cutOffReplyNotice(ON,8192,3)??"";
+  expect(one).not.toContain("in a row");
+  expect(two).toContain("This is reply 2 in a row that reached the limit without a tool call");
+  expect(two).not.toContain("Make one tool call now.");
+  expect(two).toContain("call exactly one tool now");
+  expect(three).toContain("This is reply 3 in a row");
+  expect(three).toContain("If you cannot choose, call observe, which returns the current state.");
+ });
+ it("the Governor walks 1, 2, 3 and a reply that makes a tool call resets the count",async()=>{
+  const {g}=governor({cutOffNotice:(repeats)=>cutOffReplyNotice(ON,8192,repeats)});
+  g.afterTurn(reply("length"),[]);
+  expect(String((await next(g))[0])).not.toContain("in a row");
+  g.afterTurn(reply("length"),[]);
+  expect(String((await next(g))[0])).toContain("This is reply 2 in a row");
+  g.afterTurn(reply("length",1),ok);
+  expect(await next(g)).toEqual([]);
+  g.afterTurn(reply("length"),[]);
+  expect(String((await next(g))[0])).not.toContain("in a row");
+ });
+ it("the truncated reply is not sent back on the retry: fresh-retry-v1 drops every reply that made no tool call",()=>{
+  const task:AgentMessage={role:"user",content:"play",timestamp:0};
+  const cut:AgentMessage=reply("length");
+  const kept:AgentMessage=reply("length",1);
+  expect(withoutTextOnlyReplies([task,cut])).toEqual([task]);
+  expect(withoutTextOnlyReplies([task,cut,kept])).toEqual([task,kept]);
+ });
+});
+
 describe("decision probes rebuild the same follow-up",()=>{
  it("followUpText picks the recorded supervisor note first, then the notice for a cut-off reply, else NUDGE",()=>{
   expect(followUpText({seq:10,stop_reason:"length"},undefined,"CUT")).toBe("CUT");
@@ -71,7 +105,8 @@ describe("production wiring",()=>{
  const source=(file:string)=>readFileSync(fileURLToPath(new URL(`./${file}`,import.meta.url)),"utf8");
  it("live.ts builds the Governor's notice from the FeatureSet and the run's max tokens",()=>{
   const live=source("live.ts");
-  expect(live).toContain("const cutOff = cutOffReplyNotice(features,maxTokens);");
+  // The Governor gets a rule, so the second cut-off in a row is told it is the second.
+  expect(live).toContain("const cutOff = cutOffNotice === undefined ? undefined : (repeats: number) => cutOffReplyNotice(features,maxTokens,repeats) ?? cutOffNotice;");
   const call=live.slice(live.indexOf("controlledRun("));
   expect(call.slice(0,call.indexOf("});"))).toContain("{ cutOffNotice: cutOff }");
  });

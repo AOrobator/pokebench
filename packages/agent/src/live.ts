@@ -333,7 +333,9 @@ async function playAgent(): Promise<void> {
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
       const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
-      const cutOff = cutOffReplyNotice(features,maxTokens);
+      // The notice escalates with the streak of cut-off replies, so the governor gets a rule, not a string.
+      const cutOffNotice = cutOffReplyNotice(features,maxTokens);
+      const cutOff = cutOffNotice === undefined ? undefined : (repeats: number) => cutOffReplyNotice(features,maxTokens,repeats) ?? cutOffNotice;
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
@@ -394,7 +396,7 @@ async function playAgent(): Promise<void> {
       try {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
-      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext,cutOff,new StateWatcher(gameServerUrl));
+      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext,cutOffNotice,new StateWatcher(gameServerUrl));
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools,context.training,context.instructionGoals);
       const jit=new JitContext(features,goalTarget);
       const stableJit=new StableJitContext(features,goalTarget);

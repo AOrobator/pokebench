@@ -192,7 +192,7 @@ describe("warp-target-navigation-v1",()=>{
  it("enrols exactly the gym pad behaviour",()=>{
   expect([...GOAL_ONLY_BEHAVIORS]).toEqual([PAD]);
   // Append-only: the switch sits last, so no predecessor index moved.
-  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(SWITCHABLE_FEATURES.length-1);
+  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(SWITCHABLE_FEATURES.length-2);
  });
 
  it("keeps the pad unreachable as a goal when goal-only routing is off",()=>{

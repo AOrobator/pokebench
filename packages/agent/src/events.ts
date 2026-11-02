@@ -170,6 +170,10 @@ export const SemanticReceiptSchema = Type.Object({
     Type.Object({ kind: Type.Literal("connection"), direction: Type.String({ minLength: 1 }) }, closed),
   ]),
   activation_attempted: Type.Boolean(),
+  // navigation-refusal-reasons-v4: a refusal carries its cause and the exits that do work, so the
+  // ledger and the viewer read the same words the model read instead of re-deriving them from text.
+  refused: Type.Optional(Type.Boolean()),
+  refusal: Type.Optional(Type.Object({ cause: Type.String({ minLength: 1 }), alternatives: Type.Array(Type.String({ minLength: 1 }), { maxItems: 3 }) }, closed)),
 }, closed);
 export type SemanticReceipt = Static<typeof SemanticReceiptSchema>;
 const ToolResult = event("tool_result", {

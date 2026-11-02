@@ -5,6 +5,8 @@ import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {warpsOf} from "./exit-history.js";
+import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
 import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
 
@@ -33,7 +35,8 @@ type RequestTarget=
  | {readonly kind:"connection";readonly direction:"NORTH"|"SOUTH"|"EAST"|"WEST"};
 type Point={readonly x:number;readonly y:number};
 type Approach={readonly point:Point;readonly facing:Button|null;readonly length:number};
-type SemanticDetails={readonly state:GameStateSnapshot;readonly semantic_navigation:{readonly status:string;readonly selected:string;readonly activation_attempted:boolean;readonly target:RequestTarget};readonly [key:string]:unknown};
+type RefusalDetail={readonly cause:string;readonly alternatives:readonly string[]};
+type SemanticDetails={readonly state:GameStateSnapshot;readonly semantic_navigation:{readonly status:string;readonly selected:string;readonly activation_attempted:boolean;readonly target:RequestTarget;readonly refused?:boolean;readonly refusal?:RefusalDetail};readonly [key:string]:unknown};
 class SemanticPreconditionError extends Error {}
 const STEPS:readonly [Button,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
 const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:"UP",SOUTH:"DOWN",EAST:"RIGHT",WEST:"LEFT"};
@@ -240,10 +243,46 @@ function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarg
  return (connection?.edges??[]).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
   .sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
 }
-function withStatus(result:AgentToolResult<unknown>,status:string,selected:string,target:RequestTarget,activationAttempted:boolean):AgentToolResult<SemanticDetails> {
+function withStatus(result:AgentToolResult<unknown>,status:string,selected:string,target:RequestTarget,activationAttempted:boolean,refusal?:RefusalDetail|null):AgentToolResult<SemanticDetails> {
  const state=stateOf(result);
  const inherited=typeof result.details==="object"&&result.details!==null?result.details:{};
- return {...result,content:[{type:"text",text:`Semantic navigation: ${status}. Selected ${selected}.`},...result.content],details:{...inherited,state,semantic_navigation:{status,selected,activation_attempted:activationAttempted,target}}};
+ const verdict=refusal===undefined||refusal===null?{}:{refused:true,refusal:{cause:refusal.cause,alternatives:[...refusal.alternatives]}};
+ return {...result,content:[{type:"text",text:`Semantic navigation: ${status}. Selected ${selected}.`},...result.content],details:{...inherited,state,semantic_navigation:{status,selected,activation_attempted:activationAttempted,target,...verdict}}};
+}
+
+// semantic-refusal-reasons-v1: a refusal names the cause and the exits that do work, as navigate_to
+// does. Before it printed one sentence - "no supported route to a valid approach" - so a model facing a
+// sealed door could only re-ask the same target; the 2026-11-02 run asked six times in eight turns.
+function refusalDetail(before:GameStateSnapshot,target:RequestTarget,plan:NavigationOptions,features:FeatureSet):RefusalDetail|null {
+ if(!features["semantic-refusal-reasons-v1"])return null;
+ const here=before.position;
+ if(here===null)return null;
+ const where=(x:number,y:number):string=>`(${String(x)},${String(y)})`;
+ const block=exitReach(features,before);
+ const cutOf=(x:number,y:number)=>block.warpCut(x,y);
+ let cause:string;
+ if(target.kind==="warp"){
+  const cut=cutOf(target.x,target.y);
+  cause=cut==="none"?`${where(target.x,target.y)} cannot be walked to from ${where(here.x,here.y)} on foot or across water, so no route on this map reaches it`
+   :cut==="water"?`${where(target.x,target.y)} is across water you cannot cross from ${where(here.x,here.y)}`
+   :`no walkable route on this map leads from ${where(here.x,here.y)} to ${where(target.x,target.y)}`;
+ }else if(target.kind==="connection"){
+  const connection=before.topology?.connections.find(item=>item.direction===target.direction);
+  const cut=connection===undefined?null:block.connectionCut({direction:connection.direction,destination:connection.destination,offset:connection.offset});
+  cause=cut==="none"?`no walkable way on this map leads from ${where(here.x,here.y)} to the ${target.direction} edge, on foot or across water`
+   :cut==="water"?`the ${target.direction} edge is across water you cannot cross from ${where(here.x,here.y)}`
+   :`no walkable route on this map leads from ${where(here.x,here.y)} to the ${target.direction} edge`;
+ }else{
+  cause=`no walkable route on this map leads from ${where(here.x,here.y)} to a tile next to it`;
+ }
+ const alternatives=warpsOf(before)
+  .filter(warp=>cutOf(warp.x,warp.y)===null)
+  .map(warp=>({warp,steps:(planNavigation(before,{x:warp.x,y:warp.y},plan)??[]).length}))
+  .filter(({steps})=>steps>0)
+  .sort((a,b)=>a.steps-b.steps||a.warp.y-b.warp.y||a.warp.x-b.warp.x)
+  .slice(0,3)
+  .map(({warp,steps})=>`${where(warp.x,warp.y)} (${String(steps)} steps) into map ${String(warp.destination[0])}/${String(warp.destination[1])}`);
+ return {cause,alternatives};
 }
 function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{return state.map_id?.[0]===map[0]&&state.map_id[1]===map[1];}
 function isDestinationMap(state:GameStateSnapshot,destination:readonly number[]|null|undefined):boolean{const map=state.map_id;return destination!==null&&destination!==undefined&&map!==null&&map[0]===destination[0]&&map[1]===destination[1];}
@@ -448,7 +487,13 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
    const choice=choices[0];
-   if(choice===undefined)return withStatus({content:[],details:{state:before}},request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach",selected,request.target,false);
+   if(choice===undefined){
+    const base=request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach";
+    const detail=refusalDetail(before,request.target,options,features);
+    if(detail===null)return withStatus({content:[],details:{state:before}},base,selected,request.target,false);
+    const exits=detail.alternatives.length===0?"; no exit listed on this map can be walked to from here":`; exits you can walk to from here, nearest first: ${detail.alternatives.join(", ")}`;
+    return withStatus({content:[],details:{state:before}},`${base}: ${detail.cause}${exits}`,selected,request.target,false,detail);
+   }
    const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
    const selectedConnection=connectionDirection===null?null:before.topology?.connections.find(item=>item.direction===connectionDirection)??null;
    const identityIssue=(actual:GameStateSnapshot,phase:string):string|null=>{

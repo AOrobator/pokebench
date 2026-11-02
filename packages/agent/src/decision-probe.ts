@@ -223,9 +223,12 @@ export function followUpText(reply: { readonly seq: number; readonly stop_reason
   return reply.stop_reason === "length" && cutOff !== undefined ? cutOff : NUDGE;
 }
 
-function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string, cutOff: string | undefined, atTurn?:(turn:number,history:readonly Message[])=>void, supervisorReplay?: { readonly cutOff: string | undefined }): Message[] {
+// cutOffAt rebuilds the escalating cut-off notice (cut-off-reply-feedback-v1) for the nth cut-off reply in a row,
+// so a replayed conversation carries the same words the run sent, not the first notice repeated.
+function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string, cutOff: string | undefined, atTurn?:(turn:number,history:readonly Message[])=>void, supervisorReplay?: { readonly cutOff: string | undefined }, cutOffAt?: (repeats: number) => string | undefined, recordedCutOffAt?: (repeats: number) => string | undefined): Message[] {
   const history: Message[] = [{ role: "user", content: goal === null ? PLAY_TASK : `The game has just booted. ${targetGoal(goal)}`, timestamp: 0 }];
   let note = 0;
+  let cutOffStreak = 0;
   for (const e of prior) {
     if(e.type==="turn_start")atTurn?.(e.turn,[...history]);
     if (e.type !== "assistant" || e.stop_reason === "error" || e.stop_reason === "aborted") continue;
@@ -239,11 +242,15 @@ function conversation(prior: readonly RunEvent[], goal: string | null, byId: Rea
     const assistant: AssistantMessage = { role: "assistant", content, api: identity.api, provider: identity.provider, model: e.replay_identity?.model ?? model, usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: e.stop_reason, timestamp: 0 };
     history.push(assistant);
     if (e.tool_calls.length === 0) {
+      if (e.stop_reason === "length") cutOffStreak += 1;
+      const notice = cutOffAt === undefined ? cutOff : cutOffAt(cutOffStreak);
+      const replay = supervisorReplay === undefined ? undefined : { cutOff: recordedCutOffAt === undefined ? supervisorReplay.cutOff : recordedCutOffAt(cutOffStreak) };
       const supervised = notes[note]?.turn === e.turn ? notes[note] : undefined;
-      const text = followUpText(e, supervised, cutOff, supervisorReplay);
+      const text = followUpText(e, supervised, notice, replay);
       if (supervised !== undefined && supervised.seq > e.seq) note += 1;
       history.push({ role: "user", content: text, timestamp: 0 });
     }
+    if (e.tool_calls.length > 0) cutOffStreak = 0;
     for (const c of e.tool_calls) {
       const r = byId.get(c.id);
       if (r === undefined) continue;
@@ -261,7 +268,7 @@ export function recordedConversation(run:RecordedRun,ports:ProbePorts,atTurn?:(t
  const results=prior.filter((e):e is ToolResultEvent=>e.type==="tool_result");
  const notes=prior.filter((e):e is Extract<RunEvent,{type:"text_only_supervisor"}>=>e.type==="text_only_supervisor");
  const goal=start.evaluation?.goal_target??start.evaluation?.target??null;
- return conversation(prior,goal,new Map(results.map(r=>[r.id,r])),notes,new Map(),ports,start.model.id,cutOffReplyNotice(recordedFeatures(run),start.sampling.max_tokens),atTurn);
+ return conversation(prior,goal,new Map(results.map(r=>[r.id,r])),notes,new Map(),ports,start.model.id,cutOffReplyNotice(recordedFeatures(run),start.sampling.max_tokens),atTurn,undefined,(repeats)=>cutOffReplyNotice(recordedFeatures(run),start.sampling.max_tokens,repeats));
 }
 
 /** `recorded` rebuilds what the model saw then (recorded notes, guard text and tool results); `replayed` re-derives all of it with today's code under `features`. */
@@ -424,7 +431,7 @@ export async function decisionSession(run: RecordedRun, turn: number, features: 
   const notes = prior.filter((e): e is Extract<RunEvent, { type: "text_only_supervisor" }> => e.type === "text_only_supervisor");
   const window = contextTools(features, new Replay(start), (m) => Promise.resolve(m)).window;
   const cutOff = cutOffReplyNotice(features, start.sampling.max_tokens);
-  const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id, cutOff);
+  const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id, cutOff, undefined, undefined, (repeats) => cutOffReplyNotice(features, start.sampling.max_tokens, repeats));
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
   const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender, compositeReadouts);
@@ -432,7 +439,7 @@ export async function decisionSession(run: RecordedRun, turn: number, features: 
     if (derivation === "recorded") throw new Error("--trust-header re-derives the header, so it needs the replayed derivation");
     await rederiveTrustHeaders(prior, texts, features, recorded, ports, kept);
   }
-  const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff, undefined, {cutOff:cutOffReplyNotice(recorded,start.sampling.max_tokens)});
+  const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff, undefined, {cutOff:cutOffReplyNotice(recorded,start.sampling.max_tokens)}, (repeats) => cutOffReplyNotice(features, start.sampling.max_tokens, repeats), (repeats) => cutOffReplyNotice(recorded, start.sampling.max_tokens, repeats));
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start),cutOff);
     const tools = wiring.tools.map(asTool);

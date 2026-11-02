@@ -155,8 +155,10 @@ export interface GovernorDeps {
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number, cutOffNotice?: string) => string;
   readonly textOnlyReminder?: string;
-  // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
-  readonly cutOffNotice?: string;
+  // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool
+  // call. A function receives how many cut-off replies in a row have been delivered, so the notice can
+  // escalate instead of repeating one sentence.
+  readonly cutOffNotice?: string | ((repeats: number) => string);
   // model-error-recovery-v1: model errors are absorbed up to the failure bound; the lane is probed before the retry.
   readonly modelErrorRecovery?: boolean;
   readonly onModelError?: (message: AssistantMessage) => void;
@@ -168,6 +170,7 @@ export class Governor {
   private modelErrors = 0;
   private nudgeDue = false;
   private cutOff = false;
+  private cutOffStreak = 0;
   private silent = 0;
   private notes = 0;
   private note: { replies: number; note: number } | null = null;
@@ -184,6 +187,7 @@ export class Governor {
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
     this.cutOff = calls === 0 && message.stopReason === "length";
+    this.cutOffStreak = this.cutOff ? this.cutOffStreak + 1 : calls > 0 ? 0 : this.cutOffStreak;
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
     this.silent = calls === 0 ? this.silent + 1 : 0;
     if (message.stopReason === "length") this.fail("reply hit max_tokens");
@@ -221,8 +225,9 @@ export class Governor {
     const due = this.note;
     this.note = null;
     // The note is built, and recorded, only when it is actually delivered.
-    const plain = this.cutOff && this.deps.cutOffNotice !== undefined ? this.deps.cutOffNotice : this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE;
-    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note, this.cutOff ? this.deps.cutOffNotice : undefined);
+    const notice = typeof this.deps.cutOffNotice === "function" ? this.deps.cutOffNotice(this.cutOffStreak) : this.deps.cutOffNotice;
+    const plain = this.cutOff && notice !== undefined ? notice : this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE;
+    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note, this.cutOff ? notice : undefined);
     return [{ role: "user", content, timestamp: Date.now() }];
   }
 

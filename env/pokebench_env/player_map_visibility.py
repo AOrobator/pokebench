@@ -336,9 +336,15 @@ class MapMemory:
             ),
             exit_labels=None,
             exit_sections=None,
-            exit_reach=None,
-            surf_gate=None,
-            field_obstacles=None,
+            # exit-reachability-v1, surf-gated-exits-v1, field-move-gates-v1: the flood's verdict on
+            # every exit of this map, computed from the full map the state already carries
+            # (map_grid, topology, and the exits those list), so keeping it reveals nothing the
+            # projection does not already deliver. Nulling it left every exit looking walkable:
+            # the readout could not say "not reachable on foot" and the model walked at doors
+            # sealed behind another map's half (ROUTE104 at (39,62), 2026-11-02).
+            exit_reach=state.exit_reach,
+            surf_gate=state.surf_gate,
+            field_obstacles=state.field_obstacles,
             resources=None
             if state.resources is None
             else replace(state.resources, berry_trees=None, planted_berries=None),

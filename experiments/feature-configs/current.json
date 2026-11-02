@@ -179,7 +179,8 @@
   "id-card-bound-v1",
   "active-warp-exits-v1",
   "warp-target-navigation-v1",
-  "eight-badge-mission-v1"
+  "eight-badge-mission-v1",
+  "semantic-refusal-reasons-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -489,6 +490,7 @@
   "moving-npc-frame-burst-v1": true,
   "dark-area-flash-reminder-v1": true,
   "model-error-recovery-v1": true,
-  "warp-target-navigation-v1": true
+  "warp-target-navigation-v1": true,
+  "semantic-refusal-reasons-v1": true
  }
 }

@@ -326,3 +326,43 @@ def test_two_same_direction_connections_are_labelled_and_noted_separately() -> N
     assert lines[3] == f"- WEST -> ROUTE B (map 0/2), offset 2; {reach.connection_note()}"
     # The Surf gate keys connections by direction, as before this switch; nothing else changes.
     assert connection_notes(topology, None, None) == {}
+
+def test_projection_keeps_the_flood_verdict_for_the_delivered_state() -> None:
+    """player-map-visibility-v2 must not null the flood verdict.
+
+    It did: every state of the 2026-11-01 and 2026-11-02 runs (2,562 and 28,000+ states) carried no
+    exit_reach, surf_gate or field_obstacles, because MapMemory._filter set them to None after
+    read_game_state had computed them. Every exit then read as walkable, so the readout could not
+    say "not reachable on foot" and the model walked at the sealed ROUTE104 doors for 30 turns.
+    The block is derived from geometry the projected state already carries (map_grid, topology), so
+    keeping it discloses nothing new; the place labels to the right are still dropped.
+    """
+    from pokebench_env.player_map_visibility import MapMemory
+
+    def padded(seq: int):
+        # The projection reads the clock, lighting and layout pointers the tool-result windows do not
+        # carry; zeroes are "not captured", so the projection hides tiles but keeps derived facts.
+        captured = reader(ROUTE104, seq)
+
+        def read(address: int, length: int) -> bytes:
+            try:
+                return captured(address, length)
+            except KeyError:
+                return bytes(length)
+
+        return read
+
+    for seq in SEQS_104:
+        raw = state(ROUTE104, seq, recorded_off(ROUTE104))
+        projected = MapMemory().project(padded(seq), raw)
+        assert projected.exit_reach == raw.exit_reach
+        assert projected.surf_gate == raw.surf_gate
+        assert projected.field_obstacles == raw.field_obstacles
+        assert projected.exit_reach is not None
+        warps = dict(projected.exit_reach.warps)
+        for point in NONE_WARPS:
+            assert warps[point] == "none", point
+        # Names still follow visibility; only the geometry-derived verdict passes through.
+        assert projected.exit_labels is None
+        assert projected.exit_sections is None
+        assert "exit_reach" in state_json(projected)

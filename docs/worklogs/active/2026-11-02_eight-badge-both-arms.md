@@ -46,15 +46,22 @@ Eight fixed definitions reference `featureRecipe: current`, so future launches
 from any of them get the promotion: `bundle-v-control`, `bundle-v-control-2h`,
 `glm53-24h-visibility-v2`, `glm53-flash-4h`, `hyperqwen-bundle-24h`,
 `hyperqwen-bundle-24h-v2`, `hyperqwen-control-3h`, `qwen36-24h-visibility-off`.
-Running and frozen runs keep their recorded settings; the two `rusturf-native-*`
-definitions that embed the old placement are historical and untouched.
+Running and frozen runs keep their recorded settings. The three
+`rusturf-native-*` definitions do not reference the recipe; they already embed
+`eight-badge-mission-v1` as `true` in their base (both arms), so they agree with
+this placement and are untouched. `state-only-decisions-v1`, whose contract
+requires the mission OFF, is itself OFF in the current recipe, so no preset
+validation is tripped.
 
 ## What this does not claim
 
-No measured gameplay-benefit claim. This is decision-neutral framing: both arms
-now see the benchmark's success condition, as the bound switches and the gym
-checklist were promoted for parity rather than treatment. If a later comparison
-shows an arm difference, this is the commit to bisect to.
+No measured gameplay-benefit claim. This is **not** decision-neutral in the
+strict sense: it changes what the control arm sees and is expected to change its
+decisions — that is the operator's intent. What it adds is no route, future
+leader identity or Rayquaza hint; the text is exactly what the bundle has run
+since 2026-10-28. Promoting it raises the control floor, so a bundle-v-control
+gap measured after this commit is not comparable to one measured before it. If a
+later comparison shows an arm difference, this is the commit to bisect to.
 
 ## Evidence
 
@@ -110,6 +117,11 @@ just lint  → tsc + eslint (agent, viewer), ruff/format/mypy 137 files,
 just build → viewer build stamp 693261a (working tree)
 ```
 
+Not run: `just verify-vendor`, `just verify-rom`, `just smoke`, `just smoke-llm`.
+This change touches no vendor, ROM, game-code or server bytes — a recipe entry,
+one registry description, the explainer, the README and one test — so the rungs
+that exercise the game server were skipped deliberately, not passed.
+
 `just test` rebuilt `dist` in the main checkout. No live run reads it: the
 running controller executes from `/private/tmp/pokebench-fixed-875132337f5e`
 and the viewers serve content-addressed builds under `~/.cache/pokebench/`.
@@ -157,3 +169,11 @@ VERDICT exists for this patch**; the independent signal is the full gate above.
   `just build` stamps `4d78db3` clean, placement pin 22/22, `just viewer-main`
   serves `4d78db38d` on 127.0.0.1:8790 and the explainer shows "ON in both
   arms".
+- 2026-11-02 self-review after landing: materialized `bundle-v-control` from the
+  built dist — control and bundle produce the identical mission sentence, and
+  OFF reproduces `OPEN_PLAY_GOAL`; `just fixed-run check bundle-v-control` lists
+  the mission under "on in both" and reports the control base still matches.
+  Corrected two claims in this worklog: the rusturf definitions already carried
+  the mission `true` in base (three files, not two, and not the old placement),
+  and this is a control-objective change, not "decision-neutral". Recorded the
+  ladder rungs deliberately not run.

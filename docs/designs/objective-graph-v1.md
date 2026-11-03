@@ -60,7 +60,12 @@ Verified today (file:line read during this design):
 | `HM_ROCK_SMASH_RECEIVED → HM_STRENGTH_RECEIVED` | physical | `data/maps/RusturfTunnel/map.json` object_events carry two `OBJ_EVENT_GFX_BREAKABLE_ROCK`; the Strength scene is `data/maps/RusturfTunnel/scripts.inc:47-58` |
 | `HM_ROCK_SMASH_RECEIVED → ROUTE_111_NORTH` | physical | breakable rocks at (18,101)/(19,100), `docs/findings/campaign-milestones.md:19` |
 | `DYNAMO_BADGE → ROUTE_111_NORTH` | field-move badge | Rock Smash is unusable without the third badge: `data/scripts/field_move_scripts.inc:62`. The HM alone does nothing |
-| `DEVON_GOODS_RECOVERED → KNUCKLE_BADGE` | physical | `RusturfTunnel/scripts.inc:322-324` sets `VAR_BRINEY_HOUSE_STATE=1` with the goods flag; `Route104_MrBrineysHouse/scripts.inc:7` only seats Briney and Peeko in that state |
+| `DEVON_GOODS_RECOVERED → DEWFORD_TOWN` | physical | `RusturfTunnel/scripts.inc:322-324` sets `VAR_BRINEY_HOUSE_STATE=1` with the goods flag; `Route104_MrBrineysHouse/scripts.inc:7` only seats Briney and Peeko in that state, so the goods gate the *boat*, and the badge sits behind the town |
+| `BRAWLY_DEFEATED → KNUCKLE_BADGE` | trainer script | `data/maps/DewfordTown_Gym/scripts.inc:144-151` sets `FLAG_BADGE02_GET` in `EventScript_BrawlyDefeated`; the badge flag alone is not enough |
+| `DYNAMO_BADGE → HM_STRENGTH_RECEIVED` | badged rock | `field_move_scripts.inc:62` refuses Rock Smash without badge three; `:88` calls `TryUpdateRusturfTunnelState` (`src/field_specials.c:1398-1414`), and `RusturfTunnel/scripts.inc:7-8` runs the scene that hands over HM04 at `:56` |
+| `MAGMA_EMBLEM_RECEIVED → MAGMA_HIDEOUT` | item check | `data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM` opens the entrance |
+| `HM_SURF_RECEIVED → ROUTE_118_EAST_BANK_REACHED`, `→ MOSSDEEP_CITY` | field-move badge | `src/field_control_avatar.c:450` refuses Surf without `FLAG_BADGE05_GET` |
+| `HM_WATERFALL_RECEIVED → EVER_GRANDE_LANDING`, `RAIN_BADGE → EVER_GRANDE_LANDING` | field-move badge | `src/field_control_avatar.c:455` refuses Waterfall without `FLAG_BADGE08_GET`; the Ever Grande waterfall tiles sit at y 60-67 with the landing at y 40-57 above them |
 | `HM_STRENGTH_RECEIVED → MAGMA_HIDEOUT` | physical | `MagmaHideout_1F/map.json` carries three `OBJ_EVENT_GFX_PUSHABLE_BOULDER` |
 | `HEAT_BADGE → MAGMA_HIDEOUT` | field-move badge | Strength is unusable without the fourth badge: `field_move_scripts.inc:124` |
 | `FEATHER_BADGE → LEAGUE_ADMISSION_GRANTED` | gym guard | `EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63`; the source comment: the door guards check only `FLAG_BADGE06_GET` because Winona's badge is the only one that can be skipped |
@@ -69,23 +74,27 @@ Verified today (file:line read during this design):
 | `MIND_BADGE → SPACE_CENTER_STORY_COMPLETE` | story var | `data/maps/MossdeepCity_Gym/scripts.inc:79` sets `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` (and unhides the grunts) in Tate & Liza's post-battle script; completion is state 3 at `MossdeepCity_SpaceCenter_2F/scripts.inc:263` |
 | `SPACE_CENTER_STORY_COMPLETE → HM_DIVE_RECEIVED` | story var | `data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:288` sets `VAR_STEVENS_HOUSE_STATE=1`; `data/maps/MossdeepCity_StevensHouse/scripts.inc:24-26` gives Dive on that value |
 | `HM_DIVE_RECEIVED → SOOTOPOLIS_CITY` | physical | `data/maps/Route128/map.json` connection `MAP_UNDERWATER_ROUTE128` type `dive`; `Underwater_SootopolisCity` warps into the city |
-| `FEATHER_BADGE → RAIN_BADGE` | gym guard | `data/maps/SootopolisCity_Gym_1F/scripts.inc:86` `goto_if_unset FLAG_BADGE06_GET, ..._EventScript_GoGetFortreeBadge` |
+| `FEATHER_BADGE → RAIN_BADGE` | **expectation, not a guard** | `SootopolisCity_Gym_1F/scripts.inc:80-86`: the Rain Badge is set in `JuanDefeated`; the `FLAG_BADGE06_GET` branch is the re-talk reminder that sends the player to Fortree *after* the badge |
 | `4 badges → NORMAN battle` | badge count | `include/constants/vars.h:153`: `VAR_PETALBURG_GYM_STATE 0x4085 // 0-1: Wally tutorial, 2-6: 0-4 badges, 7: Defeated Norman`; dispatch at `PetalburgCity_Gym/scripts.inc:104-108` |
 
-Hypotheses still open (each needs one read, not a judgement call):
+Hypotheses from the design pass, closed during implementation — the first three by reading, the fourth by
+reading the wrong file first:
 
-- `HM_SURF_RECEIVED → ROUTE_118_EAST_BANK_REACHED` (the crossing) and `→ MOSSDEEP_CITY` (open sea):
-  read the water metatiles, or keep them as `route` edges that never block.
-- `HM_WATERFALL_RECEIVED → EVER_GRANDE_LANDING`: the item is the gate (Waterfall carries no badge
-  check), the climb itself needs a layout read.
-- Whether anything enforces badges 7 and 8 at all — see §9.
+- `HM_SURF_RECEIVED → ROUTE_118_EAST_BANK_REACHED` and `→ MOSSDEEP_CITY`: resolved to `requires` on
+  `src/field_control_avatar.c:450` (Surf needs badge five). The scripted field-move file is not the gate;
+  the field-control path is.
+- `HM_WATERFALL_RECEIVED → EVER_GRANDE_LANDING`: resolved to `requires` on `:455` (Waterfall needs badge
+  eight), which also makes the Rain Badge mechanically required.
+- Badges seven and eight: `Dive` needs badge seven (`:465`, `:475`) and Waterfall badge eight (`:455`), so
+  both are required to finish; only badge six is skippable.
 
 Dropped during the same pass, and worth keeping visible because a wrong edge is worse than a missing one:
 
 - `STONE_BADGE → DEVON_GOODS_RECOVERED`: the theft scene is five street coordinate triggers
   (`RustboroCity/scripts.inc:229-268`) with no gym condition. Walking the street fires it before or
   after Roxanne.
-- `RAIN_BADGE → CHAMPION_ROOM_REACHED`: the league door checks only badge six.
+- `RAIN_BADGE → CHAMPION_ROOM_REACHED` as a **hard** gate: the league door checks only badge six. It stays in
+  the module as an `expects` edge, because a finished run does hold the badge.
 
 ## 5. Depth
 
@@ -184,7 +193,7 @@ must not encode them:
   skipped. That is still true, and it is what makes the sixth badge the interesting one: skipping it costs
   a gym and buys a detour, and nothing else notices until the door.
 
-These are cheap mistakes to inherit: three came from a summary, one from reading the scripted field-move path and calling it the whole gate. Every edge in the module now cites a `file:line` a reader can check.
+These are cheap mistakes to inherit: three came from a summary, one from reading the scripted field-move path and calling it the whole gate. Every `requires` edge in the module cites a `file:line` that refuses the action; `expects` edges may cite the route narrative instead, and the test only enforces the `file:line` rule on `requires`.
 
 ## 10. Non-goals
 

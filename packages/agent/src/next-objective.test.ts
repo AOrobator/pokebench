@@ -1,6 +1,6 @@
 import {describe,expect,it} from "vitest";
 import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
-import {OBJECTIVE_NODES,blockingPrerequisites} from "./objective-graph.js";
+import {LOCATION_ONLY_OBJECTIVES,OBJECTIVE_NODES,blockingPrerequisites} from "./objective-graph.js";
 import {NextObjective,objectiveLine,targetIn} from "./next-objective.js";
 import type {RunEvent} from "./events.js";
 
@@ -51,8 +51,20 @@ describe("the next objective a stall briefing may name",()=>{
     const dynamo=REQUIRED_FRONTIER_MILESTONES.indexOf("DYNAMO_BADGE");
     const reached=new Set([...REQUIRED_FRONTIER_MILESTONES.slice(0,dynamo + 1).filter(id=>id!=="KNUCKLE_BADGE"),"SLATEPORT_HARBOR"]);
     const target=at(...reached).target();
-    expect(target?.id).not.toBe("SLATEPORT_HARBOR");
-    expect(REQUIRED_FRONTIER_MILESTONES.indexOf(target?.id??"")).toBeGreaterThan(dynamo - 1);
+    // Pinned to the step immediately after Dynamo: the old rule returned index 140 on this same input, so
+    // "somewhere after Dynamo" is not a test of the fix.
+    expect(target?.id).toBe(REQUIRED_FRONTIER_MILESTONES[dynamo + 1]);
+  });
+
+  it("is not stalled by the map visits a checkpoint start never saw",()=>{
+    // A save-state launch reports what is true at that moment, so LAVARIDGE_TOWN and friends are missing
+    // from the log. A badge reached that way is still earned: its map gates cannot testify either way.
+    const dynamo=REQUIRED_FRONTIER_MILESTONES.indexOf("DYNAMO_BADGE");
+    const full=REQUIRED_FRONTIER_MILESTONES.slice(0,dynamo + 1);
+    const checkpoint=full.filter(id=>!LOCATION_ONLY_OBJECTIVES.has(id));
+    expect(checkpoint.length).toBeLessThan(full.length);
+    expect(at(...checkpoint).target()?.id).toBe(at(...full).target()?.id);
+    expect(at(...checkpoint).target()?.id).toBe(REQUIRED_FRONTIER_MILESTONES[dynamo + 1]);
   });
 
   it("names the blocked step with its blockers when nothing ahead is legal",()=>{

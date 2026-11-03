@@ -31,30 +31,35 @@ run's actual next story milestone was something else.
 | 7 | 0 |
 | 8 | 0 |
 
-12 runs reached two or more badges. Nothing in the pool has reached the fifth badge,
-so every statement below about deferral is supported by early-game runs only. That is a limit of the
+12 runs reached two or more badges, and the most any run reached is 4,
+so every statement below about deferral is supported by runs that never finished the game. That is a limit of the
 evidence, not of the graph.
 
 ## Depth against record order
 
 Across all 776 runs the record-order index sits an average of 9.0
 positions ahead of depth (max 58). That gap is not a compliment: the index counts
-a position the run has passed, including positions whose prerequisites were never met — the two badge-4 runs
-are credited with ~140 list positions for closing 82 and 87 objectives. Depth counts only what was closed.
+a position the run has passed, including positions whose prerequisites were never met — the widest gap in
+the pool is 58 positions (`2026-10-24T19-37-24_glm53-mac_6bbd` alone: 140
+list positions for 82 closed objectives). Depth counts only what was closed.
+
+Depth reads a run as its whole history, and a save-state start only reports the state it began from.
+The 3 runs with four badges score 54, 54, 109. The lowest of them began from a
+mid-game save, so depth counts only what their start could prove; it says nothing about how well they played.
 
 Runs that reached two or more badges, ranked by depth (of 211 recordable objectives):
 
 | run | badges | depth | record order | long droughts | off-linear |
 | --- | --- | --- | --- | --- | --- |
 | `2026-10-25T10-50-57_gpt-6-astra_429f` | 4 | 109 | 107 | 3 | 0 |
-| `2026-11-01T09-10-00_deepseek-v4.1-flash_control24h` | 3 | 102 | 102 | 4 | 1 |
+| `2026-11-01T09-10-00_deepseek-v4.1-flash_control24h` | 3 | 102 | 102 | 3 | 0 |
 | `2026-11-01T01-01-00_deepseek-v4.1-flash_control4h` | 2 | 97 | 102 | 0 | 0 |
-| `2026-10-24T19-31-52_qwen36-gpu1_d41e` | 3 | 87 | 140 | 7 | 4 |
-| `2026-10-24T19-37-24_glm53-mac_6bbd` | 2 | 82 | 140 | 1 | 1 |
+| `2026-10-24T19-31-52_qwen36-gpu1_d41e` | 3 | 87 | 140 | 5 | 2 |
+| `2026-10-24T19-37-24_glm53-mac_6bbd` | 2 | 82 | 140 | 0 | 0 |
 | `2026-11-02T15-53-23_deepseek-deepseek-v4.1-flash_80c8` | 2 | 66 | 64 | 0 | 0 |
-| `2026-10-24T08-12-35_qwen36-gpu1_0517` | 2 | 65 | 63 | 2 | 1 |
-| `2026-10-24T19-31-52_qwen36-gpu0_9e33` | 2 | 64 | 62 | 7 | 6 |
-| `2026-10-27T17-35-16_qwen36-gpu0_a702` | 2 | 63 | 61 | 1 | 1 |
+| `2026-10-24T08-12-35_qwen36-gpu1_0517` | 2 | 65 | 63 | 1 | 0 |
+| `2026-10-24T19-31-52_qwen36-gpu0_9e33` | 2 | 64 | 62 | 1 | 0 |
+| `2026-10-27T17-35-16_qwen36-gpu0_a702` | 2 | 63 | 61 | 0 | 0 |
 | `2026-10-28T04-53-02_qwen36-gpu0_88ea` | 2 | 63 | 61 | 0 | 0 |
 | `2026-10-27T20-55-13_gpt-6-astra_c09b` | 4 | 54 | 107 | 0 | 0 |
 | `2026-10-27T21-19-58_gpt-6-astra-current-bundle_235f` | 4 | 54 | 107 | 0 | 0 |
@@ -108,8 +113,8 @@ Longest droughts in the pool:
 - **Supported:** a run can be scored on closure rather than list position, retroactively, from events already
   on disk. Depth is monotone and order-independent, so a deferred badge scores the same as an early one.
 - **Not supported, and this corrects an earlier draft of this file:** that the list named the wrong target in
-  most long droughts. Of the droughts that can testify — the ones ending on a frontier milestone — the list
-  named a different one 3 times out of 58. It does not follow from those three that the list was
+  most long droughts. Of the 58 droughts that can testify — the ones ending on a frontier
+  milestone — the list named a different one 3 times. It does not follow from those that the list was
   wrong to name it: a milestone can be the right target while the run makes no progress toward it, and the
   three longest droughts in the pool are exactly that (see the table: the list's pick and the run's arrival
   agree). The Rustboro-from-Mauville nag is a single described incident in `glm53-mac_0d5d`; it is evidence

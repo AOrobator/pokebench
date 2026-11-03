@@ -135,6 +135,10 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
       6bbd/d41e `SLATEPORT_HARBOR` before Mauville does not move the mark), and never a step behind it.
       The fallback that names a blocked step with its blockers is defensive: the record order always has a
       legal step ahead until the game is cleared, so a live briefing normally carries no `needs …` clause.
+      Caveat a review caught: "earned" only holds while the gate evidence is in the log, and a save-state
+      start reports what is true at that moment — the map visits before it are lost. So the mark ignores
+      *location-only* prerequisites (a catalog entry with a `map` and no flag behind it, 74 of 165) and
+      respects story and flag gates only.
 - [x] Tests: `next-objective.test.ts` (15) + `objective-graph-briefing.test.ts` (5); `next-objective.ts`
       100 stmts / 100 branch / 100 funcs / 100 lines.
 - [x] **Activated by operator instruction (2026-11-02): on in the bundle.** Encoding is the repo's:

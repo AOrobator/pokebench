@@ -71,6 +71,10 @@ const droughts=rows.flatMap(row=>row.droughts);
 // construction, so it cannot testify about the list's aim; it is counted apart.
 const frontierIds=new Set(REQUIRED_FRONTIER_MILESTONES);
 const inOrder=droughts.filter(d=>frontierIds.has(d.to));
+const inOrderOf=row=>row.droughts.filter(d=>frontierIds.has(d.to));
+const clearDistance=remainingToClear(new Set());
+const lateStart=rows.filter(row=>row.badges>=4).sort((a,b)=>a.depth-b.depth);
+const widest=rows.reduce((best,row)=>row.frontier-row.depth>best.frontier-best.depth?row:best,rows[0]);
 const offList=droughts.filter(d=>!frontierIds.has(d.to));
 const eligible=rows.filter(row=>row.badges>=2).sort((a,b)=>b.depth-a.depth);
 const divergence=rows.filter(row=>row.frontier>0).map(row=>row.frontier-row.depth);
@@ -105,22 +109,27 @@ const report=[
 "",
 table(["badges","runs"],[0,1,2,3,4,5,6,7,8].map(count=>[String(count),String(rows.filter(row=>row.badges===count).length)])),
 "",
-`${String(eligible.length)} runs reached two or more badges. Nothing in the pool has reached the fifth badge,`,
-"so every statement below about deferral is supported by early-game runs only. That is a limit of the",
+`${String(eligible.length)} runs reached two or more badges, and the most any run reached is ${String(Math.max(...rows.map(row=>row.badges)))},`,
+"so every statement below about deferral is supported by runs that never finished the game. That is a limit of the",
 "evidence, not of the graph.",
 "",
 "## Depth against record order",
 "",
 `Across all ${String(rows.length)} runs the record-order index sits an average of ${mean(divergence).toFixed(1)}`,
 `positions ahead of depth (max ${String(Math.max(...divergence))}). That gap is not a compliment: the index counts`,
-"a position the run has passed, including positions whose prerequisites were never met — the two badge-4 runs",
-"are credited with ~140 list positions for closing 82 and 87 objectives. Depth counts only what was closed.",
+`a position the run has passed, including positions whose prerequisites were never met — the widest gap in`,
+`the pool is ${String(widest.frontier-widest.depth)} positions (\`${widest.run}\` alone: ${String(widest.frontier)}`,
+`list positions for ${String(widest.depth)} closed objectives). Depth counts only what was closed.`,
+"",
+"Depth reads a run as its whole history, and a save-state start only reports the state it began from.",
+`The ${String(lateStart.length)} runs with four badges score ${lateStart.map(row=>String(row.depth)).join(", ")}. The lowest of them began from a`,
+"mid-game save, so depth counts only what their start could prove; it says nothing about how well they played.",
 "",
 `Runs that reached two or more badges, ranked by depth (of ${String(OBJECTIVE_NODES.length)} recordable objectives):`,
 "",
 table(["run","badges","depth","record order","long droughts","off-linear"],
   eligible.map(row=>[`\`${row.run}\``,String(row.badges),String(row.depth),String(row.frontier),
-    String(row.droughts.length),String(row.droughts.filter(d=>d.offLinear).length)])),
+    String(inOrderOf(row).length),String(inOrderOf(row).filter(d=>d.offLinear).length)])),
 "",
 `Depth and record order are not two rescalings of one number: the index reports the furthest position reached`,
 "in a list, depth reports how many objectives were closed. They agree in rank when a run followed the record",
@@ -129,7 +138,7 @@ table(["run","badges","depth","record order","long droughts","off-linear"],
 "",
 "## Distance to a clear",
 "",
-`\`remainingToClear\` reads 14 for every run in the pool, and that is not a bug: a cleared game's hard-gated`,
+`\`remainingToClear\` reads ${String(clearDistance)} for every run in the pool, and that is not a bug: a cleared game's hard-gated`,
 "closure is the league sequence behind badge six, and no run here has reached badge six. The number is a",
 "late-game distance, constant and uninformative before then, so it is reported here and nowhere else — the",
 "trainer card was deliberately left alone. Depth is the usable half.",
@@ -161,8 +170,8 @@ table(["turns","run","from","to","frontier named next"],droughts.slice().sort((a
 "- **Supported:** a run can be scored on closure rather than list position, retroactively, from events already",
 "  on disk. Depth is monotone and order-independent, so a deferred badge scores the same as an early one.",
 "- **Not supported, and this corrects an earlier draft of this file:** that the list named the wrong target in",
-"  most long droughts. Of the droughts that can testify — the ones ending on a frontier milestone — the list",
-"  named a different one 3 times out of 58. It does not follow from those three that the list was",
+`  most long droughts. Of the ${String(inOrder.length)} droughts that can testify — the ones ending on a frontier`,
+`  milestone — the list named a different one ${String(inOrder.filter(d=>d.offLinear).length)} times. It does not follow from those that the list was`,
 "  wrong to name it: a milestone can be the right target while the run makes no progress toward it, and the",
 "  three longest droughts in the pool are exactly that (see the table: the list's pick and the run's arrival",
 "  agree). The Rustboro-from-Mauville nag is a single described incident in `glm53-mac_0d5d`; it is evidence",
@@ -175,4 +184,4 @@ table(["turns","run","from","to","frontier named next"],droughts.slice().sort((a
 
 await writeFile(out,report);
 console.log(`wrote ${out}: ${String(rows.length)} runs, ${String(droughts.length)} droughts, ` +
-  `${String(droughts.filter(d=>d.offLinear).length)} off-linear, mean frontier-depth ${mean(divergence).toFixed(1)}`);
+  `${String(inOrder.filter(d=>d.offLinear).length)} of ${String(inOrder.length)} frontier-ending droughts off-linear, mean frontier-depth ${mean(divergence).toFixed(1)}`);

@@ -5,8 +5,9 @@ import {OPTIONAL_PROGRESS_NAMES,PROGRESS_CATALOG} from "./story-progress.js";
 // requires - a script guard, field-move check or physical obstruction refuses the action, and
 //            every edge carries the file that proves it. This is what "earned" and "blocked" mean.
 // expects  - the route assumes it but nothing refuses it, so it may order a plan and never block one.
-//            The league door is the clean example: it checks badge six only, so the Rain Badge is
-//            expected of a finished run without being enforced by any script we have read.
+//            The sixth badge is the clean example: the league door checks it, but the Sootopolis gym does
+//            not, and nothing else refuses the Rain Badge without it. (Badge eight is different: the
+//            Waterfall climb to Ever Grande is enforced at src/field_control_avatar.c:455.)
 export type ObjectiveRelation="requires"|"expects";
 
 export interface ObjectiveEdge{
@@ -51,6 +52,8 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
     evidence:"data/maps/MagmaHideout_1F/map.json carries three OBJ_EVENT_GFX_PUSHABLE_BOULDER"},
   {from:"MAGMA_EMBLEM_RECEIVED",to:"MAGMA_HIDEOUT",relation:"requires",
     evidence:"data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM opens the hideout entrance"},
+  {from:"DYNAMO_BADGE",to:"HM_STRENGTH_RECEIVED",relation:"requires",
+    evidence:"data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET; :88 TryUpdateRusturfTunnelState (src/field_specials.c:1398-1414) opens the tunnel state that data/maps/RusturfTunnel/scripts.inc:7-8 runs to hand over HM04 at :56"},
   {from:"HEAT_BADGE",to:"MAGMA_HIDEOUT",relation:"requires",
     evidence:"data/scripts/field_move_scripts.inc:124 refuses Strength without FLAG_BADGE04_GET"},
   {from:"FEATHER_BADGE",to:"LEAGUE_ADMISSION_GRANTED",relation:"requires",
@@ -66,7 +69,7 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
   {from:"RAIN_BADGE",to:"EVER_GRANDE_LANDING",relation:"requires",
     evidence:"src/field_control_avatar.c:455 - the climb above Ever Grande is a Waterfall use, so the eighth badge gates it"},
   {from:"RAIN_BADGE",to:"CHAMPION_ROOM_REACHED",relation:"expects",
-    evidence:"expected of a finished run; the league door does not require it"},
+    evidence:"the league door checks badge six only (EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63), so the eighth badge is expected on the way to the champion rather than enforced by that door"},
   {from:"LEAGUE_ADMISSION_GRANTED",to:"ELITE_FOUR_CHALLENGE_ENTERED",relation:"expects",
     evidence:"story sequence from the admission script"},
   {from:"ELITE_FOUR_CHALLENGE_ENTERED",to:"ELITE_FOUR_SIDNEY_DEFEATED",relation:"expects",
@@ -124,6 +127,17 @@ const all = (names:Iterable<string>, test:(name:string)=>boolean):boolean=>{
 
 // Earned objectives: reached, and every hard prerequisite reached too. Ignores the order they
 // arrived in, which is what makes a deferred badge count the same as an early one.
+// A milestone that is only "the player was standing here" (a map visit with no flag behind it) is not
+// evidence a checkpoint start can carry: a save-state launch reports what is true at that moment and the
+// visits along the way are lost. Gates on those still rank, but they do not decide what a run has earned.
+export const LOCATION_ONLY_OBJECTIVES:ReadonlySet<string>=new Set(PROGRESS_CATALOG
+  .filter(definition=>definition.map!==undefined&&definition.flag===undefined&&definition.anyFlags===undefined&&definition.allFlags===undefined&&definition.variable===undefined)
+  .map(definition=>definition.name));
+
+export function storyBlockingPrerequisites(name:string,reached:ReadonlySet<string>):readonly string[] {
+  return blockingPrerequisites(name,reached).filter(parent=>!LOCATION_ONLY_OBJECTIVES.has(parent));
+}
+
 export function objectiveDepth(reached:ReadonlySet<string>):number{
   let depth=0;
   for(const name of reached){

@@ -70,7 +70,9 @@
   "refusal-ledger-bound-v1",
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
-  "rusturf-entry-followup-v1"
+  "rusturf-entry-followup-v1",
+  "drought-progress-credit-v2",
+  "open-milestone-stall-v1"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -421,6 +423,8 @@
   "static-npc-template-approach-v1": false,
   "rejected-movement-prefix-v1": false,
   "turn-drought-clock-v1": false,
+  "drought-progress-credit-v2": false,
+  "open-milestone-stall-v1": false,
   "away-note-buildings-v1": false,
   "current-map-display-name-v1": false,
   "window-escape-route-v1": false,

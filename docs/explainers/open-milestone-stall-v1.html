@@ -190,9 +190,6 @@ navigation recovery is open, and the counter does not advance past the threshold
   -> packages/viewer/src/{model,trace}.ts  label for the new kind</pre>
 
 <h2>Status</h2>
-<p>Branch <code>main</code>, working tree. Tests: "briefs once on an open leader loss after 30 actions…", "banks a due
-open-milestone note through a battle and sends it at the next free result", "stops briefing once the leader is beaten",
-"sends no open-milestone note with the switch off". Deleting the <code>stall("open_milestone", …)</code> call turns the
-first two red. Not measured in a run: activation needs an operator-approved fixed-run comparison.</p>
+<p>Branch <code>main</code>. Tests: "briefs once on an open leader loss after 30 actions…", "banks a due open-milestone note through a battle and sends it at the next free result", "stops briefing once the leader is beaten", "sends no open-milestone note with the switch off"; deleting the <code>stall("open_milestone", …)</code> call turns the first two red. <strong>ON in the bundle arm since the 2026-11-02 recipe revision</strong> with its prerequisite <code>stall-briefing-v1</code>; the control arm keeps it off and the pinned control base still matches. Not yet measured: a running trial materializes its preset once, at launch, so the trial that carries it is the next fixed-run launch.</p>
 </main>
 </body></html>

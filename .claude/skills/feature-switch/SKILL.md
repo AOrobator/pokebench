@@ -29,6 +29,12 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - Append `...when(id)` at the end of `playHarnessFeatures`. Never reorder this list; recorded runs depend on it.
    - Use `needs` only if ON is meaningless or invalid without the other switch. A default-ON switch whose dependency can be OFF must use `needs: null`, or old presets fail validation.
 2. **Presets** (`packages/agent/src/play-preset.ts`): make the id optional in `FeatureSetSchema` and give it a value in `normalizeFeatures`. A new treatment defaults to `false` when omitted. A retroactive switch on landed behavior defaults to `true`. Set `flagFeatures` the same way.
+
+   Optional means three edits, not one: exclude the id from the required `Object.fromEntries(...filter...)` map,
+   add an explicit `Type.Optional(Type.Boolean())` line, and add the id to that map's `Record<Exclude<...>>` union.
+   Skip any of them and every checked-in preset fails `Invalid play preset: /features must have required properties`
+   (that lands as dozens of red bundle tests, not one). Keeping presets byte-identical also keeps their pinned
+   `sha256` control bases valid.
 3. **Defaults**: set `DEFAULT_NEXT_RUN` in `packages/viewer/src/next-run.ts`. New treatments start OFF until measured evidence and operator approval support activation.
 4. **Server side**: if the game server applies the switch, add it to `SERVER_FEATURES` in both `features.ts` and `env/pokebench_env/readout.py`, and to the Python default-off list if it starts OFF.
 5. **Wiring**: thread the switch from `FeatureSet` to the behavior through the production factory (for example `withNavigation`, `playTools`, `playSystemPrompt`). Do not read env vars or globals.

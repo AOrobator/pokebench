@@ -70,7 +70,8 @@
   "refusal-ledger-bound-v1",
   "instruction-memory-yaml-v1",
   "current-question-focus-v1",
-  "rusturf-entry-followup-v1"
+  "rusturf-entry-followup-v1",
+  "objective-graph-supervisor-v1"
  ],
  "offInBoth": [
   "screenshot-button-baseline-v1",
@@ -309,6 +310,7 @@
   "next-milestone-hint-v1": false,
   "no-exit-here-v1": true,
   "no-nickname-guidance-v1": true,
+  "objective-graph-supervisor-v1": false,
   "objective-tracking-v1": false,
   "observed-instructions-v1": true,
   "offscreen-objects-v1": true,

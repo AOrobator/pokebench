@@ -134,7 +134,13 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
       received first`).
 - [x] Tests: `next-objective.test.ts` (15) + `objective-graph-briefing.test.ts` (5); `next-objective.ts`
       100 stmts / 100 branch / 100 funcs / 100 lines.
-- [ ] Explainer page; activation and ablation recorded here, not launched by merging.
+- [x] **Activated by operator instruction (2026-11-02): on in the bundle.** Encoding is the repo's:
+      `experiments/feature-configs/current.json` gains the id in `switches` (bundle arm turns it on) and
+      `"objective-graph-supervisor-v1": false` in `features` (the control base keeps it off; the parser
+      refuses a bundle switch that is on in the base). Control base preset untouched. Suite green at
+      384 files / 5422 tests; three pinned-definition tests refused the first attempt, which is the
+      validator stopping a switch from being on in both arms — recorded here so the next flip is one try.
+- [ ] Explainer page; ablation recorded here, not launched by merging.
 
 **M3 finding — the graph cannot un-nag a legal objective.** `KNUCKLE_BADGE` is index 59 of the record
 order and `DYNAMO_BADGE` is 83; nothing hard-gates the Dewford gym, so a run that deliberately deferred it

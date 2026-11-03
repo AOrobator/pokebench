@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "NODE_OPTIONS=--max-old-space-size=8192 vitest run",
     "coverage": "NODE_OPTIONS=--max-old-space-size=8192 vitest run --coverage",
     "lint": "tsc --noEmit && eslint .",
     "build": "tsc -p tsconfig.build.json && node dist/build-stamp.js"

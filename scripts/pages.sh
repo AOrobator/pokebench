@@ -42,6 +42,7 @@ check() {
 
 inline_fonts() {
     python3 -I - "$root/packages/viewer/static/fonts" "$@" <<'PY'
+from __future__ import annotations
 import base64, pathlib, re, sys
 fonts = pathlib.Path(sys.argv[1])
 pattern = re.compile(r"url\((['\"]?)[^)'\"]*?/fonts/([a-z0-9-]+\.woff2)\1\)")
@@ -60,6 +61,7 @@ PY
 # body content, since the theme draws the PokéNav screen on <main>. Re-running replaces the block.
 theme() {
     python3 -I - "$(git rev-parse --show-toplevel)" "$@" <<'PY'
+from __future__ import annotations
 import base64, pathlib, re, sys
 top = pathlib.Path(sys.argv[1])
 font = base64.b64encode((top / "packages/viewer/static/fonts/press-start-2p.woff2").read_bytes()).decode()

@@ -14,12 +14,13 @@ import {MOVING_NPC_SENTENCE,PATH_STEP_IN_SENTENCE,pathStepIn} from "./semantic-n
 import {playGameTools} from "./play-wiring.js";
 
 const ID="moving-npc-intercept-v1";
+function must<T>(value:T|undefined|null):T {if(value===undefined||value===null)throw new Error("missing fixture value");return value;}
 const request={map_id:[0,9],target:{kind:"object",local_id:2}};
 type Target=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 // A 12-tile loop around a 2x2 table at (2..3,2..3) on a 6x6 floor; the person walks it the same way
 // round, as the cottage pair does.
 const LOOP=[{x:4,y:1},{x:4,y:2},{x:4,y:3},{x:4,y:4},{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:1,y:3},{x:1,y:2},{x:1,y:1},{x:2,y:1},{x:3,y:1}];
-const STEPS:PatrolStep[]=LOOP.map((from,i)=>({from,to:LOOP[(i+1)%LOOP.length]!}));
+const STEPS:PatrolStep[]=LOOP.map((from,i)=>({from,to:must(LOOP[(i+1)%LOOP.length])}));
 const table=(x:number,y:number)=>x>=2&&x<=3&&y>=2&&y<=3;
 const npc=(p:{x:number;y:number}):Target=>({kind:"object",x:p.x,y:p.y,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:2,native_slot:2,destination:null,name:"PERSON"});
 function place(state:GameStateSnapshot,p:{x:number;y:number}):GameStateSnapshot {
@@ -53,7 +54,7 @@ function fixture(o:Options={}){
  const recorder={trainerSightCheck:()=>undefined,subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
  let reads=0;
  // The person takes one step along the loop before each read until a step-in pins them.
- const tools=playGameTools([observe,pressFake],features,{read:()=>{reads+=1;if(reads>=2&&o.moves!==false&&!pinned)current=place(current,LOOP[(reads-1)%LOOP.length]!);return Promise.resolve(current);},trainerSight:()=>Promise.resolve({available:false,reason:"fixture"})},recorder);
+ const tools=playGameTools([observe,pressFake],features,{read:()=>{reads+=1;if(reads>=2&&o.moves!==false&&!pinned)current=place(current,must(LOOP[(reads-1)%LOOP.length]));return Promise.resolve(current);},trainerSight:()=>Promise.resolve({available:false,reason:"fixture"})},recorder);
  const tool=tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing tool");
  return {sent,watches,intercepts,tool,state:()=>current};
 }
@@ -78,7 +79,7 @@ it("watches a person seen moving, steps into their path from beside it, then fac
  const out=await f.tool.execute("pin",request);
  expect(f.watches).toEqual([{map_id:[0,9],target_local_id:2,target_slot:2,max_frames:INTERCEPT_MAX_FRAMES}]);
  expect(f.intercepts).toHaveLength(1);
- const plan=f.intercepts[0]!;
+ const plan=must(f.intercepts[0]);
  expect(LOOP.some(t=>t.x===plan.wait.x&&t.y===plan.wait.y)).toBe(false);
  expect(STEPS.some(s=>s.from.x===plan.approach.x&&s.from.y===plan.approach.y&&s.to.x===plan.enter.x&&s.to.y===plan.enter.y)).toBe(true);
  expect(Math.abs(plan.wait.x-plan.enter.x)+Math.abs(plan.wait.y-plan.enter.y)).toBe(1);
@@ -133,13 +134,13 @@ it("does exactly the OFF follow when the press tool cannot reach the game server
 
 it("chooses a reachable free tile off the path, next to a tile the person steps onto",()=>{
  const state=field();
- const plan=pathStepIn(state,STEPS,{mode:"walkable-floor"});
- expect(plan).not.toBeNull();
- expect(LOOP.some(t=>t.x===plan!.wait.x&&t.y===plan!.wait.y)).toBe(false);
+ const plan=must(pathStepIn(state,STEPS,{mode:"local"}));
+ expect(LOOP.some(t=>t.x===plan.wait.x&&t.y===plan.wait.y)).toBe(false);
  // Nearest to the player at (5,5): beside (4,4) at (5,4) or (4,5).
- expect([[5,4],[4,5]]).toContainEqual([plan!.wait.x,plan!.wait.y]);
- const walled={...state,navigation_grid:{...state.navigation_grid!,tiles:state.navigation_grid!.tiles.map(t=>LOOP.some(l=>l.x===t.x&&l.y===t.y)||(t.x===5&&t.y===5)?t:{...t,collision:1})}};
- expect(pathStepIn(walled,STEPS,{mode:"walkable-floor"})).toBeNull();
+ expect([[5,4],[4,5]]).toContainEqual([plan.wait.x,plan.wait.y]);
+ const grid=must(state.navigation_grid);
+ const walled={...state,navigation_grid:{...grid,tiles:grid.tiles.map(t=>LOOP.some(l=>l.x===t.x&&l.y===t.y)||(t.x===5&&t.y===5)?t:{...t,collision:1})}};
+ expect(pathStepIn(walled,STEPS,{mode:"local"})).toBeNull();
 });
 
 function server(routes:Record<string,(body:unknown)=>{status?:number;body:unknown}>){
@@ -167,15 +168,15 @@ it("production press tool owns the queue for the watch and the step-in and check
   "GET *":()=>({body:posted!==undefined&&"wait" in posted?{...posted,frames:30,phase:"entered",reason:"entered",stopped:true}:{...posted,edges:STEPS,frames:193,reason:"loop closed",stopped:true}}),
  });
  const press=pressTool("http://game",hooks,s.fetchFn,clock);
- const watched=await press.executeWatch!({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined);
+ const watched=await must(press.executeWatch)({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined);
  expect(watched.reason).toBe("loop closed");
  expect(s.calls.map(c=>`${c.method} ${c.url}`).slice(0,3)).toEqual(["GET /pokebench/state","POST /pokebench/intercept/watch","GET /queue_status"]);
  const plan={map_id:[0,9] as [number,number],wait:{x:5,y:1},enter:{x:4,y:1},approach:{x:4,y:2},target_local_id:2,target_slot:2,elevation:3,max_frames:240};
- const stepped=await press.executeIntercept!("call",plan,()=>undefined);
+ const stepped=await must(press.executeIntercept)("call",plan,()=>undefined);
  expect(stepped.details.intercept.reason).toBe("entered");
  expect((hooks.presses.at(-1) as unknown[]).slice(0,3)).toEqual(["call",["LEFT"],{hold_frames:241,release_frames:8}]);
  expect(stepped.content.some(part=>part.type==="text"&&part.text.startsWith("Path step-in receipt: "))).toBe(true);
- await expect(press.executeIntercept!("bad",{...plan,wait:{x:5,y:5}},()=>undefined)).rejects.toThrow("not next to");
+ await expect(must(press.executeIntercept)("bad",{...plan,wait:{x:5,y:5}},()=>undefined)).rejects.toThrow("not next to");
 });
 
 it("production press tool cancels on a failed queue wait and rejects a receipt for another request",async()=>{
@@ -185,7 +186,7 @@ it("production press tool cancels on a failed queue wait and rejects a receipt f
   "POST /pokebench/intercept/watch":()=>({body:{status:"error",message:"game input queue busy"},status:409}),
   "POST *":()=>{cancelled+=1;return {body:{}};},
  });
- await expect(pressTool("http://game",hooks,failing.fetchFn,clock).executeWatch!({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined)).rejects.toThrow("game input queue busy");
+ await expect(must(pressTool("http://game",hooks,failing.fetchFn,clock).executeWatch)({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined)).rejects.toThrow("game input queue busy");
  expect(cancelled).toBe(1);
  const wrong=server({
   "GET /pokebench/state":()=>({body:state}),
@@ -193,6 +194,14 @@ it("production press tool cancels on a failed queue wait and rejects a receipt f
   "GET /queue_status":()=>({body:{queue_empty:true}}),
   "GET *":()=>({body:{id:"someone-else",map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240,edges:[],frames:1,reason:"loop closed",stopped:true}}),
  });
- await expect(pressTool("http://game",hooks,wrong.fetchFn,clock).executeWatch!({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined)).rejects.toThrow("matching terminal receipt");
- await expect(pressTool("http://game",hooks,wrong.fetchFn,clock).executeWatch!({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>{throw new Error("changed");})).rejects.toThrow("changed");
+ await expect(must(pressTool("http://game",hooks,wrong.fetchFn,clock).executeWatch)({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>undefined)).rejects.toThrow("matching terminal receipt");
+ await expect(must(pressTool("http://game",hooks,wrong.fetchFn,clock).executeWatch)({map_id:[0,9],target_local_id:2,target_slot:2,max_frames:240},()=>{throw new Error("changed");})).rejects.toThrow("changed");
+});
+
+it("keeps the step-in notes in the first text part, ahead of burst frames, so dialogue auto-advance keeps them",async()=>{
+ const f=fixture({overrides:{"moving-npc-frame-burst-v1":true}});
+ const out=await f.tool.execute("first",request);
+ const first=out.content[0];
+ expect(first?.type).toBe("text");
+ expect(first?.type==="text"?first.text:"").toMatch(/^Semantic navigation: .*\nWatched the person walk a repeating path of 12 steps/s);
 });

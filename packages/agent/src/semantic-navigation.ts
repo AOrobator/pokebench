@@ -363,8 +363,12 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
   const notes:string[]=[];
   const finish=(status:string,attempted=false)=>{
    const base=withStatus(last,status,selected,request.target,attempted);
-   const noted=notes.length===0?base:{...base,content:[{type:"text" as const,text:notes.join("\n")},...base.content]};
-   return burst.length===0?noted:{...noted,content:[...burst,...noted.content]};
+   if(notes.length===0)return burst.length===0?base:{...base,content:[...burst,...base.content]};
+   // Dialogue auto-advance keeps only the first content part of a semantic walk, so the step-in notes
+   // ride in the status text and go before any burst frames.
+   const [head,...rest]=base.content;
+   const line=head?.type==="text"?head.text:"";
+   return {...base,content:[{type:"text" as const,text:`${line}\n${notes.join("\n")}`},...burst,...rest]};
   };
   const identity=(state:GameStateSnapshot):SnapshotTarget|null=>{
    const fresh=resolve(state,request.target,baseOptions);

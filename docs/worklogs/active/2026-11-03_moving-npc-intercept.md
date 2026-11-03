@@ -135,6 +135,10 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 - 2026-11-03: M1 delete-guard checks: removing the other-walker tile check, previous-coordinate check, approach wait, facing turn, identity or entered-tile safety each turns tests red. Removing the separate player-moving guard stays green because the native controllable check already withholds input while the player moves; kept as defense in depth.
 
+- 2026-11-03 01:00 NY: M3 rehearsal on an isolated CPU-only server (127.0.0.1:8183, run dir `runs/rehearsal-intercept-20261103`, worktree build, current-recipe features, no model, no GPU). Booted `gpt-6-astra_429f/checkpoints/DEVON_PRESIDENT_SCENE_COMPLETE.state`, walked to the cottage with the harness tools (MAY's battle offer declined; two ROUTE 104 trainers fought), saved `route104-before-cottage.ss0` (sha1 55a8b6e6…) and `cottage-door.ss0` (sha1 774fc549…).
+- First cottage call opened BRINEY's sail offer, but the result text had no step-in notes: dialogue auto-advance keeps only the first content part of a semantic walk, and the notes were a separate part. Bounded source correction: the notes now ride in the status text, before burst frames (test added; 11 agent cases).
+- Trials from the door state with the fix (each one navigate_to_target call on object 1): phase 0 36.4 s, phase +1 B 36.9 s, phase +3 B 32.3 s; each watched a 12-step loop, stepped in at (6,6) as BRINEY reached (7,6), and opened "We'll set sail for DEWFORD." with the YES/NO.
+
 ## Surprises
 
 - `moving-npc-target-v1` already onInBoth and already "fixed" for drift (2026-11-01); the remaining failure is pursuit lag, not drift aborts.
@@ -143,6 +147,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 ## Multi-Model Review Log
 
 ## Boy Scout Log
+
+- Not fixed here (pre-existing, other switch's owner): with `moving-npc-frame-burst-v1` ON and no step-in notes, the follow's first content part is a burst image, so dialogue auto-advance drops the "Semantic navigation: …" status line after a talk.
 
 ## Archive Milestone (user-gated)
 

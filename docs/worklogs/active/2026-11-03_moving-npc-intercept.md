@@ -148,6 +148,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 ## Multi-Model Review Log
 
+- 2026-11-03 01:09 NY: The operator waived the Grok and GPT/Codex lanes for this landing ("grok and cgpt are waived"). The Claude lane is the review gate. Principles self-review: `runs/reviews/moving-npc-intercept/principles.md`, zero FAIL.
+
 ## Boy Scout Log
 
 - Not fixed here (pre-existing, other switch's owner): with `moving-npc-frame-burst-v1` ON and no step-in notes, the follow's first content part is a burst image, so dialogue auto-advance drops the "Semantic navigation: …" status line after a talk.

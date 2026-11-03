@@ -182,6 +182,7 @@
   "stable-map-codes-v1",
   "solid-tile-leads-v1",
   "auto-talk-interrupt-note-v1",
+  "deep-south-warp-label-v1",
   "eight-badge-mission-v1",
   "semantic-refusal-reasons-v1"
  ],
@@ -497,6 +498,7 @@
   "stable-map-codes-v1": true,
   "solid-tile-leads-v1": true,
   "auto-talk-interrupt-note-v1": true,
+  "deep-south-warp-label-v1": true,
   "semantic-refusal-reasons-v1": true
  }
 }

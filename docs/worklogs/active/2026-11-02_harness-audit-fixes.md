@@ -23,7 +23,9 @@ The thinking-error audit (`runs/thinking-audit-20261102/reports/`, 750 runs) lis
 **`recovery-note-field-only-v1`** (guard, agent, default OFF, needs `navigation-recovery-v1`).
 `NavigationRecovery.context()` returns nothing while the latest state is in battle; the episode stays open and its text returns on the next field request. A pending briefing is not marked exposed during the battle, so it is still delivered afterwards. OFF: byte-identical.
 
-Non-goals: no change to visibility V2 (operator turned it off), no cross-map routing, no recipe change (both switches stay OFF; The operator decides activation).
+Non-goals: no change to visibility V2 (operator turned it off), no cross-map routing.
+
+**Activation (the operator 2026-11-02, 11:08 PM: "the label fix should be on in both arms")**: `deep-south-warp-label-v1` base true and onInBoth in `experiments/feature-configs/current.json` and `experiments/presets/current-control-24h-8k.json`, with a dated README entry. `recovery-note-field-only-v1` stays OFF everywhere.
 
 ## Invariants
 
@@ -50,3 +52,4 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 - 2026-11-02 11:15 PM: triage done; worktree `/private/tmp/pb-harness-audit` on `claude/harness-audit-fixes` from 9f8993be1.
 - 2026-11-02 11:11 PM: RED committed.
 - 2026-11-02 11:25 PM: GREEN committed; changed-file eslint/tsc/ruff/mypy clean. Main itself carries ruff errors in `adjacent_tiles.py` and `map_observation.py` (not touched here), so `just lint` will need that noted.
+- 2026-11-02 11:20 PM: The operator asked for the label fix ON in both arms; config + preset + README updated. Heavy-CPU window granted by the coordinator at 11:18 PM.

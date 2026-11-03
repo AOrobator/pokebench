@@ -139,12 +139,13 @@ export class LoopCoordinator {
       navigationRecovery = false,
       navigationRecoveryTargets = false,
       mapCycleRecovery = false,
+      recoveryFieldOnly = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
     this.progressCycles=options.progressAwareCycles===true?new ProgressAwareCycles():null;
     this.notify = notify;
-    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode,navigationRecoveryTargets,mapCycleRecovery):null;
+    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode,navigationRecoveryTargets,mapCycleRecovery,recoveryFieldOnly):null;
     this.policy = policy;
     this.mode = mode;
     this.interactions = interactions;

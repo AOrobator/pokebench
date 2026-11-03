@@ -17,7 +17,7 @@ export type LoopKind =
   | "cycle"
   | "rejection"
   | "trigger_script";
-export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan";
+export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan" | "open_milestone";
 // same-target-no-progress-v1: its own episode kind, outside the rule registry.
 export type NavigationLoopKind = "same_target_no_progress";
 export type LoopMode = "enforced" | "diagnostic";
@@ -148,6 +148,8 @@ export interface LoopCoordinatorOptions extends LoopRuleFeatures {
   readonly navigationRecoveryTargets?: boolean;
   // map-cycle-recovery-v1: the first unresolved map-cycle episode per story-progress window briefs instead of stopping.
   readonly mapCycleRecovery?: boolean;
+  // recovery-note-field-only-v1: the open navigation-recovery note is not sent with battle requests.
+  readonly recoveryFieldOnly?: boolean;
   readonly policy?: LoopPolicy;
   readonly mode?: LoopMode;
   readonly supervisor?: (kind: LoopKind, calls: number) => string;

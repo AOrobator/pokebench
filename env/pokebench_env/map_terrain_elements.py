@@ -144,6 +144,21 @@ def terrain_elements(
     return () if template is None else (replace(template, x=tile.x, y=tile.y),)
 
 
+DEEP_SOUTH_WARP_LABEL = "deep-south-warp-label-v1"
+
+
+def deep_south_warp_entrances(elements: tuple[MapElement, ...]) -> tuple[MapElement, ...]:
+    """deep-south-warp-label-v1: 0x6E is MB_DEEP_SOUTH_WARP, a non-animated door, not water.
+
+    pokeemerald MetatileBehavior_IsNonAnimDoor includes it, its tile has no TILE_FLAG_SURFABLE,
+    and the game prints nothing for it, so the plain fact is a warp you walk into: an entrance.
+    """
+    return tuple(
+        replace(e, state="entrance") if e.kind == "warp" and e.state == "deep_water_exit" else e
+        for e in elements
+    )
+
+
 def terrain_effect(element: MapElement, tile: MapTile) -> str | None:
     """Existing entry consequences, only for matching collision-clear terrain facts."""
     if tile.collision or replace(element, x=0, y=0) != _TERRAIN.get(tile.behavior):

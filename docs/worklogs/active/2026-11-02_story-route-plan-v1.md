@@ -71,3 +71,24 @@ Merging `claude/objective-graph-v1` in pulled three review fixes that touched th
   Norman.
 - Nothing else moved: `pnpm -r build` and `pnpm -r lint` clean, `packages/agent` **386 files / 5447 tests**,
   `packages/viewer` **184 files / 2419 tests**.
+
+### Merge of main (the 24h bundle run, `ce6f83fc4`)
+
+Four generated-file conflicts, all mechanical:
+
+- `experiments/feature-configs/current.json`: took main's 65 switches / 315 features and added
+  `objective-graph-supervisor-v1` and `story-route-plan-v1` to `switches`, both `false` in `features`.
+  Result 67 / 317 — the other agent's run config is intact.
+- `packages/agent/src/features.ts`: kept main's four new entries and mine, and moved my two `when(...)` lines
+  to the end of the transport list so the pinned positions of every earlier switch hold.
+- `play-preset.ts`: main's version plus my two keys in the three generated maps, plus two conventions a
+  pinned test caught — the legacy flag preset must set them `false`, and `FeatureSetSchema` must declare them
+  `Type.Optional` and exclude them from the required-remainder spread, or every fixed-design preset fails to
+  parse.
+- `viewer/src/next-run.ts`: main's version plus the two default-off keys.
+
+Gates on the merged tree: `pnpm -r build` and `pnpm -r lint` clean; `packages/agent` **387 files / 5463
+tests** and `packages/viewer` **184 files / 2424 tests** with `--maxWorkers=3`; coverage agent
+**96.4 / 92.37 / 97.45 / 99.02**, viewer **94.56 / 90.77 / 94.83 / 98.22** (viewer coverage needs
+`--testTimeout=30000`: instrumentation pushes a fixed-runner test past the 5 s default, and it times out
+rather than failing an assertion).

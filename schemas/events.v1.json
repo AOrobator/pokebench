@@ -149,6 +149,7 @@
                 "milestone_drought",
                 "interface_dwell",
                 "same_plan",
+                "open_milestone",
                 "same_target_no_progress"
               ]
             },
@@ -231,6 +232,7 @@
                 "milestone_drought",
                 "interface_dwell",
                 "same_plan",
+                "open_milestone",
                 "same_target_no_progress"
               ]
             },
@@ -318,6 +320,7 @@
                 "milestone_drought",
                 "interface_dwell",
                 "same_plan",
+                "open_milestone",
                 "same_target_no_progress"
               ]
             },

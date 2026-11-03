@@ -22,6 +22,8 @@ export type Stall=
  | {readonly kind:"milestone_drought";readonly minutes:number}
  // turn-drought-clock-v1: actions since the last story milestone, level-up, trainer win or full heal.
  | {readonly kind:"action_drought";readonly actions:number}
+ // open-milestone-stall-v1: the last GYM LEADER battle this run is still a loss. Facts the readout showed, no route.
+ | {readonly kind:"open_milestone";readonly trainer:string;readonly place:string;readonly turn:number;readonly actions:number;readonly before:string;readonly now:string}
  | {readonly kind:"interface_dwell";readonly name:string;readonly calls:number};
 
 // An interface the game owns input for: a naming editor (any phase), or a ready menu or prompt outside battle.
@@ -595,6 +597,10 @@ export class SupervisorBriefing {
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
+  // open-milestone-stall-v1: the open leader loss, with the party the readout showed when that battle started and now.
+  if(stall.kind==="open_milestone")return this.bearings(`SUPERVISOR: You have an unfinished battle: you lost to ${stall.trainer} on ${stall.place} at turn ${String(stall.turn)}, and ${String(stall.actions)} actions have passed without another attempt (stall briefing, ${String(calls)} calls into the run).
+- Party at that battle: ${stall.before}
+- Party now: ${stall.now}`,true,true);
   if(this.features["drought-progress-facts-v1"]&&(stall.kind==="milestone_drought"||stall.kind==="action_drought")){
    const interval=stall.kind==="milestone_drought"?`milestone counted by the active drought clock for ${String(stall.minutes)} minutes of play`:`milestone, level-up, trainer win or full heal counted by the active drought clock in the last ${String(stall.actions)} actions`;
    return this.bearings(`SUPERVISOR: No new ${interval} (stall briefing, ${String(calls)} calls into the run).`,true,true);

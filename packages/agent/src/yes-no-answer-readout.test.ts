@@ -19,7 +19,11 @@ it("appends a default-OFF observation server switch and transports explicit ON/O
  const {[ID]:omitted,...legacy}=off;expect(omitted).toBe(false);
  expect(normalizeFeatures(legacy)[ID]).toBe(false);
  expect(LEGACY_ALL_ON[ID]).toBe(false);
- expect(playHarnessFeatures(on,null)).toEqual([...playHarnessFeatures(off,null),ID]);
+ // Two switches registered after this one now sit at the end of the transport list, so the order-free
+ // statement of the same fact is: turning it on adds exactly this id and nothing else.
+ const offList=playHarnessFeatures(off,null),onList=playHarnessFeatures(on,null);
+ expect(onList).toContain(ID);
+ expect(onList.filter(id=>id!==ID)).toEqual(offList);
  expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
  expect(serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  expect(ALL_ON[ID]).toBe(true);

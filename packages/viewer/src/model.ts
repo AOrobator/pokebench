@@ -324,7 +324,7 @@ export class RunView {
   }
 
   loopLabel(event: Of<"loop_guard">): string {
-    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated", same_target_no_progress: "Same target, no progress" } as const;
+    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated", open_milestone: "Open leader loss", same_target_no_progress: "Same target, no progress" } as const;
     const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
     const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
     const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase === "supervisor" ? "supervisor message sent to the model" : event.phase;

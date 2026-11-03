@@ -1,0 +1,193 @@
+# objective-graph-v1 — ranking a legal badge order instead of a display order
+
+Design contract: `docs/designs/objective-graph-v1.md`. Machine-readable edge draft:
+`docs/designs/objective-graph-v1.edges.json`.
+
+This worklog is **not** the target of `WORKLOG.md` (that pointer belongs to
+`2026-11-02_bound-switches-both-arms.md`); read it directly until it becomes active.
+
+## Problem Statement
+
+The harness scores progress by position in `FRONTIER_MILESTONES`, and `next-milestone-hint-v1` asserts
+`MILESTONE_HINTS[furthest+1]` as the next thing to do. The record run's badge order is
+`1 → 3 → 4 → 2 → 5 → 6 → 7 → 8`; Dewford's gym is deferred four badges and Fortree's is entered only
+after Steven. Under a linear frontier that legal order reads as under-performance, and GLM `0d5d`
+reached Stone + Dynamo without Knuckle and concluded the supervisor was wrong for nagging Rustboro.
+`docs/findings/campaign-milestones.md:7` already declares catalog order a display order, not a route.
+The measurement layer does not honour that contract; this work fixes the measurement, then the nag.
+
+## Skills Loaded
+
+- `.claude/skills/feature-worklog/SKILL.md` — sections, milestone sizing, start gate.
+- `.claude/skills/feature-switch/SKILL.md` — a measurement feature needs no switch (scope split below).
+- `docs/agent-principles.md` PB1 (the game grades the run), PB3 (N ≥ 3), PB4 (declare harness help),
+  PB5 (one variable per measured run).
+- `docs/findings/campaign-milestones.md` — the node catalog and its predicate discipline.
+
+## Decisions (operator, 2026-11-02)
+
+1. **One system, two layers.** The operator's pushback on splitting the supervisor: it is the mechanism that
+   keeps a run on track, so it is part of the same concept. Accepted, with a narrower split: the
+   topology and depth are measurement (`feature-switch` exempts measurement and viewer-only changes),
+   and only the model-facing conditioning is a switch. Reason it survives: if scoring sits behind the
+   same id as the nag, the OFF arm is scored on the linear rank and the ON arm on the graph, so
+   turns-to-badge stops being comparable across arms — and the historical re-score would depend on
+   whether a run happened to have the switch on.
+2. **Re-score historical runs.** Depth applies to every already-recorded run. The record-order column
+   stays beside it so the delta is visible.
+3. **Route-plan granularity:** map level plus key interior points.
+4. **Graph switch ships ON in the bundle.** The bundle arm is the ceiling measure; each ablation runs
+   off a pinned base that differs by exactly one switch (PB5).
+5. **Pre-registered drought read** confirmed: longest inter-milestone gap in play minutes, as the
+   mechanism metric beside turns-to-badge.
+
+## Architecture
+
+`PROGRESS_CATALOG` already holds every node — 62 base entries plus 103 campaign additions with
+source-grounded predicates, and `REQUIRED_FRONTIER_MILESTONES` holds 200 ids (49 hand-written plus 151
+derived from the catalog) overlapping it on 154, so 211 recordable ids in all. The graph adds **no
+nodes**, only edges and a depth function:
+
+- `K(R) = { v ∈ R ∩ non-optional : ancestors(v) ⊆ R }`, depth `= |K(R)|`.
+- `remaining` = the count of non-optional nodes in the plan closure of `GAME_CLEAR_CONFIRMED` that the run
+  has not reached. Counting the whole closure, not one path, matters: a cleared game needs every branch
+  (all badges, both HM chains), and a shortest path would silently drop the siblings.
+- Both computed at view time from recorded splits, beside `furthestMilestone`, which stays.
+
+Consumers, named: `packages/viewer/src/frontier.ts` (chart and depth), `reports-view.ts` and the
+grades/report path (column), `milestone-hint.ts` + `loop-supervisor.ts` (M3 conditioning, behind a
+switch), and `story-route-plan-v1`'s step order (M4, follow-on).
+
+`furthestMilestone` is a backwards max-index scan, so final ranks are order-insensitive already; the
+damage is mid-run nagging. The re-score is designed to show small rank deltas and large correction
+counts, and that split is the falsification test for M3.
+
+## Invariants
+
+- **INV-OG1** — Edges form a strict partial order: every id resolves, no cycles, no optional and no
+  location-only prerequisites. Test: extend the shape of `milestone-prerequisites.test.ts:41`.
+- **INV-OG2** — Qualification is a subset of ranking: every `prerequisites` entry in `PROGRESS_CATALOG`
+  also appears as a graph edge. Rationale: two sources of truth otherwise drift apart silently.
+- **INV-OG3** — Depth is monotone and order-insensitive: `R ⊆ R' ⇒ depth(R) ≤ depth(R')`, and a
+  permuted arrival order gives the same depth.
+- **INV-OG4** — M3's OFF state reproduces today's hint and briefing bytes exactly, and ON only changes
+  which objective is named; it never names an objective with unmet ancestors or one already reached.
+- **INV-OG5** — The route plan is advisory: no plan state may cause a refusal, block or gate. Guards
+  the 0517 turn-73 class of defect.
+
+## Security Review
+
+No new model tools, no new privileged readout, no network, no ROM copy, no game-memory write. M1/M2 are
+measurement and viewer paths. M3 changes model-facing text only, derived from catalog ids the model
+already sees. M4 adds a large harness advantage and must be declared in run metadata under PB4.
+
+## Milestones
+
+**M1 — Topology and depth (measurement-only, no switch)**
+- [x] Author `packages/agent/src/objective-graph.ts`: the edge table from the JSON draft, with pret
+      `file:line` evidence carried per edge, plus `objectiveDepth()`, `remainingToClear()`,
+      `enabledObjectives()`, `blockingPrerequisites()` and `unmetPrerequisites()`.
+- [ ] Close the three remaining `status: "hypothesis"` edges (Route 118 east bank, Mossdeep open sea,
+      Ever Grande waterfall). Procedure per edge: read the script or layout; promote to `verified` with
+      `file:line`, demote to a `route` edge that never blocks, or drop it. Two candidate edges were
+      dropped on 2026-11-02 this way, one became two stronger edges, and one dissolved into an open
+      question about badge 7/8 enforcement. Those three now live in the module as `expects` edges, so
+      they cannot block anything while they are unfinished.
+- [x] Tests: INV-OG1 (resolvable, acyclic, non-optional), INV-OG2 (qualification ⊆ ranking), INV-OG3
+      (monotonicity and permuted-order equality), plus each verified edge asserted against its cited
+      fixture where one exists. 17 tests, `packages/agent/src/objective-graph.test.ts`.
+- [x] Cheap checks: `vitest run src/objective-graph.test.ts` 17/17; file coverage 100/96.66/100/100
+      (stmts/branch/funcs/lines); `eslint` clean on both new files.
+- [ ] Gates per `execute-worklog`; record counts and coverage **≥ 90**.
+- Terminator: graph module + tests green, zero unverified edges. Split trigger: if more than five
+  edges resist citation, split the story edges into a second milestone instead of guessing.
+
+**M2 — Depth column and the historical re-score**
+- [ ] View the depth beside the record-order index in `frontier.ts` / `reports-view.ts`; card keeps both.
+- [ ] Read-only rescoring pass over every eligible run: rank delta, depth delta, and corrections
+      suppressed (nags naming an objective with unmet ancestors), written to
+      `docs/findings/objective-graph-rescore.md`.
+- [ ] Report the split explicitly: how much of the damage was end-state rank versus mid-run nagging.
+- Terminator: the findings doc with counts. Split trigger: if corrections-suppressed is ≈ 0 across the
+  pool, do not build M3 — report that the nag hypothesis is wrong instead.
+
+**M3 — `objective-graph-supervisor-v1` (behaviour switch)**
+- [ ] Registry + preset + `DEFAULT_NEXT_RUN` per `feature-switch`; OFF byte-identical.
+- [ ] Conditioning: name only `K(R) ∪ frontier(R)`; otherwise name the nearest unmet prerequisite with
+      its observable fact, in the game's own words (`pokebench-game-state`).
+- [ ] Tests: exact OFF strings; ON suppresses the `0d5d`-shaped nag (Stone + Dynamo, no Knuckle); ON
+      names Knuckle's prerequisite when it is genuinely unmet.
+- [ ] Explainer page; activation and ablation recorded here, not launched by merging.
+- Terminator: switch merged with OFF proven identical; a fixed-run design for ON vs OFF is written and
+  awaits operator approval.
+
+**M4 — `story-route-plan-v1` (follow-on worklog)**
+Named here only for sequencing: its step order is M1's topological order, map + interior granularity,
+advisory-only, three-state off-plan line. Do not implement inside this worklog.
+
+## Pre-registered reads
+
+| metric | definition | arm |
+|---|---|---|
+| turns to badge | split receipt per badge | both |
+| longest drought | longest inter-milestone gap, play minutes | both |
+| `milestone_drought` events | per 1,000 turns | both |
+| corrections suppressed | nags naming an objective with unmet ancestors | ON (retro for both) |
+| plan adherence | steps per 100 turns; off-plan stationary turns | ON only |
+
+## Closing the Loop
+
+- [ ] Tests + gates for M1/M2/M3, counts recorded.
+- [ ] Multi-model review per `execute-worklog`; cloud lanes only, never `inference.example`.
+- [ ] Landing as separate stage; activation/ablation as a third.
+- [ ] Explainers for M3 and M4; viewer refresh only if a viewer path changes.
+
+## Session Log
+
+- 2026-11-02 — Read `keepingiticy speedrun commentary (2026-11-02)` and `Run grades (2026-10-30)`;
+  surveyed `frontier.ts`, `workbench-view.ts`, `reports-view.ts`, `milestone-hint.ts`,
+  `story-progress.ts`, `campaign-catalog.ts`, `findings/campaign-milestones.md`. Verified gates against
+  pret at `~/dev/pokeemerald` (`vars.h:153`, `SootopolisCity_Gym_1F:86`, `MossdeepCity_StevensHouse`, `Wallace`,
+  `RusturfTunnel`, `MauvilleCity_House1`). Wrote the design doc and the edge draft. No source change.
+- 2026-11-02 — M1 on branch `claude/objective-graph-v1` (worktree `/private/tmp/pb-objective-graph`).
+  RED `c528a844c` (tests only, module absent, suite fails at import). GREEN: `objective-graph.ts` with
+  30 edges (17 `requires`, 13 `expects`) and five read functions; 17 tests pass; file coverage
+  100 stmts / 96.66 branch / 100 funcs / 100 lines; eslint clean on both files. `tsc --noEmit` still
+  reports `cut-off-reply.test.ts:75` and `semantic-refusal-reasons.test.ts:75`; both reproduce on main at
+  `def665b08` with nothing of mine present, so they are pre-existing and untouched.
+
+## Surprises
+
+1. **Sootopolis gym is gated on the Feather Badge, not seven badges** (`SootopolisCity_Gym_1F:86`,
+   `GoGetFortreeBadge`). My own review said "Dive + 7 badges" from memory; the script corrected it.
+2. **Waterfall comes from Wallace before Juan**, not after (`SootopolisCity:1252-1261`), so it gates
+   Ever Grande and Victory Road, not the Rain Badge. The commentary note has this backwards.
+3. **The nodes were already built.** 103 campaign additions cover the full game through
+   `GAME_CLEAR_CONFIRMED`; the missing artifact is edges, which is a much smaller job than the note implies.
+4. **The contradiction is already documented**: `findings/campaign-milestones.md:7` says catalog order is
+   a display order while three consumers treat it as a route.
+5. **Final ranks barely move.** `furthestMilestone` takes the maximum reached index, so deferred badges
+   are already not penalised in the end-state table; the penalty is live, in the nag.
+6. **Field moves are badge-gated, not item-gated.** Rock Smash is refused without badge three and
+   Strength without badge four (`field_move_scripts.inc:62,124`), so the HM in the bag is inert until the
+   badge arrives. Every "the HM gates this map" claim needs the badge edge beside it.
+7. **The league door checks one badge.** `EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63` guards on
+   `FLAG_BADGE06_GET` and the source comment calls Winona's the only skippable badge — so nothing read so
+   far forces badges seven and eight. Either an unread script does, or the Rain Badge is mechanically
+   optional, which would make the linear frontier rank a badge the game does not require.
+8. **INV-OG2 caught a prerequisite the hand table missed.** `SLATEPORT_HARBOR` declares
+   `MAGMA_HIDEOUT_STORY_COMPLETE` in the catalog (`campaign-catalog.ts:409-410`), and the first test run
+   failed on it. The invariant that keeps qualification and ranking from drifting apart earned its keep
+   before the module even compiled.
+
+## Multi-Model Review Log
+
+- Pending M1.
+
+## Boy Scout Log
+
+- `packages/agent/src/__probe0517.test.ts` is untracked in the main worktree and not mine; left alone.
+
+## Archive Milestone (user-gated)
+
+- [ ] ASK USER — archive after M3 lands and the ablation is recorded.

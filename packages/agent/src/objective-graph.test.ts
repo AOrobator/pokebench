@@ -3,6 +3,7 @@ import {OPTIONAL_PROGRESS_NAMES,PROGRESS_CATALOG} from "./story-progress.js";
 import {
   OBJECTIVE_EDGES,
   OBJECTIVE_NODES,
+  blockingPrerequisites,
   enabledObjectives,
   objectiveDepth,
   remainingToClear,
@@ -52,8 +53,11 @@ describe("objective graph topology",()=>{
     }
   });
 
-  it("cites a source file for every edge",()=>{
-    for(const edge of OBJECTIVE_EDGES)expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/^[a-z]/);
+  it("cites a source file for every hard gate",()=>{
+    for(const edge of OBJECTIVE_EDGES){
+      expect(edge.evidence.trim().length,`${edge.from} -> ${edge.to}`).toBeGreaterThan(0);
+      if(edge.relation==="requires")expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/(data|docs|include|src)\//);
+    }
   });
 });
 
@@ -101,6 +105,15 @@ describe("objective enablement",()=>{
 
   it("never enables an objective that was already reached",()=>{
     expect(enabledObjectives(at("HM_ROCK_SMASH_RECEIVED","DYNAMO_BADGE"))).not.toContain("HM_ROCK_SMASH_RECEIVED");
+  });
+
+  it("separates hard blockers from expectations",()=>{
+    expect(blockingPrerequisites("ROUTE_111_NORTH",at("DYNAMO_BADGE","HM_ROCK_SMASH_RECEIVED"))).toEqual([]);
+    expect(blockingPrerequisites("NOT_A_MILESTONE",at())).toEqual([]);
+    expect(unmetPrerequisites("NOT_A_MILESTONE",at())).toEqual([]);
+    // The champion room is expected after the Rain Badge but nothing hard-blocks it.
+    expect(blockingPrerequisites("CHAMPION_ROOM_REACHED",at())).toEqual([]);
+    expect(unmetPrerequisites("CHAMPION_ROOM_REACHED",at())).toContain("RAIN_BADGE");
   });
 });
 

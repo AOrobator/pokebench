@@ -1,0 +1,155 @@
+import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
+import {OPTIONAL_PROGRESS_NAMES,PROGRESS_CATALOG} from "./story-progress.js";
+
+// The ranking topology. Two relations, because the ROM has two kinds of gate:
+// requires - a script guard, field-move check or physical obstruction refuses the action, and
+//            every edge carries the file that proves it. This is what "earned" and "blocked" mean.
+// expects  - the route assumes it but nothing refuses it, so it may order a plan and never block one.
+//            The league door is the clean example: it checks badge six only, so the Rain Badge is
+//            expected of a finished run without being enforced by any script we have read.
+export type ObjectiveRelation="requires"|"expects";
+
+export interface ObjectiveEdge{
+  readonly from:string;
+  readonly to:string;
+  readonly relation:ObjectiveRelation;
+  readonly evidence:string;
+}
+
+const GAME_CLEAR="GAME_CLEAR_CONFIRMED";
+
+export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
+  {from:"HM_ROCK_SMASH_RECEIVED",to:"HM_STRENGTH_RECEIVED",relation:"requires",
+    evidence:"data/maps/RusturfTunnel/map.json carries two OBJ_EVENT_GFX_BREAKABLE_ROCK; scripts.inc:47-58 gives HM04"},
+  {from:"HM_ROCK_SMASH_RECEIVED",to:"ROUTE_111_NORTH",relation:"requires",
+    evidence:"breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"},
+  {from:"DYNAMO_BADGE",to:"ROUTE_111_NORTH",relation:"requires",
+    evidence:"data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET"},
+  {from:"LAVARIDGE_TOWN",to:"HEAT_BADGE",relation:"requires",
+    evidence:"data/maps/LavaridgeCity_Gym is enterable with Rock Smash alone; no Mt Chimney beat gates the door"},
+  {from:"BALANCE_BADGE",to:"HM_SURF_RECEIVED",relation:"requires",
+    evidence:"data/maps/PetalburgCity_WallysHouse/scripts.inc:15-17 gives Surf on VAR_PETALBURG_CITY_STATE == 4"},
+  {from:"DEVON_SCOPE_RECEIVED",to:"FORTREE_GYM_OBSTRUCTION_CLEARED",relation:"requires",
+    evidence:"flags 285/295; docs/findings/campaign-milestones.md:74-75"},
+  {from:"FORTREE_GYM_OBSTRUCTION_CLEARED",to:"FEATHER_BADGE",relation:"requires",
+    evidence:"data/maps/FortreeCity/scripts.inc:56-59 gates the gym approach on checkitem ITEM_DEVON_SCOPE and :80 sets FLAG_KECLEON_FLED_FORTREE"},
+  {from:"MIND_BADGE",to:"SPACE_CENTER_STORY_COMPLETE",relation:"requires",
+    evidence:"data/maps/MossdeepCity_Gym/scripts.inc:79 sets VAR_MOSSDEEP_SPACE_CENTER_STATE=1 in Tate & Liza's post-battle script"},
+  {from:"SPACE_CENTER_STORY_COMPLETE",to:"HM_DIVE_RECEIVED",relation:"requires",
+    evidence:"data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:288 sets VAR_STEVENS_HOUSE_STATE=1; StevensHouse/scripts.inc:24-26 gives Dive"},
+  {from:"HM_DIVE_RECEIVED",to:"SOOTOPOLIS_CITY",relation:"requires",
+    evidence:"data/maps/Route128/map.json connection MAP_UNDERWATER_ROUTE128 type dive; Underwater_SootopolisCity warps into the city"},
+  {from:"FEATHER_BADGE",to:"RAIN_BADGE",relation:"requires",
+    evidence:"data/maps/SootopolisCity_Gym_1F/scripts.inc:86 goto_if_unset FLAG_BADGE06_GET, EventScript_GoGetFortreeBadge"},
+  {from:"SOOTOPOLIS_CRISIS_RESOLVED",to:"HM_WATERFALL_RECEIVED",relation:"requires",
+    evidence:"data/maps/SootopolisCity/scripts.inc:1252-1261 gives Waterfall on FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE, before the gym opens"},
+  {from:"DEVON_GOODS_RECOVERED",to:"KNUCKLE_BADGE",relation:"requires",
+    evidence:"data/maps/RusturfTunnel/scripts.inc:322-324 sets VAR_BRINEY_HOUSE_STATE=1 with the goods flag; Route104_MrBrineysHouse/scripts.inc:7 seats Briney only in that state"},
+  {from:"HM_STRENGTH_RECEIVED",to:"MAGMA_HIDEOUT",relation:"requires",
+    evidence:"data/maps/MagmaHideout_1F/map.json carries three OBJ_EVENT_GFX_PUSHABLE_BOULDER"},
+  {from:"HEAT_BADGE",to:"MAGMA_HIDEOUT",relation:"requires",
+    evidence:"data/scripts/field_move_scripts.inc:124 refuses Strength without FLAG_BADGE04_GET"},
+  {from:"FEATHER_BADGE",to:"LEAGUE_ADMISSION_GRANTED",relation:"requires",
+    evidence:"data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63 guards on FLAG_BADGE06_GET only"},
+  {from:"MAGMA_HIDEOUT_STORY_COMPLETE",to:"SLATEPORT_HARBOR",relation:"requires",
+    evidence:"data/maps/MagmaHideout_4F/scripts.inc:55-57 sets VAR_SLATEPORT_HARBOR_STATE=1; docs/findings/campaign-milestones.md:150-152"},
+  {from:"HM_SURF_RECEIVED",to:"ROUTE_118_EAST_BANK_REACHED",relation:"expects",
+    evidence:"docs/findings/campaign-milestones.md:20 - the east bank cannot be earned from the western approach"},
+  {from:"HM_SURF_RECEIVED",to:"MOSSDEEP_CITY",relation:"expects",
+    evidence:"open-sea route; no script guard read"},
+  {from:"HM_WATERFALL_RECEIVED",to:"EVER_GRANDE_LANDING",relation:"expects",
+    evidence:"Waterfall carries no badge check; the climb itself is a layout read still owed"},
+  {from:"RAIN_BADGE",to:"CHAMPION_ROOM_REACHED",relation:"expects",
+    evidence:"expected of a finished run; the league door does not require it"},
+  {from:"LEAGUE_ADMISSION_GRANTED",to:"ELITE_FOUR_CHALLENGE_ENTERED",relation:"expects",
+    evidence:"story sequence from the admission script"},
+  {from:"ELITE_FOUR_CHALLENGE_ENTERED",to:"ELITE_FOUR_SIDNEY_DEFEATED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"ELITE_FOUR_SIDNEY_DEFEATED",to:"ELITE_FOUR_PHOEBE_DEFEATED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"ELITE_FOUR_PHOEBE_DEFEATED",to:"ELITE_FOUR_GLACIA_DEFEATED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"ELITE_FOUR_GLACIA_DEFEATED",to:"ELITE_FOUR_DRAKE_DEFEATED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"ELITE_FOUR_DRAKE_DEFEATED",to:"CHAMPION_ROOM_REACHED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"CHAMPION_ROOM_REACHED",to:"WALLACE_DEFEATED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"WALLACE_DEFEATED",to:"HALL_OF_FAME_ENTERED",relation:"expects",
+    evidence:"story sequence"},
+  {from:"HALL_OF_FAME_ENTERED",to:GAME_CLEAR,relation:"expects",
+    evidence:"story sequence"},
+];
+
+const KNOWN=new Set<string>([...REQUIRED_FRONTIER_MILESTONES,...PROGRESS_CATALOG.map(definition=>definition.name)]);
+export const OBJECTIVE_NODES: readonly string[]=[...KNOWN].sort();
+
+const requiresParents=new Map<string,string[]>();
+const planParents=new Map<string,string[]>();
+const link=(index:Map<string,string[]>,from:string,to:string):void=>{
+  const parents=index.get(to);
+  if(parents===undefined)index.set(to,[from]);
+  else if(!parents.includes(from))parents.push(from);
+};
+for(const edge of OBJECTIVE_EDGES){
+  link(planParents,edge.from,edge.to);
+  if(edge.relation==="requires")link(requiresParents,edge.from,edge.to);
+}
+
+const ancestorsIn=(index:ReadonlyMap<string,string[]>,name:string):ReadonlySet<string>=>{
+  const seen=new Set<string>();
+  const walk=(child:string):void=>{
+    for(const parent of index.get(child)??[]){
+      if(seen.has(parent))continue;
+      seen.add(parent);
+      walk(parent);
+    }
+  };
+  walk(name);
+  return seen;
+};
+
+const countable=(name:string):boolean=>KNOWN.has(name)&&!OPTIONAL_PROGRESS_NAMES.has(name);
+
+const all = (names:Iterable<string>, test:(name:string)=>boolean):boolean=>{
+  for(const name of names)if(!test(name))return false;
+  return true;
+};
+
+// Earned objectives: reached, and every hard prerequisite reached too. Ignores the order they
+// arrived in, which is what makes a deferred badge count the same as an early one.
+export function objectiveDepth(reached:ReadonlySet<string>):number{
+  let depth=0;
+  for(const name of reached){
+    if(!countable(name))continue;
+    if(all(ancestorsIn(requiresParents,name),ancestor=>reached.has(ancestor)))depth+=1;
+  }
+  return depth;
+}
+
+// What may be attempted next: unearned objectives whose hard prerequisites are all reached.
+export function enabledObjectives(reached:ReadonlySet<string>):readonly string[]{
+  const enabled:string[]=[];
+  for(const name of OBJECTIVE_NODES){
+    if(reached.has(name)||!countable(name))continue;
+    if(all(ancestorsIn(requiresParents,name),ancestor=>reached.has(ancestor)))enabled.push(name);
+  }
+  return enabled;
+}
+
+// Hard prerequisites still missing. This is what the supervisor may name as the blocker.
+export function blockingPrerequisites(name:string,reached:ReadonlySet<string>):readonly string[]{
+  if(!KNOWN.has(name))return [];
+  return [...ancestorsIn(requiresParents,name)].filter(ancestor=>!reached.has(ancestor)).sort();
+}
+
+// Everything the plan still needs, hard or expected, and the number a run is measured against.
+export function unmetPrerequisites(name:string,reached:ReadonlySet<string>):readonly string[]{
+  if(!KNOWN.has(name))return [];
+  return [...ancestorsIn(planParents,name)].filter(ancestor=>!reached.has(ancestor)).sort();
+}
+
+export function remainingToClear(reached:ReadonlySet<string>):number{
+  const needed=[...unmetPrerequisites(GAME_CLEAR,reached),GAME_CLEAR];
+  return needed.filter(name=>countable(name)&&!reached.has(name)).length;
+}

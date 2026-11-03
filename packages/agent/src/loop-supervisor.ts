@@ -3,6 +3,8 @@ import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
+import {NextObjective} from "./next-objective.js";
+import {RoutePlan} from "./route-plan.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
@@ -122,6 +124,10 @@ export class SupervisorBriefing {
  private readonly tried:Tried[]=[];
  private readonly touched=new Map<string,Set<string>>();
  private readonly hint:NextMilestoneHint|null;
+ // objective-graph-supervisor-v1: the step a drought briefing may name, and why it is out of reach when it is.
+ private readonly objective:NextObjective|null;
+ // story-route-plan-v1: where on keepingiticy's route the run is, and how long it has been there.
+ private readonly route:RoutePlan|null;
  private story:string|null=null;
  private goal:string|null=null;
  private readonly heard=new Set<string>();
@@ -155,8 +161,9 @@ export class SupervisorBriefing {
  private readonly gate:StoryCharacterGate|null;
  // unfinished-activity-v1: the open items its recorded events carry, by trainer id.
  private readonly unfinished=new Map<number,string>();
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.objective=features["objective-graph-supervisor-v1"]?new NextObjective():null;this.route=features["story-route-plan-v1"]?new RoutePlan():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
+   this.objective?.observe(event);this.route?.observe(event);
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
     if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();}
@@ -604,10 +611,30 @@ export class SupervisorBriefing {
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
- // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training),
- // and no next-milestone hint (route guidance).
+ // objective-graph-supervisor-v1: the next objective by name and id, or nothing; the id lives in the
+ // recorded briefing text so a run's droughts can be counted by objective afterwards.
+ private targetLine():string {
+  const line=this.objective?.describe()??null;
+  return line===null?"":`${line}\n`;
+ }
+
+ // story-route-plan-v1: the route line replaces the bare objective once the plan has started, because it
+ // names the same objective plus the area, the waypoint and how long the run has been off it. Before the
+ // first plan step lands the hint and objective arms still own the answer.
+ private nextLine():string {
+  const route=this.route;
+  if(route!==null&&route.completed()>0){
+   const status=route.status();
+   if(status!==null)return `- Position on the route: ${status}\n`;
+  }
+  return this.targetLine();
+ }
+
+ // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training).
+ // objective-graph-supervisor-v1 is the only switch that adds a next-milestone line here.
  private droughtFacts(actions:number,calls:number):string {
   return [`SUPERVISOR: No new story milestone, level-up, trainer win or full heal in the last ${String(actions)} actions (stall briefing, ${String(calls)} calls into the run).`,
+   ...(this.nextLine()===""?[]:[this.nextLine().slice(0,-1)]),
    `- Last story progress: ${this.lastProgress()}`,
    `- Where you are: ${this.where()}`,
    `- Story steps the game confirms are done: ${this.done()}`].join("\n");
@@ -657,7 +684,7 @@ export class SupervisorBriefing {
 Stop and get your bearings:
 - Where you are: ${this.where()}
 ${first?`${exits}${instruction}`:""}- Last story progress: ${this.lastProgress()}
-${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here${this.exits===null?"":", by sprite kind (a sprite kind is a graphic, not a personal name)"}: ${this.characters()}
+${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}${this.nextLine()}- Characters the readout names here${this.exits===null?"":", by sprite kind (a sprite kind is a graphic, not a personal name)"}: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}
@@ -683,7 +710,7 @@ Stop and get your bearings:
 - Where you are: in the ${ui.name} (screen ${this.screenNow?.state.screen??"unknown"}); your last field position was ${this.where()}
 - Open interface: ${shows}
 ${finish}- Last story progress: ${this.lastProgress()}
-${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Story steps the game confirms are done: ${this.done()}
+${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}${this.nextLine()}- Story steps the game confirms are done: ${this.done()}
 - Recent dialogue you were shown, newest first: ${this.told()}
 - Dialogue shown with your last story step${this.instructionText()}
 - What you tried recently, newest first: ${tried}

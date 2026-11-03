@@ -1,0 +1,282 @@
+{
+  "version": 3,
+  "status": "draft",
+  "feature": "objective-graph-v1",
+  "scope": "measurement-only; no feature switch",
+  "pins": {
+    "pret": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+    "pretPath": "~/dev/pokeemerald",
+    "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+  },
+  "direction": "from = prerequisite, to = objective that becomes worth attempting",
+  "nodeSource": "REQUIRED_FRONTIER_MILESTONES (200 ids: 49 hand-written + 151 catalog-derived) + PROGRESS_CATALOG (165) overlap on 154 => 211 recordable ids; no new nodes",
+  "relations": "requires = a script guard, field-move check or physical obstruction refuses the action; expects = the route assumes it but nothing refuses it, so it may order a plan and never block one",
+  "authority": "packages/agent/src/objective-graph.ts is authoritative; the `edges` array below is generated from it by scripts/objective-graph-edges.mjs, so the file cannot drift from the module it describes. `dropped` and `open` are design history and are kept by hand.",
+  "edges": [
+    {
+      "from": "HM_ROCK_SMASH_RECEIVED",
+      "to": "HM_STRENGTH_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/RusturfTunnel/map.json carries two OBJ_EVENT_GFX_BREAKABLE_ROCK; scripts.inc:47-58 gives HM04"
+    },
+    {
+      "from": "HM_ROCK_SMASH_RECEIVED",
+      "to": "ROUTE_111_NORTH",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/Route111/map.json:222,235 - breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"
+    },
+    {
+      "from": "DYNAMO_BADGE",
+      "to": "ROUTE_111_NORTH",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET"
+    },
+    {
+      "from": "LAVARIDGE_TOWN",
+      "to": "HEAT_BADGE",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/LavaridgeTown_Gym_1F/scripts.inc:62 sets FLAG_BADGE04_GET inside Flannery's defeat script, so the badge is only obtainable in that gym; the gym door itself is open (no badge or story gate read)"
+    },
+    {
+      "from": "BALANCE_BADGE",
+      "to": "HM_SURF_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/PetalburgCity_WallysHouse/scripts.inc:15-17 gives Surf on VAR_PETALBURG_CITY_STATE == 4"
+    },
+    {
+      "from": "DEVON_SCOPE_RECEIVED",
+      "to": "FORTREE_GYM_OBSTRUCTION_CLEARED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/FortreeCity/scripts.inc:58 checkitem ITEM_DEVON_SCOPE gates the Kecleon scene that sets FLAG_KECLEON_FLED_FORTREE at :80; flags 285/295, docs/findings/campaign-milestones.md:74-75"
+    },
+    {
+      "from": "FORTREE_GYM_OBSTRUCTION_CLEARED",
+      "to": "FEATHER_BADGE",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/FortreeCity/scripts.inc:56-59 gates the gym approach on checkitem ITEM_DEVON_SCOPE and :80 sets FLAG_KECLEON_FLED_FORTREE"
+    },
+    {
+      "from": "MIND_BADGE",
+      "to": "SPACE_CENTER_STORY_COMPLETE",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/MossdeepCity_Gym/scripts.inc:79 sets VAR_MOSSDEEP_SPACE_CENTER_STATE=1 in Tate & Liza's post-battle script"
+    },
+    {
+      "from": "SPACE_CENTER_STORY_COMPLETE",
+      "to": "HM_DIVE_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:288 sets VAR_STEVENS_HOUSE_STATE=1; StevensHouse/scripts.inc:24-26 gives Dive"
+    },
+    {
+      "from": "HM_DIVE_RECEIVED",
+      "to": "SOOTOPOLIS_CITY",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:465 refuses Dive without FLAG_BADGE07_GET; the city is only reachable by surfacing from Underwater_SootopolisCity"
+    },
+    {
+      "from": "FEATHER_BADGE",
+      "to": "RAIN_BADGE",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "data/maps/SootopolisCity_Gym_1F/scripts.inc:80-86 gives the Rain Badge on beating Juan; the FLAG_BADGE06_GET branch there is the re-talk reminder, so the sixth badge is skipped, not required"
+    },
+    {
+      "from": "SOOTOPOLIS_CRISIS_RESOLVED",
+      "to": "HM_WATERFALL_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/SootopolisCity/scripts.inc:1252-1261 gives Waterfall on FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE, before the gym opens"
+    },
+    {
+      "from": "BRAWLY_DEFEATED",
+      "to": "KNUCKLE_BADGE",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/DewfordTown_Gym/scripts.inc:144-151 - DewfordTown_Gym_EventScript_BrawlyDefeated sets FLAG_BADGE02_GET"
+    },
+    {
+      "from": "DEVON_GOODS_RECOVERED",
+      "to": "DEWFORD_TOWN",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/RusturfTunnel/scripts.inc:322-324 sets VAR_BRINEY_HOUSE_STATE=1 with the goods flag; Route104_MrBrineysHouse/scripts.inc:7 seats Briney only in that state"
+    },
+    {
+      "from": "HM_STRENGTH_RECEIVED",
+      "to": "MAGMA_HIDEOUT",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/MagmaHideout_1F/map.json:57,70,83 - the three OBJ_EVENT_GFX_PUSHABLE_BOULDER boulders that only Strength moves"
+    },
+    {
+      "from": "MAGMA_EMBLEM_RECEIVED",
+      "to": "MAGMA_HIDEOUT",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM opens the hideout entrance"
+    },
+    {
+      "from": "DYNAMO_BADGE",
+      "to": "HM_STRENGTH_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET; :88 TryUpdateRusturfTunnelState (src/field_specials.c:1398-1414) opens the tunnel state that data/maps/RusturfTunnel/scripts.inc:7-8 runs to hand over HM04 at :56"
+    },
+    {
+      "from": "HEAT_BADGE",
+      "to": "MAGMA_HIDEOUT",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/scripts/field_move_scripts.inc:124 refuses Strength without FLAG_BADGE04_GET"
+    },
+    {
+      "from": "FEATHER_BADGE",
+      "to": "LEAGUE_ADMISSION_GRANTED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63 guards on FLAG_BADGE06_GET only"
+    },
+    {
+      "from": "MAGMA_HIDEOUT_STORY_COMPLETE",
+      "to": "SLATEPORT_HARBOR",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/MagmaHideout_4F/scripts.inc:55-57 sets VAR_SLATEPORT_HARBOR_STATE=1; docs/findings/campaign-milestones.md:150-152"
+    },
+    {
+      "from": "HM_SURF_RECEIVED",
+      "to": "ROUTE_118_EAST_BANK_REACHED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:450 refuses Surf without FLAG_BADGE05_GET; docs/findings/campaign-milestones.md:20 - the east bank cannot be earned from the western approach"
+    },
+    {
+      "from": "HM_SURF_RECEIVED",
+      "to": "MOSSDEEP_CITY",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:450 refuses Surf without FLAG_BADGE05_GET; the open-sea route itself has no script guard"
+    },
+    {
+      "from": "HM_WATERFALL_RECEIVED",
+      "to": "EVER_GRANDE_LANDING",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:455 requires FLAG_BADGE08_GET to use Waterfall"
+    },
+    {
+      "from": "RAIN_BADGE",
+      "to": "EVER_GRANDE_LANDING",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:455 - the climb above Ever Grande is a Waterfall use, so the eighth badge gates it"
+    },
+    {
+      "from": "RAIN_BADGE",
+      "to": "CHAMPION_ROOM_REACHED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "the league door checks badge six only (EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63), so the eighth badge is expected on the way to the champion rather than enforced by that door"
+    },
+    {
+      "from": "LEAGUE_ADMISSION_GRANTED",
+      "to": "ELITE_FOUR_CHALLENGE_ENTERED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence from the admission script"
+    },
+    {
+      "from": "ELITE_FOUR_CHALLENGE_ENTERED",
+      "to": "ELITE_FOUR_SIDNEY_DEFEATED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "ELITE_FOUR_SIDNEY_DEFEATED",
+      "to": "ELITE_FOUR_PHOEBE_DEFEATED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "ELITE_FOUR_PHOEBE_DEFEATED",
+      "to": "ELITE_FOUR_GLACIA_DEFEATED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "ELITE_FOUR_GLACIA_DEFEATED",
+      "to": "ELITE_FOUR_DRAKE_DEFEATED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "ELITE_FOUR_DRAKE_DEFEATED",
+      "to": "CHAMPION_ROOM_REACHED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "CHAMPION_ROOM_REACHED",
+      "to": "WALLACE_DEFEATED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "WALLACE_DEFEATED",
+      "to": "HALL_OF_FAME_ENTERED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    },
+    {
+      "from": "HALL_OF_FAME_ENTERED",
+      "to": "GAME_CLEAR_CONFIRMED",
+      "relation": "expects",
+      "status": "story",
+      "evidence": "story sequence"
+    }
+  ],
+  "dropped": [
+    {
+      "edge": "STONE_BADGE -> DEVON_GOODS_RECOVERED",
+      "reason": "the theft scene is five street coordinate triggers (data/maps/RustboroCity/scripts.inc:229-268) with no gym condition; walking the street fires it before or after Roxanne. No edge."
+    },
+    {
+      "edge": "RAIN_BADGE -> CHAMPION_ROOM_REACHED",
+      "reason": "the league door checks only FLAG_BADGE06_GET and Dive/Waterfall carry no badge gate, so nothing read so far forces the eighth badge. Replaced by FEATHER_BADGE -> LEAGUE_ADMISSION_GRANTED plus the open question below."
+    }
+  ],
+  "open": [
+    {
+      "question": "Does the Petalburg four-badge gate count flags or test a specific badge value?",
+      "read": "include/constants/vars.h:153 documents VAR_PETALBURG_GYM_STATE 2-6 as 0-4 badges; find the updater that advances 2..6"
+    },
+    {
+      "question": "Where does the mid-game nag name a target, if anywhere?",
+      "read": "next-milestone-hint-v1 emits MILESTONE_HINTS[furthest+1] only up to the Stone Badge; past it the drought text and briefing carry pressure with no milestone id, so the retro correction count needs the recorded milestone_hint and briefing payloads"
+    }
+  ],
+  "closed": [
+    {
+      "question": "Is the Rain Badge mechanically skippable? The league door checks only the sixth badge and no field move needs the seventh or eighth. The source comment claims Winona's is the only skippable badge, so something unread must enforce badge 7/8.",
+      "answer": "Both are required, and the badge that decides admission is not the one that is skipped. src/field_control_avatar.c:465 and :475 refuse Dive without FLAG_BADGE07_GET (the Sootopolis approach), :455 refuses Waterfall without FLAG_BADGE08_GET (the Ever Grande climb), and :450 refuses Surf without FLAG_BADGE05_GET. The Rain Badge itself is not a gate on anything; Feather->Rain is an expectation. SootopolisCity_Gym_1F/scripts.inc:80-86 gives the badge on beating Juan regardless of badge six.",
+      "read": "src/field_control_avatar.c:450,455,465,475; data/maps/SootopolisCity_Gym_1F/scripts.inc:80-86; data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63"
+    }
+  ]
+}

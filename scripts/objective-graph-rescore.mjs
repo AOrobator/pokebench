@@ -1,7 +1,7 @@
 // Offline re-score only: reads immutable run event streams, never calls a model or emulator.
 // Scores every recorded run twice — once by the linear record order, once by graph depth — and
 // reports where the two disagree about how far a run got.
-import {createReadStream} from "node:fs";
+import {createReadStream,existsSync} from "node:fs";
 import {readdir,writeFile} from "node:fs/promises";
 import {createInterface} from "node:readline";
 import {join,resolve} from "node:path";
@@ -74,6 +74,7 @@ const inOrder=droughts.filter(d=>frontierIds.has(d.to));
 const inOrderOf=row=>row.droughts.filter(d=>frontierIds.has(d.to));
 const clearDistance=remainingToClear(new Set());
 const lateStart=rows.filter(row=>row.badges>=4).sort((a,b)=>a.depth-b.depth);
+const fromCheckpoint=lateStart.filter(row=>existsSync(join(runs,row.run,"continuation-provenance.json")));
 const widest=rows.reduce((best,row)=>row.frontier-row.depth>best.frontier-best.depth?row:best,rows[0]);
 const offList=droughts.filter(d=>!frontierIds.has(d.to));
 const eligible=rows.filter(row=>row.badges>=2).sort((a,b)=>b.depth-a.depth);
@@ -121,9 +122,10 @@ table(["badges","runs"],[0,1,2,3,4,5,6,7,8].map(count=>[String(count),String(row
 `the pool is ${String(widest.frontier-widest.depth)} positions (\`${widest.run}\` alone: ${String(widest.frontier)}`,
 `list positions for ${String(widest.depth)} closed objectives). Depth counts only what was closed.`,
 "",
-"Depth reads a run as its whole history, and a save-state start only reports the state it began from.",
-`The ${String(lateStart.length)} runs with four badges score ${lateStart.map(row=>String(row.depth)).join(", ")}. The lowest of them began from a`,
-"mid-game save, so depth counts only what their start could prove; it says nothing about how well they played.",
+"Depth reads a run as its whole history, and a checkpoint start only reports the state it began from.",
+`The ${String(lateStart.length)} runs with four badges score ${lateStart.map(row=>String(row.depth)).join(", ")}; ${String(fromCheckpoint.length)} of them began from a checkpoint`,
+`(${fromCheckpoint.map(row=>`\`${row.run}\``).join(", ")}, each with a continuation-provenance.json naming the state it resumed), so depth counts only`,
+"what their log could prove and says nothing about how well they played.",
 "",
 `Runs that reached two or more badges, ranked by depth (of ${String(OBJECTIVE_NODES.length)} recordable objectives):`,
 "",
@@ -138,10 +140,12 @@ table(["run","badges","depth","record order","long droughts","off-linear"],
 "",
 "## Distance to a clear",
 "",
-`\`remainingToClear\` reads ${String(clearDistance)} for every run in the pool, and that is not a bug: a cleared game's hard-gated`,
-"closure is the league sequence behind badge six, and no run here has reached badge six. The number is a",
-"late-game distance, constant and uninformative before then, so it is reported here and nowhere else — the",
-"trainer card was deliberately left alone. Depth is the usable half.",
+`\`remainingToClear\` reads ${String(clearDistance)} for every run in the pool. That is not a bug and not a measurement:`,
+"it is the size of the closure of `GAME_CLEAR_CONFIRMED` over the edges the graph records, which is the league",
+"sequence plus the gates recorded in front of it — not a dependency model of the whole game. No run in the pool",
+`has reached the act where it moves (the deepest is ${String(Math.max(...rows.map(row=>row.depth)))} of ${String(OBJECTIVE_NODES.length)}), so it is a late-game`,
+"distance, constant and uninformative before then. Reported here and nowhere else; the trainer card was",
+"deliberately left alone. Depth is the usable half.",
 "",
 "## Droughts",
 "",

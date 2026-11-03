@@ -43,9 +43,10 @@ a position the run has passed, including positions whose prerequisites were neve
 the pool is 58 positions (`2026-10-24T19-37-24_glm53-mac_6bbd` alone: 140
 list positions for 82 closed objectives). Depth counts only what was closed.
 
-Depth reads a run as its whole history, and a save-state start only reports the state it began from.
-The 3 runs with four badges score 54, 54, 109. The lowest of them began from a
-mid-game save, so depth counts only what their start could prove; it says nothing about how well they played.
+Depth reads a run as its whole history, and a checkpoint start only reports the state it began from.
+The 3 runs with four badges score 55, 55, 109; 2 of them began from a checkpoint
+(`2026-10-27T20-55-13_gpt-6-astra_c09b`, `2026-10-27T21-19-58_gpt-6-astra-current-bundle_235f`, each with a continuation-provenance.json naming the state it resumed), so depth counts only
+what their log could prove and says nothing about how well they played.
 
 Runs that reached two or more badges, ranked by depth (of 211 recordable objectives):
 
@@ -61,8 +62,8 @@ Runs that reached two or more badges, ranked by depth (of 211 recordable objecti
 | `2026-10-24T19-31-52_qwen36-gpu0_9e33` | 2 | 64 | 62 | 1 | 0 |
 | `2026-10-27T17-35-16_qwen36-gpu0_a702` | 2 | 63 | 61 | 0 | 0 |
 | `2026-10-28T04-53-02_qwen36-gpu0_88ea` | 2 | 63 | 61 | 0 | 0 |
-| `2026-10-27T20-55-13_gpt-6-astra_c09b` | 4 | 54 | 107 | 0 | 0 |
-| `2026-10-27T21-19-58_gpt-6-astra-current-bundle_235f` | 4 | 54 | 107 | 0 | 0 |
+| `2026-10-27T20-55-13_gpt-6-astra_c09b` | 4 | 55 | 107 | 0 | 0 |
+| `2026-10-27T21-19-58_gpt-6-astra-current-bundle_235f` | 4 | 55 | 107 | 0 | 0 |
 
 Depth and record order are not two rescalings of one number: the index reports the furthest position reached
 in a list, depth reports how many objectives were closed. They agree in rank when a run followed the record
@@ -71,10 +72,12 @@ and `glm53-mac_6bbd` closes 82 while the list credits it 140.
 
 ## Distance to a clear
 
-`remainingToClear` reads 14 for every run in the pool, and that is not a bug: a cleared game's hard-gated
-closure is the league sequence behind badge six, and no run here has reached badge six. The number is a
-late-game distance, constant and uninformative before then, so it is reported here and nowhere else — the
-trainer card was deliberately left alone. Depth is the usable half.
+`remainingToClear` reads 14 for every run in the pool. That is not a bug and not a measurement:
+it is the size of the closure of `GAME_CLEAR_CONFIRMED` over the edges the graph records, which is the league
+sequence plus the gates recorded in front of it — not a dependency model of the whole game. No run in the pool
+has reached the act where it moves (the deepest is 109 of 211), so it is a late-game
+distance, constant and uninformative before then. Reported here and nowhere else; the trainer card was
+deliberately left alone. Depth is the usable half.
 
 ## Droughts
 

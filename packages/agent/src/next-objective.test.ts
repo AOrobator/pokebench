@@ -59,12 +59,17 @@ describe("the next objective a stall briefing may name",()=>{
   it("is not stalled by the map visits a checkpoint start never saw",()=>{
     // A save-state launch reports what is true at that moment, so LAVARIDGE_TOWN and friends are missing
     // from the log. A badge reached that way is still earned: its map gates cannot testify either way.
-    const dynamo=REQUIRED_FRONTIER_MILESTONES.indexOf("DYNAMO_BADGE");
-    const full=REQUIRED_FRONTIER_MILESTONES.slice(0,dynamo + 1);
+    // Cut after Lavaridge, not before it: the Heat Badge's only hard parent is a map visit, so this is the
+    // prefix where a checkpoint start and a full log disagree if the rule is wrong.
+    const complete=REQUIRED_FRONTIER_MILESTONES.indexOf("LAVARIDGE_GYM_COMPLETE");
+    expect(complete).toBeGreaterThan(REQUIRED_FRONTIER_MILESTONES.indexOf("LAVARIDGE_TOWN"));
+    const full=REQUIRED_FRONTIER_MILESTONES.slice(0,complete + 1);
     const checkpoint=full.filter(id=>!LOCATION_ONLY_OBJECTIVES.has(id));
     expect(checkpoint.length).toBeLessThan(full.length);
-    expect(at(...checkpoint).target()?.id).toBe(at(...full).target()?.id);
-    expect(at(...checkpoint).target()?.id).toBe(REQUIRED_FRONTIER_MILESTONES[dynamo + 1]);
+    expect(full).toContain("LAVARIDGE_TOWN");
+    expect(checkpoint).not.toContain("LAVARIDGE_TOWN");
+    expect(at(...checkpoint).target()).toEqual(at(...full).target());
+    expect(at(...checkpoint).target()?.id).toBe("HEAT_BADGE");
   });
 
   it("names the blocked step with its blockers when nothing ahead is legal",()=>{

@@ -106,9 +106,13 @@ edges, and `C` the non-optional campaign ids.
   That is what makes deferral legal: collecting Knuckle at badge four does not reduce depth, and does
   not have to precede Dynamo to count.
 - **Remaining** `= |{ v ∈ ancestors(GAME_CLEAR) ∪ {GAME_CLEAR} : v ∉ R, non-optional }|`, over
-  `requires ∪ expects`. Counting the closure rather than a shortest path matters: a cleared game needs
-  every branch — all eight badges, both HM chains, the league sequence — and a path metric would silently
-  drop the siblings. Reported as "unmet prerequisite steps", never as a predicted turn count.
+  `requires ∪ expects`. Counting the closure rather than a shortest path matters: a cleared game needs every
+  branch the graph records, and a path metric would silently drop the siblings.
+  **What it is not:** a dependency model of the whole game. The edges were collected to rank a plan, not to
+  enumerate a playthrough, so the closure of `GAME_CLEAR_CONFIRMED` is 14 nodes — the league sequence plus
+  the gates recorded in front of it — and not "everything left". It agrees with a reader's intuition only in
+  the last act, which is why no run in the pool moves it. Reported as "unmet prerequisite steps", never as a
+  predicted turn count.
 
 Both are computed at view time from the recorded splits, like `furthestMilestone` is today. No run
 metadata, no event schema and no recorder change.

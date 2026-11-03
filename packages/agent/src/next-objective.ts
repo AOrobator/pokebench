@@ -1,6 +1,6 @@
 import {PROGRESS_CATALOG} from "./story-progress.js";
 import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
-import {blockingPrerequisites,enabledObjectives,storyBlockingPrerequisites} from "./objective-graph.js";
+import {blockingPrerequisites,enabledObjectives} from "./objective-graph.js";
 import type {RunEvent} from "./events.js";
 
 const LABELS=new Map(PROGRESS_CATALOG.map(definition=>[definition.name,definition.label]));
@@ -18,7 +18,7 @@ export function targetIn(order:readonly string[],reached:ReadonlySet<string>):Ob
   // Dewford gym alone on purpose must not be told to go back to it because the list remembers a gap.
   // Only steps the run actually earned move the mark: an out-of-order milestone (a map visit past a gate
   // it never opened) must not drag the plan forward and hide the steps between.
-  const furthest=order.reduce((best,id,index)=>reached.has(id)&&storyBlockingPrerequisites(id,reached).length===0&&index>best?index:best,-1);
+  const furthest=order.reduce((best,id,index)=>reached.has(id)&&blockingPrerequisites(id,reached).length===0&&index>best?index:best,-1);
   const ahead=order.slice(furthest+1);
   for(const id of ahead){
     if(reached.has(id)||!enabled.has(id))continue;

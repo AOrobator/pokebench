@@ -253,3 +253,29 @@ elsewhere; the plan is not built by anyone yet.
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER — archive after M3 lands and the ablation is recorded.
+
+### Review round 2 — 2026-11-02
+
+Third read of the branch (`4c3bb2fba`) found four things that were still wrong, all fixed here:
+
+- **A checkpoint start stalled the mark.** The location rule was applied only where the mark scans, so
+  `enabledObjectives` still dropped a badge whose sole hard parent was a map visit, and the plan skipped
+  ahead. The earning index now skips location-only parents for every consumer (depth, enabled, blocking);
+  the plan index keeps them so a chain through a place stays connected.
+- **The checkpoint test cut before Lavaridge** and passed without the fix. It now cuts after
+  `LAVARIDGE_GYM_COMPLETE` and pins `HEAT_BADGE` as the target, which is the first prefix where a full log
+  and a save-state log disagree.
+- **Four `requires` edges cited a directory, not a line.** All four now name a `file:line`
+  (`LavaridgeTown_Gym_1F/scripts.inc:62`, `MagmaHideout_1F/map.json:57,Kalos`,
+  `Route111/map.json:222,235`, `FortreeCity/scripts.inc:58,80`), and the test enforces `\.(c|inc|json|md):\d`
+  on every hard edge instead of a bare path prefix.
+- **Two documents overclaimed.** The design's closure paragraph claimed "all eight badges, both HM chains";
+  the closure of `GAME_CLEAR_CONFIRMED` is 14 nodes — the league sequence plus the gates recorded in front
+  of it — and both the design and the findings now say so. The findings' "hard-gated behind badge six" and
+  the uncomputed checkpoint sentence are replaced by computed text: 3 runs at four badges score 54, 54, 109,
+  and 2 of them began from a checkpoint (each carries a `continuation-provenance.json`).
+
+Gates on `4c3bb2fba` → this commit: `pnpm -r build` and `pnpm -r lint` clean; `packages/agent` **384 files /
+5432 tests**, `packages/viewer` **184 files / 2419 tests**; coverage agent **96.4 / 92.38 / 97.45 / 99.02**,
+viewer **94.57 / 90.78 / 94.83 / 98.22**; re-score unchanged at 776 runs / 119 droughts / 3 of 58
+frontier-ending droughts off-linear / mean frontier-depth 9.0. No run launched.

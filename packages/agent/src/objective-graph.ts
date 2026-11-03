@@ -23,15 +23,15 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
   {from:"HM_ROCK_SMASH_RECEIVED",to:"HM_STRENGTH_RECEIVED",relation:"requires",
     evidence:"data/maps/RusturfTunnel/map.json carries two OBJ_EVENT_GFX_BREAKABLE_ROCK; scripts.inc:47-58 gives HM04"},
   {from:"HM_ROCK_SMASH_RECEIVED",to:"ROUTE_111_NORTH",relation:"requires",
-    evidence:"breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"},
+    evidence:"data/maps/Route111/map.json:222,235 - breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"},
   {from:"DYNAMO_BADGE",to:"ROUTE_111_NORTH",relation:"requires",
     evidence:"data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET"},
   {from:"LAVARIDGE_TOWN",to:"HEAT_BADGE",relation:"requires",
-    evidence:"data/maps/LavaridgeCity_Gym is enterable with Rock Smash alone; no Mt Chimney beat gates the door"},
+    evidence:"data/maps/LavaridgeTown_Gym_1F/scripts.inc:62 sets FLAG_BADGE04_GET inside Flannery's defeat script, so the badge is only obtainable in that gym; the gym door itself is open (no badge or story gate read)"},
   {from:"BALANCE_BADGE",to:"HM_SURF_RECEIVED",relation:"requires",
     evidence:"data/maps/PetalburgCity_WallysHouse/scripts.inc:15-17 gives Surf on VAR_PETALBURG_CITY_STATE == 4"},
   {from:"DEVON_SCOPE_RECEIVED",to:"FORTREE_GYM_OBSTRUCTION_CLEARED",relation:"requires",
-    evidence:"flags 285/295; docs/findings/campaign-milestones.md:74-75"},
+    evidence:"data/maps/FortreeCity/scripts.inc:58 checkitem ITEM_DEVON_SCOPE gates the Kecleon scene that sets FLAG_KECLEON_FLED_FORTREE at :80; flags 285/295, docs/findings/campaign-milestones.md:74-75"},
   {from:"FORTREE_GYM_OBSTRUCTION_CLEARED",to:"FEATHER_BADGE",relation:"requires",
     evidence:"data/maps/FortreeCity/scripts.inc:56-59 gates the gym approach on checkitem ITEM_DEVON_SCOPE and :80 sets FLAG_KECLEON_FLED_FORTREE"},
   {from:"MIND_BADGE",to:"SPACE_CENTER_STORY_COMPLETE",relation:"requires",
@@ -90,6 +90,13 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
     evidence:"story sequence"},
 ];
 
+// A milestone that is only "the player was standing here" (a map visit with no flag behind it) is not
+// evidence a checkpoint start can carry: a save-state launch reports what is true at that moment and the
+// visits along the way are lost. Gates on those still rank, but they do not decide what a run has earned.
+export const LOCATION_ONLY_OBJECTIVES:ReadonlySet<string>=new Set(PROGRESS_CATALOG
+  .filter(definition=>definition.map!==undefined&&definition.flag===undefined&&definition.anyFlags===undefined&&definition.allFlags===undefined&&definition.variable===undefined)
+  .map(definition=>definition.name));
+
 const KNOWN=new Set<string>([...REQUIRED_FRONTIER_MILESTONES,...PROGRESS_CATALOG.map(definition=>definition.name)]);
 export const OBJECTIVE_NODES: readonly string[]=[...KNOWN].sort();
 
@@ -100,9 +107,15 @@ const link=(index:Map<string,string[]>,from:string,to:string):void=>{
   if(parents===undefined)index.set(to,[from]);
   else if(!parents.includes(from))parents.push(from);
 };
+// A location-only parent is a place, not a gate. It still ranks (the edge stays in OBJECTIVE_EDGES), but it
+// never decides what a run has earned, how deep it is, or what blocks it: a save-state start cannot report
+// the visits before it, and the flag behind the visit proves it anyway.
+// The plan index keeps every edge, so a chain that runs through a place stays connected; the earning index
+// drops location-only parents, because a save-state start cannot report the visits before it and the flag
+// behind the visit proves it anyway.
 for(const edge of OBJECTIVE_EDGES){
   link(planParents,edge.from,edge.to);
-  if(edge.relation==="requires")link(requiresParents,edge.from,edge.to);
+  if(edge.relation==="requires"&&!LOCATION_ONLY_OBJECTIVES.has(edge.from))link(requiresParents,edge.from,edge.to);
 }
 
 const ancestorsIn=(index:ReadonlyMap<string,string[]>,name:string):ReadonlySet<string>=>{
@@ -127,17 +140,6 @@ const all = (names:Iterable<string>, test:(name:string)=>boolean):boolean=>{
 
 // Earned objectives: reached, and every hard prerequisite reached too. Ignores the order they
 // arrived in, which is what makes a deferred badge count the same as an early one.
-// A milestone that is only "the player was standing here" (a map visit with no flag behind it) is not
-// evidence a checkpoint start can carry: a save-state launch reports what is true at that moment and the
-// visits along the way are lost. Gates on those still rank, but they do not decide what a run has earned.
-export const LOCATION_ONLY_OBJECTIVES:ReadonlySet<string>=new Set(PROGRESS_CATALOG
-  .filter(definition=>definition.map!==undefined&&definition.flag===undefined&&definition.anyFlags===undefined&&definition.allFlags===undefined&&definition.variable===undefined)
-  .map(definition=>definition.name));
-
-export function storyBlockingPrerequisites(name:string,reached:ReadonlySet<string>):readonly string[] {
-  return blockingPrerequisites(name,reached).filter(parent=>!LOCATION_ONLY_OBJECTIVES.has(parent));
-}
-
 export function objectiveDepth(reached:ReadonlySet<string>):number{
   let depth=0;
   for(const name of reached){

@@ -125,18 +125,34 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
   a late-game distance, not progress, and depth is the usable half.
 
 **M3 — `objective-graph-supervisor-v1` (behaviour switch)**
-- [ ] Registry + preset + `DEFAULT_NEXT_RUN` per `feature-switch`; OFF byte-identical.
-- [ ] Conditioning: name only `K(R) ∪ frontier(R)`; otherwise name the nearest unmet prerequisite with
-      its observable fact, in the game's own words (`pokebench-game-state`).
-- [ ] Tests: exact OFF strings; ON suppresses the `0d5d`-shaped nag (Stone + Dynamo, no Knuckle); ON
-      names Knuckle's prerequisite when it is genuinely unmet.
+- [x] Registry: appended to `SWITCHABLE_FEATURES` and `FEATURES`; optional in the play preset, `??false`
+      in `normalizeFeatures` and in the v1 preset map, off in `DEFAULT_NEXT_RUN`. OFF is byte-identical:
+      the briefing test strips the one line and compares the rest to the same briefing with the switch off.
+- [x] Conditioning shipped as **forward-only**: the line names the first *legal* step at or after the
+      furthest step the run has already passed, and never a step behind it. When nothing ahead is legal
+      it names the blocked step and what it needs (`FORTREE_GYM_OBSTRUCTION_CLEARED; needs Devon Scope
+      received first`).
+- [x] Tests: `next-objective.test.ts` (15) + `objective-graph-briefing.test.ts` (5); `next-objective.ts`
+      100 stmts / 100 branch / 100 funcs / 100 lines.
 - [ ] Explainer page; activation and ablation recorded here, not launched by merging.
+
+**M3 finding — the graph cannot un-nag a legal objective.** `KNUCKLE_BADGE` is index 59 of the record
+order and `DYNAMO_BADGE` is 83; nothing hard-gates the Dewford gym, so a run that deliberately deferred it
+(0d5d) is offered it again by any scan that starts at the earliest gap. Forward-only scanning fixes the
+specific nag by never looking backward, but it is the *plan's* order doing the work, not the graph's
+legality. The graph's contribution is the id, the legality annotation and the `needs … first` clause.
+That is the boundary between M3 and M4: M3 can say where the run is going, only M4 can say what the
+route is.
 - Terminator: switch merged with OFF proven identical; a fixed-run design for ON vs OFF is written and
   awaits operator approval.
 
 **M4 — `story-route-plan-v1` (follow-on worklog)**
 Named here only for sequencing: its step order is M1's topological order, map + interior granularity,
 advisory-only, three-state off-plan line. Do not implement inside this worklog.
+
+Surveyed 2026-11-02 before starting anything: `search_files "story-route-plan"` over the repo returned 0,
+no branch or worktree carries it, and `docs/designs/` has no route-plan doc. Nothing is in progress
+elsewhere; the plan is not built by anyone yet.
 
 ## Pre-registered reads
 

@@ -336,6 +336,7 @@ export const SWITCHABLE_FEATURES = [
   "stable-map-codes-v1",
   "solid-tile-leads-v1",
   "auto-talk-interrupt-note-v1",
+  "objective-graph-supervisor-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -790,6 +791,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("stable-map-codes-v1", "observation", "STABLE MAP CODES", "compact-map-grid-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). Run 07a7 read a Codes line that re-lettered itself: on one strip of Rusturf Tunnel F meant the cave floor at turn 395, an object at turn 396 and the floor again at 414, because compact-map-grid-v1 hands letters out by first appearance on every render. With this switch on, a letter once issued keeps its token for the rest of the run, a token new to the book takes an unused letter, tokens that leave the view are simply absent, and the alphabet is fixed rather than taken from the grid: it excludes every one-character glyph and every element legend key, so a code can never read as a glyph or an element (L, the other-level glyph, was previously reachable as a code). No glyph, legend entry or element meaning changes. Off: first-appearance letters on every render, byte for byte, including L."),
   on("solid-tile-leads-v1", "observation", "SOLID TILE LEADS", "adjacent-tiles-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). adjacent-tiles-v1 described a solid neighbour element first and refusal second, so a wall read as ground with a note: turn 395 of run 07a7 saw the cave floor before the collision, and the model pressed DOWN into that wall twenty times. On: a neighbour that cannot be entered leads with the refusal and names the element beneath it afterwards, so the direction, the verdict and the reason stay in one clause. Walkable neighbours, ledges, warps and every other line keep their previous words. Off: the element-first order, byte for byte."),
   on("auto-talk-interrupt-note-v1", "guard", "AUTO-TALK INTERRUPT NOTE", "auto-talk-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). Run 07a7 at 06:32:53: auto-talk chose AQUA_MEMBER_M on Rusturf Tunnel, walked the player toward it, a wild Whismur battle took the field, and the attempt was recorded not_free with text null. The model was never told it had been walked to the grunt, so it re-derived the same detour decision for the next twenty turns; a later retry chose the WINGULL instead and read a dialog of none, which taught it that talking to these people does nothing. On: the interrupted walk is reported in one sentence naming the target, its tile and the screen that took the field, and saying that nothing was said and the walk stopped short, so silence cannot be read as a refusal. A note is never sent into a battle (the 2026-10-22 rule): it is held and delivered on the first request that can read the field, and dropped if the player is on another map by then. Off: the attempt is recorded with text null and nothing reaches the model."),
+  on("objective-graph-supervisor-v1", "guidance", "OBJECTIVE GRAPH SUPERVISOR", "stall-briefing-v1",
+    "Names the next story objective in every drought briefing, by label and catalog id: \"- Next milestone: Stone Badge (STONE_BADGE)\". The order is the recorded route and the prerequisite graph decides which step may be named, so a step whose hard gate is unmet is skipped rather than pressed, and when nothing ahead is legal the briefing names the blocked step and what it needs instead. The id sits in the recorded loop_guard text, so a run's drought briefings can be counted by objective afterwards. This tells the model where to go, so results measure targeted play. Off: drought briefings carry no next-milestone line and read exactly as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1220,6 +1223,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("stable-map-codes-v1"),
     ...when("solid-tile-leads-v1"),
     ...when("auto-talk-interrupt-note-v1"),
+    ...when("objective-graph-supervisor-v1"),
   ];
 }
 

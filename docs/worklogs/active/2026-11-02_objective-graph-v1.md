@@ -107,13 +107,22 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
   edges resist citation, split the story edges into a second milestone instead of guessing.
 
 **M2 — Depth column and the historical re-score**
+- [x] Read-only rescoring pass over every run: `scripts/objective-graph-rescore.mjs` (dist imports, in the
+      style of `scripts/audit-milestone-memory.mjs`) writes `docs/findings/objective-graph-rescore.md`.
+      775 runs scored, 119 droughts of 200+ turns. Re-runnable; do not hand-edit the output.
+- [x] Report the split explicitly: 64 of 119 droughts (54%) ended on a story milestone that was **not** the
+      one the linear frontier named next. Depth never exceeds record order and trails it by 9.1 positions on
+      average (max 58), because the index credits milestones whose prerequisites are missing.
 - [ ] View the depth beside the record-order index in `frontier.ts` / `reports-view.ts`; card keeps both.
-- [ ] Read-only rescoring pass over every eligible run: rank delta, depth delta, and corrections
-      suppressed (nags naming an objective with unmet ancestors), written to
-      `docs/findings/objective-graph-rescore.md`.
-- [ ] Report the split explicitly: how much of the damage was end-state rank versus mid-run nagging.
-- Terminator: the findings doc with counts. Split trigger: if corrections-suppressed is ≈ 0 across the
-  pool, do not build M3 — report that the nag hypothesis is wrong instead.
+      Held: the two numbers diverge by up to 58 and a card can show one bar, so which number the bar means is
+      a design call, not a mechanical edit.
+- Terminator reached, with a caveat that changes M3. The pre-registered primary read — *corrections
+  suppressed* — is **not computable from the pool**: the recorded `loop_guard` `milestone_drought` payload
+  is a stall briefing with no milestone id, so which objective the supervisor was pressing for cannot be
+  recovered from any of the 775 runs. M3's ablation therefore needs the briefing to name its target before
+  it can measure anything. Second finding: `remainingToClear` reads 14 for every run in the pool, because
+  the hard-gated closure is the league sequence behind badge six and nothing has reached badge six — it is
+  a late-game distance, not progress, and depth is the usable half.
 
 **M3 — `objective-graph-supervisor-v1` (behaviour switch)**
 - [ ] Registry + preset + `DEFAULT_NEXT_RUN` per `feature-switch`; OFF byte-identical.
@@ -163,6 +172,13 @@ advisory-only, three-state off-plan line. Do not implement inside this worklog.
   → 382 files / 5409 tests pass in 27s. The fresh worktree needed the build first; without it 31 files
   fail at import on `@pokebench/agent/milestones`, which is a worktree artefact, not a regression.
   `remainingToClear(∅)` = 14, the plan closure of a cleared game; `OBJECTIVE_NODES` = 211.
+- 2026-11-02 — M2 re-score. `node scripts/objective-graph-rescore.mjs` over 775 runs with milestone events
+  (96s, offline, no model or emulator): 12 runs at two or more badges, 119 droughts of 200+ turns, 64 of them
+  (54%) ending on a story milestone that was not the one the linear frontier named next. Mean record-order
+  minus depth 9.1, max 58 (`glm53-mac_6bbd`, `qwen36-gpu1_d41e`). Wrote
+  `docs/findings/objective-graph-rescore.md`. The three longest droughts (2647, 2264, 1831 turns) named the
+  milestone the run did eventually reach, so they are "correct target, no progress", not wrong-target — the
+  graph would not have fixed those, a waypoint plan would.
 
 ## Surprises
 
@@ -187,6 +203,13 @@ advisory-only, three-state off-plan line. Do not implement inside this worklog.
    `MAGMA_HIDEOUT_STORY_COMPLETE` in the catalog (`campaign-catalog.ts:409-410`), and the first test run
    failed on it. The invariant that keeps qualification and ranking from drifting apart earned its keep
    before the module even compiled.
+9. **The drought briefing never names an objective.** 314 of GLM 0d5d's 318 `loop_guard` events are
+   `milestone_drought`, and every one of them carries a stall briefing — location, exits, tried-and-failed —
+   with no milestone id anywhere in it. "Which objective is the supervisor pressing for" is therefore not
+   recoverable from any recorded run, which is exactly the quantity M3's ablation was going to measure.
+10. **`remainingToClear` is a constant for the whole pool.** 14, for all 775 runs, because the hard-gated
+   closure of a cleared game is the league sequence behind badge six and nothing here has reached badge six.
+   A distance measure that cannot move until the last third of the game is not a progress measure.
 
 ## Multi-Model Review Log
 

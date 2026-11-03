@@ -91,8 +91,16 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - [x] COMMIT: `test(env): require a frame-owned patrol intercept` (RED) `3ce404d69`
 - [x] Implement `intercept.py`, installed through `install_travel(intercept=...)` from `serve.py`; server feature off-list
 - [x] Cheap checks: ruff check/format clean on changed files; mypy clean on intercept.py/travel.py (the one mypy error and one format diff are in `map_observation.py`, pre-existing on main); focused pytest intercept+travel+strides 92 passed; intercept.py 96% lines+branches
-- [ ] COMMIT: `feat(env): frame-owned patrol intercept behind moving-npc-intercept-v1` (GREEN)
+- [x] COMMIT: `feat(env): frame-owned patrol intercept behind moving-npc-intercept-v1` (GREEN) `3a82530b8`
 - Outcome: the server can pin a named walker from a side tile. Non-goals: choosing S/T, any model text. Split trigger: if the turn-before-step needs its own receipt protocol.
+
+**M1b — Server patrol watch (design change found while building M2)**
+- Agent state reads are ~35–75 frames apart, so they never see the target's one-tile steps or its direction of travel. The server now also offers `POST /pokebench/intercept/watch`: no input, per-frame record of the target's one-tile steps until a step repeats ("loop closed"), the target stands still for 48 frames, jumps, or the budget ends. The agent picks P→T from those exact steps.
+- `MAX_FRAMES` 480 → 240: one 12-tile lap is 192 frames, and the recorded `button_press.hold_frames` schema caps at 255.
+- "blocked" now counts every stepping frame: a refused step walks in place and keeps the player "moving", so the old idle count never fired.
+- [x] RED: watch cases (exact loop edges with no input, still/jump, lost control/target/map/budget, shared admission)
+- [ ] COMMIT: `test(env): require a no-input patrol watch` (RED)
+- [ ] COMMIT: `feat(env): patrol watch for the intercept` (GREEN)
 
 **M2 — Agent intercept in `followObject`, registry, prompt, recipe**
 - [ ] RED: `moving-npc-intercept.test.ts`. Cases: track learning from object coordinates, T/S choice (off-track, reachable, no warp/trigger), receipt handling (`entered` → face + A; others → fallback), OFF byte-exact, factory wiring, recipe onInBoth.

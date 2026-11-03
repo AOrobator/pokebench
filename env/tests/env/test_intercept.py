@@ -405,3 +405,84 @@ def test_cancel_after_a_stop_keeps_the_original_reason():
     run(api, server, emu, {**body, "max_frames": 5})
     assert request(api, "/pokebench/intercept/pin/cancel", {})[0] == 200
     assert receipt(api)["reason"] == "frame budget"
+
+
+def watch_body(**change):
+    return {
+        "id": "look",
+        "map_id": [1, 0],
+        "target_local_id": 1,
+        "target_slot": 1,
+        "max_frames": MAX_FRAMES,
+        **change,
+    }
+
+
+def watch(api, server, emu, body, frames=MAX_FRAMES + 2):
+    assert request(api, "/pokebench/intercept/watch", body)[0] == 200
+    marker = start(server)
+    for _ in range(frames):
+        emu.run_frame_with_buttons([marker])
+        if receipt(api, body["id"])["stopped"]:
+            break
+    return receipt(api, body["id"])
+
+
+def test_watch_records_each_one_tile_step_until_the_walk_repeats_without_input():
+    api, server, m, world, emu, body = setup(lead=3, target_start=0)
+    result = watch(api, server, emu, watch_body())
+    assert result["reason"] == "loop closed"
+    steps = [(e["from"]["x"], e["from"]["y"], e["to"]["x"], e["to"]["y"]) for e in result["edges"]]
+    assert steps == [(*RING[i], *RING[(i + 1) % 8]) for i in range(8)]
+    assert all(b == [] for _, b in world.inputs)
+    assert result["frames"] <= 9 * STEP + 1
+
+
+def test_watch_stops_when_the_target_stands_still_or_jumps():
+    api, server, m, world, emu, body = setup(lead=0, target_start=0)
+    world.walkers.clear()
+    assert watch(api, server, emu, watch_body())["reason"] == "target still"
+    api, server, m, world, emu, body = setup(lead=0, target_start=0)
+    world.walkers.clear()
+    assert request(api, "/pokebench/intercept/watch", watch_body())[0] == 200
+    marker = start(server)
+    emu.run_frame_with_buttons([marker])
+    m.put(OBJECT_EVENTS + 0x24 + 0x10, struct.pack("<hh", 3 + 7, 3 + 7))
+    emu.run_frame_with_buttons([marker])
+    assert receipt(api, "look")["reason"] == "target jumped"
+
+
+@pytest.mark.parametrize("hazard", ["lock", "target", "map", "budget"])
+def test_watch_stops_on_lost_control_target_or_budget(hazard):
+    api, server, m, world, emu, body = setup(lead=0, target_start=0)
+    change = {"max_frames": 3} if hazard == "budget" else {}
+    assert request(api, "/pokebench/intercept/watch", watch_body(**change))[0] == 200
+    marker = start(server)
+    emu.run_frame_with_buttons([marker])
+    if hazard == "lock":
+        m.put(FIELD_LOCK, b"\x01")
+    if hazard == "target":
+        m.put(OBJECT_EVENTS + 0x24, b"\x00")
+    if hazard == "map":
+        m.put(0x02025004, bytes([0, 9]))
+    for _ in range(5):
+        emu.run_frame_with_buttons([marker])
+    result = receipt(api, "look")
+    assert result["stopped"] is True
+    assert (
+        result["reason"]
+        == {
+            "lock": "field input unavailable",
+            "target": "target left",
+            "map": "map changed",
+            "budget": "frame budget",
+        }[hazard]
+    )
+
+
+def test_watch_shares_the_input_queue_admission():
+    api, server, m, world, emu, body = setup()
+    assert request(api, "/pokebench/intercept/watch", watch_body())[0] == 200
+    assert request(api, "/pokebench/intercept", body)[0] == 409
+    assert request(api, "/pokebench/intercept/watch", watch_body(id="again"))[0] == 409
+    assert request(api, "/pokebench/intercept/watch", watch_body(target_slot=16))[0] == 422

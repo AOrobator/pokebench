@@ -139,6 +139,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - First cottage call opened BRINEY's sail offer, but the result text had no step-in notes: dialogue auto-advance keeps only the first content part of a semantic walk, and the notes were a separate part. Bounded source correction: the notes now ride in the status text, before burst frames (test added; 11 agent cases).
 - Trials from the door state with the fix (each one navigate_to_target call on object 1): phase 0 36.4 s, phase +1 B 36.9 s, phase +3 B 32.3 s; each watched a 12-step loop, stepped in at (6,6) as BRINEY reached (7,6), and opened "We'll set sail for DEWFORD." with the YES/NO.
 
+- 2026-11-03 01:05 NY: CPU window granted by the coordinator. Gate pass 1: `just verify-vendor` PASS. `just lint`: pnpm lint PASS; the env ruff step fails on 9 errors, all in files this branch does not touch, and identical on main `d535a4d6f` (adjacent_tiles.py, launcher.py, map_observation.py, test_adjacent_tiles.py, test_compact_map_grid.py, test_exit_reach.py), so they are pre-existing. `just test` failed 1/5423 agent tests: `control-preset-8k.test.ts` requires `experiments/presets/current-control-24h-8k.json` to mirror the recipe features; added the switch there. `just trainer-card-check` failed because the worktree has no `runs/sprites/trainer-card-v1`; re-running with `POKEBENCH_CARD_ART` pointed at the main checkout's generated art.
+
 ## Surprises
 
 - `moving-npc-target-v1` already onInBoth and already "fixed" for drift (2026-11-01); the remaining failure is pursuit lag, not drift aborts.

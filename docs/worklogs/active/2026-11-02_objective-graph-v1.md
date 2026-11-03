@@ -98,7 +98,11 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
       fixture where one exists. 17 tests, `packages/agent/src/objective-graph.test.ts`.
 - [x] Cheap checks: `vitest run src/objective-graph.test.ts` 17/17; file coverage 100/96.66/100/100
       (stmts/branch/funcs/lines); `eslint` clean on both new files.
-- [ ] Gates per `execute-worklog`; record counts and coverage **≥ 90**.
+- [ ] Gates per `execute-worklog`; record counts and coverage **≥ 90**. Focused and package-wide
+      checks pass (`packages/agent` 382 files / 5409 tests after `pnpm -r build`). Full `just test` and
+      `just lint` are not yet run: `just lint` is currently red on `main` itself for two pre-existing
+      type errors (`cut-off-reply.test.ts:75`, `semantic-refusal-reasons.test.ts:75`), so the lint gate
+      needs either that fix or an operator decision before M1 can seal.
 - Terminator: graph module + tests green, zero unverified edges. Split trigger: if more than five
   edges resist citation, split the story edges into a second milestone instead of guessing.
 
@@ -155,6 +159,10 @@ advisory-only, three-state off-plan line. Do not implement inside this worklog.
   100 stmts / 96.66 branch / 100 funcs / 100 lines; eslint clean on both files. `tsc --noEmit` still
   reports `cut-off-reply.test.ts:75` and `semantic-refusal-reasons.test.ts:75`; both reproduce on main at
   `def665b08` with nothing of mine present, so they are pre-existing and untouched.
+- 2026-11-02 — Package smoke on the same commit: `pnpm -r build` then `packages/agent` `vitest run`
+  → 382 files / 5409 tests pass in 27s. The fresh worktree needed the build first; without it 31 files
+  fail at import on `@pokebench/agent/milestones`, which is a worktree artefact, not a regression.
+  `remainingToClear(∅)` = 14, the plan closure of a cleared game; `OBJECTIVE_NODES` = 211.
 
 ## Surprises
 

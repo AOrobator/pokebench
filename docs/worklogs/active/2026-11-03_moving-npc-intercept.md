@@ -88,9 +88,9 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 **M1 — Server intercept (frame-owned)**
 - [x] RED: `env/tests/env/test_intercept.py`, a stepped fake emulator. Cases: two-walker ring (leader 1/2/3 ahead), face-then-step, frame budget, each stop reason, request validation, queue-busy 409.
-- [ ] COMMIT: `test(env): require a frame-owned patrol intercept` (RED)
-- [ ] Implement `intercept.py` and its install in `serve.py`; server feature off-list
-- [ ] Cheap checks: ruff and mypy on changed files; focused pytest
+- [x] COMMIT: `test(env): require a frame-owned patrol intercept` (RED) `3ce404d69`
+- [x] Implement `intercept.py`, installed through `install_travel(intercept=...)` from `serve.py`; server feature off-list
+- [x] Cheap checks: ruff check/format clean on changed files; mypy clean on intercept.py/travel.py (the one mypy error and one format diff are in `map_observation.py`, pre-existing on main); focused pytest intercept+travel+strides 92 passed; intercept.py 96% lines+branches
 - [ ] COMMIT: `feat(env): frame-owned patrol intercept behind moving-npc-intercept-v1` (GREEN)
 - Outcome: the server can pin a named walker from a side tile. Non-goals: choosing S/T, any model text. Split trigger: if the turn-before-step needs its own receipt protocol.
 
@@ -124,6 +124,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 - 2026-11-03: Forensics in thread "Briney chase" (12 runs, two harness causes). The operator chose stepping into the path over the off-path wait, and said "go, this should be on in both arms". Worklog drafted (`d3d36e7b4`).
 - 2026-11-03 00:08 NY: The operator approved coding ("u can code when the worklog is written", relayed verbatim by the coordinator). M1 RED: 35 cases; the module import and travel wiring fail until GREEN.
+
+- 2026-11-03: M1 delete-guard checks: removing the other-walker tile check, previous-coordinate check, approach wait, facing turn, identity or entered-tile safety each turns tests red. Removing the separate player-moving guard stays green because the native controllable check already withholds input while the player moves; kept as defense in depth.
 
 ## Surprises
 

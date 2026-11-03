@@ -41,7 +41,7 @@ def occupied(m, point, skip):
 
 
 class World:
-    """Stepped fake: walkers advance one ring tile per STEP frames unless blocked (walk in place)."""
+    """Stepped fake: walkers advance one ring tile per STEP frames, or walk in place if blocked."""
 
     def __init__(self, m, walkers):
         self.m = m
@@ -49,6 +49,7 @@ class World:
         self.clock = 0
         self.player_busy = 0
         self.bumps = 0
+        self.refuse = False
         self.inputs: list[tuple[int, list[str]]] = []
 
     def walk(self):
@@ -87,7 +88,7 @@ class World:
                     nxt = (here[0] + delta[0], here[1] + delta[1])
                     m.put(OBJECT_EVENTS, b"\x41")
                     self.player_busy = STEP
-                    if occupied(m, nxt, 0):
+                    if self.refuse or occupied(m, nxt, 0):
                         self.bumps += 1
                     else:
                         m.put(OBJECT_EVENTS + 0x14, m.read(OBJECT_EVENTS + 0x10, 4))
@@ -193,7 +194,11 @@ def test_steps_on_the_first_frame_the_target_reaches_the_approach_tile():
         pressed = world.inputs[-1][1]
         if arrived is None and before == (1, 1):
             arrived = frame - 1
-        if stepped is None and pressed == ["DOWN"] and world.m.read(OBJECT_EVENTS + 0x18, 1)[0] == 1:
+        if (
+            stepped is None
+            and pressed == ["DOWN"]
+            and world.m.read(OBJECT_EVENTS + 0x18, 1)[0] == 1
+        ):
             if coords(m, 0) == (2, 1):
                 stepped = frame
         if receipt(api)["stopped"]:
@@ -232,7 +237,24 @@ def test_frame_budget_when_the_target_never_arrives():
     assert server.action_frames_remaining == 1
 
 
-@pytest.mark.parametrize("hazard", ["lock", "map", "target", "identity", "wall", "script", "moved", "elevation"])
+@pytest.mark.parametrize(
+    "hazard",
+    [
+        "lock",
+        "map",
+        "target",
+        "identity",
+        "wall",
+        "script",
+        "moved",
+        "elevation",
+        "save",
+        "avatar",
+        "warp",
+        "events",
+        "trigger-pointer",
+    ],
+)
 def test_every_frame_revalidates_controls_target_and_tile(hazard):
     api, server, m, world, emu, body = setup(lead=0, target_start=6, facing=1)
     world.walkers.clear()
@@ -253,11 +275,24 @@ def test_every_frame_revalidates_controls_target_and_tile(hazard):
         m.put(0x08501002, b"\x01")
         m.put(0x0850100C, struct.pack("<I", 0x08502000))
         m.put(0x08502000, struct.pack("<hhBxHH2xI", 2, 1, 3, 0x4000, 0, 0x08503000))
+    if hazard == "save":
+        m.put(0x03005D8C, struct.pack("<I", 0))
+    if hazard == "avatar":
+        m.put(0x02037590 + 5, bytes([16]))
+    if hazard == "warp":
+        m.put(0x08501001, b"\x01")
+        m.put(0x08501008, struct.pack("<I", 0x08504000))
+        m.put(0x08504000, struct.pack("<hhBBBB", 2, 1, 0, 0, 9, 0))
+    if hazard == "events":
+        m.put(0x02037318 + 4, struct.pack("<I", 0))
+    if hazard == "trigger-pointer":
+        m.put(0x08501002, b"\x01")
+        m.put(0x0850100C, struct.pack("<I", 0))
     if hazard == "elevation":
         m.put(OBJECT_EVENTS + 0xB, b"\x44")
     if hazard == "moved":
         m.put(OBJECT_EVENTS + 0x10, struct.pack("<hh", 4 + 7, 0 + 7))
-    if hazard in ("wall", "script"):
+    if hazard in ("wall", "script", "warp", "events", "trigger-pointer"):
         world.walkers[1] = 6
         for _ in range(3 * STEP):
             emu.run_frame_with_buttons([marker])
@@ -354,3 +389,19 @@ def test_travel_installs_the_intercept_route_only_when_on(enabled):
     install_travel(api, Emulator, server, fixture().read, intercept=enabled)
     paths = {getattr(route, "path", None) for route in api.routes}
     assert ("/pokebench/intercept" in paths) is enabled
+
+
+def test_a_step_the_game_refuses_ends_as_blocked():
+    api, server, m, world, emu, body = setup(lead=0, target_start=6, facing=1)
+    world.refuse = True
+    result = run(api, server, emu, body)
+    assert result["reason"] == "blocked"
+    assert coords(m, 0) == (2, 0)
+
+
+def test_cancel_after_a_stop_keeps_the_original_reason():
+    api, server, m, world, emu, body = setup(lead=0, target_start=4, facing=1)
+    world.walkers.clear()
+    run(api, server, emu, {**body, "max_frames": 5})
+    assert request(api, "/pokebench/intercept/pin/cancel", {})[0] == 200
+    assert receipt(api)["reason"] == "frame budget"

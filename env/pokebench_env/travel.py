@@ -39,6 +39,7 @@ def install_travel(
     read: ReadMemory,
     *,
     safe_strides: bool = False,
+    intercept: bool = False,
 ) -> None:
     # Each queued direction carries its own marker. Concurrent ordinary actions
     # cannot inherit an ambient modifier; release frames remain empty inputs.
@@ -78,3 +79,10 @@ def install_travel(
         from pokebench_env.strides import QueuedStride, install_strides
 
         install_strides(api, emulator, cast(QueuedStride, server), read)
+
+    if intercept:
+        from typing import cast
+
+        from pokebench_env.intercept import QueuedIntercept, install_intercept
+
+        install_intercept(api, emulator, cast(QueuedIntercept, server), read)

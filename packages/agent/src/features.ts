@@ -340,6 +340,7 @@ export const SWITCHABLE_FEATURES = [
   "open-milestone-stall-v1",
   "deep-south-warp-label-v1",
   "recovery-note-field-only-v1",
+  "moving-npc-intercept-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -798,6 +799,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("open-milestone-stall-v1", "guard", "OPEN LEADER LOSS BRIEFING", "stall-briefing-v1", "Default off. Same run: after the turn-342 loss the bot never re-entered the gym (no battle_choice on map 11/3 again), and the only stall note it got came from the drought clock, which the grind kept resetting. With this switch on, while the last GYM LEADER battle this run is a loss and the leader is still unbeaten, every 30 actions (tool results) the loop guard sends one note: the trainer, the place and turn of the loss, the party the readout showed when that battle started, and the party now. A due note is not dropped or restarted while a battle, an unbeaten trainer's sight script or a heal trip holds the field; it is delivered at the next free result. A win against that leader, or the game's own defeated flag for it, retires the record and stops the notes. While the record is open this note replaces the drought briefing; the map-cycle and interface notes are unchanged. Facts only: no route, no destination, no next step, no advice on which POKéMON to train. Needs stall-briefing-v1. Off: no such note; the drought clock alone, as before."),
   on("deep-south-warp-label-v1", "observation", "ENTRANCE, NOT WATER", "map-observability-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). The map-element table named metatile behavior 0x6E deep_water_exit, but in the game it is MB_DEEP_SOUTH_WARP, a non-animated door with no Surf flag (pokeemerald MetatileBehavior_IsNonAnimDoor): the PETALBURG WOODS entrances on ROUTE 104. Run 7da5 read \"Wp:deep_water_exit = warp (deep water exit)\" in 368 turns and reasoned about an underwater forest and Dive. On: those tiles read Wp:entrance = warp (entrance); every other element, glyph and line is unchanged. The game prints nothing for the tile, so the label is the plain fact. Off: deep_water_exit, byte for byte."),
   on("recovery-note-field-only-v1", "guard", "RECOVERY NOTE OFF THE BATTLE SCREEN", "navigation-recovery-v1", "Default off. navigation-recovery-v1 sends its open map-cycle or stale-map note with every request until the episode resolves, and battle calls do not count toward its 12-call budget, so a battle that starts while a note is open carries it on every battle turn: run 6bbd opened one on ROUTE 117 at turn 811 and on battle turns 818-823 the model called it boilerplate that fires mid-battle. On: while the latest state is a battle the note is not sent; the episode stays open, a due briefing is not used up, and the same text returns on the next field request. Needs navigation-recovery-v1. Off: the note rides on battle requests too, as before."),
+  on("moving-npc-intercept-v1", "guidance", "STEP INTO A WALKING PATH", "moving-npc-target-v1", "Default off; on in both arms of the current recipe (the operator 2026-11-03: \"go, this should be on in both arms\"). Twelve runs that entered MR. BRINEY's cottage after the DEVON GOODS spent a median of about 10 minutes and 40 turns before sailing: he and PEEKO walk the same loop around the table without stopping, and the follow (moving-npc-target-v1) chases his current tile about 75 frames per step while he walks about 5 tiles, so it ends at its attempt limit. With this switch on, once navigate_to_target sees the selected person move, the game server watches the person's one-tile steps for up to 240 frames with no input (POST /pokebench/intercept/watch). If the steps repeat, the harness picks a step P to T of that path and a free tile beside T, off the path, that it can reach on foot, walks there, and the game server steps the player onto T on the first frame the person stands on P with T clear of every other object (POST /pokebench/intercept, at most 240 frames). The game makes a walk-sequence person whose next tile is taken walk in place (event_object_movement.c MoveNextDirectionInSequence), so the person stops next to the player, and the follow faces them and presses A as before. A walker ahead on the same path (PEEKO) is never the one pinned, because the step waits until the tile is clear of it. The result says what was watched and where it stepped in, naming no person or place. At most two tries per call; any failure falls back to the ordinary follow. Needs moving-npc-target-v1. Off: the follow is unchanged and no watch or step-in is sent."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -909,6 +911,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "stable-map-codes-v1",
   "solid-tile-leads-v1",
   "deep-south-warp-label-v1",
+  "moving-npc-intercept-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1233,6 +1236,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("auto-talk-interrupt-note-v1"),
     ...when("deep-south-warp-label-v1"),
     ...when("recovery-note-field-only-v1"),
+    ...when("moving-npc-intercept-v1"),
   ];
 }
 

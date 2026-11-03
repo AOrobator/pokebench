@@ -186,7 +186,8 @@
   "auto-talk-interrupt-note-v1",
   "deep-south-warp-label-v1",
   "eight-badge-mission-v1",
-  "semantic-refusal-reasons-v1"
+  "semantic-refusal-reasons-v1",
+  "moving-npc-intercept-v1"
  ],
  "features": {
   "screenshot-button-baseline-v1": false,
@@ -503,6 +504,7 @@
   "solid-tile-leads-v1": true,
   "auto-talk-interrupt-note-v1": true,
   "deep-south-warp-label-v1": true,
-  "semantic-refusal-reasons-v1": true
+  "semantic-refusal-reasons-v1": true,
+  "moving-npc-intercept-v1": true
  }
 }

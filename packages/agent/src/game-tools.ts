@@ -10,6 +10,7 @@ import {randomUUID} from "node:crypto";
 import {planStride,requestedStep,type PrefixRules} from "./navigation.js";
 import {RANDOM_STARTER_LIMITS,atStarterBag,starterPickNote,starterStep,type RandomStarter,type StarterStep} from "./random-starter.js";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
+import {InterceptReceiptSchema,stepButton,WatchReceiptSchema,type InterceptPlan,type InterceptReceipt,type WatchPlan,type WatchReceipt} from "./intercept.js";
 
 // Which model-visible parts of the observe/press results this run shows.
 export interface ToolSwitches { readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
@@ -194,6 +195,9 @@ export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
 export interface CheckedPressOptions { readonly automaticRunning?: boolean; readonly stride?:StrideCorridor }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
  readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>;
+ // moving-npc-intercept-v1: frame-owned patrol watch (no input) and path step-in on the game server.
+ readonly executeWatch?:(plan:Omit<WatchPlan,"id">,check:BeforePressCheck,signal?:AbortSignal)=>Promise<WatchReceipt>;
+ readonly executeIntercept?:(id:string,plan:Omit<InterceptPlan,"id">,check:BeforePressCheck,signal?:AbortSignal)=>Promise<AgentToolResult<{state:GameStateSnapshot;intercept:InterceptReceipt}>>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -355,6 +359,47 @@ export function pressTool(
     if(last===undefined){const result=await observation(gameServerUrl,fetchFn,signal,head);shown.record(result.state,before);return {content:result.content,details:{state:result.state}};}
     return {...last,content:[{type:"text",text:head},...last.content]};
   };
+  // One private queue action on the game server; cancelled if the queue wait fails.
+  const owned=async<T>(route:string,body:{readonly id:string},receipt:(raw:unknown)=>T|null,signal?:AbortSignal):Promise<T>=>{
+    const url=`${gameServerUrl}${route}`;
+    try{
+      const response=await fetchFn(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:deadline(15_000,signal)});
+      const reply:unknown=await response.json();
+      if(!response.ok||!Value.Check(ActionSchema,reply)||reply.status!=="success")throw new Error(`POST ${url} failed: ${Value.Check(ActionSchema,reply)?(reply.message??reply.status):`HTTP ${String(response.status)}`}`);
+      await waitForQueue(gameServerUrl,fetchFn,clock,signal);
+    }catch(error){
+      const cancelled=await fetchFn(`${gameServerUrl}/pokebench/intercept/${body.id}/cancel`,{method:"POST",signal:AbortSignal.timeout(2000)});
+      if(!cancelled.ok)throw new Error(`Patrol intercept cancellation failed: HTTP ${String(cancelled.status)}`,{cause:error});
+      throw error;
+    }
+    const parsed=receipt(await getJson(`${gameServerUrl}/pokebench/intercept/${body.id}`,fetchFn,15_000,signal));
+    if(parsed===null)throw new Error("Patrol intercept lacks a matching terminal receipt");
+    return parsed;
+  };
+  const readBefore=async(check:BeforePressCheck,signal?:AbortSignal):Promise<GameStateSnapshot>=>{
+    signal?.throwIfAborted();
+    const before=parseGameState(await getJson(`${gameServerUrl}/pokebench/state`,fetchFn,15_000,signal));
+    check(before);
+    return before;
+  };
+  const executeWatch=async(plan:Omit<WatchPlan,"id">,check:BeforePressCheck,signal?:AbortSignal):Promise<WatchReceipt>=>{
+    await readBefore(check,signal);
+    const body={id:randomUUID(),...plan};
+    return owned("/pokebench/intercept/watch",body,raw=>Value.Check(WatchReceiptSchema,raw)&&raw.id===body.id&&raw.stopped&&raw.target_local_id===plan.target_local_id&&raw.target_slot===plan.target_slot&&JSON.stringify(raw.map_id)===JSON.stringify(plan.map_id)?raw:null,signal);
+  };
+  const executeIntercept=async(toolCallId:string,plan:Omit<InterceptPlan,"id">,check:BeforePressCheck,signal?:AbortSignal):Promise<AgentToolResult<{state:GameStateSnapshot;intercept:InterceptReceipt}>>=>{
+    const before=await readBefore(check,signal);
+    const direction=stepButton(plan.wait,plan.enter);
+    if(direction===null)throw new Error("Patrol intercept wait tile is not next to the entered tile");
+    const body={id:randomUUID(),...plan};
+    hooks.beforePress(toolCallId,[direction],{hold_frames:plan.max_frames+1,release_frames:8},before,{automatic_running:false});
+    const receipt=await owned("/pokebench/intercept",body,raw=>Value.Check(InterceptReceiptSchema,raw)&&raw.id===body.id&&raw.stopped&&JSON.stringify({...raw,frames:0,phase:"",reason:"",stopped:true})===JSON.stringify({...body,frames:0,phase:"",reason:"",stopped:true})?raw:null,signal);
+    await clock.sleep(STATE_CACHE_SETTLE_MS);
+    await hooks.afterPress();
+    const content=await observation(gameServerUrl,fetchFn,signal,`Path step-in receipt: ${JSON.stringify(receipt)}\n`);
+    shown.record(content.state,before);
+    return {content:switches.screenshotOnly?content.content.filter(item=>item.type==="image"):content.content,details:{state:content.state,intercept:receipt}};
+  };
   return {
     name: "press",
     label: "Press buttons",
@@ -364,6 +409,8 @@ export function pressTool(
     parameters: (switches.automaticRunning===true ? DeterministicRunningPressArgs : PressArgs) as typeof PressArgs,
     execute,
     executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options),
+    executeWatch,
+    executeIntercept,
   };
 }
 

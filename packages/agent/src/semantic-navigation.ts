@@ -9,6 +9,7 @@ import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
 import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
+import {INTERCEPT_MAX_FRAMES,sameTile,type PatrolStep} from "./intercept.js";
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
@@ -34,6 +35,7 @@ type RequestTarget=
  | {readonly kind:"warp";readonly x:number;readonly y:number}
  | {readonly kind:"connection";readonly direction:"NORTH"|"SOUTH"|"EAST"|"WEST"};
 type Point={readonly x:number;readonly y:number};
+const tileAt=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
 type Approach={readonly point:Point;readonly facing:Button|null;readonly length:number};
 type RefusalDetail={readonly cause:string;readonly alternatives:readonly string[]};
 type SemanticDetails={readonly state:GameStateSnapshot;readonly semantic_navigation:{readonly status:string;readonly selected:string;readonly activation_attempted:boolean;readonly target:RequestTarget;readonly refused?:boolean;readonly refusal?:RefusalDetail};readonly [key:string]:unknown};
@@ -243,6 +245,28 @@ function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarg
  return (connection?.edges??[]).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
   .sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
 }
+// moving-npc-intercept-v1: a place to stand beside a watched walk, and the step into it. The game
+// pins a walk-sequence object whose next tile is taken (event_object_movement.c
+// MoveNextDirectionInSequence walks in place on collision), so stepping onto the tile the person is
+// about to enter stops them next to the player. Only the observed steps and the map's walkability
+// decide; no place or person is named.
+export interface PathStepIn {readonly wait:Point;readonly enter:Point;readonly approach:Point;readonly elevation:number;readonly length:number}
+export function pathStepIn(state:GameStateSnapshot,steps:readonly PatrolStep[],options:NavigationOptions):PathStepIn|null {
+ const track=steps.flatMap(step=>[step.from,step.to]);
+ const onTrack=(point:Point):boolean=>track.some(tile=>sameTile(tile,point));
+ const choices=steps.flatMap(step=>STEPS.flatMap(([,dx,dy])=>{
+  const wait={x:step.to.x+dx,y:step.to.y+dy};
+  if(onTrack(wait)||goalOnlyTile(state,wait,options))return [];
+  const path=planNavigation(state,wait,options);
+  if(path===null)return [];
+  const elevation=plannedArrivalElevation(state,wait,options);
+  if(elevation===null||elevation<1||elevation>14)return [];
+  return [{wait,enter:step.to,approach:step.from,elevation,length:path.length}];
+ }));
+ return choices.sort((a,b)=>a.length-b.length||a.wait.y-b.wait.y||a.wait.x-b.wait.x||a.enter.y-b.enter.y||a.enter.x-b.enter.x)[0]??null;
+}
+export const PATH_STEP_IN_SENTENCE="When the selected person keeps walking the same path, it first watches their steps without pressing anything, waits on a free tile beside that path, steps into the path just before they reach it so they stop, then faces them and presses A.";
+
 function withStatus(result:AgentToolResult<unknown>,status:string,selected:string,target:RequestTarget,activationAttempted:boolean,refusal?:RefusalDetail|null):AgentToolResult<SemanticDetails> {
  const state=stateOf(result);
  const inherited=typeof result.details==="object"&&result.details!==null?result.details:{};
@@ -336,9 +360,11 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     }
    }
   };
+  const notes:string[]=[];
   const finish=(status:string,attempted=false)=>{
    const base=withStatus(last,status,selected,request.target,attempted);
-   return burst.length===0?base:{...base,content:[...burst,...base.content]};
+   const noted=notes.length===0?base:{...base,content:[{type:"text" as const,text:notes.join("\n")},...base.content]};
+   return burst.length===0?noted:{...noted,content:[...burst,...noted.content]};
   };
   const identity=(state:GameStateSnapshot):SnapshotTarget|null=>{
    const fresh=resolve(state,request.target,baseOptions);
@@ -352,6 +378,36 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(identity(actual)===null)return "selected moving object disappeared or changed identity";
    return null;
   };
+  // moving-npc-intercept-v1: once the person is seen to have moved, watch their steps on the game
+  // server and step into their path. Every failure falls back to the follow below.
+  const stepIns=features["moving-npc-intercept-v1"]?press.executeWatch!==undefined&&press.executeIntercept!==undefined?2:0:0;
+  let tries=0,seen:Point={x:initial.x,y:initial.y};
+  const stepIn=async(current:GameStateSnapshot,fresh:SnapshotTarget):Promise<string|null>=>{
+   if(press.executeWatch===undefined||press.executeIntercept===undefined||fresh.kind!=="object"||fresh.native_slot===undefined||fresh.local_id===null)return null;
+   const target={target_local_id:fresh.local_id,target_slot:fresh.native_slot};
+   const check=(actual:GameStateSnapshot|undefined)=>{
+    if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before input");
+    const issue=stable(actual);if(issue!==null)throw new SemanticPreconditionError(issue);
+   };
+   const watched=await press.executeWatch({map_id:[request.map_id[0],request.map_id[1]],...target,max_frames:INTERCEPT_MAX_FRAMES},check,signal);
+   if(watched.reason!=="loop closed"){notes.push(`Watched the person for ${String(watched.frames)} frames without pressing anything: ${watched.reason}; ${String(watched.edges.length)} steps seen, not a repeating path.`);return null;}
+   notes.push(`Watched the person walk a repeating path of ${String(watched.edges.length)} steps without pressing anything.`);
+   const options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
+   const plan=pathStepIn(features["field-move-gates-v1"]?gatedState(current):current,watched.edges,options);
+   if(plan===null){notes.push("No free tile beside that path can be reached on foot.");return null;}
+   const here=current.position;
+   if(here===null||!sameTile(here,plan.wait)){
+    last=await navigate.executeChecked(id,{x:plan.wait.x,y:plan.wait.y,map_id:request.map_id},stable,signal,{exactTarget:true});
+    const status=navigationStatus(last);
+    if(navigationStopRequested(last)||status===SIGHT_STATUS)return status??"semantic travel stop requested";
+    if(status!=="arrived at requested coordinate"){notes.push(`Could not reach ${tileAt(plan.wait)} beside the path: ${status??"route ended early"}.`);return null;}
+   }
+   const stepped=await press.executeIntercept(id,{map_id:[request.map_id[0],request.map_id[1]],wait:plan.wait,enter:plan.enter,approach:plan.approach,...target,elevation:plan.elevation,max_frames:INTERCEPT_MAX_FRAMES},check,signal);
+   last=stepped;
+   const receipt=stepped.details.intercept;
+   notes.push(receipt.reason==="entered"?`Stepped into the path at ${tileAt(plan.enter)} as the person reached ${tileAt(plan.approach)}.`:`Waited at ${tileAt(plan.wait)} to step into the path at ${tileAt(plan.enter)}: ${receipt.reason}.`);
+   return null;
+  };
   await capture();
   for(let attempt=0;attempt<32;attempt++){
    signal?.throwIfAborted();
@@ -359,6 +415,21 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(!isMap(current,request.map_id))return finish("interrupted by a map transition");
    const interruption=interrupted(current);if(interruption!==null)return finish(`interrupted before activation: ${interruption}`);
    const fresh=identity(current);if(fresh===null)return finish("selected moving object disappeared or changed identity");
+   if(tries<stepIns&&(fresh.x!==seen.x||fresh.y!==seen.y)){
+    tries+=1;seen={x:fresh.x,y:fresh.y};
+    try{
+     const stop=await stepIn(current,fresh);
+     if(stop!==null)return finish(stop);
+    }catch(error){
+     if(!(error instanceof SemanticPreconditionError))throw error;
+     notes.push(`Stopped stepping into the path: ${error.message}.`);
+    }
+    // Only a new move after this try may start the next one.
+    const after=identity(stateOf(last));if(after!==null)seen={x:after.x,y:after.y};
+    await capture();
+    continue;
+   }
+   seen={x:fresh.x,y:fresh.y};
    const planned=features["field-move-gates-v1"]?gatedState(current):current;
    let options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
    let choices=approaches(planned,fresh,options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
@@ -414,7 +485,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
   if(identity(state)===null)return finish("selected moving object disappeared or changed identity");
   return finish("moving target attempt limit reached; inspect the current state");
  };
- return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${features["moving-npc-target-v1"]?` ${MOVING_NPC_SENTENCE}`:""}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}${features["npc-approach-feedback-v1"]?` ${NPC_TEMPLATE_APPROACH_SENTENCE}`:""}${features["static-npc-template-approach-v1"]?` ${STATIC_NPC_APPROACH_SENTENCE}`:""}`,parameters:features["static-npc-template-approach-v1"]?(sightCheck?StaticSightSemanticArgs:StaticSemanticArgs):(sightCheck?SightSemanticArgs:SemanticArgs),
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${features["moving-npc-target-v1"]?` ${MOVING_NPC_SENTENCE}`:""}${features["moving-npc-target-v1"]&&features["moving-npc-intercept-v1"]?` ${PATH_STEP_IN_SENTENCE}`:""}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}${features["npc-approach-feedback-v1"]?` ${NPC_TEMPLATE_APPROACH_SENTENCE}`:""}${features["static-npc-template-approach-v1"]?` ${STATIC_NPC_APPROACH_SENTENCE}`:""}`,parameters:features["static-npc-template-approach-v1"]?(sightCheck?StaticSightSemanticArgs:StaticSemanticArgs):(sightCheck?SightSemanticArgs:SemanticArgs),
   execute:async(id,args,signal)=>{
    const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);

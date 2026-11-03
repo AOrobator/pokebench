@@ -107,8 +107,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - [x] COMMIT: `test(agent): require moving-NPC intercept` (RED) `80f5cbd89`
 - [x] Implement: registry append (last switch), preset optional, `DEFAULT_NEXT_RUN` off, `SERVER_FEATURES` (TS and Python), `current.json` onInBoth + base true and a README paragraph, tool-prompt sync (navigate_to_target description and the overworld system-prompt line carry `PATH_STEP_IN_SENTENCE` only when ON). Press tool gains `executeWatch`/`executeIntercept` (`game-tools.ts`, schemas in `intercept.ts`); `followObject` tries a watch and step-in at most twice per call, only after the target is seen to move, and falls back to the follow on any other outcome.
 - [x] Delete-guard: forcing the switch gate on turned the OFF and fallback-equivalence tests red (2); dropping the result notes turned 3 red; restored. Focused agent suites: features, game-tools, play-config, play-preset, semantic-navigation, tool-prompt-sync, moving-npc-target, moving-npc-intercept all pass (254 + 165).
-- [ ] Explainer `docs/explainers/moving-npc-intercept-v1.html` + `FEATURE_EXPLAINERS`; `just pages-theme`, `just pages-check`
-- [ ] COMMIT: `feat(agent): step into a walking person's path to talk (moving-npc-intercept-v1)` (GREEN)
+- [x] Explainer `docs/explainers/moving-npc-intercept-v1.html` + README entry + `FEATURE_EXPLAINERS`; pages-theme applied, pages-check clean; viewer tests for the card link, byte-for-byte serving and both-arm recipe bits (3 pass)
+- [x] COMMIT: `feat(agent): step into a walking person's path to talk (moving-npc-intercept-v1)` (GREEN) `e5802a693`
 
 **M3 — Emulator rehearsal (proof at the surface)**
 - [ ] Run coordination check; CPU only, no GPU lanes, no live run touched

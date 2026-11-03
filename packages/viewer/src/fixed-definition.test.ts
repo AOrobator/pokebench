@@ -130,6 +130,15 @@ it("enables moving-NPC frame burst and moving-NPC target in both arms",()=>{
  }
 });
 
+it("enables the moving-NPC path step-in in both arms (the operator 2026-11-03)",()=>{
+ const id="moving-npc-intercept-v1";
+ for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h","hyperqwen-control-3h"]){
+  const d=readFixedDefinition(root,name).definition;
+  expect(d.onInBoth).toContain(id);expect(d.switches).not.toContain(id);expect(d.offInBoth).not.toContain(id);
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(d,arm)[id]).toBe(true);
+ }
+});
+
 it("validates immutable current-recipe ancestry without changing effective preset fields",()=>{
  const {full,recipe}=sources(),dir=mkdtempSync(join(tmpdir(),"frozen-current-")),text=JSON.stringify(recipe),digest=createHash("sha256").update(text).digest("hex"),archive=`experiments/feature-configs/archive/current-${digest.slice(0,12)}.json`;
  try{

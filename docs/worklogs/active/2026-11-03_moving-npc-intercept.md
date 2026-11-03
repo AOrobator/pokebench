@@ -121,7 +121,7 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - [ ] CPU START via `just tell-claude`; `just lint`, `just test` (coverage ≥90 lines/branches/functions), `just verify-vendor`, `just trainer-card-check`; CPU RELEASE
 - [ ] Claude, Grok and GPT/Codex review lanes `VERDICT: LGTM` on the frozen packet (no local inference reviewers)
 - [x] `just land-join` (number 1 at 01:17 NY), FF-only merge of `12b5972a1` into main (from `d535a4d6f`), evidence commit, `just land-done`
-- [ ] Activation: `just viewer-main` only when the operator asks for it, or before a fixed-run launch check from the newer pin. No launch here. Live runs keep their pins.
+- [x] Activation: The operator said "u can restart the viewer" (01:25 NY). My `just viewer-main` found another owner already preparing main; it finished, and viewer pid 97880 serves the build of `532731fd4` (the build's panels.js and features.js contain the switch; `/explainers/moving-npc-intercept-v1.html` returns 200). The live hyperqwen run (pid 51801, pinned `ce6f83fc4`) and its game server on 8075 kept running. No launch here.
 
 ## Closing the Loop
 

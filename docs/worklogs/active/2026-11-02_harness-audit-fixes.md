@@ -25,7 +25,7 @@ The thinking-error audit (`runs/thinking-audit-20261102/reports/`, 750 runs) lis
 
 Non-goals: no change to visibility V2 (operator turned it off), no cross-map routing.
 
-**Activation (the operator 2026-11-02, 11:08 PM: "the label fix should be on in both arms")**: `deep-south-warp-label-v1` base true and onInBoth in `experiments/feature-configs/current.json` and `experiments/presets/current-control-24h-8k.json`, with a dated README entry. `recovery-note-field-only-v1` stays OFF everywhere.
+**Activation (the operator / the operator 2026-11-02, 11:08 PM: "the label fix should be on in both arms")**: `deep-south-warp-label-v1` base true and onInBoth in `experiments/feature-configs/current.json` and `experiments/presets/current-control-24h-8k.json`, with a dated README entry. `recovery-note-field-only-v1` stays OFF everywhere.
 
 ## Invariants
 
@@ -33,7 +33,7 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 |---|---|---|
 | INV-1 | OFF reproduces today's readout and state JSON bytes | `test_deep_south_warp_label.py` OFF case on fixture 18834 |
 | INV-2 | ON: no `deep_water_exit`/`deep water exit` in readout or JSON; the two tiles read `Wp:entrance`; other warps untouched | same file |
-| INV-3 | OFF: open recovery episode text is returned on a battle request (today's behavior) | `navigation-recovery-field-only.test.ts` |
+| INV-3 | OFF: open recovery episode text is returned on a battle request (today's behavior) | `recovery-note-field-only.test.ts` |
 | INV-4 | ON: nothing during battle; same text on the next field request; briefing survives a battle | same file |
 
 ## Milestones
@@ -54,3 +54,4 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 - 2026-11-02 11:25 PM: GREEN committed; changed-file eslint/tsc/ruff/mypy clean. Main itself carries ruff errors in `adjacent_tiles.py` and `map_observation.py` (not touched here), so `just lint` will need that noted.
 - 2026-11-02 11:20 PM: The operator asked for the label fix ON in both arms; config + preset + README updated. Heavy-CPU window granted by the coordinator at 11:18 PM.
 - 2026-11-02 11:50 PM: gates recorded, stub-guard fix committed, CPU window released.
+- 2026-11-03 12:10 AM: review round 1. Claude BLOCKING on B1 (the explainer Status still said OFF in every recipe after activation). Fixed B1, the INV filename and the activation attribution, and aligned the features.ts copy. Cursor Grok and GPT returned usage-limit errors (reset 11/17), so the GPT lane goes to Codex CLI and the Grok lane to a fallback subagent (standing rule, see memory claude-review-lane).

@@ -1,0 +1,51 @@
+# Harness bugs from the thinking-error audit: two real fixes behind OFF switches
+
+## Problem Statement
+
+The thinking-error audit (`runs/thinking-audit-20261102/reports/`, 750 runs) listed eight suspected harness bugs. Each was checked against current `main`, the replay runs' recorded events and their `raw-ram` archives (2026-11-02, read-only):
+
+| # | Audit claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Petalburg Woods entrances labeled `deep_water_exit` | **Real, open** | `map_terrain_elements.py` maps 0x6E to `deep_water_exit`; pokeemerald 731ad5b `MB_DEEP_SOUTH_WARP` = 0x6E is a non-animated door (`MetatileBehavior_IsNonAnimDoor`, no `TILE_FLAG_SURFABLE`; `GetAdjustedInitialDirection` faces north on arrival). Reproduced on fixture `exit-labels-b300` seq 18834 (ROUTE 104, (10,30)/(11,30)). Live in the current recipe (`map-observability-v1` on). |
+| 2 | Legend letters change meaning | Fixed | `stable-map-codes-v1` (f3e2b48a8), on in both arms |
+| 3 | Objects missing after warps (Briney, Dewford Gym Guide) | Moot in current recipe | `world.read_targets` on 7da5 `raw-ram/00016493` has EXPERT_M at (9,4); control24h `raw-ram/00020761` has MAN_2 at (5,24). Both dropped by `player-map-visibility-v2`'s actor filter. V2 is `offInBoth` since def665b08 (2026-11-02 6:46 PM). |
+| 4 | Refusals without reachability; no cross-warp `navigate_to` | Refusals fixed; cross-map routing is a feature, not a bug | `semantic-refusal-reasons-v1` (850551a2f), on in both arms |
+| 5 | Tracker missed 0d5d May/Wally wins | Fixed | 0d5d started 2026-10-22 20:40; `ROUTE_110_RIVAL_DEFEATED`/`MAUVILLE_WALLY_DEFEATED` arrived in f2c42632a (2026-10-23 09:06); 6bbd logs both |
+| 6 | Navigation recovery note fires mid-battle | **Real, open** (guard is `offInBoth`) | 6bbd: note opened at turn 811 on the overworld; `NavigationRecovery.context()` returns the open episode on every request, and battle calls do not advance its 12-call budget, so the model read it on battle turns 818–823 and called it boilerplate |
+| 7 | "empty battle move has PP" in the Wally tutorial | Fixed | 747561436 (2026-10-19); 0 hits in the 352 runs since 2026-10-20 |
+| 8 | Visited-map fog | Moot | `player-map-visibility-v2` off in both arms |
+
+## Architecture
+
+**`deep-south-warp-label-v1`** (observation, server feature, default OFF, needs `map-observability-v1`).
+`rerender.read_state` relabels map-observation elements `warp`/`deep_water_exit` to `warp`/`entrance` after the observation is built, so the legend, codes, neighbour lines and `state_json` all agree. The game shows no text for this tile; "entrance" is the plain observable fact (it is a warp you step into). OFF: byte-identical.
+
+**`recovery-note-field-only-v1`** (guard, agent, default OFF, needs `navigation-recovery-v1`).
+`NavigationRecovery.context()` returns nothing while the latest state is in battle; the episode stays open and its text returns on the next field request. A pending briefing is not marked exposed during the battle, so it is still delivered afterwards. OFF: byte-identical.
+
+Non-goals: no change to visibility V2 (operator turned it off), no cross-map routing, no recipe change (both switches stay OFF; The operator decides activation).
+
+## Invariants
+
+| ID | Invariant | Test |
+|---|---|---|
+| INV-1 | OFF reproduces today's readout and state JSON bytes | `test_deep_south_warp_label.py` OFF case on fixture 18834 |
+| INV-2 | ON: no `deep_water_exit`/`deep water exit` in readout or JSON; the two tiles read `Wp:entrance`; other warps untouched | same file |
+| INV-3 | OFF: open recovery episode text is returned on a battle request (today's behavior) | `navigation-recovery-field-only.test.ts` |
+| INV-4 | ON: nothing during battle; same text on the next field request; briefing survives a battle | same file |
+
+## Milestones
+
+**M1 — both switches**
+- [x] Triage all eight bugs against code, events and raw RAM
+- [x] RED: tests for INV-1..INV-4 (`env/tests/env/test_deep_south_warp_label.py` 3 failed / 1 passed; `packages/agent/src/recovery-note-field-only.test.ts` 3 failed / 1 passed — the passing ones are the OFF guards)
+- [ ] GREEN: implement, register (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list)
+- [ ] Explainers + `FEATURE_EXPLAINERS`
+- [ ] Gates (build, lint, coverage ≥90) within a CPU window
+- [ ] Cloud review (Claude, Grok, GPT/Codex lanes)
+- [ ] Land ff-only via the landing board; `just viewer-main`
+
+## Progress Log
+
+- 2026-11-02 11:15 PM: triage done; worktree `/private/tmp/pb-harness-audit` on `claude/harness-audit-fixes` from 9f8993be1.
+- 2026-11-02 11:11 PM: RED committed.

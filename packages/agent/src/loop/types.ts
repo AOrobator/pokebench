@@ -17,7 +17,7 @@ export type LoopKind =
   | "cycle"
   | "rejection"
   | "trigger_script";
-export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan";
+export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan" | "open_milestone";
 // same-target-no-progress-v1: its own episode kind, outside the rule registry.
 export type NavigationLoopKind = "same_target_no_progress";
 export type LoopMode = "enforced" | "diagnostic";

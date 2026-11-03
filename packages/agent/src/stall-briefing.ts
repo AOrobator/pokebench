@@ -2,6 +2,8 @@ import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.
 import {battleOnScreen} from "./battle-context.js";
 import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
+import {BattleOutcomes} from "./battle-outcomes.js";
+import {LEADER_CLASS} from "./gym-readiness.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
@@ -21,6 +23,17 @@ export const INTERFACE_DWELL_CALLS=30;
 // Evidence (8 recent 2h runs, measured 2026-10-22): Qwen made 25-30 actions per 5 minutes of play, GLM 5-8, so the
 // 5-minute wall clock briefed GLM every 5-8 actions; 30 actions is about Qwen's 5 minutes on any model.
 export const STALL_DROUGHT_ACTIONS=30;
+// open-milestone-stall-v1: actions between briefings while the last GYM LEADER battle this run is still a loss.
+export const OPEN_MILESTONE_ACTIONS=30;
+
+type Member=State["party"][number];
+// Game words only: species, level and the EXP the readout printed for it.
+function partyFacts(party:readonly Member[]):string {
+ return party.flatMap(p=>p.is_egg===true||p.species==null?[]:[`${p.species} Lv${p.level==null?"?":String(p.level)}${p.experience==null?"":`, EXP. POINTS ${String(p.experience)}`}`]).join("; ")||"unknown";
+}
+// open-milestone-stall-v1 and drought-progress-credit-v2: the last GYM LEADER battle, and the party the readout showed
+// when it started. Identities are the ones the readout carried, so a POKéMON caught after it is not part of it.
+interface OpenMilestone {readonly id:number;readonly name:string|null;readonly place:string;readonly turn:number;readonly seq:number;readonly party:readonly Member[];readonly identities:ReadonlySet<string>}
 
 // drought-battle-heal-hold-v1: a heal trip a heal warning asked for holds drought briefings for at most this many tool results.
 export const HEAL_HOLD_CALLS=48;
@@ -55,6 +68,13 @@ export class StallBriefing {
  private stateSinceResult=false;
  private skip=false;
  private last:State|null=null;
+ // open-milestone-stall-v1 / drought-progress-credit-v2: the last GYM LEADER battle, whether it is still a loss, and the
+ // action count since (banked, not restarted, while a hold keeps a due note back).
+ private readonly outcomes:BattleOutcomes;
+ private attempt:OpenMilestone|null=null;
+ private openLoss:OpenMilestone|null=null;
+ private openActions=0;
+ private openBriefed=0;
  private dwell:Dwell|null=null;
  // map-cycle-recovery-v1: the guard's map-cycle window this briefing last counted map pairs in.
  private cycleWindow=0;
@@ -70,7 +90,7 @@ export class StallBriefing {
   private readonly suppressed:((text:string,evidence:readonly number[])=>void)|null=null,
   // drought-battle-heal-hold-v1: a due drought briefing held during a battle or a heal trip, recorded with the text it would have sent.
   private readonly heldDrought:((text:string,evidence:readonly number[])=>void)|null=null,
- ){this.progressCycles=features["progress-aware-cycles-v1"]?new ProgressAwareCycles():null;}
+ ){this.progressCycles=features["progress-aware-cycles-v1"]?new ProgressAwareCycles():null;this.outcomes=new BattleOutcomes(features);}
 
  // drought-battle-heal-hold-v1: the open heal trip (from the warning's seq), the hold in force, the drought level already recorded as held.
  private healTrip:{readonly seq:number;calls:number}|null=null;
@@ -106,7 +126,9 @@ export class StallBriefing {
   for(const p of s.party){
    if(p.is_egg===true||p.identity==null||p.level==null||p.level<1)continue;
    const before=this.levels.get(p.identity);
-   if(before!==undefined&&p.level>before)up=true;
+   // drought-progress-credit-v2: while the last GYM LEADER battle is still a loss, only a member that battle saw counts
+   // as progress; a POKéMON obtained after the loss can level without restarting the clock.
+   if(before!==undefined&&p.level>before&&this.credited(p.identity))up=true;
    this.levels.set(p.identity,p.level);
   }
   const o=s.trainer_opponent;
@@ -121,7 +143,41 @@ export class StallBriefing {
   return up||won||healed;
  }
 
+ // drought-progress-credit-v2: no open loss, or the switch off, credits every identified level-up as before.
+ private credited(identity:string):boolean {
+  return !this.features["drought-progress-credit-v2"]||this.openLoss===null||this.openLoss.identities.has(identity);
+ }
+
+ // open-milestone-stall-v1 / drought-progress-credit-v2: watch GYM LEADER battles from recorded state. An attempt starts
+ // when the game says the opponent is a battle-active GYM LEADER; it opens when that battle ends lost or drew, and it is
+ // retired by a later win against the same trainer id or by the game's own defeated flag for it.
+ private trackOpenMilestone(event:RunEvent):void {
+  if(!this.features["open-milestone-stall-v1"]&&!this.features["drought-progress-credit-v2"])return;
+  this.outcomes.observe(event);
+  if(event.type==="state"&&"started"in event){
+   const o=event.trainer_opponent;
+   if(o!=null&&o.battle_active){
+    if(o.trainer_class===LEADER_CLASS)this.attempt={id:o.trainer_id,name:o.name??null,place:roomOf(event,this.features),turn:event.turn,seq:event.seq,party:[...event.party],identities:new Set(event.party.flatMap(m=>m.identity==null?[]:[m.identity]))};
+    return;
+   }
+   if(this.openLoss!==null&&o!=null&&o.trainer_id===this.openLoss.id&&o.defeated)this.retireOpen();
+   return;
+  }
+  const attempt=this.attempt;
+  if(attempt===null)return;
+  for(const battle of this.outcomes.battles()){
+   if(battle.trainer?.id!==attempt.id||battle.seq<attempt.seq)continue;
+   if(battle.outcome==="won"){if(this.openLoss!==null&&this.openLoss.id===attempt.id)this.retireOpen();continue;}
+   if(battle.outcome!=="lost"&&battle.outcome!=="drew")continue;
+   if(this.openLoss?.seq===battle.seq)continue;
+   this.openLoss={...attempt,seq:battle.seq};
+   this.openActions=0;this.openBriefed=0;
+  }
+ }
+ private retireOpen():void {this.openLoss=null;this.openActions=0;this.openBriefed=0;}
+
  observe(event:RunEvent):void {
+   this.trackOpenMilestone(event);
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
     const seen=this.campaignSeen.has(event.name);this.campaignSeen.add(event.name);
@@ -165,6 +221,7 @@ export class StallBriefing {
   if(event.type==="tool_result"){
    if(this.skip)this.skip=false;else this.actions++;
    this.stateSinceResult=false;
+   if(this.openLoss!==null&&this.features["open-milestone-stall-v1"])this.openActions++;
    if(this.healTrip!==null&&++this.healTrip.calls>=HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold(event.seq);}
    // Calls made inside an owned interface (it was open before and after them) count as dwelling there,
    // however its text churns; the call that opened it does not.
@@ -205,6 +262,17 @@ export class StallBriefing {
   if(dwell!==null&&Math.floor(dwell.calls/INTERFACE_DWELL_CALLS)>dwell.briefed){
    const stall:Stall={kind:"interface_dwell",name:dwell.name,calls:dwell.calls};
    if(this.detector.stall("interface_dwell",calls=>this.text(stall,calls),[dwell.firstSeq,seq]))dwell.briefed=Math.floor(dwell.calls/INTERFACE_DWELL_CALLS);
+   return;
+  }
+  // open-milestone-stall-v1: with a leader loss open, that loss is the stall, and this note replaces the drought briefing.
+  // A due note is banked: while a battle, a trainer's sight script or a heal trip holds the field it waits, and it is sent
+  // at the next free result without the count starting over.
+  if(this.openLoss!==null&&this.features["open-milestone-stall-v1"]){
+   const level=Math.floor(this.openActions/OPEN_MILESTONE_ACTIONS);
+   if(level>this.openBriefed&&this.hold()===null&&(this.gate?.holds()??null)===null){
+    const stall:Stall={kind:"open_milestone",trainer:this.openLoss.name??"the GYM LEADER",place:this.openLoss.place,turn:this.openLoss.turn,actions:this.openActions,before:partyFacts(this.openLoss.party),now:partyFacts(this.last?.party??[])};
+    if(this.detector.stall("open_milestone",calls=>this.text(stall,calls),[this.openLoss.seq,seq]))this.openBriefed=level;
+   }
    return;
   }
   // turn-drought-clock-v1: the level counts actions, and the briefing is sent even with milestone-drought-suppression-v1.

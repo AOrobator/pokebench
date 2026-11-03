@@ -256,3 +256,94 @@ it("can brief before the name is confirmed, so its pending experiment activates 
  expect(r.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
  expect(r.events.some(e=>e.type==="milestone"&&e.name==="PLAYER_NAME_CONFIRMED")).toBe(false);
 });
+
+// open-milestone-stall-v1 / drought-progress-credit-v2: a GYM LEADER loss left open, played from recorded state only.
+const GYM={location:"RUSTBORO CITY GYM",map_id:[11,3]};
+const CITY={location:"RUSTBORO CITY",map_id:[0,3]};
+const LEADER={trainer_id:265,name:"ROXANNE",trainer_class:0x20,defeated:false,battle_active:true};
+const FIGHT={active:true,initialized:true,phase:"resolving",ready:false,main_func:0x0803e08d,script_pc:0x082d9000,battle_type:8,turn:1,outcome_code:0,outcome:"ongoing",battlers:[],player_inputs:[],controller_exec_flags:1,signals:[],current_execution:null,diagnostic:null,raw_hex:null};
+const MEMBER=(identity:string,species:string,level:number,experience:number)=>({identity,species,level,experience,hp:36,max_hp:36,is_egg:false});
+const LOSS_PARTY=[MEMBER("t1","TORCHIC",14,1724)];
+const OPEN_BASE:FeatureSet={...ON,"turn-drought-clock-v1":true,"drought-progress-facts-v1":true,"drought-battle-heal-hold-v1":true};
+const A_ON:FeatureSet={...OPEN_BASE,"drought-progress-credit-v2":true,"open-milestone-stall-v1":false};
+const A_OFF:FeatureSet={...OPEN_BASE,"drought-progress-credit-v2":false,"open-milestone-stall-v1":false};
+const B_ON:FeatureSet={...ON,"turn-drought-clock-v1":false,"open-milestone-stall-v1":true,"drought-progress-credit-v2":false};
+const B_OFF:FeatureSet={...B_ON,"open-milestone-stall-v1":false};
+
+function leaderLoss(r:ReturnType<typeof rig>,party= LOSS_PARTY):void {
+ r.state({...GYM,in_battle:true,screen:"battle",party,trainer_opponent:{...LEADER},battle:{...FIGHT}});
+ r.press(["A"],{...GYM,in_battle:true,screen:"battle",party,trainer_opponent:{...LEADER},battle:{...FIGHT,outcome:"lost"}},1000);
+ r.press(["B"],{...CITY,party,trainer_opponent:{...LEADER,battle_active:false}},1000);
+}
+function walk(r:ReturnType<typeof rig>,n:number,party:unknown[],until=()=>false):number {
+ let i=0;for(;i<n&&!until();i++)r.press(["RIGHT"],{...CITY,position:{x:4+(i%8),y:3},party},1000);
+ return i;
+}
+
+it("credits a level-up toward an open leader loss only for a POKéMON the loss saw",()=>{
+ const caught=[MEMBER("t1","TORCHIC",14,1724),MEMBER("w1","WINGULL",5,156)];
+ const levelled=[MEMBER("t1","TORCHIC",14,1724),MEMBER("w1","WINGULL",6,232)];
+ const on=rig(A_ON);leaderLoss(on);
+ on.press(["RIGHT"],{...CITY,party:caught},1000);
+ on.press(["RIGHT"],{...CITY,party:levelled},1000);
+ const onPresses=walk(on,40,levelled,()=>on.guards().length>0);
+ const off=rig(A_OFF);leaderLoss(off);
+ off.press(["RIGHT"],{...CITY,party:caught},1000);
+ off.press(["RIGHT"],{...CITY,party:levelled},1000);
+ const offPresses=walk(off,40,levelled,()=>off.guards().length>0);
+ expect(on.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
+ expect(off.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
+ // Off, the Wingull's level restarts the clock: four presses later, counting the result the restart skips.
+ expect(offPresses-onPresses).toBe(4);
+});
+
+it("keeps crediting a level-up by the POKéMON that lost",()=>{
+ const after=[MEMBER("t1","TORCHIC",15,2064)];
+ const r=rig(A_ON);leaderLoss(r);
+ r.press(["RIGHT"],{...CITY,party:after},1000);
+ const presses=walk(r,40,after,()=>r.guards().length>0);
+ expect(r.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
+ expect(presses).toBe(30);
+});
+
+it("briefs once on an open leader loss after 30 actions, naming the loss and the party then and now",()=>{
+ const now=[MEMBER("t1","TORCHIC",15,2064)];
+ const r=rig(B_ON);leaderLoss(r);
+ walk(r,40,now,()=>r.guards().length>0);
+ const [note]=r.guards();
+ expect(note).toMatchObject({kind:"open_milestone",phase:"supervisor",mode:"enforced"});
+ expect(note?.message).toMatch(/^SUPERVISOR: You have an unfinished battle: you lost to ROXANNE on RUSTBORO CITY GYM \(map 11\/3\) at turn \d+, and 30 actions have passed without another attempt/);
+ expect(note?.message).toContain("Party at that battle: TORCHIC Lv14, EXP. POINTS 1724");
+ expect(note?.message).toContain("Party now: TORCHIC Lv15, EXP. POINTS 2064");
+ expect(note?.message).not.toMatch(/\b(go|head|walk|return|train|should|route)\b/i);
+ expect(()=>parseEvent(JSON.stringify(note))).not.toThrow();
+ expect(r.next()).toBe(note?.message);
+});
+
+it("banks a due open-milestone note through a battle and sends it at the next free result",()=>{
+ const now=[MEMBER("t1","TORCHIC",15,2064)];
+ const r=rig(B_ON);leaderLoss(r);
+ walk(r,27,now);
+ r.press(["A"],{...CITY,in_battle:true,screen:"battle",party:now,trainer_opponent:{...LEADER},battle:{...FIGHT}},1000);
+ expect(r.guards()).toEqual([]);
+ r.press(["RIGHT"],{...CITY,party:now},1000);
+ expect(r.guards().map(g=>g.kind)).toEqual(["open_milestone"]);
+ expect(r.guards()[0]?.message).toMatch(/and 30 actions have passed without another attempt/);
+});
+
+it("stops briefing once the leader is beaten",()=>{
+ const now=[MEMBER("t1","TORCHIC",15,2064)];
+ const r=rig(B_ON);leaderLoss(r);
+ r.state({...GYM,in_battle:true,screen:"battle",party:now,trainer_opponent:{...LEADER},battle:{...FIGHT}});
+ r.press(["A"],{...GYM,in_battle:true,screen:"battle",party:now,trainer_opponent:{...LEADER},battle:{...FIGHT,outcome:"won"}},1000);
+ r.press(["B"],{...CITY,party:now,trainer_opponent:{...LEADER,battle_active:false,defeated:true}},1000);
+ walk(r,60,now);
+ expect(r.guards().filter(g=>g.kind==="open_milestone")).toEqual([]);
+});
+
+it("sends no open-milestone note with the switch off",()=>{
+ const now=[MEMBER("t1","TORCHIC",15,2064)];
+ const r=rig(B_OFF);leaderLoss(r);
+ walk(r,60,now);
+ expect(r.guards().filter(g=>g.kind==="open_milestone")).toEqual([]);
+});

@@ -2068,3 +2068,10 @@ it("links the native instruction tasks card without inferring historical activat
  expect(enabled.querySelector(".config-badge")?.textContent).toBe("ON");
  expect(enabled.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+
+it("links both open-milestone switches to their tracked explainers",()=>{
+ for(const id of ["drought-progress-credit-v2","open-milestone-stall-v1"])expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/open-milestone-stall-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("You have an unfinished battle");
+ expect(html).toContain("actions have passed without another attempt");
+});

@@ -376,3 +376,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Authored Rustboro scene labels](authored-scene-labels-v1.html)
 
 - [Native instruction tasks](native-instruction-tasks-v1.html): deterministic delivered Devon request tracking in the existing ledger, default OFF.
+
+- [Credit level-ups toward the open loss](drought-progress-credit-v2.html): a level-up restarts the drought clock only when the open GYM LEADER loss saw that POKéMON; default OFF, needs turn-drought-clock-v1.
+
+- [Open leader loss briefing](open-milestone-stall-v1.html): one supervisor note per 30 actions while the last GYM LEADER battle is still a loss, banked through battle holds; default OFF.

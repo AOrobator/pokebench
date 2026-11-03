@@ -385,6 +385,8 @@ function toolReference(name:string,automaticRunning:boolean):string {
 // Explainers for behaviour that has no switch: the policy still needs a reader, but there is no arm to hang it on.
 export const STANDING_EXPLAINERS:readonly string[]=Object.freeze(["trigger-navigation-boundary-v1.html"]);
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "drought-progress-credit-v2":"drought-progress-credit-v2.html",
+ "open-milestone-stall-v1":"open-milestone-stall-v1.html",
  "warp-target-navigation-v1":"warp-target-navigation-v1.html",
  "rom-identity-v1":"rom-identity-v1.html",
  "checkpoint-research-note-v1":"checkpoint-research-note-v1.html",

@@ -33,6 +33,7 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
+from pokebench_env.map_observation import MapObservation
 from pokebench_env.map_terrain_elements import DEEP_SOUTH_WARP_LABEL, deep_south_warp_entrances
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
@@ -153,8 +154,9 @@ def read_state(
     )
     if authored_scene_labels.SWITCH not in off:
         state = authored_scene_labels.annotate_scene_label(read, state)
-    if DEEP_SOUTH_WARP_LABEL not in off and state.map_observation is not None:
-        observation = state.map_observation
+    # Callers that stub read_game_state return other objects; only a real observation is relabelled.
+    observation = getattr(state, "map_observation", None)
+    if DEEP_SOUTH_WARP_LABEL not in off and isinstance(observation, MapObservation):
         state = replace(
             state,
             map_observation=replace(

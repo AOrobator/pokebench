@@ -43,7 +43,7 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 - [x] RED: tests for INV-1..INV-4 (`env/tests/env/test_deep_south_warp_label.py` 3 failed / 1 passed; `packages/agent/src/recovery-note-field-only.test.ts` 3 failed / 1 passed — the passing ones are the OFF guards)
 - [x] GREEN: implement, register (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list). Focused: agent 6 files / 173 tests; viewer server+next-run 139, panels 137; env 145. Wiring removal in `harness.ts` turns the factory test red (1 failed / 3 passed), restored green.
 - [x] Explainers + `FEATURE_EXPLAINERS` (`docs/explainers/deep-south-warp-label-v1.html`, `recovery-note-field-only-v1.html`; `just pages-check` clean)
-- [ ] Gates (build, lint, coverage ≥90) within a CPU window
+- [x] Gates (coverage-gate CPU window granted by the coordinator at 11:18 PM): `just build` pass. Agent 382 files / 5406 tests, 96.39 lines / 92.35 branches / 97.44 functions. Viewer 184 files / 2423 tests, 94.57 / 90.78 / 94.83. Env 5203 passed, 97.51 / 93.58 / 99.90. Gateway 116 passed, 99.12 / 96.22 / 100. `just trainer-card-check` pass after `just trainer-card-art`. First env pass: 5 failures where tests stub `read_game_state` with non-GameState objects. The relabel now reads `map_observation` only from a real `MapObservation` (fixed in the next commit). `test_view` needs the native mgba binding, which the worktree venv lacks, so env coverage ran with the main checkout's venv against worktree sources (`PYTHONPATH`). It fails identically with main's `rerender.py`. Lint: TS tsc and eslint pass, and the gateway passes. ruff check, ruff format and mypy fail only on files this branch does not touch (`adjacent_tiles.py`, `map_observation.py`, `launcher.py`, `test_exit_reach.py`, `test_adjacent_tiles.py`, `test_compact_map_grid.py`), plus the mgba stubs.
 - [ ] Cloud review (Claude, Grok, GPT/Codex lanes)
 - [ ] Land ff-only via the landing board; `just viewer-main`
 
@@ -53,3 +53,4 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 - 2026-11-02 11:11 PM: RED committed.
 - 2026-11-02 11:25 PM: GREEN committed; changed-file eslint/tsc/ruff/mypy clean. Main itself carries ruff errors in `adjacent_tiles.py` and `map_observation.py` (not touched here), so `just lint` will need that noted.
 - 2026-11-02 11:20 PM: The operator asked for the label fix ON in both arms; config + preset + README updated. Heavy-CPU window granted by the coordinator at 11:18 PM.
+- 2026-11-02 11:50 PM: gates recorded, stub-guard fix committed, CPU window released.

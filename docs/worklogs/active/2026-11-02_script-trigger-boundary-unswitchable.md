@@ -70,3 +70,15 @@ both switches, and the boundary sentence they already received is now unconditio
   21 skipped, 183 files**, `pnpm -r build` Done (viewer stamp records the tree as dirty pre-commit). `tsc` reports
   only the two errors that already fail on `main` (`cut-off-reply.test.ts:75`, `semantic-refusal-reasons.test.ts:75`;
   viewer `trace.test.ts:41` likewise); eslint has no error that `main` does not already have.
+
+## Landed
+
+Ordinary fast-forward onto `main`: `1ddc26c48` (RED `bc342fd26` rode along). Post-landing gates on
+`main` after `e45fd087c` (the operator's lint-baseline repair landed on top):
+
+- `pnpm -r build` Done; `pnpm -r lint` **exit 0** (that commit fixed the two agent type errors and the
+  eslint baseline this branch had to route around).
+- agent vitest **5390/5390 in 381 files**; viewer vitest **2418/2418 in 184 files**.
+- Viewer needs `NODE_OPTIONS=--max-old-space-size=6144`: `src/panels.test.ts` aborts the fork with SIGABRT
+  (~213 of 233 tests) under the default heap. Reproduced identically at `def665b08` with this branch's files
+  reverted, so it predates the change; with the larger heap the file passes 233/233. Worth its own card.

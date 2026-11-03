@@ -186,3 +186,10 @@ text. No walkthrough knowledge: the note names only what the game recorded (trai
 - Not done here: the fixed-run replay comparison that would activate either switch. Both stay OFF in every
   checked-in preset.
 
+- Full gate `just test` (with `.env` loaded): agent coverage 5402 passed, viewer coverage 184 files / 2421 tests,
+  python 5199 passed, claude-gateway 116 passed, trainer-card-check 3 passed. One earlier pass failed the
+  websocket case `server.test.ts > keeps the downstream socket open after a successful send callback` ("received
+  only 2 frames"); it passes 3/3 alone and the next full pass is clean, so it is a load flake.
+- Running `cd env && uv run pytest` outside `just` fails 267 tests for want of `POKEBENCH_ROM` (the recipe loads
+  `.env`; a bare shell does not). Not a regression — recorded so the next reader does not chase it.
+

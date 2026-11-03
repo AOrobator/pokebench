@@ -141,6 +141,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 - 2026-11-03 01:05 NY: CPU window granted by the coordinator. Gate pass 1: `just verify-vendor` PASS. `just lint`: pnpm lint PASS; the env ruff step fails on 9 errors, all in files this branch does not touch, and identical on main `d535a4d6f` (adjacent_tiles.py, launcher.py, map_observation.py, test_adjacent_tiles.py, test_compact_map_grid.py, test_exit_reach.py), so they are pre-existing. `just test` failed 1/5423 agent tests: `control-preset-8k.test.ts` requires `experiments/presets/current-control-24h-8k.json` to mirror the recipe features; added the switch there. `just trainer-card-check` failed because the worktree has no `runs/sprites/trainer-card-v1`; re-running with `POKEBENCH_CARD_ART` pointed at the main checkout's generated art.
 
+- 2026-11-03 01:15 NY: Gate pass 2 at `a7787785b` (the code is identical to `4e968ab0b`; later commits are docs). `just test`: agent 383 files, 5423/5423, coverage lines 99.01 / branches 92.27 / functions 97.4 / statements 96.34; viewer 184 files, 2427/2427, 98.22 / 90.78 / 94.83 / 94.57. The pytest step failed once only because the worktree's fresh `.venv` has no mGBA binding (`ModuleNotFoundError: No module named 'mgba'` in `test_view.py`). Re-run with main's `.venv` and `PYTHONPATH` set to the worktree: 5252/5252 passed; coverage gate lines 97.50%, branches 93.59%, functions 99.90% (floor 90); intercept.py 96%. `just trainer-card-check` (with POKEBENCH_CARD_ART) PASS, 3/3. `just verify-vendor` PASS. `just lint`: pnpm lint PASS; env ruff has the 9 pre-existing errors, identical on main. CPU window released.
+
 ## Surprises
 
 - `moving-npc-target-v1` already onInBoth and already "fixed" for drift (2026-11-01); the remaining failure is pursuit lag, not drift aborts.
@@ -149,6 +151,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 ## Multi-Model Review Log
 
 - 2026-11-03 01:09 NY: The operator waived the Grok and GPT/Codex lanes for this landing ("grok and cgpt are waived"). The Claude lane is the review gate. Principles self-review: `runs/reviews/moving-npc-intercept/principles.md`, zero FAIL.
+- Round 1 Claude CLI (`~/.claude-review`, plan mode, read-only) on the frozen packet base `ce6f83fc4` head `a7787785b`, diff SHA-256 `f35dafcb…c853`: `VERDICT: LGTM`, no blockers. Output in `runs/reviews/moving-npc-intercept/claude-review.out`.
+- Deferred hardening from that review, none of it blocking. (1) During stepping the server does not re-check that the target is still on P, so a refused-then-cleared step can report `entered` without a pin; the follow still recovers. (2) After a failed watch, `seen` comes from the state before the watch, so the second try can start on any movement, contrary to the comment; still capped at 2. (3) The receipt is compared by JSON key order; it is correct today but brittle. (4) An HTTP 409 or missing route throws a tool error instead of falling back, the same as strides. Only the 12-tile ring was rehearsed; back-and-forth paths are untested on the emulator.
 
 ## Boy Scout Log
 

@@ -166,12 +166,12 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
  });
 });
 
-describe("navigation-truth-v1: matching coordinate triggers are not walked across",()=>{
+describe("navigation-truth-v1: a matching coordinate trigger is a walkable observation boundary",()=>{
  const birch=recorded("sh02:5860");
- it("sh02 T261: (4,12) is reachable only across the active PreventExit triggers, and the refusal names the first one",async()=>{
-  const on=await walk(birch,{x:4,y:12},TRUTH);
-  expect(on.presses).toBe(0);
-  expect(on.status).toBe("every route navigate_to sees to (4,12) crosses a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (6,15) (variable 0x4060=2, needs 2); stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target (6,15) itself to step on it on purpose");
+ it("sh02 T261: (4,12) is reachable only across the active PreventExit triggers, so the walk steps into the first one",async()=>{
+  const on=await walk(birch,{x:4,y:12},TRUTH,Array.from({length:6},()=>birch));
+  expect(on.presses).toBe(1);
+  expect(on.status).toBe("script-trigger step attempted at (6,15); inspect the resulting state");
  });
  it("the claim is that every route crosses some matching trigger, not one named tile",()=>{
   const plan={ledges:true,oneWay:true,elevation:"game" as const};
@@ -216,11 +216,11 @@ describe("navigation-truth-v1: matching coordinate triggers are not walked acros
   const otherElevation={...town,world_context:{...ctx,triggers:ctx.triggers.map(t=>({...t,elevation:5}))}};
   expect((await walk(otherElevation,{x:7,y:0},TRUTH)).status).toBe("(7,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (10,0)");
  });
- it("a ledge hop that lands on a matching trigger is not planned, and the refusal names the landing tile",async()=>{
+ it("a ledge hop that lands on a matching trigger enters that landing tile once",async()=>{
   const tile=(x:number,behavior=0)=>({x,y:0,collision:0,behavior,elevation:3});
   const trigger={x:2,y:0,elevation:0,variable:0x4001,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000};
   const row:GameStateSnapshot={screen:"overworld",started:true,name:"A",location:"ROUTE",map_id:[0,9],position:{x:0,y:0},facing:"right",in_battle:false,party:[],money:0,badges:[],play_time_s:0,field_controls_locked:false,navigation_grid:{elevation:3,tiles:[tile(0),tile(1,0x38),tile(2),tile(3)],objects:[],warps:[]},world_context:{objects:[],triggers:[trigger],dialogue:null}};
-  expect((await walk(row,{x:3,y:0},TRUTH)).status).toBe("every route navigate_to sees to (3,0) crosses a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (2,0) (variable 0x4001=1, needs 1); stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target (2,0) itself to step on it on purpose");
+  const hop=await walk(row,{x:3,y:0},TRUTH,Array.from({length:3},()=>({...row,position:{x:2,y:0}})));expect(hop.presses).toBe(1);expect(hop.status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
   expect((await walk(row,{x:2,y:0},{...TRUTH,maxCommands:1},[{...row,position:{x:2,y:0}}])).status).toBe("arrived at requested coordinate");
   expect((await walk({...row,world_context:{objects:[],triggers:[{...trigger,current_value:null,condition_met:true}],dialogue:null}},{x:3,y:0},TRUTH)).status).toContain("(variable 0x4001=unknown, needs 1)");
  });
@@ -243,7 +243,7 @@ describe("navigation-truth-v1: matching coordinate triggers are not walked acros
   expect(first.presses).toBe(1);
   const blocked={...full,map_grid:{...mapOf(full),objects:[{x:0,y:1}]},world_context:{...contextOf(full),objects:[{local_id:3,map_id:[0,9] as [number,number],graphics_id:7,sprite_kind:"BOY_1",x:0,y:1}]}};
   expect((await walk(full,{x:2,y:0},{...TRUTH,fullMap:true,maxCommands:1},[blocked])).status).toBe("blocked: a person or object (sprite BOY_1) is now on (0,1), the next tile of the route; wait for it to move or choose another approach");
-  expect((await walk({...full,map_grid:{...mapOf(full),rows:[trig,"130013001300"]}},{x:2,y:0},{...TRUTH,fullMap:true,windowReasons:true})).status).toBe("every route navigate_to sees to (2,0) crosses a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (1,0) (variable 0x4003=2, needs 2); stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target (1,0) itself to step on it on purpose");
+  const gated={...full,map_grid:{...mapOf(full),rows:[trig,"130013001300"]}};const entered=await walk(gated,{x:2,y:0},{...TRUTH,fullMap:true,windowReasons:true},Array.from({length:3},()=>gated));expect(entered.presses).toBe(1);expect(entered.status).toBe("script-trigger step attempted at (1,0); inspect the resulting state");
   expect((await walk({...full,world_context:{objects:[],triggers:[],dialogue:null},map_grid:{...mapOf(full),rows:["030013000300","130013001300"]}},{x:2,y:0},{...TRUTH,fullMap:true,windowReasons:true})).status).toBe("no supported path on the current map; choose a reachable waypoint");
  });
  it("needs coordinate-script-conditions-v1: without the trigger switch the plan is unchanged",async()=>{
@@ -377,7 +377,7 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   expect(planNavigation(state,{x:3,y:0},{floor:true})).toEqual(["RIGHT","RIGHT","RIGHT"]);
   expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
   expect((await walk(state,{x:3,y:0},{...TERRAIN,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
-  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true,floor:true})).status).toBe("every route navigate_to sees to (3,0) crosses a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (2,0) (variable 0x4002=0, needs 0); stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target (2,0) itself to step on it on purpose");
+  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true,floor:true},Array.from({length:3},()=>({...state,position:{x:2,y:0}})))).status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");

@@ -5,7 +5,6 @@ import {parseGameState} from "./game-state.js";
 import {expect,it} from "vitest";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {withSemanticNavigation} from "./semantic-navigation.js";
-import {normalizeFeatures} from "./play-preset.js";
 import {withNavigation} from "./navigation.js";
 import {pressTool,observeTool} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
@@ -13,7 +12,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
-async function invoke(on:boolean,semantic=false,settled=false,change:"normal"|"wall"|"nonmatching"|"elevation"|"turn"="normal"){
+async function invoke(semantic=false,settled=false,change:"normal"|"wall"|"nonmatching"|"elevation"|"turn"="normal"){
  let current:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,3],position:{x:0,y:0},facing:"right",navigation_grid:{elevation:3,tiles:[0,1,2,3].map(x=>({x,y:0,collision:0,behavior:0,elevation:3})),objects:[],warps:[]},world_context:{objects:[],triggers:[{x:1,y:0,elevation:3,variable:0x405a,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000}],dialogue:null},topology:{width:4,height:1,connections:[{direction:"EAST",offset:0,destination:[0,31],destination_name:"ROUTE116",edges:[{x:3,y:0}]}]}};
  if(change==="wall"&&current.navigation_grid)current={...current,navigation_grid:{...current.navigation_grid,tiles:current.navigation_grid.tiles.map(t=>t.x===1?{...t,collision:1}:t)}};
  if((change==="nonmatching"||change==="elevation")&&current.world_context)current={...current,world_context:{...current.world_context,triggers:current.world_context.triggers.map(t=>({...t,...(change==="nonmatching"?{condition_met:false,current_value:2}:{elevation:4})}))}};
@@ -26,7 +25,7 @@ async function invoke(on:boolean,semantic=false,settled=false,change:"normal"|"w
   return Promise.resolve(new Response(JSON.stringify(body)));
  };
  if(change==="turn")current={...current,facing:"up"};
- const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"semantic-navigation-v2":semantic,"navigation-truth-v1":true,"coordinate-script-conditions-v1":true,"trigger-navigation-boundary-v1":on};
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"semantic-navigation-v2":semantic,"navigation-truth-v1":true,"coordinate-script-conditions-v1":true};
  const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()})];
  const source={read:()=>Promise.resolve(current)};
  const tools=withSemanticNavigation(withNavigation(base,features,source),features,source);
@@ -34,28 +33,23 @@ async function invoke(on:boolean,semantic=false,settled=false,change:"normal"|"w
  const result:AgentToolResult<unknown>=await nav.execute("trigger",semantic?{map_id:[0,3],target:{kind:"connection",direction:"EAST"}}:{x:3,y:0,map_id:[0,3]});
  return {posts,result,text:result.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n"),current};
 }
-it("OFF preserves the existing trigger refusal and sends no movement",async()=>{
- const off=await invoke(false);expect(off.posts).toEqual([]);expect(off.text).toContain("every route navigate_to sees");expect(off.text).toContain("variable 0x405A=1, needs 1");
-});
-it.each([false,true])("ON enters the script once and returns its observation (already settled=%s)",async settled=>{
- const on=await invoke(true,false,settled);expect(on.posts).toHaveLength(1);expect(on.current.position).toEqual({x:1,y:0});expect(on.text).toContain("script-trigger step attempted at (1,0); inspect the resulting state");expect(on.text).toContain("resulting game observation");expect(on.text).not.toContain("every route navigate_to sees");
+// Unconditional since 2026-11-02: no switch gates the boundary, so a route with no script-free alternative walks
+// one step into the first matching script and returns the observation instead of refusing to move.
+it.each([false,true])("enters the script once and returns its observation (already settled=%s)",async settled=>{
+ const on=await invoke(false,settled);expect(on.posts).toHaveLength(1);expect(on.current.position).toEqual({x:1,y:0});expect(on.text).toContain("script-trigger step attempted at (1,0); inspect the resulting state");expect(on.text).toContain("resulting game observation");expect(on.text).not.toContain("every route navigate_to sees");
 });
 
 it("semantic travel returns the boundary instead of continuing or activating the exit",async()=>{
- const on=await invoke(true,true,true);expect(on.posts).toHaveLength(1);expect(on.current.map_id).toEqual([0,3]);expect(on.current.position).toEqual({x:1,y:0});expect(on.result.details).toMatchObject({navigation:{stop_requested:true},semantic_navigation:{activation_attempted:false}});expect(on.text).toContain("script-trigger step attempted at (1,0)");
+ const on=await invoke(true,true);expect(on.posts).toHaveLength(1);expect(on.current.map_id).toEqual([0,3]);expect(on.current.position).toEqual({x:1,y:0});expect(on.result.details).toMatchObject({navigation:{stop_requested:true},semantic_navigation:{activation_attempted:false}});expect(on.text).toContain("script-trigger step attempted at (1,0)");
 });
 it("preserves physical collision and does not claim script entry on a wall",async()=>{
- const on=await invoke(true,false,true,"wall");expect(on.posts).toEqual([]);expect(on.text).not.toContain("script-trigger step attempted");
+ const on=await invoke(false,true,"wall");expect(on.posts).toEqual([]);expect(on.text).not.toContain("script-trigger step attempted");
 });
 it.each(["nonmatching","elevation"] as const)("does not treat a %s condition as an active boundary",async change=>{
- const on=await invoke(true,false,true,change);expect(on.posts).toHaveLength(3);expect(on.current.position).toEqual({x:3,y:0});expect(on.text).toContain("arrived at requested coordinate");
+ const on=await invoke(false,true,change);expect(on.posts).toHaveLength(3);expect(on.current.position).toEqual({x:3,y:0});expect(on.text).toContain("arrived at requested coordinate");
 });
 it("returns after a facing-only trigger attempt without claiming the script ran",async()=>{
- const on=await invoke(true,false,true,"turn");expect(on.posts).toHaveLength(1);expect(on.current.position).toEqual({x:0,y:0});expect(on.text).toContain("script-trigger step attempted at (1,0)");
-});
-it("normalizes omitted presets to OFF",()=>{
- const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
- const {"trigger-navigation-boundary-v1":omitted,...old}=legacy;expect(omitted).toBe(false);expect(normalizeFeatures(old)["trigger-navigation-boundary-v1"]).toBe(false);
+ const on=await invoke(false,true,"turn");expect(on.posts).toHaveLength(1);expect(on.current.position).toEqual({x:0,y:0});expect(on.text).toContain("script-trigger step attempted at (1,0)");
 });
 
 it("replans the recorded Rustboro refusal toward its live trigger, without touching the run",async()=>{

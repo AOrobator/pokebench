@@ -1,6 +1,6 @@
 import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
-import {readFileSync} from "node:fs";
+import {readdirSync,readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
@@ -10,13 +10,12 @@ import {withNavigation} from "./navigation.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
 import {flagFeatures} from "./play-preset.js";
 
-const ID="trigger-navigation-boundary-v1";
 const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
 const trigger=(x:number,y:number)=>({x,y,elevation:0,variable:0x408d,required_value:2,current_value:2,condition_met:true,script_pointer:0x081f8a73});
 function field(detour=false):GameStateSnapshot {
  return {...IN_GAME,screen:"overworld",started:true,in_battle:false,active_ui:null,field_controls_locked:false,map_id:[1,2],position:{x:0,y:0},facing:"right",navigation_grid:{elevation:3,tiles:[0,1,...(detour?[2,3,4,5]:[2])].map(i=>({x:i%3,y:Math.floor(i/3),collision:0,behavior:0,elevation:3})),objects:[],warps:[]},world_context:{objects:[],triggers:[trigger(1,0),...(detour?[]:[trigger(2,0)])],dialogue:null},topology:{width:3,height:detour?2:1,connections:[{direction:"EAST",offset:0,destination:[0,9],destination_name:"LITTLEROOT TOWN",edges:[{x:2,y:0}]}]}};
 }
-async function run(start:GameStateSnapshot,on:boolean,semantic=false,effect:"move"|"unchanged"="move",fullMap=false){
+async function run(start:GameStateSnapshot,semantic=false,effect:"move"|"unchanged"="move",fullMap=false){
  let current=start;const posts:unknown[]=[];
  const fetchFn:typeof fetch=(input,init)=>{
   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
@@ -31,7 +30,7 @@ async function run(start:GameStateSnapshot,on:boolean,semantic=false,effect:"mov
   else if(url.endsWith("/pokebench/observation"))body={state:current,state_text:"observed state after ordinary input",screenshot_base64:png.toString("base64")};
   return Promise.resolve(new Response(JSON.stringify(body)));
  };
- const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"semantic-navigation-v2":semantic,"full-map-navigation-v1":fullMap,"safe-navigation-strides-v1":fullMap,"navigation-truth-v1":true,"coordinate-script-conditions-v1":true,[ID]:on};
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"semantic-navigation-v2":semantic,"full-map-navigation-v1":fullMap,"safe-navigation-strides-v1":fullMap,"navigation-truth-v1":true,"coordinate-script-conditions-v1":true};
  const base=[observeTool("http://game",fetchFn),pressTool("http://game",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()})],source={read:()=>Promise.resolve(current)};
  const tools=withSemanticNavigation(withNavigation(base,features,source),features,source),nav=tools.find(t=>t.name===(semantic?"navigate_to_target":"navigate_to"));if(nav===undefined)throw new Error("missing nav");
  const args=fullMap?(semantic?{map_id:[1,2],target:{kind:"warp",x:1,y:8}}:{map_id:[1,2],x:1,y:8}):(semantic?{map_id:[1,2],target:{kind:"connection",direction:"EAST"}}:{map_id:[1,2],x:2,y:0});
@@ -39,37 +38,48 @@ async function run(start:GameStateSnapshot,on:boolean,semantic=false,effect:"mov
  return {posts,current,details:result.details,text:result.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n")};
 }
 it.each([false,true])("prefers an available script-free route (semantic=%s)",async semantic=>{
- const result=await run(field(true),true,semantic);
+ const result=await run(field(true),semantic);
  expect(result.posts).toEqual(["DOWN","RIGHT","RIGHT","UP",...(semantic?["RIGHT"]:[])].map(d=>({buttons:[d],hold_frames:10,release_frames:8})));
  expect(result.text).not.toContain("script-trigger step attempted");
 });
 it.each([false,true])("stops at the first of two triggers without activating the destination (semantic=%s)",async semantic=>{
- const result=await run(field(),true,semantic);
+ const result=await run(field(),semantic);
  expect(result.posts).toEqual([{buttons:["RIGHT"],hold_frames:10,release_frames:8}]);expect(result.current.position).toEqual({x:1,y:0});
  expect(result.text).toContain("script-trigger step attempted at (1,0)");
  if(semantic)expect(result.details).toMatchObject({semantic_navigation:{activation_attempted:false},navigation:{stop_requested:true}});
 });
 it("never retries a trigger attempt with no net movement (including pushback)",async()=>{
  const effect="unchanged";
- const result=await run(field(),true,true,effect);expect(result.posts).toHaveLength(1);expect(result.current.position).toEqual({x:0,y:0});expect(result.text).toContain("script-trigger step attempted");
+ const result=await run(field(),true,effect);expect(result.posts).toHaveLength(1);expect(result.current.position).toEqual({x:0,y:0});expect(result.text).toContain("script-trigger step attempted");
 });
-it.each([false,true])("replays the rival stair landing with exactly one DOWN and no exit activation (semantic=%s)",async semantic=>{
+// 0517 turn 73 (2026-10-24T08-12-35_qwen36-gpu1): every route from (2,3) to the (1,8) warp crosses a matching
+// script tile, so the guarded planner has no script-free route; the first matching script is the boundary. The
+// refusal this replaces ("every route navigate_to sees ... crosses a script-trigger tile") is gone: no feature
+// set can reach it, so no arm can be scored against a route it is not allowed to walk.
+it.each([false,true])("0517 T73: every route to (1,8) crosses a matching script, so one DOWN walks into it (semantic=%s)",async semantic=>{
  const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/rival-trigger-1fe0.json.gz",import.meta.url))).toString("utf8"));const start=parseGameState(raw);
  expect(start.position).toEqual({x:2,y:3});
- const off=await run(start,false,semantic,"move",true);expect(off.posts).toEqual([]);expect(off.text).toContain("crosses a script-trigger tile");
- const on=await run(start,true,semantic,"move",true);expect(on.posts).toEqual([{buttons:["DOWN"],hold_frames:10,release_frames:8}]);expect(on.current.position).toEqual({x:2,y:4});expect(on.text).toContain("script-trigger step attempted at (2,4)");
+ const result=await run(start,semantic,"move",true);
+ expect(result.posts).toEqual([{buttons:["DOWN"],hold_frames:10,release_frames:8}]);
+ expect(result.current.position).toEqual({x:2,y:4});
+ expect(result.text).toContain("script-trigger step attempted at (2,4); inspect the resulting state");
+ expect(result.text).not.toContain("every route navigate_to sees");
+ expect(result.text).not.toContain("does not walk across one");
 });
-it("enables the operator-promoted switch in both fixed arms",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const d=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
-  expect(d.base.features[ID]).toBe(true);expect(d.switches).not.toContain(ID);expect(d.onInBoth).toContain(ID);expect(d.offInBoth).not.toContain(ID);
+it("every fixed recipe that plans around coordinate scripts can see them (the boundary has no switch of its own)",()=>{
+ const dir=new URL("../../../experiments/fixed/",import.meta.url);
+ const names=readdirSync(dir).filter(f=>f.endsWith(".json"));
+ expect(names.length).toBeGreaterThan(10);
+ for(const name of names){
+  const d=JSON.parse(recipeText(new URL(name,dir),"utf8")) as {base:{features:Record<string,boolean>}};
+  if(d.base.features["coordinate-script-conditions-v1"]===true)expect(d.base.features["navigation-truth-v1"]).toBe(true);
  }
 });
 
 it.each(["intermediate","endpoint","different-elevation","already-standing"])("semantic selection prefers a script-free edge (%s)",async variant=>{
  const start=field(true);
  const state:GameStateSnapshot={...start,world_context:{objects:[],dialogue:null,triggers:[{...trigger(variant==="already-standing"?0:variant==="intermediate"?1:2,0),elevation:variant==="different-elevation"?4:0}]},topology:{width:3,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,9],destination_name:"LITTLEROOT TOWN",edges:[{x:variant==="already-standing"?0:2,y:0},{x:2,y:1}]}]}};
- const result=await run(state,true,true);
+ const result=await run(state,true);
  const expected=variant==="already-standing"?["RIGHT"]:variant==="different-elevation"?["RIGHT","RIGHT","RIGHT"]:["DOWN","RIGHT","RIGHT","RIGHT"];
  expect(result.posts).toEqual(expected.map(d=>({buttons:[d],hold_frames:10,release_frames:8})));
  expect(result.text).not.toContain("script-trigger step attempted");

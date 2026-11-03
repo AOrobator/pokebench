@@ -40,9 +40,44 @@ unchanged and still on in both arms.
 
 ## Launch
 
-Pin: `899eeaf6b` (`main`), clean tree. The definition and this worklog are committed first, so the pin the
+Pin: `0c6060e98` (`main`), clean tree. The definition and this worklog are committed first, so the pin the
 trial records includes them.
+
+- Viewer rebuilt at the pin before the launch: `just viewer-main` printed `viewer at 0c6060e98234bd879f26b500aab49cce4d889f98`;
+  the serving `node` (pid 63425, ppid 1) runs `/Users/user/.cache/pokebench/05a6eefc879030e8/builds/0c6060e98234bd879f26b500aab49cce4d889f98`,
+  so the viewer is not older than the pin.
+- `just fixed-run check hyperqwen-bundle-24h-v4` passed: 1 planned trial, `definition sha256 73340cfa…`,
+  cook 0 control + 1 bundle with the 86400000 ms cap from `runs/launch-receipts/fast-text/MAIN_MENU.state`,
+  lane A `http://127.0.0.1:18020`, control base `whole-map-bundle-fd95` matching outside the switches and
+  off-in-both flags. The printed bundle list carries `stable-map-codes-v1`, `solid-tile-leads-v1`,
+  `auto-talk-interrupt-note-v1`, no `trigger-navigation-boundary-v1`.
+- Detached launch (`runs/experiments/hyperqwen-bundle-24h-v4/launch.sh`, `nohup` + redirect + `disown` in a
+  shell that returns): runner `63975` (`just`, ppid 1) → `fixed-cli` pid `65012`.
 
 ## Verification
 
-(filled in after the launch: runner pid, run id, `run_start` provenance, workbench card, `experiments-audit`)
+- Run `2026-11-02T22-29-22_hyperqwen-gpu0_828b`, `run_start` 2026-11-02T22:31:10-05:00 (turn 0).
+- `run_start` provenance: `evaluation.experiment {id: hyperqwen-bundle-24h-v4, arm: bundle, trial: 1, of: 1}`,
+  budgets `{max_turns: 20000, max_wall_ms: 86400000}`, `harness.commit 0c6060e98234bd879f26b500aab49cce4d889f98`,
+  `harness.dirty false`, `start_state.sha1 b3a6cc1c19836600a15febf41b8f8b19661ce5d4`, model
+  `qwen3.8-27b` (context 262144, vision), sampling `{thinking_level: medium, max_tokens: 8192}`.
+- Recipe as recorded: `trigger-navigation-boundary-v1` absent, `player-map-visibility-v2` false,
+  `dark-area-flash-reminder-v1` false, `stable-map-codes-v1` / `solid-tile-leads-v1` /
+  `auto-talk-interrupt-note-v1` true.
+- Live at 22:38 EST: turn 61, `0:07:21 / 24:00:00`, story 15/203, 18 milestones, frames saving (129 PNGs at
+  that read; `GET /api/runs/<id>/frames/001457_0.png` → 200, 240×160 PNG), `/api/workbench` reports the run
+  `live` with no `problem` and `problems` empty, `experiments-audit` prints nothing and exits 0, the run's
+  `.err` has no `FAILED`, and both 4090s report 100 % utilisation with the vLLM lane loaded.
+- Headless-Chrome screenshot of `http://127.0.0.1:8790/#run=2026-11-02T22-29-22_hyperqwen-gpu0_828b` shows
+  the live overworld frame on the GBA screen, the run card `hyperqwen-bundle-24h-v4` / preset
+  `hyperqwen-bundle-24h-v4-cook-bundle`, `T61 · 0:07:21 / 24:00:00`, empty errors lane.
+- Two `retry` events (turns 19 and 36, `reply hit max_tokens`, attempt 1) — the 8K cap's normal fresh-retry
+  path, not a stall; the viewer's failure counter reads 1 of 3.
+
+Note for anyone reading gates off `main` today: the tree went dirty mid-verification with a concurrent
+worker's `open_milestone` change (`docs/worklogs/active/2026-11-02_open-milestone-stall.md` adds the stall
+kind to `packages/agent` before `packages/viewer/src/trace.ts` knows it), so `tsc`/`just build` is red on
+`main` right now and any `just` recipe with the `build` prerequisite fails. Status and the audit were read
+from the `dist` built at the pin instead. Trials run from `/private/tmp/pokebench-fixed-0c6060e98234` at
+`0c6060e`, so that working tree cannot reach this run.
+

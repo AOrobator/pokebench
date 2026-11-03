@@ -1,7 +1,7 @@
 # Moving-NPC intercept: step into a patrol path and talk
 
 **Started:** 2026-11-03
-**Status:** Draft, waiting for operator approval before any implementation edit
+**Status:** Approved 2026-11-03 (the operator: "u can code when the worklog is written"); M1 in progress
 **Branch:** `claude/moving-npc-intercept` (worktree `/private/tmp/pb-moving-npc-intercept`, from main `ce6f83fc4`)
 **Switch:** `moving-npc-intercept-v1` (registry default OFF; `onInBoth` in `experiments/feature-configs/current.json`, the operator 2026-11-03: "go, this should be on in both arms")
 
@@ -87,7 +87,7 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 ## Milestones
 
 **M1 — Server intercept (frame-owned)**
-- [ ] RED: `env/tests/test_intercept.py`, a stepped fake emulator. Cases: two-walker ring (leader 1/2/3 ahead), face-then-step, frame budget, each stop reason, request validation, queue-busy 409.
+- [x] RED: `env/tests/env/test_intercept.py`, a stepped fake emulator. Cases: two-walker ring (leader 1/2/3 ahead), face-then-step, frame budget, each stop reason, request validation, queue-busy 409.
 - [ ] COMMIT: `test(env): require a frame-owned patrol intercept` (RED)
 - [ ] Implement `intercept.py` and its install in `serve.py`; server feature off-list
 - [ ] Cheap checks: ruff and mypy on changed files; focused pytest
@@ -122,7 +122,8 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 
 ## Session Log
 
-- 2026-11-03: Forensics in thread "Briney chase" (12 runs, two harness causes). The operator chose stepping into the path over the off-path wait, and said "go, this should be on in both arms". Worklog drafted; waiting for approval before implementation.
+- 2026-11-03: Forensics in thread "Briney chase" (12 runs, two harness causes). The operator chose stepping into the path over the off-path wait, and said "go, this should be on in both arms". Worklog drafted (`d3d36e7b4`).
+- 2026-11-03 00:08 NY: The operator approved coding ("u can code when the worklog is written", relayed verbatim by the coordinator). M1 RED: 35 cases; the module import and travel wiring fail until GREEN.
 
 ## Surprises
 

@@ -193,3 +193,35 @@ text. No walkthrough knowledge: the note names only what the game recorded (trai
 - Running `cd env && uv run pytest` outside `just` fails 267 tests for want of `POKEBENCH_ROM` (the recipe loads
   `.env`; a bare shell does not). Not a regression — recorded so the next reader does not chase it.
 
+## Activated in the bundle arm
+
+Operator instruction (2026-11-02 23:20 EST): "we need those two switches to be on in the bundle".
+
+`experiments/feature-configs/current.json` now appends `drought-progress-credit-v2` and
+`open-milestone-stall-v1` to `switches` (the bundle-only role) and records both as `false` in the base
+features map, which is the control arm. Appended at the end rather than beside `turn-drought-clock-v1`:
+`frontier-report-fixes-bundle.test.ts` and `battle-history-bundle.test.ts` slice recorded positions out of the
+switch list, and a mid-list insert shifts every later index. Repo convention for a new bundle switch is the
+tail, as `map-cycle-recovery-v1` already did.
+
+Verification, from the built tree (`armFeatures` / `armPreset`, i.e. the same code the launcher uses):
+
+| | bundle | control |
+| --- | --- | --- |
+| `drought-progress-credit-v2` | true | false |
+| `open-milestone-stall-v1` | true | false |
+| `turn-drought-clock-v1` (dependency of credit) | true | false |
+| `stall-briefing-v1` (dependency of the note) | true | true |
+
+- `armPreset(definition,"cook","bundle")` → `hyperqwen-bundle-24h-v4-cook-bundle` with both ids true; the
+  control preset has both false.
+- `controlBaseProblems(definition, whole-map-bundle-fd95)` → `[]` for both arms: the pinned control base still
+  matches outside the switches and off-in-both flags.
+- `just fixed-run check hyperqwen-bundle-24h-v4` prints both ids at the tail of `bundle switches`, and its
+  definition sha256 moves from `73340cfa…` to `d1fda4d6…` because a definition reads recipe `current` live.
+- Gates after the change: agent 5402 passed, viewer 184 files / 2421 tests passed.
+
+**The running 24 h trial does not carry them.** `hyperqwen-bundle-24h-v4` started 2026-11-02 22:29 with the
+pre-change recipe (`definitionSha256 73340cfa…`, pack recorded at 22:31) and materializes its preset once, at
+launch, so its bundle is the old one. Only a launch from the current recipe picks the two switches up.
+

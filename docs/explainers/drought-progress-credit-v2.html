@@ -201,9 +201,6 @@ before.</li>
   -> packages/agent/src/stall-briefing.ts  credited() in progressed()   <-- the one box that changes behavior</pre>
 
 <h2>Status</h2>
-<p>Branch <code>main</code>, working tree. Tests: <code>stall-briefing.test.ts</code> cases "credits a level-up toward
-an open leader loss only for a POKéMON the loss saw" (ON vs OFF, four presses apart) and "keeps crediting a level-up
-by the POKéMON that lost". Deleting the <code>credited()</code> call turns the first red. Not measured in a run:
-activation needs an operator-approved fixed-run comparison.</p>
+<p>Branch <code>main</code>. Tests: <code>stall-briefing.test.ts</code> cases "credits a level-up toward an open leader loss only for a POKéMON the loss saw" (ON vs OFF, four presses apart) and "keeps crediting a level-up by the POKéMON that lost"; deleting the <code>credited()</code> call turns the first red. <strong>ON in the bundle arm since the 2026-11-02 recipe revision</strong> (appended to <code>experiments/feature-configs/current.json</code> <code>switches</code>); the control arm keeps it off and the pinned control base still matches. Not yet measured: a running trial materializes its preset once, at launch, so the trial that carries it is the next fixed-run launch.</p>
 </main>
 </body></html>

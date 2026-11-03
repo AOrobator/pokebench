@@ -85,6 +85,8 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   operator_control: { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1, emulator_frozen: true },
   objective_update: { type: "objective_update", turn: 1, objective: { id: "o1", revision: 1, goal: "Reach gym", title: X, supports_goal: "Observed", evidence: [0], completion: { kind: "visual", description: "Clock" }, obstacle: "", next_decision: "Face north", status: "active", completion_evidence: [] } },
   objective_attempt: { type: "objective_attempt", turn: 1, attempt: { id: "p1", objective_id: "o1", buttons: ["A"], before_seq: 0, after_seq: 1, outcome: "no_change", failure_count: 2, warning: X, retry_justification: null } },
+  clock_step: { type: "clock_step", turn: 1, back_ms: 250, last_id: 7 },
+  server_exit: { type: "server_exit", turn: 1, code: 0, signal: null, stop_requested: false },
   run_end: { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 10, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } },
 };
 function everyType(): Log {

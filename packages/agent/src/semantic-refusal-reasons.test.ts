@@ -36,7 +36,7 @@ async function refusal(features:FeatureSet,target:unknown,state:GameStateSnapsho
 }
 const receipt=(details:unknown):{refused?:boolean;refusal?:{cause:string;alternatives:string[]}}|undefined=>{
  const semantic=typeof details==="object"&&details!==null&&"semantic_navigation" in details?details.semantic_navigation:undefined;
- return typeof semantic==="object"&&semantic!==null?semantic as never:undefined;
+ return typeof semantic==="object"&&semantic!==null?semantic:undefined;
 };
 
 describe("a refused semantic navigation says why and what would work",()=>{
@@ -72,7 +72,8 @@ describe("a refused semantic navigation says why and what would work",()=>{
   expect(text).toContain("(10,38)");
  });
  it("ON: with no reachable exit it says so instead of listing nothing",async()=>{
-  const sealed={...STATE,exit_reach:STATE.exit_reach===null?null:{...STATE.exit_reach,warps:STATE.exit_reach.warps.map(w=>({...w,reach:"none" as const}))}} as GameStateSnapshot;
+  const reach=STATE.exit_reach;
+  const sealed={...STATE,exit_reach:reach==null?null:{...reach,warps:reach.warps.map(w=>({...w,reach:"none" as const}))}} as GameStateSnapshot;
   const {text}=await refusal({...BASE,[ID]:true},{kind:"warp",x:32,y:42},sealed);
   expect(text).toContain("no exit listed on this map can be walked to from here");
  });

@@ -287,6 +287,10 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
       return `✗ ${event.source} read failed: ${esc(event.message)}`;
+    case "clock_step":
+      return `clock stepped back ${num(event.back_ms)}ms at native action ${String(event.last_id)}; ignored`;
+    case "server_exit":
+      return `${event.stop_requested ? "server stopped" : "server died"} · exit ${event.code === null ? "-" : String(event.code)} · signal ${event.signal ?? "-"}`;
     case "compaction":
       return `context compacted ${num(event.from_tokens)} → ${num(event.to_tokens)} tokens`;
     case "disk_usage":

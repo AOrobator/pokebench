@@ -267,7 +267,7 @@ async function plainPlay(argv: readonly string[], deps: FixedCliDeps): Promise<n
   // error, never a run.
   if (argv.includes("--help") || argv.includes("-h")) { deps.out(USAGE); return 0; }
   const stray = argv.filter((arg, index) => arg !== "--commit" && argv[index - 1] !== "--commit");
-  if (stray.length > 0) { deps.err(`play: unknown argument ${stray[0]}\n${USAGE}`); return 2; }
+  if (stray.length > 0) { deps.err(`play: unknown argument ${stray[0] ?? ""}\n${USAGE}`); return 2; }
   const commit = flag(argv, "--commit") ?? deps.head();
   return await frozenPlay({
     host: productionFixedHost(build()),

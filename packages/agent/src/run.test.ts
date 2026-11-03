@@ -288,7 +288,7 @@ it("records how a server exited while the run was still live",async()=>{
  let markLaunched!:()=>void;const launched=new Promise<void>(resolve=>{markLaunched=resolve;});
  let releaseExit!:(info:{code:number|null;signal:string|null;stopRequested:boolean})=>void;
  const exit=new Promise<{code:number|null;signal:string|null;stopRequested:boolean}>(resolve=>{releaseExit=resolve;});
- const launch=fake.launchServer;
+ const launch=fake.launchServer.bind(fake);
  fake.launchServer=(dir,id,port)=>launch(dir,id,port).then(handle=>{markLaunched();return {...handle,exit};});
  let releaseBody!:()=>void;const bodyGate=new Promise<void>(resolve=>{releaseBody=resolve;});
  const run=withRun(plan(runsRoot),fake,new FrameStore(runsRoot),async()=>{await bodyGate;return "crash";});

@@ -72,15 +72,19 @@ describe("the notice counts the cut-offs in a row",()=>{
   expect(three).toContain("If you cannot choose, call observe, which returns the current state.");
  });
  it("the Governor walks 1, 2, 3 and a reply that makes a tool call resets the count",async()=>{
-  const {g}=governor({cutOffNotice:(repeats)=>cutOffReplyNotice(ON,8192,repeats)});
+  // The third length reply reaches the default failure bound and stops the run, so the reset would be
+  // asserted against a dead Governor. Raise the bound here: this test is about the streak, not the stop.
+  const {g}=governor({cutOffNotice:(repeats)=>cutOffReplyNotice(ON,8192,repeats)??"",limits:{maxTurns:100,maxWallMs:3_600_000,failureLimit:10}});
   g.afterTurn(reply("length"),[]);
-  expect(String((await next(g))[0])).not.toContain("in a row");
+  expect((await next(g))[0] as string).not.toContain("in a row");
   g.afterTurn(reply("length"),[]);
-  expect(String((await next(g))[0])).toContain("This is reply 2 in a row");
+  expect((await next(g))[0] as string).toContain("This is reply 2 in a row");
   g.afterTurn(reply("length",1),ok);
   expect(await next(g)).toEqual([]);
   g.afterTurn(reply("length"),[]);
-  expect(String((await next(g))[0])).not.toContain("in a row");
+  const reset=(await next(g))[0] as string;
+  expect(reset).toContain("reached the output limit");
+  expect(reset).not.toContain("in a row");
  });
  it("the truncated reply is not sent back on the retry: fresh-retry-v1 drops every reply that made no tool call",()=>{
   const task:AgentMessage={role:"user",content:"play",timestamp:0};

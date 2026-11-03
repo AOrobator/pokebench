@@ -73,7 +73,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"DARK AREA FLASH REMINDER"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("on in both arms of the current recipe");
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(319);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(318);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures(ON,null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(OFF,null)).not.toContain(ID);

@@ -7,7 +7,7 @@ describe(ID, () => {
   it("defaults off and records the replacement only when enabled", () => {
     const {[ID]: enabled, ...omitted} = ALL_ON;
     expect(enabled).toBe(true);
-    expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(294);
+    expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(293);
     expect(normalizeFeatures(omitted)[ID]).toBe(false);
     expect(flagFeatures({loopGuard:true, activeUi:true, interfaceDocs:true, objectives:false})[ID]).toBe(false);
     expect(featureInfo(ID).description).toContain("Off: the original");

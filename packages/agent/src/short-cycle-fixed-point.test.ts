@@ -611,7 +611,7 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(featureInfo(ID).description.endsWith(" Off: duplicate-turn-collapse-v1 and fixed-point-breaker-v1 act as before: only identical turns that left the same state, and replies with no tool call, are left out of the request, and only their notes are sent.")).toBe(true);
   expect(featureInfo(ID).description).toContain("duplicate-turn-collapse-v1");
   expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>"));
-  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-44)).toBe(ID);
+  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-43)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);

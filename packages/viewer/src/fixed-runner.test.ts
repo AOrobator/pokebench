@@ -1075,7 +1075,6 @@ it("rehearses the current GLM protocol with shared features, serial chaining and
    expect(preset.features["moving-npc-target-v1"]).toBe(true);
    expect(preset.features["cut-off-reply-feedback-v1"]).toBe(true);
    expect(preset.sampling.maxTokens).toBe(arm==="bundle"?8192:4096);
-   expect(preset.features["trigger-navigation-boundary-v1"]).toBe(true);
   }
   expect(host.clock-began).toBeLessThanOrEqual(2*120000);
   const index=await cohortIndex(runsRoot,join(root,"experiments"));

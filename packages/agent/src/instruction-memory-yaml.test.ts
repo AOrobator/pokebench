@@ -144,7 +144,7 @@ describe("instruction-memory-yaml-v1 with instruction-memory-dedup-v1 and the ca
 
 describe("instruction-memory-yaml-v1 registry",()=>{
  it("is a default-off guidance switch registered after instruction-memory-cap-v1, needing nothing, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-yaml-v1")).toBe(305);
+  expect(SWITCHABLE_FEATURES.indexOf("instruction-memory-yaml-v1")).toBe(304);
   expect(featureInfo("instruction-memory-yaml-v1")).toMatchObject({group:"guidance",needs:null,switchable:true,title:"INSTRUCTION MEMORY YAML"});
   expect(featureInfo("instruction-memory-yaml-v1").description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["instruction-memory-yaml-v1"]).toBe(false);

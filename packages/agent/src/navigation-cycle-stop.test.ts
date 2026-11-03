@@ -20,7 +20,7 @@ const snapshot=(seq:number):GameStateSnapshot=>parseGameState(fixture.states[Str
 const options={ledges:true,oneWay:true,floor:true,elevation:"game" as const};
 const features=featuresOf(["bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","walkable-floor-v1","elevation-transitions-v1","navigation-truth-v1","navigation-refusal-reasons-v1","navigation-refusal-reasons-v2","exit-reachability-v1","coordinate-script-conditions-v1"]);
 const result=(state:GameStateSnapshot):AgentToolResult<unknown>=>({content:[{type:"text",text:"Recorded observation"}],details:{state}});
-function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attempt:number)=>GameStateSnapshot=s=>s,boundary=false,goal:Fixture["goal"]=fixture.goal){
+function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attempt:number)=>GameStateSnapshot=s=>s,goal:Fixture["goal"]=fixture.goal){
  const before=fixture.before[turn],after=fixture.results[turn];if(before===undefined||after===undefined)throw new Error("missing recorded turn");
  let state=change(snapshot(before[0]??0),0),attempt=0;const buttons:string[][]=[];
  const press=(_id:string,args:{buttons:string[]},_signal?:AbortSignal,check?:(s:GameStateSnapshot|undefined)=>void)=>{
@@ -29,7 +29,7 @@ function recorded(turn:string,enabled:boolean,change:(s:GameStateSnapshot,attemp
  };
  const observe={name:"observe",label:"observe",description:"offline",parameters:{},execute:()=>Promise.resolve(result(state))} as unknown as AgentTool;
  const tool={name:"press",label:"press",description:"offline",parameters:{},execute:press,executeChecked:press} as unknown as CheckedPressTool;
- const nav=withNavigation([observe,tool],{...features,[ID]:enabled,"trigger-navigation-boundary-v1":boundary},{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("navigation missing");
+ const nav=withNavigation([observe,tool],{...features,[ID]:enabled},{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("navigation missing");
  return {buttons,description:nav.description,call:()=>nav.execute("recorded",goal)};
 }
 for(const turn of ["1031","1032"]){
@@ -79,7 +79,7 @@ it("a changed matching trigger remains distinct when trigger-boundary planning f
  for(const state of [before,changed])expect(planNavigation(state,goal,{...options,triggers:matchingTriggers(state)})).toBeNull();
  const fallback=planNavigation(before,goal,{...options,triggers:[]});
  expect(fallback?.[0]).toBe("RIGHT");expect(planNavigation(changed,goal,{...options,triggers:[]})).toEqual(fallback);
- const h=recorded("1031",true,change,true,goal);const r=await h.call();
+ const h=recorded("1031",true,change,goal);const r=await h.call();
  expect(h.buttons).toEqual([["RIGHT"],["LEFT"],["RIGHT"],["LEFT"]]);
  expect(r.details).toMatchObject({state:{position:{x:15,y:3}},navigation:{commands:4}});
 });
@@ -143,7 +143,7 @@ import {playSystemPrompt} from "./play-config.js";
 import {CYCLE_STOP_SENTENCE} from "./navigation.js";
 it("registers the default-OFF treatment and keeps OFF prompt bytes",()=>{
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
- expect(SWITCHABLE_FEATURES.at(247)).toBe(ID);expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"bounded-navigation-v1"});expect(featureInfo(ID).description).toContain(" Off: ");expect(SERVER_FEATURES).not.toContain(ID);
+ expect(SWITCHABLE_FEATURES.at(246)).toBe(ID);expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"bounded-navigation-v1"});expect(featureInfo(ID).description).toContain(" Off: ");expect(SERVER_FEATURES).not.toContain(ID);
  expect(flagFeatures(flags)[ID]).toBe(false);const {[ID]:priorValue,...oldPreset}=flagFeatures(flags);expect(priorValue).toBe(false);expect(normalizeFeatures(oldPreset)[ID]).toBe(false);
  const on={...features,[ID]:true};expect(playHarnessFeatures(on,null)).toContain(ID);expect(playHarnessFeatures(features,null)).not.toContain(ID);
  expect(playSystemPrompt(features,null)).not.toContain(CYCLE_STOP_SENTENCE);expect(playSystemPrompt(on,null)).toContain(CYCLE_STOP_SENTENCE);expect(playSystemPrompt(on,null).replace(`\n\n${CYCLE_STOP_SENTENCE}`,"")).toBe(playSystemPrompt(features,null));

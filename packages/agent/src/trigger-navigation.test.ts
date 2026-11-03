@@ -56,7 +56,7 @@ it("replans the recorded Rustboro refusal toward its live trigger, without touch
  const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/rustboro-trigger-state.json.gz",import.meta.url))).toString("utf8"));
  const start=parseGameState(raw);expect(start.position).toEqual({x:27,y:20});
  let current=start;const directions:string[][]=[];
- const tool=navigationTool({fullMap:true,truth:true,triggers:true,triggerBoundary:true,ledges:true,oneWay:true,floor:true,read:()=>Promise.resolve(current),press:(_id,params)=>{directions.push(params.buttons);const x=(current.position?.x??0)-1;current={...current,position:{x,y:20},...(x===23?{world_context:{objects:[],triggers:[],dialogue:null}}:{})};return Promise.resolve({content:[],details:{state:current}});},observe:()=>Promise.resolve({content:[],details:{state:current}})});
+ const tool=navigationTool({fullMap:true,truth:true,triggers:true,ledges:true,oneWay:true,floor:true,read:()=>Promise.resolve(current),press:(_id,params)=>{directions.push(params.buttons);const x=(current.position?.x??0)-1;current={...current,position:{x,y:20},...(x===23?{world_context:{objects:[],triggers:[],dialogue:null}}:{})};return Promise.resolve({content:[],details:{state:current}});},observe:()=>Promise.resolve({content:[],details:{state:current}})});
  const result=await tool.execute("replay",{map_id:[0,3],x:39,y:13});
  expect(directions).toEqual([["LEFT"],["LEFT"],["LEFT"],["LEFT"]]);expect(result.details).toMatchObject({state:{position:{x:23,y:20}},navigation:{commands:4,status:"script-trigger step attempted at (23,20); inspect the resulting state"}});
 });
@@ -64,7 +64,7 @@ it("replans the recorded Rustboro refusal toward its live trigger, without touch
 it("walks singleton actions before a future trigger so running cannot overshoot it",async()=>{
  let current:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,3],position:{x:0,y:0},facing:"right",navigation_grid:{elevation:3,tiles:[0,1,2,3].map(x=>({x,y:0,collision:0,behavior:0,elevation:3})),objects:[],warps:[]},world_context:{objects:[],triggers:[{x:2,y:0,elevation:3,variable:0x405a,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000}],dialogue:null}};
  const modifiers:unknown[]=[];
- const tool=navigationTool({truth:true,triggers:true,automaticRunning:true,triggerBoundary:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check,options)=>{check?.(current);modifiers.push(options);current={...current,position:{x:(current.position?.x??0)+1,y:0}};return Promise.resolve({content:[],details:{state:current}});},observe:()=>Promise.resolve({content:[],details:{state:current}})});
+ const tool=navigationTool({truth:true,triggers:true,automaticRunning:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check,options)=>{check?.(current);modifiers.push(options);current={...current,position:{x:(current.position?.x??0)+1,y:0}};return Promise.resolve({content:[],details:{state:current}});},observe:()=>Promise.resolve({content:[],details:{state:current}})});
  const result=await tool.execute("walking",{map_id:[0,3],x:3,y:0});
  expect(modifiers).toEqual([{automaticRunning:false},{automaticRunning:false}]);expect(result.details).toMatchObject({state:{position:{x:2,y:0}},navigation:{status:"script-trigger step attempted at (2,0); inspect the resulting state",commands:2}});
 });

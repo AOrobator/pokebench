@@ -150,7 +150,7 @@ describe("registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "MODEL ERROR RECOVERY" });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("on in both arms of the current recipe");
-    expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(320);
+    expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(319);
     expect(SERVER_FEATURES).not.toContain(ID);
     expect(playHarnessFeatures(ON, null)).toContain(ID);
     expect(playHarnessFeatures({...ON,[ID]:false}, null)).not.toContain(ID);

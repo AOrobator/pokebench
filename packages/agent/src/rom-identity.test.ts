@@ -13,7 +13,7 @@ it("keeps ROM identity default off and preserves the pre-change system prompt",(
 });
 it("appends exactly the tested paragraph through the production prompt factory without changing tools",()=>{
  const off=featuresOf([]),on={...off,[ID]:true};
- expect(SWITCHABLE_FEATURES[313]).toBe(ID);
+ expect(SWITCHABLE_FEATURES[312]).toBe(ID);
  for(const scene of ["unknown","overworld","battle","menu","core"] as const){
   expect(playSystemPrompt(on,null,scene)).toBe(playSystemPrompt(off,null,scene)+"\n\n"+TEXT);
  }

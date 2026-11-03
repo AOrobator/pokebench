@@ -26,7 +26,7 @@ function factory(on:boolean,restoring=false){
  return {wiring,notes,feed:(...events:RunEvent[])=>{for(const e of events)for(const f of listeners)f(e);}};
 }
 it("registers a globally OFF append-only treatment with its declared dependency",()=>{
- expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(315);expect(featureInfo(ID).needs).toBe("ram-state-v1");expect(featureInfo(ID).description).toContain(" Off: ");
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(314);expect(featureInfo(ID).needs).toBe("ram-state-v1");expect(featureInfo(ID).description).toContain(" Off: ");
  const old=featuresOf([]);expect(old[ID]).toBe(false);expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})[ID]).toBe(false);
  const {[ID]:omitted,...legacy}=old;expect(omitted).toBe(false);expect(normalizeFeatures(legacy)[ID]).toBe(false);
  expect(dependencyProblems({...old,[ID]:true})).toContain(`${ID} needs ram-state-v1`);

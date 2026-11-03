@@ -77,7 +77,7 @@ it("requires successfully delivered native recovery then separately tracks repor
  s.feed(state(13,[],{story_progress:null}),result(14,{id:"unknown",state_seq:13}));expect(s.ledger.archive(undefined,TASK)).toContain('"native_phase":"reported_back"');
 });
 it("registers appended default-OFF mode with ledger, advisory and authored evidence requirements and honest prompt",()=>{
- expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(317);
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(316);
  expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  const s=setup();expect(dependencyProblems(s.features)).toEqual([]);

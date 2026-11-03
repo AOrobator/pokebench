@@ -52,8 +52,8 @@ describe("story-briefing-native-milestones-v1 on a702's turn-704 stall briefing"
 
 describe("story-briefing-native-milestones-v1 registry",()=>{
  it("is registered after self-named-speaker-v1, default off, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(290);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(314);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(289);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).indexOf(ID)).toBe(313);
   expect(featureInfo(ID).description).toContain(" Off: the briefings use only the base milestones and the readout's checklist, byte for byte as before.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);
   expect(normalizeFeatures(omitted)[ID]).toBe(false);

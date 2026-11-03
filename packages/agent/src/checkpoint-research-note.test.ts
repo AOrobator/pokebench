@@ -13,7 +13,7 @@ const file=(value:unknown=descriptor())=>{const body=JSON.stringify(value);retur
 const load=(value:unknown=descriptor(),limits:{fileBytes:number;textBytes:number}=CHECKPOINT_RESEARCH_NOTE_LIMITS)=>{const f=file(value);const note=loadCheckpointResearchNote(on,save,f.config,()=>f.body,limits);if(note===null)throw new Error("missing note");return note;};
 describe(ID,()=>{
  it("is appended at registry index314, optional/default OFF, and recorded only when ON",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(314);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(313);
   expect(featureInfo(ID).needs).toBe("save-state-task-truth-v1");
   expect(featureInfo(ID).description).toContain(" Off: ");
   const {"checkpoint-research-note-v1":omitted,...legacy}=off;expect(omitted).toBe(false);

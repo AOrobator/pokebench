@@ -314,6 +314,10 @@ function semanticV2Description(dialogue:boolean):string {
 }
 function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs|typeof StaticSemanticArgs|typeof SightSemanticArgs|typeof StaticSightSemanticArgs> {
  const baseOptions=navigationOptions(features);
+ // Script-trigger boundary: prefer approach tiles no matching coordinate script sits on, and fall back to
+ // ignoring them when every approach crosses one. The walk does the same, and there is no switch for either:
+ // a refusal here would dead-end the agent on a route it is not allowed to take.
+ const scriptBoundary=features["navigation-truth-v1"]&&features["coordinate-script-conditions-v1"];
  // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
  const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
@@ -356,9 +360,9 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const interruption=interrupted(current);if(interruption!==null)return finish(`interrupted before activation: ${interruption}`);
    const fresh=identity(current);if(fresh===null)return finish("selected moving object disappeared or changed identity");
    const planned=features["field-move-gates-v1"]?gatedState(current):current;
-   let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
-   let choices=approaches(planned,fresh,options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
-   if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=approaches(planned,fresh,options);}
+   let options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
+   let choices=approaches(planned,fresh,options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
+   if(scriptBoundary&&choices.length===0){options={...options,triggers:[]};choices=approaches(planned,fresh,options);}
    const here=current.position;
    // Prefer staying when the current tile is still a valid approach for the NPC's new tile.
    const choice=(here===null?undefined:choices.find(c=>c.point.x===here.x&&c.point.y===here.y))??choices[0];
@@ -423,7 +427,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     const position=before.position===null?"unavailable":`(${String(before.position.x)},${String(before.position.y)})`;
     return {...result,content:[{type:"text",text:`Current map: ${(features["current-map-display-name-v1"]?before.location_display:undefined)??before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
    }
-   let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
+   let options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
    // heal_trainers._template_tile excludes hidden templates using the native hide flag.
    // Without native loaded slots there is no verified recipient for A. Approach only,
@@ -484,8 +488,8 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
    const planned=features["field-move-gates-v1"]?gatedState(before):before;
    const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
-   let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
-   if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
+   let choices=choicesFor(options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
+   if(scriptBoundary&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
    const choice=choices[0];
    if(choice===undefined){
     const base=request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach";

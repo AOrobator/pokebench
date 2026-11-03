@@ -132,7 +132,7 @@ it("appends the three registered switches in order with independent default-OFF 
  const {SWITCHABLE_FEATURES,ALL_ON,playHarnessFeatures,dependencyProblems}=await import("./features.js");
  const {normalizeFeatures,flagFeatures}=await import("./play-preset.js");
  const ids=["leader-loss-immediate-v1","battle-action-history-v1","leader-preparation-comparison-v1"] as const;
- expect(SWITCHABLE_FEATURES.slice(251,254)).toEqual(ids);expect(playHarnessFeatures(ALL_ON,null).slice(275,278)).toEqual(ids);
+ expect(SWITCHABLE_FEATURES.slice(250,253)).toEqual(ids);expect(playHarnessFeatures(ALL_ON,null).slice(274,277)).toEqual(ids);
  const omitted=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!ids.includes(id as typeof ids[number]))) as Parameters<typeof normalizeFeatures>[0];
  for(const id of ids){expect(normalizeFeatures(omitted)[id]).toBe(false);expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);}
  expect(dependencyProblems({...features(),"leader-loss-comparison-v1":false,"leader-loss-immediate-v1":true,"leader-preparation-comparison-v1":true})).toEqual(["leader-loss-immediate-v1 needs leader-loss-comparison-v1","leader-preparation-comparison-v1 needs leader-loss-comparison-v1"]);

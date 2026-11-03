@@ -34,7 +34,7 @@ import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
 import { cardWorkbench, createWorkbenchLoader, runResume, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
-import { FEATURE_EXPLAINERS } from "./panels.js";
+import { FEATURE_EXPLAINERS, STANDING_EXPLAINERS } from "./panels.js";
 import { REPORT_SCROLL_SCRIPT } from "./reports-scroll.js";
 import { WebSocketServer } from "ws";
 import { SharedFrameHub } from "./frame-hub.js";
@@ -449,7 +449,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendJson(res, 200, cardWorkbench(await readWorkbench({ selected }), selected));
     return;
   }
-  if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
+  if (parts.length === 2 && head === "explainers" && (Object.values(FEATURE_EXPLAINERS).includes(second ?? "") || STANDING_EXPLAINERS.includes(second ?? ""))) {
     sendFile(res, join(options.staticDir, "../../../docs/explainers", second ?? ""), "text/html; charset=utf-8");
     return;
   }

@@ -57,12 +57,12 @@ it("ON keeps the old wording for an unsupported owner that is not ready or not v
     }
 });
 it("registry: default off, needs menu-option-tool-v1, at their registered positions", () => {
-    expect(SWITCHABLE_FEATURES.indexOf("pokenav-short-list-v1")).toBe(282);
-    expect(SWITCHABLE_FEATURES.indexOf("menu-option-honest-refusal-v1")).toBe(283);
+    expect(SWITCHABLE_FEATURES.indexOf("pokenav-short-list-v1")).toBe(281);
+    expect(SWITCHABLE_FEATURES.indexOf("menu-option-honest-refusal-v1")).toBe(282);
     expect(SERVER_FEATURES.indexOf("pokenav-short-list-v1")).toBe(93);
     expect(SERVER_FEATURES).not.toContain("menu-option-honest-refusal-v1");
-    expect(playHarnessFeatures(ALL_ON, null).indexOf("pokenav-short-list-v1")).toBe(306);
-    expect(playHarnessFeatures(ALL_ON, null).indexOf("menu-option-honest-refusal-v1")).toBe(307);
+    expect(playHarnessFeatures(ALL_ON, null).indexOf("pokenav-short-list-v1")).toBe(305);
+    expect(playHarnessFeatures(ALL_ON, null).indexOf("menu-option-honest-refusal-v1")).toBe(306);
     expect(serverOff({ ...ALL_ON, "pokenav-short-list-v1": false })).toEqual(serverOffWith(ALL_ON, { off: ["pokenav-short-list-v1"] }));
     expect(featureInfo("menu-option-honest-refusal-v1").needs).toBe("menu-option-tool-v1");
     expect(featureInfo("menu-option-honest-refusal-v1").description).toContain(" Off: ");

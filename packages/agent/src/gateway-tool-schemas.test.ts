@@ -9,7 +9,7 @@ const recipe=():{onInBoth:string[];features:Record<string,boolean>}=>JSON.parse(
 describe("gateway-tool-schemas-v1",()=>{
  const id="gateway-tool-schemas-v1";
  it("registers a non-server correction without changing omitted historical presets",()=>{
-  expect(SWITCHABLE_FEATURES[286]).toBe(id);
+  expect(SWITCHABLE_FEATURES[285]).toBe(id);
   expect(SERVER_FEATURES).not.toContain(id);
   expect(featureInfo(id).description).toContain(" Off: ");
   const {"gateway-tool-schemas-v1":supplied,...historical}=flagFeatures(flags);
@@ -23,7 +23,7 @@ describe("gateway-tool-schemas-v1",()=>{
 describe("gateway-schema-hint-v1",()=>{
  const id="gateway-schema-hint-v1";
  it("registers a non-server correction without changing omitted historical presets",()=>{
-  expect(SWITCHABLE_FEATURES[287]).toBe(id);
+  expect(SWITCHABLE_FEATURES[286]).toBe(id);
   expect(SERVER_FEATURES).not.toContain(id);
   expect(featureInfo(id).description).toContain(" Off: ");
   const {"gateway-schema-hint-v1":supplied,...historical}=flagFeatures(flags);

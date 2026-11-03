@@ -1573,11 +1573,6 @@ it.each(["gym-evidence-v1","rejected-movement-step-v1","observed-field-dialogue-
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
 });
 
-it("links the script boundary feature card to its tracked explainer",()=>{
- expect(FEATURE_EXPLAINERS["trigger-navigation-boundary-v1"]).toBe("trigger-navigation-boundary-v1.html");
- expect(readFileSync(fileURLToPath(new URL("../../../docs/explainers/trigger-navigation-boundary-v1.html",import.meta.url)),"utf8")).toContain("Let the game run its scripts");
-});
-
 it("shows milestone retention and its complete audit receipt in history and raw inspection",()=>{
  const log=bare();const event=log.add(100,{type:"ledger_context",turn:1,text:"OBSERVED INSTRUCTION MEMORY",evidence:[1],retention:{chapter:{name:"CLOCK_SET",state_event:1,result_event:2},archive_count:2,kept:[{result_event:3,reason:"unknown",rule:null}],retired:[{result_event:4,reason:"completed",rule:"clock-request"}],proofs:[{name:"CLOCK_SET",state_event:1,result_event:2}]}});
  expect(eventText(event,view(log))).toContain("1 kept · 1 archived");expect(inspector(event)).toContain("clock-request");

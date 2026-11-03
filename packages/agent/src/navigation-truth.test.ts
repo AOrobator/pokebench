@@ -24,6 +24,13 @@ const TERRAIN={ledges:true,oneWay:true,elevation:"game"} as const satisfies Part
 const TRUTH={...TERRAIN,refusalReasons:true,truth:true,triggers:true} as const satisfies Partial<NavigationPorts>;
 const CONTROL={...TERRAIN,refusalReasons:true} as const satisfies Partial<NavigationPorts>;
 
+// One state per step of a planned route, for a walk that must press its way along it.
+const along=(start:GameStateSnapshot,plan:readonly string[]):GameStateSnapshot[]=>{
+ let p=start.position??{x:0,y:0};const out:GameStateSnapshot[]=[];
+ for(const step of plan){const dx=step==="RIGHT"?1:step==="LEFT"?-1:0,dy=step==="DOWN"?1:step==="UP"?-1:0;p={x:p.x+dx,y:p.y+dy};out.push({...start,position:p});}
+ return out;
+};
+
 // Replays a recorded walk: read() returns the latest state; each press returns the next recorded result.
 async function walk(start:GameStateSnapshot,goal:{x:number;y:number},ports:Partial<NavigationPorts>,after:readonly GameStateSnapshot[]=[]):Promise<{status:string;text:string;presses:number}> {
  let current=start,presses=0;
@@ -169,8 +176,9 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
 describe("navigation-truth-v1: a matching coordinate trigger is a walkable observation boundary",()=>{
  const birch=recorded("sh02:5860");
  it("sh02 T261: (4,12) is reachable only across the active PreventExit triggers, so the walk steps into the first one",async()=>{
-  const on=await walk(birch,{x:4,y:12},TRUTH,Array.from({length:6},()=>birch));
-  expect(on.presses).toBe(1);
+  const plan=planNavigation(birch,{x:4,y:12},{...TERRAIN,triggers:[]});if(plan===null)throw new Error("no route without the triggers");
+  const on=await walk(birch,{x:4,y:12},TRUTH,along(birch,plan));
+  expect(on.presses).toBe(plan.findIndex((_,i)=>along(birch,plan.slice(0,i+1)).at(-1)?.position?.x===6&&along(birch,plan.slice(0,i+1)).at(-1)?.position?.y===15)+1);
   expect(on.status).toBe("script-trigger step attempted at (6,15); inspect the resulting state");
  });
  it("the claim is that every route crosses some matching trigger, not one named tile",()=>{
@@ -221,8 +229,15 @@ describe("navigation-truth-v1: a matching coordinate trigger is a walkable obser
   const trigger={x:2,y:0,elevation:0,variable:0x4001,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000};
   const row:GameStateSnapshot={screen:"overworld",started:true,name:"A",location:"ROUTE",map_id:[0,9],position:{x:0,y:0},facing:"right",in_battle:false,party:[],money:0,badges:[],play_time_s:0,field_controls_locked:false,navigation_grid:{elevation:3,tiles:[tile(0),tile(1,0x38),tile(2),tile(3)],objects:[],warps:[]},world_context:{objects:[],triggers:[trigger],dialogue:null}};
   const hop=await walk(row,{x:3,y:0},TRUTH,Array.from({length:3},()=>({...row,position:{x:2,y:0}})));expect(hop.presses).toBe(1);expect(hop.status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
-  expect((await walk(row,{x:2,y:0},{...TRUTH,maxCommands:1},[{...row,position:{x:2,y:0}}])).status).toBe("arrived at requested coordinate");
-  expect((await walk({...row,world_context:{objects:[],triggers:[{...trigger,current_value:null,condition_met:true}],dialogue:null}},{x:3,y:0},TRUTH)).status).toContain("(variable 0x4001=unknown, needs 1)");
+  // Asking for the script tile itself is the deliberate step onto it: the same boundary status, not a refusal.
+  expect((await walk(row,{x:2,y:0},{...TRUTH,maxCommands:1},[{...row,position:{x:2,y:0}}])).status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
+  // An unresolved variable value does not make the tile walkable: it is still a boundary, and the nearby-tile
+  // hint renders the value it cannot resolve as unknown.
+  const unknown={...row,world_context:{objects:[],triggers:[{...trigger,current_value:null,condition_met:true}],dialogue:null}};
+  expect((await walk(unknown,{x:3,y:0},TRUTH,[{...unknown,position:{x:2,y:0}}])).status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
+  const itself=ascii(["#####","##T##","..@.."]);
+  const unresolved={...itself,world_context:{objects:[],triggers:(itself.world_context?.triggers??[]).map(t=>({...t,current_value:null})),dialogue:null}};
+  expect((await walk(unresolved,{x:2,y:0},TRUTH)).status).toContain("(variable 0x4002=unknown, needs 0)");
  });
  it("names a gated tile that is closer, one that is itself a trigger, and one when no free tile is in range",async()=>{
   // Goal (2,0) is a wall; (2,1) is closer but only reachable through the trigger at (1,1); (4,0) is free.
@@ -377,7 +392,8 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   expect(planNavigation(state,{x:3,y:0},{floor:true})).toEqual(["RIGHT","RIGHT","RIGHT"]);
   expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
   expect((await walk(state,{x:3,y:0},{...TERRAIN,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
-  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true,floor:true},Array.from({length:3},()=>({...state,position:{x:2,y:0}})))).status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
+  const route=planNavigation(state,{x:3,y:0},{...TRUTH,triggers:[],floor:true});if(route===null)throw new Error("no route without the trigger");
+  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true,floor:true},along(state,route))).status).toBe("script-trigger step attempted at (2,0); inspect the resulting state");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");
@@ -530,7 +546,18 @@ describe("production wiring",()=>{
  });
  it("withNavigation reads navigation-truth-v1, coordinate-script-conditions-v1 and navigation-refusal-reasons-v2 from the FeatureSet",async()=>{
   let state=recorded("sh02:5860");
-  const fetchFn:typeof fetch=(input)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;const body:unknown=url.endsWith("/action")?{status:"success"}:url.endsWith("/pokebench/observation")?{state,state_text:"observed",screenshot_base64:PNG}:url.endsWith("/queue_status")?{queue_empty:true}:state;return Promise.resolve(new Response(JSON.stringify(body)));};
+  const fetchFn:typeof fetch=(input,init)=>{
+   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+   if(url.endsWith("/action")){
+    if(typeof init?.body==="string"&&state.position!==null){
+     const pressed=(JSON.parse(init.body) as {buttons?:unknown[]}).buttons?.[0];
+     const dx=pressed==="RIGHT"?1:pressed==="LEFT"?-1:0,dy=pressed==="DOWN"?1:pressed==="UP"?-1:0;
+     state={...state,position:{x:state.position.x+dx,y:state.position.y+dy}};
+    }
+    return Promise.resolve(new Response(JSON.stringify({status:"success"})));
+   }
+   const body:unknown=url.endsWith("/pokebench/observation")?{state,state_text:"observed",screenshot_base64:PNG}:url.endsWith("/queue_status")?{queue_empty:true}:state;
+   return Promise.resolve(new Response(JSON.stringify(body)));};
   const status=async(features:Partial<FeatureSet>,goal:{x:number;y:number}):Promise<string>=>{
    const all:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"navigation-refusal-reasons-v1":true,...features};
    const tools=withNavigation([observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()})],all,{read:()=>Promise.resolve(state)});
@@ -539,7 +566,7 @@ describe("production wiring",()=>{
   };
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("it is not listed as something you can talk to or use");
   expect(await status({"navigation-truth-v1":false,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("to talk to it or use it");
-  expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:12})).toContain("the first one on the route it would take without avoiding them is (6,15)");
+  expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:12})).toContain("script-trigger step attempted at (6,15)");
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":false},{x:4,y:12})).not.toContain("crosses");
   state=recorded("show:19866");
   expect(await status({"navigation-refusal-reasons-v2":true},{x:6,y:4})).toContain("so any route leaves it");

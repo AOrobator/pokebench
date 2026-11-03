@@ -6,9 +6,8 @@ import {gunzipSync} from "node:zlib";
 import {checkEvent,type RunEvent} from "../src/events.js";
 import {parseGameState,type GameStateSnapshot} from "../src/game-state.js";
 import type {FeatureSet} from "../src/features.js";
-import {Value} from "typebox/value";
-import {FeatureSetSchema,normalizeFeatures} from "../src/play-preset.js";
 import type {PlacesBody} from "../src/story-destinations.js";
+import {recordedFeatures} from "./recorded-features.js";
 
 interface A702Extract {
  readonly run:string;
@@ -67,4 +66,4 @@ export function a702Milestone(name:string,seq:number,turn:number):RunEvent {
  return {...found,seq,turn};
 }
 // The feature set a702 recorded at run_start (harness 5940bc2fb); switches registered later are OFF.
-export const A702_FEATURES:FeatureSet=normalizeFeatures(Value.Parse(FeatureSetSchema,RAW.features));
+export const A702_FEATURES:FeatureSet=recordedFeatures(RAW.features);

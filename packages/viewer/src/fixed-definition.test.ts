@@ -75,7 +75,7 @@ it("uses the newer control baseline and retains explicit both-arm promotions",()
  const d=readFixedDefinition(root,"bundle-v-control").definition;
  for(const arm of ["control","bundle"] as const){
   const f=armFeatures(d,arm);
-  for(const id of ["full-map-navigation-v1","safe-navigation-strides-v1","semantic-navigation-v2","party-item-confirmation-v1","yes-no-answer-readout-v1","blackout-readout-v1","original-speed-pacing-v1","named-warp-destinations-v1","exit-labels-v2","gym-door-label-v1","trigger-navigation-boundary-v1"])expect(f[id],`${arm}: ${id}`).toBe(true);
+  for(const id of ["full-map-navigation-v1","safe-navigation-strides-v1","semantic-navigation-v2","party-item-confirmation-v1","yes-no-answer-readout-v1","blackout-readout-v1","original-speed-pacing-v1","named-warp-destinations-v1","exit-labels-v2","gym-door-label-v1"])expect(f[id],`${arm}: ${id}`).toBe(true);
  }
 });
 it("rejects unsafe source and recipe identifiers before file access",()=>{

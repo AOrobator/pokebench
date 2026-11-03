@@ -171,5 +171,5 @@ it("preserves existing scene-followup priority with checklist ON",async()=>{
  expect(stringValue(out.at(-1)?.content)).toContain("SUPERVISOR: You just watched a scene");expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(true);
 });
 it("pins appended campaign switch identity without changing existing positions",()=>{
- expect(SWITCHABLE_FEATURES.indexOf(mission)).toBe(309);expect(SWITCHABLE_FEATURES.indexOf(checklist)).toBe(310);
+ expect(SWITCHABLE_FEATURES.indexOf(mission)).toBe(308);expect(SWITCHABLE_FEATURES.indexOf(checklist)).toBe(309);
 });

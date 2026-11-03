@@ -57,7 +57,7 @@ it("defaults frame burst OFF, pins registry append index, and puts it in both ar
  expect(flags[BURST]).toBe(false);expect(featureInfo(BURST).description).toContain("Off:");expect(featureInfo(BURST).needs).toBeNull();
  expect(featureInfo(BURST).description).toContain("on in both arms of the current recipe");
  expect(featureInfo(BURST).group).toBe("observation");
- expect(SWITCHABLE_FEATURES.indexOf(BURST)).toBe(318);
+ expect(SWITCHABLE_FEATURES.indexOf(BURST)).toBe(317);
  expect(playHarnessFeatures({...flags,[BURST]:true},null).at(-1)).toBe(BURST);
  const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[];offInBoth:string[]};
  expect(recipe.features[BURST]).toBe(true);expect(recipe.switches).not.toContain(BURST);
@@ -177,7 +177,8 @@ it.each(["slot","elevation","activation"] as const)("rejects a changed %s as ide
  expect(f.sent).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{status:"selected moving object disappeared or changed identity",activation_attempted:false}});
 });
 it("respects the existing matching script boundary instead of following through it",async()=>{
- const f=fixture(true,undefined,undefined,{"trigger-navigation-boundary-v1":true,"coordinate-script-conditions-v1":true});
+ // The script boundary has no switch; it needs the two switches that make coordinate scripts visible.
+ const f=fixture(true,undefined,undefined,{"navigation-truth-v1":true,"coordinate-script-conditions-v1":true});
  f.set({...field(),navigation_grid:{elevation:3,tiles:[0,1,2,3].map(x=>({x,y:1,collision:0,behavior:0,elevation:3})),objects:[{x:3,y:1}],warps:[]},world_context:{objects:[],dialogue:null,triggers:[{x:1,y:1,elevation:0,variable:16385,required_value:0,current_value:0,condition_met:true,script_pointer:134217729}]}});
  const out=await f.tool.execute("trigger",request);
  expect(f.sent).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false,status:"script-trigger step attempted at (1,1); inspect the resulting state"}});

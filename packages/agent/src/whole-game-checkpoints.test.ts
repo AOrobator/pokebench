@@ -24,7 +24,7 @@ describe(feature,()=>{
    expect(closed.has(name),name).toBe(true);
  });
  it("is registered, optional and OFF by default, with the table count in its description",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(feature)).toBe(304);
+  expect(SWITCHABLE_FEATURES.indexOf(feature)).toBe(303);
   expect(featureInfo(feature).description).toContain(`${String(STORY_CHECKPOINTS.length)} story checkpoints`);
   expect(featureInfo(feature).description).toContain(" Off: ");
   expect(featureInfo(feature)).toMatchObject({group:"guard",needs:"instruction-memory-cap-v1"});

@@ -298,14 +298,6 @@ function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted
  const near=nearest===undefined?`within ${String(NEAREST_RADIUS)} steps`:distance(gated,goal)<distance(nearest,goal)?"closer":"as close";
  return crossed.x===gated.x&&crossed.y===gated.y?`; ${at(gated)} is ${near}, but it is ${triggerText(crossed)}`:`; ${at(gated)} is ${near}, but every route navigate_to sees to it crosses ${crossingText(crossed)}`;
 }
-// navigation-truth-v1: the goal is reachable only across a matching trigger.
-function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
- if(options.triggers===undefined||options.triggers.length===0)return null;
- const open=planNavigation(state,goal,{...options,triggers:[]});
- const crossed=open===null?null:walked(state,open,options)?.crossed??null;
- if(crossed===null)return null;
- return `every route navigate_to sees to ${at(goal)} crosses ${crossingText(crossed)}; stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target ${at(crossed)} itself to step on it on purpose`;
-}
 // navigation-refusal-reasons-v2: an in-window goal with no route inside the local window. The tiles named are
 // reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
 // Only a goal the player could stand on: walkable, with no person, object or warp on it.
@@ -640,8 +632,9 @@ export interface NavigationPorts {
  // navigation-truth-v1: talk offers only for scripted objects, named blockers, where a partial walk stopped.
  readonly truth?:boolean;
  // With truth: plan around coordinate triggers whose condition matches now (coordinate-script-conditions-v1).
+ // A goal whose every route crosses one is walked into once: the first matching script is an observation
+ // boundary, not a refusal. There is no switch for that, because the refusal was a route no arm may take.
  readonly triggers?:boolean;
- readonly triggerBoundary?:boolean;
  // navigation-refusal-reasons-v2: say when an in-window goal's route leaves the local window.
  readonly windowReasons?:boolean;
  readonly waypointAdvice?:boolean;
@@ -810,7 +803,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const sight=ports.trainerSight,healGate=ports.healGate;
  const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
  const gatedDescription=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
- const bounded=ports.triggerBoundary===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
+ const bounded=ports.truth===true&&ports.triggers===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
  const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   const bound=checkedOptions.commandLimit??defaultBound;
@@ -836,8 +829,19 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,active)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
-   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...((truth&&ports.triggers===true)||ports.triggerBoundary===true?{triggers:matchingTriggers(state)}:{}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{})};
-   let options:NavigationOptions=ports.triggerBoundary===true&&planNavigation(state,goal,guardedOptions)===null?{...guardedOptions,triggers:[]}:guardedOptions;
+   // Script-trigger boundary: coordinate scripts are visible with coordinate-script-conditions-v1, and there is no
+   // switch over what to do when every route crosses one (see the port comment): they are walked, not refused.
+   const boundary=truth&&ports.triggers===true?matchingTriggers(state):[];
+   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{})};
+   // A script-free route wins. When the scripts are the only obstruction, the same route is walked and the first
+   // matching script becomes the step that stops navigation; clear the triggers only if that route exists, so the
+   // refusal text for a goal that is unreachable anyway still names which nearer tiles the scripts cut off.
+   let options:NavigationOptions=guardedOptions;
+   if(boundary.length>0&&planNavigation(state,goal,guardedOptions)===null){
+    const open={...guardedOptions,triggers:[]};
+    if(planNavigation(state,goal,open)!==null)options=open;
+   }
+   const triggerAware=boundary.length>0;
    // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
    const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
    if(cutOff!==null){status=`${at(goal)} cannot be reached on foot from where you stand: ${cutOff}`;break;}
@@ -846,12 +850,13 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    let path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null&&ports.windowEscape===true&&active==="local"&&ready(state,"full")){
     const wholeGuarded:NavigationOptions={...guardedOptions,mode:"full"};
-    const whole=ports.triggerBoundary===true&&planNavigation(state,goal,wholeGuarded)===null?{...wholeGuarded,triggers:[]}:wholeGuarded;
+    const openWhole={...wholeGuarded,triggers:[]};
+    const whole=boundary.length>0&&planNavigation(state,goal,wholeGuarded)===null&&planNavigation(state,goal,openWhole)!==null?openWhole:wholeGuarded;
     const escape=planNavigation(state,goal,whole);
     if(escape!==null){active="full";options=whole;path=escape;}
    }
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice,observed,ports.mapObservability===true):null)??(truth?triggerReason(state,goal,options):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice,observed,ports.mapObservability===true):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     if(ports.sectionAlternatives===true){const alternatives=reachableSectionAlternatives(state,goal);if(alternatives!==null)status+=`; ${alternatives}`;}
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
@@ -907,9 +912,9 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true):null;
    const span=stride?.path.length??slideAhead(planned,options,before,direction)??(ports.ledges===true&&hopAhead(planned,active,before,direction,delta[1],delta[2])?2:1);
-   const entry=ports.triggerBoundary===true?routeTiles(state,[direction],options)?.at(-1):undefined;
-   const entryElevation=ports.triggerBoundary===true?walked(state,[direction],options)?.elevation:undefined;
-   const scriptEntry=entry===undefined||entryElevation===undefined?undefined:triggerAt(matchingTriggers(state),entry,entryElevation);
+   const entry=triggerAware?routeTiles(state,[direction],options)?.at(-1):undefined;
+   const entryElevation=triggerAware?walked(state,[direction],options)?.elevation:undefined;
+   const scriptEntry=entry===undefined||entryElevation===undefined?undefined:triggerAt(boundary,entry,entryElevation);
    const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span&&before.x+delta[1]*span===goal.x&&before.y+delta[2]*span===goal.y;
    const goalEntryTile=finalGoalStep?(active==="full"?fullGeometry(planned):localGeometry(planned))?.tile(goal)??null:null;
    if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,active)??"step";
@@ -920,7 +925,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
      if(finalGoalStep){const actualTile=(active==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
      if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
-    },ports.triggerBoundary===true&&stride===null?{automaticRunning:false}:ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
+    },triggerAware&&stride===null?{automaticRunning:false}:ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;plannedSteps+=stride?.path.length??1;state=blackout.remember(resultState(last));
    // A final press that only turns or bumps leaves the player on the same tile of the same map with input free: no entry happened.
@@ -983,5 +988,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],triggerBoundary:features["trigger-navigation-boundary-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

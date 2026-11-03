@@ -220,7 +220,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Gym evidence](gym-evidence-v1.html): current native completion, compound Gym identity and citation delivery; no next-action guidance.
 
-- [Script trigger boundaries](trigger-navigation-boundary-v1.html) — matching scripts interrupt navigation instead of blocking the route.
+- [Script trigger boundaries](trigger-navigation-boundary-v1.html) — unconditional: a script-free route wins, and when every route crosses a matching script, navigation steps into the first one once and returns the observation instead of refusing the route.
 
 - [Milestone instruction memory](milestone-instruction-memory-v1.html): conservative native-scene retirement, compact whole-episode memory and six frozen trace keep/drop audits.
 

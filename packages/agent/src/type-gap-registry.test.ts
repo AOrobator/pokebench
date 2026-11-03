@@ -10,13 +10,13 @@ const CURRENT=JSON.parse(readFileSync(new URL("../../../experiments/feature-conf
 
 describe("type-gap-team-v1, supplies-v1 and untalked-in-gym-v1 (the operator 2026-10-27)",()=>{
  it("sit at their registered positions in every registry list as default-off observations",()=>{
-  expect(IDS.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([277,278,279]);
+  expect(IDS.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([276,277,278]);
   const switchable=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(IDS.map(id=>switchable.indexOf(id))).toEqual([277,278,279]);
+  expect(IDS.map(id=>switchable.indexOf(id))).toEqual([276,277,278]);
   expect(SERVER_FEATURES.indexOf("type-gap-team-v1")).toBe(92);
   const all=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])) as Parameters<typeof playHarnessFeatures>[0];
   const harness=playHarnessFeatures(all,null);
-  expect(IDS.map(id=>harness.indexOf(id))).toEqual([301,302,303]);
+  expect(IDS.map(id=>harness.indexOf(id))).toEqual([300,301,302]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:null});
    expect(featureInfo(id).description).toContain(id==="type-gap-team-v1"?"on in both arms of the current recipe":"Bundle arm only, default off");

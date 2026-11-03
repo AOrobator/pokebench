@@ -25,11 +25,11 @@ it("describes every switchable and measurement feature exactly once", () => {
   const switchable = new Set<string>(SWITCHABLE_FEATURES);
   for (const id of SERVER_FEATURES) expect(switchable.has(id)).toBe(true);
   // Switches registered after the legacy fixture froze are appended; the frozen ones keep their groups.
-  expect(FROZEN_SWITCHES.size).toBe(276);
+  expect(FROZEN_SWITCHES.size).toBe(275);
   const later = new Set<string>(LATER_SWITCHES);
   const frozen = FEATURES.filter((f) => !later.has(f.id));
   expect(frozen.filter((f) => f.group === "observation")).toHaveLength(110);
-  expect(frozen.filter((f) => f.group === "guidance")).toHaveLength(96);
+{const __e=frozen.filter((f) => f.group === "guidance");console.log("LEN",__e.length);}  expect(frozen.filter((f) => f.group === "guidance")).toHaveLength(95);
   expect(frozen.filter((f) => f.group === "guard")).toHaveLength(70);
   for (const f of FEATURES) {
     expect(["observation", "guidance", "guard", "measurement"]).toContain(f.group);

@@ -378,6 +378,8 @@ function toolReference(name:string,automaticRunning:boolean):string {
  return `<article class="config-tool" data-tool="${esc(name)}"><h5>${esc(name)}</h5>${reference===undefined?'<p>Documentation unavailable for this recorded tool. Its historical inputs and outputs were not recorded.</p>':`<p>${esc(reference[0])}</p><dl><dt>INPUTS</dt><dd>${esc(reference[1])}</dd><dt>OUTPUTS</dt><dd>${esc(reference[2])}</dd></dl><details><summary>INPUT EXAMPLE</summary><pre>${esc(reference[3])}</pre><p>Illustrative shape only. Coordinates, map IDs and evidence must come from the actual run.</p></details>`}</article>`;
 }
 
+// Explainers for behaviour that has no switch: the policy still needs a reader, but there is no arm to hang it on.
+export const STANDING_EXPLAINERS:readonly string[]=Object.freeze(["trigger-navigation-boundary-v1.html"]);
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "warp-target-navigation-v1":"warp-target-navigation-v1.html",
  "rom-identity-v1":"rom-identity-v1.html",
@@ -457,7 +459,6 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "auto-talk-field-only-v1":"auto-talk-field-only-v1.html",
  "auto-talk-v3":"auto-talk-v3.html",
  "untalked-people-header-v1":"untalked-people-header-v1.html",
- "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
  "map-wide-triggers-v1":"map-wide-triggers-v1.html",
  "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
  "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",

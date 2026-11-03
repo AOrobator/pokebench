@@ -97,7 +97,7 @@ describe("disproved-beliefs-bound-v1",()=>{
   expect(await delivered(OFF)).not.toContain("left out");
  });
  it("is registered after refusal-ledger-bound-v1, default off, needs disproved-beliefs-v1, recorded only when on",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(300);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(299);
   expect(featureInfo(ID)).toMatchObject({needs:"disproved-beliefs-v1"});
   expect(featureInfo(ID).description).toContain(" Off: every entry and every turn is listed.");
   const {[ID]:value,...omitted}={...ALL_ON};expect(value).toBe(true);

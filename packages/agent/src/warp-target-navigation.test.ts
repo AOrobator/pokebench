@@ -193,7 +193,7 @@ describe("warp-target-navigation-v1",()=>{
   expect([...GOAL_ONLY_BEHAVIORS]).toEqual([PAD]);
   // Append-only: five switches landed after this one, so its index never moves. A literal,
   // not length-5, because the tail keeps growing and the invariant is that this switch stays put.
-  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(322);
+  expect(SWITCHABLE_FEATURES.indexOf("warp-target-navigation-v1")).toBe(321);
  });
 
  it("keeps the pad unreachable as a goal when goal-only routing is off",()=>{

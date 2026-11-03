@@ -54,6 +54,7 @@ export class LoopDetector extends LoopCoordinator {
     navigationRecoveryTargets = false,
     mapCycleRecovery = false,
     bagLoops = false,
+    recoveryFieldOnly = false,
   ) {
     super(notify, {
       policy,
@@ -79,6 +80,7 @@ export class LoopDetector extends LoopCoordinator {
       navigationRecoveryTargets,
       mapCycleRecovery,
       bagLoops,
+      recoveryFieldOnly,
     });
   }
 }

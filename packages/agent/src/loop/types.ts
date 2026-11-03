@@ -148,6 +148,8 @@ export interface LoopCoordinatorOptions extends LoopRuleFeatures {
   readonly navigationRecoveryTargets?: boolean;
   // map-cycle-recovery-v1: the first unresolved map-cycle episode per story-progress window briefs instead of stopping.
   readonly mapCycleRecovery?: boolean;
+  // recovery-note-field-only-v1: the open navigation-recovery note is not sent with battle requests.
+  readonly recoveryFieldOnly?: boolean;
   readonly policy?: LoopPolicy;
   readonly mode?: LoopMode;
   readonly supervisor?: (kind: LoopKind, calls: number) => string;

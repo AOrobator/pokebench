@@ -2075,3 +2075,10 @@ it("links both open-milestone switches to their tracked explainers",()=>{
  expect(html).toContain("You have an unfinished battle");
  expect(html).toContain("actions have passed without another attempt");
 });
+
+it("links both audit-fix switches to their tracked explainers",()=>{
+ for(const id of ["deep-south-warp-label-v1","recovery-note-field-only-v1"])expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deep-south-warp-label-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Wp:entrance = warp (entrance)");
+ expect(html).toContain("MB_DEEP_SOUTH_WARP");
+});

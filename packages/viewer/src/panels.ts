@@ -387,6 +387,8 @@ export const STANDING_EXPLAINERS:readonly string[]=Object.freeze(["trigger-navig
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "drought-progress-credit-v2":"drought-progress-credit-v2.html",
  "open-milestone-stall-v1":"open-milestone-stall-v1.html",
+ "deep-south-warp-label-v1":"deep-south-warp-label-v1.html",
+ "recovery-note-field-only-v1":"recovery-note-field-only-v1.html",
  "warp-target-navigation-v1":"warp-target-navigation-v1.html",
  "rom-identity-v1":"rom-identity-v1.html",
  "checkpoint-research-note-v1":"checkpoint-research-note-v1.html",

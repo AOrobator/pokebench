@@ -56,7 +56,7 @@ describe("recovery-note-field-only-v1",()=>{
     if(e.type==="tool_result"||e.type==="loop_guard")detector.context();
    }
    const last=recorded.filter(e=>e.type==="state"&&e.turn<=257).at(-1);
-   emit(checkEvent({...(last as object),in_battle:true,screen:"battle"}));
+   emit(checkEvent({...(last as object),seq:Math.max(...recorded.filter(e=>e.turn<=257).map(e=>e.seq))+1,in_battle:true,screen:"battle"}));
    return detector.context();
   };
   expect(context(false)).toContain("NAVIGATION RECOVERY");

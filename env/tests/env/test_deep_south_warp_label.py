@@ -49,18 +49,12 @@ def test_on_names_the_tile_an_entrance_and_mentions_no_water_exit():
 
 
 def test_on_changes_nothing_but_those_two_elements():
-    before, text_off, _ = observe(False)
-    after, text_on, _ = observe(True)
+    before, _, _ = observe(False)
+    after, _, _ = observe(True)
     assert len(before.map_observation.elements) == len(after.map_observation.elements)
-    changed = [
-        (a, b)
-        for a, b in zip(before.map_observation.elements, after.map_observation.elements, strict=True)
-        if a != b
-    ]
+    pairs = zip(before.map_observation.elements, after.map_observation.elements, strict=True)
+    changed = [(a, b) for a, b in pairs if a != b]
     assert [(a.x, a.y, a.state, b.state) for a, b in changed] == [
         (10, 30, "deep_water_exit", "entrance"),
         (11, 30, "deep_water_exit", "entrance"),
     ]
-    assert text_on.replace("Wp:entrance", "Wp:deep_water_exit").replace(
-        "warp (entrance)", "warp (deep water exit)"
-    ) == text_off

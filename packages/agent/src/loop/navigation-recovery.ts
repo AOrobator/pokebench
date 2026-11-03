@@ -43,7 +43,7 @@ export class NavigationRecovery {
  private stale:number[]=[];
  private staleMap:string|null=null;
  private episode:Episode|null=null;
- constructor(private readonly notify:(n:LoopNotice)=>void,private readonly mode:LoopMode,private readonly semanticTargets=false,private readonly mapCycleRecovery=false){}
+ constructor(private readonly notify:(n:LoopNotice)=>void,private readonly mode:LoopMode,private readonly semanticTargets=false,private readonly mapCycleRecovery=false,private readonly fieldOnly=false){}
  state(state:GameStateSnapshot):void {
   this.latest=state;
   if(this.mapCycleRecovery)this.track(state);
@@ -72,6 +72,8 @@ export class NavigationRecovery {
  }
  context():string|null {
   if(this.mode==="diagnostic")return null;
+  // recovery-note-field-only-v1: a battle request carries no field note; the episode and any due briefing wait for the field.
+  if(this.fieldOnly&&this.latest?.in_battle===true)return null;
   if(this.episode===null){if(this.briefing===null)return null;this.briefing.exposed=true;return this.briefing.text;}
   this.episode.exposed=true;return `${this.episode.text}\n${this.bearings()}`;
  }

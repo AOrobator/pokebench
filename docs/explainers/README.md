@@ -380,3 +380,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Credit level-ups toward the open loss](drought-progress-credit-v2.html): a level-up restarts the drought clock only when the open GYM LEADER loss saw that POKéMON; default OFF, needs turn-drought-clock-v1.
 
 - [Open leader loss briefing](open-milestone-stall-v1.html): one supervisor note per 30 actions while the last GYM LEADER battle is still a loss, banked through battle holds; default OFF.
+
+- [Entrance, not water](deep-south-warp-label-v1.html): behavior 0x6E (MB_DEEP_SOUTH_WARP, the PETALBURG WOODS entrances) reads `Wp:entrance` instead of `deep_water_exit`; default OFF.
+
+- [Recovery note off the battle screen](recovery-note-field-only-v1.html): the open navigation-recovery note is not sent with battle requests and returns on the field; default OFF, needs navigation-recovery-v1.

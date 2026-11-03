@@ -39,8 +39,8 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 **M1 — both switches**
 - [x] Triage all eight bugs against code, events and raw RAM
 - [x] RED: tests for INV-1..INV-4 (`env/tests/env/test_deep_south_warp_label.py` 3 failed / 1 passed; `packages/agent/src/recovery-note-field-only.test.ts` 3 failed / 1 passed — the passing ones are the OFF guards)
-- [ ] GREEN: implement, register (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list)
-- [ ] Explainers + `FEATURE_EXPLAINERS`
+- [x] GREEN: implement, register (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list). Focused: agent 6 files / 173 tests; viewer server+next-run 139, panels 137; env 145. Wiring removal in `harness.ts` turns the factory test red (1 failed / 3 passed), restored green.
+- [x] Explainers + `FEATURE_EXPLAINERS` (`docs/explainers/deep-south-warp-label-v1.html`, `recovery-note-field-only-v1.html`; `just pages-check` clean)
 - [ ] Gates (build, lint, coverage ≥90) within a CPU window
 - [ ] Cloud review (Claude, Grok, GPT/Codex lanes)
 - [ ] Land ff-only via the landing board; `just viewer-main`
@@ -49,3 +49,4 @@ Non-goals: no change to visibility V2 (operator turned it off), no cross-map rou
 
 - 2026-11-02 11:15 PM: triage done; worktree `/private/tmp/pb-harness-audit` on `claude/harness-audit-fixes` from 9f8993be1.
 - 2026-11-02 11:11 PM: RED committed.
+- 2026-11-02 11:25 PM: GREEN committed; changed-file eslint/tsc/ruff/mypy clean. Main itself carries ruff errors in `adjacent_tiles.py` and `map_observation.py` (not touched here), so `just lint` will need that noted.

@@ -337,6 +337,7 @@ export const SWITCHABLE_FEATURES = [
   "solid-tile-leads-v1",
   "auto-talk-interrupt-note-v1",
   "objective-graph-supervisor-v1",
+  "story-route-plan-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -793,6 +794,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("auto-talk-interrupt-note-v1", "guard", "AUTO-TALK INTERRUPT NOTE", "auto-talk-v1", "Default off; on in both arms of the current recipe (operator 2026-11-02). Run 07a7 at 06:32:53: auto-talk chose AQUA_MEMBER_M on Rusturf Tunnel, walked the player toward it, a wild Whismur battle took the field, and the attempt was recorded not_free with text null. The model was never told it had been walked to the grunt, so it re-derived the same detour decision for the next twenty turns; a later retry chose the WINGULL instead and read a dialog of none, which taught it that talking to these people does nothing. On: the interrupted walk is reported in one sentence naming the target, its tile and the screen that took the field, and saying that nothing was said and the walk stopped short, so silence cannot be read as a refusal. A note is never sent into a battle (the 2026-10-22 rule): it is held and delivered on the first request that can read the field, and dropped if the player is on another map by then. Off: the attempt is recorded with text null and nothing reaches the model."),
   on("objective-graph-supervisor-v1", "guidance", "OBJECTIVE GRAPH SUPERVISOR", "stall-briefing-v1",
     "Names the next story objective in every drought briefing, by label and catalog id: \"- Next milestone: Stone Badge (STONE_BADGE)\". The order is the recorded route and the prerequisite graph decides which step may be named, so a step whose hard gate is unmet is skipped rather than pressed, and when nothing ahead is legal the briefing names the blocked step and what it needs instead. The id sits in the recorded loop_guard text, so a run's drought briefings can be counted by objective afterwards. This tells the model where to go, so results measure targeted play. Off: drought briefings carry no next-milestone line and read exactly as before."),
+  on("story-route-plan-v1", "guidance", "STORY ROUTE PLAN", "stall-briefing-v1",
+    "Puts the run's position on the record route in every briefing: \"step 12 of 31 in Dewford Gym; next waypoint: the deferred gym at level 28, no trainers on the way (KNUCKLE_BADGE); off-plan since turn 1552\". The plan is keepingiticy's order, not the order the milestones are listed in — the second badge is deferred past the third and fourth, and Fortree's gym waits for Steven — and it starts once the first plan step lands, so the opening stays with the hint arm. \"Off-plan\" means no plan step has landed for 200 turns; it dates the drought from the turn the last step did land. Off: briefings carry no route line and read exactly as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1224,6 +1227,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("solid-tile-leads-v1"),
     ...when("auto-talk-interrupt-note-v1"),
     ...when("objective-graph-supervisor-v1"),
+    ...when("story-route-plan-v1"),
   ];
 }
 

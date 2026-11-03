@@ -100,10 +100,10 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - "blocked" now counts every stepping frame: a refused step walks in place and keeps the player "moving", so the old idle count never fired.
 - [x] RED: watch cases (exact loop edges with no input, still/jump, lost control/target/map/budget, shared admission)
 - [x] COMMIT: `test(env): require a no-input patrol watch` (RED) `cac33db0b`
-- [ ] COMMIT: `feat(env): patrol watch for the intercept` (GREEN)
+- [x] COMMIT: `feat(env): patrol watch for the intercept` (GREEN) `38c38c378`; 49 intercept tests
 
 **M2 — Agent intercept in `followObject`, registry, prompt, recipe**
-- [ ] RED: `moving-npc-intercept.test.ts`. Cases: track learning from object coordinates, T/S choice (off-track, reachable, no warp/trigger), receipt handling (`entered` → face + A; others → fallback), OFF byte-exact, factory wiring, recipe onInBoth.
+- [x] RED: `packages/agent/src/moving-npc-intercept.test.ts` (10 cases). Cases: track learning from object coordinates, T/S choice (off-track, reachable, no warp/trigger), receipt handling (`entered` → face + A; others → fallback), OFF byte-exact, factory wiring, recipe onInBoth.
 - [ ] COMMIT: `test(agent): require moving-NPC intercept` (RED)
 - [ ] Implement: registry append (index after the last switch), preset optional, `DEFAULT_NEXT_RUN` off, `SERVER_FEATURES`, `current.json` onInBoth plus a README paragraph, tool-prompt sync
 - [ ] Delete-guard once (wiring off → ON test red), restore, record

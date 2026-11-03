@@ -81,7 +81,7 @@
       "to": "SOOTOPOLIS_CITY",
       "relation": "requires",
       "status": "verified",
-      "evidence": "data/maps/Route128/map.json connection MAP_UNDERWATER_ROUTE128 type dive; Underwater_SootopolisCity warps into the city"
+      "evidence": "src/field_control_avatar.c:465 refuses Dive without FLAG_BADGE07_GET; the city is only reachable by surfacing from Underwater_SootopolisCity"
     },
     {
       "from": "FEATHER_BADGE",
@@ -116,7 +116,7 @@
       "to": "MAGMA_HIDEOUT",
       "relation": "requires",
       "status": "verified",
-      "evidence": "data/maps/MagmaHideout_1F/map.json carries three OBJ_EVENT_GFX_PUSHABLE_BOULDER"
+      "evidence": "data/maps/MagmaHideout_1F/map.json:57,70,83 - the three OBJ_EVENT_GFX_PUSHABLE_BOULDER boulders that only Strength moves"
     },
     {
       "from": "MAGMA_EMBLEM_RECEIVED",
@@ -264,16 +264,19 @@
   ],
   "open": [
     {
-      "question": "Is the Rain Badge mechanically skippable? The league door checks only the sixth badge and no field move needs the seventh or eighth. The source comment claims Winona's is the only skippable badge, so something unread must enforce badge 7/8.",
-      "read": "Sootopolis gym entry, the Cave of Origin / Sky Pillar chain, and Victory Road's own gates. If nothing enforces them, the graph must mark them expected-but-unenforced, a distinction a linear index cannot express."
-    },
-    {
       "question": "Does the Petalburg four-badge gate count flags or test a specific badge value?",
       "read": "include/constants/vars.h:153 documents VAR_PETALBURG_GYM_STATE 2-6 as 0-4 badges; find the updater that advances 2..6"
     },
     {
       "question": "Where does the mid-game nag name a target, if anywhere?",
       "read": "next-milestone-hint-v1 emits MILESTONE_HINTS[furthest+1] only up to the Stone Badge; past it the drought text and briefing carry pressure with no milestone id, so the retro correction count needs the recorded milestone_hint and briefing payloads"
+    }
+  ],
+  "closed": [
+    {
+      "question": "Is the Rain Badge mechanically skippable? The league door checks only the sixth badge and no field move needs the seventh or eighth. The source comment claims Winona's is the only skippable badge, so something unread must enforce badge 7/8.",
+      "answer": "Both are required, and the badge that decides admission is not the one that is skipped. src/field_control_avatar.c:465 and :475 refuse Dive without FLAG_BADGE07_GET (the Sootopolis approach), :455 refuses Waterfall without FLAG_BADGE08_GET (the Ever Grande climb), and :450 refuses Surf without FLAG_BADGE05_GET. The Rain Badge itself is not a gate on anything; Feather->Rain is an expectation. SootopolisCity_Gym_1F/scripts.inc:80-86 gives the badge on beating Juan regardless of badge six.",
+      "read": "src/field_control_avatar.c:450,455,465,475; data/maps/SootopolisCity_Gym_1F/scripts.inc:80-86; data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63"
     }
   ]
 }

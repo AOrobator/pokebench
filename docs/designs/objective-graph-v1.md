@@ -66,14 +66,14 @@ Verified today (file:line read during this design):
 | `MAGMA_EMBLEM_RECEIVED → MAGMA_HIDEOUT` | item check | `data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM` opens the entrance |
 | `HM_SURF_RECEIVED → ROUTE_118_EAST_BANK_REACHED`, `→ MOSSDEEP_CITY` | field-move badge | `src/field_control_avatar.c:450` refuses Surf without `FLAG_BADGE05_GET` |
 | `HM_WATERFALL_RECEIVED → EVER_GRANDE_LANDING`, `RAIN_BADGE → EVER_GRANDE_LANDING` | field-move badge | `src/field_control_avatar.c:455` refuses Waterfall without `FLAG_BADGE08_GET`; the Ever Grande waterfall tiles sit at y 60-67 with the landing at y 40-57 above them |
-| `HM_STRENGTH_RECEIVED → MAGMA_HIDEOUT` | physical | `MagmaHideout_1F/map.json` carries three `OBJ_EVENT_GFX_PUSHABLE_BOULDER` |
+| `HM_STRENGTH_RECEIVED → MAGMA_HIDEOUT` | physical | `MagmaHideout_1F/map.json:57,70,83` — the three `OBJ_EVENT_GFX_PUSHABLE_BOULDER` boulders, each running `EventScript_StrengthBoulder` |
 | `HEAT_BADGE → MAGMA_HIDEOUT` | field-move badge | Strength is unusable without the fourth badge: `field_move_scripts.inc:124` |
 | `FEATHER_BADGE → LEAGUE_ADMISSION_GRANTED` | gym guard | `EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63`; the source comment: the door guards check only `FLAG_BADGE06_GET` because Winona's badge is the only one that can be skipped |
 | `BALANCE_BADGE → HM_SURF_RECEIVED` | story var | `data/maps/PetalburgCity_WallysHouse/scripts.inc:15-17` gives Surf on `VAR_PETALBURG_CITY_STATE == 4` |
-| `DEVON_SCOPE_RECEIVED → FORTREE_GYM_OBSTRUCTION_CLEARED` | item flag | flags 285/295, `docs/findings/campaign-milestones.md:74-75` |
+| `DEVON_SCOPE_RECEIVED → FORTREE_GYM_OBSTRUCTION_CLEARED` | item flag | `FortreeCity/scripts.inc:58` `checkitem ITEM_DEVON_SCOPE` gates the Kecleon scene that `setflag FLAG_KECLEON_FLED_FORTREE` at `:80`; flags 285/295, `docs/findings/campaign-milestones.md:74-75` |
 | `MIND_BADGE → SPACE_CENTER_STORY_COMPLETE` | story var | `data/maps/MossdeepCity_Gym/scripts.inc:79` sets `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` (and unhides the grunts) in Tate & Liza's post-battle script; completion is state 3 at `MossdeepCity_SpaceCenter_2F/scripts.inc:263` |
 | `SPACE_CENTER_STORY_COMPLETE → HM_DIVE_RECEIVED` | story var | `data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:288` sets `VAR_STEVENS_HOUSE_STATE=1`; `data/maps/MossdeepCity_StevensHouse/scripts.inc:24-26` gives Dive on that value |
-| `HM_DIVE_RECEIVED → SOOTOPOLIS_CITY` | physical | `data/maps/Route128/map.json` connection `MAP_UNDERWATER_ROUTE128` type `dive`; `Underwater_SootopolisCity` warps into the city |
+| `HM_DIVE_RECEIVED → SOOTOPOLIS_CITY` | field-move badge | `src/field_control_avatar.c:465` refuses Dive without `FLAG_BADGE07_GET` (and `:475` the surfacing); the city is only reachable by surfacing from `Underwater_SootopolisCity` |
 | `FEATHER_BADGE → RAIN_BADGE` | **expectation, not a guard** | `SootopolisCity_Gym_1F/scripts.inc:80-86`: the Rain Badge is set in `JuanDefeated`; the `FLAG_BADGE06_GET` branch is the re-talk reminder that sends the player to Fortree *after* the badge |
 | `4 badges → NORMAN battle` | badge count | `include/constants/vars.h:153`: `VAR_PETALBURG_GYM_STATE 0x4085 // 0-1: Wally tutorial, 2-6: 0-4 badges, 7: Defeated Norman`; dispatch at `PetalburgCity_Gym/scripts.inc:104-108` |
 
@@ -201,7 +201,7 @@ must not encode them:
   skipped. That is still true, and it is what makes the sixth badge the interesting one: skipping it costs
   a gym and buys a detour, and nothing else notices until the door.
 
-These are cheap mistakes to inherit: three came from a summary, one from reading the scripted field-move path and calling it the whole gate. Every `requires` edge in the module cites a `file:line` that refuses the action; `expects` edges may cite the route narrative instead, and the test only enforces the `file:line` rule on `requires`.
+These are cheap mistakes to inherit: three came from a summary, one from reading the scripted field-move path and calling it the whole gate. Every `requires` edge in the module cites a `file:line` that either refuses the action or exclusively grants the reward; `expects` edges may cite the route narrative instead, and the test enforces the `file:line` rule on `requires` only.
 
 ## 10. Non-goals
 

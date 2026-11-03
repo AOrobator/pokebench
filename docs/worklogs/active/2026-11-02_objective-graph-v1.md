@@ -275,7 +275,16 @@ Third read of the branch (`4c3bb2fba`) found four things that were still wrong, 
   the uncomputed checkpoint sentence are replaced by computed text: 3 runs at four badges score 54, 54, 109,
   and 2 of them began from a checkpoint (each carries a `continuation-provenance.json`).
 
-Gates on `4c3bb2fba` → this commit: `pnpm -r build` and `pnpm -r lint` clean; `packages/agent` **384 files /
+### Review round 3 — 2026-11-02
+
+Fourth read of the branch found the edge list stale by exactly the two edges re-cited after it was
+generated (I regenerated before rebuilding `dist`, so it kept the old wording) and the design table
+repeating them. Fixed by rebuilding before generating, correcting the two design rows, moving the
+"is the Rain Badge mechanically skippable" question to a `closed` entry with the four `field_control_avatar.c`
+lines as the answer, and adding a test that compares the design's `edges` array to `OBJECTIVE_EDGES` — the
+"...cannot drift" claim in that file is now enforced rather than asserted.
+
+Gates on `ab018cfb9` → this commit: `pnpm -r build` and `pnpm -r lint` clean; `packages/agent` **384 files /
 5432 tests**, `packages/viewer` **184 files / 2419 tests**; coverage agent **96.4 / 92.38 / 97.45 / 99.02**,
 viewer **94.57 / 90.78 / 94.83 / 98.22**; re-score unchanged at 776 runs / 119 droughts / 3 of 58
 frontier-ending droughts off-linear / mean frontier-depth 9.0. No run launched.

@@ -995,6 +995,15 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 /* POKéMON PARTY page (runs/mockups/party-menu/variant-d3.html): Emerald's party slots and summary
    parts from runs/sprites/party-v1 (`just party-art`). Lengths are game pixels (--u). */
 .pv { container-type: inline-size; }
+/* The party page is the game's own party screen: no white PokéNav sheet or red page title around it; the in-game POKéMON PARTY header names the page. */
+.navopen #page-party { background: none; border: 0; border-radius: 0; padding: 0; }
+#page-party > h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+#page-party .page-content { display: flex; flex-direction: column; padding-right: 0; }
+#page-party [data-ui=party] { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#page-party .pv { flex: 1; display: flex; flex-direction: column; }
+#page-party .pv-scr { flex: 1; display: flex; flex-direction: column; }
+#page-party .pv-list { flex: 1; align-content: start; }
+#page-party .nodata { margin: 0 0 8px 4px; color: #fff; font-size: 8px; line-height: 1.7; }
 .pv-scr { --u: 2px; border: calc(var(--u) * 2) solid #4a4139; border-radius: calc(var(--u) * 4); overflow: hidden; background: #006a62; image-rendering: pixelated; }
 .pv-scr * { image-rendering: pixelated; }
 .pv-scr button { font: inherit; color: inherit; margin: 0; border: 0; padding: 0; cursor: pointer; text-align: left; }

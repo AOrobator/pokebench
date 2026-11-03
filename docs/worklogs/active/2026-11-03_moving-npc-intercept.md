@@ -1,7 +1,7 @@
 # Moving-NPC intercept: step into a patrol path and talk
 
 **Started:** 2026-11-03
-**Status:** Landed on main `12b5972a1` 2026-11-03 ~01:20 NY. Post-merge `just test` on main is pending a CPU window. Not activated in a viewer refresh or a launch.
+**Status:** Landed on main `12b5972a1` 2026-11-03 ~01:20 NY. Post-merge `just test` on main `e465a0171` PASS (agent 5474, viewer 2427, env 5252, gates 116, trainer cards 3; coverage floors met). The first attempt timed out once in `whole-game-instructions.test.ts` under load; that file passes alone and the full re-run is clean. Not activated in a viewer refresh or a launch.
 **Branch:** `claude/moving-npc-intercept` (worktree `/private/tmp/pb-moving-npc-intercept`, from main `ce6f83fc4`)
 **Switch:** `moving-npc-intercept-v1` (registry default OFF; `onInBoth` in `experiments/feature-configs/current.json`, the operator 2026-11-03: "go, this should be on in both arms")
 

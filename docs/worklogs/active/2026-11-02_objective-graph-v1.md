@@ -110,9 +110,11 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
 - [x] Read-only rescoring pass over every run: `scripts/objective-graph-rescore.mjs` (dist imports, in the
       style of `scripts/audit-milestone-memory.mjs`) writes `docs/findings/objective-graph-rescore.md`.
       775 runs scored, 119 droughts of 200+ turns. Re-runnable; do not hand-edit the output.
-- [x] Report the split explicitly: 64 of 119 droughts (54%) ended on a story milestone that was **not** the
-      one the linear frontier named next. Depth never exceeds record order and trails it by 9.1 positions on
-      average (max 58), because the index credits milestones whose prerequisites are missing.
+- [x] Report the split explicitly, after a review caught the first version counting trainer defeats as story
+      milestones: of the 58 droughts that ended on a *frontier* milestone, **3 (5%)** ended on one other than
+      the entry the list named next; 61 of the 119 ended on a story-kind milestone the list never contains
+      (trainer defeats, evolutions), which cannot testify about the list's aim. Depth trails record order by
+      9.0 positions on average (max 58) because the index credits positions whose prerequisites are missing.
 - [ ] View the depth beside the record-order index in `frontier.ts` / `reports-view.ts`; card keeps both.
       Held: the two numbers diverge by up to 58 and a card can show one bar, so which number the bar means is
       a design call, not a mechanical edit.
@@ -128,10 +130,15 @@ already sees. M4 adds a large harness advantage and must be declared in run meta
 - [x] Registry: appended to `SWITCHABLE_FEATURES` and `FEATURES`; optional in the play preset, `??false`
       in `normalizeFeatures` and in the v1 preset map, off in `DEFAULT_NEXT_RUN`. OFF is byte-identical:
       the briefing test strips the one line and compares the rest to the same briefing with the switch off.
-- [x] Conditioning shipped as **forward-only**: the line names the first *legal* step at or after the
-      furthest step the run has already passed, and never a step behind it. When nothing ahead is legal
-      it names the blocked step and what it needs (`FORTREE_GYM_OBSTRUCTION_CLEARED; needs Devon Scope
-      received first`).
+- [x] Conditioning shipped as **forward-only**: the line names the first *legal* step after the furthest
+      step the run has **earned** (reached, with its hard gates met — an out-of-order milestone such as the
+      6bbd/d41e `SLATEPORT_HARBOR` before Mauville does not move the mark), and never a step behind it.
+      The fallback that names a blocked step with its blockers is defensive: the record order always has a
+      legal step ahead until the game is cleared, so a live briefing normally carries no `needs …` clause.
+      Caveat a review caught: "earned" only holds while the gate evidence is in the log, and a save-state
+      start reports what is true at that moment — the map visits before it are lost. So the mark ignores
+      *location-only* prerequisites (a catalog entry with a `map` and no flag behind it, 74 of 165) and
+      respects story and flag gates only.
 - [x] Tests: `next-objective.test.ts` (15) + `objective-graph-briefing.test.ts` (5); `next-objective.ts`
       100 stmts / 100 branch / 100 funcs / 100 lines.
 - [x] **Activated by operator instruction (2026-11-02): on in the bundle.** Encoding is the repo's:
@@ -194,10 +201,12 @@ elsewhere; the plan is not built by anyone yet.
   → 382 files / 5409 tests pass in 27s. The fresh worktree needed the build first; without it 31 files
   fail at import on `@pokebench/agent/milestones`, which is a worktree artefact, not a regression.
   `remainingToClear(∅)` = 14, the plan closure of a cleared game; `OBJECTIVE_NODES` = 211.
-- 2026-11-02 — M2 re-score. `node scripts/objective-graph-rescore.mjs` over 775 runs with milestone events
-  (96s, offline, no model or emulator): 12 runs at two or more badges, 119 droughts of 200+ turns, 64 of them
-  (54%) ending on a story milestone that was not the one the linear frontier named next. Mean record-order
-  minus depth 9.1, max 58 (`glm53-mac_6bbd`, `qwen36-gpu1_d41e`). Wrote
+- 2026-11-02 — M2 re-score. `node scripts/objective-graph-rescore.mjs` over 776 runs with milestone events
+  (offline, no model or emulator): 12 runs at two or more badges, 119 droughts of 200+ turns. **Correction
+  after review:** the first cut reported "64 of 119 (54%) off-linear", but 61 of those endings were trainer
+  defeats and evolutions the catalog files as `kind: "story"`, which are off the list by construction. Of the
+  58 droughts that ended on a frontier milestone, 3 (5%) ended on a different one than the list named.
+  Mean record-order minus depth 9.0, max 58 (`glm53-mac_6bbd`, `qwen36-gpu1_d41e`). Wrote
   `docs/findings/objective-graph-rescore.md`. The three longest droughts (2647, 2264, 1831 turns) named the
   milestone the run did eventually reach, so they are "correct target, no progress", not wrong-target — the
   graph would not have fixed those, a waypoint plan would.
@@ -244,3 +253,38 @@ elsewhere; the plan is not built by anyone yet.
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER — archive after M3 lands and the ablation is recorded.
+
+### Review round 2 — 2026-11-02
+
+Third read of the branch (`4c3bb2fba`) found four things that were still wrong, all fixed here:
+
+- **A checkpoint start stalled the mark.** The location rule was applied only where the mark scans, so
+  `enabledObjectives` still dropped a badge whose sole hard parent was a map visit, and the plan skipped
+  ahead. The earning index now skips location-only parents for every consumer (depth, enabled, blocking);
+  the plan index keeps them so a chain through a place stays connected.
+- **The checkpoint test cut before Lavaridge** and passed without the fix. It now cuts after
+  `LAVARIDGE_GYM_COMPLETE` and pins `HEAT_BADGE` as the target, which is the first prefix where a full log
+  and a save-state log disagree.
+- **Four `requires` edges cited a directory, not a line.** All four now name a `file:line`
+  (`LavaridgeTown_Gym_1F/scripts.inc:62`, `MagmaHideout_1F/map.json:57,Kalos`,
+  `Route111/map.json:222,235`, `FortreeCity/scripts.inc:58,80`), and the test enforces `\.(c|inc|json|md):\d`
+  on every hard edge instead of a bare path prefix.
+- **Two documents overclaimed.** The design's closure paragraph claimed "all eight badges, both HM chains";
+  the closure of `GAME_CLEAR_CONFIRMED` is 14 nodes — the league sequence plus the gates recorded in front
+  of it — and both the design and the findings now say so. The findings' "hard-gated behind badge six" and
+  the uncomputed checkpoint sentence are replaced by computed text: 3 runs at four badges score 54, 54, 109,
+  and 2 of them began from a checkpoint (each carries a `continuation-provenance.json`).
+
+### Review round 3 — 2026-11-02
+
+Fourth read of the branch found the edge list stale by exactly the two edges re-cited after it was
+generated (I regenerated before rebuilding `dist`, so it kept the old wording) and the design table
+repeating them. Fixed by rebuilding before generating, correcting the two design rows, moving the
+"is the Rain Badge mechanically skippable" question to a `closed` entry with the four `field_control_avatar.c`
+lines as the answer, and adding a test that compares the design's `edges` array to `OBJECTIVE_EDGES` — the
+"...cannot drift" claim in that file is now enforced rather than asserted.
+
+Gates on `ab018cfb9` → this commit: `pnpm -r build` and `pnpm -r lint` clean; `packages/agent` **384 files /
+5432 tests**, `packages/viewer` **184 files / 2419 tests**; coverage agent **96.4 / 92.38 / 97.45 / 99.02**,
+viewer **94.57 / 90.78 / 94.83 / 98.22**; re-score unchanged at 776 runs / 119 droughts / 3 of 58
+frontier-ending droughts off-linear / mean frontier-depth 9.0. No run launched.

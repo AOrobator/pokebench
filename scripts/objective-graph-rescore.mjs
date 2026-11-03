@@ -1,7 +1,7 @@
 // Offline re-score only: reads immutable run event streams, never calls a model or emulator.
 // Scores every recorded run twice — once by the linear record order, once by graph depth — and
 // reports where the two disagree about how far a run got.
-import {createReadStream} from "node:fs";
+import {createReadStream,existsSync} from "node:fs";
 import {readdir,writeFile} from "node:fs/promises";
 import {createInterface} from "node:readline";
 import {join,resolve} from "node:path";
@@ -67,6 +67,16 @@ for(const entry of await readdir(runs,{withFileTypes:true})){
 }
 
 const droughts=rows.flatMap(row=>row.droughts);
+// A "story" milestone the frontier never lists (trainer defeats, evolutions) is off the list by
+// construction, so it cannot testify about the list's aim; it is counted apart.
+const frontierIds=new Set(REQUIRED_FRONTIER_MILESTONES);
+const inOrder=droughts.filter(d=>frontierIds.has(d.to));
+const inOrderOf=row=>row.droughts.filter(d=>frontierIds.has(d.to));
+const clearDistance=remainingToClear(new Set());
+const lateStart=rows.filter(row=>row.badges>=4).sort((a,b)=>a.depth-b.depth);
+const fromCheckpoint=lateStart.filter(row=>existsSync(join(runs,row.run,"continuation-provenance.json")));
+const widest=rows.reduce((best,row)=>row.frontier-row.depth>best.frontier-best.depth?row:best,rows[0]);
+const offList=droughts.filter(d=>!frontierIds.has(d.to));
 const eligible=rows.filter(row=>row.badges>=2).sort((a,b)=>b.depth-a.depth);
 const divergence=rows.filter(row=>row.frontier>0).map(row=>row.frontier-row.depth);
 const mean=list=>list.reduce((sum,value)=>sum+value,0)/list.length;
@@ -100,21 +110,28 @@ const report=[
 "",
 table(["badges","runs"],[0,1,2,3,4,5,6,7,8].map(count=>[String(count),String(rows.filter(row=>row.badges===count).length)])),
 "",
-`${String(eligible.length)} runs reached two or more badges. Nothing in the pool has reached the fifth badge,`,
-"so every statement below about deferral is supported by early-game runs only. That is a limit of the",
+`${String(eligible.length)} runs reached two or more badges, and the most any run reached is ${String(Math.max(...rows.map(row=>row.badges)))},`,
+"so every statement below about deferral is supported by runs that never finished the game. That is a limit of the",
 "evidence, not of the graph.",
 "",
 "## Depth against record order",
 "",
-`Across all ${String(rows.length)} runs the record-order index is never below depth and runs an average of`,
-`${mean(divergence).toFixed(1)} positions higher (max ${String(Math.max(...divergence))}). It credits a run for a`,
-"milestone whose prerequisites are still missing, which depth refuses to do.",
+`Across all ${String(rows.length)} runs the record-order index sits an average of ${mean(divergence).toFixed(1)}`,
+`positions ahead of depth (max ${String(Math.max(...divergence))}). That gap is not a compliment: the index counts`,
+`a position the run has passed, including positions whose prerequisites were never met — the widest gap in`,
+`the pool is ${String(widest.frontier-widest.depth)} positions (\`${widest.run}\` alone: ${String(widest.frontier)}`,
+`list positions for ${String(widest.depth)} closed objectives). Depth counts only what was closed.`,
+"",
+"Depth reads a run as its whole history, and a checkpoint start only reports the state it began from.",
+`The ${String(lateStart.length)} runs with four badges score ${lateStart.map(row=>String(row.depth)).join(", ")}; ${String(fromCheckpoint.length)} of them began from a checkpoint`,
+`(${fromCheckpoint.map(row=>`\`${row.run}\``).join(", ")}, each with a continuation-provenance.json naming the state it resumed), so depth counts only`,
+"what their log could prove and says nothing about how well they played.",
 "",
 `Runs that reached two or more badges, ranked by depth (of ${String(OBJECTIVE_NODES.length)} recordable objectives):`,
 "",
 table(["run","badges","depth","record order","long droughts","off-linear"],
   eligible.map(row=>[`\`${row.run}\``,String(row.badges),String(row.depth),String(row.frontier),
-    String(row.droughts.length),String(row.droughts.filter(d=>d.offLinear).length)])),
+    String(inOrderOf(row).length),String(inOrderOf(row).filter(d=>d.offLinear).length)])),
 "",
 `Depth and record order are not two rescalings of one number: the index reports the furthest position reached`,
 "in a list, depth reports how many objectives were closed. They agree in rank when a run followed the record",
@@ -123,16 +140,29 @@ table(["run","badges","depth","record order","long droughts","off-linear"],
 "",
 "## Distance to a clear",
 "",
-`\`remainingToClear\` reads 14 for every run in the pool, and that is not a bug: a cleared game's hard-gated`,
-"closure is the league sequence behind badge six, and no run here has reached badge six. The number is a",
-"late-game distance, constant and uninformative before then — so it is reported in the run cards, not as",
-"progress. Depth is the usable half.",
+`\`remainingToClear\` reads ${String(clearDistance)} for every run in the pool. That is not a bug and not a measurement:`,
+"it is the size of the closure of `GAME_CLEAR_CONFIRMED` over the edges the graph records, which is the league",
+"sequence plus the gates recorded in front of it — not a dependency model of the whole game. No run in the pool",
+`has reached the act where it moves (the deepest is ${String(Math.max(...rows.map(row=>row.depth)))} of ${String(OBJECTIVE_NODES.length)}), so it is a late-game`,
+"distance, constant and uninformative before then. Reported here and nowhere else; the trainer card was",
+"deliberately left alone. Depth is the usable half.",
 "",
 "## Droughts",
 "",
 `${String(droughts.length)} droughts of 200+ turns across the pool.`,
-`- ${String(droughts.filter(d=>d.offLinear).length)} (${pct(droughts.filter(d=>d.offLinear).length,droughts.length)}) ended on a story milestone that was **not** the one the linear frontier named next.`,
-`- ${String(droughts.filter(d=>d.enabled>0).length)} (${pct(droughts.filter(d=>d.enabled>0).length,droughts.length)}) began with at least one objective enabled by the graph.`,
+"",
+"Two different things count as a \"story\" milestone in the event log: entries of `REQUIRED_FRONTIER_MILESTONES`,",
+"and trainer defeats and evolutions the catalog records with the same kind. A drought that ends on the second",
+"kind is off the linear list by construction and says nothing about whether the list was aiming badly, so it is",
+"reported separately instead of being folded into one headline number:",
+"",
+`- ${String(inOrder.length)} droughts ended on a frontier milestone; ${String(inOrder.filter(d=>d.offLinear).length)} (${pct(inOrder.filter(d=>d.offLinear).length,inOrder.length)}) of those ended on a frontier milestone other than the one the list named next.`,
+`- ${String(offList.length)} droughts ended on a story-kind milestone the frontier never lists (trainer defeats, evolutions, heals).`,
+`- ${String(inOrder.filter(d=>d.linearNext!=="").length)} of those began with a list position still to name; the other ${String(inOrder.filter(d=>d.linearNext==="").length)} began with the list already exhausted.`,
+"",
+"The drought measure is in turns, not actions, and a drought is only counted when it *ends* on a story",
+"milestone: the pool's unfinished tails are invisible to it. Both facts favour the list, so a figure that",
+"still shows disagreement is a floor, not a ceiling.",
 "",
 "Longest droughts in the pool:",
 "",
@@ -143,8 +173,13 @@ table(["turns","run","from","to","frontier named next"],droughts.slice().sort((a
 "",
 "- **Supported:** a run can be scored on closure rather than list position, retroactively, from events already",
 "  on disk. Depth is monotone and order-independent, so a deferred badge scores the same as an early one.",
-"- **Supported:** in most long droughts the linear frontier was naming a milestone the run was not going to",
-"  reach next. That is the shape of the Rustboro-from-Mauville nag.",
+"- **Not supported, and this corrects an earlier draft of this file:** that the list named the wrong target in",
+`  most long droughts. Of the ${String(inOrder.length)} droughts that can testify — the ones ending on a frontier`,
+`  milestone — the list named a different one ${String(inOrder.filter(d=>d.offLinear).length)} times. It does not follow from those that the list was`,
+"  wrong to name it: a milestone can be the right target while the run makes no progress toward it, and the",
+"  three longest droughts in the pool are exactly that (see the table: the list's pick and the run's arrival",
+"  agree). The Rustboro-from-Mauville nag is a single described incident in `glm53-mac_0d5d`; it is evidence",
+"  that the list can be wrong about *position*, not that most droughts are position errors.",
 "- **Not supported:** that the supervisor's nags would have been suppressed. The recorded `loop_guard`",
 "  `milestone_drought` payload carries a stall briefing with no milestone id, so *which* objective the",
 "  supervisor was pressing for is unrecoverable from these runs. Counting corrections suppressed needs the",
@@ -153,4 +188,4 @@ table(["turns","run","from","to","frontier named next"],droughts.slice().sort((a
 
 await writeFile(out,report);
 console.log(`wrote ${out}: ${String(rows.length)} runs, ${String(droughts.length)} droughts, ` +
-  `${String(droughts.filter(d=>d.offLinear).length)} off-linear, mean frontier-depth ${mean(divergence).toFixed(1)}`);
+  `${String(inOrder.filter(d=>d.offLinear).length)} of ${String(inOrder.length)} frontier-ending droughts off-linear, mean frontier-depth ${mean(divergence).toFixed(1)}`);

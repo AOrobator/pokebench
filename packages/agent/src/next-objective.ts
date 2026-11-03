@@ -16,8 +16,10 @@ export function targetIn(order:readonly string[],reached:ReadonlySet<string>):Ob
   const enabled=new Set(enabledObjectives(reached));
   // Scan forward from the furthest step the run has already passed, never backward: a run that left the
   // Dewford gym alone on purpose must not be told to go back to it because the list remembers a gap.
-  const furthest=order.reduce((best,id,index)=>reached.has(id)&&index>best?index:best,-1);
-  const ahead=[...order.slice(furthest+1),...order.slice(0,furthest+1)];
+  // Only steps the run actually earned move the mark: an out-of-order milestone (a map visit past a gate
+  // it never opened) must not drag the plan forward and hide the steps between.
+  const furthest=order.reduce((best,id,index)=>reached.has(id)&&blockingPrerequisites(id,reached).length===0&&index>best?index:best,-1);
+  const ahead=order.slice(furthest+1);
   for(const id of ahead){
     if(reached.has(id)||!enabled.has(id))continue;
     return {id,label:labelOf(id),blockedBy:[]};

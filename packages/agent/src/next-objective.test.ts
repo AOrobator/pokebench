@@ -1,6 +1,6 @@
 import {describe,expect,it} from "vitest";
 import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
-import {OBJECTIVE_NODES,blockingPrerequisites} from "./objective-graph.js";
+import {LOCATION_ONLY_OBJECTIVES,OBJECTIVE_NODES,blockingPrerequisites} from "./objective-graph.js";
 import {NextObjective,objectiveLine,targetIn} from "./next-objective.js";
 import type {RunEvent} from "./events.js";
 
@@ -26,16 +26,50 @@ describe("the next objective a stall briefing may name",()=>{
     expect(reached).not.toContain(target?.id);
   });
 
-  it("skips a step whose hard prerequisites are unmet, and names a legal one instead",()=>{
-    // Everything the record order holds up to the Devon Scope, without the Scope itself: the Fortree
-    // obstruction is next in the list but cannot be cleared, so the briefing must not name it.
+  it("names the prerequisite, not the step that is waiting on it",()=>{
+    // Everything up to the Fortree obstruction except the Devon Scope: the obstruction is later in the
+    // list, and the Scope is the step the run can actually take.
     const scope="DEVON_SCOPE_RECEIVED";
     const cut=REQUIRED_FRONTIER_MILESTONES.indexOf("FORTREE_GYM_OBSTRUCTION_CLEARED");
     expect(cut).toBeGreaterThan(0);
     const reached=REQUIRED_FRONTIER_MILESTONES.slice(0,cut).filter(id=>id!==scope);
     const target=at(...reached).target();
-    expect(target?.id).not.toBe("FORTREE_GYM_OBSTRUCTION_CLEARED");
+    expect(target?.id).toBe(scope);
     expect(target?.blockedBy).toEqual([]);
+  });
+
+  it("skips a blocked step and names the legal one after it",()=>{
+    // A plan that lists the gated step first: the scope is not in the plan, so it can never be cleared.
+    const target=targetIn(["FORTREE_GYM_OBSTRUCTION_CLEARED","STONE_BADGE"],new Set());
+    expect(target?.id).toBe("STONE_BADGE");
+    expect(target?.blockedBy).toEqual([]);
+  });
+
+  it("is not dragged forward by a milestone reached out of order",()=>{
+    // Recorded in d41e and 6bbd: SLATEPORT_HARBOR emitted before DYNAMO_BADGE, while its own gate
+    // (Magma Hideout) was open. The honour cannot move the mark, or Mauville disappears from the plan.
+    const dynamo=REQUIRED_FRONTIER_MILESTONES.indexOf("DYNAMO_BADGE");
+    const reached=new Set([...REQUIRED_FRONTIER_MILESTONES.slice(0,dynamo + 1).filter(id=>id!=="KNUCKLE_BADGE"),"SLATEPORT_HARBOR"]);
+    const target=at(...reached).target();
+    // Pinned to the step immediately after Dynamo: the old rule returned index 140 on this same input, so
+    // "somewhere after Dynamo" is not a test of the fix.
+    expect(target?.id).toBe(REQUIRED_FRONTIER_MILESTONES[dynamo + 1]);
+  });
+
+  it("is not stalled by the map visits a checkpoint start never saw",()=>{
+    // A save-state launch reports what is true at that moment, so LAVARIDGE_TOWN and friends are missing
+    // from the log. A badge reached that way is still earned: its map gates cannot testify either way.
+    // Cut after Lavaridge, not before it: the Heat Badge's only hard parent is a map visit, so this is the
+    // prefix where a checkpoint start and a full log disagree if the rule is wrong.
+    const complete=REQUIRED_FRONTIER_MILESTONES.indexOf("LAVARIDGE_GYM_COMPLETE");
+    expect(complete).toBeGreaterThan(REQUIRED_FRONTIER_MILESTONES.indexOf("LAVARIDGE_TOWN"));
+    const full=REQUIRED_FRONTIER_MILESTONES.slice(0,complete + 1);
+    const checkpoint=full.filter(id=>!LOCATION_ONLY_OBJECTIVES.has(id));
+    expect(checkpoint.length).toBeLessThan(full.length);
+    expect(full).toContain("LAVARIDGE_TOWN");
+    expect(checkpoint).not.toContain("LAVARIDGE_TOWN");
+    expect(at(...checkpoint).target()).toEqual(at(...full).target());
+    expect(at(...checkpoint).target()?.id).toBe("HEAT_BADGE");
   });
 
   it("names the blocked step with its blockers when nothing ahead is legal",()=>{
@@ -65,11 +99,13 @@ describe("the next objective a stall briefing may name",()=>{
     expect(target).toEqual({id:"INVENTED_STEP_V1",label:"invented step v1",blockedBy:[]});
   });
 
-  it("says nothing when a non-milestone event arrives, and says what a blocked step needs",()=>{
+  it("is unmoved by an event that is not a milestone",()=>{
     const target=new NextObjective();
     target.observe({type:"turn",turn:1,seq:1} as unknown as RunEvent);
-    const first=REQUIRED_FRONTIER_MILESTONES[0];
-    expect(target.target()?.id).toBe(first);
+    expect(target.target()?.id).toBe(REQUIRED_FRONTIER_MILESTONES[0]);
+  });
+
+  it("says what a blocked step needs when the fallback names one",()=>{
     expect(objectiveLine({id:"FORTREE_GYM_OBSTRUCTION_CLEARED",label:"Fortree gym obstruction cleared",blockedBy:["DEVON_SCOPE_RECEIVED"]}))
       .toMatch(/^- Next milestone: Fortree gym obstruction cleared \(FORTREE_GYM_OBSTRUCTION_CLEARED\); needs .+ first$/);
   });

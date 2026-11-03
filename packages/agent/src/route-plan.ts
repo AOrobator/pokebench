@@ -22,7 +22,7 @@ export const ROUTE_PLAN: readonly RouteStep[] = [
   {objective:"MT_CHIMNEY_STORY_COMPLETE",area:"Mt. Chimney",waypoint:"cable car, the grunts, then Maxie with a Guard Spec before the switch-in"},
   {objective:"LAVARIDGE_TOWN",area:"Lavaridge",waypoint:"the herb shop and Go-Goggles before the gym"},
   {objective:"HEAT_BADGE",area:"Lavaridge Gym",waypoint:"a straight line to Flannery, gym trainers skipped"},
-  {objective:"KNUCKLE_BADGE",area:"Dewford Gym",waypoint:"the deferred gym at level 28, no trainers on the way"},
+  {objective:"BRAWLY_DEFEATED",area:"Dewford Gym",waypoint:"the deferred gym at level 28, no trainers on the way; the Knuckle Badge follows the battle"},
   {objective:"BALANCE_BADGE",area:"Petalburg Gym",waypoint:"speed room, confusion room, strength room, then Norman"},
   {objective:"HM_SURF_RECEIVED",area:"Petalburg",waypoint:"HM03 from Wally's parents"},
   {objective:"DEVON_SCOPE_RECEIVED",area:"Fortree",waypoint:"run from the Kecleon and take the Devon Scope from Steven"},
@@ -60,7 +60,7 @@ export class RoutePlan {
   }
   completed():number {return this.reached.size;}
   next():RouteStep|null {return ROUTE_PLAN.find(step=>!this.reached.has(step.objective))??null;}
-  // "step 12 of 29 in Dewford Gym; next waypoint: … (KNUCKLE_BADGE); off-plan since turn 1552"
+  // "step 12 of 29 in Dewford Gym; next waypoint: … (BRAWLY_DEFEATED); off-plan since turn 1552"
   status():string|null {
     const step=this.next();
     if(step===null)return null;

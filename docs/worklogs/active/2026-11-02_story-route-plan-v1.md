@@ -56,3 +56,18 @@ the holes — because it holds an ordered waypoint list and executes it. That li
   badges that follow them, so they are steps in their own right rather than prose.
 - `KNUCKLE_BADGE` is index 59 of the milestone list and `DYNAMO_BADGE` 83: the list is evidence order, the
   plan is route order, and only the plan can say "the second badge comes fourth".
+
+### Merge of the objective-graph review fixes
+
+Merging `claude/objective-graph-v1` in pulled three review fixes that touched this branch:
+
+- One conflict, in `features.ts`: both branches appending a `guidance` entry. Resolved by keeping this
+  branch's `story-route-plan-v1` entry and the graph branch's corrected `objective-graph-supervisor-v1`
+  wording (the `needs …` fallback is defensive, not routine).
+- `KNUCKLE_BADGE` became a step the plan could not take: `BRAWLY_DEFEATED → KNUCKLE_BADGE` is a hard edge in
+  the merged graph, the badge is granted inside that trainer script, and INV-RP1 refuses a step whose gate the
+  plan never reaches. The Dewford step now names `BRAWLY_DEFEATED` and says the badge follows the battle; the
+  badge-order test still proves the deferral, by asserting that step sits after the Heat Badge and before
+  Norman.
+- Nothing else moved: `pnpm -r build` and `pnpm -r lint` clean, `packages/agent` **386 files / 5447 tests**,
+  `packages/viewer` **184 files / 2419 tests**.

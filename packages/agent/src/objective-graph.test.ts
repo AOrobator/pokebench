@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {OPTIONAL_PROGRESS_NAMES,PROGRESS_CATALOG} from "./story-progress.js";
 import {
@@ -18,6 +19,10 @@ const parents=(name:string,relation:"requires"|"expects"):string[]=>
 describe("objective graph topology",()=>{
   it("resolves every edge endpoint against the recorded ids",()=>{
     const known=new Set(OBJECTIVE_NODES);
+    // The design file claims it is generated, so a stale copy is a lie a reader would trust.
+    const design=JSON.parse(readFileSync(new URL("../../../docs/designs/objective-graph-v1.edges.json",import.meta.url),"utf8")) as {edges:{from:string;to:string;relation:string;evidence:string}[]};
+    expect(design.edges.map(edge=>[edge.from,edge.to,edge.relation,edge.evidence]))
+      .toEqual(OBJECTIVE_EDGES.map(edge=>[edge.from,edge.to,edge.relation,edge.evidence]));
     for(const edge of OBJECTIVE_EDGES){
       expect(known.has(edge.from),`unknown from ${edge.from}`).toBe(true);
       expect(known.has(edge.to),`unknown to ${edge.to}`).toBe(true);
@@ -56,22 +61,27 @@ describe("objective graph topology",()=>{
   it("cites a source file for every hard gate",()=>{
     for(const edge of OBJECTIVE_EDGES){
       expect(edge.evidence.trim().length,`${edge.from} -> ${edge.to}`).toBeGreaterThan(0);
-      if(edge.relation==="requires")expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/(data|docs|include|src)\//);
+      // A reader must be able to open the line, not just the directory.
+      if(edge.relation==="requires")expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/\.(c|inc|json|md):\d/);
     }
   });
 });
 
 describe("objective depth",()=>{
   it("counts a node only once its requires ancestors are reached",()=>{
+    // Knuckle hangs off Brawly's defeat script (DewfordTown_Gym/scripts.inc:144-151), not off the Devon
+    // goods chain: the badge flag alone is not enough.
     expect(objectiveDepth(at("KNUCKLE_BADGE"))).toBe(0);
-    expect(objectiveDepth(at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE"))).toBe(2);
+    expect(objectiveDepth(at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE"))).toBe(1);
+    expect(objectiveDepth(at("BRAWLY_DEFEATED","KNUCKLE_BADGE"))).toBe(2);
   });
 
   it("does not depend on the order badges arrived in",()=>{
     const record=at("LAVARIDGE_TOWN","HEAT_BADGE","HM_ROCK_SMASH_RECEIVED","DYNAMO_BADGE","DEVON_GOODS_RECOVERED","KNUCKLE_BADGE");
     const linear=at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE","HM_ROCK_SMASH_RECEIVED","DYNAMO_BADGE","LAVARIDGE_TOWN","HEAT_BADGE");
     expect(objectiveDepth(record)).toBe(objectiveDepth(linear));
-    expect(objectiveDepth(record)).toBe(6);
+    // Five of the six count: Knuckle's own gate (Brawly) is absent from both sets.
+    expect(objectiveDepth(record)).toBe(5);
   });
 
   it("never decreases as objectives are added",()=>{

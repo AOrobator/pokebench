@@ -36,7 +36,12 @@ describe("the route plan",()=>{
 
   it("defers the second badge past the third and fourth, which is the whole point",()=>{
     const badges=IDS.filter(id=>id.endsWith("_BADGE"));
-    expect(badges).toEqual(["STONE_BADGE","DYNAMO_BADGE","HEAT_BADGE","KNUCKLE_BADGE","BALANCE_BADGE","FEATHER_BADGE","MIND_BADGE","RAIN_BADGE"]);
+    expect(badges).toEqual(["STONE_BADGE","DYNAMO_BADGE","HEAT_BADGE","BALANCE_BADGE","FEATHER_BADGE","MIND_BADGE","RAIN_BADGE"]);
+    // The second badge is deferred past the third and fourth, and its step is Brawly's battle: the badge is
+    // granted by that trainer script, so a plan step naming the badge would need a step it never takes.
+    const order=ROUTE_PLAN.map(step=>step.objective);
+    expect(order.indexOf("BRAWLY_DEFEATED")).toBeGreaterThan(order.indexOf("HEAT_BADGE"));
+    expect(order.indexOf("BRAWLY_DEFEATED")).toBeLessThan(order.indexOf("BALANCE_BADGE"));
   });
 });
 

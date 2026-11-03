@@ -63,15 +63,19 @@ describe("objective graph topology",()=>{
 
 describe("objective depth",()=>{
   it("counts a node only once its requires ancestors are reached",()=>{
+    // Knuckle hangs off Brawly's defeat script (DewfordTown_Gym/scripts.inc:144-151), not off the Devon
+    // goods chain: the badge flag alone is not enough.
     expect(objectiveDepth(at("KNUCKLE_BADGE"))).toBe(0);
-    expect(objectiveDepth(at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE"))).toBe(2);
+    expect(objectiveDepth(at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE"))).toBe(1);
+    expect(objectiveDepth(at("BRAWLY_DEFEATED","KNUCKLE_BADGE"))).toBe(2);
   });
 
   it("does not depend on the order badges arrived in",()=>{
     const record=at("LAVARIDGE_TOWN","HEAT_BADGE","HM_ROCK_SMASH_RECEIVED","DYNAMO_BADGE","DEVON_GOODS_RECOVERED","KNUCKLE_BADGE");
     const linear=at("DEVON_GOODS_RECOVERED","KNUCKLE_BADGE","HM_ROCK_SMASH_RECEIVED","DYNAMO_BADGE","LAVARIDGE_TOWN","HEAT_BADGE");
     expect(objectiveDepth(record)).toBe(objectiveDepth(linear));
-    expect(objectiveDepth(record)).toBe(6);
+    // Five of the six count: Knuckle's own gate (Brawly) is absent from both sets.
+    expect(objectiveDepth(record)).toBe(5);
   });
 
   it("never decreases as objectives are added",()=>{

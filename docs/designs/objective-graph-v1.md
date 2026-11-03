@@ -159,28 +159,32 @@ retro-computable from recorded logs and is the cheapest falsification of the who
 
 ## 9. Corrections to the commentary note
 
-Two claims in `keepingiticy speedrun commentary (2026-11-02)` do not survive the scripts, and the
-switch should not encode them:
+Claims in `keepingiticy speedrun commentary (2026-11-02)` that do not survive the scripts, and the switch
+must not encode them:
 
-- **Sootopolis gym is gated on the Feather Badge, not on seven badges.** `FLAG_BADGE06_GET` at
-  `SootopolisCity_Gym_1F/scripts.inc:86`, and the refusal script is literally named
-  `GoGetFortreeBadge`.
+- **Sootopolis gym is not gated on the Feather Badge.** `SootopolisCity_Gym_1F/scripts.inc:80-86` gives the
+  Rain Badge on beating Juan; the `FLAG_BADGE06_GET` branch there runs when the trainer is *talked to
+  again*, and sends the player to Fortree after the badge is already in hand. The sixth badge is
+  skippable, and the badge that notices is the league door, not the gym.
 - **Waterfall is granted by Wallace before Juan, not after him.** `SootopolisCity/scripts.inc:1252-1261`
   gives HM07 once `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` is set, and the same NPC then steps aside for the
   gym. Waterfall gates Ever Grande and Victory Road; it does not gate the Rain Badge.
-
-- **Field moves are badge-gated, not just item-gated.** `field_move_scripts.inc` refuses Rock Smash
-  without badge three (`:62`) and Strength without badge four (`:124`), while Cut needs badge one (`:4`)
-  and Surf, Dive and Waterfall need nothing but their HM. So "Rock Smash gates Route 111" is two edges,
-  and the HM06 in the bag changes nothing until Dynamo.
+- **Field moves are badge-gated, in two different places.** `data/scripts/field_move_scripts.inc` refuses
+  Rock Smash without badge three (`:62`) and Strength without badge four (`:124`); Cut needs badge one
+  (`:4`). The field-control path is separate and stricter: `src/field_control_avatar.c:450` refuses Surf
+  without `FLAG_BADGE05_GET`, `:465` and `:475` refuse Dive without `FLAG_BADGE07_GET`, and `:455` refuses
+  Waterfall without `FLAG_BADGE08_GET`. Reading only the script path is how the first draft concluded Surf,
+  Dive and Waterfall needed nothing but their HMs; a review caught it.
+- **The Rain Badge is mechanically required after all.** The Ever Grande climb is a Waterfall use, so
+  badge eight gates it (`:455`), and badge five gates the Surf that gets a run to Ever Grande in the first
+  place. The design question this document opened — whether the last two badges are optional — is
+  answered: badge eight is required, badge six is not, and badge seven is required to reach Sootopolis.
 - **The league door checks one badge.** `EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63` guards on
   `FLAG_BADGE06_GET` only, and the source comment says why: Winona's badge is the only one that can be
-  skipped. Which raises the open question — nothing read so far forces badges seven and eight, so either
-  an unread script does, or the Rain Badge is mechanically optional and the frontier has been ranking a
-  badge the game does not require. That is a distinction a linear index cannot even express, and a
-  partial order can.
+  skipped. That is still true, and it is what makes the sixth badge the interesting one: skipping it costs
+  a gym and buys a detour, and nothing else notices until the door.
 
-All four are cheap mistakes to inherit: two came from a summary, two from my own recall in review.
+These are cheap mistakes to inherit: three came from a summary, one from reading the scripted field-move path and calling it the whole gate. Every edge in the module now cites a `file:line` a reader can check.
 
 ## 10. Non-goals
 

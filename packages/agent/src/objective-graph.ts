@@ -39,7 +39,7 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
   {from:"SPACE_CENTER_STORY_COMPLETE",to:"HM_DIVE_RECEIVED",relation:"requires",
     evidence:"data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:288 sets VAR_STEVENS_HOUSE_STATE=1; StevensHouse/scripts.inc:24-26 gives Dive"},
   {from:"HM_DIVE_RECEIVED",to:"SOOTOPOLIS_CITY",relation:"requires",
-    evidence:"data/maps/Route128/map.json connection MAP_UNDERWATER_ROUTE128 type dive; Underwater_SootopolisCity warps into the city"},
+    evidence:"src/field_control_avatar.c:465 refuses Dive without FLAG_BADGE07_GET; the city is only reachable by surfacing from Underwater_SootopolisCity"},
   {from:"FEATHER_BADGE",to:"RAIN_BADGE",relation:"expects",
     evidence:"data/maps/SootopolisCity_Gym_1F/scripts.inc:80-86 gives the Rain Badge on beating Juan; the FLAG_BADGE06_GET branch there is the re-talk reminder, so the sixth badge is skipped, not required"},
   {from:"SOOTOPOLIS_CRISIS_RESOLVED",to:"HM_WATERFALL_RECEIVED",relation:"requires",
@@ -49,7 +49,7 @@ export const OBJECTIVE_EDGES: readonly ObjectiveEdge[]=[
   {from:"DEVON_GOODS_RECOVERED",to:"DEWFORD_TOWN",relation:"requires",
     evidence:"data/maps/RusturfTunnel/scripts.inc:322-324 sets VAR_BRINEY_HOUSE_STATE=1 with the goods flag; Route104_MrBrineysHouse/scripts.inc:7 seats Briney only in that state"},
   {from:"HM_STRENGTH_RECEIVED",to:"MAGMA_HIDEOUT",relation:"requires",
-    evidence:"data/maps/MagmaHideout_1F/map.json carries three OBJ_EVENT_GFX_PUSHABLE_BOULDER"},
+    evidence:"data/maps/MagmaHideout_1F/map.json:57,70,83 - the three OBJ_EVENT_GFX_PUSHABLE_BOULDER boulders that only Strength moves"},
   {from:"MAGMA_EMBLEM_RECEIVED",to:"MAGMA_HIDEOUT",relation:"requires",
     evidence:"data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM opens the hideout entrance"},
   {from:"DYNAMO_BADGE",to:"HM_STRENGTH_RECEIVED",relation:"requires",
@@ -107,12 +107,9 @@ const link=(index:Map<string,string[]>,from:string,to:string):void=>{
   if(parents===undefined)index.set(to,[from]);
   else if(!parents.includes(from))parents.push(from);
 };
-// A location-only parent is a place, not a gate. It still ranks (the edge stays in OBJECTIVE_EDGES), but it
-// never decides what a run has earned, how deep it is, or what blocks it: a save-state start cannot report
-// the visits before it, and the flag behind the visit proves it anyway.
-// The plan index keeps every edge, so a chain that runs through a place stays connected; the earning index
-// drops location-only parents, because a save-state start cannot report the visits before it and the flag
-// behind the visit proves it anyway.
+// A location-only parent is a place, not a gate: a save-state start cannot report the visits before it, and
+// the flag behind the visit proves it anyway, so it never decides what a run has earned, how deep it is, or
+// what blocks it. The plan index keeps every edge so a chain that runs through a place stays connected.
 for(const edge of OBJECTIVE_EDGES){
   link(planParents,edge.from,edge.to);
   if(edge.relation==="requires"&&!LOCATION_ONLY_OBJECTIVES.has(edge.from))link(requiresParents,edge.from,edge.to);

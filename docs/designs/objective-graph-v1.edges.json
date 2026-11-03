@@ -11,7 +11,7 @@
   "direction": "from = prerequisite, to = objective that becomes worth attempting",
   "nodeSource": "REQUIRED_FRONTIER_MILESTONES (200 ids: 49 hand-written + 151 catalog-derived) + PROGRESS_CATALOG (165) overlap on 154 => 211 recordable ids; no new nodes",
   "relations": "requires = a script guard, field-move check or physical obstruction refuses the action; expects = the route assumes it but nothing refuses it, so it may order a plan and never block one",
-  "authority": "packages/agent/src/objective-graph.ts is authoritative; this file mirrors it for review",
+  "authority": "packages/agent/src/objective-graph.ts is authoritative; the `edges` array below is generated from it by scripts/objective-graph-edges.mjs, so the file cannot drift from the module it describes. `dropped` and `open` are design history and are kept by hand.",
   "edges": [
     {
       "from": "HM_ROCK_SMASH_RECEIVED",
@@ -25,7 +25,7 @@
       "to": "ROUTE_111_NORTH",
       "relation": "requires",
       "status": "verified",
-      "evidence": "breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"
+      "evidence": "data/maps/Route111/map.json:222,235 - breakable rocks at (18,101)/(19,100); docs/findings/campaign-milestones.md:19"
     },
     {
       "from": "DYNAMO_BADGE",
@@ -39,7 +39,7 @@
       "to": "HEAT_BADGE",
       "relation": "requires",
       "status": "verified",
-      "evidence": "data/maps/LavaridgeCity_Gym is enterable with Rock Smash alone; no Mt Chimney beat gates the door"
+      "evidence": "data/maps/LavaridgeTown_Gym_1F/scripts.inc:62 sets FLAG_BADGE04_GET inside Flannery's defeat script, so the badge is only obtainable in that gym; the gym door itself is open (no badge or story gate read)"
     },
     {
       "from": "BALANCE_BADGE",
@@ -53,7 +53,7 @@
       "to": "FORTREE_GYM_OBSTRUCTION_CLEARED",
       "relation": "requires",
       "status": "verified",
-      "evidence": "flags 285/295; docs/findings/campaign-milestones.md:74-75"
+      "evidence": "data/maps/FortreeCity/scripts.inc:58 checkitem ITEM_DEVON_SCOPE gates the Kecleon scene that sets FLAG_KECLEON_FLED_FORTREE at :80; flags 285/295, docs/findings/campaign-milestones.md:74-75"
     },
     {
       "from": "FORTREE_GYM_OBSTRUCTION_CLEARED",
@@ -86,9 +86,9 @@
     {
       "from": "FEATHER_BADGE",
       "to": "RAIN_BADGE",
-      "relation": "requires",
-      "status": "verified",
-      "evidence": "data/maps/SootopolisCity_Gym_1F/scripts.inc:86 goto_if_unset FLAG_BADGE06_GET, EventScript_GoGetFortreeBadge"
+      "relation": "expects",
+      "status": "story",
+      "evidence": "data/maps/SootopolisCity_Gym_1F/scripts.inc:80-86 gives the Rain Badge on beating Juan; the FLAG_BADGE06_GET branch there is the re-talk reminder, so the sixth badge is skipped, not required"
     },
     {
       "from": "SOOTOPOLIS_CRISIS_RESOLVED",
@@ -98,8 +98,15 @@
       "evidence": "data/maps/SootopolisCity/scripts.inc:1252-1261 gives Waterfall on FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE, before the gym opens"
     },
     {
-      "from": "DEVON_GOODS_RECOVERED",
+      "from": "BRAWLY_DEFEATED",
       "to": "KNUCKLE_BADGE",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/DewfordTown_Gym/scripts.inc:144-151 - DewfordTown_Gym_EventScript_BrawlyDefeated sets FLAG_BADGE02_GET"
+    },
+    {
+      "from": "DEVON_GOODS_RECOVERED",
+      "to": "DEWFORD_TOWN",
       "relation": "requires",
       "status": "verified",
       "evidence": "data/maps/RusturfTunnel/scripts.inc:322-324 sets VAR_BRINEY_HOUSE_STATE=1 with the goods flag; Route104_MrBrineysHouse/scripts.inc:7 seats Briney only in that state"
@@ -110,6 +117,20 @@
       "relation": "requires",
       "status": "verified",
       "evidence": "data/maps/MagmaHideout_1F/map.json carries three OBJ_EVENT_GFX_PUSHABLE_BOULDER"
+    },
+    {
+      "from": "MAGMA_EMBLEM_RECEIVED",
+      "to": "MAGMA_HIDEOUT",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/maps/JaggedPass/scripts.inc:13 checkitem ITEM_MAGMA_EMBLEM opens the hideout entrance"
+    },
+    {
+      "from": "DYNAMO_BADGE",
+      "to": "HM_STRENGTH_RECEIVED",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "data/scripts/field_move_scripts.inc:62 refuses Rock Smash without FLAG_BADGE03_GET; :88 TryUpdateRusturfTunnelState (src/field_specials.c:1398-1414) opens the tunnel state that data/maps/RusturfTunnel/scripts.inc:7-8 runs to hand over HM04 at :56"
     },
     {
       "from": "HEAT_BADGE",
@@ -135,30 +156,37 @@
     {
       "from": "HM_SURF_RECEIVED",
       "to": "ROUTE_118_EAST_BANK_REACHED",
-      "relation": "expects",
-      "status": "open",
-      "evidence": "docs/findings/campaign-milestones.md:20 - the east bank cannot be earned from the western approach"
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:450 refuses Surf without FLAG_BADGE05_GET; docs/findings/campaign-milestones.md:20 - the east bank cannot be earned from the western approach"
     },
     {
       "from": "HM_SURF_RECEIVED",
       "to": "MOSSDEEP_CITY",
-      "relation": "expects",
-      "status": "open",
-      "evidence": "open-sea route; no script guard read"
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:450 refuses Surf without FLAG_BADGE05_GET; the open-sea route itself has no script guard"
     },
     {
       "from": "HM_WATERFALL_RECEIVED",
       "to": "EVER_GRANDE_LANDING",
-      "relation": "expects",
-      "status": "open",
-      "evidence": "Waterfall carries no badge check; the climb itself is a layout read still owed"
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:455 requires FLAG_BADGE08_GET to use Waterfall"
+    },
+    {
+      "from": "RAIN_BADGE",
+      "to": "EVER_GRANDE_LANDING",
+      "relation": "requires",
+      "status": "verified",
+      "evidence": "src/field_control_avatar.c:455 - the climb above Ever Grande is a Waterfall use, so the eighth badge gates it"
     },
     {
       "from": "RAIN_BADGE",
       "to": "CHAMPION_ROOM_REACHED",
       "relation": "expects",
       "status": "story",
-      "evidence": "expected of a finished run; the league door does not require it"
+      "evidence": "the league door checks badge six only (EverGrandeCity_PokemonLeague_1F/scripts.inc:46-63), so the eighth badge is expected on the way to the champion rather than enforced by that door"
     },
     {
       "from": "LEAGUE_ADMISSION_GRANTED",

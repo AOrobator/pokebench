@@ -108,6 +108,10 @@ edges, and `C` the non-optional campaign ids.
 - **Remaining** `= |{ v ∈ ancestors(GAME_CLEAR) ∪ {GAME_CLEAR} : v ∉ R, non-optional }|`, over
   `requires ∪ expects`. Counting the closure rather than a shortest path matters: a cleared game needs every
   branch the graph records, and a path metric would silently drop the siblings.
+  **A known gap:** three location-only nodes sit inside that closure — `ELITE_FOUR_CHALLENGE_ENTERED`,
+  `CHAMPION_ROOM_REACHED`, `HALL_OF_FAME_ENTERED` — and a save-state start inside the league would never
+  report them, so `remaining` would stay above zero after the game was cleared. No league checkpoint exists
+  today; if one is ever taken, those three must be earned by their flags rather than their visits.
   **What it is not:** a dependency model of the whole game. The edges were collected to rank a plan, not to
   enumerate a playthrough, so the closure of `GAME_CLEAR_CONFIRMED` is 14 nodes — the league sequence plus
   the gates recorded in front of it — and not "everything left". It agrees with a reader's intuition only in

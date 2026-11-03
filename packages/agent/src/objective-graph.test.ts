@@ -56,7 +56,8 @@ describe("objective graph topology",()=>{
   it("cites a source file for every hard gate",()=>{
     for(const edge of OBJECTIVE_EDGES){
       expect(edge.evidence.trim().length,`${edge.from} -> ${edge.to}`).toBeGreaterThan(0);
-      if(edge.relation==="requires")expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/(data|docs|include|src)\//);
+      // A reader must be able to open the line, not just the directory.
+      if(edge.relation==="requires")expect(edge.evidence,`${edge.from} -> ${edge.to}`).toMatch(/\.(c|inc|json|md):\d/);
     }
   });
 });

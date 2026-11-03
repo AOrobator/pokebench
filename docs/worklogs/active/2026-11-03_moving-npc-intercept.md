@@ -99,7 +99,7 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - `MAX_FRAMES` 480 → 240: one 12-tile lap is 192 frames, and the recorded `button_press.hold_frames` schema caps at 255.
 - "blocked" now counts every stepping frame: a refused step walks in place and keeps the player "moving", so the old idle count never fired.
 - [x] RED: watch cases (exact loop edges with no input, still/jump, lost control/target/map/budget, shared admission)
-- [ ] COMMIT: `test(env): require a no-input patrol watch` (RED)
+- [x] COMMIT: `test(env): require a no-input patrol watch` (RED) `cac33db0b`
 - [ ] COMMIT: `feat(env): patrol watch for the intercept` (GREEN)
 
 **M2 — Agent intercept in `followObject`, registry, prompt, recipe**

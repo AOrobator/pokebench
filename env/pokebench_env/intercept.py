@@ -20,12 +20,22 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pokebench_env.action_history import FrameEmulator
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, read_local_map
-from pokebench_env.running import OBJECT_EVENTS, PLAYER_AVATAR, SAVE1, read_running_permission
+from pokebench_env.running import (
+    OBJECT_EVENTS,
+    PLAYER_AVATAR,
+    SAVE1,
+    RunningPermission,
+    read_running_permission,
+)
 from pokebench_env.world_context import read_world_context, rom_pointer
 
 PREFIX = "@POKEBENCH_INTERCEPT:"
-MAX_FRAMES = 480
-# A blocked step leaves the player on the wait tile; give up after this many idle frames.
+# About one lap of a 12-tile walk at 16 frames a step, and within the recorded
+# button_press hold_frames bound (255).
+MAX_FRAMES = 240
+# A watched target that has not taken a step for this long is not walking a path.
+STILL_FRAMES = 48
+# A refused step leaves the player on the wait tile; give up after this many frames.
 BLOCKED_FRAMES = 24
 TALL_GRASS = 0x02
 DELTAS = {(0, -1): "UP", (0, 1): "DOWN", (-1, 0): "LEFT", (1, 0): "RIGHT"}
@@ -79,6 +89,21 @@ class InterceptRequest(BaseModel):
         return self
 
 
+class WatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
+    map_id: list[int] = Field(min_length=2, max_length=2)
+    target_local_id: int = Field(ge=1, le=255)
+    target_slot: int = Field(ge=0, le=15)
+    max_frames: int = Field(ge=1, le=MAX_FRAMES)
+
+    @model_validator(mode="after")
+    def identity(self) -> "WatchRequest":
+        if any(not 0 <= v <= 255 for v in self.map_id):
+            raise ValueError("invalid map identity")
+        return self
+
+
 class QueuedIntercept(Protocol):
     action_queue: list[dict[str, object]]
     action_frames_remaining: int
@@ -100,6 +125,32 @@ class Intercept:
             **self.request.model_dump(),
             "frames": self.frames,
             "phase": self.phase,
+            "reason": self.reason,
+            "stopped": self.stopped,
+        }
+
+
+@dataclass
+class Watch:
+    """No-input observation of the target's one-tile steps, read every frame."""
+
+    request: WatchRequest
+    frames: int = 0
+    still: int = 0
+    last: tuple[int, int] | None = None
+    edges: list[tuple[tuple[int, int], tuple[int, int]]] | None = None
+    phase: str = "queued"
+    reason: str = "queued"
+    stopped: bool = False
+
+    def receipt(self) -> dict[str, object]:
+        return {
+            **self.request.model_dump(),
+            "edges": [
+                {"from": {"x": a[0], "y": a[1]}, "to": {"x": b[0], "y": b[1]}}
+                for a, b in self.edges or []
+            ],
+            "frames": self.frames,
             "reason": self.reason,
             "stopped": self.stopped,
         }
@@ -162,15 +213,71 @@ def install_intercept(
     api: FastAPI, emulator: type[FrameEmulator], server: QueuedIntercept, read: ReadMemory
 ) -> None:
     inner = emulator.run_frame_with_buttons
-    retained: OrderedDict[str, Intercept] = OrderedDict()
+    retained: OrderedDict[str, Intercept | Watch] = OrderedDict()
     admission = Lock()
-    active: Intercept | None = None
+    active: Intercept | Watch | None = None
 
-    def stop(s: Intercept, reason: str) -> list[str]:
+    def stop(s: Intercept | Watch, reason: str) -> list[str]:
         s.reason, s.stopped = reason, True
         if server.current_action == PREFIX + s.request.id:
             server.action_frames_remaining = min(server.action_frames_remaining, 1)
         return []
+
+    def field(
+        s: Intercept | Watch,
+    ) -> tuple[RunningPermission, int, int, list[bytes], bytes] | str:
+        """Shared per-frame validation: the reason to stop, or what the frame needs."""
+        r = s.request
+        native = read_running_permission(read)
+        save = int.from_bytes(read(SAVE1, 4), "little")
+        if not 0x02000000 <= save <= 0x02040000 - 0x159C:
+            return "native validation unavailable"
+        if list(read(save + 4, 2)) != r.map_id:
+            return "map changed"
+        if native.controllable is None or native.reason in UNAVAILABLE:
+            return "field input unavailable"
+        index = read(PLAYER_AVATAR + 5, 1)[0]
+        bodies = _objects(read)
+        if index >= 16 or not bodies[index][0] & 1 or not bodies[index][2] & 1:
+            return "native validation unavailable"
+        target = bodies[r.target_slot]
+        if (
+            not target[0] & 1
+            or target[2] & 1
+            or target[8] != r.target_local_id
+            or [target[10], target[9]] != r.map_id
+        ):
+            return "target left"
+        return native, save, index, bodies, target
+
+    def observe(s: Watch) -> list[str]:
+        s.frames += 1
+        if s.frames > s.request.max_frames:
+            return stop(s, "frame budget")
+        try:
+            checked = field(s)
+            if isinstance(checked, str):
+                return stop(s, checked)
+            s.phase = "watching"
+            here = _coords(checked[4], 0x10)
+            if s.edges is None:
+                s.edges = []
+            if s.last is not None and here != s.last:
+                if (here[0] - s.last[0], here[1] - s.last[1]) not in DELTAS:
+                    return stop(s, "target jumped")
+                edge = (s.last, here)
+                if edge in s.edges:
+                    return stop(s, "loop closed")
+                s.edges.append(edge)
+                s.still = 0
+            else:
+                s.still += 1
+                if s.still > STILL_FRAMES:
+                    return stop(s, "target still")
+            s.last = here
+            return []
+        except (ValueError, OSError, IndexError, KeyError, struct.error):
+            return stop(s, "native validation unavailable")
 
     def advance(s: Intercept) -> list[str]:
         s.frames += 1
@@ -178,28 +285,12 @@ def install_intercept(
             return stop(s, "frame budget")
         try:
             r = s.request
-            native = read_running_permission(read)
-            save = int.from_bytes(read(SAVE1, 4), "little")
-            if not 0x02000000 <= save <= 0x02040000 - 0x159C:
-                return stop(s, "native validation unavailable")
-            if list(read(save + 4, 2)) != r.map_id:
-                return stop(s, "map changed")
-            if native.controllable is None or native.reason in UNAVAILABLE:
-                return stop(s, "field input unavailable")
-            index = read(PLAYER_AVATAR + 5, 1)[0]
-            bodies = _objects(read)
-            if index >= 16 or not bodies[index][0] & 1 or not bodies[index][2] & 1:
-                return stop(s, "native validation unavailable")
+            checked = field(s)
+            if isinstance(checked, str):
+                return stop(s, checked)
+            native, save, index, bodies, target = checked
             player = bodies[index]
             position = _coords(player, 0x10)
-            target = bodies[r.target_slot]
-            if (
-                not target[0] & 1
-                or target[2] & 1
-                or target[8] != r.target_local_id
-                or [target[10], target[9]] != r.map_id
-            ):
-                return stop(s, "target left")
             direction = DELTAS[_delta(r.wait, r.enter)]
             if position == r.enter.pair():
                 if _moving(player):
@@ -209,8 +300,9 @@ def install_intercept(
             if position != r.wait.pair():
                 return stop(s, "left the wait tile")
             if s.phase == "stepping":
-                if _moving(player):
-                    return [direction]
+                # The game moves currentCoords when a step starts, so still standing on
+                # the wait tile this long means the step was refused (a collision walks
+                # in place and keeps the player "moving").
                 s.idle += 1
                 if s.idle > BLOCKED_FRAMES:
                     return stop(s, "blocked")
@@ -245,7 +337,12 @@ def install_intercept(
             s = retained.get(buttons[0][len(PREFIX) :])
             if s is None:
                 raise ValueError("unrecognized private intercept")
-            inner(self, [] if s.stopped else advance(s))
+            if s.stopped:
+                inner(self, [])
+            elif isinstance(s, Watch):
+                inner(self, observe(s))
+            else:
+                inner(self, advance(s))
         else:
             if active is not None and not active.stopped and active.phase != "queued":
                 stop(active, "queue interrupted")
@@ -253,11 +350,10 @@ def install_intercept(
 
     emulator.run_frame_with_buttons = step
 
-    @api.post("/pokebench/intercept")
-    def submit(body: InterceptRequest) -> dict[str, object]:
+    def admit(s: Intercept | Watch) -> dict[str, object]:
         nonlocal active
         with admission:
-            if body.id in retained:
+            if s.request.id in retained:
                 raise HTTPException(409, "duplicate intercept id")
             if (
                 server.action_queue
@@ -267,19 +363,27 @@ def install_intercept(
                 or (active is not None and not active.stopped)
             ):
                 raise HTTPException(409, "game input queue busy")
-            active = Intercept(body)
-            retained[body.id] = active
+            active = s
+            retained[s.request.id] = s
             while len(retained) > 64:
                 retained.popitem(last=False)
             server.action_queue.append(
                 {
-                    "button": PREFIX + body.id,
+                    "button": PREFIX + s.request.id,
                     "speed": "fast",
-                    "hold_frames": body.max_frames + 1,
+                    "hold_frames": s.request.max_frames + 1,
                     "release_frames": 8,
                 }
             )
         return {"status": "success", "actions_added": 1}
+
+    @api.post("/pokebench/intercept")
+    def submit(body: InterceptRequest) -> dict[str, object]:
+        return admit(Intercept(body))
+
+    @api.post("/pokebench/intercept/watch")
+    def submit_watch(body: WatchRequest) -> dict[str, object]:
+        return admit(Watch(body))
 
     @api.get("/pokebench/intercept/{identity}")
     def receipt(identity: str) -> dict[str, object]:

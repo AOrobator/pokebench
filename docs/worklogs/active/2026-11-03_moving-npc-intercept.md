@@ -111,9 +111,9 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - [x] COMMIT: `feat(agent): step into a walking person's path to talk (moving-npc-intercept-v1)` (GREEN) `e5802a693`
 
 **M3 — Emulator rehearsal (proof at the surface)**
-- [ ] Run coordination check; CPU only, no GPU lanes, no live run touched
-- [ ] Boot `runs/2026-10-25T10-50-57_gpt-6-astra_429f/checkpoints/DEVON_PRESIDENT_SCENE_COMPLETE.state` in an isolated `runs/<id>/` server. Walk to the cottage with plain inputs, save a cottage state for reuse, then call `navigate_to_target` on object 1 with the switch ON.
-- [ ] Pass bar: BRINEY's sail prompt opens within one tool call, from at least 3 different entry phases (enter at different ring offsets). Record frames and receipts. OFF control at the same entry reproduces the attempt-limit return.
+- [x] CPU only on 127.0.0.1:8183, no GPU lane, no model; live run on 8075 untouched
+- [x] Boot `runs/2026-10-25T10-50-57_gpt-6-astra_429f/checkpoints/DEVON_PRESIDENT_SCENE_COMPLETE.state` in an isolated `runs/<id>/` server. Walk to the cottage with plain inputs, save a cottage state for reuse, then call `navigate_to_target` on object 1 with the switch ON.
+- [x] PASS. ON: 4/4 trials opened BRINEY's sail prompt in one call (36.4, 36.9, 32.3 s from the door at three phases; 30.4 s from (9,7), which stepped in at (9,6) as he reached (9,5)). OFF control from the same door state: 0/2 (53.7 s "stride geometry or native input changed before action"; 73.1 s "moving target attempt limit reached"). Driver log `runs/rehearsal-intercept-20261103/driver.jsonl` with frames. Server stopped after the trials. Pass bar was: BRINEY's sail prompt opens within one tool call, from at least 3 different entry phases (enter at different ring offsets). Record frames and receipts. OFF control at the same entry reproduces the attempt-limit return.
 - Tagged as a manual probe so summaries exclude it.
 
 **M4 — Full gates, review, landing**

@@ -1,7 +1,7 @@
 # Moving-NPC intercept: step into a patrol path and talk
 
 **Started:** 2026-11-03
-**Status:** Approved 2026-11-03 (the operator: "u can code when the worklog is written"); M1 in progress
+**Status:** Landed on main `12b5972a1` 2026-11-03 ~01:20 NY. Post-merge `just test` on main is pending a CPU window. Not activated in a viewer refresh or a launch.
 **Branch:** `claude/moving-npc-intercept` (worktree `/private/tmp/pb-moving-npc-intercept`, from main `ce6f83fc4`)
 **Switch:** `moving-npc-intercept-v1` (registry default OFF; `onInBoth` in `experiments/feature-configs/current.json`, the operator 2026-11-03: "go, this should be on in both arms")
 
@@ -120,7 +120,7 @@ One new loopback-only FastAPI route on the existing game server (127.0.0.1). Str
 - [ ] Principles self-review PB1–PB13 zero FAIL
 - [ ] CPU START via `just tell-claude`; `just lint`, `just test` (coverage ≥90 lines/branches/functions), `just verify-vendor`, `just trainer-card-check`; CPU RELEASE
 - [ ] Claude, Grok and GPT/Codex review lanes `VERDICT: LGTM` on the frozen packet (no local inference reviewers)
-- [ ] `just land-join`, FF-only merge while number 1, evidence commit, `just land-done`; report merge SHA
+- [x] `just land-join` (number 1 at 01:17 NY), FF-only merge of `12b5972a1` into main (from `d535a4d6f`), evidence commit, `just land-done`
 - [ ] Activation: `just viewer-main` only when the operator asks for it, or before a fixed-run launch check from the newer pin. No launch here. Live runs keep their pins.
 
 ## Closing the Loop

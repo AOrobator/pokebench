@@ -528,7 +528,7 @@ def render_observation(
                         ),
                     ),
                     (
-                        "--",
+                        "-",
                         any(
                             ox <= x < ox + observation.width
                             and oy - 1 <= y < oy + observation.height

@@ -236,7 +236,7 @@ def test_gate_map_draws_arms_on_edges_and_names_them_by_the_tiles_they_separate(
         "east arm between (2,0) and (2,1), between (3,0) and (3,1); "
         "south arm between (1,1) and (2,1)"
     ) in text
-    assert "| and -- between cells are gate arms" in text
+    assert "| and - between cells are gate arms" in text
     assert "not walls" in text
     assert "Element legend" not in text and "R:a" not in text and "orientation" not in text
 
@@ -266,11 +266,11 @@ def test_gate_map_key_names_only_the_gate_glyphs_this_view_draws():
     pivot, north_south = GATE[0], GATE[3]
     shown = gate_view()
     both = render_observation(shown, build_observation(shown, (12, 1), GATE), gate_lines=True)
-    assert "| and -- between cells are gate arms" in both and "* is a gate's pivot" in both
+    assert "| and - between cells are gate arms" in both and "* is a gate's pivot" in both
     arm = render_observation(
         shown, build_observation(shown, (12, 1), (north_south,)), gate_lines=True
     )
-    assert "| between cells are gate arms" in arm and "--" not in arm.split("Base glyph")[1]
+    assert "| between cells are gate arms" in arm and " - " not in arm.split("Base glyph")[1]
     assert "* is" not in arm
     alone = render_observation(shown, build_observation(shown, (12, 1), (pivot,)), gate_lines=True)
     assert "between cells are gate arms" not in alone and "* is a gate's pivot" in alone

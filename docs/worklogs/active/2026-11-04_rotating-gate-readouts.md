@@ -59,3 +59,4 @@ Round 1, packet c046cc642..3b3b7cdf3, diff SHA-256 858ce7cde3a29b2a9c75f15c6ce1c
 Round 2, fix delta 3b3b7cdf3..09ba77d78, diff SHA-256 708fc389b21cb39ea1edeb6088311488f2823b0901335df997256cb434e29bd7: Claude CLI LGTM, GPT LGTM, fallback subagent LGTM. Grok unavailable (Cursor usage limit). Follow-ups: table-driven view-edge test for the key bounds; the key's `--` is a single `-` at compact width.
 
 Before landing: `just test` and `just lint` at the final head. After landing: combined `just test` on main, then `just viewer-main` before any launch from this pin.
+- Key now says `-` (the glyph the grid repeats), per the coordinator; delta re-reviewed below.

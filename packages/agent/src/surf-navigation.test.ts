@@ -19,7 +19,11 @@ const row=(overrides:Readonly<Record<number,Cell>>={},length=8,y=0)=>Array.from(
 const native={shoes:true,allow_running:true,metatile:21,elevation:1,map_type:3,callback1:1,callback2:1,diagnostic:null,raw_hex:null};
 const SURF={running:{...native,permitted:false,controllable:true,reason:"not_on_foot",avatar_flags:8}} as const;
 const FOOT={running:{...native,permitted:true,controllable:true,reason:"permitted",avatar_flags:1}} as const;
-const field=(x:number,surfing:boolean,tiles=row(),extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,map_id:[0,33],position:{x,y:0},facing:"right",navigation_grid:{elevation:surfing?1:3,tiles,objects:[],warps:[]},...(surfing?SURF:FOOT),surf_gate:{can_surf:true,balance_badge:true,party_surf:true,surfing,warps:[],connections:[]},...extra} as GameStateSnapshot);
+const field=(x:number,surfing:boolean,tiles=row(),extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,map_id:[0,33],position:{x,y:0},facing:"right",navigation_grid:{elevation:surfing?1:3,tiles,objects:[],warps:[]},...(surfing?SURF:FOOT),surf_gate:{can_surf:true,balance_badge:true,party_surf:true,surfing,warps:[],connections:[]},...extra});
+const grid=(state:GameStateSnapshot,change:{objects?:{x:number;y:number;elevation:number}[];warps?:{x:number;y:number}[]}):GameStateSnapshot=>{
+ const current=state.navigation_grid;if(current==null)throw new Error("no grid");
+ return {...state,navigation_grid:{...current,...change}};
+};
 const ON:NavigationOptions={mode:"local",floor:true,elevation:"game",surf:true};
 const OFF:NavigationOptions={mode:"local",floor:true,elevation:"game"};
 
@@ -42,9 +46,9 @@ describe("planner",()=>{
  it("cannot land where an object stands at elevation 3, and a swimmer on water blocks",()=>{
   const objects=[{x:6,y:0,elevation:3}];
   const s=field(5,true);
-  expect(planNavigation({...s,navigation_grid:{...s.navigation_grid!,objects}},{x:7,y:0},{...ON,actorElevation:true})).toBeNull();
+  expect(planNavigation(grid(s,{objects}),{x:7,y:0},{...ON,actorElevation:true})).toBeNull();
   const w=field(2,true);
-  expect(planNavigation({...w,navigation_grid:{...w.navigation_grid!,objects:[{x:4,y:0,elevation:1}]}},{x:5,y:0},{...ON,actorElevation:true})).toBeNull();
+  expect(planNavigation(grid(w,{objects:[{x:4,y:0,elevation:1}]}),{x:5,y:0},{...ON,actorElevation:true})).toBeNull();
  });
  it("after landing the route cannot re-enter water",()=>{
   const tiles=row({6:{},7:{behavior:POND,elevation:1}},9);
@@ -52,7 +56,7 @@ describe("planner",()=>{
  });
  it("enters a water door only as the goal",()=>{
   const tiles=row({4:{behavior:WATER_DOOR}});
-  const s=field(3,true,tiles);const warped={...s,navigation_grid:{...s.navigation_grid!,warps:[{x:4,y:0}]}};
+  const s=field(3,true,tiles);const warped=grid(s,{warps:[{x:4,y:0}]});
   expect(planNavigation(warped,{x:4,y:0},ON)).toEqual(["RIGHT"]);
   expect(planNavigation(warped,{x:5,y:0},ON)).toBeNull();
  });
@@ -86,7 +90,7 @@ describe("forced water",()=>{
   const s={...field(2,true),field_obstacles:{capabilities:{},obstacles:[obstacle]}} as unknown as GameStateSnapshot;
   expect(gatedState(s).navigation_grid?.objects).toEqual([{x:3,y:0}]);
   expect(gatedState(s,true).navigation_grid?.objects).toEqual([]);
-  expect(gatedState({...s,...FOOT} as GameStateSnapshot,true).navigation_grid?.objects).toEqual([{x:3,y:0}]);
+  expect(gatedState({...s,...FOOT},true).navigation_grid?.objects).toEqual([{x:3,y:0}]);
  });
 });
 
@@ -230,9 +234,9 @@ describe("production wiring",()=>{
   const answer=():Promise<AgentToolResult<unknown>>=>Promise.resolve({content:[],details:{state}});
   const press={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:answer,executeChecked:(_id:string,_args:unknown,_check:unknown,_signal:unknown,_update:unknown,options?:{stride?:{path:{x:number}[]}}):Promise<AgentToolResult<unknown>>=>{if(options?.stride===undefined)return answer();strides++;state={...state,position:{x:options.stride.path.at(-1)?.x??0,y:0}};return Promise.resolve({content:[],details:{state,stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}});}};
   const observe={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:answer};
-  const tool=withNavigation([press,observe] as never,features(on),{read:()=>Promise.resolve(state)} as never).find(t=>t.name==="navigate_to");
+  const tool=withNavigation([press,observe] as never,features(on),{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");
   if(tool===undefined)throw new Error("missing navigate_to");
-  await tool.execute("n",{x:5,y:0,map_id:[0,33]} as never);
+  await tool.execute("n",{x:5,y:0,map_id:[0,33]});
   return strides;
  };
  it("the feature set reaches the walker",async()=>{

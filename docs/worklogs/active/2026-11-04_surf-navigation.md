@@ -22,7 +22,9 @@ Game rules (pret/pokeemerald 731ad5b, field_player_avatar.c):
 - [x] M1 Game server: water strides and connection water edges. Focused: 24 env tests pass.
 - [x] M2 Agent: A* surf mode, walker, shore stop, semantic navigation, exit lines, prompt. 30 focused tests pass; 310 existing navigation, semantic, feature and preset tests pass. Wiring proof: removing surfNavigation from withNavigation turned "the feature set reaches the walker" red (expected 0 to be greater than 0); restored, it passes.
 - [x] M3 Agent: currents and waterfalls as forced movement. Planner and gate tests only; no save reaches a current, see the rehearsal note.
-- [ ] M4 Config, explainer, emulator rehearsal
+- [x] M4 Config, explainer, emulator rehearsal
+
+Rehearsal (2026-11-04 1:50 PM, port 8195, private run dir in scratch, real tools from this build): STONE_BADGE gold-run save with BADGE05 and MOVE_SURF written into RAM and the party checksum fixed, on Route 104. navigate_to (28,12) on foot stopped at (25,12) facing (26,12) after 15 actions; A opened the game's "Would you like to SURF?" prompt; A surfed. navigate_to (35,20) arrived exactly, 4 strides with surfing:true. Wild encounters stopped strides and the walk resumed. navigate_to (31,18) from water landed, surfing false. navigate_to_target NORTH from water crossed, landed and left the map to RUSTBORO CITY. No traceback in the server log. Not proven on the emulator: currents, waterfalls, water warps, a map exit from a water edge tile (no save reaches one); those have planner and fake tests only.
 - [ ] M5 Gates, review, landing
 
 Activation: on in both arms with this landing, by operator instruction. No comparison is registered. Run 274b is pinned and unaffected.

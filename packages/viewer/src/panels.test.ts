@@ -1145,6 +1145,15 @@ it("links the moving-NPC frame burst card without inferring historical activatio
  expect(enabled.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links the native Surf navigation card, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="surf-navigation-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links the warps-by-landing-area card, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="warp-areas-v1";

@@ -1863,6 +1863,10 @@
             "tall_grass": {
               "type": "boolean",
               "const": true
+            },
+            "surfing": {
+              "type": "boolean",
+              "const": true
             }
           },
           "additionalProperties": false
@@ -12222,6 +12226,30 @@
                         "type": "string"
                       },
                       "edges": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "properties": {
+                            "x": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            },
+                            "y": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "maxItems": 256
+                      },
+                      "water_edges": {
                         "type": "array",
                         "items": {
                           "type": "object",

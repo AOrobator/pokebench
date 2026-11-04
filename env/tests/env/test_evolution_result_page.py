@@ -1,7 +1,6 @@
 """d951 seq 16513: evolution result waits in gDisplayedStringBattle."""
 
 import struct
-from pathlib import Path
 
 from test_evolution_decision import native
 
@@ -11,8 +10,6 @@ from pokebench_env.game_state import MapNames
 from pokebench_env.rerender import read_state
 from tests.env.test_menus import put_task
 from tests.env.test_ui_state import text, window
-
-FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def result_memory(state=15):

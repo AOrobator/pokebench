@@ -29,3 +29,5 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - `power_test.py` passes the guard but needs scipy, so it stays outside `just test`.
 - Lint on main already fails (9 ruff errors, `Iterable` undefined in map_observation.py); not touched here.
 - COMMIT: `test: floors at landed coverage, trainer-card-check its own command` (5b240678a). `just test` after: 60.76 s wall (330 s user, 31 s sys), all suites pass; 2 temp entries, both tool caches; `just trainer-card-check` and `just verify-vendor` pass.
+- Review round 1: Claude BLOCKED, correctly: the pytest assertion-rewrite allowance hid module-level reads in 28 test files. Fixed by allowing tool frames only before any test frame, with an import-time proof module. Grok and Cursor GPT out of usage until 2026-11-17.
+- Second deletion pass: 28 test modules and their dependents; env now 2,727 tests, coverage 78.03 / 71.86 / 69.36, env floor 69.

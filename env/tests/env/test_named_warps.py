@@ -2,7 +2,6 @@
 
 import struct
 from dataclasses import replace
-from pathlib import Path
 
 from pokebench_env.game_state import MapNames, read_game_state
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
@@ -30,7 +29,6 @@ ON_GUIDANCE = (
     " requires matching elevation and available field controls; W alone does not guarantee a"
     " transition. After a transition, check the new map and position."
 )
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 # Switches registered after 224ee68; OFF is their previous behavior.

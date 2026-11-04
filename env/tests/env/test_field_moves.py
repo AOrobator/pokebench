@@ -16,7 +16,6 @@ import functools
 import gzip
 import json
 import os
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +35,6 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURES = Path(__file__).parent / "fixtures"
 POKEEMERALD = Path(os.environ.get("POKEEMERALD", "/Users/user/dev/pokeemerald"))
-ROM_START = 0x08000000
 MOVE_GATES = {
     "cut": ("STONE", 15),
     "rock_smash": ("DYNAMO", 249),
@@ -78,17 +76,6 @@ def cells() -> dict[int, int]:
         for offset, value in enumerate(bytes.fromhex(window["hex"])):
             found[start + offset] = value
     return found
-
-
-def a8f9() -> Callable[[int, int], bytes]:
-    rom, ram = operator_rom(), cells()
-
-    def read(address: int, length: int) -> bytes:
-        if address >= ROM_START:
-            return rom[address - ROM_START : address - ROM_START + length]
-        return bytes(ram[address + i] for i in range(length))
-
-    return read
 
 
 def mon(moves: tuple[int, ...] | None, *, egg: bool | None = False) -> PartyMon:

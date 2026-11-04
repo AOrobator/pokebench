@@ -277,11 +277,6 @@ def test_env_list_is_validated() -> None:
     assert len(set(SERVER_FEATURES)) == len(SERVER_FEATURES)
 
 
-class _Shot:
-    def model_dump(self) -> dict[str, object]:
-        return {"screenshot_base64": "iVBORw0KGgo="}
-
-
 def test_full_map_text_respects_live_map_and_coordinate_switches() -> None:
     state = read_game_state(map_memory().read, MAPS, full_map_enabled=True)
     assert state.full_map is not None

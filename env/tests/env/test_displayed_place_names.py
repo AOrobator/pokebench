@@ -9,7 +9,6 @@ lockall 69, checkplayergender A0, releaseall 6B, end 02, return 03 (data/script_
 """
 
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -34,7 +33,6 @@ MAPS = MapNames(
     }
 )
 BIRCH = "PROF. BIRCH'S HOUSE"
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 def msgbox(target: int, kind: int) -> bytes:

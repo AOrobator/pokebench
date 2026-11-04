@@ -147,12 +147,6 @@ BIRCH = [
 ]
 
 
-def trainer() -> Memory:
-    m = recorded("battle-c497-00001557.json")
-    m.put(TYPE_FLAGS, struct.pack("<I", 0x0C))
-    return m
-
-
 def test_move_facts_render_every_category() -> None:
     from pokebench_env.battle_details import MoveFacts, move_text
 

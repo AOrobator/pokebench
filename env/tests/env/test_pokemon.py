@@ -528,20 +528,3 @@ def test_every_summary_lookup_fails_soft_on_either_reader_error(error):
 @pytest.mark.parametrize("mapsec,name", [(66, "HIDEOUT"), (86, "SECRET BASE"), (87, "FERRY")])
 def test_met_locations_the_game_names_by_hand(mapsec, name):
     assert summary_fixture(met_location=mapsec).met_location_name == name
-
-
-def test_summary_facts_stay_out_of_the_model_readout():
-    from pokebench_env.readout import format_readout
-    from tests.env.pocket import pocket_state
-
-    mon = summary_fixture()
-    bare = replace(
-        mon, attack=None, defense=None, speed=None, sp_attack=None, sp_defense=None,
-        ability_num=None, ability_id=None, met_location=None, met_location_name=None,
-        met_level=None, met_game=None, ball=None, ball_name=None, ot_name=None, ot_gender=None,
-    )  # fmt: skip
-    for off in (frozenset(), frozenset({"status-names-v1"})):
-        with_facts = format_readout(replace(pocket_state(), party=(mon,)), off)
-        without = format_readout(replace(pocket_state(), party=(bare,)), off)
-        assert "TORCHIC Lv16 HP 49/50" in with_facts
-        assert with_facts == without

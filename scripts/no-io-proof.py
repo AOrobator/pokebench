@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 VITEST_PASSES = {"pure"}
 VITEST_TOTAL = 11
 PYTEST_PASSES = {"test_pure", "test_one_loop_passes"}
-PYTEST_TOTAL = 13
+PYTEST_TOTAL = 14
 
 
 def vitest() -> tuple[set[str], int]:
@@ -36,9 +36,10 @@ def pytest() -> tuple[set[str], int]:
             "no:cacheprovider",
             "-p",
             "pokebench_gates.no_io_guard",
+            "--continue-on-collection-errors",
             "--rootdir",
             "scripts/no-io-proof",
-            "scripts/no-io-proof/test_no_io_proof.py",
+            "scripts/no-io-proof",
         ],
         cwd=ROOT,
         capture_output=True,
@@ -47,7 +48,8 @@ def pytest() -> tuple[set[str], int]:
     )
     results = re.findall(r"^(PASSED|FAILED|ERROR) \S+::(\w+)", done.stdout, re.MULTILINE)
     passed = {name for state, name in results if state == "PASSED"}
-    return passed, len({name for _, name in results})
+    import_caught = re.search(r"^ERROR \S+test_no_io_import_proof\.py", done.stdout, re.MULTILINE)
+    return passed, len({name for _, name in results}) + bool(import_caught)
 
 
 def main() -> int:

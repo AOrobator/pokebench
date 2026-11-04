@@ -37,8 +37,7 @@ REPO_MARKERS = (
     "/.claude/skills/",
 )
 MAX_SELF_PIPE_EVENTS = 2
-LOADERS = ("linecache.py", "tokenize.py")
-TOOLS = ("/_pytest/_code/", "/_pytest/assertion/", "/site-packages/coverage/")
+TOOLS = ("/_pytest/assertion/", "/site-packages/coverage/")
 
 violations: list[str] = []
 self_pipe_events = 0
@@ -69,7 +68,7 @@ def _from_repo(frame: FrameType | None) -> bool:
         name = frame.f_code.co_filename
         if name.startswith("<frozen importlib") and not tested:
             return False
-        if name.endswith(LOADERS) or any(tool in name for tool in TOOLS):
+        if not tested and any(tool in name for tool in TOOLS):
             return False
         if name != __file__ and any(marker in name for marker in REPO_MARKERS):
             found = True

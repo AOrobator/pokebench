@@ -1,7 +1,6 @@
 """LoadWallyZigzagoon source731ad5bf: MOVE2-4 are cleared, their PP is retained."""
 
 import struct
-from pathlib import Path
 
 import pytest
 from test_battle_state import fixture
@@ -14,8 +13,6 @@ from pokebench_env.game_screen import Screen
 from pokebench_env.game_state import MapNames, read_game_state
 from pokebench_env.pokemon import BATTLE_MOVES, MOVE_NAMES
 from pokebench_env.ui_state import read_active_ui
-
-FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def tutorial():

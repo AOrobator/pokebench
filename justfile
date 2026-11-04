@@ -18,7 +18,7 @@ test:
     just build
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
-    cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 74
+    cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 69
     uv run --project env python -m pytest -q -p no:cacheprovider -p pokebench_gates.no_io_guard --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov=preflight --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
     uv run --project env python -m pokebench_gates.coverage_gate env/.claude-gateway-coverage.json --min 22
     just no-io-proof

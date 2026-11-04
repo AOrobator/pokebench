@@ -48,7 +48,6 @@ WARP_ON = (
 DEST_ON = " (not reachable on foot from where you stand)"
 # ROUTE104 warps the south half cannot walk to: the flower shop, the woods' north mouths and
 # the woods' east mouth (above one-way ledges).
-NONE_WARPS = [(5, 18), (10, 30), (11, 30), (32, 42), (33, 42)]
 
 
 @functools.cache
@@ -75,11 +74,6 @@ def maps() -> MapNames:
 def fixture(name: str) -> dict[str, Any]:
     body: dict[str, Any] = json.loads(gzip.decompress((FIXTURES / name).read_bytes()))
     return body
-
-
-def recorded_off(name: str) -> list[str]:
-    features = fixture(name)["harness_features"]
-    return [f for f in SERVER_FEATURES if f not in features and f != ID]
 
 
 @functools.cache

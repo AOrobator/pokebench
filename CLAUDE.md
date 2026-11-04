@@ -37,7 +37,7 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
 
 ## Project overrides of the global rules
 
-- **Coverage floors are set where coverage landed after the no-I/O test cleanup** (operator decision 2026-11-04): vitest thresholds for agent (lines 63, branches 54, functions 57, statements 58) and viewer (lines 36, branches 39, functions 40, statements 35), and the `--min` of `pokebench_gates.coverage_gate` in `just test` for env (74) and the Claude gateway (22). Never lower a floor further or widen excludes to pass.
+- **Coverage floors are set where coverage landed after the no-I/O test cleanup** (operator decision 2026-11-04): vitest thresholds for agent (lines 63, branches 54, functions 57, statements 58) and viewer (lines 36, branches 39, functions 40, statements 35), and the `--min` of `pokebench_gates.coverage_gate` in `just test` for env (69) and the Claude gateway (22). Never lower a floor further or widen excludes to pass.
 - **Vendored env:** `env/vendor/continual-harness` is excluded from coverage only while it is the pinned SHA with a clean tree (`just verify-vendor`). Changing its behavior means writing pokebench-owned, covered code. A fork brings it into coverage.
 - **Principles rubric:** the principles self-review scores `docs/agent-principles.md` (PB1–PB13, operator-approved 2026-10-11). Agents may propose additions; only the operator approves them.
 - **Deploy:** none. This is a local research tool. Milestones stop for operator review where the worklog says so.

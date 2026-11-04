@@ -7,7 +7,6 @@ import base64
 import threading
 from collections.abc import Callable
 from io import BytesIO
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -28,7 +27,6 @@ from pokebench_env.screen_settle import (
     transitioning,
 )
 
-FIXTURE = Path(__file__).parent / "fixtures" / "fade-settle-c497-410-427.json"
 ACTIVE = bytes(7) + b"\x80"
 IDLE = bytes(8)
 LIT = b"\xff\x7f" + bytes(0x3FE)

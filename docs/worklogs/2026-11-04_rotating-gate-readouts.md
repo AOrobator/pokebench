@@ -1,7 +1,7 @@
 # Rotating-gate readouts: correct positions, rules on the map, navigate_to stops at arms
 
 **Started:** 2026-11-04
-**Status:** built on `claude/rotating-gate-readouts`, local only, not landed. Multi-model review and full suites not run.
+**Status:** landed on main 49aadfe76 (2026-11-04), on in both arms, viewer restarted. Archived on the operator's approval. No game run has used the switches yet.
 **Branch:** `claude/rotating-gate-readouts` (from main `c046cc642`), worktree `/private/tmp/pb-rotating-gate`.
 **Approval:** The operator approved all work items, relayed by the coordinator 2026-11-04. Item 5: The operator's "the gate switches should be on in both arms" reached this thread through the coordinator, 2026-11-04.
 

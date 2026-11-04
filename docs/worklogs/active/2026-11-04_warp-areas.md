@@ -21,7 +21,7 @@ Operator request (the operator via coordinator, 2026-11-04): a switched warp rea
 
 ## Real render
 
-Turn 1,533 re-rendered from raw RAM with the run's own visits: 22,342 to 16,462 characters; the OFF lines equal the recorded lines; pad groups match the approved table. Rustboro at turn 173: 31,279 to 30,682. The repeated caveat sentence moved to the header so no map grows.
+Turn 1,533 re-rendered from raw RAM with the run's own visits: 22,342 to 16,462 characters; the OFF lines equal the recorded lines; pad groups match the approved table. Rustboro at turn 173: 31,279 to 30,682. The repeated caveat sentence moved to the header, so the three sampled maps shrink.
 
 Wiring proof: replacing the observation factory's `area_visits` with None turned `test_every_observation_of_a_run_shares_one_visit_memory` red; restored, it passes.
 
@@ -41,3 +41,7 @@ Round 1, packet 163a1c36f..97a95400e. Grok out of Cursor usage until 11/17 (stan
 - GPT BLOCKING, accepted: two unknown landings with matching text merged (they now stay separate); launch.sh embedded a model id (`--model` now required).
 - Accepted hardening: unmeasured reach no longer prints as reachable. launch.sh header corrected.
 - Rebutted: entrance-activation caveat applying to same-map pads (a caution, not a fact claim); "Been there" missing a section crossed between observations (understates only, documented in the explainer as tiles the server saw).
+
+COMMIT: `fix(readout): keep unknown landings apart and never claim unmeasured reach` (7535cc36e)
+
+Round 2, head 7535cc36e: Claude LGTM. GPT BLOCKING on one Fix: launch.sh checked and receipted `--port` but frozenPlay keeps a lane's port out of the child, so the run took 8000 regardless. `--port` removed; the script checks 8000, the port the run really takes. Skill text updated to the five forwarded variables. Partial reach under the Surf gate alone: follow-up, not reachable with the current recipe.

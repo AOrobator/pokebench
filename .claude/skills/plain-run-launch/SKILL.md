@@ -79,8 +79,8 @@ echo "$!" | tee "$META/logs/play-$STAMP.pid"
 disown
 ```
 
-`POKEBENCH_PLAY_PRESET`, `POKEBENCH_MODEL`, `POKEBENCH_ENDPOINT_FILE` and `POKEBENCH_GATEWAY_URL` are
-the only variables `frozenPlay` forwards (`PRESERVED_PLAIN_VARIABLES`); everything else in the shell
+`POKEBENCH_PLAY_PRESET`, `POKEBENCH_MODEL`, `POKEBENCH_ENDPOINT_FILE`, `POKEBENCH_GATEWAY_URL` and
+`POKEBENCH_CHECKPOINT_FRONTIER` are the only lane variables `frozenPlay` forwards (`PRESERVED_PLAIN_VARIABLES`); everything else in the shell
 env is inherited minus the lane variables. Anonymous `--commit <sha>` runs an older pin.
 
 ## 4. Ports
@@ -88,7 +88,7 @@ env is inherited minus the lane variables. Anonymous `--commit <sha>` runs an ol
 - Leaving `POKEBENCH_GAME_SERVER_URL` unset is the default path and is not the allocator: the
   configured default is `http://127.0.0.1:8000`, so the run takes **8000** if it is free. The
   8090–8099 pool (`GAME_PORT_POOL`) is only consulted when the URL carries no port.
-- Set an explicit port only to avoid a live run's port, and check with `lsof` rather than
+- `launch.sh` always uses 8000 and refuses when it is taken. Check with `lsof` rather than
   `just run-claims`: ended runs whose claims were never closed (e.g. the `server-kill-smoke` pair from
   2026-11-02) are still listed as live owners of 8000. `lsof -nP -iTCP:<port> -sTCP:LISTEN` is the
   truth; a claim with no listener is stale, not a conflict.

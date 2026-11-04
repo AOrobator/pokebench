@@ -1,10 +1,11 @@
 #!/bin/zsh
 # Launch one ordinary play run, detached, from the main checkout.
 #
-#   launch.sh --meta runs/<meta-dir> --model <model id> [--port 8000] [--preset <file>]
+#   launch.sh --meta runs/<meta-dir> --model <model id> [--preset <file>]
 #             [--endpoint <file>] [--commit <sha>]
 #
-# Always works from the main checkout. Refuses before starting anything when: the preset does not
+# Always works from the main checkout. A plain run always takes the default game port, 8000:
+# frozenPlay keeps another run's port out of the child, so no other port can be asked for here. Refuses before starting anything when: the preset does not
 # parse, the endpoint file is missing or not loopback, the port is already taken, or the commit is
 # not in this repo. Writes runs/<meta>/launch.receipt.json and a log under runs/<meta>/logs/.
 set -euo pipefail
@@ -18,7 +19,6 @@ COMMIT=""
 while (( $# )); do
   case "$1" in
     --meta) META="$2"; shift 2 ;;
-    --port) PORT="$2"; shift 2 ;;
     --preset) PRESET="$2"; shift 2 ;;
     --model) MODEL="$2"; shift 2 ;;
     --endpoint) ENDPOINT="$2"; shift 2 ;;
@@ -52,9 +52,8 @@ set -a; source .env; set +a
 export POKEBENCH_MODEL="$MODEL"
 export POKEBENCH_ENDPOINT_FILE="$ENDPOINT"
 export POKEBENCH_PLAY_PRESET="$PRESET"
-export POKEBENCH_GAME_SERVER_URL="http://127.0.0.1:$PORT"
 export POKEBENCH_CHECKPOINT_FRONTIER=1
-unset POKEBENCH_GATEWAY_URL POKEBENCH_RUN_ID
+unset POKEBENCH_GATEWAY_URL POKEBENCH_RUN_ID POKEBENCH_GAME_SERVER_URL
 
 STAMP=$(date +%Y%m%dT%H%M%S)
 LOG="$META/logs/play-$STAMP.log"

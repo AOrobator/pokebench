@@ -94,6 +94,22 @@ describe("forced water",()=>{
  });
 });
 
+describe("climbing and second crossings",()=>{
+ const fall=[{x:0,y:0,collision:0,behavior:OCEAN,elevation:1},{x:0,y:1,collision:0,behavior:WATERFALL,elevation:1},{x:0,y:2,collision:0,behavior:OCEAN,elevation:1}];
+ const foot={...field(0,true,fall),position:{x:0,y:2}};
+ it("finds the foot of a waterfall only when it can be climbed",()=>{
+  expect(surfLaunch(foot,[{x:0,y:0}],ON)).toBeNull();
+  expect(surfLaunch(foot,[{x:0,y:0}],{...ON,climb:true})).toMatchObject({at:{x:0,y:2},water:{x:0,y:1},facing:"UP",move:"Waterfall"});
+ });
+ it("while surfing lands and stops at the next water",async()=>{
+  const tiles=row({6:{},7:{behavior:POND,elevation:1}},9);
+  const w=walker(field(5,true,tiles),stepWith(tiles));
+  const out=await w.tool.execute("n",{x:8,y:0,map_id:[0,33]});
+  expect(w.now().position).toEqual({x:6,y:0});
+  expect((out.content[0] as {text:string}).text).toContain("press A");
+ });
+});
+
 describe("strides",()=>{
  it("plans plain water as a surfing corridor and stops before the shore",()=>{
   expect(planStride(field(2,true),["RIGHT","RIGHT","RIGHT","RIGHT"],ON)).toEqual({map_id:[0,33],origin:{x:2,y:0},path:[{x:3,y:0},{x:4,y:0},{x:5,y:0}],elevation:1,surfing:true});

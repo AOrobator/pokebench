@@ -25,7 +25,7 @@ Game rules (pret/pokeemerald 731ad5b, field_player_avatar.c):
 - [x] M4 Config, explainer, emulator rehearsal
 
 Rehearsal (2026-11-04 1:50 PM, port 8195, private run dir in scratch, real tools from this build): STONE_BADGE gold-run save with BADGE05 and MOVE_SURF written into RAM and the party checksum fixed, on Route 104. navigate_to (28,12) on foot stopped at (25,12) facing (26,12) after 15 actions; A opened the game's "Would you like to SURF?" prompt; A surfed. navigate_to (35,20) arrived exactly, 4 strides with surfing:true. Wild encounters stopped strides and the walk resumed. navigate_to (31,18) from water landed, surfing false. navigate_to_target NORTH from water crossed, landed and left the map to RUSTBORO CITY. No traceback in the server log. Not proven on the emulator: currents, waterfalls, water warps, a map exit from a water edge tile (no save reaches one); those have planner and fake tests only.
-- [ ] M5 Gates, review, landing
+- [ ] M5 Gates, review, landing. First gate pass at 68e3d5a7c: lint, test (agent 2409, viewer 802, env 2762, gateway 38, floors and no-io-proof OK), verify-vendor all green. Then added the stop at a waterfall foot and second crossings; gates rerun.
 
 Activation: on in both arms with this landing, by operator instruction. No comparison is registered. Run 274b is pinned and unaffected.
 

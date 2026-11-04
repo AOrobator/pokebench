@@ -129,16 +129,18 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <div class="card">
 <h2>What the search may do</h2>
-<table>
+<figure>
+<table style="min-width:640px">
 <tr><th>From</th><th>Onto</th><th>Result</th><th>Game source</th></tr>
 <tr><td>Foot</td><td>Water</td><td>Never walked. A launch search uses it to find the shore tile, and the walk stops there.</td><td>IsPlayerFacingSurfableFishableWater: player at elevation 3, step is an elevation mismatch</td></tr>
 <tr><td>Water</td><td>Plain water 0x10, 0x11, 0x12, 0x14, 0x15</td><td>A stride. A held press moves two tiles, so these are frame-owned.</td><td>PlayerWalkFast</td></tr>
 <tr><td>Water</td><td>Current 0x50 to 0x53</td><td>Rides to where the push ends. Refused when the push ends against the shore.</td><td>DoForcedMovement</td></tr>
-<tr><td>Water</td><td>Waterfall 0x13</td><td>Rides down. Climbing ends where it started, so the route refuses and names what it needs.</td><td>IsPlayerSurfingNorth, MB_WATERFALL forced south</td></tr>
+<tr><td>Water</td><td>Waterfall 0x13</td><td>Rides down. Going up, the walk stops at the foot when Waterfall can be used and says to press A; otherwise the route refuses and names what it needs.</td><td>IsPlayerSurfingNorth, MB_WATERFALL forced south</td></tr>
 <tr><td>Water</td><td>Water warp 0x6c, 0x6d</td><td>Only as the goal.</td><td>MetatileBehavior warp tables</td></tr>
 <tr><td>Water</td><td>Land at elevation 3, no object there</td><td>Lands. A route can land but never re-enter water.</td><td>CanStopSurfing</td></tr>
 <tr><td>Water</td><td>Land at another elevation</td><td>Wall.</td><td>CanStopSurfing</td></tr>
 </table>
+</figure>
 <p>The same rule covers every field move: the harness never starts Surf, Waterfall, Dive, Cut or Rock Smash. A closed waterfall stays a wall on foot.</p>
 </div>
 

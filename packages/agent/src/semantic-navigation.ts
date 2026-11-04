@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,surfLaunch,waterReason,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -576,18 +576,17 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     const here=planned.position;
     const target=request.target.kind==="connection"?null:listed;
     const near=target===null?[]:target.kind==="warp"?[{x:target.x,y:target.y}]:[[0,-1],[0,1],[-1,0],[1,0]].map(([dx=0,dy=0])=>({x:target.x+dx,y:target.y+dy}));
-    if(isSurfing(planned)){
-     if(here!==null)return withStatus({content:[],details:{state:before}},`no supported route to a valid approach: ${waterReason(planned,target??here)}`,selected,request.target,false);
-    }else if(before.surf_gate?.can_surf===true){
+    if(before.surf_gate?.can_surf===true){
      const direction=request.target.kind==="connection"?request.target.direction:null;
      const connection=before.topology?.connections.find(item=>item.direction===direction);
      const goals=direction===null?near:[...(connection?.edges??[]),...(connection?.water_edges??[])];
-     const launch=surfLaunch(planned,goals,options);
+     const launch=surfLaunch(planned,goals,withClimb(planned,options));
      if(launch!==null){
       const walked=await navigate.execute(id,{x:launch.goal.x,y:launch.goal.y,map_id:[request.map_id[0],request.map_id[1]]},signal);
-      return withStatus(walked,navigationStatus(walked)??"stopped at the shore",selected,request.target,false);
+      return withStatus(walked,navigationStatus(walked)??"stopped at the water",selected,request.target,false);
      }
     }
+    if(isSurfing(planned)&&here!==null)return withStatus({content:[],details:{state:before}},`no supported route to a valid approach: ${waterReason(planned,target??here)}`,selected,request.target,false);
    }
    if(choice===undefined){
     const base=request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach";

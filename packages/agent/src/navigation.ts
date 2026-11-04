@@ -68,11 +68,11 @@ export interface MatchingTrigger {readonly x:number;readonly y:number;readonly e
 // field-move-gates-v1 slopes: a slope tile (MB_MUDDY_SLOPE) is stepped onto only moving down, and the walker slides south to
 // the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
 // surf-navigation-v1: where a route starts Surf: the shore tile, the water it faces and the direction to face.
-export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonly facing:Direction}
+export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonly facing:Direction;readonly move:"Surf"|"Waterfall"}
 export interface SurfLaunch extends SurfLaunchPoint {readonly goal:Point}
 // Starting Surf takes the model's own turns, so a launch search prefers a route with less of it.
 const LAUNCH_COST=4;
-export interface NavigationOptions {readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean}
+export interface NavigationOptions {readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean}
 export const SLOPE=0xd0;
 // Describes unsupported movement; no bike action, destination or puzzle solution is chosen.
 function terrainObstacle(behavior:number,mapObservability=false):string|null {
@@ -135,6 +135,7 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
 // surf-navigation-v1: the game's own surfing flag, never the tile under the player.
 const navigationStatus=(result:AgentToolResult<unknown>):string|undefined=>(result.details as {navigation?:{status?:string}}|undefined)?.navigation?.status;
 export const isSurfing=(state:Pick<GameStateSnapshot,"running">):boolean=>((state.running?.avatar_flags??0)&SURFING_FLAG)!==0;
+const WATERFALL=0x13;
 const STEP:Readonly<Record<Direction,readonly [number,number]>>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
 // surf-navigation-v1: the tiles a surfer is pushed over after entering forced water at next, ending on the tile that stops
 // the push. Null when it is not forced water, loops, or runs into anything but water (the game would dismount or stall).
@@ -557,6 +558,13 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if(node.surf){
     if(tile.collision!==0)continue;
     const isGoal=distance(next,goal)===0;
+    // A launch search with Waterfall usable may climb; the walk stops at the foot, as it stops at a shore.
+    if(options.launch!==undefined&&options.climb===true&&direction==="UP"&&tile.behavior===WATERFALL){
+     let top=next;while(geometry.tile(top)?.behavior===WATERFALL)top={x:top.x,y:top.y-1};
+     const land=geometry.tile(top);if(land===undefined||!SURF_FLOOR.has(land.behavior)||land.collision!==0)continue;
+     const cost=node.cost+LAUNCH_COST+next.y-top.y;
+     pending.push(cost+distance(top,goal),{...carried,p:top,here:land.elevation,elevation:node.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction,move:"Waterfall"}});continue;
+    }
     const pushed=forcedPath(geometry,next);
     if(pushed!==null){
      const end=pushed.at(-1);if(end===undefined||(distance(end,goal)!==0&&triggerAt(options.triggers,end,node.elevation)!==undefined))continue;
@@ -578,7 +586,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    // surf-navigation-v1: IsPlayerFacingSurfableFishableWater; only a launch search takes this edge, and it never walks it.
    if(options.launch!==undefined&&node.elevation===SHORE_ELEVATION&&tile.collision===0&&LAUNCH_WATER.has(tile.behavior)&&mismatch(node.elevation,tile.elevation)&&!occupiedFor(tile.elevation)(next)){
     const cost=node.cost+LAUNCH_COST;
-    pending.push(cost+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:tile.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction}});continue;
+    pending.push(cost+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:tile.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction,move:"Surf"}});continue;
    }
    if(options.slopes===true&&tile.behavior===SLOPE){
     // A slope is entered only moving down, slides to the first tile below it, and is never a goal.
@@ -616,6 +624,8 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
  }
  return !goalKnown&&best!==start ? route(best) : null;
 }
+// surf-navigation-v1: a launch search may climb only a waterfall the player can climb now.
+export const withClimb=(state:GameStateSnapshot,options:NavigationOptions):NavigationOptions=>state.field_obstacles?.capabilities.waterfall===true?{...options,climb:true}:options;
 // surf-navigation-v1: on foot, where the cheapest way to any of these goals starts Surf; null when no way needs it or none exists.
 export function surfLaunch(state:GameStateSnapshot,goals:readonly Point[],options:NavigationOptions):SurfLaunch|null {
  let chosen:SurfLaunch|null=null,shortest=Infinity;
@@ -895,7 +905,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    last=await ports.press(id,{buttons:[launch.facing]},signal,actual=>{if(actual===undefined||!ready(actual)||actual.position===null||!samePoint(actual.position,launch.at))throw new NavigationPreconditionError("position or field input changed before facing the water; no command submitted");},{automaticRunning:false});
    state=resultState(last);commands++;
   }
-  const status=`stopped at the shore at ${at(launch.at)}, facing the water at ${at(launch.water)}: the way to ${at(goal)} crosses water, and navigate_to does not start Surf; press A while facing the water to use it`;
+  const status=launch.move==="Surf"?`stopped at the shore at ${at(launch.at)}, facing the water at ${at(launch.water)}: the way to ${at(goal)} crosses water, and navigate_to does not start Surf; press A while facing the water to use it`:`stopped at ${at(launch.at)}, facing the waterfall at ${at(launch.water)}: the way to ${at(goal)} climbs it, and navigate_to does not use Waterfall; press A while facing it to use it`;
   const rest=walked===null?last.content:last.content.filter(part=>part.type!=="text"||!part.text.startsWith("Navigation: "));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...rest],details:{state,navigation:{status,commands,target:goal,unready:false}}};
  };
@@ -939,7 +949,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const triggerAware=boundary.length>0;
    // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
    // surf-navigation-v1: the foot area says nothing while surfing, and on foot Surf may still go around the obstacle.
-   const shore=ports.surfNavigation===true&&!surfing&&!checkedOptions.shoreLeg&&commands===0&&state.surf_gate?.can_surf===true&&planNavigation(state,goal,options)===null?surfLaunch(state,[goal],options):null;
+   const shore=ports.surfNavigation===true&&!checkedOptions.shoreLeg&&commands===0&&state.surf_gate?.can_surf===true&&planNavigation(state,goal,options)===null?surfLaunch(state,[goal],withClimb(state,options)):null;
    if(shore!==null)return toShore(id,goal,shore,state,signal,stop,checkedOptions);
    const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true&&!surfing?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
    if(cutOff!==null){status=`${at(goal)} cannot be reached on foot from where you stand: ${cutOff}`;break;}

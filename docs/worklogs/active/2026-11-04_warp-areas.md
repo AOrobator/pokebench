@@ -22,3 +22,7 @@ Operator request (the operator via coordinator, 2026-11-04): a switched warp rea
 ## Real render
 
 Turn 1,533 re-rendered from raw RAM with the run's own visits: 22,342 to 16,462 characters; the OFF lines equal the recorded lines; pad groups match the approved table. Rustboro at turn 173: 31,279 to 30,682. The repeated caveat sentence moved to the header so no map grows.
+
+Wiring proof: replacing the observation factory's `area_visits` with None turned `test_every_observation_of_a_run_shares_one_visit_memory` red; restored, it passes.
+
+COMMIT: `feat(readout): group warps by landing area (warp-areas-v1)` (9d5d0129a)

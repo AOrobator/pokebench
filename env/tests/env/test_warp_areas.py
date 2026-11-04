@@ -2,6 +2,10 @@
 
 from dataclasses import replace
 
+import pytest
+from fastapi import FastAPI
+from pydantic import BaseModel
+
 import pokebench_env.map_sections as owner
 from pokebench_env.exit_labels import RomMap
 from pokebench_env.game_state import GameState
@@ -244,3 +248,27 @@ def test_read_state_passes_visits_only_when_the_switch_is_on(monkeypatch):
     assert seen[0] is None
     assert seen[1] is visits
     assert isinstance(seen[2], AreaVisits)
+
+
+def test_every_observation_of_a_run_shares_one_visit_memory(monkeypatch):
+    import pokebench_env.observation as observation
+
+    seen = []
+
+    class Stop(Exception):
+        pass
+
+    def fake(_read, _maps, **kwargs):
+        seen.append(kwargs["area_visits"])
+        raise Stop
+
+    monkeypatch.setattr(observation, "read_state", fake)
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    app = FastAPI()
+    observation.install_observation(app, lambda: BaseModel(), lambda _a, n: bytes(n), None)
+    state = next(r for r in app.routes if getattr(r, "path", "") == "/pokebench/state")
+    for _ in range(2):
+        with pytest.raises(Stop):
+            state.endpoint()
+    assert isinstance(seen[0], AreaVisits)
+    assert seen[0] is seen[1]

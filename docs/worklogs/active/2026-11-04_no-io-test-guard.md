@@ -40,3 +40,4 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - Post-review doc delta only: corrected CLAUDE.md wording, viewer-spec floor, tool-prompt-sync bullet, three EOF blanks.
 - The operator 2026-11-04 2:54 AM NY, "delete both": `trainer-card-app.test.ts` and `workbench.test.ts` deleted with an approval receipt; the viewer exclude is gone, so no held-out test remains.
 - Delta review round 1: Claude and GPT blocked on false doc lines (tool-prompt-sync, CLAUDE.md import allowance); corrected. Final gate on c1ebaa6bd: `just test` 59.52 s, 5,933 tests, trainer-card-check pass.
+- Delta review round 2: Claude LGTM; GPT blocked on CLAUDE.md saying the pytest import allowance covers only reads; it covers any guarded I/O during application import. Wording corrected.

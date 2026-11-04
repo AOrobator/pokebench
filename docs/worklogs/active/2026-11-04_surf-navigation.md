@@ -30,3 +30,5 @@ Activation: on in both arms with this landing, by operator instruction. No compa
 ## Multi-Model Review Log
 
 M1 RED: env/tests/env/test_surf_navigation.py fails at collection.
+
+M2/M3 RED: packages/agent/src/surf-navigation.test.ts.

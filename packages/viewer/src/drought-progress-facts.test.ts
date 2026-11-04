@@ -1,10 +1,3 @@
-import {recipeText} from "../test-support/recipe-text.js";
-import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {dirname,join} from "node:path";
-import {main,type FixedCliDeps} from "./fixed-cli.js";
-import {armFeatures,parseFixedDefinition,type FixedDefinition} from "./fixed-design.js";
-import type {FixedHost,FixedRunOptions} from "./fixed-runner.js";
 import {expect,it} from "vitest";
 import {BASE_MS,Log,START} from "../test-support/events.js";
 import {RunView} from "./model.js";

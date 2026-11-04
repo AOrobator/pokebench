@@ -1,9 +1,7 @@
-import {recipeText} from "../test-support/recipe-text.js";
-import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armFeatures, armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition, type FixedDefinition } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");

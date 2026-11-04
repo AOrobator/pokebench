@@ -1,8 +1,7 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {type FeatureSet} from "./features.js";
-import {deliverInitialPlayTask,initialPlayTask,PLAY_TASK} from "./play-config.js";
+import {initialPlayTask,PLAY_TASK} from "./play-config.js";
 import {gameServerLauncherArgs} from "./server-launch.js";
 
 const features=(enabled:boolean):FeatureSet=>({...ALL_ON,"save-state-task-truth-v1":enabled});

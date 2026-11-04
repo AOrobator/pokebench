@@ -1,7 +1,3 @@
-import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it, vi } from "vitest";
 
 // The real runs/ holds tens of GB of frames, so the store is replaced and only its wiring is checked.

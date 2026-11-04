@@ -1,14 +1,10 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
-import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
-import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {ALL_TOOL_SWITCHES,observeTool,pressTool,PRESS_TIMING,type CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation,type NavigationPorts} from "./navigation.js";
-import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
+import {flagFeatures} from "./play-preset.js";
 
 const ID="deterministic-warp-navigation-v1";
 const MAP:[number,number]=[1,4];

@@ -1,9 +1,6 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
-import { appendLedger, classifyTrial, laneBackoff, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
+import { classifyTrial, laneBackoff, nextFor, progress, queueState, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
 import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 

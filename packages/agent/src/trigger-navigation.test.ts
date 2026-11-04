@@ -1,7 +1,4 @@
-import {readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
 import {navigationTool} from "./navigation.js";
-import {parseGameState} from "./game-state.js";
 import {expect,it} from "vitest";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {withSemanticNavigation} from "./semantic-navigation.js";

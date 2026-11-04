@@ -1,8 +1,5 @@
-import {mkdtempSync, mkdirSync, writeFileSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import {describe, expect, it} from "vitest";
-import {claimLive, claimsMatching, CLAIM_FILE, claimPath, describeClaim, listClaims, ownedMessage, readClaim, writeClaim, type RunClaim} from "./run-claim.js";
+import {claimLive, claimsMatching, describeClaim, ownedMessage, type RunClaim} from "./run-claim.js";
 
 
 function claim(overrides: Partial<RunClaim> = {}): RunClaim {

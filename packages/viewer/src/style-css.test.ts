@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Every block in the shared stylesheet closes where it opened: a lost "}" after a merge

@@ -35,9 +35,10 @@ function guard(owner: Record<string, unknown>, name: string, label: string): voi
       violations.push(message);
       throw new Error(message);
     }
-    return new.target === undefined
+    const target: unknown = new.target;
+    return target === undefined
       ? Reflect.apply(original as (...a: unknown[]) => unknown, this, args)
-      : Reflect.construct(original as unknown as new (...a: unknown[]) => object, args, new.target as new (...a: unknown[]) => object);
+      : Reflect.construct(original as new (...a: unknown[]) => object, args, target as new (...a: unknown[]) => object);
   };
   Object.defineProperties(wrapped, Object.getOwnPropertyDescriptors(original));
   owner[name] = wrapped;
@@ -57,16 +58,16 @@ guardAll(childProcess, "child_process");
 guardAll(dns, "dns");
 guardAll(dns.promises, "dns.promises");
 for (const [mod, label] of [[http, "http"], [https, "https"]] as const) {
-  for (const name of ["request", "get"]) guard(mod as unknown as Record<string, unknown>, name, `${label}.${name}`);
+  for (const name of ["request", "get"]) guard(mod, name, `${label}.${name}`);
 }
-guard(http2 as unknown as Record<string, unknown>, "connect", "http2.connect");
-guard(tls as unknown as Record<string, unknown>, "connect", "tls.connect");
-guard(dgram as unknown as Record<string, unknown>, "createSocket", "dgram.createSocket");
-for (const name of ["connect", "createConnection"]) guard(net as unknown as Record<string, unknown>, name, `net.${name}`);
+guard(http2, "connect", "http2.connect");
+guard(tls, "connect", "tls.connect");
+guard(dgram, "createSocket", "dgram.createSocket");
+for (const name of ["connect", "createConnection"]) guard(net, name, `net.${name}`);
 guard(net.Server.prototype as unknown as Record<string, unknown>, "listen", "net.Server.listen");
 guard(net.Socket.prototype as unknown as Record<string, unknown>, "connect", "net.Socket.connect");
-for (const name of ["fetch", "WebSocket", "EventSource"]) guard(globalThis as unknown as Record<string, unknown>, name, name);
-guard(workerThreads as unknown as Record<string, unknown>, "Worker", "worker_threads.Worker");
+for (const name of ["fetch", "WebSocket", "EventSource"]) guard(globalThis, name, name);
+guard(workerThreads, "Worker", "worker_threads.Worker");
 syncBuiltinESMExports();
 
 function failOnViolation(): void {

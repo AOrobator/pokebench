@@ -1,12 +1,9 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
-import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // loop-guard-screen-v1: the loop guard's own note quotes the open screen.
 // Control run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turns 93-213: twenty-one cycle notes
 // briefed the bedroom while the clock adjustment was ready.
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
+import {type FeatureSet} from "./features.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";

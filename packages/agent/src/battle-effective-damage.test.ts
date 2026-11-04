@@ -1,10 +1,5 @@
 import {serverOff, serverOffWith} from "../test-support/server-features.js";
-import {armPreset,parseFixedDefinition} from "../../viewer/src/fixed-design.js";
-import {parsePlayPreset,presetFeatures} from "./play-preset.js";
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
 import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures} from "./features.js";
 

@@ -1,10 +1,7 @@
-import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SAMPLES, sample } from "../test-support/events.js";
 import type { RunEvent } from "./events.js";
-import { followEvents, formatEvent, tailRun } from "./tail.js";
+import { formatEvent, tailRun } from "./tail.js";
 
 const ENVELOPE = { v: 1 as const, run: "r1", t: "2026-10-11T21:40:05.123-04:00" };
 

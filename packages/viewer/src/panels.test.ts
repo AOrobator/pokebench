@@ -4,8 +4,6 @@ import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
 import { stepOf } from "../test-support/trace.js";
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { FEATURES } from "@pokebench/agent/features";
 import {
   FEATURE_EXPLAINERS,

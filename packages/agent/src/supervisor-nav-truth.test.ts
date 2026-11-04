@@ -1,8 +1,6 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation} from "./navigation.js";
@@ -10,7 +8,7 @@ import {withSemanticNavigation} from "./semantic-navigation.js";
 import {Type} from "typebox";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {flagFeatures} from "./play-preset.js";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 

@@ -1,10 +1,7 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
-import {readdirSync,readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
-import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {type GameStateSnapshot} from "./game-state.js";
 import {pressTool,observeTool} from "./game-tools.js";
 import {withNavigation} from "./navigation.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";

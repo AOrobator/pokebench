@@ -1,5 +1,3 @@
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {describe,expect,it} from "vitest";

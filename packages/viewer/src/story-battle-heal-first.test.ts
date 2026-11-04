@@ -1,15 +1,10 @@
 // story-battle-heal-first-v1: default OFF for the next run, card link and tracked page, the line in Activity History (a
 // SUPERVISOR step) and nothing new on the closed timeline.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { Window } from "happy-dom";
 import { expect, it } from "vitest";
-import { FEATURES } from "@pokebench/agent/features";
 import type { RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, must } from "../test-support/events.js";
 import { RunView } from "./model.js";
-import { DEFAULT_NEXT_RUN } from "./next-run.js";
-import { FEATURE_EXPLAINERS, eventText, harnessConfig } from "./panels.js";
+import { eventText } from "./panels.js";
 import { lanesSvg } from "./timeline.js";
 import { TraceBuilder } from "./trace.js";
 

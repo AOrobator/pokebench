@@ -1,20 +1,7 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
-import {mkdtempSync,readFileSync} from "node:fs";
 import {describe,expect,it,vi} from "vitest";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
-import type {StreamFn} from "@mariozechner/pi-agent-core";
-import {createAssistantMessageEventStream,type Model,type Message} from "@mariozechner/pi-ai";
-import {assistant,toolCall,userText} from "../test-support/pi.js";
-import {FrameStore} from "./frames.js";
-import {Governor,piLoop,play} from "./harness.js";
-import {StateMilestones} from "./milestones.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {parseEvent} from "./events.js";
-import {playGameTools} from "./play-wiring.js";
-import {IN_GAME,NAME_CONFIRMED,RUN_START_META} from "../test-support/events.js";
-import {ALL_TOOL_SWITCHES,observeTool,pressTool} from "./game-tools.js";
+import {IN_GAME,NAME_CONFIRMED} from "../test-support/events.js";
+import {ALL_TOOL_SWITCHES,pressTool} from "./game-tools.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {toolSwitches} from "./play-config.js";
 

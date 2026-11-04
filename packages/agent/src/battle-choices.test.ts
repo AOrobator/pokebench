@@ -1,16 +1,8 @@
-import {mkdtempSync,readFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import {describe,it,expect,vi} from 'vitest';
-import {Type, type Static} from 'typebox';
+import {Type} from 'typebox';
 import {Value} from 'typebox/value';
-import {BattleJournalSchema,parseEvent,type BodyOf} from './events.js';
-import {RunLog} from './run-log.js';
-import {RunRecorder} from './recorder.js';
-import {FrameStore} from './frames.js';
+import {BattleJournalSchema,type BodyOf} from './events.js';
 import {StateWatcher} from './game-state.js';
-import {humanSampler} from './human.js';
-import {RUN_START_META,IN_GAME} from '../test-support/events.js';
 export const choice={id:1,frame:10,recorded_ms:1000,battle:1,battle_turn:1,action:'move',action_id:0,origin:'selected',actor:{battler:0,position:0,party_slot:0,species_id:25,species:'PIKACHU',identity:'00000001:00000002',level:10,hp:20,max_hp:30},move:{id:55,name:'WATER GUN',slot:0,pp:25},target:{battler:1,position:1,party_slot:0,species_id:74,species:'GEODUDE',identity:'00000003:00000004',level:12,hp:30,max_hp:40},item_id:null,switch_party_slot:null,source:{main_func:0x0803D2E9,communication:[5,5],battle_type:0}} satisfies Omit<BodyOf<'battle_choice'>,'type'|'turn'>;
 describe('battle choice transport and recording',()=>{
  it('validates actual endpoint payload and refuses unavailable or malformed journals',async()=>{

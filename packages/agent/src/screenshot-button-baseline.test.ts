@@ -1,9 +1,8 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { SWITCHABLE_FEATURES, featuresOf, playHarnessFeatures } from "./features.js";
-import { normalizeFeatures, parsePlayPreset } from "./play-preset.js";
-import { playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
+import { normalizeFeatures } from "./play-preset.js";
+import { playSystemPrompt, toolSwitches } from "./play-config.js";
 import { gameTools } from "./game-tools.js";
 import { IN_GAME } from "../test-support/events.js";
 

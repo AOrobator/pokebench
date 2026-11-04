@@ -1,15 +1,8 @@
-import {mkdtempSync,readFileSync,rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {expect,it} from "vitest";
-import {snapshot} from "../test-support/instruction-goals.js";
-import {RUN_START_META,IN_GAME} from "../test-support/events.js";
+import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {featuresOf,type FeatureSet} from "./features.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {FrameStore} from "./frames.js";
 import {rusturfEntryFollowupContext} from "./rusturf-entry-followup.js";
 
 const LOCK="Field controls: available (terrain and objects can still block a direction)";

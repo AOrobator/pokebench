@@ -1,17 +1,7 @@
-import {fileURLToPath} from "node:url";
-import {readFixedDefinition} from "./fixed-definition.js";
-import {recipeText} from "../test-support/recipe-text.js";
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createServer } from "node:net";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
-import { armFeatures, parseFixedDefinition, type FixedLane } from "./fixed-design.js";
-import type { FixedRunOptions } from "./fixed-runner.js";
-import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1, MENU_SHA1, MENU_START } from "../test-support/fixed.js";
-import { Log, START } from "../test-support/events.js";
+import { fixedLaunchSpec, servingReceipt } from "./fixed-cli.js";
+import { type FixedLane } from "./fixed-design.js";
+import { MODEL_PATH } from "../test-support/fixed.js";
 
 
 const llamaLane = (modelUrl: string): FixedLane => ({ id: "A", gpu: "GPU0", gamePort: 8071, modelUrl });

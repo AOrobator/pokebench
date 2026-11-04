@@ -1,11 +1,9 @@
-import {serverOff, serverOffWith} from "../test-support/server-features.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import { readFileSync } from "node:fs";
 import { Value } from "typebox/value";
 import { expect, it } from "vitest";
 import { BattleMessageSchema } from "./events.js";
-import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
+import { SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "battle-message-waiting-v1";

@@ -1,11 +1,6 @@
 import {describe,expect,it} from "vitest";
-import {readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
-import {fileURLToPath} from "node:url";
 import {featuresOf,type FeatureSet} from "./features.js";
-import {SupervisorBriefing,type Stall} from "./loop-supervisor.js";
-import type {RunEvent} from "./events.js";
-import type {LoopKind} from "./loop-detection.js";
+import {SupervisorBriefing} from "./loop-supervisor.js";
 import {checkEvent} from "./events.js";
 import {IN_GAME} from "../test-support/events.js";
 

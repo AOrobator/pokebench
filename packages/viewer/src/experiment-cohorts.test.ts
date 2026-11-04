@@ -1,8 +1,5 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts } from "./experiment-cohorts.js";
+import { distinctLabels, legacyCohort, taggedCohorts } from "./experiment-cohorts.js";
 describe("experiment cohort definitions and labels", () => {
   it("orders tagged entries by first trial, tolerating unknown start times, and labels legacy values", () => {
     const defs = new Map([["exp", { id: "exp", title: "Experiment" }]]), A = "a".repeat(40), B = "b".repeat(40);

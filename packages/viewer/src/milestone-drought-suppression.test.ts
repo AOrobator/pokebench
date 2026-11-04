@@ -1,12 +1,9 @@
-import {recipeText} from "../test-support/recipe-text.js";
 import {expect,it} from "vitest";
 import {BASE_MS,Log,START} from "../test-support/events.js";
 import {RunView} from "./model.js";
 import {eventText,inspector} from "./panels.js";
 import {lanesSvg} from "./timeline.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
-import {armPreset,parseFixedDefinition} from "./fixed-design.js";
-import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 
 const ID="milestone-drought-suppression-v1";
 it("keeps suppressed droughts visible as diagnostics, without timeline marks or error counts",()=>{

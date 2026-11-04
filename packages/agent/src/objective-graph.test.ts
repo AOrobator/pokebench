@@ -1,9 +1,7 @@
-import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {OPTIONAL_PROGRESS_NAMES,PROGRESS_CATALOG} from "./story-progress.js";
 import {
   OBJECTIVE_EDGES,
-  OBJECTIVE_NODES,
   blockingPrerequisites,
   enabledObjectives,
   objectiveDepth,

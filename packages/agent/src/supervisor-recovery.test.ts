@@ -1,7 +1,4 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {expect,it} from "vitest";
-import {readFileSync} from "node:fs";
-import {featureInfo,playHarnessFeatures} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 
 import type {LoopNotice} from "./loop-detection.js";
@@ -54,11 +51,6 @@ it("qualifies prominent local goal entrances, refuses unknown reach, and exclude
  const away=new WalkAway(true);for(const y of [58,59,60])expect(away.observe({...blocked,position:{x:30,y}},goal,[route,target],true)).toBeNull();
 });
 
-import {gunzipSync} from "node:zlib";
-import {piLoop,play} from "./harness.js";
-import {createAssistantMessageEventStream} from "@mariozechner/pi-ai";
-import {assistant} from "../test-support/pi.js";
-import type {Model,Message} from "@mariozechner/pi-ai";
 
 
 

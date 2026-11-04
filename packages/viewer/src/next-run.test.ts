@@ -1,13 +1,7 @@
 import {LEGACY_ALL_ON as REGISTERED_ALL_ON} from "../../agent/test-support/legacy-features.js";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { Log, START } from "../test-support/events.js";
-import { processGroup } from "../test-support/process-group.js";
-import { leaseDir } from "./lease.js";
-import { DEFAULT_NEXT_RUN, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
+import { DEFAULT_NEXT_RUN, healthProbe, presetFor } from "./next-run.js";
 
 const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "semantic-navigation-v1":false, "deterministic-exploration-v1":false };
 Object.assign(ALL_ON,{"safe-navigation-strides-v1":false});
@@ -33,4 +27,3 @@ describe("operator control requests", () => {
 });
 
 
-import { HumanRestarts, type HumanRestartHost } from './next-run.js';

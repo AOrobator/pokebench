@@ -1,10 +1,7 @@
 import {createHash} from "node:crypto";
-import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync,existsSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
-import {armFeatureBits,armFeatures,parseFixedDefinition,materializeFixedSource} from "./fixed-design.js";
+import {parseFixedDefinition,materializeFixedSource} from "./fixed-design.js";
 import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
 import {definition} from "../test-support/fixed.js";
 const root=fileURLToPath(new URL("../../../",import.meta.url));

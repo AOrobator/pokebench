@@ -1,4 +1,3 @@
-import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {FEATURES,featuresOf,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";

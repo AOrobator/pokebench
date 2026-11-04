@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { RUN_START, SAMPLES } from "../test-support/events.js";
 import { Value } from "typebox/value";
-import { EventError, PokemonSchema, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema, startIdentity } from "./events.js";
+import { EventError, PokemonSchema, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, startIdentity } from "./events.js";
 
 const ENVELOPE = { v: 1, run: "2026-10-11T21-40-05_think-swarm_a1b2", seq: 0, t: "2026-10-11T21:40:05.123-04:00" };
 

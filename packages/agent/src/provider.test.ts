@@ -1,15 +1,7 @@
-import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
-import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
-import { runAgentLoop } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage } from "@mariozechner/pi-ai";
-import { Type } from "typebox";
+import { type Server } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
-import { discoverModels, selectModel } from "./gateway.js";
-import { gatewayLoopConfig, playLoopBase } from "./provider.js";
+import { gatewayLoopConfig } from "./provider.js";
 import {} from "./features.js";
-import { PRESENCE_PENALTY } from "./presence-penalty.js";
 
 
 

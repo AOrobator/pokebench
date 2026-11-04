@@ -1,8 +1,5 @@
-import {recipeText} from "../test-support/recipe-text.js";
 import { describe, expect, it } from "vitest";
-import { parsePlayPreset, presetFeatures } from "@pokebench/agent/play-preset";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
-import { armPreset, controlBaseProblems, parseFixedDefinition } from "./fixed-design.js";
 
 // the operator 2026-10-22 (frontier report fixes): each switch default off and on in the bundle arm; control keeps it off.
 const SWITCHES = [

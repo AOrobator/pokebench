@@ -1,6 +1,6 @@
 import {humanPlan} from "../../agent/src/human.js";
 import { describe, expect, it } from "vitest";
-import { BASE_MS, Log, START, assistant, fullRun, m4Run, state } from "../test-support/events.js";
+import { BASE_MS, Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { ASSUMED_TIMING, RunView, foldUntil, isRunEvent } from "./model.js";
 
 function fold(log: Log): RunView {

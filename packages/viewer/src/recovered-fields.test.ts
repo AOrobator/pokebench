@@ -1,12 +1,8 @@
-import { mkdirSync, mkdtempSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { expect, it } from "vitest";
 import { Log, START, state } from "../test-support/events.js";
-import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { StateMilestones } from "../../agent/src/milestones.js";
 import { RunView } from "./model.js";
-import { loadRecoveredRival, recoveredAttacher, recoveredSignature, withRecovered } from "./recovered-fields.js";
+import { withRecovered } from "./recovered-fields.js";
 
 
 const ram = (n: number) => ({ v: 1 as const, sequence: n, frame: n, path: `raw-ram/${String(n).padStart(8, "0")}.json.gz`, sha256: "a".repeat(64) });

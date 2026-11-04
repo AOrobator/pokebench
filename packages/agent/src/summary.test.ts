@@ -1,9 +1,6 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { EventBody, RunEvent } from "./events.js";
-import { readRun, summarize, summaryLines, type RunSummary } from "./summary.js";
+import { summarize, summaryLines, type RunSummary } from "./summary.js";
 
 type Body = EventBody extends infer E ? (E extends EventBody ? Omit<E, "turn"> : never) : never;
 

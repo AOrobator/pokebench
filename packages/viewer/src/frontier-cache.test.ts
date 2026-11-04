@@ -1,9 +1,6 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
-import { FRONTIER_FRESH_MS, createFrontierCache, readFrontierFile } from "./frontier-cache.js";
+import { createFrontierCache } from "./frontier-cache.js";
 import { frontierPair, frontierSplits, pairFrontier } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 

@@ -1,11 +1,7 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
-import { configOf, featureHistory, type RunConfig } from "./history.js";
-import { baselineOf } from "./runs.js";
+import { configOf } from "./history.js";
 
 const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 

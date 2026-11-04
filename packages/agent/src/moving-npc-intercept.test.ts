@@ -1,14 +1,13 @@
-import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import type {Button} from "./events.js";
-import {featureInfo,playHarnessFeatures,serverFeatureEnv,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {pressTool,type CheckedPressTool} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {INTERCEPT_MAX_FRAMES,type InterceptPlan,type InterceptReceipt,type PatrolStep,type WatchPlan,type WatchReceipt} from "./intercept.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {flagFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
 import {MOVING_NPC_SENTENCE,PATH_STEP_IN_SENTENCE,pathStepIn} from "./semantic-navigation.js";
 import {playGameTools} from "./play-wiring.js";

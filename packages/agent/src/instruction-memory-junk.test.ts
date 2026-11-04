@@ -1,7 +1,3 @@
-import {readFileSync} from "node:fs";
-import {execFileSync} from "node:child_process";
-import {dirname,resolve} from "node:path";
-import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {observedInstructions} from "./observed-instructions.js";

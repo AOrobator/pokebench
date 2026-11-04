@@ -1,9 +1,6 @@
-import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { checkEvent, type RunEvent } from "./events.js";
-import { BudgetTimer, STALL_STOP_MS, StallStop, ControlFile, RunControl, controlLine, freezeGame, parseControlRequest, watchControl, type ControlBody } from "./run-control.js";
+import { BudgetTimer, STALL_STOP_MS, StallStop, RunControl, controlLine, freezeGame, parseControlRequest, type ControlBody } from "./run-control.js";
 
 function harness(start = 1_000) {
   let now = start;

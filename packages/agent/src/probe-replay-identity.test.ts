@@ -1,16 +1,6 @@
-import {mkdtempSync,readFileSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import {afterEach,expect,it,vi} from "vitest";
-import {completeSimple,type Context,type Model} from "@mariozechner/pi-ai";
 import {RUN_START_META,SAMPLES} from "../test-support/events.js";
-import {assistant} from "../test-support/pi.js";
 import {recordedConversation,parseRun,type ProbePorts} from "./decision-probe.js";
-import {checkEvent} from "./events.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {FrameStore} from "./frames.js";
-import {GATEWAY_COMPAT} from "./gateway.js";
 import {filePorts,parseArgs} from "./probe-decision-cli.js";
 
 const sourceId=RUN_START_META.model.id;

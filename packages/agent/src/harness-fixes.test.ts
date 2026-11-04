@@ -1,23 +1,15 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {mkdtempSync,readFileSync,rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import {expect,it} from "vitest";
-import {IN_GAME,RUN_START_META} from "../test-support/events.js";
+import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
 import {DialogueLog} from "./dialogue-log.js";
-import {FrameStore} from "./frames.js";
 import {InstructionLedger} from "./instruction-ledger.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {NavigationMemory} from "./navigation-memory.js";
 import {playSystemPrompt} from "./play-config.js";
 import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {Governor,attachLoopGuard} from "./harness.js";
-import {LOOP_POLICY} from "./loop-detection.js";
 import {ObjectiveTracker} from "./objectives.js";
 import {NAVIGATE_RULES,withNavigation} from "./navigation.js";
 import {observeTool,pressTool} from "./game-tools.js";

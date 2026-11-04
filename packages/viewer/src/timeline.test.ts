@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BASE_MS, Log, START, fullRun } from "../test-support/events.js";
 import { RunView } from "./model.js";

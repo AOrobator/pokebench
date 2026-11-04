@@ -1,8 +1,5 @@
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {normalizeFeatures} from "./play-preset.js";
+import {type FeatureSet} from "./features.js";
 import {DIALOGUE_A_LINE_SECTION,DIALOGUE_BUTTON_B_SECTION,SEMANTIC_TALK_IS_CHEAP,SEMANTIC_TALK_IS_CHEAP_A_LINE,playSystemPrompt} from "./play-config.js";
 
 const ID = "dialogue-a-line-v1" as const;

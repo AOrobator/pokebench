@@ -1,11 +1,5 @@
-import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { humanPlan, humanLease, humanPlayUrl, viewerRunUrl } from './human.js';
-import { withRun, type RunHost } from './run.js';
-import { FrameStore } from './frames.js';
-import { parseEvent } from './events.js';
+import { humanPlayUrl, viewerRunUrl } from './human.js';
 it('samples idle human play but stops before sampling after a terminal boundary', async()=>{
  const {humanLoop}=await import('./human.js');let samples=0,boundaries=0,waits=0;let stopped=false;
  await humanLoop({stopped:()=>stopped,sample:()=>{samples++;return Promise.resolve();},boundary:()=>{boundaries++;if(boundaries===3)stopped=true;return Promise.resolve();},wait:()=>{waits++;return Promise.resolve();}});

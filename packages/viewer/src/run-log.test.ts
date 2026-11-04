@@ -1,10 +1,5 @@
-import { closeSync, ftruncateSync, mkdtempSync, openSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { RUN_LOG_MAX_BYTES, fileLines, linesOf } from "./run-log.js";
-import { reduceWorkbenchLog } from "./workbench-reader.js";
-import { readNativeRecording } from "./frontier-recording.js";
 
 describe("run logs too long for one string", () => {
 

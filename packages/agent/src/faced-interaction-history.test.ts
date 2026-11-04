@@ -1,14 +1,11 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
-import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // faced-interaction-history-v1: a movement-plus-A batch that opened attributed dialogue counts as trying
 // the exact faced target. Recorded case: 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84, seq 1537-1577.
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const ID="faced-interaction-history-v1";

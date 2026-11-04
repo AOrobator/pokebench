@@ -1,6 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { createServer, type Socket } from "node:net";
-import { setTimeout as startupTimer, clearTimeout as clearStartup } from "node:timers";
 import { counterbalancedTrials, prepareComparison, superviseComparison, type ComparisonHost } from "./serial-comparison.js";
 
 function defined<T>(value:T|undefined):T { if(value===undefined)throw new Error("test fixture missing value");return value; }
@@ -68,17 +66,13 @@ describe("frozen naming cohort",()=>{
   });
 });
 
-import { mkdtemp, mkdir, writeFile, readFile, rm, realpath, access } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { filesystemComparisonHost, verifyComparisonFiles, sha256, distDigest, type ComparisonManifest } from "./serial-comparison.js";
+import { rm } from "node:fs/promises";
+import { sha256, type ComparisonManifest } from "./serial-comparison.js";
 import { afterEach } from "vitest";
 const temporary:string[]=[];
 afterEach(async()=>{await Promise.all(temporary.splice(0).map(p=>rm(p,{recursive:true,force:true})));});
 
-import { comparisonCommand } from "./serial-comparison.js";
 
-import { NAME_CONFIRMED } from "../test-support/events.js";
 describe("child evidence and resume integrity",()=>{
  it("resumes only completed prefix and never replays already launched failures",async()=>{
   const m=prepareComparison(manifest()),h=host(),digest=sha256(JSON.stringify(m));
@@ -89,7 +83,6 @@ describe("child evidence and resume integrity",()=>{
  });
 });
 
-import { symlink } from "node:fs/promises";
 describe("qualification edge boundaries",()=>{
  it("rejects invalid roots, entrypoints, endpoints and artifact paths",()=>{
   for(const mutate of [(m:ComparisonManifest)=>{m.repoRoot="relative";},(m:ComparisonManifest)=>{m.build.path="/repo/other.js";},(m:ComparisonManifest)=>{defined(m.lanes[0]).gatewayUrl="file:///tmp/a";},(m:ComparisonManifest)=>{defined(m.lanes[0]).endpointFile={path:"relative",sha256:hash};},(m:ComparisonManifest)=>{m.presets.enforced.path="relative";}]){

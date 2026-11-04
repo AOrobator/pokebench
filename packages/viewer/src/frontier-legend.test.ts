@@ -1,6 +1,4 @@
 // @vitest-environment happy-dom
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
 import { FRONTIER_VERSION, HUMAN_VERSION, frontierLegend, type LegendState } from "./frontier-legend.js";

@@ -1,18 +1,9 @@
-import {readFileSync} from "node:fs";
-import {createServer} from "node:http";
-import type {AddressInfo} from "node:net";
 import {expect,it} from "vitest";
-import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
-import {featuresOf,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {featuresOf} from "./features.js";
+import {normalizeFeatures} from "./play-preset.js";
 import {ObservedInstructions} from "./observed-instructions.js";
 import {contextTools} from "./play-wiring.js";
-import {ContextBudget} from "./context-budget.js";
-import {ExactContext} from "./exact-context.js";
-import {Governor,piLoop,play} from "./harness.js";
-import {discoverModels,selectModel} from "./gateway.js";
-import {playLoopBase} from "./provider.js";
 
 const ID="instruction-memory-dedup-v1";
 const quote="Please deliver the LETTER to STEVEN in DEWFORD TOWN.\nThen take the GOODS to SLATEPORT.";

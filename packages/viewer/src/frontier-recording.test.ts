@@ -1,13 +1,6 @@
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
-import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { describe, expect, it } from "vitest";
-import { parseEvent } from "@pokebench/agent/events";
-import { StateMilestones, qualifiedNativeMilestone } from "../../agent/src/milestones.js";
-import { createNativeRecordingTailer, readNativeRecording } from "./frontier-recording.js";
+import { expect, it } from "vitest";
 import { RunView } from "./model.js";
-import { Log, START, assistant, state } from "../test-support/events.js";
+import { Log, START, state } from "../test-support/events.js";
 const clocked = { name_confirmed: true, intro_stage: 7 as const, rival_stage: 0 as const, birch_lab_stage: 0 as const, petalburg_gym_stage: 0 as const, woods_stage: 0 as const, clock_set: true, rival_battle_won: false, pokedex_received: false, running_shoes_received: false, starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false, rock_tomb_received: false };
 const quiet = { badges: [] as string[], party: [] as { species: string; level: number; hp: number; max_hp: number }[] };
 const atLab = (lab: number) => ({ ...clocked, rival_stage: 4 as const, birch_lab_stage: lab as 0 });

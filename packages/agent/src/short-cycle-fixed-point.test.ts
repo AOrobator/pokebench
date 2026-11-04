@@ -1,4 +1,3 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // short-cycle-fixed-point-v1 (the operator 2026-10-21 00:08 UTC: "lets do those fixes and put them in the bundle"; widened by
 // the coordinator to 2-4 turn cycles on run 97a0). Run 2026-10-20T19-58-04_qwen36-gpu0_ef9f pressed RIGHT,A every turn
@@ -9,16 +8,13 @@ import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 // every turn_start, assistant, tool_call, button_press, state, tool_result, milestone and dialogue_auto_advance event of
 // those turns, made by the test author; tool results drop `frames` and states drop the optional `raw_ram` reference;
 // other event types are dropped. Both are schema-valid and are read through parseRun (checkEvent) below.
-import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
-import {gunzipSync} from "node:zlib";
 import {IN_GAME} from "../test-support/events.js";
 import {assistant,toolCall,userText} from "../test-support/pi.js";
-import {decisionContext,parseRun} from "./decision-probe.js";
 import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
-import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 const RAW_PROGRESS_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...RAW_PROGRESS_ALL_ON,"coherent-battle-observation-v1":false,"progress-aware-cycles-v1":false};
 import {SUMMARY_FACT_KEYS} from "./party-facts.js";
@@ -397,47 +393,13 @@ describe("OFF and the switches it acts through",()=>{
 
 // Each recorded run's requests as the production wiring builds them before each turn's model call.
 // Each fixture is parsed once, through checkEvent like any recorded run (parseRun), so the replay reads schema-valid events.
-const parsed=new Map<string,readonly RunEvent[]>();
-const fixture=(name:string):readonly RunEvent[]=>{
- const hit=parsed.get(name);if(hit!==undefined)return hit;
- const events=parseRun(gunzipSync(readFileSync(new URL(`./fixtures/${name}`,import.meta.url))).toString("utf8")).events;
- parsed.set(name,events);return events;
-};
 
 describe("the cycle state is the whole recorded state minus a documented list",()=>{
  // Every path of a real recorded state is either in the fingerprint or on CYCLE_STATE_EXCLUDED, so a field the
  // readout adds later is fingerprinted unless someone lists it.
- const paths=(value:unknown,prefix:string,out:Set<string>):Set<string>=>{
-  if(Array.isArray(value)){for(const v of value)paths(v,`${prefix}[]`,out);if(value.length===0)out.add(prefix);return out;}
-  if(value!==null&&typeof value==="object"){const entries=Object.entries(value);for(const [k,v] of entries)paths(v,prefix===""?k:`${prefix}.${k}`,out);if(entries.length===0)out.add(prefix);return out;}
-  out.add(prefix);return out;
- };
  // An exclusion applies to its path, and only in its phases where it names them.
- const recordedState=(name:string,turn:number)=>{
-  const events=fixture(name);
-  const result=events.find(e=>e.type==="tool_result"&&e.turn===turn);
-  const s=result?.type==="tool_result"?events.find(e=>e.seq===result.state_seq):undefined;
-  if(s?.type!=="state"||!("started"in s))throw new Error("no state");
-  return s;
- };
  // The same recorded field state with a naming keyboard open: a non-clock interface whose value counts.
- const naming=()=>({...recordedState("short-cycle-97a0.jsonl.gz",121),screen:"naming",active_ui:ui("naming_keyboard","A","MAY")}) as Parameters<typeof cycleFields>[0];
- const cases:readonly [string,()=>Parameters<typeof cycleFields>[0]][]=[
-  ["ef9f turn 133 (clock confirmation)",()=>recordedState("short-cycle-ef9f.jsonl.gz",133)],
-  ["97a0 turn 120 (in PROF. BIRCH'S HOUSE)",()=>recordedState("short-cycle-97a0.jsonl.gz",120)],
-  ["97a0 turn 121 (LITTLEROOT TOWN)",()=>recordedState("short-cycle-97a0.jsonl.gz",121)],
-  ["97a0 turn 121 with a naming keyboard open",naming],
- ];
- for(const [] of cases){
- }
  // Every key of a recorded state that ends in diagnostic(s), given a failure, makes the state unusable.
- const diagnosticPaths=(value:unknown,at:readonly (string|number)[],out:(string|number)[][]):(string|number)[][]=>{
-  if(Array.isArray(value)){value.forEach((v,k)=>{diagnosticPaths(v,[...at,k],out);});return out;}
-  if(value!==null&&typeof value==="object")for(const [k,v] of Object.entries(value)){if(k.endsWith("diagnostic")||k.endsWith("diagnostics"))out.push([...at,k]);diagnosticPaths(v,[...at,k],out);}
-  return out;
- };
- for(const [] of cases){
- }
  it("requires a period on every short_cycle record, and none on the other triggers",()=>{
   const body={v:1,run:"r",seq:1,t:"2026-10-20T22:00:00.000-04:00",turn:5,type:"loop_breaker",stage:1,repeats:6,collapsed:4,text:null};
   expect(()=>checkEvent({...body,trigger:"short_cycle",period:2})).not.toThrow();

@@ -1,9 +1,6 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { GATEWAY_COMPAT } from "./gateway.js";
-import { LocalEndpointError, discoverLocal, readEndpoint } from "./local-endpoint.js";
+import { discoverLocal } from "./local-endpoint.js";
 
 const KEY = "test-key-not-real";
 

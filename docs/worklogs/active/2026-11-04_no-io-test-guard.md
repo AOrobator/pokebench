@@ -28,3 +28,4 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - `scripts/test_trainer_card_design_guard.py` and Playwright specs run only in `just trainer-card-check`, outside the guard.
 - `power_test.py` passes the guard but needs scipy, so it stays outside `just test`.
 - Lint on main already fails (9 ruff errors, `Iterable` undefined in map_observation.py); not touched here.
+- COMMIT: `test: floors at landed coverage, trainer-card-check its own command` (5b240678a). `just test` after: 60.76 s wall (330 s user, 31 s sys), all suites pass; 2 temp entries, both tool caches; `just trainer-card-check` and `just verify-vendor` pass.

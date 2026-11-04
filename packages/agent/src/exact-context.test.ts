@@ -1,14 +1,11 @@
-import { readFileSync } from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON as ALL_ON } from "../test-support/legacy-features.js";
 import { BUDGET_MARGIN, ContextBudget, IMAGE_WEIGHT, budgetLimit, overflowTokens, requestWeight } from "./context-budget.js";
-import { CountError, ExactContext, dropTurns, exactCountProblems, estimatePayload, llamaCppCounter, payloadCounter, vllmCounter, type ChatPayload, type Counted, type PayloadCounter, type PromptCount } from "./exact-context.js";
-import { SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures } from "./features.js";
+import { CountError, ExactContext, dropTurns, estimatePayload, llamaCppCounter, payloadCounter, vllmCounter, type ChatPayload, type Counted, type PayloadCounter, type PromptCount } from "./exact-context.js";
 import { GATEWAY_PROVIDER } from "./gateway.js";
 import { LOCAL_PROVIDER, VLLM_PROVIDER } from "./local-endpoint.js";
-import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { contextBudget } from "./play-wiring.js";
 
 const ID = "context-exact-count-v1";

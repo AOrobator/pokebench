@@ -1,7 +1,4 @@
-import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
-import {readFixedDefinition} from "./fixed-definition.js";
-import {armPreset} from "./fixed-design.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import {featureInfo,serverFeatureEnv,ALL_ON} from "@pokebench/agent/features";
 import {flagFeatures,normalizeFeatures} from "@pokebench/agent/play-preset";

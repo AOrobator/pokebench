@@ -1,10 +1,6 @@
-import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {IN_GAME,RUN_START_META} from "../test-support/events.js";
-import {checkEvent,type AuthoredSceneLabel,type RunEvent} from "./events.js";
-import {featuresOf,type FeatureSet} from "./features.js";
-import {contextDiff,decisionContext,recordedRun,type ProbePorts,type RawRef} from "./decision-probe.js";
-import {pageLines} from "./dialogue-auto-advance.js";
+import {type AuthoredSceneLabel} from "./events.js";
+import {type RawRef} from "./decision-probe.js";
 import {filePorts} from "./probe-decision-cli.js";
 
 const raw=(n:number)=>({v:1 as const,sequence:n,frame:n,path:`raw-ram/${String(n).padStart(8,"0")}.json.gz`,sha256:String(n).repeat(64)});

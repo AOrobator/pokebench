@@ -1,7 +1,5 @@
-import {readFileSync} from "node:fs";
-import {parseEvent} from "./events.js";
 import { expect, it } from "vitest";
-import { LoopDetector, LOOP_POLICY, semanticState } from "./loop-detection.js";
+import { LoopDetector, LOOP_POLICY } from "./loop-detection.js";
 import { IN_GAME } from "../test-support/events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 

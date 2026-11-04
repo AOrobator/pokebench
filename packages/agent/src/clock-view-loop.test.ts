@@ -1,15 +1,6 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
-import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
-import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {GameStateSnapshot} from "./game-state.js";
-import {attachLoopGuard,Governor} from "./harness.js";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
-import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
-import type {FeatureSet} from "./features.js";
 import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
-import type {RunEvent} from "./events.js";
 
 
 const story=(set:boolean):NonNullable<GameStateSnapshot["story"]>=>({

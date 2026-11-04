@@ -1,11 +1,6 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {createServer} from "node:http";
-import type {AddressInfo} from "node:net";
 import {describe,expect,it} from "vitest";
-import {Type} from "typebox";
-import {runAgentLoop,type AgentTool,type AgentToolResult} from "@mariozechner/pi-agent-core";
-import {discoverModels,selectModel} from "./gateway.js";
-import {gatewayLoopConfig} from "./provider.js";
+import {type AgentTool,type AgentToolResult} from "@mariozechner/pi-agent-core";
 import {type FeatureSet} from "./features.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunEvent} from "./events.js";

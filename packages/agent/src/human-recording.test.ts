@@ -1,13 +1,6 @@
-import {mkdtempSync,readFileSync,existsSync,mkdirSync,writeFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import {expect,it} from 'vitest';
 import {humanSampler, type HumanRecording} from './human.js';
-import {RunRecorder} from './recorder.js';
-import {RunLog} from './run-log.js';
-import {FrameStore} from './frames.js';
 import {parseEvent} from './events.js';
-import {RUN_START_META} from '../test-support/events.js';
 const state={screen:'title',started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null};
 const png='iVBORw0KGgo=';
 const segment={id:1,start_frame:0,end_frame:6,buttons:['A','UP'],start_ms:1000,end_ms:1100,request_seq:1,session:'human-test'};

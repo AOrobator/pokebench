@@ -1,11 +1,6 @@
-import {FROZEN_SWITCHES} from "../../agent/test-support/legacy-features.js";
-import {fileURLToPath} from "node:url";
 import {expect,it} from "vitest";
-import {parsePlayPreset,presetFeatures,normalizeFeatures,flagFeatures} from "@pokebench/agent/play-preset";
-import {featureInfo,serverFeatureEnv,playHarnessFeatures,featuresOf} from "@pokebench/agent/features";
-import {readFixedDefinition} from "./fixed-definition.js";
-import {armPreset} from "./fixed-design.js";
-import {DEFAULT_NEXT_RUN} from "./next-run.js";
+import {normalizeFeatures,flagFeatures} from "@pokebench/agent/play-preset";
+import {featuresOf} from "@pokebench/agent/features";
 
 const ID="map-observability-v1";
 

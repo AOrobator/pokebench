@@ -1,7 +1,4 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {mkdtempSync,readdirSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import type {RunPlan,RunHost} from './run.js';
 const context=vi.hoisted(()=>({completion:Promise.resolve(),hosts:[] as RunHost[],spawn:vi.fn<(file:string,args:readonly string[],options:{env:NodeJS.ProcessEnv})=>never>(),off:vi.fn(),plans:[] as RunPlan[],leases:[] as {root:string;run:string}[],paths:[] as {repo:string;common:string}[],release:vi.fn(),git:vi.fn(),write:vi.fn(),errors:vi.fn()}));
 vi.mock('node:child_process',()=>({execFileSync:(file:string,args:string[])=>{

@@ -1,9 +1,5 @@
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { endedByOperator } from "./frontier.js";
-import { EXCLUSIONS_DIR, exclusionLabel, main, readExclusions, writeExclusion } from "./run-exclusions.js";
 
 
 describe("operator run exclusions", () => {

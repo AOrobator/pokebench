@@ -1,10 +1,6 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
-import {readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
-import {normalizeFeatures,flagFeatures} from "./play-preset.js";
+import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {contextTools} from "./play-wiring.js";
 import {IN_GAME} from "../test-support/events.js";
 

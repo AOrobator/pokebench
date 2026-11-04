@@ -1,5 +1,4 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {gunzipSync} from "node:zlib";
 import type { AgentMessage, AgentTool, StreamFn } from "@mariozechner/pi-agent-core";
 import {
   createAssistantMessageEventStream,
@@ -10,12 +9,9 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import { appendFileSync, mkdtempSync,readFileSync,rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { ControlFile, RunControl, controlLine } from "./run-control.js";
+import { RunControl } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, attachLoopGuard,type Loop, type Window } from "./harness.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
 import {} from "./features.js";
 import { ContextBudget, type BudgetTrim } from "./context-budget.js";
 

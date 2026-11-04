@@ -6,17 +6,16 @@
 // path when you reach the DEVON researcher" before any delivered page had shown TEAM AQUA or DEVON, and "Not on this map:
 // PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN", three of which (BRENDAN, NORMAN, STEVEN) it had not
 // been shown; MOM, PROF. BIRCH, MAY, WALLY and ROXANNE had been, by turns 56 to 257.
-import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {describe,expect,it} from "vitest";
 import {checkEvent,type EventBody,type RunEvent} from "./events.js";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {type GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 import {DisprovedBeliefs} from "./disproved-beliefs.js";
 import {healFirstText,type HealFirstFacts} from "./heal-first.js";
-import {healBeforeTrainersV2Text,storyBattleText,warningText,withLowHpTrainerWarning,type HealBeforeTrainersFacts,type LowHpTrainerWarningFacts,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
+import {healBeforeTrainersV2Text,storyBattleText,warningText,type HealBeforeTrainersFacts,type LowHpTrainerWarningFacts,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
 import {storyCharacters} from "./people-ledger.js";
 import {TRAINER_HEAL_SECTION,playSystemPrompt} from "./play-config.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";

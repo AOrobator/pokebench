@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { RunView, isRunEvent } from "./model.js";
-import { Log, START, RUN, tAt, assistant, fullRun, state } from "../test-support/events.js";
+import { RunView } from "./model.js";
+import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { currentView, emptyCurrent, foldCurrent, parseCurrent, MAX_OPEN_TOOLS, MAX_CURRENT_MILESTONES } from "./current-state.js";
 
 const apply = (log: Log) => log.events.reduce((s, e) => foldCurrent(s, e), emptyCurrent());

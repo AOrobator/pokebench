@@ -1,8 +1,6 @@
 // cut-off-reply-feedback-v1: 11 GLM replies stopped at max_tokens with no tool call (2026-10-21T05-17-26_glm53-mac_ad34
 // seq 13818, 14408, 14998 in a row). Each was followed by the plain NUDGE, which never says the reply was cut off.
 import {describe,expect,it} from "vitest";
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import type {AssistantMessage,ToolResultMessage} from "@mariozechner/pi-ai";
 import {Governor,NUDGE,TEXT_ONLY_REMINDER,withoutTextOnlyReplies} from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";

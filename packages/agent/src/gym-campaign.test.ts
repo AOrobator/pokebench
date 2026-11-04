@@ -1,5 +1,3 @@
-import {readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";

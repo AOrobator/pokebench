@@ -6,7 +6,7 @@ import {playGameTools} from "./play-wiring.js";
 import {StateWatcher} from "./game-state.js";
 import {featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems} from "./features.js";
 import {parseSceneJournal,withSceneJournal,type SceneJournalReply} from "./scene-journal.js";
-import {RUN_START_META,IN_GAME} from "../test-support/events.js";
+import {IN_GAME} from "../test-support/events.js";
 const OFF=flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false});
 const ID="cutscene-journal-v1";
 const rec={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),lowHpTrainerWarning:()=>undefined,storyBattleWarning:()=>undefined,healFirstLine:()=>undefined,peopleIdCard:()=>undefined,destinationCitation:()=>undefined,unfinishedActivity:()=>undefined};

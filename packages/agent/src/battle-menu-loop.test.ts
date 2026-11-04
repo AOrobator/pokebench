@@ -1,7 +1,5 @@
 import {withoutFrontierTreatments} from "../test-support/legacy-features.js";
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {readFileSync} from "node:fs";
-import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
 import {featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
 import {flagFeatures} from "./play-preset.js";

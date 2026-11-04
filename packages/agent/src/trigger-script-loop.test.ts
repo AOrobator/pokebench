@@ -1,11 +1,8 @@
-import {recipeText} from "../../viewer/test-support/recipe-text.js";
 import {describe,expect,it} from "vitest";
-import {readFileSync} from "node:fs";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {LoopNotice} from "./loop-detection.js";
-import {featureInfo} from "./features.js";
 
 const GYM="See? This is PETALBURG CITY's GYM.";
 const SIGN="This is the GYM's sign. Look for it whenever you're looking for a GYM.";

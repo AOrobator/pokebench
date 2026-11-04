@@ -1,9 +1,7 @@
 import {expect,it} from "vitest";
-import {readFileSync} from "node:fs";
 import {withNavigation} from "./navigation.js";
 import {flagFeatures} from "./play-preset.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {parseGameState} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
 import type {CheckedPressTool} from "./game-tools.js";

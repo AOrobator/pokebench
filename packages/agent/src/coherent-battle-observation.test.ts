@@ -19,15 +19,3 @@ it("registers an appended server switch and preserves all historical OFF default
 });
 
 // Native observations cross the actual typed tool boundary before reaching pi.
-import {readFileSync,mkdtempSync,rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
-import {observeTool} from "./game-tools.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {FrameStore} from "./frames.js";
-import {parseEvent} from "./events.js";
-import {RUN_START_META} from "../test-support/events.js";
-import {parseGameState} from "./game-state.js";
-import {Value} from "typebox/value";
-import {Type} from "typebox";

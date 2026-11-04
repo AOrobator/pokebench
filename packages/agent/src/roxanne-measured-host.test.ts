@@ -1,15 +1,6 @@
-import {createHash} from "node:crypto";
-import {parseRun} from "./decision-probe.js";
-import {parseGameState} from "./game-state.js";
 import {it,expect} from "vitest";
-import {gunzipSync,gzipSync} from "node:zlib";
-import {readFileSync} from "node:fs";
-import {RUN_START_META} from "../test-support/events.js";
 import {checkEvent} from "./events.js";
-import {buildRestoreBundle} from "./roxanne-restore.js";
-import {digest,type CampaignJob} from "./roxanne-campaign.js";
-import {candidate,verifyEpisodeOutcome} from "./roxanne-campaign-runner.js";
-import {measuredCampaignHost,capturedRequestsHash,boundedGradeViews,blindedGradingPrompt,eligibleHeldoutTurns,type MeasuredPorts,type MeasuredCommand} from "./roxanne-measured-host.js";
+import {boundedGradeViews,blindedGradingPrompt} from "./roxanne-measured-host.js";
 
 it("gives the blind judge every textual behavior with hashes instead of encoded image pixels",()=>{
  const prompt=blindedGradingPrompt({id:"anonymous",messages:[{role:"user",content:[{type:"text",text:"observed fact"},{type:"image",data:"secret-pixels",mimeType:"image/png"}],timestamp:0}],nativeScore:{verified:true,departed:false,strictRecovery:false,eventualRecovery:false,unchangedRematches:0,recoverySeq:null,victory:false,changes:[],evidence:[]},traceHash:"hash",trace:{kind:"fixture",frames:[]}});

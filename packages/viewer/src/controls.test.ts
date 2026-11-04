@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES } from "@pokebench/agent/features";
 import { BASE_MS, Log, START } from "../test-support/events.js";

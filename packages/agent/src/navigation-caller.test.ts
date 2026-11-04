@@ -1,14 +1,8 @@
 import {expect,it} from "vitest";
-import {mkdtempSync,readFileSync,rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 import {withNavigation} from "./navigation.js";
 import {observeTool,pressTool,PRESS_TIMING} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
-import {RunRecorder} from "./recorder.js";
-import {RunLog} from "./run-log.js";
-import {FrameStore} from "./frames.js";
-import {RUN_START_META,IN_GAME} from "../test-support/events.js";
+import {IN_GAME} from "../test-support/events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 const tile=(x:number,y:number)=>({x,y,collision:0,behavior:0,elevation:3});
 

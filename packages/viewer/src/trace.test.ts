@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { NAME_CONFIRMED } from "../../agent/test-support/events.js";
-import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
+import { BASE_MS, Log, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { eventText } from "./panels.js";
 import { STAR_SVG, TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
 

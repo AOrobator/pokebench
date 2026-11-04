@@ -3,8 +3,6 @@ import { expect, it } from "vitest";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { PRESENCE_PENALTY, playSampling, samplingExtras } from "./presence-penalty.js";
-import { readFileSync } from "node:fs";
-import { checkEvent } from "./events.js";
 
 const ID = "presence-penalty-v1";
 const PREVIOUS = "navigate-first-prompt-v1";

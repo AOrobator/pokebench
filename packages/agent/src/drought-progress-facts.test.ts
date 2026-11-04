@@ -1,5 +1,3 @@
-import {readFileSync} from "node:fs";
-import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
@@ -8,7 +6,6 @@ import {ALL_ON,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from 
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {stallBriefing} from "./play-wiring.js";
 import {LoopDetector,type LoopNotice} from "./loop-detection.js";
-import {SupervisorBriefing} from "./loop-supervisor.js";
 import {STALL_DROUGHT_MS} from "./stall-briefing.js";
 const ID="drought-progress-facts-v1" as const;
 const BASE={...LEGACY_ALL_ON,"stall-briefing-v1":true,"same-plan-breaker-v1":false,"next-milestone-hint-v1":false};

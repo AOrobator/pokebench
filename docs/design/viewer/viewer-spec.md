@@ -41,4 +41,4 @@ The viewer reads only `runs/<id>/events.jsonl` and `runs/<id>/frames/` (PB7). Th
 
 ## Stack (default, pending operator pick)
 
-`packages/viewer`: TypeScript, served by a small Node server bound to 127.0.0.1 that lists `runs/`, tails `events.jsonl` over SSE and serves frames. The browser UI is plain TS plus SVG, with no framework, tested with vitest at the 90% floor. `just view [id]`.
+`packages/viewer`: TypeScript, served by a small Node server bound to 127.0.0.1 that lists `runs/`, tails `events.jsonl` over SSE and serves frames. The browser UI is plain TS plus SVG, with no framework, tested with vitest at the coverage floor. `just view [id]`.

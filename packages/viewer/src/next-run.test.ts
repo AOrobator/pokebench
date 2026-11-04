@@ -25,5 +25,3 @@ describe("operator control requests", () => {
     expect(await healthProbe(() => Promise.reject(new Error("refused")))(9003)).toBe(false);
   });
 });
-
-

@@ -10,4 +10,3 @@ describe("readRecentEvents", () => {
     expect(RECENT_EVENT_BYTES).toBe(8 * 1024 * 1024);
   });
 });
-

@@ -31,3 +31,10 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - COMMIT: `test: floors at landed coverage, trainer-card-check its own command` (5b240678a). `just test` after: 60.76 s wall (330 s user, 31 s sys), all suites pass; 2 temp entries, both tool caches; `just trainer-card-check` and `just verify-vendor` pass.
 - Review round 1: Claude BLOCKED, correctly: the pytest assertion-rewrite allowance hid module-level reads in 28 test files. Fixed by allowing tool frames only before any test frame, with an import-time proof module. Grok and Cursor GPT out of usage until 2026-11-17.
 - Second deletion pass: 28 test modules and their dependents; env now 2,727 tests, coverage 78.03 / 71.86 / 69.36, env floor 69.
+
+## Multi-Model Review Log (results)
+
+- Round 2 on packet b8d31c7b6, diff SHA-256 9b5b670e938fa80fec7c0f9f48a86c7cec903058e19a5a7697022c9771d49142: Claude CLI LGTM; GPT (Codex CLI gpt-5.6-sol) LGTM; fallback subagent (Sonnet) LGTM in place of Grok, which is out of usage until 2026-11-17, under the operator's standing word of 2026-10-22.
+- Follow-ups, not in this branch: Python threads running stdlib targets (`asyncio.to_thread(path.read_text)`) have no repo frame so pass the guard; `os.readlink`, `os.pipe`, `os.statvfs`, `os.mkfifo` raise no audit event; `pkgutil.get_data`; module-level `try/except OSError` in a test file; Node `fs.realpath.native`, `node:sqlite`, capitalised constructors, `createRequire`; Vitest `beforeEach` reset drops swallowed `beforeAll` violations; skills that name deleted tests (close-the-loop, feature-explainer).
+- `just test` at b8d31c7b6: 53.65 s wall, 5,933 tests (agent 2,377, viewer 791, env 2,727, gateway 38).
+- Post-review doc delta only: corrected CLAUDE.md wording, viewer-spec floor, tool-prompt-sync bullet, three EOF blanks.

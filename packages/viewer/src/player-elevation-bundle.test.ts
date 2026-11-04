@@ -5,4 +5,3 @@ const ID = "player-elevation-readout-v1";
 it("keeps the next-run default OFF", () => {
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
 });
-

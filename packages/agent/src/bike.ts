@@ -62,9 +62,11 @@ export function bikeTurn(state:GameStateSnapshot,path:readonly string[],next:{re
  if(onWater)return null;
  const blocked=bikeBlocked(next.behavior,elevation)||water.has(next.behavior);
  if(ridingNow)return blocked?false:null;
+ // A slope slide makes one step cross several tiles: such a route stays on foot.
+ const aligned=route.length===0||route.length===path.length;
  const metatile=state.running?.metatile,stop=route.findIndex(tile=>bikeBlocked(tile.behavior,elevation)||water.has(tile.behavior));
  const registered=bike.owned.includes(bike.registered)&&bike.registered in BIKES;
- return (flags&0x01)!==0&&registered&&bike.allow_cycling&&ridingSaves(stop<0?path:path.slice(0,stop),bike.registered===259,stop>=0)&&!blocked&&(metatile==null||!bikeBlocked(metatile,elevation))?true:null;
+ return (flags&0x01)!==0&&registered&&bike.allow_cycling&&aligned&&ridingSaves(stop<0?path:path.slice(0,stop),bike.registered===259,stop>=0)&&!blocked&&(metatile==null||!bikeBlocked(metatile,elevation))?true:null;
 }
 export function toggleNote(receipt:BikeToggleReceipt):string|null {
  if(receipt.reason==="riding")return "Bike: got on the bike with SELECT.";

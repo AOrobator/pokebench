@@ -73,6 +73,10 @@ it("prices only the stretch before a tile a bike cannot enter, plus getting off"
  expect(ridingSaves(R(24),false,true)).toBe(true);
  expect(ridingSaves(R(11),false,true)).toBe(false);
 });
+it("a route whose tiles do not match its steps one to one stays on foot",()=>{
+ expect(bikeTurn(field(1),R(16),plain,3,WATER,Array.from({length:18},()=>plain))).toBeNull();
+ expect(bikeTurn(field(1),R(16),plain,3,WATER,Array.from({length:16},()=>plain))).toBe(true);
+});
 it("factory: a straight route ending in long grass stays on foot when getting off would cost more",async()=>{
  const h=harness({[ID]:true},field(1,bike({owned:[272],registered:272}),x=>x===11?LONG_GRASS:0));
  await h.nav.execute("nav",{x:11,y:0,map_id:[0,9]});

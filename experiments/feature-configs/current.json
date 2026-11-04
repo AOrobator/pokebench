@@ -194,7 +194,12 @@
     "moving-npc-intercept-v1",
     "warp-areas-v1",
     "surf-navigation-v1",
-    "rejected-movement-prefix-v1"
+    "rejected-movement-prefix-v1",
+    "rotating-gate-positions-v1",
+    "rotating-gate-rules-v1",
+    "rotating-gate-map-v1",
+    "map-code-aliases-v1",
+    "rotating-gate-navigation-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -520,10 +525,10 @@
     "bike-register-v1": false,
     "bike-auto-mount-v1": false,
     "surf-navigation-v1": true,
-    "rotating-gate-positions-v1": false,
-    "rotating-gate-rules-v1": false,
-    "rotating-gate-map-v1": false,
-    "map-code-aliases-v1": false,
-    "rotating-gate-navigation-v1": false
+    "rotating-gate-positions-v1": true,
+    "rotating-gate-rules-v1": true,
+    "rotating-gate-map-v1": true,
+    "map-code-aliases-v1": true,
+    "rotating-gate-navigation-v1": true
   }
 }

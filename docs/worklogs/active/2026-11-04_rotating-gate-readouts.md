@@ -3,7 +3,7 @@
 **Started:** 2026-11-04
 **Status:** built on `claude/rotating-gate-readouts`, local only, not landed. Multi-model review and full suites not run.
 **Branch:** `claude/rotating-gate-readouts` (from main `c046cc642`), worktree `/private/tmp/pb-rotating-gate`.
-**Approval:** The operator approved all work items, relayed by the coordinator 2026-11-04. Item 5 (new switches ON in both arms) waits on the operator's confirmation.
+**Approval:** The operator approved all work items, relayed by the coordinator 2026-11-04. Item 5: The operator's "the gate switches should be on in both arms" reached this thread through the coordinator, 2026-11-04.
 
 ## Problem statement
 
@@ -41,3 +41,4 @@ Run 274b entered FORTREE CITY GYM at turn 2043 and made no milestone in the next
 - Item 5: `rejected-movement-prefix-v1` moved from `switches` to onInBoth, base true, mirrored in the plain-run preset. The five new switches stay off in both arms until the operator confirms.
 - Replay of real state 00057155: planNavigation from (4,19) to (4,18) off = UP, on = no route; (2,21) still routes on. All four dumps: pivots equal the raw orientation bytes.
 - Not done: live emulator proof, no-pause checkpoint decision for 274b (waiting on the operator), viewer restart.
+- Five gate switches moved to onInBoth, base true, mirrored in the plain-run preset. Relayed instruction, local branch only.

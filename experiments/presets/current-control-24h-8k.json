@@ -328,6 +328,11 @@
     "semantic-refusal-reasons-v1": true,
     "moving-npc-intercept-v1": true,
     "warp-areas-v1": true,
-    "surf-navigation-v1": true
+    "surf-navigation-v1": true,
+    "rotating-gate-positions-v1": true,
+    "rotating-gate-rules-v1": true,
+    "rotating-gate-map-v1": true,
+    "map-code-aliases-v1": true,
+    "rotating-gate-navigation-v1": true
   }
 }

@@ -14,9 +14,19 @@ import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixe
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
 
-// Boot starts save a native state at each frontier milestone (the operator 2026-11-04, about 5 ms a save).
-// A trial from a save state already begins past its capture point.
-export const checkpointEnv = (start: FixedStart): Readonly<Record<string, string>> => (start.kind === "boot" ? { POKEBENCH_CHECKPOINT_FRONTIER: "1" } : {});
+// The trial's own environment. Boot starts save a native state at each frontier milestone (the operator
+// 2026-11-04, about 5 ms a save); a trial from a save state already begins past its capture point.
+export function trialEnv(def: FixedDefinition, slot: Pick<QueueSlot, "slot" | "phase" | "arm">, lane: Pick<FixedLane, "gamePort">, paths: { readonly endpoint: string; readonly preset: string; readonly run: string }): Readonly<Record<string, string>> & { readonly POKEBENCH_PLAY_PRESET: string } {
+  return {
+    POKEBENCH_MODEL: def.serving.model,
+    POKEBENCH_ENDPOINT_FILE: paths.endpoint,
+    POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(lane.gamePort)}`,
+    POKEBENCH_PLAY_PRESET: paths.preset,
+    POKEBENCH_RUN_ID: paths.run,
+    POKEBENCH_EXPERIMENT: JSON.stringify({ id: def.id, arm: slot.arm, trial: slot.slot, of: Math.max(def.plan.length, slot.slot) }),
+    ...(phaseOf(def, slot.phase).start.kind === "boot" ? { POKEBENCH_CHECKPOINT_FRONTIER: "1" } : {}),
+  };
+}
 const startExpectation = (start: FixedStart): { kind: "save_state"; sha1: string } | { kind: "boot" } => (start.kind === "save_state" ? { kind: "save_state", sha1: start.sha1 } : { kind: "boot" });
 
 export class FixedRunError extends Error {
@@ -349,15 +359,7 @@ class Runner {
       ...(slot.replaces === null ? {} : { replaces: slot.replaces }),
     });
     this.setLane(lane.id, { state: "running", reason: `trial ${String(slot.slot)} (${slot.phase}, ${slot.arm})${slot.replaces === null ? "" : `, replacing #${String(slot.replaces)}`}`, slot: slot.slot, arm: slot.arm, phase: slot.phase, run, retryAt: null });
-    const env = {
-      POKEBENCH_MODEL: this.o.def.serving.model,
-      POKEBENCH_ENDPOINT_FILE: this.endpointPath(lane),
-      POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(lane.gamePort)}`,
-      POKEBENCH_PLAY_PRESET: this.presetPath(slot.phase, slot.arm),
-      POKEBENCH_RUN_ID: run,
-      POKEBENCH_EXPERIMENT: JSON.stringify({ id: this.o.def.id, arm: slot.arm, trial: slot.slot, of: Math.max(this.o.def.plan.length, slot.slot) }),
-      ...checkpointEnv(phaseOf(this.o.def, slot.phase).start),
-    };
+    const env = trialEnv(this.o.def, slot, lane, { endpoint: this.endpointPath(lane), preset: this.presetPath(slot.phase, slot.arm), run });
     let exit: number | null | undefined;
     let launchError: string | null = null;
     try {

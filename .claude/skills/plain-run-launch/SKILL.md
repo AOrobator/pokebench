@@ -8,7 +8,7 @@ description: Launch one ordinary `just run-agent` gameplay run — a solo contro
 One run, one arm, one wall cap. A launch is not done until `run_start` is read back from
 `runs/<id>/events.jsonl` and matches what you meant to launch.
 
-`scripts/launch.sh` does the launch: it refuses a bad preset, endpoint, port or commit, starts the run detached with `POKEBENCH_CHECKPOINT_FRONTIER=1`, and writes `launch.receipt.json`.
+`scripts/launch.sh --meta <dir> --model <id>` does the launch: it refuses a bad preset, endpoint, port or commit, starts the run detached with `POKEBENCH_CHECKPOINT_FRONTIER=1`, and writes `launch.receipt.json`.
 
 ## 1. Pick the arm file, not the flags
 

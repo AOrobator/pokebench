@@ -81,26 +81,34 @@ def _pad(pad: AreaPad, landing: LandingFacts) -> str:
     return at if tile is None else f"{at} → ({tile[0]},{tile[1]})"
 
 
-def warp_area_lines(pads: Sequence[tuple[AreaPad, bool]]) -> list[str]:
-    """One line per landing area. `pads` holds each warp and whether the player can reach it."""
-    areas: dict[tuple[str, str], list[tuple[AreaPad, LandingFacts, bool]]] = {}
+def warp_area_lines(pads: Sequence[tuple[AreaPad, bool | None]]) -> list[str]:
+    """One line per landing area. `pads` holds each warp and whether the player can reach it.
+
+    None means reach was not measured. A pad with no known section stays on its own line: matching
+    text does not make two unknown landings one area.
+    """
+    areas: dict[tuple[object, ...], list[tuple[AreaPad, LandingFacts, bool | None]]] = {}
     for pad, can in pads:
         if (landing := pad.landing) is not None:
-            areas.setdefault((pad.label, landing.exits), []).append((pad, landing, can))
+            alone = (pad.x, pad.y) if landing.visited is None else ()
+            areas.setdefault((pad.label, landing.exits, *alone), []).append((pad, landing, can))
     caveats = {landing.caveat for pad, _ in pads if (landing := pad.landing) is not None}
     lines = [" ".join((HEADER, max(caveats, key=len))).rstrip()] if areas else []
-    for (label, exits), members in areas.items():
-        first = members[0][1]
+    for members in areas.values():
+        label, first = members[0][0].label, members[0][1]
         parts = [f"- {label}."]
         if first.visited is not None:
             parts.append(f"Been there this run: {'yes' if first.visited else 'no'}.")
         if first.objects:
             parts.append(f"Objects there: {', '.join(first.objects)}.")
-        reachable = [_pad(p, landing) for p, landing, can in members if can]
-        cut_off = [_pad(p, landing) for p, landing, can in members if not can]
-        parts.append(f"Pads you can reach: {', '.join(reachable) or 'none'}.")
-        if cut_off:
-            parts.append(f"Pads you can't reach: {', '.join(cut_off)}.")
-        parts.append(exits)
+        for title, wanted in (
+            ("Pads you can reach", True),
+            ("Pads you can't reach", False),
+            ("Pads, reach not measured", None),
+        ):
+            found = [_pad(p, landing) for p, landing, can in members if can is wanted]
+            if found or (wanted is True and not all(can is None for _, _, can in members)):
+                parts.append(f"{title}: {', '.join(found) or 'none'}.")
+        parts.append(first.exits)
         lines.append(" ".join(parts))
     return lines

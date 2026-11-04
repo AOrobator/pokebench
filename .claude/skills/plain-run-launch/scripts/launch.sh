@@ -1,10 +1,10 @@
 #!/bin/zsh
 # Launch one ordinary play run, detached, from the main checkout.
 #
-#   launch.sh --meta runs/<meta-dir> [--port 8000] [--preset <file>]
-#             [--model deepseek/deepseek-v4.1-flash] [--endpoint <file>] [--commit <sha>]
+#   launch.sh --meta runs/<meta-dir> --model <model id> [--port 8000] [--preset <file>]
+#             [--endpoint <file>] [--commit <sha>]
 #
-# Refuses before starting anything when: the repo is not the main checkout, the preset does not
+# Always works from the main checkout. Refuses before starting anything when: the preset does not
 # parse, the endpoint file is missing or not loopback, the port is already taken, or the commit is
 # not in this repo. Writes runs/<meta>/launch.receipt.json and a log under runs/<meta>/logs/.
 set -euo pipefail
@@ -12,7 +12,7 @@ cd "$HOME/dev/pokebench"
 
 META=""; PORT="8000"
 PRESET="$PWD/experiments/presets/current-control-24h-8k.json"
-MODEL="deepseek/deepseek-v4.1-flash"
+MODEL=""
 ENDPOINT="$PWD/runs/orca-deepseek-control-24h/endpoint.json"
 COMMIT=""
 while (( $# )); do
@@ -27,6 +27,7 @@ while (( $# )); do
   esac
 done
 [[ -n "$META" ]] || { echo "launch: --meta is required" >&2; exit 2; }
+[[ -n "$MODEL" ]] || { echo "launch: --model is required" >&2; exit 2; }
 # The pin must exist here; the frozen checkout is a worktree of this repo, and prepareFixedTree
 # compares the checkout's `rev-parse HEAD` against this exact string, so a short sha would fail.
 COMMIT=$(git rev-parse --verify "${COMMIT:-HEAD}^{commit}" 2>/dev/null) || { echo "launch: ${COMMIT:-HEAD} is not a commit in this repo" >&2; exit 2; }

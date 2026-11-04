@@ -156,8 +156,8 @@ Warp destination at (8,9): LAVARIDGE TOWN (map 4/1) — southeast terrain sectio
 <h2>Where each fact comes from</h2>
 <table>
 <tr><th>Fact</th><th>Source</th><th>Bound</th></tr>
-<tr><td>Landing area</td><td>The warp's arrival tile and its terrain section, from <code>exit-labels-v3</code></td><td>Pads with the same area and the same exits share a line. An unknown section never merges two different exit lists.</td></tr>
-<tr><td>Can or can't reach</td><td>The same note the Warp destination line carries, from exit reachability and the Surf gate</td><td>Measured from the player's tile at this observation</td></tr>
+<tr><td>Landing area</td><td>The warp's arrival tile and its terrain section, from <code>exit-labels-v3</code></td><td>Pads with the same area and the same exits share a line. A pad whose section is unknown keeps its own line, even when its text matches another.</td></tr>
+<tr><td>Can or can't reach</td><td>The same note the Warp destination line carries, from exit reachability and the Surf gate</td><td>Measured from the player's tile at this observation. When neither reach fact was read the line says "reach not measured".</td></tr>
 <tr><td>Been there this run</td><td>Every tile the game server saw the player on this run, tested against the area's section</td><td>Starts empty, including from a save state. A re-render from one archive knows only the current tile. Left out when the section is unknown.</td></tr>
 <tr><td>Objects there</td><td>The destination map's object list in ROM, with hide flags and sprite variables read from the save</td><td>Only for areas the run has been in. Positions are where the map places them, not where they stand now. An object on a pad counts with the area the pad opens onto.</td></tr>
 </table>

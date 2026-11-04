@@ -14,6 +14,17 @@ function hostDeps(env: Record<string, string | undefined> = {}): FixedHostDeps {
 }
 
 describe("a frozen plain run", () => {
+  it("keeps the frontier checkpoint setting the launcher exported", async () => {
+    const envs: Record<string, string>[] = [];
+    await frozenPlay({
+      host: {verifyBuild: () => Promise.resolve(null)},
+      hostDeps: hostDeps({POKEBENCH_CHECKPOINT_FRONTIER: "1"}),
+      spawn: (spec) => { envs.push(spec.env); return Promise.resolve(0); },
+      out: () => {},
+    }, COMMIT);
+    expect(envs[0]?.["POKEBENCH_CHECKPOINT_FRONTIER"]).toBe("1");
+  });
+
   it("runs the agent of the experiment checkout, not the main one", async () => {
     const spawned: string[][] = [];
     const code = await frozenPlay({

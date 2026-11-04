@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, servingReceipt } from "./fixed-cli.js";
-import { checkpointEnv } from "./fixed-runner.js";
+import type { FixedStart } from "./fixed-design.js";
+import { trialEnv } from "./fixed-runner.js";
+import { definition, CLOCK_START } from "../test-support/fixed.js";
 import { type FixedLane } from "./fixed-design.js";
 import { MODEL_PATH } from "../test-support/fixed.js";
 
@@ -35,8 +37,13 @@ describe("production host pieces", () => {
   });
 
   it("saves frontier checkpoints on boot starts only, and only from the lane's own setting", () => {
-    expect(checkpointEnv({ kind: "boot" })).toEqual({ POKEBENCH_CHECKPOINT_FRONTIER: "1" });
-    expect(checkpointEnv({ kind: "save_state", path: "s.ss0", sha1: "a".repeat(40) })).toEqual({});
+    const env = (start: FixedStart) => trialEnv(
+      definition({ phases: [{ id: "p", perArm: 1, maxWallMs: 900_000, primary: true, start }] }),
+      { slot: 1, phase: "p", arm: "control" }, { gamePort: 8071 }, { endpoint: "/e", preset: "/p", run: "r" },
+    );
+    expect(env({ kind: "boot" })["POKEBENCH_CHECKPOINT_FRONTIER"]).toBe("1");
+    expect(env(CLOCK_START)).not.toHaveProperty("POKEBENCH_CHECKPOINT_FRONTIER");
+    expect(env(CLOCK_START)).toMatchObject({ POKEBENCH_RUN_ID: "r", POKEBENCH_PLAY_PRESET: "/p", POKEBENCH_GAME_SERVER_URL: "http://127.0.0.1:8071" });
     const inherited = { POKEBENCH_CHECKPOINT_FRONTIER: "1" };
     expect(fixedLaunchSpec({ root: "/r", runsRoot: "/r/runs", node: "/n", env: inherited }, "c".repeat(40), {}).env).toEqual({ POKEBENCH_RUNS_ROOT: "/r/runs" });
   });

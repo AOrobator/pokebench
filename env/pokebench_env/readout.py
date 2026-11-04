@@ -1067,7 +1067,7 @@ def format_readout(
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.
             # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
-            area_pads: list[tuple[SectionExit, bool]] = []
+            area_pads: list[tuple[SectionExit, bool | None]] = []
             for target in state.interaction_targets:
                 if target.destination is not None:
                     if (
@@ -1083,7 +1083,10 @@ def format_readout(
                         # warp-areas-v1: the detail moves to the area's one line, below.
                         grouped = WARP_AREAS not in off and section_exit.landing is not None
                         if grouped:
-                            area_pads.append((section_exit, not warp_note(target)))
+                            measured = reach is not None or gate is not None
+                            area_pads.append(
+                                (section_exit, not warp_note(target) if measured else None)
+                            )
                         lines.append(
                             f"Warp destination at ({target.x},{target.y}): "
                             f"{section_exit.label}{warp_note(target)}."

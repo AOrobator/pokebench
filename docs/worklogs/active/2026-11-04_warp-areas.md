@@ -16,7 +16,7 @@ Operator request (the operator via coordinator, 2026-11-04): a switched warp rea
 
 - [x] M1 RED tests
 - [x] M2 GREEN: readout, switch, config, fixed-run checkpoint env. Focused: 222 env tests, agent and viewer switch tests pass. Full gate pending the CPU window.
-- [ ] M3 Real render shown to the operator
+- [x] M3 Real render shown to the operator
 - [ ] M4 Explainer, review lanes, landing
 
 ## Real render
@@ -26,3 +26,18 @@ Turn 1,533 re-rendered from raw RAM with the run's own visits: 22,342 to 16,462 
 Wiring proof: replacing the observation factory's `area_visits` with None turned `test_every_observation_of_a_run_shares_one_visit_memory` red; restored, it passes.
 
 COMMIT: `feat(readout): group warps by landing area (warp-areas-v1)` (9d5d0129a)
+
+COMMIT: `test(readout): prove one visit memory per run; add plain-run launch.sh` (97a95400e)
+
+## Gates
+
+At 97a95400e: `just test` exit 0. `just lint`: `pnpm -r lint` passes, then ruff stops on 6 errors in adjacent_tiles.py, launcher.py and map_observation.py, files this diff does not touch (already on main). Changed Python files pass ruff, format and mypy; remaining mypy errors are the same map_observation line and mgba, which this worktree has not built. `just verify-vendor` OK from the main checkout at the same pin; this worktree has no submodule and the diff has no vendor change.
+
+## Multi-Model Review Log
+
+Round 1, packet 163a1c36f..97a95400e. Grok out of Cursor usage until 11/17 (standing rule: Claude, GPT and one fresh read-only fallback).
+- Fallback (Sonnet subagent): LGTM.
+- Claude BLOCKING, accepted: adding the variable to LANE_VARIABLES stripped it from plain runs too, so launch.sh's setting never reached the child. Added to PRESERVED_PLAIN_VARIABLES with a test. Also no proof boot trials get it: the env is now a pure `trialEnv` with boot and save-state tests.
+- GPT BLOCKING, accepted: two unknown landings with matching text merged (they now stay separate); launch.sh embedded a model id (`--model` now required).
+- Accepted hardening: unmeasured reach no longer prints as reachable. launch.sh header corrected.
+- Rebutted: entrance-activation caveat applying to same-map pads (a caution, not a fact claim); "Been there" missing a section crossed between observations (understates only, documented in the explainer as tiles the server saw).

@@ -172,6 +172,27 @@ def test_same_label_with_different_exits_stays_two_areas():
     assert len(lines) == 3
 
 
+def test_unknown_sections_with_the_same_text_are_never_merged():
+    unknown = "PLACE — terrain section unknown"
+    same = "Terrain exits after arrival: none established."
+    lines = warp_area_lines(
+        [
+            (pad(0, 0, unknown, LandingFacts((1, 1), same, "", None, ())), True),
+            (pad(1, 0, unknown, LandingFacts((9, 9), same, "", None, ())), True),
+        ]
+    )
+    assert len(lines) == 3
+
+
+def test_unmeasured_reach_is_never_stated_as_reachable():
+    lines = warp_area_lines(
+        [(pad(0, 0, "WEST", LandingFacts((1, 1), "Exits.", "", True, ())), None)]
+    )
+    assert lines[1] == (
+        "- WEST. Been there this run: yes. Pads, reach not measured: (0,0) → (1,1). Exits."
+    )
+
+
 def test_unknown_visit_and_no_landing_say_nothing_they_do_not_know():
     lines = warp_area_lines(
         [
@@ -218,7 +239,7 @@ def test_readout_on_keeps_a_short_warp_line_and_adds_the_area_line():
     assert destination_lines(frozenset()) == [
         "Warp destination at (0,1): WEST.",
         "Warps by landing area (pad → landing tile; facts about each pad, not a route):",
-        "- WEST. Been there this run: yes. Pads you can reach: (0,1) → (1,2). "
+        "- WEST. Been there this run: yes. Pads, reach not measured: (0,1) → (1,2). "
         "Terrain exits after arrival: none established.",
     ]
 

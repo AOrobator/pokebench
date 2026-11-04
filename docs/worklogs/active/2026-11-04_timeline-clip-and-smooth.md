@@ -15,8 +15,20 @@ Operator request (the operator, 2026-11-04): items stream in and clip behind a l
 
 - [x] M1 RED tests
 - [x] M2 GREEN: `LaneMotion`, `TimelineFeed`, `forgetBefore`, head refresh during a trace hold, label column, dots and note removed
-- [ ] M3 Headless proof, gates, cloud review
+- [x] M3a Headless proof and gates
+- [ ] M3b Cloud review
 - [ ] M4 Land, post-merge test, `just viewer-main`, live check
+
+## Evidence
+
+Headless against the live run, candidate modules in one tab and the served viewer in another, 239 s:
+
+- Gap from the oldest mark to the clip line after the window filled: candidate 0 s at all samples; served viewer up to 47.3 s.
+- Sudden losses: served viewer 78 to 25 and 88 to 22 marks. Candidate none of that kind; one 28 to 20 drop at the same second the served viewer also dropped, a burst of presses leaving the window.
+- Motion over 10 s: candidate moved on 100% of frames at 0.31 px; served viewer moved on 19% of frames in steps up to 2.46 px. Across a recenter, one mark's largest per-frame move was 0.94 px over 2,085 frames.
+- Same moment, both tabs: thinking 4 and 4, tool 11 and 11, presses 13 and 12, dots 0 and 49. Clip line 3 px past the widest label (102 to 105). Note absent.
+
+Gates at the rebased source: `just test` 0 (agent 2,377, viewer 797, env 2,727, gateway 38), `just verify-vendor` 0. `pnpm -r lint` passes. `just lint` stops at ruff on pre-existing env errors (map_observation.py, adjacent_tiles.py, launcher.py); this branch changes nothing under env/.
 
 ## Multi-Model Review Log
 

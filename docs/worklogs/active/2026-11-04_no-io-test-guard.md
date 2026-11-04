@@ -1,7 +1,7 @@
 # No-I/O test guard
 
 **Started:** 2026-11-04
-**Status:** in progress on `claude/no-io-test-guard` (local clone `/private/tmp/pb-no-io-guard`; this thread cannot create a worktree)
+**Status:** Landed on `main` at `b400796dd`; post-merge `just test` passes
 **Operator:** The operator, 2026-11-04 — "you're good to start cleaning up tests and land the guard though. im good with steps 1-5. coding is now allowed"; "the cap is 1 and tests that fail should be deleted. agents going forward will need better architecture"
 
 ## Steps
@@ -43,3 +43,4 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - Delta review round 2: Claude LGTM; GPT blocked on CLAUDE.md saying the pytest import allowance covers only reads; it covers any guarded I/O during application import. Wording corrected.
 - Delta review round 3: GPT LGTM; Claude blocked on the allowance wording naming only application modules. Wording now states the rule as implemented.
 - Delta review round 4: GPT and fallback LGTM; Claude still blocked on the sentence claiming a complete allowance list. Replaced it with a pointer to the guards' source. `_is_test_file` missing `*_test.py` and Node require-loader reads recorded as follow-ups.
+- Delta review round 5: Claude and GPT LGTM on b400796dd. Landed fast-forward at b400796dd. Post-merge `just test` on main passes, 5,933 tests.

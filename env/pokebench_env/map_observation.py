@@ -2,7 +2,6 @@
 
 import itertools
 from collections import defaultdict
-from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
@@ -14,6 +13,8 @@ from pokebench_env.map_tile_elements import tile_elements
 from pokebench_env.mauville_puzzle import HORIZONTAL, MAP, SWITCHES, VERTICAL
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pokebench_env.field_moves import MapGates
 
 SWITCH = "map-observability-v1"
@@ -259,7 +260,7 @@ class CodeBook:
             if "".join(name) not in LEGEND_KEYS
         )
 
-    def codes_for(self, tokens: Iterable[str]) -> dict[str, str]:
+    def codes_for(self, tokens: "Iterable[str]") -> dict[str, str]:
         """Codes for these tokens in first-appearance order; a new token takes a free one."""
         wanted = [token for token in dict.fromkeys(tokens) if len(token) > 1]
         for token in wanted:

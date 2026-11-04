@@ -57,3 +57,5 @@ Landed on main at 76765799d (ff-only). `just land-join` failed on missing argume
 Follow-up found: the plain-run preset `current-control-24h-8k.json` mirrors the recipe by hand and lacked the switch, so the next DeepSeek run would have run with it off. Added.
 
 The operator 2026-11-04: "lgtm as is, just lint needs to be fixed tho, go for that". Unvisited areas stay unnamed. Fixed the six ruff errors that were on main: wrapped comments and a docstring, imported `Iterable`, one `noqa: S606` on the deliberate `os.execvpe` argv-list exec. No behavior change, so no switch.
+
+Lint review round 1 at 2f7cdfcf0: Claude LGTM. GPT BLOCKING: unquoting the annotation changed runtime `__annotations__`. Fixed: quoted annotation kept, `Iterable` imported under TYPE_CHECKING.

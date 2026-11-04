@@ -19,7 +19,7 @@ Game rules (pret/pokeemerald 731ad5b, field_player_avatar.c):
 - A held press moves 2 tiles on water (5 of 5 at T1863-T1867), so water steps must be frame-owned strides.
 - Currents 0x50-0x53 and waterfall 0x13 are forced movement (DoForcedMovement).
 
-- [ ] M1 Game server: water strides and connection water edges
+- [x] M1 Game server: water strides and connection water edges. Focused: 24 env tests pass.
 - [ ] M2 Agent: A* surf mode, walker, shore stop, semantic navigation, exit lines, prompt
 - [ ] M3 Agent: currents and waterfalls as forced movement
 - [ ] M4 Config, explainer, emulator rehearsal

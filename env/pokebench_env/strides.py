@@ -1,4 +1,8 @@
-"""Frame-owned execution of an explicit, bounded, plain-floor (optionally tall-grass) corridor."""
+"""Frame-owned execution of an explicit, bounded, plain-floor (optionally tall-grass) corridor.
+
+surf-navigation-v1: a corridor can also be plain water while surfing. A held press moves two tiles
+there, so a water step has to be frame-owned to stop on the tile the route names.
+"""
 
 import struct
 from collections import OrderedDict
@@ -20,6 +24,21 @@ MAX_FRAMES = 224
 MAX_TILES = 8
 # MB_TALL_GRASS: grass the game lets the player run through (long grass is a different behavior).
 TALL_GRASS = 0x02
+# MB_POND_WATER, MB_INTERIOR_DEEP_WATER, MB_DEEP_WATER, MB_SOOTOPOLIS_DEEP_WATER, MB_OCEAN_WATER:
+# surfable water with no forced movement.
+SURF_FLOOR = frozenset({0x10, 0x11, 0x12, 0x14, 0x15})
+# PLAYER_AVATAR_FLAG_SURFING.
+SURFING = 1 << 3
+# read_running_permission's reasons that end a stride on any floor.
+STOP_REASONS = frozenset(
+    {
+        "battle",
+        "external_owner",
+        "field_controls_locked",
+        "unavailable",
+        "forced_or_transitioning",
+    }
+)
 DELTAS = {(0, -1): "UP", (0, 1): "DOWN", (-1, 0): "LEFT", (1, 0): "RIGHT"}
 
 
@@ -42,11 +61,15 @@ class StrideRequest(BaseModel):
     automatic_running: bool
     # grass-strides-v1: the corridor may include tall grass; absent means plain floor only.
     tall_grass: bool = False
+    # surf-navigation-v1: the corridor is plain water and the player is surfing.
+    surfing: bool = False
 
     @model_validator(mode="after")
     def corridor(self) -> "StrideRequest":
         if any(not 0 <= v <= 255 for v in self.map_id):
             raise ValueError("invalid map identity")
+        if self.surfing and self.tall_grass:
+            raise ValueError("a stride is on water or on land, not both")
         previous = self.origin
         delta = (self.path[0].x - previous.x, self.path[0].y - previous.y)
         if delta not in DELTAS:
@@ -77,12 +100,30 @@ class Stride:
 
     def receipt(self) -> dict[str, object]:
         return {
-            **self.request.model_dump(exclude=None if self.request.tall_grass else {"tall_grass"}),
+            **self.request.model_dump(
+                exclude={key for key in ("tall_grass", "surfing") if not getattr(self.request, key)}
+            ),
             "completed": self.completed,
             "frames": self.frames,
             "reason": self.reason,
             "stopped": self.stopped,
         }
+
+
+def floor_of(request: StrideRequest) -> frozenset[int]:
+    """The metatile behaviors this corridor may use."""
+    if request.surfing:
+        return SURF_FLOOR
+    return frozenset({0, TALL_GRASS}) if request.tall_grass else frozenset({0})
+
+
+def native_refuses(reason: str, flags: int | None, *, surfing: bool) -> bool:
+    """Whether the game's own state ends the stride; a surfing stride needs the player surfing."""
+    if reason in STOP_REASONS:
+        return True
+    if surfing:
+        return flags is None or not flags & SURFING
+    return reason == "not_on_foot"
 
 
 def _player(read: ReadMemory) -> tuple[int, tuple[int, int], tuple[int, int], bytes]:
@@ -108,7 +149,7 @@ def _safe_next(
     if local is None:
         return False
     points = {(t.x, t.y): t for t in local.tiles}
-    floor = (0, TALL_GRASS) if s.request.tall_grass else (0,)
+    floor = floor_of(s.request)
     for p in (position, target):
         t = points.get(p)
         if (
@@ -164,13 +205,8 @@ def install_strides(
             save, map_id, position, obj = _player(read)
             if list(map_id) != s.request.map_id:
                 return stop(s, "map changed")
-            if native.controllable is None or native.reason in (
-                "battle",
-                "external_owner",
-                "field_controls_locked",
-                "unavailable",
-                "forced_or_transitioning",
-                "not_on_foot",
+            if native.controllable is None or native_refuses(
+                native.reason, native.avatar_flags, surfing=s.request.surfing
             ):
                 return stop(s, "field input unavailable")
             moving = bool(obj[0] & 2 or (obj[0] & 0x40 and not obj[0] & 0x80))

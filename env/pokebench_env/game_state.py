@@ -372,6 +372,7 @@ def read_game_state(
     dynamic_warp_enabled: bool = True,
     displayed_names_enabled: bool = False,
     connection_edges_enabled: bool = False,
+    surf_navigation_enabled: bool = False,
     in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
     static_npc_templates_enabled: bool = False,
@@ -672,6 +673,7 @@ def read_game_state(
             read,
             maps,
             edges=connection_edges_enabled,
+            water_edges=surf_navigation_enabled,
             map_observability=map_observability_enabled,
             map_id=map_id,
         )

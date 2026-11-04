@@ -73,6 +73,8 @@ class Connection:
     destination_name: str
     # connection-edge-tiles-v1 only: None when off, not a walking connection, or unreadable.
     edges: tuple[Tile, ...] | None = None
+    # surf-navigation-v1 only: the edge tiles crossable while surfing; None when off or unreadable.
+    water_edges: tuple[Tile, ...] | None = None
 
     def json(self) -> dict[str, object]:
         body: dict[str, object] = {
@@ -83,6 +85,8 @@ class Connection:
         }
         if self.edges is not None:
             body["edges"] = [{"x": x, "y": y} for x, y in self.edges]
+        if self.water_edges is not None:
+            body["water_edges"] = [{"x": x, "y": y} for x, y in self.water_edges]
         return body
 
     def line(
@@ -271,6 +275,7 @@ def read_topology(
     maps: NameLookup,
     *,
     edges: bool = False,
+    water_edges: bool = False,
     map_observability: bool = False,
     map_id: tuple[int, int] | None = None,
 ) -> Topology | None:
@@ -324,6 +329,9 @@ def read_topology(
                 maps.name(destination) or f"unknown map {group}/{number}",
                 _edges(read, DIRECTIONS[direction], offset, destination)
                 if edges and DIRECTIONS[direction] in STEPS
+                else None,
+                _edges(read, DIRECTIONS[direction], offset, destination, water=True)
+                if water_edges and DIRECTIONS[direction] in STEPS
                 else None,
             )
         )

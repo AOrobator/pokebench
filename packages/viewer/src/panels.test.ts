@@ -1154,6 +1154,16 @@ it("links the native Surf navigation card, default off",async()=>{
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links the five rotating-gate cards to one explainer, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ for(const id of ["rotating-gate-positions-v1","rotating-gate-rules-v1","rotating-gate-map-v1","map-code-aliases-v1","rotating-gate-navigation-v1"] as const){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  expect(FEATURE_EXPLAINERS[id]).toBe("rotating-gate-readouts-v1.html");
+  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe("/explainers/rotating-gate-readouts-v1.html");
+ }
+});
+
 it("links the warps-by-landing-area card, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="warp-areas-v1";

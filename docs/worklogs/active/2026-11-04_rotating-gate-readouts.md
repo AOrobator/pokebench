@@ -1,7 +1,7 @@
 # Rotating-gate readouts: correct positions, rules on the map, navigate_to stops at arms
 
 **Started:** 2026-11-04
-**Status:** in progress on `claude/rotating-gate-readouts`; local only, not landed.
+**Status:** built on `claude/rotating-gate-readouts`, local only, not landed. Multi-model review and full suites not run.
 **Branch:** `claude/rotating-gate-readouts` (from main `c046cc642`), worktree `/private/tmp/pb-rotating-gate`.
 **Approval:** The operator approved all work items, relayed by the coordinator 2026-11-04. Item 5 (new switches ON in both arms) waits on the operator's confirmation.
 
@@ -30,7 +30,7 @@ Run 274b entered FORTREE CITY GYM at turn 2043 and made no milestone in the next
 
 - [x] M1: registry and server switches (items 1, 2, 3)
 - [x] M2: navigate_to (item 4)
-- [ ] M3: recipe (item 5), explainer, replay check on 274b dumps
+- [x] M3: recipe (item 5), explainer, replay check on 274b dumps
 
 ## Log
 
@@ -38,3 +38,6 @@ Run 274b entered FORTREE CITY GYM at turn 2043 and made no milestone in the next
 - M2 GREEN: 147 passed across rotating-gate-navigation, navigation-tool-switches, bike-navigation, surf-navigation, navigation-strides, features, play-preset. Removing the `rotatingGates` factory wiring failed two tests (walks up to the arm; presses nothing), then restored.
 - Replay on 274b dumps 00057101, 00057155, 00057425, 00057467: every gate listed, no transitioning, rules once per readout. Files in `runs/rotating-gate-readouts/`.
 - Test-first order was not kept: implementation and tests landed together, so no separate RED commit exists.
+- Item 5: `rejected-movement-prefix-v1` moved from `switches` to onInBoth, base true, mirrored in the plain-run preset. The five new switches stay off in both arms until the operator confirms.
+- Replay of real state 00057155: planNavigation from (4,19) to (4,18) off = UP, on = no route; (2,21) still routes on. All four dumps: pivots equal the raw orientation bytes.
+- Not done: live emulator proof, no-pause checkpoint decision for 274b (waiting on the operator), viewer restart.

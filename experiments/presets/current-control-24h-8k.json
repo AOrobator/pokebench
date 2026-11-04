@@ -245,7 +245,7 @@
     "menu-item-guidance-v1": false,
     "factual-healing-guidance-v1": false,
     "static-npc-template-approach-v1": false,
-    "rejected-movement-prefix-v1": false,
+    "rejected-movement-prefix-v1": true,
     "turn-drought-clock-v1": false,
     "away-note-buildings-v1": false,
     "current-map-display-name-v1": false,

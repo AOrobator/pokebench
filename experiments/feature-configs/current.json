@@ -43,7 +43,6 @@
     "menu-item-guidance-v1",
     "factual-healing-guidance-v1",
     "static-npc-template-approach-v1",
-    "rejected-movement-prefix-v1",
     "turn-drought-clock-v1",
     "away-note-buildings-v1",
     "current-map-display-name-v1",
@@ -194,7 +193,8 @@
     "semantic-refusal-reasons-v1",
     "moving-npc-intercept-v1",
     "warp-areas-v1",
-    "surf-navigation-v1"
+    "surf-navigation-v1",
+    "rejected-movement-prefix-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -429,7 +429,7 @@
     "menu-item-guidance-v1": false,
     "factual-healing-guidance-v1": false,
     "static-npc-template-approach-v1": false,
-    "rejected-movement-prefix-v1": false,
+    "rejected-movement-prefix-v1": true,
     "turn-drought-clock-v1": false,
     "drought-progress-credit-v2": false,
     "open-milestone-stall-v1": false,
@@ -519,6 +519,11 @@
     "bike-navigation-v1": false,
     "bike-register-v1": false,
     "bike-auto-mount-v1": false,
-    "surf-navigation-v1": true
+    "surf-navigation-v1": true,
+    "rotating-gate-positions-v1": false,
+    "rotating-gate-rules-v1": false,
+    "rotating-gate-map-v1": false,
+    "map-code-aliases-v1": false,
+    "rotating-gate-navigation-v1": false
   }
 }

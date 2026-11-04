@@ -36,3 +36,5 @@ Activation: on in both arms with this landing, by operator instruction. No compa
 M1 RED: env/tests/env/test_surf_navigation.py fails at collection.
 
 M2/M3 RED: packages/agent/src/surf-navigation.test.ts.
+
+Round 1, base c9bb2a905, head b65a22f73, diff sha 1078d593: Claude BLOCKING (bridges were walls to a surfer: Fix, SURF_BRIDGES in planner, strides and server). GPT BLOCKING: launch onto a current kept a free node (Fix, the launch resumes where the push ends); "Exits you can reach from the water" overclaimed against currents (Fix, reworded to say currents and waterfalls are not counted); water_edges ON untested (Fix, test_read_topology_asks_for_the_surfing_tiles_when_on, red with the ON branch deleted, green restored; the rehearsal also read real water_edges counts: Rustboro NORTH 5 foot, 11 water). Grok lane: cursor usage limit on cursor-grok-4.5-high and grok-4.7-medium, so per the operator's standing rule Claude, GPT and one fresh read-only fallback reviewer are full approval. Claude's hardening notes (toShore facing not rechecked, closed waterfall on foot blocks a launch search riding it down) are follow-ups.

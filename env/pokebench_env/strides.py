@@ -27,6 +27,9 @@ TALL_GRASS = 0x02
 # MB_POND_WATER, MB_INTERIOR_DEEP_WATER, MB_DEEP_WATER, MB_SOOTOPOLIS_DEEP_WATER, MB_OCEAN_WATER:
 # surfable water with no forced movement.
 SURF_FLOOR = frozenset({0x10, 0x11, 0x12, 0x14, 0x15})
+# MB_BRIDGE_OVER_* and their edges: a surfer passes under them at elevation 15.
+SURF_BRIDGES = frozenset({0x70, 0x71, 0x72, 0x73, 0x7A, 0x7B, 0x7C, 0x7D})
+MULTI_LEVEL = 15
 # PLAYER_AVATAR_FLAG_SURFING.
 SURFING = 1 << 3
 # read_running_permission's reasons that end a stride on any floor.
@@ -113,8 +116,13 @@ class Stride:
 def floor_of(request: StrideRequest) -> frozenset[int]:
     """The metatile behaviors this corridor may use."""
     if request.surfing:
-        return SURF_FLOOR
+        return SURF_FLOOR | SURF_BRIDGES
     return frozenset({0, TALL_GRASS}) if request.tall_grass else frozenset({0})
+
+
+def level_fits(request: StrideRequest, elevation: int) -> bool:
+    """A corridor stays on its level; a surfer also passes under multi-level bridge tiles."""
+    return elevation == request.elevation or (request.surfing and elevation == MULTI_LEVEL)
 
 
 def native_refuses(reason: str, flags: int | None, *, surfing: bool) -> bool:
@@ -156,7 +164,7 @@ def _safe_next(
             t is None
             or t.collision != 0
             or t.behavior not in floor
-            or t.elevation != s.request.elevation
+            or not level_fits(s.request, t.elevation)
         ):
             return False
     if any((x, y) == target for _, x, y in local.objects):

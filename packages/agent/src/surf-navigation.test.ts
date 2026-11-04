@@ -62,6 +62,17 @@ describe("planner",()=>{
  });
 });
 
+describe("bridges",()=>{
+ const under=row({3:{behavior:0x70,elevation:15}});
+ it("passes under a bridge while surfing, in one stride",()=>{
+  expect(planNavigation(field(2,true,under),{x:5,y:0},ON)).toEqual(["RIGHT","RIGHT","RIGHT"]);
+  expect(planStride(field(2,true,under),["RIGHT","RIGHT","RIGHT"],ON)?.path).toEqual([{x:3,y:0},{x:4,y:0},{x:5,y:0}]);
+ });
+ it("a bridge tile at another level is not passable from water",()=>{
+  expect(planNavigation(field(2,true,row({3:{behavior:0x70,elevation:4}})),{x:5,y:0},ON)).toBeNull();
+ });
+});
+
 describe("forced water",()=>{
  const east=row({3:{behavior:CURRENT_EAST},4:{behavior:CURRENT_EAST}});
  it("rides a current to where it ends, in one step",()=>{
@@ -121,6 +132,11 @@ describe("strides",()=>{
 });
 
 describe("launch point",()=>{
+ it("a launch onto a current continues from where the push ends",()=>{
+  const tiles=row({2:{behavior:CURRENT_EAST},3:{behavior:CURRENT_EAST}});
+  expect(surfLaunch(field(1,false,tiles),[{x:2,y:0}],ON)).toBeNull();
+  expect(surfLaunch(field(1,false,tiles),[{x:4,y:0}],ON)).toMatchObject({at:{x:1,y:0},water:{x:2,y:0}});
+ });
  it("names the shore tile, the water tile and the facing",()=>{
   expect(surfLaunch(field(0,false),[{x:7,y:0}],ON)).toMatchObject({at:{x:1,y:0},water:{x:2,y:0},facing:"RIGHT"});
  });

@@ -5,7 +5,7 @@ import {isCheckedPress,type BeforePressCheck,type CheckedPressOptions} from "./g
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION,SEMANTIC_NAVIGATE_DESCRIPTION} from "./navigate-first.js";
-import {COUNTER,EDGE_WALLS,FORCED_WATER,GAME_RULE,LAUNCH_WATER,LEDGES,OPPOSITE,SHORE_ELEVATION,SURFING_FLAG,SURF_FLOOR,WATER,WATER_WARPS,type Direction,type ElevationRule} from "./tile-rules.js";
+import {COUNTER,EDGE_WALLS,FORCED_WATER,GAME_RULE,LAUNCH_WATER,LEDGES,MULTI_LEVEL,OPPOSITE,SHORE_ELEVATION,SURFING_FLAG,SURF_FLOOR,SURF_TRAVEL,WATER,WATER_WARPS,type Direction,type ElevationRule} from "./tile-rules.js";
 import {reachableSectionAlternatives} from "./reachable-section-alternatives.js";
 import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
@@ -145,7 +145,7 @@ function forcedPath(geometry:Geometry,next:Point):Point[]|null {
  for(let p=next,push=FORCED_WATER.get(first.behavior);push!==undefined;){
   const [dx,dy]=STEP[push],after={x:p.x+dx,y:p.y+dy},tile=geometry.tile(after);
   if(tile===undefined||seen.has(key(after))||tile.collision!==0||geometry.objects.some(o=>o.x===after.x&&o.y===after.y))return null;
-  if(!SURF_FLOOR.has(tile.behavior)&&!FORCED_WATER.has(tile.behavior))return null;
+  if(!SURF_TRAVEL.has(tile.behavior)&&!FORCED_WATER.has(tile.behavior))return null;
   seen.add(key(after));tiles.push(after);p=after;push=FORCED_WATER.get(tile.behavior);
  }
  return tiles;
@@ -572,7 +572,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
      pending.push(cost+distance(end,goal),{...carried,p:end,here:geometry.tile(end)?.elevation??node.here,elevation:node.elevation,cost,surf:true});continue;
     }
     if(FORCED_WATER.has(tile.behavior))continue;
-    const entersWater=SURF_FLOOR.has(tile.behavior)||(WATER_WARPS.has(tile.behavior)&&isGoal&&warps.has(key(next)));
+    const entersWater=SURF_TRAVEL.has(tile.behavior)||(WATER_WARPS.has(tile.behavior)&&isGoal&&warps.has(key(next)));
     if(entersWater){
      if((warps.has(key(next))&&!isGoal)||mismatch(node.elevation,tile.elevation))continue;
      if(!isGoal&&triggerAt(options.triggers,next,node.elevation)!==undefined)continue;
@@ -585,8 +585,11 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    }
    // surf-navigation-v1: IsPlayerFacingSurfableFishableWater; only a launch search takes this edge, and it never walks it.
    if(options.launch!==undefined&&node.elevation===SHORE_ELEVATION&&tile.collision===0&&LAUNCH_WATER.has(tile.behavior)&&mismatch(node.elevation,tile.elevation)&&!occupiedFor(tile.elevation)(next)){
-    const cost=node.cost+LAUNCH_COST;
-    pending.push(cost+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:tile.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction,move:"Surf"}});continue;
+    // A launch onto a current is pushed on at once, so the route resumes where the push ends.
+    const pushed=FORCED_WATER.has(tile.behavior)?forcedPath(geometry,next):[next];
+    const end=pushed?.at(-1);if(pushed===null||end===undefined)continue;
+    const cost=node.cost+LAUNCH_COST+pushed.length-1;
+    pending.push(cost+distance(end,goal),{...carried,p:end,here:geometry.tile(end)?.elevation??tile.elevation,elevation:tile.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction,move:"Surf"}});continue;
    }
    if(options.slopes===true&&tile.behavior===SLOPE){
     // A slope is entered only moving down, slides to the first tile below it, and is never a goal.
@@ -803,10 +806,10 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  if(elevation<1||elevation>14)return null;
  // surf-navigation-v1: a held press moves two tiles on water, so water steps go by a frame-owned corridor.
  const surfing=options.surf===true&&isSurfing(state);
- const floor=(t:Tile):boolean=>surfing?SURF_FLOOR.has(t.behavior):t.behavior===0||(tallGrass&&t.behavior===TALL_GRASS);
+ const floor=(t:Tile):boolean=>surfing?SURF_TRAVEL.has(t.behavior):t.behavior===0||(tallGrass&&t.behavior===TALL_GRASS);
  const safe=(p:Point):boolean=>{
   const t=geometry.tile(p);
-  return t!==undefined&&t.collision===0&&floor(t)&&t.elevation===elevation&&!geometry.objects.some(o=>key(o)===key(p))&&!geometry.warps.some(w=>key(w)===key(p))&&!(state.world_context?.triggers??[]).some(t=>t.x===p.x&&t.y===p.y)&&!options.triggers?.some(t=>t.x===p.x&&t.y===p.y);
+  return t!==undefined&&t.collision===0&&floor(t)&&(t.elevation===elevation||(surfing&&t.elevation===MULTI_LEVEL))&&!geometry.objects.some(o=>key(o)===key(p))&&!geometry.warps.some(w=>key(w)===key(p))&&!(state.world_context?.triggers??[]).some(t=>t.x===p.x&&t.y===p.y)&&!options.triggers?.some(t=>t.x===p.x&&t.y===p.y);
  };
  if(!safe(origin))return null;
  const delta=DIRECTIONS.find(([d])=>d===path[0]);if(delta===undefined)return null;

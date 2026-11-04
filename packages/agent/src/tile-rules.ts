@@ -27,6 +27,9 @@ export const SURFING_FLAG=1<<3;
 export const SHORE_ELEVATION=3;
 // Surfable water with no forced movement: MB_POND_WATER, INTERIOR_DEEP_WATER, DEEP_WATER, SOOTOPOLIS_DEEP_WATER, OCEAN_WATER.
 export const SURF_FLOOR:ReadonlySet<number>=new Set([0x10,0x11,0x12,0x14,0x15]);
+// MB_BRIDGE_OVER_* and their edges: a surfer passes under them, because elevation 15 never mismatches.
+export const SURF_BRIDGES:ReadonlySet<number>=new Set([0x70,0x71,0x72,0x73,0x7a,0x7b,0x7c,0x7d]);
+export const SURF_TRAVEL:ReadonlySet<number>=new Set([...SURF_FLOOR,...SURF_BRIDGES]);
 // DoForcedMovement: MB_*_CURRENT push the surfer along; MB_WATERFALL pushes south until Waterfall climbs it.
 export const FORCED_WATER:ReadonlyMap<number,Direction>=new Map([[0x50,"RIGHT"],[0x51,"LEFT"],[0x52,"UP"],[0x53,"DOWN"],[0x13,"DOWN"]]);
 // MB_WATER_DOOR and MB_WATER_SOUTH_ARROW_WARP: warps on water.

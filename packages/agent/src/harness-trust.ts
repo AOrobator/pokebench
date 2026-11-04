@@ -90,7 +90,7 @@ export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"to
   const edges=reach.connections.flatMap(c=>{const label=wanted(c.reach)?(sectionConnection(state,c,sections)??name(c.destination)):null;return label===null?[]:[`${c.direction} edge -> ${label}${semantic&&(walkOff(state,c.direction)||(surf&&uniqueDirection(state.topology?.connections,c.direction)))?targetSuffix(connectionArgument(c.direction)):""}`];});
   return [...[...doors.values()].map(d=>`${d.tiles.join(" or ")} -> ${d.label}`),...edges];
  };
- if(surf&&state.surf_gate?.surfing===true){const all=listed(label=>label!=="none");return `You are surfing. Exits you can reach from the water: ${all.length===0?"none":all.join("; ")}.`;}
+ if(surf&&state.surf_gate?.surfing===true){const all=listed(label=>label!=="none");return `You are surfing. Exits by water or land from here, not counting currents and waterfalls: ${all.length===0?"none":all.join("; ")}.`;}
  const all=listed(label=>label==="foot");
  const across=surf&&state.surf_gate?.can_surf===true?listed(label=>label==="water"):[];
  return `Exits you can walk to from where you stand: ${all.length===0?"none (no exit of this map can be reached on foot from your tile)":all.join("; ")}.${across.length===0?"":` Across water: ${across.join("; ")}.`}`;

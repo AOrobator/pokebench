@@ -4,15 +4,18 @@ import pytest
 from pydantic import ValidationError
 from test_live_map import loaded
 
+from pokebench_env import topology
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES
 from pokebench_env.strides import (
+    SURF_BRIDGES,
     SURF_FLOOR,
     SURFING,
     Point,
     Stride,
     StrideRequest,
     floor_of,
+    level_fits,
     native_refuses,
 )
 from pokebench_env.topology import Connection, read_topology
@@ -36,9 +39,16 @@ def test_the_switch_reaches_the_server():
 
 def test_surf_floor_is_plain_surfable_water_only():
     assert SURF_FLOOR == frozenset({0x10, 0x11, 0x12, 0x14, 0x15})
-    assert floor_of(request(surfing=True)) == SURF_FLOOR
+    assert floor_of(request(surfing=True)) == SURF_FLOOR | SURF_BRIDGES
     assert floor_of(request()) == frozenset({0})
     assert floor_of(request(tall_grass=True)) == frozenset({0, 2})
+
+
+def test_only_a_surfer_passes_a_multi_level_tile():
+    assert level_fits(request(surfing=True), 15)
+    assert level_fits(request(surfing=True), 1)
+    assert not level_fits(request(surfing=True), 3)
+    assert not level_fits(request(), 15)
 
 
 def test_a_surfing_stride_may_not_also_cross_grass():
@@ -84,3 +94,19 @@ def test_read_topology_reads_water_edges_only_when_asked():
     m.put(0x0200B000, struct.pack("<B3xiBB2x", 2, -3, 0, 16))
     off = read_topology(m.read, MapNames({(0, 16): "ROUTE 101"}))
     assert off is not None and off.connections[0].water_edges is None
+
+
+def test_read_topology_asks_for_the_surfing_tiles_when_on(monkeypatch):
+    m = loaded()
+    m.put(0x02037324, struct.pack("<I", 0x0200A000))
+    m.put(0x0200A000, struct.pack("<iI", 1, 0x0200B000))
+    m.put(0x0200B000, struct.pack("<B3xiBB2x", 2, -3, 0, 16))
+    monkeypatch.setattr(
+        topology,
+        "_edges",
+        lambda *_, water=False: ((9, 0),) if water else ((1, 0),),
+    )
+    on = read_topology(m.read, MapNames({(0, 16): "ROUTE 101"}), edges=True, water_edges=True)
+    assert on is not None
+    assert on.connections[0].edges == ((1, 0),)
+    assert on.connections[0].water_edges == ((9, 0),)

@@ -14,16 +14,17 @@ const running={permitted:true,controllable:true,reason:"permitted",shoes:true,al
 const bike=(registered:number,owned=[MACH]):BikeState=>({owned,registered,riding:null,allow_cycling:true});
 const field=(b:BikeState|undefined):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,9],position:{x:0,y:0},facing:"right",running,...(b===undefined?{}:{bike:b}),navigation_grid:{elevation:3,tiles:Array.from({length:72},(_,i)=>({x:i%12,y:Math.floor(i/12),collision:0,behavior:0,elevation:3})),objects:[],warps:[]}});
 const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
-function harness(features:Record<string,boolean>,start:GameStateSnapshot,reason="registered",lockOnPressRead=false){
+function harness(features:Record<string,boolean>,start:GameStateSnapshot,reason="registered",lockOnPressRead=false,queueFails=false){
  let current=start;const posts:{url:string;body:Record<string,unknown>}[]=[];const pressed:string[][]=[];
  const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
   if(init?.method==="POST"){
+   if(url.endsWith("/cancel")){const plan=posts.at(-1)?.body;return Promise.resolve(new Response(JSON.stringify({...plan,frames:40,presses:["START","A"],reason:"cancelled",stopped:true})));}
    if(typeof init.body!=="string")throw new Error("Missing body");const p=JSON.parse(init.body) as Record<string,unknown>;posts.push({url,body:p});
    if(url.endsWith("/stride")){const plan=p as StridePlan;const end=plan.path.at(-1);if(end===undefined)throw new Error("Empty stride");current={...current,position:end};}
    else if(url.endsWith("/bike/register")){if(reason==="registered"&&current.bike!=null)current={...current,bike:{...current.bike,registered:p.item as number}};}
    else{const d=(p as {buttons:string[]}).buttons[0];const a=current.position;if(a===null)throw new Error("Missing position");current={...current,position:{x:a.x+(d==="RIGHT"?1:0),y:a.y}};}
    body={status:"success"};
-  }else if(url.endsWith("/queue_status"))body={queue_empty:true};
+  }else if(url.endsWith("/queue_status")){if(queueFails)return Promise.reject(new Error("aborted"));body={queue_empty:true};}
   else if(url.endsWith("/pokebench/state")&&lockOnPressRead)body={...current,field_controls_locked:true};
   else if(url.includes("/pokebench/stride/")){const plan=posts.at(-1)?.body;body={...plan,completed:(plan?.path as unknown[]).length,frames:20,reason:"completed",stopped:true};}
   else if(url.includes("/pokebench/bike/")){const plan=posts.at(-1)?.body;body={...plan,frames:300,presses:reason==="registered"?["START","A","RIGHT","DOWN","A","RIGHT","A","B","B"]:["START","B"],reason,stopped:true};}
@@ -99,6 +100,11 @@ it("a state change before the press withdraws the registration without pressing"
  const r=await h.nav.execute("nav",{x:4,y:0,map_id:[0,9]});
  expect(h.posts.filter(p=>p.url.endsWith("/bike/register"))).toHaveLength(0);
  expect(text(r)).toContain("Bike: bike registration state changed before action; nothing pressed.");
+});
+it("an aborted registration still records the presses the game received",async()=>{
+ const h=harness({[ID]:true},field(bike(0)),"registered",false,true);
+ await expect(h.nav.execute("nav",{x:4,y:0,map_id:[0,9]})).rejects.toThrow("aborted");
+ expect(h.pressed).toEqual([["START"],["A"]]);
 });
 it("OFF never registers, even with an unregistered bike in the state",async()=>{
  const h=harness({[ID]:false},field(bike(0)));

@@ -616,6 +616,24 @@ def test_select_is_never_pressed_when_the_game_would_refuse(change, reason):
     assert all(b == [] for b in applied)
 
 
+def test_a_refused_get_off_is_closed_and_never_reported_as_on_foot():
+    m = memory(registered=MACH)
+    m.put(PLAYER_AVATAR, b"\x02")
+    r, _ = toggle(m, ride=False, refuse=True)
+    assert r["reason"] == "refused"
+    assert r["presses"] == ["SELECT", "B"]
+    assert m.read(PLAYER_AVATAR, 1) == b"\x02"
+
+
+def test_a_locked_field_while_riding_is_not_already_on_foot():
+    m = memory(registered=MACH)
+    m.put(PLAYER_AVATAR, b"\x02")
+    m.put(FIELD_LOCK, b"\x01")
+    r, applied = toggle(m, ride=False)
+    assert r["reason"] == "field input unavailable"
+    assert all(b == [] for b in applied)
+
+
 def test_already_on_foot_presses_nothing():
     r, applied = toggle(memory(registered=MACH), ride=False)
     assert r["reason"] == "already on foot"

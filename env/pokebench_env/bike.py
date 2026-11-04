@@ -359,8 +359,10 @@ def install_bike(
 
     def toggling(s: Owned, ride: bool) -> list[str]:
         native = read_running_permission(read)
-        flags = native.avatar_flags
-        riding = flags is not None and bool(flags & (MACH_FLAG | ACRO_FLAG))
+        # Read directly: the permission leaves avatar_flags unread while the field is locked,
+        # which is exactly when SELECT is being handled.
+        flags = read(PLAYER_AVATAR, 1)[0]
+        riding = bool(flags & (MACH_FLAG | ACRO_FLAG))
         screen = MenuView("field" if _field_free(native) else native.reason, _field_free(native))
         if s.closing is not None:
             # The game printed why it refused; one B closes that message.
@@ -379,7 +381,7 @@ def install_bike(
             return stop(s, "riding" if ride else "on foot") if screen.ready else []
         if riding == ride:
             return stop(s, "already riding" if ride else "already on foot")
-        if not screen.ready or (flags is not None and flags & WATER_FLAGS):
+        if not screen.ready or flags & WATER_FLAGS:
             return stop(s, "field input unavailable")
         bike = read_bike(read)
         if bike is None or bike.registered not in bike.owned:

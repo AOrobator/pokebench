@@ -404,23 +404,29 @@ export function pressTool(
     shown.record(content.state,before);
     return {content:switches.screenshotOnly?content.content.filter(item=>item.type==="image"):content.content,details:{state:content.state,intercept:receipt}};
   };
-  // One private bike action on the game server; cancelled if the queue wait fails. Its presses are recorded once it has run.
+  // One private bike action on the game server. Its presses reach the record from its terminal receipt, and
+  // from the cancel receipt when the wait fails, so an aborted action still records what the game received.
   const bikeAction=async<T extends {readonly presses:readonly Button[]}>(toolCallId:string,route:string,body:{readonly id:string},receipt:(raw:unknown)=>T|null,check:BeforePressCheck,signal?:AbortSignal):Promise<T>=>{
     const before=await readBefore(check,signal);
     const url=`${gameServerUrl}${route}`;
+    const record=(presses:readonly Button[]):void=>{for(const button of presses)hooks.beforePress(toolCallId,[button],{hold_frames:1,release_frames:1},before,{automatic_running:false});};
+    let parsed:T|null;
     try{
       const response=await fetchFn(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:deadline(15_000,signal)});
       const reply:unknown=await response.json();
       if(!response.ok||!Value.Check(ActionSchema,reply)||reply.status!=="success")throw new Error(`POST ${url} failed: ${Value.Check(ActionSchema,reply)?(reply.message??reply.status):`HTTP ${String(response.status)}`}`);
       await waitForQueue(gameServerUrl,fetchFn,clock,signal);
+      parsed=receipt(await getJson(`${gameServerUrl}/pokebench/bike/${body.id}`,fetchFn,15_000,signal));
+      if(parsed===null)throw new Error("Bike action lacks a matching terminal receipt");
     }catch(error){
       const cancelled=await fetchFn(`${gameServerUrl}/pokebench/bike/${body.id}/cancel`,{method:"POST",signal:AbortSignal.timeout(2000)});
+      // A refused request never started, so its id is unknown to the server: nothing was pressed.
+      if(cancelled.status===404)throw error;
       if(!cancelled.ok)throw new Error(`Bike action cancellation failed: HTTP ${String(cancelled.status)}`,{cause:error});
+      record(receipt(await cancelled.json())?.presses??[]);
       throw error;
     }
-    const parsed=receipt(await getJson(`${gameServerUrl}/pokebench/bike/${body.id}`,fetchFn,15_000,signal));
-    if(parsed===null)throw new Error("Bike action lacks a matching terminal receipt");
-    for(const button of parsed.presses)hooks.beforePress(toolCallId,[button],{hold_frames:1,release_frames:1},before,{automatic_running:false});
+    record(parsed.presses);
     await clock.sleep(STATE_CACHE_SETTLE_MS);
     await hooks.afterPress();
     return parsed;

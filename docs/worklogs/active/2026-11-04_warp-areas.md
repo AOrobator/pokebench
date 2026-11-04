@@ -59,3 +59,5 @@ Follow-up found: the plain-run preset `current-control-24h-8k.json` mirrors the 
 The operator 2026-11-04: "lgtm as is, just lint needs to be fixed tho, go for that". Unvisited areas stay unnamed. Fixed the six ruff errors that were on main: wrapped comments and a docstring, imported `Iterable`, one `noqa: S606` on the deliberate `os.execvpe` argv-list exec. No behavior change, so no switch.
 
 Lint review round 1 at 2f7cdfcf0: Claude LGTM. GPT BLOCKING: unquoting the annotation changed runtime `__annotations__`. Fixed: quoted annotation kept, `Iterable` imported under TYPE_CHECKING.
+
+Lint review round 2 at 6b3f4d81f: Claude LGTM. GPT BLOCKING only on the reworded docstring; rebutted (the only `__doc__` readers in env are two argparse module docs in other files), then GPT LGTM.

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, servingReceipt } from "./fixed-cli.js";
+import { checkpointEnv } from "./fixed-runner.js";
 import { type FixedLane } from "./fixed-design.js";
 import { MODEL_PATH } from "../test-support/fixed.js";
 
@@ -31,5 +32,12 @@ describe("production host pieces", () => {
     // Relative preset paths (the start save) resolve against the main checkout.
     expect(spec.cwd).toBe("/repo");
     expect(spec.env).toEqual({ PATH: "/bin", POKEBENCH_ROM: "/rom.gba", POKEBENCH_RUNS_ROOT: "/repo/runs", POKEBENCH_RUN_ID: "r1" });
+  });
+
+  it("saves frontier checkpoints on boot starts only, and only from the lane's own setting", () => {
+    expect(checkpointEnv({ kind: "boot" })).toEqual({ POKEBENCH_CHECKPOINT_FRONTIER: "1" });
+    expect(checkpointEnv({ kind: "save_state", path: "s.ss0", sha1: "a".repeat(40) })).toEqual({});
+    const inherited = { POKEBENCH_CHECKPOINT_FRONTIER: "1" };
+    expect(fixedLaunchSpec({ root: "/r", runsRoot: "/r/runs", node: "/n", env: inherited }, "c".repeat(40), {}).env).toEqual({ POKEBENCH_RUNS_ROOT: "/r/runs" });
   });
 });

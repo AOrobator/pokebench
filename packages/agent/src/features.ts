@@ -343,6 +343,7 @@ export const SWITCHABLE_FEATURES = [
   "objective-graph-supervisor-v1",
   "story-route-plan-v1",
   "moving-npc-intercept-v1",
+  "warp-areas-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -807,6 +808,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Puts the run's position on the record route in every briefing: \"step 12 of 31 in Dewford Gym; next waypoint: the deferred gym at level 28, no trainers on the way (BRAWLY_DEFEATED); off-plan since turn 1552\". The plan is keepingiticy's order, not the order the milestones are listed in — the second badge is deferred past the third and fourth, and Fortree's gym waits for Steven — and it starts once the first plan step lands, so the opening stays with the hint arm. \"Off-plan\" means no plan step has landed for 200 turns; it dates the drought from the turn the last step did land. Off: briefings carry no route line and read exactly as before."),
 
   on("moving-npc-intercept-v1", "guidance", "STEP INTO A WALKING PATH", "moving-npc-target-v1", "Default off; on in both arms of the current recipe (the operator 2026-11-03: \"go, this should be on in both arms\"). Twelve runs that entered MR. BRINEY's cottage after the DEVON GOODS spent a median of about 10 minutes and 40 turns before sailing: he and PEEKO walk the same loop around the table without stopping, and the follow (moving-npc-target-v1) chases his current tile about 75 frames per step while he walks about 5 tiles, so it ends at its attempt limit. With this switch on, once navigate_to_target sees the selected person move, the game server watches the person's one-tile steps for up to 240 frames with no input (POST /pokebench/intercept/watch). If the steps repeat, the harness picks a step P to T of that path and a free tile beside T, off the path, that it can reach on foot, walks there, and the game server steps the player onto T on the first frame the person stands on P with T clear of every other object (POST /pokebench/intercept, at most 240 frames). The game makes a walk-sequence person whose next tile is taken walk in place (event_object_movement.c MoveNextDirectionInSequence), so the person stops next to the player, and the follow faces them and presses A as before. A walker ahead on the same path (PEEKO) is never the one pinned, because the step waits until the tile is clear of it. The result says what was watched and where it stepped in, naming no person or place. At most two tries per call; any failure falls back to the ordinary follow. Needs moving-npc-target-v1. Off: the follow is unchanged and no watch or step-in is sent."),
+  on("warp-areas-v1", "observation", "WARPS BY LANDING AREA", "exit-labels-v3", "Default off; on in both arms of the current recipe (the operator 2026-11-04). Run 274b spent 13,252 of the 38,156 characters of one LAVARIDGE TOWN GYM B1F observe on 15 Warp destination lines, each repeating its landing area's exits. Each Warp destination line now stops after the area's name and reach note, and one line per landing area lists the pads that land there (pad → landing tile), which the player can and cannot reach from where they stand, the area's terrain exits once, whether the run has stood in that section, and for a section the run has been in, the objects on the map's own object list there, with hide flags applied. Per-pad facts only; it names no route, no best pad and nothing in an area the run has not been in. Off: each Warp destination line carries its full arrival and terrain-exit detail, and no area lines."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -919,6 +921,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "solid-tile-leads-v1",
   "deep-south-warp-label-v1",
   "moving-npc-intercept-v1",
+  "warp-areas-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1246,6 +1249,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("objective-graph-supervisor-v1"),
     ...when("story-route-plan-v1"),
     ...when("moving-npc-intercept-v1"),
+    ...when("warp-areas-v1"),
   ];
 }
 

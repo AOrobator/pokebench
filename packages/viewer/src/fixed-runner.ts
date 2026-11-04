@@ -14,6 +14,9 @@ import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixe
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
 
+// Boot starts save a native state at each frontier milestone (the operator 2026-11-04, about 5 ms a save).
+// A trial from a save state already begins past its capture point.
+export const checkpointEnv = (start: FixedStart): Readonly<Record<string, string>> => (start.kind === "boot" ? { POKEBENCH_CHECKPOINT_FRONTIER: "1" } : {});
 const startExpectation = (start: FixedStart): { kind: "save_state"; sha1: string } | { kind: "boot" } => (start.kind === "save_state" ? { kind: "save_state", sha1: start.sha1 } : { kind: "boot" });
 
 export class FixedRunError extends Error {
@@ -353,6 +356,7 @@ class Runner {
       POKEBENCH_PLAY_PRESET: this.presetPath(slot.phase, slot.arm),
       POKEBENCH_RUN_ID: run,
       POKEBENCH_EXPERIMENT: JSON.stringify({ id: this.o.def.id, arm: slot.arm, trial: slot.slot, of: Math.max(this.o.def.plan.length, slot.slot) }),
+      ...checkpointEnv(phaseOf(this.o.def, slot.phase).start),
     };
     let exit: number | null | undefined;
     let launchError: string | null = null;

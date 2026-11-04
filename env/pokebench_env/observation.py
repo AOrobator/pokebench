@@ -39,6 +39,7 @@ from pokebench_env.screen_settle import (
 from pokebench_env.trainer_sight import MAX_ROUTE_TILES, sight_report
 from pokebench_env.transition_coherence import main_loop_idle
 from pokebench_env.ui_state import active_ui_enabled_from_env
+from pokebench_env.warp_areas import AreaVisits
 
 ScreenshotFn = Callable[[], BaseModel | Callable[[], BaseModel]]
 RawSnapshotFn = Callable[[Reservation], RawRamSnapshot]
@@ -77,6 +78,7 @@ def install_observation(
     memory = RespawnMemory() if RESPAWN not in off else None
 
     visibility = MapMemory()
+    area_visits = AreaVisits()
 
     def decode(read: ReadMemory) -> GameState:
         if (
@@ -86,7 +88,13 @@ def install_observation(
         ):
             raise HTTPException(status_code=503, detail="native battle CPU coherence unavailable")
         state = read_state(
-            read, maps, active_ui=enabled, off=off, links=links, visibility=visibility
+            read,
+            maps,
+            active_ui=enabled,
+            off=off,
+            links=links,
+            visibility=visibility,
+            area_visits=area_visits,
         )
         if memory is not None:
             memory.note(state)

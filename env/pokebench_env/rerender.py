@@ -59,6 +59,8 @@ from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.training_readout import SWITCH as EXP_NEXT
 from pokebench_env.type_gap import SWITCH as TYPE_GAP
 from pokebench_env.ui_state import active_ui_enabled_from_env
+from pokebench_env.warp_areas import SWITCH as WARP_AREAS
+from pokebench_env.warp_areas import AreaVisits
 
 PORYMAP_MAPS = (
     Path(__file__).resolve().parents[1] / "vendor/continual-harness/pokemon_env/porymap/data/maps"
@@ -73,6 +75,7 @@ def read_state(
     off: frozenset[str],
     links: LinkCache | None = None,
     visibility: MapMemory | None = None,
+    area_visits: AreaVisits | None = None,
 ) -> GameState:
     matchup = "move-learn-type-matchup-v1" not in off and "battle-effective-damage-v1" not in off
     state = read_game_state(
@@ -121,6 +124,8 @@ def read_state(
         exit_sections_enabled="exit-labels-v3" not in off
         and EXIT_LABELS not in off
         and "named-warp-destinations-v1" not in off,
+        # warp-areas-v1: one archive carries no visits, so a re-render knows only the current tile.
+        area_visits=None if WARP_AREAS in off else area_visits or AreaVisits(),
         caught_dex_enabled="caught-dex-input-v1" not in off,
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
         caught_nickname_v2_enabled="caught-nickname-prompt-v2" not in off,

@@ -25,6 +25,7 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.live_map import FullMap
 from pokebench_env.surf_gate import LEDGES
 from pokebench_env.topology import STEPS, SURFABLE, crossable
+from pokebench_env.warp_areas import AreaFacts, LandingFacts, objects_in
 
 SWITCH = "exit-labels-v3"
 
@@ -187,6 +188,8 @@ class SectionExit:
     y: int
     label: str
     detail: str
+    # warp-areas-v1 only, and deliberately not in json(): the readout text records it.
+    landing: LandingFacts | None = None
 
     def json(self) -> dict[str, object]:
         return {"x": self.x, "y": self.y, "label": self.label, "detail": self.detail}
@@ -232,7 +235,10 @@ def read_exit_sections(
     *,
     active_warps: bool = False,
     live_map: FullMap | None = None,
+    areas: AreaFacts | None = None,
 ) -> ExitSections | None:
+    if areas is not None:
+        areas.visits.note(map_id, position)
     cache: dict[MapId, Sections | None] = {}
 
     def section_map(mid: MapId) -> Sections | None:
@@ -323,17 +329,36 @@ def read_exit_sections(
                     f"{direction} edge → {shown(to) or 'a map with no location name'} "
                     f"(map {to[0]}/{to[1]})"
                 )
-        return (
-            "Terrain exits after arrival: "
-            + ("; ".join(parts) if parts else "none established")
-            + ". Temporary objects and scripts may block these terrain paths."
-            + (
-                " Entrance activation uses the map’s default terrain; scripts may change entrances."
-                if active_warps and mid != map_id
-                else ""
-            )
+        return "Terrain exits after arrival: " + ("; ".join(parts) if parts else "none established")
+
+    def caveat(mid: MapId) -> str:
+        return " Temporary objects and scripts may block these terrain paths." + (
+            " Entrance activation uses the map’s default terrain; scripts may change entrances."
+            if active_warps and mid != map_id
+            else ""
         )
 
+    unestablished = "Landing is not established."
+
+    def landing_facts(
+        mid: MapId, target: Sections, tile: Tile, region: Tile | None
+    ) -> LandingFacts | None:
+        if areas is None:
+            return None
+        visited = None
+        if region is not None:
+            visited = any(target.landing(t) == region for t in areas.visits.tiles(mid))
+        return LandingFacts(
+            tile,
+            details(mid, target, region) + ".",
+            caveat(mid).strip(),
+            visited,
+            objects_in(target.rom.objects, lambda t: target.landing(t) == region, areas)
+            if visited
+            else (),
+        )
+
+    nowhere = None if areas is None else LandingFacts(None, unestablished, "", None, ())
     warps: list[SectionExit] = []
     for x, y, wid, g, n in here.rom.warps:
         if not entrance(here.rom, x, y, True):
@@ -344,7 +369,8 @@ def read_exit_sections(
                     x,
                     y,
                     "dynamic destination — terrain section unknown",
-                    "Landing is not established.",
+                    unestablished,
+                    nowhere,
                 )
             )
             continue
@@ -355,11 +381,19 @@ def read_exit_sections(
         )
         region = None if landing is None or target is None else target.landing(landing)
         detail = (
-            "Landing is not established."
+            unestablished
             if landing is None or target is None
-            else f"Arrives at ({landing[0]},{landing[1]}). " + details(mid, target, region)
+            else f"Arrives at ({landing[0]},{landing[1]}). "
+            + details(mid, target, region)
+            + "."
+            + caveat(mid)
         )
-        warps.append(SectionExit(x, y, named(mid, target, region), detail))
+        facts = (
+            nowhere
+            if landing is None or target is None
+            else landing_facts(mid, target, landing, region)
+        )
+        warps.append(SectionExit(x, y, named(mid, target, region), detail, facts))
     connections: list[SectionConnection] = []
     for direction, offset, to in here.rom.connections:
         beyond = section_map(to)

@@ -34,6 +34,7 @@ from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
 from pokebench_env.map_observation import MapObservation, render_observation
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
+from pokebench_env.map_sections import SectionExit
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.mart_stock import stock_lines
 from pokebench_env.mauville_puzzle import SWITCH as MAUVILLE_PUZZLE
@@ -67,6 +68,8 @@ from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Connection, Topology
 from pokebench_env.training_readout import exp_clause
+from pokebench_env.warp_areas import SWITCH as WARP_AREAS
+from pokebench_env.warp_areas import warp_area_lines
 from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
 from pokebench_env.yes_no_answer import answer_line
@@ -205,6 +208,7 @@ SERVER_FEATURES = (
     "solid-tile-leads-v1",
     "deep-south-warp-label-v1",
     "moving-npc-intercept-v1",
+    WARP_AREAS,
 )
 
 
@@ -235,7 +239,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1",
     )
     if raw == "":
         return frozenset()
@@ -1063,6 +1067,7 @@ def format_readout(
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.
             # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
+            area_pads: list[tuple[SectionExit, bool]] = []
             for target in state.interaction_targets:
                 if target.destination is not None:
                     if (
@@ -1075,9 +1080,14 @@ def format_readout(
                         )
                         is not None
                     ):
+                        # warp-areas-v1: the detail moves to the area's one line, below.
+                        grouped = WARP_AREAS not in off and section_exit.landing is not None
+                        if grouped:
+                            area_pads.append((section_exit, not warp_note(target)))
                         lines.append(
                             f"Warp destination at ({target.x},{target.y}): "
-                            f"{section_exit.label}{warp_note(target)}. {section_exit.detail}"
+                            f"{section_exit.label}{warp_note(target)}."
+                            + ("" if grouped else f" {section_exit.detail}")
                         )
                         continue
                     g, n, _ = target.destination
@@ -1106,6 +1116,7 @@ def format_readout(
                             else ""
                         )
                     )
+            lines.extend(warp_area_lines(area_pads))
     return "\n".join(lines)
 
 

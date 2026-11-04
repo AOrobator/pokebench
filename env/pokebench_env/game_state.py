@@ -13,7 +13,12 @@ from pathlib import Path
 
 from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
-from pokebench_env.character_presence import StoryCharacters, read_story_characters
+from pokebench_env.character_presence import (
+    StoryCharacters,
+    _flag,
+    _graphics,
+    read_story_characters,
+)
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
 from pokebench_env.elevation_view import read_object_elevations
 from pokebench_env.exit_labels import ExitLabels, destination_name, read_exit_labels, section_name
@@ -77,7 +82,8 @@ from pokebench_env.ui_state import (
     read_dialog,
     read_menu,
 )
-from pokebench_env.world_context import SAVE_VARIABLES, WorldContext, read_world_context
+from pokebench_env.warp_areas import AreaFacts, AreaVisits
+from pokebench_env.world_context import GRAPHICS, SAVE_VARIABLES, WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
 from pokebench_env.world import (
@@ -388,6 +394,7 @@ def read_game_state(
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
     exit_sections_enabled: bool = False,
+    area_visits: AreaVisits | None = None,
     gym_door_label_enabled: bool = False,
     active_warp_exits_enabled: bool = False,
     map_observability_enabled: bool = False,
@@ -846,6 +853,13 @@ def read_game_state(
             None if gates is None else gates.rules(),
             active_warps=active_warp_exits_enabled,
             live_map=active_full,
+            areas=None
+            if area_visits is None
+            else AreaFacts(
+                area_visits,
+                lambda flag: _flag(read, save1, flag),
+                lambda graphics: GRAPHICS.get(_graphics(read, save1, graphics)),
+            ),
         )
         if exit_sections_enabled
         and nearby is not None

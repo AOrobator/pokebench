@@ -189,7 +189,8 @@
     "deep-south-warp-label-v1",
     "eight-badge-mission-v1",
     "semantic-refusal-reasons-v1",
-    "moving-npc-intercept-v1"
+    "moving-npc-intercept-v1",
+    "warp-areas-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -509,6 +510,7 @@
     "semantic-refusal-reasons-v1": true,
     "objective-graph-supervisor-v1": false,
     "story-route-plan-v1": false,
-    "moving-npc-intercept-v1": true
+    "moving-npc-intercept-v1": true,
+    "warp-areas-v1": true
   }
 }

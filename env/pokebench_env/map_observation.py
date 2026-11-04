@@ -2,6 +2,7 @@
 
 import itertools
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
@@ -231,7 +232,9 @@ CODE_LETTERS = "".join(
 )
 # A code is never an element legend key either, so "I" cannot mean anything but ice there.
 LEGEND_KEYS = frozenset(
-    v for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS) for v in table.values()
+    v
+    for table in (KIND_TOKENS, STATE_TOKENS, DIRECTION_TOKENS, COLOR_TOKENS)
+    for v in table.values()
 )
 
 
@@ -256,8 +259,8 @@ class CodeBook:
             if "".join(name) not in LEGEND_KEYS
         )
 
-    def codes_for(self, tokens: "Iterable[str]") -> dict[str, str]:
-        """Codes for these tokens in first-appearance order; a token new to the book takes a free one."""
+    def codes_for(self, tokens: Iterable[str]) -> dict[str, str]:
+        """Codes for these tokens in first-appearance order; a new token takes a free one."""
         wanted = [token for token in dict.fromkeys(tokens) if len(token) > 1]
         for token in wanted:
             if token not in self._codes:

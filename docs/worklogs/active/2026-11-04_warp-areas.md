@@ -55,3 +55,5 @@ Round 3, delta at 26f6345b9: Claude LGTM, GPT LGTM. Fallback LGTM at round 1. Gr
 Landed on main at 76765799d (ff-only). `just land-join` failed on missing arguments and the merge went ahead; the board was empty, and join/done were recorded after. Post-merge `just test` exit 0. `just viewer-main`: viewer at 76765799d, parent launchd, 2 live gameplay processes kept, run 274b untouched.
 
 Follow-up found: the plain-run preset `current-control-24h-8k.json` mirrors the recipe by hand and lacked the switch, so the next DeepSeek run would have run with it off. Added.
+
+The operator 2026-11-04: "lgtm as is, just lint needs to be fixed tho, go for that". Unvisited areas stay unnamed. Fixed the six ruff errors that were on main: wrapped comments and a docstring, imported `Iterable`, one `noqa: S606` on the deliberate `os.execvpe` argv-list exec. No behavior change, so no switch.

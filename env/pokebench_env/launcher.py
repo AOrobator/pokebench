@@ -117,7 +117,10 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         server_dir = prepare(os.environ, run_dir)
         env = server_env(os.environ, vendor_dir=VENDOR_DIR, run_id=run_id, pycache_dir=PYCACHE_DIR)
         os.chdir(server_dir)
-        os.execvpe(str(Path(sys.executable)), server_command(Path(sys.executable), spec), env)
+        # An argv list with no shell. Exec is the point: this pid becomes the server.
+        os.execvpe(  # noqa: S606
+            str(Path(sys.executable)), server_command(Path(sys.executable), spec), env
+        )
     process = launch(spec, run_dir, run_id)
     forward_sigterm(process)
     try:

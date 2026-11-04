@@ -210,9 +210,10 @@ def next_tiles(
                     note += ", collision set"
                 # A solid tile is not a tile you can stand on, so the refusal leads and the element
                 # it is made of follows. "ground (cave); collision (#), cannot be entered from here"
-                # read as walkable cave ground in run 07a7, which pressed into that wall twenty times.
-                # solid-tile-leads-v1: a solid tile is not a tile you can stand on, so the refusal
-                # leads and the element it is made of follows. Off: the element leads, byte for byte.
+                # read as walkable cave ground in run 07a7, which pressed into that wall twenty
+                # times. solid-tile-leads-v1: a solid tile is not a tile you can stand on, so the
+                # refusal leads and the element it is made of follows. Off: the element leads, byte
+                # for byte.
                 described = glyph in ("@", "N", "W", "#", "+", "=", "~", "L", *ARROWS)
                 name = (
                     (

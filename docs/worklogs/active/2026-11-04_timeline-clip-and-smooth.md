@@ -14,7 +14,7 @@ Operator request (the operator, 2026-11-04): items stream in and clip behind a l
 ## Milestones
 
 - [x] M1 RED tests
-- [ ] M2 GREEN: `LaneMotion`, `TimelineFeed`, `forgetBefore`, head refresh during a trace hold, label column, dots and note removed
+- [x] M2 GREEN: `LaneMotion`, `TimelineFeed`, `forgetBefore`, head refresh during a trace hold, label column, dots and note removed
 - [ ] M3 Headless proof, gates, cloud review
 - [ ] M4 Land, post-merge test, `just viewer-main`, live check
 

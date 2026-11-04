@@ -12,7 +12,7 @@
 .human-game p { font-size:13px; color:#b2c6df; }.human-legend { line-height:1.7; }
 .human-splits { grid-area:splits; min-width:0; }.human-splits h2,.human-timeline h2 { font-size:14px; letter-spacing:.05em; margin:0 0 14px; }
 .human-splits table { width:100%; font-size:12px; }.human-splits th,.human-splits td { padding:8px 4px; }
-.human-timeline { grid-area:timeline; }.human-timeline .lanes { display:block; width:100%; height:120px; }
+.human-timeline { grid-area:timeline; }.human-timeline .lanes-wrap { height:120px; }
 .human-problem { color:#ffb5a8; font-size:14px; }footer a { font-size:12px; color:#b2c6df; }
 @media(max-width:850px) { .human-layout { grid-template-columns:1fr; grid-template-areas:"game" "timeline" "splits"; }.human-bar { flex-wrap:wrap; }.human-shell { padding:14px; } }
 .human-game [data-play=surface] { max-height:60vh; }

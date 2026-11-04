@@ -332,6 +332,17 @@ export class RunView {
     return `${kinds[event.kind]} ${phase} · #${String(event.seq)} · turn ${String(event.turn)} · ${elapsed} · ${String(event.calls)} completed calls · preceding tool ${tool?.type === "tool_call" ? tool.name : "not recorded"}: ${event.message} · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")} · ${mode}`;
   }
 
+  // Drops finished history before `ms`; milestones stay, because they guard against repeats.
+  forgetBefore(ms: number): void {
+    const keep = <T>(items: T[], recent: (item: T) => boolean): void => { items.splice(0, items.length, ...items.filter(recent)); };
+    keep(this.events, event => eventMs(event) >= ms);
+    keep(this.thinkingSpans, span => span.endMs === null || span.endMs >= ms);
+    keep(this.toolSpans, span => span.endMs === null || span.endMs >= ms);
+    keep(this.presses, press => (press.endMs ?? press.ms) >= ms);
+    keep(this.nativeActions, action => action.server_timestamp * 1000 >= ms);
+    keep(this.errors, mark => mark.ms >= ms);
+  }
+
   apply(event: RunEvent): void {
     const last = this.events.at(-1);
     if (last !== undefined && event.seq <= last.seq) return;

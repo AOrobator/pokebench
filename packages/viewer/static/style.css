@@ -125,13 +125,19 @@ table.splits tr.next td { background: rgba(124, 200, 232, .25); }
 /* swimlanes */
 .lanesBox { background: #1e2c44; border-color: #3a6ea5; outline-color: #4d6a96; color: #dfe8f5; }
 .lanesBox h3 { color: #ffd447; }
-svg.lanes { width: 100%; height: 170px; display: block; }
+svg.lanes { width: 100%; height: 100%; display: block; }
 .lanes .lane { fill: rgba(255, 255, 255, .06); }
 .lanes .lane.alt { fill: rgba(255, 255, 255, .03); }
-.lanes-wrap { position: relative; }
+.lanes-wrap { position: relative; display: grid; grid-template-columns: max-content minmax(0, 1fr); height: 170px; }
+.lanes-zebra { position: absolute; inset: 0; }
+.lanes-labels { position: relative; display: flex; flex-direction: column; padding: 0 3px 0 8px; }
+.lanes-labels .lab { flex: 1; display: flex; align-items: center; white-space: nowrap; }
+.lanes-plot { position: relative; margin-right: 12px; }
+.lanes-clip { position: absolute; top: 0; left: 0; right: 0; overflow: hidden; }
+.lanes-strip { height: 100%; position: relative; will-change: transform; }
 .lanes-text { position: absolute; inset: 0; pointer-events: none; }
 .lanes-text span { position: absolute; transform: translateY(-50%); white-space: nowrap; line-height: 1; }
-.lanes-text .lab, .lanes-text .axis { color: #a5a8b8; font: 11px Inter, sans-serif; }
+.lanes-labels .lab, .lanes-text .axis { color: #a5a8b8; font: 11px Inter, sans-serif; }
 .lanes-text .axis, .lanes-text .press-label { transform: translate(-50%, -50%); }
 .lanes .tick { fill: #a5a8b8; }
 .lanes .nowline { fill: #d23b3b; }
@@ -149,7 +155,7 @@ svg.lanes { width: 100%; height: 170px; display: block; }
 .lanes .b-B { fill: #f5a142; }
 .lanes .b-START, .lanes .b-SELECT, .lanes .b-L, .lanes .b-R { fill: #4cd27a; }
 .lanes-text .press-label { color: #fff; font: 700 11px Inter, sans-serif; text-shadow: -1px -1px 0 #1e2c44, 1px -1px 0 #1e2c44, -1px 1px 0 #1e2c44, 1px 1px 0 #1e2c44, 0 0 3px #1e2c44; }
-@media (max-width: 600px) { .lanes-text .lab, .lanes-text .axis, .lanes-text .press-label { font-size: 9px; } }
+@media (max-width: 600px) { .lanes-labels .lab, .lanes-text .axis, .lanes-text .press-label { font-size: 9px; } }
 
 /* action log + raw event */
 .logcols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }

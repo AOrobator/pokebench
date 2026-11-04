@@ -1,14 +1,19 @@
 import { esc, eventMs } from "./format.js";
 import { FRAME_MS } from "./gba.js";
-import type { Button, RunView } from "./model.js";
+import { RunView, type Button } from "./model.js";
 
 export const WINDOW_MS = 60_000;
 export const LANES = ["thinking", "tool calls", "presses", "milestones", "errors"] as const;
 
+// Time the live strip is drawn ahead of now, so it can glide without being rebuilt.
+export const LEAD_MS = 30_000;
+const RECENTER_MS = LEAD_MS * 0.9;
+const DRIFT_MS = 200;
+const FORGET_MS = 2 * WINDOW_MS;
+
 const W = 1000;
-const H = 170;
-const LABEL = 110;
-const LANE = (H - 20) / LANES.length;
+const AXIS = 20;
+const LANE = 150 / LANES.length;
 
 const f = (n: number): string => n.toFixed(1);
 const BUTTON_LABELS: Record<Button, string> = {
@@ -21,35 +26,34 @@ function bar(cls: string, lane: number, a: number, b: number, title: string, fil
   return `<rect class="${cls}" role="img" aria-label="${esc(title)}" x="${f(a)}" y="${f(top)}" width="${f(Math.max(minWidth, b - a))}" height="${f(LANE * fill)}"><title>${esc(title)}</title></rect>`;
 }
 
-// Swimlanes over the 60 s before `nowMs` (wall clock live, the cursor in replay).
-export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof LANES[number])[] = LANES): string {
-  const H=20+LANE*visible.length;
+type Lanes = readonly (typeof LANES[number])[];
+
+// Marks for the 60 s before `anchorMs` plus `leadMs` after it, one window to the plot's width.
+function stripHtml(view: RunView, anchorMs: number, leadMs: number, visible: Lanes): string {
+  const rows=LANE*visible.length;
+  const span=WINDOW_MS+leadMs;
+  const wide=W*(span/WINDOW_MS);
+  const nowMs=anchorMs+leadMs;
   const draw=(cls:string,lane:number,a:number,b:number,title:string,fill=0.6):string=>{
     const name=LANES[lane];const slot=name===undefined?-1:visible.indexOf(name);
     return slot<0?"":bar(cls,slot,a,b,title,fill);
   };
-  const t0 = nowMs - WINDOW_MS;
-  const x = (ms: number): number => LABEL + (W - LABEL - 8) * ((Math.max(ms, t0) - t0) / WINDOW_MS);
+  const t0 = anchorMs - WINDOW_MS;
+  const x = (ms: number): number => W * ((Math.min(Math.max(ms, t0), nowMs) - t0) / WINDOW_MS);
   const parts: string[] = [];
   const texts: string[] = [];
-  const text = (cls: string, px: number, py: number, label: string, hidden = false): void => {
-    texts.push(`<span class="${cls}" style="left:${f((px / W) * 100)}%;top:${f((py / H) * 100)}%"${hidden ? ' aria-hidden="true"' : ""}>${label}</span>`);
-  };
-  visible.forEach((name, i) => {
-    parts.push(`<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
-    text("lab", 8, i * LANE + LANE / 2, name);
-  });
   for (const pause of view.control.pauses) {
     const end = pause.endMs ?? nowMs;
     if (end < t0 || pause.startMs > nowMs) continue;
     const a = x(pause.startMs), b = x(end);
-    parts.push(`<rect class="m-paused" x="${f(a)}" y="0" width="${f(Math.max(3, b - a))}" height="${f(H - 20)}"><title>paused ${String(Math.round((end - pause.startMs) / 1000))}s (operator)</title></rect>`);
+    const title = pause.endMs === null ? "paused (operator)" : `paused ${String(Math.round((end - pause.startMs) / 1000))}s (operator)`;
+    parts.push(`<rect class="m-paused" x="${f(a)}" y="0" width="${f(Math.max(3, b - a))}" height="${f(rows)}"><title>${title}</title></rect>`);
   }
   for (const span of view.thinkingSpans) {
     const end = span.endMs ?? nowMs;
     if (end < t0 || span.startMs > nowMs) continue;
-    const seconds = ((end - span.startMs) / 1000).toFixed(1);
-    parts.push(draw(span.endMs === null ? "m-think open" : "m-think", 0, x(span.startMs), x(end), `thinking ${seconds}s`));
+    const title = span.endMs === null ? "thinking" : `thinking ${((end - span.startMs) / 1000).toFixed(1)}s`;
+    parts.push(draw(span.endMs === null ? "m-think open" : "m-think", 0, x(span.startMs), x(end), title));
   }
   for (const span of view.toolSpans) {
     const end = span.endMs ?? nowMs;
@@ -60,9 +64,9 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
   const labelPress = (buttons: readonly Button[], start: number, end: number): void => {
     if (pressLane < 0) return;
     const label = buttons.map(button => BUTTON_LABELS[button]).join("+");
-    const halfWidth = label.length * 3.5 + 4;
-    const cx = Math.min(W - 8 - halfWidth, Math.max(LABEL + halfWidth, (x(start) + x(end)) / 2));
-    text("press-label", cx, pressLane * LANE + LANE / 2, esc(label), true);
+    const left = (((x(start) + x(end)) / 2) / wide) * 100;
+    const top = ((pressLane * LANE + LANE / 2) / rows) * 100;
+    texts.push(`<span class="press-label" style="left:${f(left)}%;top:${f(top)}%" aria-hidden="true">${esc(label)}</span>`);
   };
   // Native input changes are emitted after the request, in recording sequence.
   // Their server timestamps describe execution; event timestamps describe delivery.
@@ -136,20 +140,6 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
       `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}${milestone.derived === true ? ` · recovered · evidence ${milestone.evidence?.map(seq=>`#${String(seq)}`).join(", ") ?? `#${String(milestone.seq)}`} · first observation (upper bound)` : ""}</title></path>`,
     );
   }
-  for(const action of view.nativeActions.filter(entry=>entry.kind!=="native_input")) {
-    const ms=action.server_timestamp*1000;const lane=visible.indexOf("milestones");
-    if(ms<t0||ms>nowMs||lane<0)continue;
-    const title=`${action.kind.replaceAll("_"," ")} · ${JSON.stringify(action.details)} · frame ${String(action.frame)} (first observed)`;
-    parts.push(`<circle class="m-milestone m-activity" cx="${f(x(ms))}" cy="${f(lane*LANE+LANE/2)}" r="3"><title>${esc(title)}</title></circle>`);
-  }
-  for (const activity of view.activities) {
-    const ms=eventMs(activity); const lane=visible.indexOf("milestones");
-    if(ms<t0||ms>nowMs||lane<0)continue;
-    const pokemon=activity.pokemon;
-    const detail=pokemon===undefined?"":` · ${pokemon.species} Lv${String(pokemon.from_level)}→${String(pokemon.to_level)}`;
-    const title=`${activity.kind.replaceAll("_"," ")} ×${String(activity.count)}${detail} · evidence ${activity.evidence.map(seq=>`#${String(seq)}`).join(", ")} · first observation (upper bound)`;
-    parts.push(`<circle class="m-milestone m-activity" cx="${f(x(ms))}" cy="${f(lane*LANE+LANE/2)}" r="4"><title>${esc(title)}</title></circle>`);
-  }
   for (const mark of view.errors) {
     if (mark.ms < t0 || mark.ms > nowMs) continue;
     parts.push(draw(`m-error k-${mark.kind}`, 4, x(mark.ms) - 2, x(mark.ms) + 3, mark.label));
@@ -158,12 +148,98 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     const ms=eventMs(view.end);const proof=view.end.target_proof;
     if(ms>=t0&&ms<=nowMs)parts.push(draw("m-milestone",3,x(ms)-2,x(ms)+3,`native target ${proof.name} · milestone #${String(proof.milestone_seq)} · state evidence ${proof.state_evidence.map(seq=>`#${String(seq)}`).join(", ")}`));
   }
+  return `<svg class="lanes" viewBox="0 0 ${f(wide)} ${f(rows)}" preserveAspectRatio="none">${parts.join("")}</svg><div class="lanes-text">${texts.join("")}</div>`;
+}
+
+// Labels size their own column, so a mark clips a few pixels past the widest one at any width.
+function shell(visible: Lanes, leadMs: number, strip: string): string {
+  const rows = LANE * visible.length;
+  const high = rows + AXIS;
+  const zebra = visible.map((_, i) => `<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
+  const axis: string[] = [];
+  const labels: string[] = [];
   for (let s = 0; s <= 60; s += 10) {
-    const px = LABEL + (W - LABEL - 8) * (s / 60);
-    parts.push(`<rect class="tick" x="${f(px)}" y="${String(H - 18)}" width="1" height="4"/>`);
-    text("axis", px, H - 9, s === 60 ? "now" : `−${String(60 - s)}s`);
+    const share = s / 60;
+    axis.push(`<rect class="tick" x="${f(Math.min(W - 1, W * share))}" y="${f(rows + 2)}" width="1" height="4"/>`);
+    labels.push(`<span class="axis" style="left:${f(share * 100)}%;top:${f(((rows + 11) / high) * 100)}%">${s === 60 ? "now" : `−${String(60 - s)}s`}</span>`);
   }
-  parts.push(`<rect class="nowline" x="${String(W - 9)}" y="0" width="2" height="${String(H - 20)}"/>`);
-  // The SVG stretches to the panel; text sits in an HTML overlay so glyphs keep their shape.
-  return `<div class="lanes-wrap"><svg class="lanes" viewBox="0 0 ${String(W)} ${String(H)}" preserveAspectRatio="none">${parts.join("")}</svg><div class="lanes-text">${texts.join("")}</div></div>`;
+  axis.push(`<rect class="nowline" x="${String(W - 2)}" y="0" width="2" height="${f(rows)}"/>`);
+  const lanesShare = `${f((rows / high) * 100)}%`;
+  // The SVG stretches to the panel; text sits in HTML so glyphs keep their shape.
+  return `<div class="lanes-wrap"><svg class="lanes lanes-zebra" viewBox="0 0 ${String(W)} ${f(high)}" preserveAspectRatio="none">${zebra.join("")}</svg><div class="lanes-labels" style="height:${lanesShare}">${visible.map(name => `<span class="lab">${name}</span>`).join("")}</div><div class="lanes-plot"><div class="lanes-clip" style="height:${lanesShare}"><div class="lanes-strip" style="width:${f(((WINDOW_MS + leadMs) / WINDOW_MS) * 100)}%">${strip}</div></div><svg class="lanes" viewBox="0 0 ${String(W)} ${f(high)}" preserveAspectRatio="none">${axis.join("")}</svg><div class="lanes-text">${labels.join("")}</div></div></div>`;
+}
+
+// Swimlanes over the 60 s before `nowMs` (wall clock live, the cursor in replay).
+export function lanesSvg(view: RunView, nowMs: number, visible: Lanes = LANES): string {
+  return shell(visible, 0, stripHtml(view, nowMs, 0, visible));
+}
+
+export interface LaneAnimation {
+  currentTime: unknown;
+  playbackRate: number;
+  play(): void;
+  pause(): void;
+}
+export type LaneAnimator = (element: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions) => LaneAnimation;
+
+// Glides the strip on the compositor, so page work cannot stutter it. Marks only rebuild
+// when they change or the strip recenters; a position correction needs real drift.
+export class LaneMotion {
+  private strip: HTMLElement | null = null;
+  private animation: LaneAnimation | null = null;
+  private anchorMs = Number.NaN;
+  private rate = Number.NaN;
+  private marks = "";
+  constructor(private readonly root: HTMLElement, private readonly animate?: LaneAnimator) {}
+
+  render(view: RunView, nowMs: number, rate: number): void {
+    if (this.strip === null) {
+      this.root.innerHTML = shell(LANES, LEAD_MS, "");
+      this.strip = this.root.querySelector<HTMLElement>(".lanes-strip");
+    }
+    const strip = this.strip;
+    if (strip === null) return;
+    const recenter = !(nowMs >= this.anchorMs && nowMs <= this.anchorMs + RECENTER_MS);
+    if (recenter) this.anchorMs = nowMs;
+    const marks = stripHtml(view, this.anchorMs, LEAD_MS, LANES);
+    if (marks !== this.marks) {
+      this.marks = marks;
+      strip.innerHTML = marks;
+    }
+    const shift = nowMs - this.anchorMs;
+    const travel = (LEAD_MS / (WINDOW_MS + LEAD_MS)) * 100;
+    if (this.animate === undefined) {
+      strip.style.transform = `translateX(-${f((shift / LEAD_MS) * travel)}%)`;
+      return;
+    }
+    this.animation ??= this.animate(strip, [{ transform: "translateX(0)" }, { transform: `translateX(-${String(travel)}%)` }], { duration: LEAD_MS, easing: "linear", fill: "both" });
+    const animation = this.animation;
+    const at = animation.currentTime;
+    if (recenter || rate !== this.rate || typeof at !== "number" || Math.abs(at - shift) > DRIFT_MS) animation.currentTime = shift;
+    if (rate === this.rate) return;
+    this.rate = rate;
+    if (rate === 0) {
+      animation.pause();
+      return;
+    }
+    animation.playbackRate = rate;
+    animation.play();
+  }
+}
+
+// The live timeline's own view: folded once per event, independent of the bounded Agent
+// Trace window, so paging or holding that list cannot empty it.
+export class TimelineFeed {
+  readonly view = new RunView();
+  constructor(start: RunView["start"]) {
+    this.view.start = start;
+    if (start !== null) this.view.startMs = eventMs(start);
+  }
+
+  add(events: readonly Parameters<RunView["apply"]>[0][]): void {
+    for (const event of events) this.view.apply(event);
+    const newest = this.view.lastMs;
+    const oldest = this.view.events[0];
+    if (newest !== null && oldest !== undefined && newest - eventMs(oldest) > 2 * FORGET_MS) this.view.forgetBefore(newest - FORGET_MS);
+  }
 }

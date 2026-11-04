@@ -11,7 +11,7 @@ import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
-import { lanesSvg } from "./timeline.js";
+import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
@@ -51,6 +51,7 @@ export interface AppDeps {
   // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
   loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
   drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
+  animateLanes?: LaneAnimator;
 }
 
 export function frameSocketUrl(path: string, pageHref: string): string {
@@ -214,6 +215,9 @@ export class App {
   private currentApplied:CurrentBrowserState["snapshot"]=null;
   private currentHistory=new RunView();
   private currentHistoryEvents:readonly RunEvent[]=[];
+  private timelineFeed=new TimelineFeed(null);
+  private timelineHead:readonly RunEvent[]=[];
+  private laneMotion:LaneMotion|null=null;
   private currentCatalog:RunChoice[]=[];
   private currentCatalogTask:Promise<void>|null=null;
   private currentRunStamp="";
@@ -681,6 +685,7 @@ export class App {
         const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traced=0;this.traceKey=this.sideKey="";}
         if(state.history.length>0)this.setRecordedThinking(history,state.history);
       }
+      if(state.head!==this.timelineHead){this.timelineHead=state.head;if(state.head.length===0)this.timelineFeed=new TimelineFeed(null);else{if(this.timelineFeed.view.start===null&&snapshot!==null)this.timelineFeed=new TimelineFeed(snapshot.header);this.timelineFeed.add(state.head);}}
       this.historyLoading=state.historyLoading;this.historyBefore=state.before===null?null:state.history[0]?.seq??null;this.ensureFrameStream(now);
       if(snapshot?.end!==null&&snapshot!==null){this.select(snapshot.id,this.following);return;}
     }
@@ -1209,7 +1214,7 @@ export class App {
     this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
-    this.recording=null;this.recordingCurrent=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];
+    this.recording=null;this.recordingCurrent=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];this.timelineFeed=new TimelineFeed(null);this.timelineHead=[];
   }
 
   select(runId:string,automatic=false):void {
@@ -1617,8 +1622,8 @@ export class App {
     const historyStatus = this.ui("history-status");
     const historyPending=this.historyLoading&&(this.current?.state.selected!==this.runId||this.currentHistoryEvents.length===0);
     const historyHidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale&&!historyPending&&this.current.state.historyProblem===null:this.historyBefore===null;
-    const historyText=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:historyPending?"Loading recorded turns…":"Recorded history is separate from the current stats above.":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
-    if(historyStatus.hidden!==historyHidden)historyStatus.hidden=historyHidden;
+    const historyText=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:historyPending?"Loading recorded turns…":"":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    if(historyStatus.hidden!==(historyHidden||historyText===""))historyStatus.hidden=historyHidden||historyText==="";
     if(historyStatus.textContent!==historyText)historyStatus.textContent=historyText;
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
@@ -1684,7 +1689,8 @@ export class App {
     const split = splits(view, this.baseline, nowMs, this.frontier);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
-    this.setHtml("lanes",lanesSvg(this.traceOwner(),nowMs));
+    this.laneMotion??=new LaneMotion(this.ui("lanes"),this.deps.animateLanes);
+    this.laneMotion.render(this.current?.state.selected===this.runId?this.timelineFeed.view:this.shown,nowMs,clock!==null&&this.mode==="replay"?clock.playing?clock.speed:0:this.headReady&&this.view.end!==null?0:1);
     this.renderTrace(nowMs);
     this.renderBag();
     this.renderScreen(nowMs);
@@ -1784,6 +1790,7 @@ export async function boot(win: BootWindow): Promise<App> {
     hash: win.location.hash,
     loadGlyphSheet: browserGlyphSheet(win.document),
     drawGlyphs,
+    animateLanes: (element, keyframes, options) => element.animate(keyframes, options),
   });
   let last = win.performance.now();
   win.setInterval(() => {

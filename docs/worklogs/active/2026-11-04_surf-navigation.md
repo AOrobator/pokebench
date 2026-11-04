@@ -1,6 +1,6 @@
 # Native Surf navigation
 
-Status: in progress.
+Status: landed on main at 1a5ca07d0, on in both arms; awaiting operator approval to archive.
 
 Operator request (the operator, 2026-11-04, in thread "Add native Surf navigation"): proper native support for surfing as a correctness fix, treated like land navigation with A*. The harness never launches Surf. Semantic navigation works while surfing. Waterfalls, currents and Dive follow the field-move pattern: the planner knows what the terrain does, only the model uses a move. On foot with a target across water, the tool walks to the best shore tile, stops facing the water and says to press A. Approved: "lgtm, continue, land your changes on main, on in both arms as a correctness fix".
 
@@ -46,3 +46,5 @@ Main moved to 76ed3f753 (auto-bike, 9 commits) touching strides.py, navigation.t
 Round 3, integration against new main: base 8d24a5c29, head 130cae146, diff sha a6c6e008. Claude LGTM, GPT (Codex CLI) LGTM, fresh read-only fallback reviewer LGTM (replayed surfer_crosses over every connection edge in the pret map data). Grok unavailable: Cursor usage limit, standing rule applied. Gates at 130cae146: lint, test (agent 2444, viewer 803, env 2876, gateway 38, floors and no-io-proof OK), verify-vendor. Emulator rehearsal repeated on the merged build at 611ef0635 (same code as 130cae146 apart from an auto-bike worklog line): shore stop at (25,12), A prompt, water route to (35,20), landing at (31,18), no traceback.
 
 Follow-ups, not in this landing: a surfing exit onto elevation-3 water beyond a map edge dismounts by the source (11 tiles: Lilycove WEST, Route 115 SOUTH, Route 133 WEST), unproven on the emulator; a real-tile fixture for _edges with surfer; a combined surf and bike regression test; toShore facing recheck; elevation-0 water falling back to a press; shore check before deterministicWarpPlan.
+
+Landed: fast-forward of main to 1a5ca07d0 (2026-11-04 2:30 PM New York). Post-merge just test on main passed. Reused review and gates from 130cae146; the only later commit is this worklog.

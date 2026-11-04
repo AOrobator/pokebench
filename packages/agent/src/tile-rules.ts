@@ -22,3 +22,14 @@ export const GAME_RULE:ElevationRule={
 };
 // TILE_FLAG_SURFABLE water: not walkable on foot.
 export const WATER=new Set([0x10,0x11,0x12,0x13,0x14,0x15,0x19,0x22,0x2a,0x50,0x51,0x52,0x53,0x6c,0x6d,0x6f]);
+// surf-navigation-v1. PLAYER_AVATAR_FLAG_SURFING; ELEVATION_DEFAULT, where CanStopSurfing lands and field Surf starts.
+export const SURFING_FLAG=1<<3;
+export const SHORE_ELEVATION=3;
+// Surfable water with no forced movement: MB_POND_WATER, INTERIOR_DEEP_WATER, DEEP_WATER, SOOTOPOLIS_DEEP_WATER, OCEAN_WATER.
+export const SURF_FLOOR:ReadonlySet<number>=new Set([0x10,0x11,0x12,0x14,0x15]);
+// DoForcedMovement: MB_*_CURRENT push the surfer along; MB_WATERFALL pushes south until Waterfall climbs it.
+export const FORCED_WATER:ReadonlyMap<number,Direction>=new Map([[0x50,"RIGHT"],[0x51,"LEFT"],[0x52,"UP"],[0x53,"DOWN"],[0x13,"DOWN"]]);
+// MB_WATER_DOOR and MB_WATER_SOUTH_ARROW_WARP: warps on water.
+export const WATER_WARPS:ReadonlySet<number>=new Set([0x6c,0x6d]);
+// MetatileBehavior_IsSurfableFishableWater: the tiles field Surf can start onto.
+export const LAUNCH_WATER:ReadonlySet<number>=new Set([...SURF_FLOOR,0x50,0x51,0x52,0x53]);

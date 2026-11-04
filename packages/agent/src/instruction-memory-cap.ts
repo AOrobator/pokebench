@@ -100,7 +100,7 @@ export class InstructionMemoryCap {
   const here=key(state.map_id);if(here!==null)near.set(here,"current map");
   for(const c of state.topology?.connections??[]){const k=key(c.destination);if(k!==null&&!near.has(k))near.set(k,`${c.direction} connection`);}
   for(const line of (this.readout??"").split("\n")){
-   if(!line.startsWith("Exits you can walk to")&&!line.startsWith("Warps:")&&!line.startsWith("Unavailable from here:"))continue;
+   if(!line.startsWith("Exits you can walk to")&&!line.startsWith("You are surfing")&&!line.startsWith("Warps:")&&!line.startsWith("Unavailable from here:"))continue;
    for(const m of line.matchAll(/\(map (\d+)\/(\d+)\)/g)){const k=`${m[1]??""}/${m[2]??""}`;if(!near.has(k))near.set(k,"warp listed in the readout");}
   }
   return near;

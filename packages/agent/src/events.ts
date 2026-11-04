@@ -688,7 +688,9 @@ export const StateBodySchema = Type.Object(
       width: Type.Integer({minimum:1}), height: Type.Integer({minimum:1}),
       // connection-edge-tiles-v1: the current-map edge tiles a player can walk off, present only with that switch.
       connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String(),
-        edges:Type.Optional(Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:256}))},closed),{maxItems:16}),
+        edges:Type.Optional(Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:256})),
+        // surf-navigation-v1: the edge tiles crossable while surfing, present only with that switch.
+        water_edges:Type.Optional(Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:256}))},closed),{maxItems:16}),
     },closed),Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),

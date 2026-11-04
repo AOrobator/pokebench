@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,matchingTriggers,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,surfLaunch,waterReason,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -45,7 +45,7 @@ const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{})};
+ return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -240,9 +240,15 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
  });
  return [...ordinary,...counters].sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x||a.facing.localeCompare(b.facing));
 }
+// surf-navigation-v1: a surfer can also cross a map edge from water; the server lists those tiles separately.
+function edgeTiles(state:GameStateSnapshot,connection:NonNullable<GameStateSnapshot["topology"]>["connections"][number]|undefined,options:NavigationOptions):readonly {readonly x:number;readonly y:number}[] {
+ const edges=connection?.edges??[];
+ if(options.surf!==true||!isSurfing(state))return edges;
+ return [...edges,...(connection?.water_edges??[]).filter(w=>!edges.some(e=>e.x===w.x&&e.y===w.y))];
+}
 function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarget,{kind:"connection"}>,options:NavigationOptions):Approach[] {
  const connection=state.topology?.connections.find(item=>item.direction===target.direction);
- return (connection?.edges??[]).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
+ return edgeTiles(state,connection,options).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
   .sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
 }
 // moving-npc-intercept-v1: a place to stand beside a watched walk, and the step into it. The game
@@ -397,7 +403,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(watched.reason!=="loop closed"){notes.push(`Watched the person for ${String(watched.frames)} frames without pressing anything: ${watched.reason}; ${String(watched.edges.length)} steps seen, not a repeating path.`);return null;}
    notes.push(`Watched the person walk a repeating path of ${String(watched.edges.length)} steps without pressing anything.`);
    const options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
-   const plan=pathStepIn(features["field-move-gates-v1"]?gatedState(current):current,watched.edges,options);
+   const plan=pathStepIn(features["field-move-gates-v1"]?gatedState(current,features["surf-navigation-v1"]):current,watched.edges,options);
    if(plan===null){notes.push("No free tile beside that path can be reached on foot.");return null;}
    const here=current.position;
    if(here===null||!sameTile(here,plan.wait)){
@@ -434,7 +440,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     continue;
    }
    seen={x:fresh.x,y:fresh.y};
-   const planned=features["field-move-gates-v1"]?gatedState(current):current;
+   const planned=features["field-move-gates-v1"]?gatedState(current,features["surf-navigation-v1"]):current;
    let options:NavigationOptions=scriptBoundary?{...baseOptions,triggers:matchingTriggers(current)}:baseOptions;
    let choices=approaches(planned,fresh,options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(scriptBoundary&&choices.length===0){options={...options,triggers:[]};choices=approaches(planned,fresh,options);}
@@ -516,7 +522,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(template!==undefined){
      const reason=fieldOwner(before)??interrupted(before);
      if(reason!==null)return withStatus({content:[],details:{state:before}},`template approach refused: ${reason}; nothing was pressed`,selected,request.target,false);
-     const gated=features["field-move-gates-v1"]?gatedState(before):before;
+     const gated=features["field-move-gates-v1"]?gatedState(before,features["surf-navigation-v1"]):before;
      const reserved={x:template.x,y:template.y};
      const planned={...gated,...(gated.navigation_grid==null?{}:{navigation_grid:{...gated.navigation_grid,objects:[...gated.navigation_grid.objects,reserved]}}),...(gated.map_grid==null?{}:{map_grid:{...gated.map_grid,objects:[...gated.map_grid.objects,reserved]}})};
      const templateOptions={...options,triggers:matchingTriggers(before)};
@@ -561,11 +567,28 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,request.target,false);
    if(features["moving-npc-target-v1"]&&request.target.kind==="object"&&listed?.kind==="object"&&listed.activation==="A")return followObject(id,request,listed,before,signal);
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
-   const planned=features["field-move-gates-v1"]?gatedState(before):before;
+   const planned=features["field-move-gates-v1"]?gatedState(before,features["surf-navigation-v1"]):before;
    const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
    let choices=choicesFor(options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(scriptBoundary&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
    const choice=choices[0];
+   if(choice===undefined&&features["surf-navigation-v1"]){
+    const here=planned.position;
+    const target=request.target.kind==="connection"?null:listed;
+    const near=target===null?[]:target.kind==="warp"?[{x:target.x,y:target.y}]:[[0,-1],[0,1],[-1,0],[1,0]].map(([dx=0,dy=0])=>({x:target.x+dx,y:target.y+dy}));
+    if(isSurfing(planned)){
+     if(here!==null)return withStatus({content:[],details:{state:before}},`no supported route to a valid approach: ${waterReason(planned,target??here)}`,selected,request.target,false);
+    }else if(before.surf_gate?.can_surf===true){
+     const direction=request.target.kind==="connection"?request.target.direction:null;
+     const connection=before.topology?.connections.find(item=>item.direction===direction);
+     const goals=direction===null?near:[...(connection?.edges??[]),...(connection?.water_edges??[])];
+     const launch=surfLaunch(planned,goals,options);
+     if(launch!==null){
+      const walked=await navigate.execute(id,{x:launch.goal.x,y:launch.goal.y,map_id:[request.map_id[0],request.map_id[1]]},signal);
+      return withStatus(walked,navigationStatus(walked)??"stopped at the shore",selected,request.target,false);
+     }
+    }
+   }
    if(choice===undefined){
     const base=request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach";
     const detail=refusalDetail(before,request.target,options,features);
@@ -580,7 +603,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      const connection=actual.topology?.connections.find(item=>item.direction===connectionDirection);
      const a=selectedConnection?.destination,b=connection?.destination;
      const sameDestination=a!==undefined&&b!==undefined&&a[0]===b[0]&&a[1]===b[1];
-     return sameDestination&&connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)===true?null:`semantic connection changed during ${phase}`;
+     return sameDestination&&edgeTiles(actual,connection,options).some(point=>point.x===choice.point.x&&point.y===choice.point.y)?null:`semantic connection changed during ${phase}`;
     }
     const fresh=resolve(actual,request.target,options);
     if(fresh===null)return `semantic target disappeared during ${phase}`;

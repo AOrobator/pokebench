@@ -5,7 +5,7 @@ import {isCheckedPress,type BeforePressCheck,type CheckedPressOptions} from "./g
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION,SEMANTIC_NAVIGATE_DESCRIPTION} from "./navigate-first.js";
-import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
+import {COUNTER,EDGE_WALLS,FORCED_WATER,GAME_RULE,LAUNCH_WATER,LEDGES,OPPOSITE,SHORE_ELEVATION,SURFING_FLAG,SURF_FLOOR,WATER,WATER_WARPS,type Direction,type ElevationRule} from "./tile-rules.js";
 import {reachableSectionAlternatives} from "./reachable-section-alternatives.js";
 import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
@@ -67,7 +67,12 @@ const terrainStepCost=(tile:Tile,options:NavigationOptions):number=>options.gras
 export interface MatchingTrigger {readonly x:number;readonly y:number;readonly elevation:number;readonly variable:number;readonly required:number;readonly current:number|null}
 // field-move-gates-v1 slopes: a slope tile (MB_MUDDY_SLOPE) is stepped onto only moving down, and the walker slides south to
 // the first tile below it that is not a slope (ForcedMovement_MuddySlope, below the Mach Bike's top speed).
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean}
+// surf-navigation-v1: where a route starts Surf: the shore tile, the water it faces and the direction to face.
+export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonly facing:Direction}
+export interface SurfLaunch extends SurfLaunchPoint {readonly goal:Point}
+// Starting Surf takes the model's own turns, so a launch search prefers a route with less of it.
+const LAUNCH_COST=4;
+export interface NavigationOptions {readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean}
 export const SLOPE=0xd0;
 // Describes unsupported movement; no bike action, destination or puzzle solution is chosen.
 function terrainObstacle(behavior:number,mapObservability=false):string|null {
@@ -83,10 +88,12 @@ function terrainObstacle(behavior:number,mapObservability=false):string|null {
 // field-move-gates-v1: the state the planners see, with every closed obstacle object (the server's field_obstacles, read
 // from the map's own object list) counted as occupied even when the game has not loaded it. Without field_obstacles it is
 // the state unchanged.
-export function gatedState(state:GameStateSnapshot):GameStateSnapshot {
+// surf-navigation-v1: a surfer rides a waterfall down, so its tiles are not an obstacle to the planner while surfing.
+export function gatedState(state:GameStateSnapshot,surf=false):GameStateSnapshot {
  const field=state.field_obstacles;
  if(field==null)return state;
- const closed=field.obstacles.filter(o=>o.open===false&&(o.kind==="object"||o.gate!=="mach_bike"||o.only===null)).flatMap(o=>o.tiles);
+ const riding=surf&&isSurfing(state);
+ const closed=field.obstacles.filter(o=>o.open===false&&!(riding&&o.gate==="waterfall")&&(o.kind==="object"||o.gate!=="mach_bike"||o.only===null)).flatMap(o=>o.tiles);
  if(closed.length===0)return state;
  const add=(objects:readonly {readonly x:number;readonly y:number}[]):{x:number;y:number}[]=>[...objects,...closed.filter(t=>!objects.some(o=>o.x===t.x&&o.y===t.y)).map(t=>({x:t.x,y:t.y}))];
  const grid=state.navigation_grid,full=state.map_grid;
@@ -125,6 +132,23 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
  }};
 }
 
+// surf-navigation-v1: the game's own surfing flag, never the tile under the player.
+const navigationStatus=(result:AgentToolResult<unknown>):string|undefined=>(result.details as {navigation?:{status?:string}}|undefined)?.navigation?.status;
+export const isSurfing=(state:Pick<GameStateSnapshot,"running">):boolean=>((state.running?.avatar_flags??0)&SURFING_FLAG)!==0;
+const STEP:Readonly<Record<Direction,readonly [number,number]>>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
+// surf-navigation-v1: the tiles a surfer is pushed over after entering forced water at next, ending on the tile that stops
+// the push. Null when it is not forced water, loops, or runs into anything but water (the game would dismount or stall).
+function forcedPath(geometry:Geometry,next:Point):Point[]|null {
+ const first=geometry.tile(next);if(first===undefined||!FORCED_WATER.has(first.behavior))return null;
+ const tiles=[next],seen=new Set([key(next)]);
+ for(let p=next,push=FORCED_WATER.get(first.behavior);push!==undefined;){
+  const [dx,dy]=STEP[push],after={x:p.x+dx,y:p.y+dy},tile=geometry.tile(after);
+  if(tile===undefined||seen.has(key(after))||tile.collision!==0||geometry.objects.some(o=>o.x===after.x&&o.y===after.y))return null;
+  if(!SURF_FLOOR.has(tile.behavior)&&!FORCED_WATER.has(tile.behavior))return null;
+  seen.add(key(after));tiles.push(after);p=after;push=FORCED_WATER.get(tile.behavior);
+ }
+ return tiles;
+}
 // field-move-gates-v1: where a step DOWN onto a slope tile ends, sliding south off the slope; null when it is not a slope step.
 function slideEnd(geometry:Geometry,next:Point,direction:Direction,options:NavigationOptions):Point|null {
  if(options.slopes!==true||direction!=="DOWN"||geometry.tile(next)?.behavior!==SLOPE)return null;
@@ -177,6 +201,13 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked===true)return "field controls are locked by a script and no message is open; the game is acting on its own, so inspect the new state before calling navigate_to again";
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
+}
+// surf-navigation-v1: why no route runs from the water, in the game's words where it has any.
+export function waterReason(state:GameStateSnapshot,goal:Point):string {
+ const here=state.position===null?"here":at(state.position);
+ const fall=state.field_obstacles?.obstacles.find(o=>o.gate==="waterfall"&&o.open===false);
+ const named=fall===undefined?"":`; ${fall.name} on this map need ${fall.needs}${fall.text===null?"":`; the game says: "${fall.text}"`}`;
+ return `no route from the water at ${here} reaches ${at(goal)}: a surfer lands only on a shore tile at the water's edge, and currents and waterfalls push one way${named}`;
 }
 function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null,advice:WaypointAdvice|null=null,observed:GameStateSnapshot=state,mapObservability=false):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
@@ -258,7 +289,11 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
   const slid=slideEnd(geometry,next,direction,options);
-  if(slid!==null){
+  const pushed=options.surf===true?forcedPath(geometry,next):null;
+  if(pushed!==null){
+   const end=pushed.at(-1);if(end===undefined)return null;
+   cost+=pushed.length;p=end;
+  }else if(slid!==null){
    const land=geometry.tile(slid);if(land===undefined)return null;
    elevation=entered(elevation,land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
   }else if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
@@ -279,6 +314,8 @@ export function routeTiles(state:GameStateSnapshot,path:readonly Direction[],opt
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);
   const hop=options.ledges===true&&tile!==undefined&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y);
+  const pushed=options.surf===true?forcedPath(geometry,next):null;
+  if(pushed!==null){tiles.push(...pushed);p=pushed.at(-1)??next;continue;}
   const slid=slideEnd(geometry,next,direction,options);
   if(slid!==null){for(let y=next.y;y<=slid.y;y++)tiles.push({x:next.x,y});p=slid;continue;}
   p=hop?{x:next.x+delta[1],y:next.y+delta[2]}:next;tiles.push(p);
@@ -499,22 +536,50 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
  for(const o of geometry.objects)levels.set(key(o),[...(levels.get(key(o))??[]),layered?o.elevation:undefined]);
  const occupiedFor=(walker:number)=>(p:Point):boolean=>levels.get(key(p))?.some(e=>e===undefined||e===0||walker===0||e===walker)??false;
  if(!layered&&levels.has(key(goal)))return null;
- type Node={p:Point;here:number;elevation:number;cost:number;parent:Node|null;direction:Direction|null};
+ type Node={p:Point;here:number;elevation:number;cost:number;parent:Node|null;direction:Direction|null;surf:boolean;launch:SurfLaunchPoint|null};
  const route=(node:Node):Direction[]=>{const path:Direction[]=[];for(let n:Node|null=node;n!==null&&n.direction!==null;n=n.parent)path.push(n.direction);return path.reverse();};
- const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null};
+ const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null,surf:options.surf===true&&isSurfing(state),launch:null};
  let best=start;
  const pending=new OpenList<Node>(),costs=new Map<string,number>();
  pending.push(distance(start.p,goal),start);
  while(pending.size>0){
   const node=pending.pop();if(node===undefined)break;
-  const identity=`${key(node.p)}:${String(node.elevation)}`;
+  const identity=`${key(node.p)}:${String(node.elevation)}:${String(node.surf)}`;
   if((costs.get(identity)??Infinity)<=node.cost)continue;costs.set(identity,node.cost);
   if(distance(node.p,goal)<distance(best.p,goal)||(distance(node.p,goal)===distance(best.p,goal)&&node.cost<best.cost))best=node;
-  if(distance(node.p,goal)===0)return route(node);
+  if(distance(node.p,goal)===0){options.launch?.(node.launch);return route(node);}
   const occupied=occupiedFor(node.elevation);
   for(const [direction,dx,dy] of DIRECTIONS){
    const next={x:node.p.x+dx,y:node.p.y+dy},tile=geometry.tile(next);
    if(tile===undefined||occupied(next))continue;
+   const carried={parent:node,direction,launch:node.launch};
+   // surf-navigation-v1: on water the moves are the game's: plain water, a forced ride, a warp as the goal, or landing.
+   if(node.surf){
+    if(tile.collision!==0)continue;
+    const isGoal=distance(next,goal)===0;
+    const pushed=forcedPath(geometry,next);
+    if(pushed!==null){
+     const end=pushed.at(-1);if(end===undefined||(distance(end,goal)!==0&&triggerAt(options.triggers,end,node.elevation)!==undefined))continue;
+     const cost=node.cost+pushed.length;
+     pending.push(cost+distance(end,goal),{...carried,p:end,here:geometry.tile(end)?.elevation??node.here,elevation:node.elevation,cost,surf:true});continue;
+    }
+    if(FORCED_WATER.has(tile.behavior))continue;
+    const entersWater=SURF_FLOOR.has(tile.behavior)||(WATER_WARPS.has(tile.behavior)&&isGoal&&warps.has(key(next)));
+    if(entersWater){
+     if((warps.has(key(next))&&!isGoal)||mismatch(node.elevation,tile.elevation))continue;
+     if(!isGoal&&triggerAt(options.triggers,next,node.elevation)!==undefined)continue;
+     pending.push(node.cost+1+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:node.elevation,cost:node.cost+1,surf:true});continue;
+    }
+    // CanStopSurfing: an elevation-mismatch step onto elevation 3 with no object there at elevation 3 dismounts.
+    if(tile.elevation!==SHORE_ELEVATION||!mismatch(node.elevation,tile.elevation)||occupiedFor(SHORE_ELEVATION)(next)||!walkable.has(tile.behavior)||(warps.has(key(next))&&!isGoal))continue;
+    if(!isGoal&&triggerAt(options.triggers,next,SHORE_ELEVATION)!==undefined)continue;
+    pending.push(node.cost+step(tile)+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:SHORE_ELEVATION,cost:node.cost+step(tile),surf:false});continue;
+   }
+   // surf-navigation-v1: IsPlayerFacingSurfableFishableWater; only a launch search takes this edge, and it never walks it.
+   if(options.launch!==undefined&&node.elevation===SHORE_ELEVATION&&tile.collision===0&&LAUNCH_WATER.has(tile.behavior)&&mismatch(node.elevation,tile.elevation)&&!occupiedFor(tile.elevation)(next)){
+    const cost=node.cost+LAUNCH_COST;
+    pending.push(cost+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:tile.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction}});continue;
+   }
    if(options.slopes===true&&tile.behavior===SLOPE){
     // A slope is entered only moving down, slides to the first tile below it, and is never a goal.
     const slid=slideEnd(geometry,next,direction,options);
@@ -525,7 +590,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     if(mismatch(node.elevation,land.elevation))continue;
     const arrived=entered(node.elevation,land.elevation),cost=node.cost+slid.y-next.y+step(land);
     if(distance(slid,goal)!==0&&triggerAt(options.triggers,slid,arrived)!==undefined)continue;
-    pending.push(cost+distance(slid,goal),{p:slid,here:land.elevation,elevation:arrived,cost,parent:node,direction});continue;
+    pending.push(cost+distance(slid,goal),{...carried,p:slid,here:land.elevation,elevation:arrived,cost,surf:false});continue;
    }
    if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
@@ -533,7 +598,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     if(mismatch(node.elevation,land.elevation))continue;
     const landed=jumped(node.elevation,node.here,tile.elevation,land.elevation);
     if(distance(landing,goal)!==0&&triggerAt(options.triggers,landing,landed)!==undefined)continue;
-    pending.push(node.cost+1+step(land)+distance(landing,goal),{p:landing,here:land.elevation,elevation:landed,cost:node.cost+1+step(land),parent:node,direction});continue;
+    pending.push(node.cost+1+step(land)+distance(landing,goal),{...carried,p:landing,here:land.elevation,elevation:landed,cost:node.cost+1+step(land),surf:false});continue;
    }
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
    // A goal-only pad is entered only as the terminal tile: distance 0 is the goal, so it can never
@@ -546,10 +611,21 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if(mismatch(node.elevation,tile.elevation))continue;
    const arrived=entered(node.elevation,tile.elevation);
    if(distance(next,goal)!==0&&triggerAt(options.triggers,next,arrived)!==undefined)continue;
-   pending.push(node.cost+step(tile)+distance(next,goal),{p:next,here:tile.elevation,elevation:arrived,cost:node.cost+step(tile),parent:node,direction});
+   pending.push(node.cost+step(tile)+distance(next,goal),{...carried,p:next,here:tile.elevation,elevation:arrived,cost:node.cost+step(tile),surf:false});
   }
  }
  return !goalKnown&&best!==start ? route(best) : null;
+}
+// surf-navigation-v1: on foot, where the cheapest way to any of these goals starts Surf; null when no way needs it or none exists.
+export function surfLaunch(state:GameStateSnapshot,goals:readonly Point[],options:NavigationOptions):SurfLaunch|null {
+ let chosen:SurfLaunch|null=null,shortest=Infinity;
+ for(const goal of goals){
+  const found:(SurfLaunchPoint|null)[]=[];
+  const path=planNavigation(state,goal,{...options,launch:launch=>found.push(launch)});
+  const launch=found[0]??null;
+  if(path!==null&&launch!==null&&path.length<shortest){chosen={...launch,goal};shortest=path.length;}
+ }
+ return chosen;
 }
 
 // field_control_avatar.c routes these metatile behaviors through an arrow-warp
@@ -614,7 +690,7 @@ export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
 // trainer-sight-check-v2: navigate_to_target asks for trainer-sight-check-v1's check on its first walk; exclude is the
 // object it goes to talk to (its own sight is no reason to refuse).
 export interface TargetSightCheck {readonly confirm:boolean;readonly exclude:number|null}
-export interface CheckedNavigationOptions {readonly commandLimit?:1;readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
+export interface CheckedNavigationOptions {readonly shoreLeg?:boolean;readonly commandLimit?:1;readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
@@ -677,6 +753,8 @@ export interface NavigationPorts {
  readonly alreadyHere?:boolean;
  readonly boundaryCrossingFacts?:boolean;
  readonly sectionAlternatives?:boolean;
+ // surf-navigation-v1: plan over water while surfing, and on foot walk to the shore when the way on crosses water.
+ readonly surfNavigation?:boolean;
  // trainer-sight-check-v1: the model's own call checks its first planned route against unbeaten trainers' sight.
  readonly trainerSight?:TrainerSightPorts|undefined;
  // story-battle-heal-gate-v1: the model's own call is not started when its first planned route would start a trainer
@@ -713,9 +791,12 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  if(geometry===null||origin===null||state.map_id===null||path[0]===undefined)return null;
  const elevation=geometry.elevation,tiles:Point[]=[];
  if(elevation<1||elevation>14)return null;
+ // surf-navigation-v1: a held press moves two tiles on water, so water steps go by a frame-owned corridor.
+ const surfing=options.surf===true&&isSurfing(state);
+ const floor=(t:Tile):boolean=>surfing?SURF_FLOOR.has(t.behavior):t.behavior===0||(tallGrass&&t.behavior===TALL_GRASS);
  const safe=(p:Point):boolean=>{
   const t=geometry.tile(p);
-  return t!==undefined&&t.collision===0&&(t.behavior===0||(tallGrass&&t.behavior===TALL_GRASS))&&t.elevation===elevation&&!geometry.objects.some(o=>key(o)===key(p))&&!geometry.warps.some(w=>key(w)===key(p))&&!(state.world_context?.triggers??[]).some(t=>t.x===p.x&&t.y===p.y)&&!options.triggers?.some(t=>t.x===p.x&&t.y===p.y);
+  return t!==undefined&&t.collision===0&&floor(t)&&t.elevation===elevation&&!geometry.objects.some(o=>key(o)===key(p))&&!geometry.warps.some(w=>key(w)===key(p))&&!(state.world_context?.triggers??[]).some(t=>t.x===p.x&&t.y===p.y)&&!options.triggers?.some(t=>t.x===p.x&&t.y===p.y);
  };
  if(!safe(origin))return null;
  const delta=DIRECTIONS.find(([d])=>d===path[0]);if(delta===undefined)return null;
@@ -724,7 +805,7 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
   const p={x:origin.x+delta[1]*(tiles.length+1),y:origin.y+delta[2]*(tiles.length+1)};
   if(!safe(p))break;tiles.push(p);
  }
- return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(tallGrass?{tall_grass:true as const}:{})};
+ return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{})};
 }
 // rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
 export interface PrefixRules {readonly ledges:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
@@ -805,6 +886,19 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const gatedDescription=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
  const bounded=ports.truth===true&&ports.triggers===true?`${gatedDescription} Prefer routes avoiding matching coordinate scripts; when no such route exists, the first matching coordinate script is a walkable observation boundary: ordinary steps walk without automatic running, strides stop before script coordinates, and navigation returns the resulting state after a trigger entry attempt before any further movement.`:gatedDescription;
  const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
+ // surf-navigation-v1: the walk stops at the water; starting Surf is the model's press.
+ const toShore=async(id:string,goal:Goal,launch:SurfLaunchPoint,before:GameStateSnapshot,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
+  const walked=samePoint(before.position??launch.at,launch.at)?null:await execute(id,{...goal,x:launch.at.x,y:launch.at.y},signal,stop,{...checkedOptions,shoreLeg:true,exactTarget:false});
+  if(walked!==null&&navigationStatus(walked)!=="arrived at requested coordinate")return walked;
+  let last=walked??await ports.observe(id,signal),state=resultState(last),commands=(walked?.details as {navigation?:{commands?:number}}|undefined)?.navigation?.commands??0;
+  if(state.facing!==launch.facing.toLowerCase()&&state.position!==null&&samePoint(state.position,launch.at)){
+   last=await ports.press(id,{buttons:[launch.facing]},signal,actual=>{if(actual===undefined||!ready(actual)||actual.position===null||!samePoint(actual.position,launch.at))throw new NavigationPreconditionError("position or field input changed before facing the water; no command submitted");},{automaticRunning:false});
+   state=resultState(last);commands++;
+  }
+  const status=`stopped at the shore at ${at(launch.at)}, facing the water at ${at(launch.water)}: the way to ${at(goal)} crosses water, and navigate_to does not start Surf; press A while facing the water to use it`;
+  const rest=walked===null?last.content:last.content.filter(part=>part.type!=="text"||!part.text.startsWith("Navigation: "));
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...rest],details:{state,navigation:{status,commands,target:goal,unready:false}}};
+ };
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   const bound=checkedOptions.commandLimit??defaultBound;
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
@@ -822,7 +916,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    state=await ports.read(signal);signal?.throwIfAborted();
    advice?.observeMap(state);
    const observed=state;
-   if(ports.fieldMoveGates===true)state=gatedState(state);
+   if(ports.fieldMoveGates===true)state=gatedState(state,ports.surfNavigation===true);
    const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
     if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
@@ -832,7 +926,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    // Script-trigger boundary: coordinate scripts are visible with coordinate-script-conditions-v1, and there is no
    // switch over what to do when every route crosses one (see the port comment): they are walked, not refused.
    const boundary=truth&&ports.triggers===true?matchingTriggers(state):[];
-   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{})};
+   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{}),...(ports.surfNavigation===true?{surf:true}:{})};
+   const surfing=ports.surfNavigation===true&&isSurfing(state);
    // A script-free route wins. When the scripts are the only obstruction, the same route is walked and the first
    // matching script becomes the step that stops navigation; clear the triggers only if that route exists, so the
    // refusal text for a goal that is unreachable anyway still names which nearer tiles the scripts cut off.
@@ -843,7 +938,10 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
    const triggerAware=boundary.length>0;
    // field-move-gates-v1: a goal neither on nor next to the server's foot area that only closed obstacles cut off.
-   const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
+   // surf-navigation-v1: the foot area says nothing while surfing, and on foot Surf may still go around the obstacle.
+   const shore=ports.surfNavigation===true&&!surfing&&!checkedOptions.shoreLeg&&commands===0&&state.surf_gate?.can_surf===true&&planNavigation(state,goal,options)===null?surfLaunch(state,[goal],options):null;
+   if(shore!==null)return toShore(id,goal,shore,state,signal,stop,checkedOptions);
+   const cutOff=ports.fieldMoveGates===true&&ports.exitReach===true&&!surfing?exitBlock({surf:false,reach:true,gates:true},state).obstacles(goal.x,goal.y):null;
    if(cutOff!==null){status=`${at(goal)} cannot be reached on foot from where you stand: ${cutOff}`;break;}
    const warpPlan=ports.deterministicWarps===true&&checkedOptions.exactTarget!==true?deterministicWarpPlan(state,goal,options):null;
    selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
@@ -855,6 +953,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     const escape=planNavigation(state,goal,whole);
     if(escape!==null){active="full";options=whole;path=escape;}
    }
+   if(path===null&&surfing){status=waterReason(state,goal);break;}
    if(path===null){
     status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice,observed,ports.mapObservability===true):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     if(ports.sectionAlternatives===true){const alternatives=reachableSectionAlternatives(state,goal);if(alternatives!==null)status+=`; ${alternatives}`;}
@@ -911,6 +1010,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true):null;
+   const ride=surfing&&stride===null?routeTiles(planned,[direction],options)?.at(-1)??null:null;
    const span=stride?.path.length??slideAhead(planned,options,before,direction)??(ports.ledges===true&&hopAhead(planned,active,before,direction,delta[1],delta[2])?2:1);
    const entry=triggerAware?routeTiles(state,[direction],options)?.at(-1):undefined;
    const entryElevation=triggerAware?walked(state,[direction],options)?.elevation:undefined;
@@ -947,7 +1047,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    // A held running press can finish more than one tile away. It is still the planned move only when every
    // crossed tile is the next collinear prefix of the route; pushbacks, teleports and off-route displacement stop.
    const runningPrefix=ports.safeStrides!==true&&ports.automaticRunning===true&&checkedOptions.multiTileRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
-   if((after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
+   if(ride!==null?!samePoint(after,ride):(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
    if(distance(after,selectedTarget)===0){
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}
     status="arrived at requested coordinate";break;
@@ -964,7 +1064,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   // The cap text describes the observation returned with it: "call again" only when the walk can go on.
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(ports.safeStrides===true&&status==="command limit")status="planned route-step budget reached; inspect the returned state before continuing";
-  if(truth&&status==="command limit"){const here=state.position;const block=exitBlock({surf:false,reach:true,gates:ports.fieldMoveGates===true},state);const cut=ports.exitReach===true&&block.footNear(goal.x,goal.y)===false;const why=cut?block.obstacles(goal.x,goal.y):null;status=here!==null&&sameMap()&&ready(state,active)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: ${why===null?"no walkable way on this map leads from your tile to it or to a tile next to it":why}, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
+  if(truth&&status==="command limit"){const here=state.position;const block=exitBlock({surf:false,reach:true,gates:ports.fieldMoveGates===true},state);const cut=ports.exitReach===true&&!(ports.surfNavigation===true&&isSurfing(state))&&block.footNear(goal.x,goal.y)===false;const why=cut?block.obstacles(goal.x,goal.y):null;status=here!==null&&sameMap()&&ready(state,active)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: ${why===null?"no walkable way on this map leads from your tile to it or to a tile next to it":why}, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...sightParts.map(text=>({type:"text" as const,text})),...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
@@ -988,5 +1088,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

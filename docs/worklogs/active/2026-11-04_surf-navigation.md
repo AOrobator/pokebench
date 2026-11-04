@@ -20,8 +20,8 @@ Game rules (pret/pokeemerald 731ad5b, field_player_avatar.c):
 - Currents 0x50-0x53 and waterfall 0x13 are forced movement (DoForcedMovement).
 
 - [x] M1 Game server: water strides and connection water edges. Focused: 24 env tests pass.
-- [ ] M2 Agent: A* surf mode, walker, shore stop, semantic navigation, exit lines, prompt
-- [ ] M3 Agent: currents and waterfalls as forced movement
+- [x] M2 Agent: A* surf mode, walker, shore stop, semantic navigation, exit lines, prompt. 30 focused tests pass; 310 existing navigation, semantic, feature and preset tests pass. Wiring proof: removing surfNavigation from withNavigation turned "the feature set reaches the walker" red (expected 0 to be greater than 0); restored, it passes.
+- [x] M3 Agent: currents and waterfalls as forced movement. Planner and gate tests only; no save reaches a current, see the rehearsal note.
 - [ ] M4 Config, explainer, emulator rehearsal
 - [ ] M5 Gates, review, landing
 

@@ -1,16 +1,24 @@
 import {describe,expect,it} from "vitest";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
-import {navigationTool,planNavigation,planStride,routeTiles,surfLaunch,gatedState,type NavigationOptions} from "./navigation.js";
+import {navigationTool,withNavigation,planNavigation,planStride,routeTiles,surfLaunch,gatedState,type NavigationOptions} from "./navigation.js";
 import {exitsLine} from "./harness-trust.js";
+import {Type} from "typebox";
 import type {GameStateSnapshot} from "./game-state.js";
+import type {FeatureSet} from "./features.js";
+import type {CheckedPressTool} from "./game-tools.js";
+import type {CheckedNavigationTool} from "./navigation.js";
+import {playSystemPrompt} from "./play-config.js";
+import {flagFeatures} from "./play-preset.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const POND=0x10,OCEAN=0x15,CURRENT_EAST=0x50,CURRENT_SOUTH=0x53,WATERFALL=0x13,WATER_DOOR=0x6c;
 type Cell={behavior?:number;elevation?:number;collision?:number};
 // One row: land at 0-1, water at 2-5, land at 6-7 unless a test overrides a tile.
 const row=(overrides:Readonly<Record<number,Cell>>={},length=8,y=0)=>Array.from({length},(_,x)=>({x,y,collision:0,behavior:x>=2&&x<=5?OCEAN:0,elevation:x>=2&&x<=5?1:3,...overrides[x]}));
-const SURF={running:{permitted:false,controllable:true,reason:"not_on_foot",avatar_flags:8}} as const;
-const FOOT={running:{permitted:true,controllable:true,reason:"permitted",avatar_flags:1}} as const;
+const native={shoes:true,allow_running:true,metatile:21,elevation:1,map_type:3,callback1:1,callback2:1,diagnostic:null,raw_hex:null};
+const SURF={running:{...native,permitted:false,controllable:true,reason:"not_on_foot",avatar_flags:8}} as const;
+const FOOT={running:{...native,permitted:true,controllable:true,reason:"permitted",avatar_flags:1}} as const;
 const field=(x:number,surfing:boolean,tiles=row(),extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,map_id:[0,33],position:{x,y:0},facing:"right",navigation_grid:{elevation:surfing?1:3,tiles,objects:[],warps:[]},...(surfing?SURF:FOOT),surf_gate:{can_surf:true,balance_badge:true,party_surf:true,surfing,warps:[],connections:[]},...extra} as GameStateSnapshot);
 const ON:NavigationOptions={mode:"local",floor:true,elevation:"game",surf:true};
 const OFF:NavigationOptions={mode:"local",floor:true,elevation:"game"};
@@ -128,7 +136,7 @@ describe("walker",()=>{
  it("crosses water in a stride, then one press lands",async()=>{
   const tiles=row();const w=walker(field(2,true,tiles),stepWith(tiles));
   const out=await w.tool.execute("n",{x:7,y:0,map_id:[0,33]});
-  expect(w.presses.map(p=>p.stride===undefined?p.buttons:"stride")).toEqual(["stride",["RIGHT"],["RIGHT"]]);
+  expect(w.presses.map(p=>p.stride===undefined?p.buttons:"stride")).toEqual(["stride",["RIGHT"],"stride"]);
   expect(w.now().position).toEqual({x:7,y:0});
   expect(out.details).toMatchObject({navigation:{status:"arrived at requested coordinate"}});
  });
@@ -173,5 +181,62 @@ describe("exit line",()=>{
   const line=exitsLine(state(true,true),places as never,false,false,true);
   expect(line).toContain("You are surfing");expect(line).toContain("NORTH edge -> ROUTE 119");expect(line).toContain("WEST edge -> MAUVILLE CITY");
   expect(line).not.toContain("on foot");
+ });
+});
+
+describe("semantic navigation",()=>{
+ const features=(on:boolean):FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true,"surf-navigation-v1":on});
+ const north={direction:"NORTH",offset:0,destination:[0,34],destination_name:"ROUTE 119",edges:[],water_edges:[{x:4,y:0}]};
+ const start=(x:number,surfing:boolean):GameStateSnapshot=>({...field(x,surfing),topology:{width:8,height:1,connections:[north]},interaction_targets:[]} as unknown as GameStateSnapshot);
+ function fixture(initial:GameStateSnapshot,on=true){
+  let current=initial;const navigations:unknown[]=[],buttons:string[][]=[];
+  const done=(status:string):AgentToolResult<unknown>=>({content:[{type:"text",text:`Navigation: ${status}`}],details:{state:current,navigation:{status,commands:1}}});
+  const go=(args:{x:number;y:number}):Promise<AgentToolResult<unknown>>=>{navigations.push(args);current={...current,position:{x:args.x,y:args.y}};return Promise.resolve(done("arrived at requested coordinate"));};
+  const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:(_id:string,args:{x:number;y:number})=>go(args),executeChecked:(_id:string,args:{x:number;y:number})=>go(args)} as unknown as CheckedNavigationTool;
+  const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(_id:string,args:{buttons:string[]})=>{buttons.push(args.buttons);return Promise.resolve({content:[],details:{state:current}});},executeChecked:(_id:string,args:{buttons:string[]})=>{buttons.push(args.buttons);current={...current,map_id:[0,34]};return Promise.resolve({content:[],details:{state:current}});}} as unknown as CheckedPressTool;
+  const tools=withSemanticNavigation([navigate,press],features(on),{read:()=>Promise.resolve(current)});
+  const tool=tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+  return {tool,navigations,buttons};
+ }
+ it("takes a map exit from a water edge tile while surfing",async()=>{
+  const f=fixture(start(2,true));
+  await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
+  expect(f.navigations).toEqual([{x:4,y:0,map_id:[0,33]}]);expect(f.buttons).toEqual([["UP"]]);
+ });
+ it("on foot sends the walk toward the exit across water and presses nothing itself",async()=>{
+  const f=fixture(start(0,false));
+  await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
+  expect(f.navigations).toEqual([{x:4,y:0,map_id:[0,33]}]);expect(f.buttons).toEqual([]);
+ });
+ it("with the switch off the water edge is not an approach",async()=>{
+  const f=fixture(start(2,true),false);
+  await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
+  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
+ });
+});
+
+describe("system prompt",()=>{
+ const on=(value:boolean):FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"surf-navigation-v1":value});
+ it("says who starts Surf only with the switch",()=>{
+  expect(playSystemPrompt(on(true),null)).toContain("never start Surf");
+  expect(playSystemPrompt(on(false),null)).not.toContain("never start Surf");
+ });
+});
+
+describe("production wiring",()=>{
+ const features=(on:boolean):FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"safe-navigation-strides-v1":true,"surf-navigation-v1":on});
+ const walk=async(on:boolean):Promise<number>=>{
+  let state=field(2,true);let strides=0;
+  const answer=():Promise<AgentToolResult<unknown>>=>Promise.resolve({content:[],details:{state}});
+  const press={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:answer,executeChecked:(_id:string,_args:unknown,_check:unknown,_signal:unknown,_update:unknown,options?:{stride?:{path:{x:number}[]}}):Promise<AgentToolResult<unknown>>=>{if(options?.stride===undefined)return answer();strides++;state={...state,position:{x:options.stride.path.at(-1)?.x??0,y:0}};return Promise.resolve({content:[],details:{state,stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}});}};
+  const observe={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:answer};
+  const tool=withNavigation([press,observe] as never,features(on),{read:()=>Promise.resolve(state)} as never).find(t=>t.name==="navigate_to");
+  if(tool===undefined)throw new Error("missing navigate_to");
+  await tool.execute("n",{x:5,y:0,map_id:[0,33]} as never);
+  return strides;
+ };
+ it("the feature set reaches the walker",async()=>{
+  expect(await walk(false)).toBe(0);
+  expect(await walk(true)).toBeGreaterThan(0);
  });
 });

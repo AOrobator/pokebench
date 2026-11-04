@@ -1,6 +1,6 @@
 # Native Surf navigation
 
-Status: landed on main at 1a5ca07d0, on in both arms; awaiting operator approval to archive.
+Status: landed on main at 1a5ca07d0, on in both arms; archived with operator approval 2026-11-04.
 
 Operator request (the operator, 2026-11-04, in thread "Add native Surf navigation"): proper native support for surfing as a correctness fix, treated like land navigation with A*. The harness never launches Surf. Semantic navigation works while surfing. Waterfalls, currents and Dive follow the field-move pattern: the planner knows what the terrain does, only the model uses a move. On foot with a target across water, the tool walks to the best shore tile, stops facing the water and says to press A. Approved: "lgtm, continue, land your changes on main, on in both arms as a correctness fix".
 

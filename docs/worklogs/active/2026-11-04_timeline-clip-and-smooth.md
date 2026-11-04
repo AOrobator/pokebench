@@ -17,7 +17,7 @@ Operator request (the operator, 2026-11-04): items stream in and clip behind a l
 - [x] M2 GREEN: `LaneMotion`, `TimelineFeed`, `forgetBefore`, head refresh during a trace hold, label column, dots and note removed
 - [x] M3a Headless proof and gates
 - [x] M3b Cloud review
-- [ ] M4 Land, post-merge test, `just viewer-main`, live check
+- [x] M4 Land, post-merge test, `just viewer-main`, live check
 
 ## Evidence
 
@@ -41,3 +41,5 @@ Round 2: GPT LGTM; fallback reviewer LGTM; Claude BLOCKING on one Fix: a gap bet
 Round 3: GPT LGTM; Claude BLOCKING on one Fix: the now-line SVG took the pointer, so mark tooltips stopped working. Fixed with `pointer-events: none`; headless `elementFromPoint` reaches each mark kind. Final `just test` at 288e69724: 0 (agent 2,377, viewer 798, env 2,727, gateway 38), `just verify-vendor` 0. The fix after it is one CSS declaration.
 
 Round 4 (delta only, head 31cc3270c): Claude LGTM, GPT LGTM. Fallback reviewer LGTM at b44c8d424. Grok out of Cursor usage until 11/17; operator's standing rule covers this. Follow-ups: a mid-run unsettled first state can still mis-derive a diamond (as on the base); no automated browser check covers mark hit-testing.
+
+Landed on main at 4ec4baa84 (ff-only). Post-merge `just test` 0. `just viewer-main` kept 2 live gameplay processes; viewer at 4ec4baa84. Live headless check of the served viewer on run ..._274b over 100 s: oldest mark at the line (0 s gap) once filled, largest one-second loss 5 marks, strip moved on 195 of 196 frames, 0 dots, no note, no page errors.

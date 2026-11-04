@@ -42,3 +42,4 @@ Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 
 - Delta review round 1: Claude and GPT blocked on false doc lines (tool-prompt-sync, CLAUDE.md import allowance); corrected. Final gate on c1ebaa6bd: `just test` 59.52 s, 5,933 tests, trainer-card-check pass.
 - Delta review round 2: Claude LGTM; GPT blocked on CLAUDE.md saying the pytest import allowance covers only reads; it covers any guarded I/O during application import. Wording corrected.
 - Delta review round 3: GPT LGTM; Claude blocked on the allowance wording naming only application modules. Wording now states the rule as implemented.
+- Delta review round 4: GPT and fallback LGTM; Claude still blocked on the sentence claiming a complete allowance list. Replaced it with a pointer to the guards' source. `_is_test_file` missing `*_test.py` and Node require-loader reads recorded as follow-ups.

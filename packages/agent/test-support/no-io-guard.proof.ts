@@ -1,0 +1,18 @@
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { lookup } from "node:dns/promises";
+import { createServer } from "node:net";
+import { Worker } from "node:worker_threads";
+import { expect, it } from "vitest";
+it("pure", () => { expect(1 + 1).toBe(2); });
+it("sync read", () => { readFileSync("/etc/hosts"); });
+it("write", () => { writeFileSync("/tmp/x", "y"); });
+it("promises", async () => { await readFile("/etc/hosts"); });
+it("process", () => { execSync("true"); });
+it("listen", () => { createServer().listen(0); });
+it("fetch", async () => { await fetch("http://127.0.0.1:9/"); });
+it("swallowed", () => { try { readFileSync("/etc/hosts"); } catch { /* hidden */ } });
+it("dns", async () => { await lookup("localhost"); });
+it("worker", () => { new Worker("0", { eval: true }); });
+it("websocket", () => { new WebSocket("ws://127.0.0.1:9/"); });

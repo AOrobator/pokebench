@@ -8,6 +8,7 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts"],
+    setupFiles: ["../agent/test-support/no-io.ts"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

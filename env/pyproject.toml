@@ -44,7 +44,7 @@ packages = ["pokebench_env", "pokebench_gates"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = ["vendor"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -p pokebench_gates.no_io_guard"
 
 [tool.coverage.run]
 source = ["pokebench_env", "pokebench_gates"]

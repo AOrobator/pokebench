@@ -16,7 +16,7 @@ Operator request (the operator, 2026-11-04): items stream in and clip behind a l
 - [x] M1 RED tests
 - [x] M2 GREEN: `LaneMotion`, `TimelineFeed`, `forgetBefore`, head refresh during a trace hold, label column, dots and note removed
 - [x] M3a Headless proof and gates
-- [ ] M3b Cloud review
+- [x] M3b Cloud review
 - [ ] M4 Land, post-merge test, `just viewer-main`, live check
 
 ## Evidence
@@ -39,3 +39,5 @@ Round 1: Grok lane out of Cursor usage until 11/17 (operator rule: Claude, GPT a
 Round 2: GPT LGTM; fallback reviewer LGTM; Claude BLOCKING on one Fix: a gap between feed pages left permanent full-width bars. Fixed with `RunView.sealOpen`. Also moved the now line back above marks and scaled the drift tolerance with replay speed. Rebut: a false diamond when a mid-run first state is unsettled exists on the base too; recorded as a follow-up, and the PB1 row now says "the first state's".
 
 Round 3: GPT LGTM; Claude BLOCKING on one Fix: the now-line SVG took the pointer, so mark tooltips stopped working. Fixed with `pointer-events: none`; headless `elementFromPoint` reaches each mark kind. Final `just test` at 288e69724: 0 (agent 2,377, viewer 798, env 2,727, gateway 38), `just verify-vendor` 0. The fix after it is one CSS declaration.
+
+Round 4 (delta only, head 31cc3270c): Claude LGTM, GPT LGTM. Fallback reviewer LGTM at b44c8d424. Grok out of Cursor usage until 11/17; operator's standing rule covers this. Follow-ups: a mid-run unsettled first state can still mis-derive a diamond (as on the base); no automated browser check covers mark hit-testing.

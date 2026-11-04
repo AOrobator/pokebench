@@ -326,6 +326,7 @@
     "auto-talk-interrupt-note-v1": true,
     "deep-south-warp-label-v1": true,
     "semantic-refusal-reasons-v1": true,
-    "moving-npc-intercept-v1": true
+    "moving-npc-intercept-v1": true,
+    "warp-areas-v1": true
   }
 }

@@ -8,7 +8,6 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts"],
-    exclude: ["src/trainer-card-app.test.ts", "src/workbench.test.ts"],
     setupFiles: ["../agent/test-support/no-io.ts"],
     coverage: {
       provider: "v8",

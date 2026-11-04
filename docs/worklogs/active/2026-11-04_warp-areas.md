@@ -45,3 +45,9 @@ Round 1, packet 163a1c36f..97a95400e. Grok out of Cursor usage until 11/17 (stan
 COMMIT: `fix(readout): keep unknown landings apart and never claim unmeasured reach` (7535cc36e)
 
 Round 2, head 7535cc36e: Claude LGTM. GPT BLOCKING on one Fix: launch.sh checked and receipted `--port` but frozenPlay keeps a lane's port out of the child, so the run took 8000 regardless. `--port` removed; the script checks 8000, the port the run really takes. Skill text updated to the five forwarded variables. Partial reach under the Surf gate alone: follow-up, not reachable with the current recipe.
+
+COMMIT: `fix(launch): plain runs take the default port, so launch.sh stops offering another` (26f6345b9)
+
+Round 3, delta at 26f6345b9: Claude LGTM, GPT LGTM. Fallback LGTM at round 1. Grok out until 11/17.
+
+- [x] M4 Explainer, review lanes

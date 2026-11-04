@@ -25,7 +25,6 @@ from typing import TextIO
 from pokebench_env import authored_scene_labels
 from pokebench_env.bike import MOUNT_SWITCH as BIKE_MOUNT
 from pokebench_env.bike import REGISTER_SWITCH as BIKE_REGISTER
-from pokebench_env.bike import read_bike
 from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
 from pokebench_env.elevation_view import SWITCH as ELEVATION_MAP
@@ -159,11 +158,10 @@ def read_state(
         map_wide_triggers_enabled="map-wide-triggers-v1" not in off
         and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
+        bike_enabled=not {BIKE_REGISTER, BIKE_MOUNT} <= off,
     )
     if authored_scene_labels.SWITCH not in off:
         state = authored_scene_labels.annotate_scene_label(read, state)
-    if not {BIKE_REGISTER, BIKE_MOUNT} <= off and isinstance(state, GameState) and state.started:
-        state = replace(state, bike=read_bike(read))
     # Callers that stub read_game_state return other objects; only a real observation is relabelled.
     observation = getattr(state, "map_observation", None)
     if DEEP_SOUTH_WARP_LABEL not in off and isinstance(observation, MapObservation):

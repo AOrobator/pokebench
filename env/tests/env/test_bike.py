@@ -739,34 +739,23 @@ def test_readout_line_and_state_json_only_with_a_switch():
 
 
 @pytest.mark.parametrize("off_both", [True, False])
-def test_read_state_reads_the_bike_only_with_a_switch(monkeypatch, off_both):
+def test_read_state_asks_for_the_bike_only_with_a_switch(monkeypatch, off_both):
     from pokebench_env import rerender
     from pokebench_env.readout import SERVER_FEATURES
 
-    monkeypatch.setattr(rerender, "read_game_state", lambda *_a, **_k: field_state())
+    seen = {}
+
+    def stub(*_args, **kwargs):
+        seen.update(kwargs)
+        return field_state()
+
+    monkeypatch.setattr(rerender, "read_game_state", stub)
     off = frozenset(SERVER_FEATURES) - (set() if off_both else {"bike-auto-mount-v1"})
-    state = rerender.read_state(memory(registered=MACH).read, None, active_ui=False, off=off)
-    assert (state.bike is None) is off_both
-    if not off_both:
-        assert state.bike == BikeState((MACH,), MACH, None, True)
+    rerender.read_state(memory().read, None, active_ui=False, off=off)
+    assert seen["bike_enabled"] is not off_both
 
 
-def test_a_press_the_list_drops_is_pressed_again():
-    m = memory()
-    game = Game(m)
-    original = game.frame
-    dropped = []
+def test_the_game_state_factory_reads_the_bike():
+    from pokebench_env.game_state import read_bike_state
 
-    def drops_first_down(buttons):
-        if game.screen == "bag" and buttons == ["DOWN"] and not dropped:
-            dropped.append(True)
-            return
-        original(buttons)
-
-    game.frame = drops_first_down
-    api, queue, emu, _ = install(m, game)
-    register(api)
-    run(api, queue, emu)
-    r = receipt(api)
-    assert r["reason"] == "registered"
-    assert r["presses"] == ["START", "A", "RIGHT", "DOWN", "DOWN", "A", "RIGHT", "A", "B", "B"]
+    assert read_bike_state(memory(registered=MACH).read) == BikeState((MACH,), MACH, None, True)

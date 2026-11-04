@@ -365,6 +365,13 @@ def _with_training(
     return replace(state, party_next_level=next_level, pokedex=dex)
 
 
+def read_bike_state(read: ReadMemory) -> "BikeState | None":
+    # bike.py imports action_history, which imports this module.
+    from pokebench_env.bike import read_bike
+
+    return read_bike(read)
+
+
 def read_game_state(
     read: ReadMemory,
     maps: MapNames,
@@ -390,6 +397,8 @@ def read_game_state(
     birch_pages_enabled: bool = False,
     birch_intro_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
+    # bike-register-v1 / bike-auto-mount-v1: owned bikes, registration and riding in the state.
+    bike_enabled: bool = False,
     exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
     heal_trainers_v2_enabled: bool = False,
@@ -735,6 +744,7 @@ def read_game_state(
         if battle_details_enabled
         else None,
         running=read_running_permission(read),
+        bike=read_bike_state(read) if bike_enabled else None,
         screen=label,
         started=True,
         story=read_story(read, screen, save1),

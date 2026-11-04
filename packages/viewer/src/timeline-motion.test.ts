@@ -46,6 +46,11 @@ describe("the clip line and the moving strip",()=>{
   const opening=new TimelineFeed(null);opening.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS,seq:0,derived:true});opening.add([event(0,0,"state")]);expect(opening.view.milestones[0]?.ms).toBe(BASE_MS);
   const quiet=new TimelineFeed(null);quiet.view.milestones.push({name:"KEPT",ms:BASE_MS,seq:9,derived:true});quiet.add([event(0,9,"milestone")]);expect(quiet.view.milestones[0]?.ms).toBe(BASE_MS);
  });
+ it("ends spans left open by a gap in the feed instead of drawing them forever",()=>{
+  const log=new Log();log.add(0,START);log.add(100,{type:"turn_start",turn:1,context:{messages:1,images:0,est_tokens:1}});const feed=new TimelineFeed(null);feed.add(log.events);
+  const later={...log.add(9000,{type:"retry",turn:1,attempt:1,limit:3,reason:"late"}),seq:500};feed.add([later]);
+  expect(feed.view.thinkingSpans.at(-1)?.endMs).toBe(BASE_MS+100);expect(lanesSvg(feed.view,BASE_MS+9000)).not.toContain("m-think open");
+ });
  it("folds each event once and draws the same window after forgetting old history",()=>{
   const log=new Log();log.add(0,START);const at=Array.from({length:60},(_,i)=>i*10_000+1000);spans(log,...at);
   log.add(597_000,{type:"retry",turn:1,attempt:1,limit:3,reason:"late"});

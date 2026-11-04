@@ -215,7 +215,7 @@ export class LaneMotion {
     this.animation ??= this.animate(strip, [{ transform: "translateX(0)" }, { transform: `translateX(-${String(travel)}%)` }], { duration: LEAD_MS, easing: "linear", fill: "both" });
     const animation = this.animation;
     const at = animation.currentTime;
-    if (recenter || rate !== this.rate || typeof at !== "number" || Math.abs(at - shift) > DRIFT_MS) animation.currentTime = shift;
+    if (recenter || rate !== this.rate || typeof at !== "number" || Math.abs(at - shift) > DRIFT_MS * Math.max(1, rate)) animation.currentTime = shift;
     if (rate === this.rate) return;
     this.rate = rate;
     if (rate === 0) {
@@ -238,6 +238,9 @@ export class TimelineFeed {
 
   add(events: readonly Parameters<RunView["apply"]>[0][]): void {
     const fresh = this.view.events.length === 0;
+    const seen = this.view.events.at(-1);
+    const next = events[0];
+    if (seen !== undefined && next !== undefined && next.seq > seen.seq + 1) this.view.sealOpen(eventMs(seen));
     for (const event of events) this.view.apply(event);
     // A first page opens mid-run, so its first state has no baseline and restates old progress. Those marks stay as repeat guards, off the window.
     if (fresh && events[0] !== undefined && events[0].seq > 0) {

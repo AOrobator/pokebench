@@ -478,6 +478,12 @@ export class RunView {
     this.lastTps = event.latency_ms > 0 ? event.usage.output / (event.latency_ms / 1000) : null;
   }
 
+  // Events were lost, so nothing will close what was open; end it where the record stops.
+  sealOpen(ms: number): void {
+    this.closeOpenSpans(ms);
+    this.control.close(ms);
+  }
+
   private closeOpenSpans(ms: number): void {
     const thinking = this.thinkingSpans.at(-1);
     if (thinking?.endMs === null) thinking.endMs = ms;

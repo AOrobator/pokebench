@@ -35,3 +35,5 @@ Gates at the rebased source: `just test` 0 (agent 2,377, viewer 797, env 2,727, 
 Correction during proof: the first page of a mid-run feed derived false "recovered" diamonds (CLOCK_SET at evidence #11834 on the live run). `TimelineFeed` now keeps those as repeat guards off the window. Grid row sizing fixed after the first headless check.
 
 Round 1: Grok lane out of Cursor usage until 11/17 (operator rule: Claude, GPT and one fresh read-only fallback). Claude CLI needed `CLAUDE_CONFIG_DIR=~/.claude-review`. GPT BLOCKING with two Fix findings, both accepted: first-page suppression hid genuine observed diamonds (now only the first state's marks), and `forgetBefore` left five aggregates growing (now trimmed).
+
+Round 2: GPT LGTM; fallback reviewer LGTM; Claude BLOCKING on one Fix: a gap between feed pages left permanent full-width bars. Fixed with `RunView.sealOpen`. Also moved the now line back above marks and scaled the drift tolerance with replay speed. Rebut: a false diamond when a mid-run first state is unsettled exists on the base too; recorded as a follow-up, and the PB1 row now says "the first state's".

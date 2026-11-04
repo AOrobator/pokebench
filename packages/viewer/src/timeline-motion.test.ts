@@ -38,12 +38,13 @@ describe("the clip line and the moving strip",()=>{
   expect(root.querySelector<HTMLElement>(".lanes-strip")?.style.transform).toBe("translateX(-6.7%)");expect(marks(root)).toHaveLength(1);
   const broken={innerHTML:"",querySelector:()=>null} as unknown as HTMLElement;expect(()=>{new LaneMotion(broken).render(view(log),BASE_MS,1);}).not.toThrow();
  });
- it("shows no recovered diamond for a first page that opens mid-run, but keeps real and later ones",()=>{
-  const sample=(ms:number,seq:number,name:string)=>({v:1,run:"r",seq,t:new Date(BASE_MS+ms).toISOString(),type:"milestone",turn:1,name,server_timestamp:1}) as unknown as Parameters<RunView["apply"]>[0];
-  const feed=new TimelineFeed(null);feed.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS+1000,seq:1,derived:true});
-  feed.add([sample(1000,40,"ROUTE_101")]);expect(feed.view.milestones.map(mark=>mark.ms)).toEqual([0,BASE_MS+1000]);
-  feed.view.milestones.push({name:"LATER",ms:BASE_MS+2000,seq:41,derived:true});feed.add([sample(2000,41,"RUSTURF")]);expect(feed.view.milestones.at(-2)?.ms).toBe(BASE_MS+2000);
-  const opening=new TimelineFeed(null);opening.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS,seq:0,derived:true});opening.add([sample(0,0,"BOOT")]);expect(opening.view.milestones[0]?.ms).toBe(BASE_MS);
+ it("hides a recovered diamond only when a mid-run first page has no baseline for it",()=>{
+  const event=(ms:number,seq:number,type:string)=>({v:1,run:"r",seq,t:new Date(BASE_MS+ms).toISOString(),type,turn:1,name:"ROUTE_101",server_timestamp:1}) as unknown as Parameters<RunView["apply"]>[0];
+  const feed=new TimelineFeed(null);feed.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS+1000,seq:41,derived:true},{name:"RIVAL",ms:BASE_MS+2000,seq:42,derived:true});
+  feed.add([event(500,40,"milestone"),event(1000,41,"state"),event(2000,42,"state")]);expect(feed.view.milestones.slice(0,2).map(mark=>mark.ms)).toEqual([0,BASE_MS+2000]);expect(feed.view.milestones[2]?.ms).toBe(BASE_MS+500);
+  feed.view.milestones.push({name:"LATER",ms:BASE_MS+3000,seq:43,derived:true});feed.add([event(3000,43,"state")]);expect(feed.view.milestones.at(-1)?.ms).toBe(BASE_MS+3000);
+  const opening=new TimelineFeed(null);opening.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS,seq:0,derived:true});opening.add([event(0,0,"state")]);expect(opening.view.milestones[0]?.ms).toBe(BASE_MS);
+  const quiet=new TimelineFeed(null);quiet.view.milestones.push({name:"KEPT",ms:BASE_MS,seq:9,derived:true});quiet.add([event(0,9,"milestone")]);expect(quiet.view.milestones[0]?.ms).toBe(BASE_MS);
  });
  it("folds each event once and draws the same window after forgetting old history",()=>{
   const log=new Log();log.add(0,START);const at=Array.from({length:60},(_,i)=>i*10_000+1000);spans(log,...at);
@@ -52,6 +53,8 @@ describe("the clip line and the moving strip",()=>{
   for(const event of log.events){feed.add([event]);feed.add([event]);}
   expect(feed.view.events.length).toBeLessThan(whole.events.length/2);expect(feed.view.thinkingSpans.length).toBeLessThan(whole.thinkingSpans.length/2);
   expect(lanesSvg(feed.view,now)).toBe(lanesSvg(whole,now));
+  const held=new RunView();held.requestSamples.push({seq:1,ms:1} as RunView["requestSamples"][number]);held.latencies.push(1);held.control.pauses.push({startMs:0,endMs:1},{startMs:2,endMs:null});held.activities.push({t:new Date(0).toISOString()} as RunView["activities"][number]);held.battleChoices.push({t:new Date(0).toISOString()} as RunView["battleChoices"][number]);held.forgetBefore(10);
+  expect([held.requestSamples.length,held.latencies.length,held.activities.length,held.battleChoices.length,held.control.pauses.length]).toEqual([0,0,0,0,1]);
   const blank=new TimelineFeed(null);blank.add([]);expect(blank.view.startMs).toBeNull();
  });
 });

@@ -341,6 +341,11 @@ export class RunView {
     keep(this.presses, press => (press.endMs ?? press.ms) >= ms);
     keep(this.nativeActions, action => action.server_timestamp * 1000 >= ms);
     keep(this.errors, mark => mark.ms >= ms);
+    keep(this.requestSamples, sample => sample.ms >= ms);
+    keep(this.activities, activity => eventMs(activity) >= ms);
+    keep(this.battleChoices, choice => eventMs(choice) >= ms);
+    keep(this.control.pauses, pause => pause.endMs === null || pause.endMs >= ms);
+    this.latencies.length = 0;
   }
 
   apply(event: RunEvent): void {

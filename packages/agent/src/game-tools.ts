@@ -10,6 +10,7 @@ import {randomUUID} from "node:crypto";
 import {planStride,requestedStep,type PrefixRules} from "./navigation.js";
 import {RANDOM_STARTER_LIMITS,atStarterBag,starterPickNote,starterStep,type RandomStarter,type StarterStep} from "./random-starter.js";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
+import {BikeRegisterReceiptSchema,BikeToggleReceiptSchema,type BikeRegisterReceipt,type BikeToggleReceipt} from "./bike.js";
 import {InterceptReceiptSchema,stepButton,WatchReceiptSchema,type InterceptPlan,type InterceptReceipt,type WatchPlan,type WatchReceipt} from "./intercept.js";
 
 // Which model-visible parts of the observe/press results this run shows.
@@ -198,6 +199,9 @@ export type CheckedPressTool=AgentTool<typeof PressArgs> & {
  // moving-npc-intercept-v1: frame-owned patrol watch (no input) and path step-in on the game server.
  readonly executeWatch?:(plan:Omit<WatchPlan,"id">,check:BeforePressCheck,signal?:AbortSignal)=>Promise<WatchReceipt>;
  readonly executeIntercept?:(id:string,plan:Omit<InterceptPlan,"id">,check:BeforePressCheck,signal?:AbortSignal)=>Promise<AgentToolResult<{state:GameStateSnapshot;intercept:InterceptReceipt}>>;
+ // bike-register-v1 / bike-auto-mount-v1: frame-owned SELECT registration and SELECT toggle on the game server.
+ readonly executeBikeRegister?:(id:string,item:number,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeRegisterReceipt>;
+ readonly executeBikeToggle?:(id:string,ride:boolean,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeToggleReceipt>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -263,7 +267,7 @@ export function pressTool(
         return {content:result.content,details:{state:result.state}};
       }
       const buttons = limitedMovement ? params.buttons.slice(0,1) : submittedButtons(params.buttons,before,switches);
-      const automaticRunning = limitedMovement||checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
+      const automaticRunning = limitedMovement||checkedOptions?.automaticRunning===false||checkedOptions?.stride?.bike===true?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
       const stride=checkedOptions?.stride===undefined?undefined:{id:randomUUID(),...checkedOptions.stride};
       const timing=stride===undefined?PRESS_TIMING:{hold_frames:STRIDE_MAX_FRAMES,release_frames:8};
       if (stride!==undefined || switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, timing, before, {automatic_running:automaticRunning,...(stride===undefined?{}:{stride}),...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
@@ -293,7 +297,7 @@ export function pressTool(
       let receipt:StrideReceipt|undefined;
       if(stride!==undefined){
         const raw:unknown=await getJson(`${gameServerUrl}/pokebench/stride/${stride.id}`,fetchFn,15_000,signal);
-        if(!Value.Check(StrideReceiptSchema,raw)||raw.id!==stride.id||!raw.stopped||raw.completed>stride.path.length||JSON.stringify(raw.path)!==JSON.stringify(stride.path)||JSON.stringify(raw.origin)!==JSON.stringify(stride.origin)||JSON.stringify(raw.map_id)!==JSON.stringify(stride.map_id)||raw.elevation!==stride.elevation||raw.tall_grass!==stride.tall_grass||(raw.reason==="completed"&&raw.completed!==stride.path.length))throw new Error("Navigation stride lacks a matching terminal receipt");
+        if(!Value.Check(StrideReceiptSchema,raw)||raw.id!==stride.id||!raw.stopped||raw.completed>stride.path.length||JSON.stringify(raw.path)!==JSON.stringify(stride.path)||JSON.stringify(raw.origin)!==JSON.stringify(stride.origin)||JSON.stringify(raw.map_id)!==JSON.stringify(stride.map_id)||raw.elevation!==stride.elevation||raw.tall_grass!==stride.tall_grass||raw.bike!==stride.bike||(raw.reason==="completed"&&raw.completed!==stride.path.length))throw new Error("Navigation stride lacks a matching terminal receipt");
         receipt=raw;
       }
       await clock.sleep(STATE_CACHE_SETTLE_MS);
@@ -400,6 +404,41 @@ export function pressTool(
     shown.record(content.state,before);
     return {content:switches.screenshotOnly?content.content.filter(item=>item.type==="image"):content.content,details:{state:content.state,intercept:receipt}};
   };
+  // One private bike action on the game server. Its presses reach the record from its terminal receipt, and
+  // from the cancel receipt when the wait fails, so an aborted action still records what the game received.
+  const bikeAction=async<T extends {readonly presses:readonly Button[]}>(toolCallId:string,route:string,body:{readonly id:string},receipt:(raw:unknown)=>T|null,check:BeforePressCheck,signal?:AbortSignal):Promise<T>=>{
+    const before=await readBefore(check,signal);
+    const url=`${gameServerUrl}${route}`;
+    const record=(presses:readonly Button[]):void=>{for(const button of presses)hooks.beforePress(toolCallId,[button],{hold_frames:1,release_frames:1},before,{automatic_running:false});};
+    let parsed:T|null;
+    try{
+      const response=await fetchFn(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:deadline(15_000,signal)});
+      const reply:unknown=await response.json();
+      if(!response.ok||!Value.Check(ActionSchema,reply)||reply.status!=="success")throw new Error(`POST ${url} failed: ${Value.Check(ActionSchema,reply)?(reply.message??reply.status):`HTTP ${String(response.status)}`}`);
+      await waitForQueue(gameServerUrl,fetchFn,clock,signal);
+      parsed=receipt(await getJson(`${gameServerUrl}/pokebench/bike/${body.id}`,fetchFn,15_000,signal));
+      if(parsed===null)throw new Error("Bike action lacks a matching terminal receipt");
+    }catch(error){
+      const cancelled=await fetchFn(`${gameServerUrl}/pokebench/bike/${body.id}/cancel`,{method:"POST",signal:AbortSignal.timeout(2000)});
+      // A refused request never started, so its id is unknown to the server: nothing was pressed.
+      if(cancelled.status===404)throw error;
+      if(!cancelled.ok)throw new Error(`Bike action cancellation failed: HTTP ${String(cancelled.status)}`,{cause:error});
+      record(receipt(await cancelled.json())?.presses??[]);
+      throw error;
+    }
+    record(parsed.presses);
+    await clock.sleep(STATE_CACHE_SETTLE_MS);
+    await hooks.afterPress();
+    return parsed;
+  };
+  const executeBikeRegister=(toolCallId:string,item:number,check:BeforePressCheck,signal?:AbortSignal):Promise<BikeRegisterReceipt>=>{
+    const body={id:randomUUID(),item};
+    return bikeAction(toolCallId,"/pokebench/bike/register",body,raw=>Value.Check(BikeRegisterReceiptSchema,raw)&&raw.id===body.id&&raw.item===item&&raw.stopped?raw:null,check,signal);
+  };
+  const executeBikeToggle=(toolCallId:string,ride:boolean,check:BeforePressCheck,signal?:AbortSignal):Promise<BikeToggleReceipt>=>{
+    const body={id:randomUUID(),ride};
+    return bikeAction(toolCallId,"/pokebench/bike/toggle",body,raw=>Value.Check(BikeToggleReceiptSchema,raw)&&raw.id===body.id&&raw.ride===ride&&raw.stopped?raw:null,check,signal);
+  };
   return {
     name: "press",
     label: "Press buttons",
@@ -411,6 +450,8 @@ export function pressTool(
     executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options),
     executeWatch,
     executeIntercept,
+    executeBikeRegister,
+    executeBikeToggle,
   };
 }
 

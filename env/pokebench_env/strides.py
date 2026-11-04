@@ -2,6 +2,12 @@
 
 surf-navigation-v1: a corridor can also be plain water while surfing. A held press moves two tiles
 there, so a water step has to be frame-owned to stop on the tile the route names.
+
+bike-navigation-v1: a request with bike runs on a riding avatar (include/global.fieldmap.h
+PLAYER_AVATAR_FLAG_MACH_BIKE/_ACRO_BIKE). The game moves a bike only at tile boundaries (bike.c).
+A held Mach Bike speeds up through bikeFrameCounter 0, 1, 2 (16, 8 and 4 frames a tile); a
+released one keeps moving bikeSpeed more tiles. The Acro Bike stops on release, and B with a
+direction starts a wheelie, so a bike stride never holds B.
 """
 
 import struct
@@ -16,12 +22,21 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pokebench_env.action_history import FrameEmulator
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, read_local_map
-from pokebench_env.running import OBJECT_EVENTS, PLAYER_AVATAR, SAVE1, read_running_permission
+from pokebench_env.running import (
+    OBJECT_EVENTS,
+    PLAYER_AVATAR,
+    SAVE1,
+    RunningPermission,
+    read_running_permission,
+)
 from pokebench_env.world_context import read_world_context, rom_pointer
 
 PREFIX = "@POKEBENCH_STRIDE:"
 MAX_FRAMES = 224
 MAX_TILES = 8
+# bike-navigation-v1: a ridden corridor may be longer; a stopping Mach Bike spends its last three
+# tiles slowing down (4, 8 and 16 frames), so short ridden strides gain nothing over running.
+BIKE_MAX_TILES = 16
 # MB_TALL_GRASS: grass the game lets the player run through (long grass is a different behavior).
 TALL_GRASS = 0x02
 # MB_POND_WATER, MB_INTERIOR_DEEP_WATER, MB_DEEP_WATER, MB_SOOTOPOLIS_DEEP_WATER, MB_OCEAN_WATER:
@@ -43,6 +58,18 @@ STOP_REASONS = frozenset(
     }
 )
 DELTAS = {(0, -1): "UP", (0, 1): "DOWN", (-1, 0): "LEFT", (1, 0): "RIGHT"}
+MACH_BIKE, ACRO_BIKE, ON_WATER = 1 << 1, 1 << 2, (1 << 3) | (1 << 4)
+# gPlayerAvatar.bikeFrameCounter (+0xA) and bikeSpeed (+0xB).
+BIKE_COUNTER = PLAYER_AVATAR + 0xA
+
+
+def bike_hold(remaining: int, counter: int, mach: bool) -> bool:
+    """Whether to hold the direction now, so the bike can still stop on the corridor's last tile.
+
+    MachBikeTransition_TrySpeedUp sets bikeSpeed = counter + counter / 2 for the step a hold starts;
+    released after it, the bike coasts that many more tiles.
+    """
+    return remaining >= 1 and (not mach or remaining >= 1 + counter + (counter >> 1))
 
 
 class Point(BaseModel):
@@ -59,13 +86,15 @@ class StrideRequest(BaseModel):
     id: str = Field(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
     map_id: list[int] = Field(min_length=2, max_length=2)
     origin: Point
-    path: list[Point] = Field(min_length=1, max_length=MAX_TILES)
+    path: list[Point] = Field(min_length=1, max_length=BIKE_MAX_TILES)
     elevation: int = Field(ge=1, le=14)
     automatic_running: bool
     # grass-strides-v1: the corridor may include tall grass; absent means plain floor only.
     tall_grass: bool = False
     # surf-navigation-v1: the corridor is plain water and the player is surfing.
     surfing: bool = False
+    # bike-navigation-v1: the corridor may be ridden; absent means on foot only.
+    bike: bool = False
 
     @model_validator(mode="after")
     def corridor(self) -> "StrideRequest":
@@ -73,6 +102,10 @@ class StrideRequest(BaseModel):
             raise ValueError("invalid map identity")
         if self.surfing and self.tall_grass:
             raise ValueError("a stride is on water or on land, not both")
+        if self.bike and self.automatic_running:
+            raise ValueError("a bike stride never holds B")
+        if not self.bike and len(self.path) > MAX_TILES:
+            raise ValueError("a stride on foot is at most MAX_TILES tiles")
         previous = self.origin
         delta = (self.path[0].x - previous.x, self.path[0].y - previous.y)
         if delta not in DELTAS:
@@ -100,11 +133,17 @@ class Stride:
     reason: str = "queued"
     stopped: bool = False
     started: bool = False
+    # bike-navigation-v1: the completed count whose next tile was last checked safe.
+    checked: int = -1
 
     def receipt(self) -> dict[str, object]:
         return {
             **self.request.model_dump(
-                exclude={key for key in ("tall_grass", "surfing") if not getattr(self.request, key)}
+                exclude={
+                    key
+                    for key in ("tall_grass", "bike", "surfing")
+                    if not getattr(self.request, key)
+                }
             ),
             "completed": self.completed,
             "frames": self.frames,
@@ -213,6 +252,16 @@ def install_strides(
             save, map_id, position, obj = _player(read)
             if list(map_id) != s.request.map_id:
                 return stop(s, "map changed")
+            flags = native.avatar_flags
+            if (
+                s.request.bike
+                # A moving player object reads as a blocked step; ride checks it when still.
+                and native.reason in ("not_on_foot", "player_step_blocked")
+                and flags is not None
+                and flags & (MACH_BIKE | ACRO_BIKE)
+                and not flags & ON_WATER
+            ):
+                return ride(s, native, save, map_id, position, obj, bool(flags & MACH_BIKE))
             if native.controllable is None or native_refuses(
                 native.reason, native.avatar_flags, surfing=s.request.surfing
             ):
@@ -254,6 +303,46 @@ def install_strides(
             )
         except (ValueError, OSError, IndexError, KeyError, struct.error):
             return stop(s, "native validation unavailable")
+
+    def ride(
+        s: Stride,
+        native: RunningPermission,
+        save: int,
+        map_id: tuple[int, int],
+        position: tuple[int, int],
+        obj: bytes,
+        mach: bool,
+    ) -> list[str]:
+        # The player object's coordinates are the destination tile as soon as a step starts.
+        corridor = [s.request.origin.pair(), *(p.pair() for p in s.request.path)]
+        moving = bool(obj[0] & 2 or (obj[0] & 0x40 and not obj[0] & 0x80))
+        if not s.started:
+            if position != corridor[0] or moving or native.controllable is not True:
+                return stop(s, "origin changed or not stationary")
+            s.started, s.reason = True, "executing"
+        if position not in corridor or corridor.index(position) < s.completed:
+            return stop(s, "left planned corridor")
+        reached = corridor.index(position)
+        if reached > s.completed:
+            s.completed, s.idle = reached, 0
+        remaining = len(s.request.path) - s.completed
+        if remaining == 0:
+            return [] if moving else stop(s, "completed")
+        if not moving:
+            s.idle += 1
+            if s.idle > 32:
+                return stop(s, "no movement")
+            if native.controllable is not True or obj[0xB] & 15 != s.request.elevation:
+                return stop(s, "field input or elevation changed")
+        counter = read(BIKE_COUNTER, 1)[0]
+        if not bike_hold(remaining, counter, mach):
+            return []
+        if s.checked != s.completed:
+            if not _safe_next(read, s, save, position, map_id):
+                return stop(s, "corridor changed or unsafe")
+            s.checked = s.completed
+        target = s.request.path[s.completed]
+        return [DELTAS[(target.x - position[0], target.y - position[1])]]
 
     def step(self: FrameEmulator, buttons: list[str]) -> None:
         nonlocal active

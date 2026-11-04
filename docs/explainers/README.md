@@ -314,6 +314,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Native Surf navigation](surf-navigation-v1.html): A* over water while surfing, the shore stop, and who presses what.
 - [Warps by landing area](warp-areas-v1.html): pads grouped by where they land, with what can be reached, whether the run has been there and what stands there, and no route.
 - [Step into a walking path](moving-npc-intercept-v1.html): the game server watches a person walking a fixed loop and steps the player into it between them and anyone ahead, so the follow can talk (cottage chase fix); default OFF, both arms ON.
+- [Auto-bike](bike-navigation-v1.html): registers the owned bike to SELECT through the menus, gets on where riding a route is faster than running it, and rides navigate_to's straight corridors without B, stopping a MACH BIKE on the last tile (`bike-register-v1`, `bike-navigation-v1`, `bike-auto-mount-v1`); default OFF, bundle arm ON.
 
 - [Caught nickname input V2](caught-nickname-prompt-v2.html): coherent live nickname selection in both maintained arms.
 - [Mauville puzzle tiles](mauville-puzzle-readout-v1.html): observable floor switches and electric doors; enabled in both arms.

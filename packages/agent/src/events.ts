@@ -1,6 +1,7 @@
 import {MapObservationSchema} from "./map-observation.generated.js";
 import {GoalReviewSchema} from "./instruction-goal-schema.js";
 import {StridePlanSchema} from "./stride.js";
+import {BikeStateSchema} from "./bike.js";
 import { Type, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
@@ -618,6 +619,8 @@ export const StateBodySchema = Type.Object(
 
     }, closed), Type.Null()])),
     running:Type.Optional(Type.Union([RunningPermissionSchema,Type.Null()])),
+    // bike-register-v1 / bike-auto-mount-v1: present only with a switch.
+    bike:Type.Optional(Type.Union([BikeStateSchema,Type.Null()])),
     party_ownership:Type.Optional(Type.Union([Type.Object({owner:NullableString,source:Type.String(),original_identities:Type.Array(Type.String(),{maxItems:6}),rental_personalities:Type.Array(NonNegativeInt,{maxItems:3}),diagnostic:NullableString,raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed),Type.Null()])),
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),

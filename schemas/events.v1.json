@@ -1853,7 +1853,7 @@
                 "additionalProperties": false
               },
               "minItems": 1,
-              "maxItems": 8
+              "maxItems": 16
             },
             "elevation": {
               "type": "integer",
@@ -1861,6 +1861,10 @@
               "maximum": 14
             },
             "tall_grass": {
+              "type": "boolean",
+              "const": true
+            },
+            "bike": {
               "type": "boolean",
               "const": true
             },
@@ -8354,6 +8358,57 @@
                       "type": "null"
                     }
                   ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bike": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "owned",
+                "registered",
+                "riding",
+                "allow_cycling"
+              ],
+              "properties": {
+                "owned": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "maxItems": 30
+                },
+                "registered": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 65535
+                },
+                "riding": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "const": "MACH BIKE"
+                    },
+                    {
+                      "type": "string",
+                      "const": "ACRO BIKE"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "allow_cycling": {
+                  "type": "boolean"
                 }
               },
               "additionalProperties": false

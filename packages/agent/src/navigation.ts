@@ -10,7 +10,8 @@ import {reachableSectionAlternatives} from "./reachable-section-alternatives.js"
 import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
-import {STRIDE_MAX_TILES,resultStride,type StrideCorridor} from "./stride.js";
+import {BIKE_STRIDE_MAX_TILES,STRIDE_MAX_TILES,resultStride,type StrideCorridor} from "./stride.js";
+import {BIKE_MOUNT_SENTENCE,bikeToRegister,bikeTurn,registrationNote,toggleNote,type BikeRegisterReceipt,type BikeToggleReceipt} from "./bike.js";
 import {CONFIRM_ARG,CONFIRM_DESCRIPTION,SIGHT_STATUS,SIGHT_TOOL_SENTENCE,sightText,type SightOutcome,type SightSeen,type TrainerSightPorts} from "./trainer-sight.js";
 import {GATE_CONFIRM,GATE_CONFIRM_DESCRIPTION,GATE_STATUS,GATE_TOOL_SENTENCE,askSight,harnessCall,type SightAnswer,type StoryBattleHealGate} from "./story-battle-heal-gate.js";
 
@@ -712,6 +713,12 @@ export interface NavigationPorts {
  readonly safeStrides?:boolean;
  // grass-strides-v1: strides may cross tall grass.
  readonly grassStrides?:boolean;
+ // bike-navigation-v1: strides and ordinary steps while riding the MACH BIKE or ACRO BIKE.
+ readonly bikeNavigation?:boolean;
+ // bike-register-v1: registers an owned bike to SELECT on the game server before walking.
+ readonly bikeRegister?:(id:string,item:number,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeRegisterReceipt>;
+ // bike-auto-mount-v1: gets on or off the registered bike with SELECT on the game server.
+ readonly bikeToggle?:(id:string,ride:boolean,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeToggleReceipt>;
  readonly automaticRunning?:boolean;
  readonly counters?:boolean;
  // Explain refusals (navigation-refusal-reasons-v1); off keeps the generic text.
@@ -789,6 +796,7 @@ function crossMapReason(state:GameStateSnapshot,here:readonly [number,number],go
 export const SEMANTIC_NAVIGATE_RULES="It cannot walk while a message is open: dismiss the message with B first. To talk to a person, use an object, or go through a door, stairs, another warp or a map exit that the readout lists with a navigate_to_target target, call navigate_to_target with that target instead.";
 export const NAVIGATE_RULES="To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates.";
 export const CYCLE_STOP_SENTENCE="During local navigation it stops before repeating a directional step at the same position, facing, local terrain and planned route within one call; inspect the returned state and choose another waypoint when it reports a route cycle.";
+export const BIKE_STRIDE_SENTENCE="On a bike, straight corridors of up to 16 tiles are ridden without B and stop on their last tile; a step may cover more than one tile of the route.";
 export const WINDOW_ESCAPE_SENTENCE="When no route lies inside the local map, it plans over the whole current map instead.";
 const LOCAL_DESCRIPTION="Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. "+NAVIGATE_RULES;
 const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing. "+NAVIGATE_RULES;
@@ -799,7 +807,9 @@ const terrainRules=(ports:NavigationPorts):string=>{
 };
 // grass-strides-v1: with tallGrass, the corridor may also cross tall grass (MB_TALL_GRASS); long grass stays excluded.
 const TALL_GRASS=0x02;
-export function planStride(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,tallGrass=false):StrideCorridor|null {
+// bike-navigation-v1: the avatar rides a bike (PLAYER_AVATAR_FLAG_MACH_BIKE or _ACRO_BIKE) and is not on the water.
+export const riding=(state:GameStateSnapshot):boolean=>{const flags=state.running?.avatar_flags;return flags!=null&&(flags&0x06)!==0&&(flags&0x18)===0;};
+export function planStride(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,tallGrass=false,bike=false):StrideCorridor|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state),origin=state.position;
  if(geometry===null||origin===null||state.map_id===null||path[0]===undefined)return null;
  const elevation=geometry.elevation,tiles:Point[]=[];
@@ -813,12 +823,12 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  };
  if(!safe(origin))return null;
  const delta=DIRECTIONS.find(([d])=>d===path[0]);if(delta===undefined)return null;
- for(const direction of path.slice(0,STRIDE_MAX_TILES)){
+ for(const direction of path.slice(0,bike?BIKE_STRIDE_MAX_TILES:STRIDE_MAX_TILES)){
   if(direction!==path[0])break;
   const p={x:origin.x+delta[1]*(tiles.length+1),y:origin.y+delta[2]*(tiles.length+1)};
   if(!safe(p))break;tiles.push(p);
  }
- return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{})};
+ return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{}),...(bike?{bike:true as const}:{})};
 }
 // rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
 export interface PrefixRules {readonly ledges:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
@@ -892,7 +902,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const strideDescription=ports.safeStrides===true?`${described.replace("Maximum 8 ordinary button attempts", "Maximum 8 planned route steps")} ${ports.grassStrides===true?"Straight corridors of plain floor or tall grass":"Straight plain-floor corridors"} use explicit strides of at most 8 tiles, validated against native movement before each step. Strides stop before turns, ${ports.grassStrides===true?"other grass":"grass"}, ledges, warps, objects, script coordinates and elevation changes; special steps walk without automatic running.`:described;
- const targeted=ports.semanticTargets===true?strideDescription.replace(NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES):strideDescription;
+ const ridden=ports.bikeNavigation===true&&ports.safeStrides===true?`${strideDescription} ${BIKE_STRIDE_SENTENCE}${ports.bikeToggle===undefined?"":` ${BIKE_MOUNT_SENTENCE}`}`:strideDescription;
+ const targeted=ports.semanticTargets===true?ridden.replace(NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES):ridden;
  const navigationDescription=ports.navigateFirst===true?`${ports.semanticTargets===true?SEMANTIC_NAVIGATE_DESCRIPTION:NAVIGATE_FIRST_DESCRIPTION} ${targeted}${mode==="local"?COMMAND_LIMIT_HINT:""}`:targeted;
  const sight=ports.trainerSight,healGate=ports.healGate;
  const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
@@ -912,6 +923,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   const rest=walked===null?last.content:last.content.filter(part=>part.type!=="text"||!part.text.startsWith("Navigation: "));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...rest],details:{state,navigation:{status,commands,target:goal,unready:false}}};
  };
+ // bike-register-v1: the SELECT registrations already tried; a new registration value earns one more try.
+ const registrationsTried=new Set<number>();
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   const bound=checkedOptions.commandLimit??defaultBound;
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
@@ -919,9 +932,11 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   let active:NavigationMode=mode;
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
-  const strideReceipts:string[]=[],sightParts:string[]=[];let plannedSteps=0,sightChecked=false;
+  const strideReceipts:string[]=[],sightParts:string[]=[],bikeParts:string[]=[];let plannedSteps=0,sightChecked=false;
   let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false,goalEntryActivation:Direction|"step"|null=null;
   const attemptedLocalSteps=new Set<string>();
+  // bike-auto-mount-v1: the SELECT changes (true: get on) already tried in this call.
+  const togglesTried=new Set<boolean>();
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
@@ -936,6 +951,18 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,active)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
+   // bike-register-v1: once for each registration seen, before any movement of this step.
+   const register=ports.bikeRegister===undefined?null:bikeToRegister(state);
+   if(register!==null&&ports.bikeRegister!==undefined&&!registrationsTried.has(state.bike?.registered??0)){
+    registrationsTried.add(state.bike?.registered??0);
+    const at0=state.position,map0=state.map_id;
+    try {
+     bikeParts.push(registrationNote(await ports.bikeRegister(id,register,actual=>{
+      if(actual===undefined||bikeToRegister(actual)!==register||actual.position?.x!==at0?.x||actual.position?.y!==at0?.y||actual.map_id?.[0]!==map0?.[0]||actual.map_id?.[1]!==map0?.[1])throw new NavigationPreconditionError("bike registration state changed before action; nothing pressed");
+     },signal)));
+    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;bikeParts.push(`Bike: ${error.message}.`);}
+    continue;
+   }
    // Script-trigger boundary: coordinate scripts are visible with coordinate-script-conditions-v1, and there is no
    // switch over what to do when every route crosses one (see the port comment): they are walked, not refused.
    const boundary=truth&&ports.triggers===true?matchingTriggers(state):[];
@@ -1012,6 +1039,25 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     const text=await checkSight(sight,id,goal,state,path,options,signal,null,false,targetSight);
     if(text!==null){status=SIGHT_STATUS;sightParts.push(text);break;}
    }
+   // bike-auto-mount-v1: on for a long enough route where cycling is allowed, off before a tile a bike cannot enter.
+   // Each wanted change is tried once per call; a refused one leaves the walk as it was.
+   if(ports.bikeToggle!==undefined&&state.position!==null){
+    const step=DIRECTIONS.find(([d])=>d===direction),here=state.position,geometry=active==="full"?fullGeometry(state):localGeometry(state);
+    const next=step===undefined||geometry===null?undefined:geometry.tile({x:here.x+step[1],y:here.y+step[2]});
+    const route=geometry===null?[]:(routeTiles(state,path,options)??[]).flatMap(p=>{const tile=geometry.tile(p);return tile===undefined?[]:[tile];});
+    const ride=geometry===null?null:bikeTurn(state,path,next,geometry.elevation,WATER,route);
+    if(ride!==null&&!togglesTried.has(ride)){
+     togglesTried.add(ride);
+     const at0=here,map0=state.map_id;
+     try {
+      const note=toggleNote(await ports.bikeToggle(id,ride,actual=>{
+       if(actual===undefined||!ready(actual,active)||actual.position?.x!==at0.x||actual.position.y!==at0.y||actual.map_id?.[0]!==map0?.[0]||actual.map_id?.[1]!==map0?.[1])throw new NavigationPreconditionError("bike state changed before SELECT; nothing pressed");
+      },signal));
+      if(note!==null)bikeParts.push(note);
+     } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;bikeParts.push(`Bike: ${error.message}.`);}
+     continue;
+    }
+   }
    if(ports.cycleStop===true&&active==="local"&&state.position!==null){
     const grid=state.navigation_grid;
     const identity=JSON.stringify([state.position,state.facing,grid?.elevation,grid?.tiles,grid?.warps,guardedOptions.triggers??[],path]);
@@ -1022,7 +1068,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
-   const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true):null;
+   const ridden=ports.bikeNavigation===true&&riding(state);
+   const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true,ridden):null;
    const ride=surfing&&stride===null?routeTiles(planned,[direction],options)?.at(-1)??null:null;
    const span=stride?.path.length??slideAhead(planned,options,before,direction)??(ports.ledges===true&&hopAhead(planned,active,before,direction,delta[1],delta[2])?2:1);
    const entry=triggerAware?routeTiles(state,[direction],options)?.at(-1):undefined;
@@ -1037,7 +1084,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      if(actual===undefined||!ready(actual,active)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
      const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
      if(finalGoalStep){const actualTile=(active==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
-     if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
+     if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true,ridden))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
     },triggerAware&&stride===null?{automaticRunning:false}:ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;plannedSteps+=stride?.path.length??1;state=blackout.remember(resultState(last));
@@ -1060,7 +1107,10 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    // A held running press can finish more than one tile away. It is still the planned move only when every
    // crossed tile is the next collinear prefix of the route; pushbacks, teleports and off-route displacement stop.
    const runningPrefix=ports.safeStrides!==true&&ports.automaticRunning===true&&checkedOptions.multiTileRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
-   if(ride!==null?!samePoint(after,ride):(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
+   // bike-navigation-v1: a ridden ordinary press ends wherever the bike stopped, under the same collinear-prefix rule.
+   const ridingPrefix=ridden&&stride===null&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
+   if(ridingPrefix)plannedSteps+=crossed-1;
+   if(ride!==null?!samePoint(after,ride):(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix&&!ridingPrefix){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
    if(distance(after,selectedTarget)===0){
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}
     status="arrived at requested coordinate";break;
@@ -1079,7 +1129,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   if(ports.safeStrides===true&&status==="command limit")status="planned route-step budget reached; inspect the returned state before continuing";
   if(truth&&status==="command limit"){const here=state.position;const block=exitBlock({surf:false,reach:true,gates:ports.fieldMoveGates===true},state);const cut=ports.exitReach===true&&!(ports.surfNavigation===true&&isSurfing(state))&&block.footNear(goal.x,goal.y)===false;const why=cut?block.obstacles(goal.x,goal.y):null;status=here!==null&&sameMap()&&ready(state,active)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: ${why===null?"no walkable way on this map leads from your tile to it or to a tile next to it":why}, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...sightParts.map(text=>({type:"text" as const,text})),...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...sightParts.map(text=>({type:"text" as const,text})),...bikeParts.map(text=>({type:"text" as const,text})),...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
  const sightParameters=sight===undefined?(ports.automaticRunning===true?DeterministicRunningArgs:Args):ports.automaticRunning===true?SightRunningArgs:SightArgs;
  const parameters=healGate===undefined?sightParameters:Type.Object({...sightParameters.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
@@ -1101,5 +1151,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

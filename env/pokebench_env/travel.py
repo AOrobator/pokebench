@@ -40,6 +40,8 @@ def install_travel(
     *,
     safe_strides: bool = False,
     intercept: bool = False,
+    bike_register: bool = False,
+    bike_toggle: bool = False,
 ) -> None:
     # Each queued direction carries its own marker. Concurrent ordinary actions
     # cannot inherit an ambient modifier; release frames remain empty inputs.
@@ -86,3 +88,17 @@ def install_travel(
         from pokebench_env.intercept import QueuedIntercept, install_intercept
 
         install_intercept(api, emulator, cast(QueuedIntercept, server), read)
+
+    if bike_register or bike_toggle:
+        from typing import cast
+
+        from pokebench_env.bike import QueuedBike, install_bike
+
+        install_bike(
+            api,
+            emulator,
+            cast(QueuedBike, server),
+            read,
+            register=bike_register,
+            toggle=bike_toggle,
+        )

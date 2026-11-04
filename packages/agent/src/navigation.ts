@@ -932,7 +932,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    if(ports.bikeToggle!==undefined&&state.position!==null){
     const step=DIRECTIONS.find(([d])=>d===direction),here=state.position,geometry=active==="full"?fullGeometry(state):localGeometry(state);
     const next=step===undefined||geometry===null?undefined:geometry.tile({x:here.x+step[1],y:here.y+step[2]});
-    const ride=geometry===null?null:bikeTurn(state,path,next,geometry.elevation,WATER);
+    const route=geometry===null?[]:(routeTiles(state,path,options)??[]).flatMap(p=>{const tile=geometry.tile(p);return tile===undefined?[]:[tile];});
+    const ride=geometry===null?null:bikeTurn(state,path,next,geometry.elevation,WATER,route);
     if(ride!==null&&!togglesTried.has(ride)){
      togglesTried.add(ride);
      const at0=here,map0=state.map_id;

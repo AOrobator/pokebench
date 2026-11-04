@@ -63,6 +63,21 @@ it("gets on only on foot, with a registered bike, cycling allowed, a route ridin
  expect(bikeTurn(field(1),R(16),undefined,3,WATER)).toBeNull();
  expect(bikeTurn({...field(1),bike:null},R(16),plain,3,WATER)).toBeNull();
 });
+it("prices only the stretch before a tile a bike cannot enter, plus getting off",()=>{
+ const acro=field(1,bike({owned:[272],registered:272}));
+ const tiles=(n:number,last:number)=>[...Array.from({length:n-1},()=>plain),{behavior:last}];
+ expect(bikeTurn(acro,R(11),plain,3,WATER,tiles(11,0))).toBe(true);
+ expect(bikeTurn(acro,R(11),plain,3,WATER,tiles(11,LONG_GRASS))).toBeNull();
+ expect(bikeTurn(acro,R(11),plain,3,WATER,tiles(11,0x10))).toBeNull();
+ expect(bikeTurn(acro,R(30),plain,3,WATER,tiles(30,LONG_GRASS))).toBe(true);
+ expect(ridingSaves(R(24),false,true)).toBe(true);
+ expect(ridingSaves(R(11),false,true)).toBe(false);
+});
+it("factory: a straight route ending in long grass stays on foot when getting off would cost more",async()=>{
+ const h=harness({[ID]:true},field(1,bike({owned:[272],registered:272}),x=>x===11?LONG_GRASS:0));
+ await h.nav.execute("nav",{x:11,y:0,map_id:[0,9]});
+ expect(h.posts.some(p=>p.url.endsWith("/bike/toggle"))).toBe(false);
+});
 it("gets off before water or a tile a bike cannot enter, and never on the water",()=>{
  expect(bikeTurn(field(2),R(16),grass,3,WATER)).toBe(false);
  expect(bikeTurn(field(4),R(1),water,3,WATER)).toBe(false);

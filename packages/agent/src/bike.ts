@@ -42,28 +42,29 @@ export function machFrames(n:number):number {
  }
  return frames;
 }
-/** Whether getting on and riding these route steps (straight runs, each a stride that stops) takes fewer frames than running them. */
-export function ridingSaves(path:readonly string[],mach:boolean):boolean {
+/** Whether getting on and riding these route steps (straight runs, each a stride that stops) takes fewer frames than running them. getOff adds a SELECT at the end. */
+export function ridingSaves(path:readonly string[],mach:boolean,getOff=false):boolean {
  const runs:number[]=[];let last:string|null=null;
  for(const step of path){if(step===last&&(runs.at(-1)??0)<RIDE_TILES)runs[runs.length-1]=(runs.at(-1)??0)+1;else runs.push(1);last=step;}
- const running=RUN_FRAMES*path.length,riding=MOUNT_FRAMES+runs.reduce((sum,n)=>sum+(mach?machFrames(n):ACRO_FRAMES*n),0);
+ const running=RUN_FRAMES*path.length,riding=MOUNT_FRAMES*(getOff?2:1)+runs.reduce((sum,n)=>sum+(mach?machFrames(n):ACRO_FRAMES*n),0);
  return riding<running;
 }
 const bikeBlocked=(behavior:number,elevation:number):boolean=>NO_BIKE_TILES.has(behavior)||(behavior===FORTREE_BRIDGE&&(elevation&1)===0);
 /**
  * Whether to press SELECT before this navigation step: true gets on, false gets off, null leaves it.
- * next is the tile the step enters; water is the set of tiles that need Surf.
+ * next is the tile the step enters; water is the set of tiles that need Surf; route is the route's tiles in order,
+ * so only the stretch before the first tile a bike cannot enter is priced as ridden.
  */
-export function bikeTurn(state:GameStateSnapshot,path:readonly string[],next:{readonly behavior:number}|undefined,elevation:number,water:ReadonlySet<number>):boolean|null {
+export function bikeTurn(state:GameStateSnapshot,path:readonly string[],next:{readonly behavior:number}|undefined,elevation:number,water:ReadonlySet<number>,route:readonly {readonly behavior:number}[]=[]):boolean|null {
  const bike=state.bike,flags=state.running?.avatar_flags;
  if(bike==null||flags==null||!freeField(state)||next===undefined)return null;
  const ridingNow=(flags&0x06)!==0,onWater=(flags&0x18)!==0;
  if(onWater)return null;
  const blocked=bikeBlocked(next.behavior,elevation)||water.has(next.behavior);
  if(ridingNow)return blocked?false:null;
- const metatile=state.running?.metatile;
+ const metatile=state.running?.metatile,stop=route.findIndex(tile=>bikeBlocked(tile.behavior,elevation)||water.has(tile.behavior));
  const registered=bike.owned.includes(bike.registered)&&bike.registered in BIKES;
- return (flags&0x01)!==0&&registered&&bike.allow_cycling&&ridingSaves(path,bike.registered===259)&&!blocked&&(metatile==null||!bikeBlocked(metatile,elevation))?true:null;
+ return (flags&0x01)!==0&&registered&&bike.allow_cycling&&ridingSaves(stop<0?path:path.slice(0,stop),bike.registered===259,stop>=0)&&!blocked&&(metatile==null||!bikeBlocked(metatile,elevation))?true:null;
 }
 export function toggleNote(receipt:BikeToggleReceipt):string|null {
  if(receipt.reason==="riding")return "Bike: got on the bike with SELECT.";

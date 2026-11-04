@@ -60,3 +60,7 @@ Round 2, fix delta 3b3b7cdf3..09ba77d78, diff SHA-256 708fc389b21cb39ea1edeb6088
 
 Before landing: `just test` and `just lint` at the final head. After landing: combined `just test` on main, then `just viewer-main` before any launch from this pin.
 - Key now says `-` (the glyph the grid repeats), per the coordinator; delta re-reviewed below.
+
+Round 3, key wording delta 584b78ae0..10292621b: Claude CLI LGTM, GPT LGTM.
+
+Final gates at 10292621b: `just test` passed (agent 2453, viewer 804, env 2894, gateway 38, floors, no-io-proof), pnpm lint, ruff, mypy 141 files (main env interpreter, this worktree has no mGBA binding), gateway lint, `just verify-vendor`.

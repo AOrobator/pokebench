@@ -70,7 +70,7 @@ describe("lanesSvg", () => {
 });
 it('keeps the shared human timeline compact and simultaneous held buttons aligned',()=>{
  const v=new RunView();v.presses.push({seq:1,ms:BASE_MS+1000,endMs:BASE_MS+5000,startFrame:60,endFrame:300,buttons:['A','UP'],hold:240,release:0,assumed:false});
- const svg=lanesSvg(v,BASE_MS+6000,['presses','milestones']);expect(svg).toContain('viewBox="0 0 1000 80"');
+ const svg=lanesSvg(v,BASE_MS+6000,['presses','milestones']);expect(svg).toContain('viewBox="0 0 1000 80.0"');
  for(const lane of ['thinking','tool calls','errors'])expect(svg).not.toContain(`>${lane}</span>`);
  const bars=[...svg.matchAll(/class="m-press b-(?:A|UP)"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/g)];expect(bars).toHaveLength(2);expect(bars[0]?.[1]).toEqual(bars[1]?.[1]);expect(bars[0]?.[2]).toEqual(bars[1]?.[2]);
  expect(lanesSvg(v,BASE_MS+120000,['presses','milestones'])).not.toContain('m-press');
@@ -80,15 +80,13 @@ it('omits hidden agent markers as well as their labels on the shared human timel
  for(const mark of ['m-think','m-tool','m-error'])expect(svg).not.toContain(mark);
  expect(svg).toContain('m-press');expect(svg).toContain('m-milestone');
 });
-it('shows repeated native activity on the existing human milestone lane with evidence',()=>{
+it('draws milestones as diamonds alone, with no dots for native activity',()=>{
  const log=new Log();log.add(0,START);
+ log.add(500,{type:'milestone',turn:0,name:'PLAYER_NAME_SET',server_timestamp:1});
  log.add(1000,{type:'activity',turn:0,kind:'capture',count:1,server_timestamp:1,evidence:[1,2]});
- log.add(2000,{type:'activity',turn:0,kind:'capture',count:2,server_timestamp:2,evidence:[3,4]});
- log.add(3000,{type:'activity',turn:0,kind:'level_up',count:1,server_timestamp:3,evidence:[5,6],pokemon:{identity:'abc',species:'<TORCHIC>',from_level:5,to_level:6}});
- const v=view(log);expect(v.activities).toHaveLength(3);
- const svg=lanesSvg(v,BASE_MS+4000,['presses','milestones']);expect(svg.match(/m-activity/g)).toHaveLength(3);
- expect(svg).toContain('capture ×2 · evidence #3, #4 · first observation (upper bound)');expect(svg).toContain('&lt;TORCHIC&gt; Lv5→6');
- expect(svg).toContain('viewBox="0 0 1000 80"');expect(lanesSvg(v,BASE_MS+100000,['presses','milestones'])).not.toContain('m-activity');
+ log.add(1500,{type:'native_action',turn:0,id:1,frame:10,server_timestamp:(BASE_MS+1500)/1000,kind:'map_change',details:{}});
+ const v=view(log);expect(v.activities).toHaveLength(1);
+ for(const lanes of [LANES,['presses','milestones'] as const]){const svg=lanesSvg(v,BASE_MS+4000,lanes);expect(svg).not.toContain('<circle');expect(svg).not.toContain('m-activity');expect(svg.match(/<path class="m-milestone"/g)).toHaveLength(1);}
 });
 
 it("shows navigation context delivery on timeline without claiming a game press",()=>{
@@ -213,7 +211,7 @@ it("clips native holds at the replay cursor and omits zero-length spans", () => 
   log.add(400,{type:"native_action",turn:0,id:2,frame:70,server_timestamp:(BASE_MS+1120)/1000,kind:"native_input",details:{buttons:[]}});
   const clipped=lanesSvg(view(log),BASE_MS+620);
   const mark=clipped.match(/class="m-press b-UP"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/);
-  expect(Number(mark?.[1])+Number(mark?.[2])).toBeCloseTo(992,0);
+  expect(Number(mark?.[1])+Number(mark?.[2])).toBeCloseTo(1000,0);
   expect(lanesSvg(view(log),BASE_MS+120)).not.toContain('class="m-press');
 });
 

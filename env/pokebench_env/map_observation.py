@@ -326,7 +326,7 @@ def compact_codes(
     return codes
 
 
-def _key_line(base_cells: "Iterable[Iterable[str]]", gates: bool) -> str:
+def _key_line(base_cells: "Iterable[Iterable[str]]", arms: str, pivot: bool) -> str:
     """rotating-gate-map-v1: the key names only glyphs this grid draws."""
     drawn = {cell[:1] for row in base_cells for cell in row}
     glyphs = [
@@ -338,11 +338,10 @@ def _key_line(base_cells: "Iterable[Iterable[str]]", gates: bool) -> str:
         "Base glyph / element token preserves both layers"
         + (f"; {', '.join(glyphs)}." if glyphs else ".")
     ]
-    if gates:
-        parts.append(
-            "| and -- between cells are gate arms on the lines between tiles, not walls; "
-            "* is a gate's pivot, a corner between tiles."
-        )
+    if arms:
+        parts.append(f"{arms} between cells are gate arms on the lines between tiles, not walls.")
+    if pivot:
+        parts.append("* is a gate's pivot, a corner between tiles.")
     if "+" in drawn:
         parts.append("A + inside a cell remains a base edge wall.")
     return " ".join(parts)
@@ -515,7 +514,35 @@ def render_observation(
                 boundary += "*" if (ox + x + 1, oy + y + 1) in junctions else " "
             lines.append(boundary.rstrip())
     lines.append(
-        _key_line(base_cells, bool(gates))
+        _key_line(
+            base_cells,
+            " and ".join(
+                glyph
+                for glyph, shown_here in (
+                    (
+                        "|",
+                        any(
+                            ox - 1 <= x < ox + observation.width
+                            and oy <= y < oy + observation.height
+                            for x, y in vertical
+                        ),
+                    ),
+                    (
+                        "--",
+                        any(
+                            ox <= x < ox + observation.width
+                            and oy - 1 <= y < oy + observation.height
+                            for x, y in horizontal
+                        ),
+                    ),
+                )
+                if shown_here
+            ),
+            any(
+                ox <= x <= ox + observation.width and oy <= y <= oy + observation.height
+                for x, y in junctions
+            ),
+        )
         if gate_lines
         else "Base glyph / element token preserves both layers; @ player, N object, W warp. "
         "Gate | and - between cells mark edges; * marks a gate junction, not a solid cell. "

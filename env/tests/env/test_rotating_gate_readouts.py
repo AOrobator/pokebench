@@ -254,10 +254,26 @@ def test_gate_map_key_lists_only_glyphs_the_grid_draws():
     assert "; @ player." in text and "A + inside a cell remains a base edge wall." in text
 
 
-def test_gate_map_keeps_listing_a_gate_outside_this_view():
-    shown = FullMap(2, 1, ("..",), (MapTile(0, 0, 0, 0, 0), MapTile(1, 0, 0, 0, 0)), (), ())
+def test_gate_map_keeps_listing_a_gate_outside_this_view_without_keying_undrawn_glyphs():
+    shown = LocalMap((16, 3), (".",), (MapTile(16, 3, 0, 0, 0, 3),), (), ())
     observation = build_observation(shown, (12, 1), (), anywhere=GATE)
-    assert "Gate 2: pivot" in render_observation(shown, observation, gate_lines=True)
+    text = render_observation(shown, observation, gate_lines=True)
+    assert "Gate 2: pivot" in text
+    assert "between cells are gate arms" not in text and "pivot, a corner" not in text
+
+
+def test_gate_map_key_names_only_the_gate_glyphs_this_view_draws():
+    pivot, north_south = GATE[0], GATE[3]
+    shown = gate_view()
+    both = render_observation(shown, build_observation(shown, (12, 1), GATE), gate_lines=True)
+    assert "| and -- between cells are gate arms" in both and "* is a gate's pivot" in both
+    arm = render_observation(
+        shown, build_observation(shown, (12, 1), (north_south,)), gate_lines=True
+    )
+    assert "| between cells are gate arms" in arm and "--" not in arm.split("Base glyph")[1]
+    assert "* is" not in arm
+    alone = render_observation(shown, build_observation(shown, (12, 1), (pivot,)), gate_lines=True)
+    assert "between cells are gate arms" not in alone and "* is a gate's pivot" in alone
 
 
 class Aliased:

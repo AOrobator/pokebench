@@ -42,3 +42,16 @@ Run 274b entered FORTREE CITY GYM at turn 2043 and made no milestone in the next
 - Replay of real state 00057155: planNavigation from (4,19) to (4,18) off = UP, on = no route; (2,21) still routes on. All four dumps: pivots equal the raw orientation bytes.
 - Not done: live emulator proof, no-pause checkpoint decision for 274b (waiting on the operator), viewer restart.
 - Five gate switches moved to onInBoth, base true, mirrored in the plain-run preset. Relayed instruction, local branch only.
+
+## Multi-Model Review Log
+
+Round 1, packet c046cc642..3b3b7cdf3, diff SHA-256 858ce7cde3a29b2a9c75f15c6ce1c4c521832e861c6df6af3e42d1a8522c25fb.
+- Principles self-review: zero FAIL rows.
+- Claude CLI: BLOCKING on B1 (key named gate glyphs a local view did not draw). Accepted, fixed. H1 multi-tile edges: not reachable on either gate map. H2 navigation fails open when the gate read is unavailable: the readout reports it; follow-up. H3 player-map-visibility-v2 filters gates: off in both arms. H4 navigate_to_target: the Navigation line naming the arm stays in the result text, no change.
+- GPT (Codex CLI gpt-5.6-sol): LGTM.
+- Grok (Cursor): usage limit until 11/17, so the standing fallback applies.
+- Fallback read-only subagent: LGTM.
+
+## Gates
+
+`just build`, `just test` (agent 2453, viewer 804, env 2893, gateway 38, floors and no-io-proof), `just verify-vendor` passed at 3b3b7cdf3. `just lint` stopped at mypy on `mgba._pylib`, absent in this worktree; mypy over 141 files passed against the main env's interpreter, and the gateway lint steps passed.

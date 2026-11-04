@@ -15,7 +15,7 @@ All browser and screenshot proof follows [viewer-e2e's desktop-focus boundary](.
 
 | Change | Proof required before "done" | Never enough on its own |
 |---|---|---|
-| Logic, parsing, scoring, runner code | Failing test first, then green; `just test` (also enforces coverage ≥90), `just lint`; a check on real data read-only when the code reads `runs/` | Coverage percent; "tests pass" for code the test never reaches |
+| Logic, parsing, scoring, runner code | Failing test first, then green; `just test` (also enforces the coverage floors), `just lint`; a check on real data read-only when the code reads `runs/` | Coverage percent; "tests pass" for code the test never reaches |
 | Viewer UI (stats page, run viewer, plates, legend) | `.claude/skills/viewer-e2e/SKILL.md` for click-throughs, plus: a real browser on the built page: click every changed control with real input, wait through two polling cycles, screenshot desktop (1280 and 1440) and phone (375), and look at every screenshot | Mounted DOM tests; HTTP 200; a screenshot you did not open |
 | HTML mockups, explainers, reports | explainers, reports and reviews carry the Emerald theme (`just pages-theme`); `just pages-check <file>` prints nothing; the 8791 link returns 200; screenshots at 1280, 1440 and 375 opened and looked at, expanded and collapsed states included | The generator ran; one width checked |
 | Data shown in the viewer (dropdown, frontier, splits, cohorts) | A before/after table on the real `runs/`, read-only: entries, run counts, which run is the record, nothing lost, nothing listed twice; `just experiments-audit` prints nothing | Fixture tests alone |

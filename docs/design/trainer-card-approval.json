@@ -1,8 +1,9 @@
 {
-  "parent": "005d762b45591c6dfa2e453fb62eee722205c70e",
-  "user_quote": "why do the first two trainer cards have the same sprite? each GPU should have a different trainer. it should be based off the hash of gpu + experiment + experiment arm",
-  "source": "User correction in Codex chat 00000000-0000-4000-8000-442532a64cf1 on 2026-10-24; authorizes sprite identity and matching protected tests/baselines",
+  "parent": "4b6acc660431bf135c95820d330c5f6a1212ec81",
+  "user_quote": "you're good to start cleaning up tests and land the guard though. im good with steps 1-5. coding is now allowed",
+  "source": "claude project chat message cmsg_redacted6eaac07fb219, 2026-11-04; step 4 moves trainer-card-check out of just test with baselines unchanged",
   "files": {
-    "packages/viewer/src/trainer-card.test.ts": "f2f2aef8be1e746566b72548e3d02358aecedc65004ca033ac95a63402f3901e"
+    "docs/design/trainer-cards/README.md": "90a27dcb9bc66db70621150fa7fabb0cbfdc2b169595f6f0516a921acee36247",
+    "justfile": "5cd88d1cdb9104c8b3a7673ac741e4beac6bb18544a798b89f199ceb0abe0c3c"
   }
 }

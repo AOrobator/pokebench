@@ -21,7 +21,7 @@ function repoCaller(): boolean {
   Error.stackTraceLimit = 80;
   const stack = new Error().stack ?? "";
   Error.stackTraceLimit = limit;
-  const frames = stack.split("\n").slice(1).filter((f) => !f.includes("test-support/no-io"));
+  const frames = stack.split("\n").slice(1).filter((f) => !f.includes("test-support/no-io.ts"));
   if (frames[0]?.includes("node:internal/modules")) return false;
   return frames.some((f) => REPO_FRAME.test(f));
 }

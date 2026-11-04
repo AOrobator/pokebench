@@ -11,17 +11,21 @@ setup:
     cd env && uv sync
     @echo "✓ hooks enabled, deps installed"
 
-# Every suite runs once, coverage-instrumented, and the 90% floor is enforced in the same pass
-# (project override of the global 95%; see CLAUDE.md).
+# Every suite runs once, coverage-instrumented, under the no-I/O guards, and each suite's floor is
+# enforced in the same pass (see CLAUDE.md). trainer-card-check is its own command.
 # Viewer tests import compiled agent registry/schema exports; rebuild them before coverage.
 test:
     just build
     pnpm -r coverage
     cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
-    cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
-    uv run --project env python -m pytest -q -p no:cacheprovider --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov=preflight --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
-    uv run --project env python -m pokebench_gates.coverage_gate env/.claude-gateway-coverage.json --min 90
-    just trainer-card-check
+    cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 74
+    uv run --project env python -m pytest -q -p no:cacheprovider -p pokebench_gates.no_io_guard --rootdir scripts/claude-gateway scripts/claude-gateway --cov=claude_gateway --cov=replay --cov=preflight --cov-branch --cov-report=term-missing --cov-report=json:env/.claude-gateway-coverage.json
+    uv run --project env python -m pokebench_gates.coverage_gate env/.claude-gateway-coverage.json --min 22
+    just no-io-proof
+
+# Fails if either guard stops catching I/O: runs a proof suite where only pure tests may pass.
+no-io-proof:
+    uv run --project env python scripts/no-io-proof.py
 
 # The coverage gate is part of `just test`; `just coverage` is that same single pass under another name.
 coverage: test

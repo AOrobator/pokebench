@@ -37,7 +37,7 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
 
 ## Project overrides of the global rules
 
-- **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.
+- **Coverage floors are set where coverage landed after the no-I/O test cleanup** (operator decision 2026-11-04): vitest thresholds for agent (lines 63, branches 54, functions 57, statements 58) and viewer (lines 36, branches 39, functions 40, statements 35), and the `--min` of `pokebench_gates.coverage_gate` in `just test` for env (74) and the Claude gateway (22). Never lower a floor further or widen excludes to pass.
 - **Vendored env:** `env/vendor/continual-harness` is excluded from coverage only while it is the pinned SHA with a clean tree (`just verify-vendor`). Changing its behavior means writing pokebench-owned, covered code. A fork brings it into coverage.
 - **Principles rubric:** the principles self-review scores `docs/agent-principles.md` (PB1–PB13, operator-approved 2026-10-11). Agents may propose additions; only the operator approves them.
 - **Deploy:** none. This is a local research tool. Milestones stop for operator review where the worklog says so.
@@ -48,6 +48,8 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
   - It is referenced only via `POKEBENCH_ROM`.
   - It is symlinked into each run's server dir (`runs/<id>/server/Emerald-GBAdvance/rom.gba`), never copied.
   - The pre-commit hook rejects staged `.gba/.gb/.gbc/.sav/.ssN/.state` files.
+- **No test does I/O** (operator decision 2026-11-04). The guards (`packages/agent/test-support/no-io.ts`, `pokebench_gates.no_io_guard`) fail any Vitest or pytest test that touches disk, a process, the network, DNS, fetch, sockets or a worker, or that creates more than one event loop. asyncio's self-pipe is the only call ignored. A test that fails the guard is deleted, never exempted; exceptions need the operator's approval first. `just no-io-proof` proves the guards still bite.
+- **New code is built for dependency injection.** Disk, processes, network, clocks and sockets arrive as injected dependencies behind a thin entrypoint, so the logic is tested in memory with fakes. Do not write code that can only be tested by touching the real thing.
 - **Worklog update per commit** is enforced by `.githooks/pre-commit`. Run `just setup` once per clone. `--no-verify` is forbidden.
 - **RED → GREEN → multi-model review** per milestone. The review contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`.
 - **Concrete types:** no `any`. Validate JSON from the gateway and the game server into typed values.
@@ -64,8 +66,10 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
 
 ```bash
 just setup          # enable .githooks, install deps
-just test           # every vitest + pytest suite once, coverage-instrumented; fails under 90
+just test           # every vitest + pytest suite once, under the no-I/O guards, coverage-instrumented; fails under each suite's floor
 just coverage       # the same single pass as just test (never run both)
+just no-io-proof    # proof suites: only pure tests may pass, so a weakened guard fails
+just trainer-card-check  # protected trainer-card design check; real browser and disk, so not part of just test
 just lint           # tsc --noEmit, eslint, ruff, mypy
 just build          # tsc build
 just build-mgba     # native mGBA + Python binding into env/.venv (once per clone)

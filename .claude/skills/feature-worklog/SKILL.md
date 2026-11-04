@@ -60,7 +60,7 @@ Record stage status separately. “Ready to land” means source checks/review a
 - [ ] COMMIT: `test(scope): ...` (RED)
 - [ ] Implement
 - [ ] Cheap checks: changed-file lint, affected-package types, focused caller/behavior tests (or documentation validation for prose-only)
-- [ ] Applicable gates per `execute-worklog`: CPU START after cheap GREEN, full executable gates once; record counts/coverage ≥90 and RELEASE
+- [ ] Applicable gates per `execute-worklog`: CPU START after cheap GREEN, full executable gates once; record counts/coverage against the floors and RELEASE
 - [ ] Freeze outcome/path set, named consumers, non-goals, terminator and split triggers
 - [ ] COMMIT: `feat(scope): ...` (GREEN)
 - [ ] Smoke / visual evidence when the milestone touches the emulator, gateway or viewer
@@ -75,7 +75,7 @@ Record stage status separately. “Ready to land” means source checks/review a
 3. After compaction, read the worklog first.
 4. Mark deferrals explicitly: `- DEFERRED (reason)`.
 5. For every guard a test claims to protect, delete the guarded behavior once and watch the test go red. Restore it, and record that you did.
-6. Coverage floor is 90% (project override). Never widen excludes to pass.
+6. Coverage floors are in `CLAUDE.md` (project override). Never widen excludes to pass.
 7. Log surprises, and update this skill in the same session when a surprise changes the procedure.
 
 ## Veto

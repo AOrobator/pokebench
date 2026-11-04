@@ -91,7 +91,7 @@ def evaluate(report: Mapping[str, object], minimum: float) -> CoverageResult:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
-    parser.add_argument("--min", type=float, default=90.0, dest="minimum")
+    parser.add_argument("--min", type=float, required=True, dest="minimum")
     args = parser.parse_args(argv)
     if not 0.0 <= args.minimum <= 100.0:
         print(f"coverage floor must be within [0, 100], got {args.minimum}", file=sys.stderr)

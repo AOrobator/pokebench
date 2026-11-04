@@ -101,7 +101,7 @@ An under-specified harness decision (what counts as "stuck", what the battle sub
 
 Gates pass or fail. An exception needs evidence and operator provenance, not a story.
 
-**Default action:** never skip, xfail, or disable a test. Never lower the 90% floor, widen coverage excludes, or bypass the pre-commit hook (`--no-verify`). If a gate is wrong, change it openly with operator approval.
+**Default action:** never skip, xfail, or disable a test. Never lower a coverage floor, widen coverage excludes, or bypass the pre-commit hook (`--no-verify`). If a gate is wrong, change it openly with operator approval.
 **Enforcement:** coverage gates, the wiring tests, the pre-commit hook.
 **From:** SI-P29, SI-P26, SI-P45 test-gate corollary.
 

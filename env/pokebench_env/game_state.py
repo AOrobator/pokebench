@@ -415,6 +415,7 @@ def read_game_state(
     active_warp_exits_enabled: bool = False,
     map_observability_enabled: bool = False,
     map_observability_full: bool = False,
+    rotating_gate_positions_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     caught_nickname_v2_enabled: bool = False,
     caught_dex_enabled: bool = False,
@@ -913,7 +914,9 @@ def read_game_state(
             if map_observability_full and state.full_map is not None
             else state.nearby
         )
-        rotating_elements, unavailable = read_rotating_elements(read, map_id, observation_view)
+        rotating_elements, unavailable = read_rotating_elements(
+            read, map_id, observation_view, every_gate=rotating_gate_positions_enabled
+        )
         layout_context = read_layout_context(read, map_id)
         if state.interaction_targets is None:
             unavailable += ("interaction target coverage unavailable",)
@@ -929,9 +932,10 @@ def read_game_state(
                 None if state.running is None else state.running.avatar_flags,
                 field_gates=None if state.field_obstacles is None else state.field_obstacles.gates,
             )
-            + rotating_elements,
+            + (() if rotating_gate_positions_enabled else rotating_elements),
             unavailable,
             layout_context,
+            anywhere=rotating_elements if rotating_gate_positions_enabled else (),
         )
         labeled = []
         for target in state.interaction_targets or ():

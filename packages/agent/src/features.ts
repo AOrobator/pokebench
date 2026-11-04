@@ -348,6 +348,11 @@ export const SWITCHABLE_FEATURES = [
   "bike-register-v1",
   "bike-auto-mount-v1",
   "surf-navigation-v1",
+  "rotating-gate-positions-v1",
+  "rotating-gate-rules-v1",
+  "rotating-gate-map-v1",
+  "map-code-aliases-v1",
+  "rotating-gate-navigation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -817,6 +822,11 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("bike-register-v1", "guidance", "REGISTER THE BIKE", null, "Default off; bundle arm of the current recipe (the operator 2026-11-03, the auto-bike design, bundle only). When the player owns the MACH BIKE or ACRO BIKE and neither is registered to SELECT, the first navigate_to with a free field registers the bike first, through the game's own menus and real presses: START, BAG, the KEY ITEMS pocket, the bike, REGISTER, then B back to the field (POST /pokebench/bike/register; the game server presses one button at a time and waits for the menu to answer, at most 1200 frames). It is done only when SaveBlock1.registeredItem reads the bike back; anything unexpected backs out with B and reports why. It tries once for each registration it sees, so it runs again only if the registration changes. The harness never chooses between the bikes: the bike the player owns is the one registered. The readout gains one line, \"Bike: MACH BIKE registered to SELECT\", and the state a bike object. Off: no registration, no line, no bike state."),
   on("bike-auto-mount-v1", "guidance", "RIDE THE BIKE", "bike-register-v1", "Default off; bundle arm of the current recipe (the operator 2026-11-03, the auto-bike design, bundle only). Needs bike-register-v1 and bike-navigation-v1. At the start of a navigate_to step, when the map allows cycling (gMapHeader.allowCycling), the player is on foot and not surfing, a bike is registered to SELECT, the next tile is one a bike can enter, and riding the planned route would take fewer frames than running it (measured on ROUTE 113: about 21 frames to get on, 8 a tile running, 6 on the ACRO BIKE, and 16, 8 then 4 on the MACH BIKE, which also needs three slowing tiles to stop, so it only pays on long straight runs), the game server presses SELECT once and confirms from the avatar flags that the player rides (POST /pokebench/bike/toggle, at most 120 frames). Before a step onto water or a tile where the game does not allow cycling, it presses SELECT to get off and confirms the same way. If the game prints a refusal instead, one B closes it and navigation carries on as it was. Entering a map that does not allow cycling is left to the game. The readout line gains \"; riding it\" while riding. Off: the harness never presses SELECT."),
   on("surf-navigation-v1", "observation", "NATIVE SURF NAVIGATION", "safe-navigation-strides-v1", "Correctness fix; default off, on in both arms of the current recipe (the operator 2026-11-04). In run 274b, the first run to surf, a batch of presses was refused in favour of navigate_to, navigate_to refused water, and the crossing took single presses that each moved two tiles. Surfing becomes a mode of the same A* search, read from the game's avatar flag. While surfing, navigate_to and navigate_to_target route over plain water and under bridges by frame-owned strides, ride currents and waterfalls down as forced movement (pokeemerald DoForcedMovement, refused when the push ends against the shore), enter water warps as a goal, cross map edges from water tiles, and land where CanStopSurfing lands: elevation 3 with no object there at elevation 3. A route can land but never re-enter water. The harness never starts Surf: on foot, when Surf can be used and the only way to a goal crosses water, the tool walks to the shore tile one search picks, faces the water, stops and says to press A. The exits line adds \"Across water:\" once Surf can be used, and while surfing reads \"You are surfing. Exits by water or land from here, not counting currents and waterfalls:\". A closed waterfall stays a wall on foot and a refused water route names it with the game's text; when Waterfall can be used, the walk stops at its foot, faces it and says to press A. The state's connections gain water_edges and the system prompt gains a Surf section. Off: navigate_to treats water as a wall while surfing, the exits line and prompt are unchanged and connections have no water_edges."),
+  on("rotating-gate-positions-v1", "observation", "ROTATING GATE POSITIONS", "map-observability-v1", "Correctness fix; default off. map-observability-v1 labelled a gate transitioning whenever its sprite's affineAnimEnded bit (0x3F bit 0x20) was clear, but a loaded gate that has never turned sits at 0x3F=0x50 with data[1]=0 for as long as it stays on screen. Run 274b lost every unpushed gate in FORTREE CITY GYM that way: no arms on the map, and Next tiles said clear across them. On: every gate is read from its orientation byte at saveblock1+0x139C, which is what the game's collision reads and which a push changes at once, listed whether or not it is on screen, with no sprite read and no transitioning state. ROM signature and live-owner checks stay. Off: the sprite-gated reading, byte for byte."),
+  on("rotating-gate-rules-v1", "observation", "ROTATING GATE RULES", null, "Default off. A short block in the readout, only while the current map has rotating gates and never in the system prompt (the operator 2026-11-04): a gate is movable, its arms lie on the lines between tiles, its pivot is a corner and not a tile, walking into an arm pushes it around in the direction you walk, the gate turns 90 degrees around the pivot and you step through, and it will not turn if an arm would sweep into a wall, and then you do not move. Rules from pokeemerald rotating_gate.c only; no push is named or predicted. Off: no block."),
+  on("rotating-gate-map-v1", "observation", "ROTATING GATE MAP LINES", "rotating-gate-positions-v1", "Default off. The grid already draws arms as | and -- on tile edges with * at the pivot. On: one line per gate replaces the per-direction Now lines and the element legend entries for tokens no cell shows, naming the pivot's four tiles and each arm by the two tiles it separates, and the key line names only glyphs this grid draws, saying arms are not walls. Off: the previous key, legend and Now lines, byte for byte."),
+  on("map-code-aliases-v1", "observation", "ONE CODE PER ELEMENT", "compact-map-base-glyph-v1", "Default off. With the base glyph kept in the cell, the same element under two glyphs took two letters: \"M = Wp:arrow:v; T = Wp:arrow:v\". On: a Codes letter stands for the element token, whatever glyph sits beside it, and the Codes line lists it once. Off: one letter per glyph and token pair, byte for byte."),
+  on("rotating-gate-navigation-v1", "guidance", "NAVIGATE_TO STOPS AT GATE ARMS", "rotating-gate-positions-v1", "Default off. navigate_to planned straight through gate arms and then reported a vague block. On: an arm's edge is blocked to the planner, so a clear route walks as usual. When only arms stop the route it walks up to the first arm on the route that ignores them, stops before it and names it, for example gate 2's arm between (4,18) and (4,19). It never pushes a gate or plans a push; press is how a gate moves. The tool description is unchanged, to keep gate text out of the system prompt on other maps. Off: gates do not affect the plan."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -934,6 +944,10 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "bike-register-v1",
   "bike-auto-mount-v1",
   "surf-navigation-v1",
+  "rotating-gate-positions-v1",
+  "rotating-gate-rules-v1",
+  "rotating-gate-map-v1",
+  "map-code-aliases-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1266,6 +1280,11 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("bike-register-v1"),
     ...when("bike-auto-mount-v1"),
     ...when("surf-navigation-v1"),
+    ...when("rotating-gate-positions-v1"),
+    ...when("rotating-gate-rules-v1"),
+    ...when("rotating-gate-map-v1"),
+    ...when("map-code-aliases-v1"),
+    ...when("rotating-gate-navigation-v1"),
   ];
 }
 

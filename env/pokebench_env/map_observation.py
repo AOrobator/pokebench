@@ -151,8 +151,10 @@ def build_observation(
     elements: tuple[MapElement, ...],
     unavailable: tuple[str, ...] = (),
     layout: LayoutContext | None = None,
+    *,
+    anywhere: tuple[MapElement, ...] = (),  # kept when off this view: every gate stays listed
 ) -> MapObservation:
-    current = tuple(e for e in elements if _inside(shown, e.x, e.y))
+    current = tuple(e for e in elements if _inside(shown, e.x, e.y)) + anywhere
     return MapObservation(
         map_id, shown.origin, len(shown.rows[0]), len(shown.rows), current, unavailable, layout
     )
@@ -290,8 +292,26 @@ def reset_codebook() -> None:
 LEGACY_CODE_LETTERS = "ABCDEFGHIJKLMOPQRSTUXYZabcdefhijklmnopqrstuwxyz"
 
 
-def compact_codes(rendered: list[list[str]], *, stable: bool = False) -> dict[str, str]:
+def _note(token: str) -> str:
+    return token.split("/", 1)[1] if "/" in token else token
+
+
+def compact_codes(
+    rendered: list[list[str]], *, stable: bool = False, by_note: bool = False
+) -> dict[str, str]:
     tokens = [token for row in rendered for token in row]
+    if by_note:
+        # map-code-aliases-v1: the glyph stays in the cell, so W/Wp:arrow:v and @/Wp:arrow:v share
+        # one letter. The leading slash keeps a one-character note in the book's multi-character key
+        # space.
+        wanted = [token for token in dict.fromkeys(tokens) if len(token) > 1]
+        keys = {token: f"/{_note(token)}" for token in wanted}
+        book = (
+            CODES.codes_for(keys.values())
+            if stable
+            else compact_codes([list(dict.fromkeys(keys.values()))])
+        )
+        return {token: book[key] for token, key in keys.items()}
     if stable:
         return CODES.codes_for(tokens)
     codes: dict[str, str] = {}
@@ -306,6 +326,49 @@ def compact_codes(rendered: list[list[str]], *, stable: bool = False) -> dict[st
     return codes
 
 
+def _key_line(base_cells: "Iterable[Iterable[str]]", gates: bool) -> str:
+    """rotating-gate-map-v1: the key names only glyphs this grid draws."""
+    drawn = {cell[:1] for row in base_cells for cell in row}
+    glyphs = [
+        text
+        for glyph, text in (("@", "@ player"), ("N", "N object"), ("W", "W warp"))
+        if glyph in drawn
+    ]
+    parts = [
+        "Base glyph / element token preserves both layers"
+        + (f"; {', '.join(glyphs)}." if glyphs else ".")
+    ]
+    if gates:
+        parts.append(
+            "| and -- between cells are gate arms on the lines between tiles, not walls; "
+            "* is a gate's pivot, a corner between tiles."
+        )
+    if "+" in drawn:
+        parts.append("A + inside a cell remains a base edge wall.")
+    return " ".join(parts)
+
+
+def _between(edge: tuple[int, int, int, int]) -> str:
+    ax, ay, bx, by = edge
+    return f"between ({ax},{ay}) and ({bx},{by})"
+
+
+def _gate_line(group: str, parts: list[MapElement]) -> str:
+    """rotating-gate-map-v1: a gate's pivot corner and its arms, by the tiles each arm separates."""
+    arms: dict[str, list[str]] = defaultdict(list)
+    for part in parts:
+        if part.edge is not None and part.direction is not None:
+            arms[part.direction].append(_between(part.edge))
+    corner = "".join(
+        f"pivot at the corner of ({p.x - 1},{p.y - 1}), ({p.x},{p.y - 1}), ({p.x - 1},{p.y}) "
+        f"and ({p.x},{p.y}); "
+        for p in parts
+        if p.state == "pivot"
+    )
+    listed = "; ".join(f"{side} arm {', '.join(edges)}" for side, edges in arms.items())
+    return f"Gate {group.removeprefix('gate:')}: {corner}{listed}"
+
+
 def render_observation(
     shown: LocalMap | FullMap,
     observation: MapObservation,
@@ -317,6 +380,8 @@ def render_observation(
     compact: bool = False,
     stable_codes: bool = False,  # needs compact: the letter that replaces a token in a cell
     base_glyph: bool = False,  # needs compact: the code follows the glyph inside the cell
+    gate_lines: bool = False,  # rotating-gate-map-v1: one line per gate, legend for what is drawn
+    one_code: bool = False,  # map-code-aliases-v1, needs base_glyph: one letter per element token
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -327,7 +392,19 @@ def render_observation(
     detailed: set[str] = set()
     tiles = {(tile.x, tile.y): tile for tile in shown.tiles}
     effects: dict[str, str] = {}
+    gates: dict[str, list[MapElement]] = defaultdict(list)
     for element in observation.elements:
+        if gate_lines and element.kind == "rotating_gate" and element.group is not None:
+            gates[element.group].append(element)
+            if element.edge is not None:
+                ax, ay, bx, by = element.edge
+                if ay == by:
+                    vertical[(min(ax, bx), ay)] = "|"
+                elif ax == bx:
+                    horizontal[(ax, min(ay, by))] = "-"
+            elif element.state == "pivot":
+                junctions.add((element.x, element.y))
+            continue
         token, label = element_token(element), element_label(element)
         if token in legend and legend[token] != label:
             raise ValueError(f"ambiguous map token {token}")
@@ -376,14 +453,14 @@ def render_observation(
         # compact-map-base-glyph-v1 then keeps the base glyph inside the cell and codes only the
         # element annotation, so a blocked gate reads "#E" and a cell's passability never depends
         # on the Codes line alone. The two compose: the letter in the cell comes from the book.
-        codes = compact_codes(rendered, stable=stable_codes)
+        codes = compact_codes(rendered, stable=stable_codes, by_note=one_code and base_glyph)
         if base_glyph:
             rendered = [
                 [f"{token[:1]}{codes[token]}" if token in codes else token for token in row]
                 for row in rendered
             ]
             width = max([1, *(1 + len(code) for code in codes.values())])
-            note = {token: token.split("/", 1)[1] if "/" in token else token for token in codes}
+            note = {token: _note(token) for token in codes}
         else:
             rendered = [[codes.get(token, token) for token in row] for row in rendered]
             width = max([1, *(len(code) for code in codes.values())])
@@ -396,7 +473,10 @@ def render_observation(
             "Current map (observed elements v1, compact codes); "
             f"top-left ({ox},{oy}), north is up:",
             "Codes: "
-            + ("; ".join(f"{code} = {note[token]}" for token, code in codes.items()) or "none"),
+            + (
+                "; ".join(dict.fromkeys(f"{code} = {note[token]}" for token, code in codes.items()))
+                or "none"
+            ),
             *(
                 ("     " + " ".join(n[place].rjust(width) for n in numbers)).rstrip()
                 for place in range(digits)
@@ -435,7 +515,9 @@ def render_observation(
                 boundary += "*" if (ox + x + 1, oy + y + 1) in junctions else " "
             lines.append(boundary.rstrip())
     lines.append(
-        "Base glyph / element token preserves both layers; @ player, N object, W warp. "
+        _key_line(base_cells, bool(gates))
+        if gate_lines
+        else "Base glyph / element token preserves both layers; @ player, N object, W warp. "
         "Gate | and - between cells mark edges; * marks a gate junction, not a solid cell. "
         "A + inside a cell remains a base edge wall."
     )
@@ -456,6 +538,7 @@ def render_observation(
             )
             for label, places in groups.items()
         )
+    lines.extend(_gate_line(group, parts) for group, parts in gates.items())
     if observation.layout is not None:
         layout = observation.layout
         lines.append(

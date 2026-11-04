@@ -36,6 +36,7 @@ from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
 from pokebench_env.map_observation import MapObservation, render_observation
+from pokebench_env.map_rotating_elements import GATE_RULES, PUZZLES, RULES_SWITCH
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.map_sections import SectionExit
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
@@ -215,6 +216,10 @@ SERVER_FEATURES = (
     BIKE_REGISTER,
     BIKE_MOUNT,
     "surf-navigation-v1",
+    "rotating-gate-positions-v1",
+    "rotating-gate-rules-v1",
+    "rotating-gate-map-v1",
+    "map-code-aliases-v1",
 )
 
 
@@ -246,7 +251,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
-        "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1",
+        "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
+        "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1",
     )
     if raw == "":
         return frozenset()
@@ -823,6 +829,8 @@ def format_readout(
                     compact="compact-map-grid-v1" not in off,
                     stable_codes="stable-map-codes-v1" not in off,
                     base_glyph="compact-map-base-glyph-v1" not in off,
+                    gate_lines="rotating-gate-map-v1" not in off,
+                    one_code="map-code-aliases-v1" not in off,
                 )
                 if observation is not None
                 else None,
@@ -832,6 +840,8 @@ def format_readout(
             if shown is not None
             else state.local_map or ""
         )
+        if RULES_SWITCH not in off and state.map_id in PUZZLES:
+            lines.append(GATE_RULES)
         if puzzle_note:
             lines.append(puzzle_note)
         if terrain_note:

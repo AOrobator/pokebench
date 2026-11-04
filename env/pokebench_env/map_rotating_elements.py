@@ -60,6 +60,17 @@ SPRITES = 0x02020630
 SPRITE_SIZE = 0x44
 SPRITE_CALLBACK = 0x080FBAE5
 DIRECTIONS = ("north", "east", "south", "west")
+POSITIONS_SWITCH = "rotating-gate-positions-v1"
+RULES_SWITCH = "rotating-gate-rules-v1"
+# Rules, never a push: rotating_gate.c CheckForRotatingGatePuzzleCollision (a turned gate lets the
+# step through), sRotatingGate_RotationInfo* (the arm moves the way you walk) and
+# RotatingGate_CanRotate (any arm's swept tile being a wall stops the gate and the step).
+GATE_RULES = (
+    "Gates on this map: a gate is movable. Its arms lie on the lines between tiles, and its pivot "
+    "is a corner where four tiles meet, not a tile you can stand on. Walking into an arm pushes it "
+    "around in the direction you walk: the whole gate turns 90 degrees around its pivot and you "
+    "step through. It will not turn if an arm would sweep into a wall, and then you do not move."
+)
 
 
 def _config_bytes(entries: Iterable[tuple[int, int, int, int]]) -> bytes:
@@ -117,8 +128,18 @@ def _arm_edge(x: int, y: int, direction: int, length: int) -> tuple[int, int, in
 
 
 def read_rotating_elements(
-    read: ReadMemory, map_id: tuple[int, int] | None, shown: LocalMap | FullMap
+    read: ReadMemory,
+    map_id: tuple[int, int] | None,
+    shown: LocalMap | FullMap,
+    *,
+    every_gate: bool = False,
 ) -> tuple[tuple[MapElement, ...], tuple[str, ...]]:
+    """every_gate is rotating-gate-positions-v1: each gate at its orientation byte, seen or not.
+
+    The game's collision reads that byte and a push changes it at once, so sprite state says nothing
+    about where an arm is. A loaded gate that has never turned keeps 0x3F=0x50 and data[1]=0 for as
+    long as it is on screen; reading affineAnimEnded there hid every unpushed gate in run 274b.
+    """
     puzzle = None if map_id is None else PUZZLES.get(map_id)
     if puzzle is None:
         return (), ()
@@ -127,7 +148,8 @@ def read_rotating_elements(
     relevant = [
         (gate_id, entry)
         for gate_id, entry in enumerate(config)
-        if any(
+        if every_gate
+        or any(
             (x, y) in visible
             for x in range(entry[0] - 2, entry[0] + 2)
             for y in range(entry[1] - 2, entry[1] + 2)
@@ -148,13 +170,15 @@ def read_rotating_elements(
         ):
             return (), ("rotating gate live owner unavailable",)
         orientations = _read(read, save + SAVE_VARIABLES, len(config))
-        sprite_ids = _read(read, SPRITE_IDS, len(config))
+        sprite_ids = bytes(len(config)) if every_gate else _read(read, SPRITE_IDS, len(config))
         elements: list[MapElement] = []
         unavailable: list[str] = []
         for gate_id, (x, y, shape, _default) in relevant:
             group = f"gate:{gate_id}"
             orientation = orientations[gate_id]
-            sprite_state = _sprite_state(read, sprite_ids[gate_id], gate_id)
+            sprite_state = (
+                "current" if every_gate else _sprite_state(read, sprite_ids[gate_id], gate_id)
+            )
             if orientation > 3 or sprite_state == "unavailable":
                 unavailable.append(f"{group} rotating gate state unavailable")
                 continue
@@ -168,7 +192,7 @@ def read_rotating_elements(
                     MapElement("rotating_gate", *anchor, state="transitioning", group=group)
                 )
                 continue
-            if (x, y) in visible:
+            if every_gate or (x, y) in visible:
                 elements.append(
                     MapElement(
                         "rotating_gate", x, y, state="pivot", group=group, orientation=orientation
@@ -180,7 +204,9 @@ def read_rotating_elements(
                 direction = (arm // 2 + orientation) % 4
                 edge = _arm_edge(x, y, direction, arm % 2)
                 endpoints = ((edge[0], edge[1]), (edge[2], edge[3]))
-                edge_anchor = next((p for p in endpoints if p in visible), None)
+                edge_anchor = next(
+                    (p for p in endpoints if p in visible), endpoints[0] if every_gate else None
+                )
                 if edge_anchor is not None:
                     elements.append(
                         MapElement(

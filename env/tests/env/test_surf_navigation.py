@@ -18,7 +18,7 @@ from pokebench_env.strides import (
     level_fits,
     native_refuses,
 )
-from pokebench_env.topology import Connection, read_topology
+from pokebench_env.topology import Connection, read_topology, surfer_crosses
 
 
 def request(**extra: object) -> StrideRequest:
@@ -87,6 +87,25 @@ def test_connection_json_carries_water_edges_only_when_read():
     assert wet.json()["water_edges"] == [{"x": 2, "y": 0}]
 
 
+OCEAN = 0x15
+
+
+@pytest.mark.parametrize(
+    ("here", "beyond", "crosses"),
+    [
+        ((1, 0, 1, OCEAN), (1, 0, 1, OCEAN), True),
+        ((1, 0, 1, OCEAN), (1, 0, 3, 0), True),
+        ((1, 0, 1, OCEAN), (1, 0, 15, 0x70), True),
+        # Pacifidlog (0,13): land at elevation 3 with ocean beyond the edge.
+        ((1, 0, 3, 0x0A), (1, 0, 1, OCEAN), False),
+        # Route 128 (119,10): water with elevation-5 land beyond.
+        ((1, 0, 1, OCEAN), (1, 0, 5, 0), False),
+    ],
+)
+def test_a_surfing_crossing_starts_on_water_and_ends_where_a_surfer_can_go(here, beyond, crosses):
+    assert surfer_crosses(here, beyond) is crosses
+
+
 def test_read_topology_reads_water_edges_only_when_asked():
     m = loaded()
     m.put(0x02037324, struct.pack("<I", 0x0200A000))
@@ -104,7 +123,7 @@ def test_read_topology_asks_for_the_surfing_tiles_when_on(monkeypatch):
     monkeypatch.setattr(
         topology,
         "_edges",
-        lambda *_, water=False: ((9, 0),) if water else ((1, 0),),
+        lambda *_, water=False, surfer=False: ((9, 0),) if water and surfer else ((1, 0),),
     )
     on = read_topology(m.read, MapNames({(0, 16): "ROUTE 101"}), edges=True, water_edges=True)
     assert on is not None

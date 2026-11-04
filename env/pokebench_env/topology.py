@@ -214,8 +214,12 @@ def _edges(
     destination: tuple[int, int],
     *,
     water: bool = False,
+    surfer: bool = False,
 ) -> tuple[Tile, ...] | None:
-    """Edge tiles a player can cross; with water, also surfing ones (surf-gated-exits-v1)."""
+    """Edge tiles a player can cross; with water, also surfing ones (surf-gated-exits-v1).
+
+    surf-navigation-v1: surfer keeps only the tiles someone already surfing can leave from.
+    """
     layout = _layout(read)
     size = _destination_size(read, *destination)
     if layout is None or size is None:
@@ -245,12 +249,20 @@ def _edges(
         along = x if dx == 0 else y
         if not 0 <= along - offset < span:
             continue
-        if crossable(block(x, y), block(x + dx, y + dy), leaving, entering, water=water):
+        here, beyond = block(x, y), block(x + dx, y + dy)
+        if crossable(here, beyond, leaving, entering, water=water) and (
+            not surfer or surfer_crosses(here, beyond)
+        ):
             found.append((x, y))
     return tuple(found)
 
 
 Block = tuple[int, int, int, int]
+
+
+def surfer_crosses(here: Block, beyond: Block) -> bool:
+    """A surfing crossing starts on water and ends where a surfer can go: water or a landing."""
+    return here[3] in SURFABLE and (beyond[3] in SURFABLE or beyond[2] in (0, 1, 3, 15))
 
 
 def crossable(here: Block, beyond: Block, leaving: str, entering: str, *, water: bool) -> bool:
@@ -330,7 +342,7 @@ def read_topology(
                 _edges(read, DIRECTIONS[direction], offset, destination)
                 if edges and DIRECTIONS[direction] in STEPS
                 else None,
-                _edges(read, DIRECTIONS[direction], offset, destination, water=True)
+                _edges(read, DIRECTIONS[direction], offset, destination, water=True, surfer=True)
                 if water_edges and DIRECTIONS[direction] in STEPS
                 else None,
             )

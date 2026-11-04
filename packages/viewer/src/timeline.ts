@@ -237,7 +237,10 @@ export class TimelineFeed {
   }
 
   add(events: readonly Parameters<RunView["apply"]>[0][]): void {
+    const fresh = this.view.events.length === 0;
     for (const event of events) this.view.apply(event);
+    // A first page opens mid-run, so what it derives restates old progress. Those marks stay as repeat guards, off the window.
+    if (fresh && events[0] !== undefined && events[0].seq > 0) for (const mark of this.view.milestones) if (mark.derived === true) mark.ms = 0;
     const newest = this.view.lastMs;
     const oldest = this.view.events[0];
     if (newest !== null && oldest !== undefined && newest - eventMs(oldest) > 2 * FORGET_MS) this.view.forgetBefore(newest - FORGET_MS);

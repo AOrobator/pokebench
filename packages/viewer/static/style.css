@@ -128,7 +128,7 @@ table.splits tr.next td { background: rgba(124, 200, 232, .25); }
 svg.lanes { width: 100%; height: 100%; display: block; }
 .lanes .lane { fill: rgba(255, 255, 255, .06); }
 .lanes .lane.alt { fill: rgba(255, 255, 255, .03); }
-.lanes-wrap { position: relative; display: grid; grid-template-columns: max-content minmax(0, 1fr); height: 170px; }
+.lanes-wrap { position: relative; display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 170px; }
 .lanes-zebra { position: absolute; inset: 0; }
 .lanes-labels { position: relative; display: flex; flex-direction: column; padding: 0 3px 0 8px; }
 .lanes-labels .lab { flex: 1; display: flex; align-items: center; white-space: nowrap; }

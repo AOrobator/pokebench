@@ -19,3 +19,5 @@ Operator request (the operator, 2026-11-04): items stream in and clip behind a l
 - [ ] M4 Land, post-merge test, `just viewer-main`, live check
 
 ## Multi-Model Review Log
+
+Correction during proof: the first page of a mid-run feed derived false "recovered" diamonds (CLOCK_SET at evidence #11834 on the live run). `TimelineFeed` now keeps those as repeat guards off the window. Grid row sizing fixed after the first headless check.

@@ -84,7 +84,7 @@ it('draws milestones as diamonds alone, with no dots for native activity',()=>{
  const log=new Log();log.add(0,START);
  log.add(500,{type:'milestone',turn:0,name:'PLAYER_NAME_SET',server_timestamp:1});
  log.add(1000,{type:'activity',turn:0,kind:'capture',count:1,server_timestamp:1,evidence:[1,2]});
- log.add(1500,{type:'native_action',turn:0,id:1,frame:10,server_timestamp:(BASE_MS+1500)/1000,kind:'map_change',details:{}});
+ log.add(1500,{type:'native_action',turn:0,id:1,frame:10,server_timestamp:(BASE_MS+1500)/1000,kind:'menu_changed',details:{}});
  const v=view(log);expect(v.activities).toHaveLength(1);
  for(const lanes of [LANES,['presses','milestones'] as const]){const svg=lanesSvg(v,BASE_MS+4000,lanes);expect(svg).not.toContain('<circle');expect(svg).not.toContain('m-activity');expect(svg.match(/<path class="m-milestone"/g)).toHaveLength(1);}
 });

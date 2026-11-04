@@ -38,6 +38,13 @@ describe("the clip line and the moving strip",()=>{
   expect(root.querySelector<HTMLElement>(".lanes-strip")?.style.transform).toBe("translateX(-6.7%)");expect(marks(root)).toHaveLength(1);
   const broken={innerHTML:"",querySelector:()=>null} as unknown as HTMLElement;expect(()=>{new LaneMotion(broken).render(view(log),BASE_MS,1);}).not.toThrow();
  });
+ it("shows no recovered diamond for a first page that opens mid-run, but keeps real and later ones",()=>{
+  const sample=(ms:number,seq:number,name:string)=>({v:1,run:"r",seq,t:new Date(BASE_MS+ms).toISOString(),type:"milestone",turn:1,name,server_timestamp:1}) as unknown as Parameters<RunView["apply"]>[0];
+  const feed=new TimelineFeed(null);feed.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS+1000,seq:1,derived:true});
+  feed.add([sample(1000,40,"ROUTE_101")]);expect(feed.view.milestones.map(mark=>mark.ms)).toEqual([0,BASE_MS+1000]);
+  feed.view.milestones.push({name:"LATER",ms:BASE_MS+2000,seq:41,derived:true});feed.add([sample(2000,41,"RUSTURF")]);expect(feed.view.milestones.at(-2)?.ms).toBe(BASE_MS+2000);
+  const opening=new TimelineFeed(null);opening.view.milestones.push({name:"CLOCK_SET",ms:BASE_MS,seq:0,derived:true});opening.add([sample(0,0,"BOOT")]);expect(opening.view.milestones[0]?.ms).toBe(BASE_MS);
+ });
  it("folds each event once and draws the same window after forgetting old history",()=>{
   const log=new Log();log.add(0,START);const at=Array.from({length:60},(_,i)=>i*10_000+1000);spans(log,...at);
   log.add(597_000,{type:"retry",turn:1,attempt:1,limit:3,reason:"late"});
